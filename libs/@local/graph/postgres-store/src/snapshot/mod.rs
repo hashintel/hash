@@ -18,11 +18,9 @@ mod entity;
 mod error;
 mod metadata;
 mod ontology;
-mod owner;
 mod policy;
 mod principal;
 mod restore;
-mod web;
 
 use core::{error::Error, future::ready};
 
@@ -31,19 +29,6 @@ use error_stack::{Report, ResultExt as _, ensure};
 use futures::{
     Sink, SinkExt as _, Stream, StreamExt as _, TryFutureExt as _, TryStreamExt as _,
     channel::mpsc, stream,
-};
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    backend::ZanzibarBackend,
-    schema::{
-        AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
-        EntityRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
-        WebRelationAndSubject,
-    },
-    zanzibar::{
-        Consistency,
-        types::{RelationshipFilter, ResourceFilter},
-    },
 };
 use hash_graph_store::{error::InsertionError, filter::QueryRecord, pool::StorePool, query::Read};
 use hash_status::StatusCode;
@@ -56,10 +41,8 @@ use type_system::{
         id::{EntityId, EntityUuid},
     },
     ontology::{
-        VersionedUrl,
-        data_type::{DataTypeUuid, DataTypeWithMetadata},
-        entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
-        property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
+        VersionedUrl, data_type::DataTypeWithMetadata, entity_type::EntityTypeWithMetadata,
+        property_type::PropertyTypeWithMetadata,
     },
     principal::{
         Actor, ActorGroup, Principal, PrincipalType, Role,
@@ -78,32 +61,23 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
     pub id: ActorGroupEntityUuid,
-    pub relations: Vec<AccountGroupRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SnapshotWeb {
     pub id: WebId,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub relations: Vec<WebRelationAndSubject>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "namespace")]
 pub enum AuthorizationRelation {
-    Entity {
-        object: EntityUuid,
-        #[serde(flatten)]
-        relationship: EntityRelationAndSubject,
-    },
+    Entity { object: EntityUuid },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
-    AccountGroup(AccountGroup),
-    Web(SnapshotWeb),
     Principal(Principal),
     Action(ActionSnapshotRecord),
     Policy(PolicyEditionSnapshotRecord),
@@ -116,7 +90,6 @@ pub enum SnapshotEntry {
     EntityTypeEmbedding(EntityTypeEmbeddingRecord),
     Entity(Box<Entity>),
     EntityEmbedding(EntityEmbeddingRecord),
-    Relation(AuthorizationRelation),
 }
 
 impl SnapshotEntry {
@@ -128,12 +101,6 @@ impl SnapshotEntry {
                     "graph version: {}",
                     global_metadata.block_protocol_module_versions.graph
                 ));
-            }
-            Self::AccountGroup(account_group) => {
-                context.push_body(format!("account group: {}", account_group.id));
-            }
-            Self::Web(web) => {
-                context.push_body(format!("web: {}", web.id));
             }
             Self::Principal(principal) => {
                 context.push_body(format!("principal: {}", principal.id()));
@@ -190,17 +157,6 @@ impl SnapshotEntry {
                         .push_appendix(format!("{}:\n{json}", entity.metadata.record_id.entity_id));
                 }
             }
-            Self::Relation(AuthorizationRelation::Entity {
-                object: id,
-                relationship: relation,
-            }) => {
-                context.push_body(format!("relation: {id}"));
-                if context.alternate()
-                    && let Ok(json) = serde_json::to_string_pretty(relation)
-                {
-                    context.push_appendix(format!("{id}:\n{json}"));
-                }
-            }
             Self::DataTypeEmbedding(embedding) => {
                 context.push_body(format!("data type embedding: {}", embedding.data_type_id));
                 if context.alternate()
@@ -246,24 +202,24 @@ impl SnapshotEntry {
     }
 }
 
-trait WriteBatch<C, A> {
+trait WriteBatch<C> {
     fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
     fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         ignore_validation_errors: bool,
     ) -> impl Future<Output = Result<(), Report<InsertionError>>> + Send;
 }
 
-pub struct SnapshotStore<C, A>(PostgresStore<C, A>);
+pub struct SnapshotStore<C>(PostgresStore<C>);
 
-impl<C, A> SnapshotStore<C, A> {
-    pub const fn new(store: PostgresStore<C, A>) -> Self {
+impl<C> SnapshotStore<C> {
+    pub const fn new(store: PostgresStore<C>) -> Self {
         Self(store)
     }
 }
@@ -283,82 +239,9 @@ pub struct SnapshotDumpSettings {
     pub dump_property_types: bool,
     pub dump_data_types: bool,
     pub dump_embeddings: bool,
-    pub dump_relations: bool,
 }
 
 impl PostgresStorePool {
-    async fn read_account_groups<'a>(
-        &'a self,
-        authorization_api: &'a (impl ZanzibarBackend + Sync),
-    ) -> Result<
-        impl Stream<Item = Result<AccountGroup, Report<SnapshotDumpError>>> + Send + 'a,
-        Report<SnapshotDumpError>,
-    > {
-        // TODO: Make account groups a first-class `Record` type
-        //   see https://linear.app/hash/issue/H-752
-        Ok(self
-            .acquire(NoAuthorization, None)
-            .await
-            .change_context(SnapshotDumpError::Query)?
-            .as_client()
-            .query_raw("SELECT id FROM actor_group", [] as [&(dyn ToSql + Sync); 0])
-            .await
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
-            .and_then(move |row| async move {
-                let id: ActorGroupEntityUuid = row.get(0);
-                Ok(AccountGroup {
-                    id,
-                    relations: authorization_api
-                        .read_relations::<(ActorGroupEntityUuid, AccountGroupRelationAndSubject)>(
-                            RelationshipFilter::from_resource(id),
-                            Consistency::FullyConsistent,
-                        )
-                        .await
-                        .change_context(SnapshotDumpError::Query)?
-                        .map_ok(|(_group, relation)| relation)
-                        .try_collect()
-                        .await
-                        .change_context(SnapshotDumpError::Query)?,
-                })
-            }))
-    }
-
-    async fn read_snapshot_webs<'a>(
-        &'a self,
-        authorization_api: &'a (impl ZanzibarBackend + Sync),
-    ) -> Result<
-        impl Stream<Item = Result<SnapshotWeb, Report<SnapshotDumpError>>> + Send + 'a,
-        Report<SnapshotDumpError>,
-    > {
-        Ok(self
-            .acquire(NoAuthorization, None)
-            .await
-            .change_context(SnapshotDumpError::Query)?
-            .as_client()
-            .query_raw("SELECT id FROM web", [] as [&(dyn ToSql + Sync); 0])
-            .await
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
-            .and_then(move |row| async move {
-                let id = row.get(0);
-                Ok(SnapshotWeb {
-                    id,
-                    relations: authorization_api
-                        .read_relations::<(WebId, WebRelationAndSubject)>(
-                            RelationshipFilter::from_resource(id),
-                            Consistency::FullyConsistent,
-                        )
-                        .await
-                        .change_context(SnapshotDumpError::Query)?
-                        .map_ok(|(_web_id, relation)| relation)
-                        .try_collect()
-                        .await
-                        .change_context(SnapshotDumpError::Query)?,
-                })
-            }))
-    }
-
     async fn read_users(
         &self,
     ) -> Result<
@@ -366,7 +249,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -417,7 +300,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -471,7 +354,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -525,7 +408,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -560,7 +443,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -608,7 +491,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -654,7 +537,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -691,7 +574,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -745,7 +628,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -777,12 +660,12 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     >
     where
-        <Self as StorePool>::Store<'pool, NoAuthorization>: Read<T>,
+        <Self as StorePool>::Store<'pool>: Read<T>,
         T: QueryRecord + 'pool,
     {
         Ok(Read::<T>::read(
             &self
-                .acquire(NoAuthorization, None)
+                .acquire(None)
                 .await
                 .change_context(SnapshotDumpError::Query)?,
             &[],
@@ -801,7 +684,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -833,7 +716,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -865,7 +748,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -897,7 +780,7 @@ impl PostgresStorePool {
         Report<SnapshotDumpError>,
     > {
         Ok(self
-            .acquire(NoAuthorization, None)
+            .acquire(None)
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
@@ -946,7 +829,6 @@ impl PostgresStorePool {
         sink: impl Sink<SnapshotEntry, Error = Report<impl Error + Send + Sync + 'static>>
         + Send
         + 'static,
-        authorization_api: &(impl ZanzibarBackend + Sync),
         settings: SnapshotDumpSettings,
     ) -> Result<(), Report<SnapshotDumpError>> {
         let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(settings.chunk_size);
@@ -978,19 +860,6 @@ impl PostgresStorePool {
                         .chain(self.read_teams().try_flatten_stream())
                         .chain(self.read_roles().try_flatten_stream())
                         .map_ok(SnapshotEntry::Principal)
-                        .forward(snapshot_record_tx.clone()),
-                );
-                scope.spawn(
-                    self.read_snapshot_webs(authorization_api)
-                        .try_flatten_stream()
-                        .map_ok(SnapshotEntry::Web)
-                        .forward(snapshot_record_tx.clone()),
-                );
-
-                scope.spawn(
-                    self.read_account_groups(authorization_api)
-                        .try_flatten_stream()
-                        .map_ok(SnapshotEntry::AccountGroup)
                         .forward(snapshot_record_tx.clone()),
                 );
             }
@@ -1027,19 +896,6 @@ impl PostgresStorePool {
                         .and_then(move |record| async move {
                             Ok(SnapshotEntry::DataType(Box::new(DataTypeSnapshotRecord {
                                 schema: record.schema,
-                                relations: authorization_api
-                                    .read_relations::<(DataTypeUuid, DataTypeRelationAndSubject)>(
-                                        RelationshipFilter::from_resource(DataTypeUuid::from_url(
-                                            &VersionedUrl::from(record.metadata.record_id.clone()),
-                                        )),
-                                        Consistency::FullyConsistent,
-                                    )
-                                    .await
-                                    .change_context(SnapshotDumpError::Query)?
-                                    .map_ok(|(_, relation)| relation)
-                                    .try_collect()
-                                    .await
-                                    .change_context(SnapshotDumpError::Query)?,
                                 metadata: record.metadata,
                             })))
                         })
@@ -1052,40 +908,12 @@ impl PostgresStorePool {
                     self.create_dump_stream::<PropertyTypeWithMetadata>()
                         .try_flatten_stream()
                         .and_then(move |record| async move {
-                            Ok(
-                                SnapshotEntry::PropertyType(
-                                    Box::new(
-                                        PropertyTypeSnapshotRecord {
-                                            schema: record.schema,
-                                            relations:
-                                                authorization_api
-                                                    .read_relations::<(
-                                                        PropertyTypeUuid,
-                                                        PropertyTypeRelationAndSubject,
-                                                    )>(
-                                                        RelationshipFilter::from_resource(
-                                                            PropertyTypeUuid::from_url(
-                                                                &VersionedUrl::from(
-                                                                    record
-                                                                        .metadata
-                                                                        .record_id
-                                                                        .clone(),
-                                                                ),
-                                                            ),
-                                                        ),
-                                                        Consistency::FullyConsistent,
-                                                    )
-                                                    .await
-                                                    .change_context(SnapshotDumpError::Query)?
-                                                    .map_ok(|(_, relation)| relation)
-                                                    .try_collect()
-                                                    .await
-                                                    .change_context(SnapshotDumpError::Query)?,
-                                            metadata: record.metadata,
-                                        },
-                                    ),
-                                ),
-                            )
+                            Ok(SnapshotEntry::PropertyType(Box::new(
+                                PropertyTypeSnapshotRecord {
+                                    schema: record.schema,
+                                    metadata: record.metadata,
+                                },
+                            )))
                         })
                         .forward(snapshot_record_tx.clone()),
                 );
@@ -1093,31 +921,18 @@ impl PostgresStorePool {
 
             if settings.dump_entity_types {
                 scope.spawn(
-                        self.create_dump_stream::<EntityTypeWithMetadata>()
-                            .try_flatten_stream()
-                            .and_then(move |record| async move {
-                                Ok(SnapshotEntry::EntityType(Box::new(EntityTypeSnapshotRecord {
+                    self.create_dump_stream::<EntityTypeWithMetadata>()
+                        .try_flatten_stream()
+                        .and_then(move |record| async move {
+                            Ok(SnapshotEntry::EntityType(Box::new(
+                                EntityTypeSnapshotRecord {
                                     schema: record.schema,
-                                    relations: authorization_api
-                                        .read_relations::<(EntityTypeUuid, EntityTypeRelationAndSubject)>(
-                                            RelationshipFilter::from_resource(EntityTypeUuid::from_url(
-                                                &VersionedUrl::from(record.metadata.record_id.clone()),
-                                            )),
-                                            Consistency::FullyConsistent,
-                                        )
-                                        .await
-                                        .change_context(SnapshotDumpError::Query)?
-                                        .try_filter_map(| (_, relation)| async move  {
-                                             Ok((!matches!(relation,  EntityTypeRelationAndSubject::Instantiator { .. })).then_some(relation))
-                                        })
-                                        .try_collect()
-                                        .await
-                                        .change_context(SnapshotDumpError::Query)?,
                                     metadata: record.metadata,
-                                })))
-                            })
-                            .forward(snapshot_record_tx.clone()),
-                    );
+                                },
+                            )))
+                        })
+                        .forward(snapshot_record_tx.clone()),
+                );
             }
 
             if settings.dump_entities {
@@ -1160,27 +975,6 @@ impl PostgresStorePool {
                         .forward(snapshot_record_tx.clone()),
                 );
             }
-
-            if settings.dump_entities && settings.dump_relations {
-                scope.spawn(
-                    authorization_api
-                        .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                            RelationshipFilter::from_resource(ResourceFilter::from_kind(
-                                EntityNamespace::Entity,
-                            )),
-                            Consistency::FullyConsistent,
-                        )
-                        .try_flatten_stream()
-                        .map(|result| result.change_context(SnapshotDumpError::Query))
-                        .map_ok(|(id, relation)| {
-                            SnapshotEntry::Relation(AuthorizationRelation::Entity {
-                                object: id,
-                                relationship: relation,
-                            })
-                        })
-                        .forward(snapshot_record_tx),
-                );
-            }
         });
 
         for result in results {
@@ -1191,10 +985,9 @@ impl PostgresStorePool {
     }
 }
 
-impl<C, A> SnapshotStore<C, A>
+impl<C> SnapshotStore<C>
 where
     C: AsClient,
-    A: ZanzibarBackend + AuthorizationApi,
 {
     /// Reads the snapshot from the stream into the store.
     ///

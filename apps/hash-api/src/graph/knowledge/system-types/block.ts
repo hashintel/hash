@@ -9,7 +9,6 @@ import type {
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -124,7 +123,6 @@ export const createBlock: ImpureGraphFunction<
       },
     },
     entityTypeIds: [systemEntityTypes.block.entityTypeId],
-    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   await createLinkEntity<HasData>(ctx, authentication, {
@@ -135,7 +133,6 @@ export const createBlock: ImpureGraphFunction<
       rightEntityId: blockData.metadata.recordId.entityId,
     },
     entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
-    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return getBlockFromEntity({ entity });
@@ -237,7 +234,6 @@ export const updateBlockDataEntity: ImpureGraphFunction<
       rightEntityId: newBlockDataEntity.metadata.recordId.entityId,
     },
     entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
-    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 };
 

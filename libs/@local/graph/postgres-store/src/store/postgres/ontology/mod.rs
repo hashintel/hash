@@ -36,10 +36,7 @@ use crate::store::{
     },
 };
 
-impl<A> PostgresStore<Transaction<'_>, A>
-where
-    A: Send + Sync,
-{
+impl PostgresStore<Transaction<'_>> {
     /// Deletes ontology metadata for the specified ontology type UUIDs.
     ///
     /// This function removes ontology ownership metadata, temporal metadata,

@@ -1,5 +1,4 @@
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
 
@@ -15,14 +14,11 @@ pub enum PolicyRowBatch {
     Action(Vec<PolicyActionRow>),
 }
 
-impl<C, A> WriteBatch<C, A> for PolicyRowBatch
+impl<C> WriteBatch<C> for PolicyRowBatch
 where
     C: AsClient,
-    A: AuthorizationApi + ZanzibarBackend + Send + Sync,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -49,7 +45,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -106,7 +102,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client

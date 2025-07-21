@@ -56,17 +56,6 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
   });
 %}
 
-### Check permission for adding member to account group
-GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/permissions/add_member
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.has_permission, "Account group can not add new owners");
-    });
-%}
-
 ### Add account group member
 POST http://127.0.0.1:4000/actor-groups/{{account_group_id}}/roles/member/actors/{{system_machine_id}}
 Content-Type: application/json
@@ -78,17 +67,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
 %}
 
-### Get account group members
-GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/relations
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 2, "Unexpected number of account group members");
-    });
-%}
-
 ### Remove account group member
 DELETE http://127.0.0.1:4000/actor-groups/{{account_group_id}}/roles/member/actors/{{system_machine_id}}
 X-Authenticated-User-Actor-Id: {{user_id}}
@@ -96,17 +74,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
-    });
-%}
-
-### Get account group members
-GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/relations
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.length === 1, "Unexpected number of account group members");
     });
 %}
 
@@ -182,22 +149,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       "type": "api"
     }
   },
-  "conversions": {},
-  "relationships": [
-    {
-      "relation": "viewer",
-      "subject": {
-        "kind": "public"
-      }
-    },
-    {
-      "relation": "setting",
-      "subject": {
-        "kind": "setting",
-        "subjectId": "updateFromWeb"
-      }
-    }
-  ]
+  "conversions": {}
 }
 
 > {%
@@ -250,13 +202,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       "type": "api"
     }
   },
-  "conversions": {},
-  "relationships": [{
-    "relation": "viewer",
-    "subject": {
-      "kind": "public"
-    }
-  }]
+  "conversions": {}
 }
 
 > {%
@@ -353,22 +299,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "type": "api"
       }
     },
-    "conversions": {},
-    "relationships": [
-      {
-        "relation": "viewer",
-        "subject": {
-          "kind": "public"
-        }
-      },
-      {
-        "relation": "setting",
-        "subject": {
-          "kind": "setting",
-          "subjectId": "updateFromWeb"
-        }
-      }
-    ]
+    "conversions": {}
   }
 ]
 
@@ -424,14 +355,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -486,14 +410,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -584,14 +501,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -685,13 +595,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "viewer",
-    "subject": {
-      "kind": "public"
-    }
-  }]
+  }
 }
 
 > {%
@@ -748,14 +652,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -854,14 +751,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -969,14 +859,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -1356,14 +1239,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-       "kind": "setting",
-       "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -1565,14 +1441,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-       "kind": "setting",
-       "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -1722,14 +1591,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-       "kind": "setting",
-       "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -2254,13 +2116,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       "type": "api"
     }
   },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-       "kind": "setting",
-       "subjectId": "administratorFromWeb"
-    }
-  }],
   "decisionTime": "2020-01-01T00:00:00.000Z"
 }
 

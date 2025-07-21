@@ -15,9 +15,8 @@ use harpc_server::{
 use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, either::Either, request::Request, response::Response};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
-use hash_graph_authorization::{
-    AuthorizationApiPool,
-    policies::store::{PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus},
+use hash_graph_authorization::policies::store::{
+    PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
 };
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
@@ -145,32 +144,18 @@ pub mod meta {
 
 #[derive(Debug)]
 #[derive_where::derive_where(Clone)]
-pub struct AccountServer<S, A> {
-    pub authorization_api_pool: Arc<A>,
+pub struct AccountServer<S> {
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub store_pool: Arc<S>,
 }
 
-impl<S, A> AccountServer<S, A>
+impl<S> AccountServer<S>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
 {
-    async fn authorization_api(&self) -> Result<A::Api<'_>, Report<AccountError>> {
-        self.authorization_api_pool
-            .acquire()
-            .await
-            .inspect_err(|error| {
-                tracing::error!(?error, "Could not acquire access to the authorization API");
-            })
-            .change_context(AccountError)
-    }
-
-    async fn store(&self) -> Result<S::Store<'_, A::Api<'_>>, Report<AccountError>> {
-        let authorization_api = self.authorization_api().await?;
-
+    async fn store(&self) -> Result<S::Store<'_>, Report<AccountError>> {
         self.store_pool
-            .acquire(authorization_api, self.temporal_client.clone())
+            .acquire(self.temporal_client.clone())
             .await
             .inspect_err(|report| {
                 tracing::error!(error=?report, "Could not acquire store");
@@ -197,11 +182,10 @@ where
     }
 }
 
-impl<S, A> AccountSystem for AccountServer<S, A>
+impl<S> AccountSystem for AccountServer<S>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+    for<'p> S::Store<'p>: PrincipalStore,
 {
     type ExecutionScope = Session<Account>;
 

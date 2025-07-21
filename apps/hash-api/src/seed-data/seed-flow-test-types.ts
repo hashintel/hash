@@ -11,11 +11,6 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { EntityTypeRelationAndSubject } from "@local/hash-graph-client/dist/api.d";
-import {
-  defaultEntityTypeAuthorizationRelationships,
-  defaultPropertyTypeAuthorizationRelationships,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
@@ -101,7 +96,6 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       webId,
       schema: propertyTypeSchema,
       webShortname,
-      relationships: defaultPropertyTypeAuthorizationRelationships,
     },
   ).catch((createError) => {
     throw createError;
@@ -146,14 +140,10 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
-  const relationships: EntityTypeRelationAndSubject[] =
-    defaultEntityTypeAuthorizationRelationships;
-
   const createdEntityType = await createEntityType(context, authentication, {
     webId,
     schema: entityTypeSchema,
     webShortname,
-    relationships,
   }).catch((createError) => {
     throw createError;
   });

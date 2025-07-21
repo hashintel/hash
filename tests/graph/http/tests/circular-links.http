@@ -60,13 +60,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "viewer",
-    "subject": {
-      "kind": "public"
-    }
-  }]
+  }
 }
 
 > {%
@@ -98,14 +92,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -149,14 +136,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "updateFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -184,14 +164,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -218,14 +191,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -252,14 +218,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -286,14 +245,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -324,14 +276,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -361,14 +306,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -398,14 +336,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -435,14 +366,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -473,14 +397,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -512,14 +429,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -551,14 +461,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%
@@ -590,14 +493,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     "origin": {
       "type": "api"
     }
-  },
-  "relationships": [{
-    "relation": "setting",
-    "subject": {
-      "kind": "setting",
-      "subjectId": "administratorFromWeb"
-    }
-  }]
+  }
 }
 
 > {%

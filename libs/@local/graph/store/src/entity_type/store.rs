@@ -3,9 +3,8 @@ use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::{
-    policies::{action::ActionName, principal::actor::AuthenticatedActor},
-    schema::EntityTypeRelationAndSubject,
+use hash_graph_authorization::policies::{
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
@@ -33,15 +32,10 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateEntityTypeParams<R> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateEntityTypeParams {
     pub schema: EntityType,
     pub ownership: OntologyOwnership,
-    pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
@@ -215,9 +209,8 @@ pub struct GetClosedMultiEntityTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateEntityTypesParams<R> {
+pub struct UpdateEntityTypesParams {
     pub schema: EntityType,
-    pub relationships: R,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -268,14 +261,13 @@ pub trait EntityTypeStore {
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_entity_type<R>(
+    fn create_entity_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateEntityTypeParams<R>,
+        params: CreateEntityTypeParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -294,14 +286,13 @@ pub trait EntityTypeStore {
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_entity_types<P, R>(
+    fn create_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
-        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send;
 
     /// Count the number of [`EntityType`]s specified by the [`CountEntityTypesParams`].
     ///
@@ -372,14 +363,13 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    fn update_entity_type<R>(
+    fn update_entity_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: UpdateEntityTypesParams<R>,
+        params: UpdateEntityTypesParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -395,14 +385,13 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`]s do not exist.
-    fn update_entity_types<P, R>(
+    fn update_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
     where
-        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send;
 
     /// Archives the definition of an existing [`EntityType`].
     ///

@@ -26,10 +26,9 @@ use type_system::{
 
 use crate::store::postgres::{AsClient, PostgresStore};
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: Send + Sync,
 {
     #[tracing::instrument(level = "info", skip(self, data_type_ids, subgraph))]
     async fn read_data_types_by_ids(
@@ -221,9 +220,9 @@ impl TraversalContext {
     /// Returns an error if any of the database read operations fail or if there are issues
     /// inserting vertices into the subgraph.
     #[tracing::instrument(level = "info", skip(self, store, subgraph))]
-    pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
+    pub async fn read_traversed_vertices<C: AsClient>(
         self,
-        store: &PostgresStore<C, A>,
+        store: &PostgresStore<C>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
     ) -> Result<(), Report<QueryError>> {

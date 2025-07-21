@@ -9,14 +9,12 @@ import type {
   Entity,
   EntityId,
   EntityUuid,
-  MachineId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -257,7 +255,6 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
 
 export const linkIntegrationToWeb: ImpureGraphFunction<
   {
-    linearBotMachineId: MachineId;
     linearIntegrationEntityId: EntityId;
     webEntityId: EntityId;
     linearTeamIds: string[];
@@ -268,7 +265,6 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
   true
 > = async (context, authentication, params) => {
   const {
-    linearBotMachineId,
     linearIntegrationEntityId,
     webEntityId,
     linearTeamIds,
@@ -353,41 +349,6 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       ],
     });
   } else {
-    /**
-     * Allow the user creating the link, the Linear bot and the web admins to administer the link (e.g. to delete it),
-     * and allow other web members to view the link.
-     */
-    const linearIntegrationRelationships: EntityRelationAndSubjectBranded[] = [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: authentication.actorId,
-        },
-      },
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          subjectId: linearBotMachineId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
-    ];
-
     const linearIntegrationWebId = extractWebIdFromEntityId(
       linearIntegrationEntityId,
     );
@@ -404,7 +365,6 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       entityTypeIds: [
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       ],
-      relationships: linearIntegrationRelationships,
     });
   }
 };

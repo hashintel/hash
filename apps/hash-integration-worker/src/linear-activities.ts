@@ -16,10 +16,7 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type {
-  EntityRelationAndSubject,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { GraphApi } from "@local/hash-graph-client";
 import {
   HashEntity,
   HashLinkEntity,
@@ -51,42 +48,6 @@ const provenance: ProvidedEntityEditionProvenance = {
   } satisfies OriginProvenance,
 };
 
-const createLinearHashEntityAuthRelationships = ({
-  machineActorId,
-}: {
-  machineActorId: MachineId;
-}) =>
-  [
-    /**
-     * The Linear bot needs permissions to be able to archive and update entities
-     */
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: machineActorId,
-      },
-    },
-    /**
-     * @todo H-4778 make entities editable by web members once sync back to Linear is restored
-     */
-    // {
-    //   relation: "setting",
-    //   subject: {
-    //     kind: "setting",
-    //     subjectId: "administratorFromWeb",
-    //   },
-    // },
-    // {
-    //   relation: "setting",
-    //   subject: { kind: "setting", subjectId: "updateFromWeb" },
-    // },
-    {
-      relation: "setting",
-      subject: { kind: "setting", subjectId: "viewFromWeb" },
-    },
-  ] as const satisfies EntityRelationAndSubject[];
-
 const createHashEntity = async (params: {
   authentication: { actorId: MachineId };
   graphApiClient: GraphApi;
@@ -105,9 +66,6 @@ const createHashEntity = async (params: {
     {
       webId,
       draft: false,
-      relationships: createLinearHashEntityAuthRelationships({
-        machineActorId: params.authentication.actorId,
-      }),
       properties: mergePropertyObjectAndMetadata(
         (params.partialEntity.properties as
           | HashEntity["properties"]
@@ -134,9 +92,6 @@ const createHashEntity = async (params: {
           properties: { value: {} },
           provenance,
           draft: false,
-          relationships: createLinearHashEntityAuthRelationships({
-            machineActorId: params.authentication.actorId,
-          }),
         };
       }),
     );
@@ -227,9 +182,6 @@ const createOrUpdateHashEntity = async (params: {
             webId: params.webId,
             entityUuid: linkEntityUuid,
             draft: false,
-            relationships: createLinearHashEntityAuthRelationships({
-              machineActorId: params.authentication.actorId,
-            }),
           });
         },
       ),

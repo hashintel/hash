@@ -8,7 +8,6 @@ import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
-  defaultDataTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -144,7 +143,6 @@ export const createDataTypeResolver: ResolverFn<
     {
       webId,
       schema: dataType,
-      relationships: defaultDataTypeAuthorizationRelationships,
       conversions: conversions ?? {},
     },
   );
@@ -164,7 +162,6 @@ export const updateDataTypeResolver: ResolverFn<
     {
       dataTypeId: params.dataTypeId,
       schema: params.dataType,
-      relationships: defaultDataTypeAuthorizationRelationships,
       conversions: {},
     },
   );

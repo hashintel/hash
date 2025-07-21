@@ -4,7 +4,6 @@ use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use tokio_postgres::{
@@ -87,24 +86,21 @@ impl PostgresStorePool {
 
 impl StorePool for PostgresStorePool {
     type Error = PoolError;
-    type Store<'pool, A: AuthorizationApi> = PostgresStore<Object, A>;
+    type Store<'pool> = PostgresStore<Object>;
 
-    async fn acquire<A: AuthorizationApi>(
+    async fn acquire(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'_, A>, Report<Self::Error>> {
-        self.acquire_owned(authorization_api, temporal_client).await
+    ) -> Result<Self::Store<'_>, Report<Self::Error>> {
+        self.acquire_owned(temporal_client).await
     }
 
-    async fn acquire_owned<A: AuthorizationApi>(
+    async fn acquire_owned(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'static, A>, Report<Self::Error>> {
+    ) -> Result<Self::Store<'static>, Report<Self::Error>> {
         Ok(PostgresStore::new(
             self.pool.get().await?,
-            authorization_api,
             temporal_client,
             self.settings.clone(),
         ))
@@ -154,10 +150,9 @@ impl AsClient for Transaction<'_> {
     }
 }
 
-impl<C, A> AsClient for PostgresStore<C, A>
+impl<C> AsClient for PostgresStore<C>
 where
     C: AsClient,
-    A: Send + Sync,
 {
     type Client = C::Client;
 

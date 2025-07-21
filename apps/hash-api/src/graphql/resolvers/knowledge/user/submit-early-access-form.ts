@@ -1,5 +1,4 @@
 import type { WebId } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -25,11 +24,6 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const authentication = {
     actorId: systemAccountId,
   };
-
-  const { id: adminAccountGroupId } = await getInstanceAdminsTeam(
-    context,
-    authentication,
-  );
 
   await createEntity<ProspectiveUser>(
     context,
@@ -92,44 +86,6 @@ export const submitEarlyAccessFormResolver: ResolverFn<
           },
         },
       },
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: systemAccountId,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "accountGroup",
-            subjectId: adminAccountGroupId,
-            subjectSet: "member",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "account",
-            subjectId: user.accountId,
-          },
-        },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "administratorFromWeb",
-          },
-        },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "viewFromWeb",
-          },
-        },
-      ],
       policies: [
         {
           name: "prospective-user-view-entity",

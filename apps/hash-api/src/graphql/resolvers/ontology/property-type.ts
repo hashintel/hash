@@ -7,7 +7,6 @@ import type {
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  defaultPropertyTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -53,7 +52,6 @@ export const createPropertyTypeResolver: ResolverFn<
     {
       webId: (webId ?? user.accountId) as WebId,
       schema: propertyType,
-      relationships: defaultPropertyTypeAuthorizationRelationships,
     },
   );
 
@@ -163,21 +161,6 @@ export const updatePropertyTypeResolver: ResolverFn<
     {
       propertyTypeId: params.propertyTypeId,
       schema: params.updatedPropertyType,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     },
   );
 

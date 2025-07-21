@@ -2,7 +2,6 @@ use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use hash_codec::numeric::Real;
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
@@ -32,9 +31,7 @@ use type_system::{
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed<A: AuthorizationApi>(
-    database: &mut DatabaseTestWrapper<A>,
-) -> DatabaseApi<'_, &mut A> {
+async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
         .seed(
             [
@@ -104,7 +101,6 @@ async fn properties_add() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
                 policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -225,7 +221,6 @@ async fn properties_remove() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
                 policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -313,7 +308,6 @@ async fn properties_replace() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
                 policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -416,7 +410,6 @@ async fn type_ids() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
                 policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,

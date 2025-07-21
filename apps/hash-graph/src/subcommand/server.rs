@@ -17,10 +17,7 @@ use hash_graph_api::{
     rest::{QueryLogger, RestRouterDependencies, rest_api_router},
     rpc::Dependencies,
 };
-use hash_graph_authorization::{
-    AuthorizationApiPool, backend::SpiceDbOpenApi, policies::store::PrincipalStore,
-    zanzibar::ZanzibarClient,
-};
+use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -149,18 +146,6 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false)]
     pub offline: bool,
 
-    /// The host the Spice DB server is listening at.
-    #[clap(long, env = "HASH_SPICEDB_HOST")]
-    pub spicedb_host: String,
-
-    /// The port the Spice DB server is listening at.
-    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT", default_value_t = 8443)]
-    pub spicedb_http_port: u16,
-
-    /// The secret key used to authenticate with the Spice DB server.
-    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
-    pub spicedb_grpc_preshared_key: Option<String>,
-
     /// The URL of the Temporal server.
     ///
     /// If not set, the service will not trigger workflows.
@@ -206,14 +191,13 @@ impl IntoFuture for RpcServerTaskTracker {
     }
 }
 
-fn server_rpc<S, A>(
+fn server_rpc<S>(
     address: RpcAddress,
-    dependencies: Dependencies<S, A, ()>,
+    dependencies: Dependencies<S, ()>,
 ) -> Result<RpcServerTaskTracker, Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+    for<'p> S::Store<'p>: PrincipalStore,
 {
     let server = Server::new(harpc_server::ServerConfig::default()).change_context(GraphError)?;
     let cancellation_token = server.cancellation_token();
@@ -221,7 +205,6 @@ where
     let (router, task) = hash_graph_api::rpc::rpc_router(
         Dependencies {
             store: dependencies.store,
-            authorization_api: dependencies.authorization_api,
             temporal_client: dependencies.temporal_client,
             codec: JsonCodec,
         },
@@ -291,14 +274,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         report
     })?;
 
-    let zanzibar_client = ZanzibarClient::new(
-        SpiceDbOpenApi::new(
-            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-            args.spicedb_grpc_preshared_key.as_deref(),
-        )
-        .change_context(GraphError)?,
-    );
-
     let temporal_client_fn = |host: Option<String>, port: u16| async move {
         if let Some(host) = host {
             TemporalClientConfig::new(
@@ -315,17 +290,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     // Just test the connection; we don't need to use the store
     _ = pool
-        .acquire(
-            zanzibar_client
-                .acquire()
-                .await
-                .change_context(GraphError)
-                .map_err(|report| {
-                    tracing::error!(error = ?report, "Failed to acquire authorization client");
-                    report
-                })?,
-            None,
-        )
+        .acquire(None)
         .await
         .change_context(GraphError)
         .attach_printable("Connection to database failed")?;
@@ -358,7 +323,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
     let (router, rpc_server_task_tracker) = {
         let dependencies = RestRouterDependencies {
             store: Arc::new(pool),
-            authorization_api: Arc::new(zanzibar_client),
             domain_regex: DomainValidator::new(args.allowed_url_domain),
             temporal_client: temporal_client_fn(args.temporal_host.clone(), args.temporal_port)
                 .await?,
@@ -376,7 +340,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
                 args.rpc_address,
                 Dependencies {
                     store: Arc::clone(&dependencies.store),
-                    authorization_api: Arc::clone(&dependencies.authorization_api),
                     temporal_client: temporal_client_fn(args.temporal_host, args.temporal_port)
                         .await?,
                     codec: (),

@@ -3,9 +3,8 @@ use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
+use hash_graph_authorization::policies::store::{
+    CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
@@ -54,9 +53,9 @@ struct DatastoreEntitiesMetadata {
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(
+async fn seed_db(
     account_id: ActorEntityUuid,
-    store_wrapper: &mut StoreWrapper<A>,
+    store_wrapper: &mut StoreWrapper,
     total: usize,
 ) -> DatastoreEntitiesMetadata {
     let mut transaction = store_wrapper
@@ -149,7 +148,6 @@ async fn seed_db<A: AuthorizationApi>(
                     confidence: None,
                     link_data: None,
                     draft: false,
-                    relationships: [],
                     policies: Vec::new(),
                     provenance: ProvidedEntityEditionProvenance {
                         actor_type: ActorType::User,
@@ -190,7 +188,6 @@ async fn seed_db<A: AuthorizationApi>(
                             right_entity_provenance: PropertyProvenance::default(),
                         }),
                         draft: false,
-                        relationships: [],
                         policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
@@ -223,10 +220,10 @@ async fn seed_db<A: AuthorizationApi>(
     }
 }
 
-pub fn bench_get_entity_by_id<A: AuthorizationApi>(
+pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store<A>,
+    store: &Store,
     actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
@@ -294,7 +291,7 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let DatastoreEntitiesMetadata {
             entity_list: entity_metadata_list,
@@ -347,7 +344,7 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);
+        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
 
         let DatastoreEntitiesMetadata {
             entity_list: entity_metadata_list,
