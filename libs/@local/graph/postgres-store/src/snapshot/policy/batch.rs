@@ -55,6 +55,7 @@ where
                         "
                             INSERT INTO policy_tmp
                             SELECT DISTINCT * FROM UNNEST($1::policy[])
+                            ON CONFLICT DO NOTHING
                             RETURNING 1;
                         ",
                         &[&policy],

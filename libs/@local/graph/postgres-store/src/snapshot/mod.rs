@@ -840,16 +840,6 @@ impl PostgresStorePool {
                 sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
             ));
 
-            scope.spawn(
-                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
-                    block_protocol_module_versions: BlockProtocolModuleVersions {
-                        graph: semver::Version::new(0, 3, 0),
-                    },
-                    custom: CustomGlobalMetadata,
-                }))))
-                .forward(snapshot_record_tx.clone()),
-            );
-
             if settings.dump_principals {
                 scope.spawn(
                     self.read_users()
@@ -975,6 +965,16 @@ impl PostgresStorePool {
                         .forward(snapshot_record_tx.clone()),
                 );
             }
+
+            scope.spawn(
+                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                    block_protocol_module_versions: BlockProtocolModuleVersions {
+                        graph: semver::Version::new(0, 3, 0),
+                    },
+                    custom: CustomGlobalMetadata,
+                }))))
+                .forward(snapshot_record_tx),
+            );
         });
 
         for result in results {

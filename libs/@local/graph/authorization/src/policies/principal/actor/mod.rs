@@ -6,15 +6,14 @@ use alloc::sync::Arc;
 use core::iter;
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::principal::actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId};
 
 use crate::policies::{
     cedar::{
-        FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId,
-        ToCedarRestrictedExpr,
+        FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId, ToCedarValue,
     },
     error::FromCedarRefernceError,
 };
@@ -86,37 +85,34 @@ impl ToCedarEntityId for PublicActor {
 
 impl ToCedarEntity for PublicActor {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.to_euid(),
             [(
                 SmolStr::new_static("id"),
-                ast::RestrictedExpr::record([
-                    (
-                        SmolStr::new_static("id"),
-                        ast::RestrictedExpr::val("00000000-0000-0000-0000-000000000000"),
-                    ),
-                    (
-                        SmolStr::new_static("type"),
-                        ast::RestrictedExpr::val("public"),
-                    ),
-                ])
-                .expect("No duplicate keys in public actor record"),
+                ast::PartialValue::Value(ast::Value::record(
+                    [
+                        (
+                            SmolStr::new_static("id"),
+                            SmolStr::new_static("00000000-0000-0000-0000-000000000000"),
+                        ),
+                        (SmolStr::new_static("type"), SmolStr::new_static("public")),
+                    ],
+                    None,
+                )),
             )],
             HashSet::new(),
             HashSet::new(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Public actor should be a valid Cedar entity")
     }
 }
 
-impl ToCedarRestrictedExpr for ActorId {
-    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr {
+impl ToCedarValue for ActorId {
+    fn to_cedar_value(&self) -> ast::Value {
         match self {
-            Self::User(user_id) => user_id.to_cedar_restricted_expr(),
-            Self::Machine(machine_id) => machine_id.to_cedar_restricted_expr(),
-            Self::Ai(ai_id) => ai_id.to_cedar_restricted_expr(),
+            Self::User(user_id) => user_id.to_cedar_value(),
+            Self::Machine(machine_id) => machine_id.to_cedar_value(),
+            Self::Ai(ai_id) => ai_id.to_cedar_value(),
         }
     }
 }
