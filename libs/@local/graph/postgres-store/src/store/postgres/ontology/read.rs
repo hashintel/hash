@@ -14,6 +14,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::ontology::{
     EntityTypeWithMetadata, OntologyTemporalMetadata,
     entity_type::{ClosedEntityTypeWithMetadata, EntityTypeMetadata, EntityTypeUuid},
@@ -94,6 +95,13 @@ impl<C: AsClient> PostgresStore<C> {
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(QueryError)?
             .map(move |row| {
@@ -192,6 +200,12 @@ impl<C: AsClient> PostgresStore<C> {
                 ),
                 &[&record_ids.ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .into_iter()

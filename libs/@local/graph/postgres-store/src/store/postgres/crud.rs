@@ -112,7 +112,13 @@ where
         let stream = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?;
 
@@ -155,7 +161,13 @@ where
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
@@ -182,7 +194,13 @@ where
         let rows = self
             .as_client()
             .query(&statement, parameters)
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?;
 

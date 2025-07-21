@@ -131,6 +131,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
 
         client
             .execute("INSERT INTO policy (id) VALUES ($1)", &[&policy_id])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(CreatePolicyError::StoreError)?;
 
@@ -152,6 +158,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &policy.resource.as_ref().map(Json),
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| {
                 let policy_error = match (error.code(), principal_id) {
@@ -180,6 +192,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     )",
                     &[&policy_id, &action],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .map_err(|error| {
                     let policy_error = match error.code() {
@@ -205,6 +223,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "SELECT id FROM machine_actor WHERE identifier = $1",
                 &[&identifier],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetSystemAccountError::StoreError)?
             .map(|row| row.get::<_, MachineId>(0))
@@ -311,6 +335,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 "SELECT EXISTS (SELECT 1 FROM policy WHERE id = $1)",
                 &[&policy_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdatePolicyError::StoreError)?
             .get::<_, bool>(0);
@@ -359,6 +389,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     ",
                     &[&policy_id, &actions_to_remove],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdatePolicyError::StoreError)?;
         }
@@ -373,6 +409,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     ",
                     &[&policy_id, &actions_to_add],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdatePolicyError::StoreError)?;
         }
@@ -429,6 +471,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     ),
                     &parameters,
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdatePolicyError::StoreError)?;
         }
@@ -477,6 +525,12 @@ where
                 ",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map(|row| {
@@ -497,6 +551,7 @@ where
             .transpose()
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn read_policies_from_database(
         &self,
         filter: &PolicyFilter,
@@ -580,6 +635,12 @@ where
                 ),
                 parameters,
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
@@ -621,6 +682,12 @@ where
                 ",
                 &[&policy_id],
             )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(RemovePolicyError::StoreError)
     }
@@ -631,6 +698,12 @@ where
     ) -> Result<u64, Report<RemovePolicyError>> {
         self.as_mut_client()
             .execute("DELETE FROM policy WHERE id = $1", &[&policy_id])
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(RemovePolicyError::StoreError)
     }
@@ -661,6 +734,7 @@ where
         Ok(machine_id)
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn create_web(
         &mut self,
         actor: ActorId,
@@ -706,6 +780,12 @@ where
                 "INSERT INTO web (id, shortname) VALUES ($1, $2)",
                 &[&web_id, &parameter.shortname],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| match error.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => {
@@ -794,6 +874,12 @@ where
                 ",
                 &[&web_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(WebRoleError::StoreError)?
             .map_ok(|row| {
@@ -827,6 +913,12 @@ where
                 ",
                 &[&team_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(TeamRoleError::StoreError)?
             .map_ok(|row| {
@@ -931,6 +1023,12 @@ where
                 ",
                 &[&actor_id, &actor_group_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .map(|row| row.get(0)))
@@ -949,6 +1047,12 @@ where
                  WHERE role.actor_group_id = $1 AND role.name = $2",
                 [&actor_group_id as &(dyn ToSql + Sync), &role],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .map_ok(|row| row.get::<_, ActorEntityUuid>(0))
@@ -1029,6 +1133,12 @@ where
                 "SELECT principal_type FROM actor WHERE id = $1",
                 &[&actor_entity_uuid],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DetermineActorError::StoreError)?
             .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
@@ -1108,6 +1218,12 @@ where
                  ",
                 &[&group_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildPrincipalContextError::StoreError)?
             .map_ok(|row| match row.get(0) {
@@ -1298,6 +1414,12 @@ where
                 ",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map(|row| {
@@ -1506,10 +1628,10 @@ where
                 ],
             )
             .instrument(tracing::info_span!(
-                "sql_policy_query_execution",
-                actor_uuid = %actor_id,
-                actor_type = ?actor_id.actor_type(),
-                action_count = params.actions.len()
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
             ))
             .await
             .change_context(GetPoliciesError::StoreError)?
@@ -1743,6 +1865,12 @@ where
                 ",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?
             .map_ok(|row| WebRole {
@@ -1824,6 +1952,12 @@ where
                     )",
                 [&entity_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildEntityTypeContextError::StoreError)?
             .map(|row| {
@@ -1881,6 +2015,12 @@ where
                  ",
                 [&entity_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildEntityTypeContextError::StoreError)?
             .map_ok(|row| EntityTypeResource {
@@ -1912,6 +2052,12 @@ where
                     )",
                 [&property_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildPropertyTypeContextError::StoreError)?
             .map(|row| {
@@ -1951,6 +2097,12 @@ where
                  ",
                 [&property_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildPropertyTypeContextError::StoreError)?
             .map_ok(|row| PropertyTypeResource {
@@ -1982,6 +2134,12 @@ where
                     )",
                 [&data_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildDataTypeContextError::StoreError)?
             .map(|row| {
@@ -2018,6 +2176,12 @@ where
                  ",
                 [&data_type_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildDataTypeContextError::StoreError)?
             .map_ok(|row| DataTypeResource {
@@ -2054,6 +2218,12 @@ where
                     )",
                 [&entity_edition_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildEntityContextError::StoreError)?
             .map(|row| {
@@ -2107,6 +2277,12 @@ where
                  ",
                 [&entity_edition_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(BuildEntityContextError::StoreError)?
             .map_ok(|row| {
@@ -2234,6 +2410,12 @@ where
                         "INSERT INTO base_urls (base_url) VALUES ($1);",
                         &[&base_url.as_str()],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
@@ -2257,6 +2439,12 @@ where
                         ",
                         &[&base_url.as_str()],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?
                     .is_some();
@@ -2284,6 +2472,12 @@ where
                     let exists_in_specified_location: bool = self
                         .as_client()
                         .query_one(query, &[&base_url.as_str()])
+                        .instrument(tracing::info_span!(
+                            "SELECT",
+                            otel.kind = "client",
+                            db.system = "postgresql",
+                            peer.service = "Postgres"
+                        ))
                         .await
                         .change_context(InsertionError)
                         .map(|row| row.get(0))?;
@@ -2337,6 +2531,12 @@ where
                     &ontology_id.version,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
@@ -2367,6 +2567,12 @@ where
 
         self.as_client()
             .query_one(query, &[&ontology_id, &provenance])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .map(|row| row.get(0))
@@ -2395,6 +2601,12 @@ where
         let optional = self
             .as_client()
             .query_opt(query, &[&id.base_url, &id.version, &archived_by_id])
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
         if let Some(row) = optional {
@@ -2414,6 +2626,12 @@ where
                     ",
                     &[&id.base_url.as_str(), &id.version],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?
                 .get(0);
@@ -2452,6 +2670,12 @@ where
             transaction_time: self
                 .as_client()
                 .query_one(query, &[&id.base_url, &id.version, &provenance])
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .map_err(Report::new)
                 .map_err(|report| match report.current_context().code() {
@@ -2486,6 +2710,12 @@ where
 
         self.as_client()
             .query(query, &[&ontology_id, &web_id])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -2506,6 +2736,12 @@ where
 
         self.as_client()
             .query(query, &[&ontology_id, &fetched_at])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -2538,6 +2774,12 @@ where
                 ",
                 &[&ontology_id, data_type, closed_data_type],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?
             .map(|row| row.get(0));
@@ -2575,6 +2817,12 @@ where
                     ",
                     &[&ontology_id, &target, &depth],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2606,6 +2854,12 @@ where
                 ",
                 &[&ontology_id, property_type],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?
             .map(|row| row.get(0)))
@@ -2637,6 +2891,12 @@ where
                 ",
                 &[&ontology_id, entity_type, closed_entity_type],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?
             .map(|row| row.get(0)))
@@ -2667,6 +2927,12 @@ where
                         &property_type.url.version,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2690,6 +2956,12 @@ where
                         &data_type.url.version,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2698,6 +2970,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn insert_entity_type_references(
         &self,
         entity_type_uuid: EntityTypeUuid,
@@ -2719,6 +2992,12 @@ where
                     ",
                     &[&entity_type_uuid, &target_id, &depth],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2738,6 +3017,12 @@ where
                     ",
                     &[&entity_type_uuid, &target_id, &depth],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2757,6 +3042,12 @@ where
                     ",
                     &[&entity_type_uuid, &target_id, &depth],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2776,6 +3067,12 @@ where
                     ",
                     &[&entity_type_uuid, &target_id, &depth],
                 )
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2903,6 +3200,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ;",
                 &[&url.base_url, &previous_version],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?
             .map(|row| row.get(0))
@@ -2919,6 +3222,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                   );",
                     &[&url.base_url, &previous_version],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)
                 .map(|row| row.get(0))?;
@@ -3050,6 +3359,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 GROUP BY user_actor.id",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetActorError)?
             .map(|row| {
@@ -3096,6 +3411,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 GROUP BY machine_actor.id, machine_actor.identifier",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetActorError)?
             .map(|row| {
@@ -3143,6 +3464,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 GROUP BY machine_actor.id, machine_actor.identifier",
                 &[&identifier],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetActorError)?
             .map(|row| {
@@ -3190,6 +3517,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 GROUP BY ai_actor.id, ai_actor.identifier",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetActorError)?
             .map(|row| {
@@ -3237,6 +3570,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 GROUP BY ai_actor.id, ai_actor.identifier",
                 &[&identifier],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(GetActorError)?
             .map(|row| {
@@ -3340,6 +3679,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 ",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
@@ -3371,6 +3716,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 ",
                 &[&shortname],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
@@ -3452,6 +3803,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 ",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(TeamRetrievalError)?
             .map(|row| {
@@ -3497,6 +3854,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 ",
                 &[&name],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(TeamRetrievalError)?
             .map(|row| {
@@ -3541,16 +3904,34 @@ where
         self.as_client()
             .client()
             .simple_query("DELETE FROM policy;")
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
         self.as_client()
             .client()
             .simple_query("DELETE FROM action;")
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
         self.as_client()
             .client()
             .simple_query("DELETE FROM principal;")
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 

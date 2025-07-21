@@ -16,19 +16,26 @@ const traceTimeout = 5000;
 
 const unregisterInstrumentations = registerInstrumentations({
   instrumentations: [
-    new HttpInstrumentation(),
+    new HttpInstrumentation({
+      ignoreOutgoingRequestHook: (options) => {
+        return options.port === 4317;
+      },
+    }),
     new ExpressInstrumentation({
       ignoreLayersType: [ExpressLayerType.MIDDLEWARE],
     }),
     new GraphQLInstrumentation({
       allowValues: true,
       depth: 5,
+      mergeItems: true,
+      ignoreTrivialResolveSpans: true,
     }),
   ],
 });
 
 export const registerOpenTelemetryTracing = (
   otlpGrpcEndpoint: string | null,
+  serviceName: string,
 ): (() => void) => {
   if (!otlpGrpcEndpoint) {
     logger.warn(
@@ -46,7 +53,7 @@ export const registerOpenTelemetryTracing = (
 
   const provider = new NodeTracerProvider({
     resource: Resource.default().merge(
-      new Resource({ "service.name": "hash-api" }),
+      new Resource({ "service.name": serviceName }),
     ),
   });
 
@@ -55,7 +62,7 @@ export const registerOpenTelemetryTracing = (
   provider.register();
 
   logger.info(
-    `Registered OpenTelemetry trace exporter at endpoint ${otlpGrpcEndpoint}`,
+    `Registered OpenTelemetry trace exporter at endpoint ${otlpGrpcEndpoint} for ${serviceName}`,
   );
 
   return () => {

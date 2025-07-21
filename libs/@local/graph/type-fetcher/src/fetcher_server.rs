@@ -8,6 +8,8 @@ use reqwest::{
     Client,
     header::{ACCEPT, USER_AGENT},
 };
+use reqwest_middleware::ClientBuilder;
+use reqwest_tracing::TracingMiddleware;
 use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::ontology::VersionedUrl;
@@ -29,6 +31,7 @@ impl FetchServer {
     ///
     /// - If the predefined types directory cannot be found
     /// - If a predefined type cannot be deserialized
+    #[tracing::instrument(skip(self))]
     pub fn load_predefined_types(&mut self) -> Result<(), Report<io::Error>> {
         for entry in PREDEFINED_TYPES.find("**/*.json").change_context_lazy(|| {
             io::Error::new(
@@ -54,12 +57,19 @@ impl FetchServer {
 }
 
 impl Fetcher for FetchServer {
+    #[tracing::instrument(skip(self, _context))]
     async fn fetch_ontology_types(
-        self,
+        mut self,
         _context: Context,
         ontology_type_urls: Vec<VersionedUrl>,
     ) -> Result<Vec<(FetchedOntologyType, OffsetDateTime)>, FetcherError> {
-        let client = Client::new();
+        self.load_predefined_types().map_err(|err| {
+            FetcherError::PredefinedTypes(format!("Error loading predefined types: {err:?}"))
+        })?;
+
+        let client = ClientBuilder::new(Client::new())
+            .with(TracingMiddleware::default())
+            .build();
         let predefined_types = &self.predefined_types;
         stream::iter(ontology_type_urls)
             .map(|url| {
@@ -77,13 +87,13 @@ impl Fetcher for FetchServer {
                             .await
                             .map_err(|err| {
                                 tracing::error!(error=?err, %url, "Could not fetch ontology type");
-                                FetcherError::NetworkError(format!("Error fetching {url}: {err:?}"))
+                                FetcherError::Network(format!("Error fetching {url}: {err:?}"))
                             })?
                             .json::<FetchedOntologyType>()
                             .await
                             .map_err(|err| {
                                 tracing::error!(error=?err, %url, "Could not deserialize response");
-                                FetcherError::SerializationError(format!(
+                                FetcherError::Serialization(format!(
                                     "Error deserializing {url}: {err:?}"
                                 ))
                             })?

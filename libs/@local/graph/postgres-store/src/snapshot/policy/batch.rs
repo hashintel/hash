@@ -1,6 +1,7 @@
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 
 use super::table::{PolicyActionRow, PolicyEditionRow, PolicyRow};
 use crate::{
@@ -37,6 +38,12 @@ where
                         ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -60,6 +67,12 @@ where
                         ",
                         &[&policy],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -76,6 +89,12 @@ where
                         ",
                         &[&edition],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -92,6 +111,12 @@ where
                         ",
                         &[&action],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -121,6 +146,12 @@ where
                         SELECT * FROM policy_action_tmp;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 

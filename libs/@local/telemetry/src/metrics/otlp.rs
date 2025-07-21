@@ -6,14 +6,15 @@ use crate::OtlpConfig;
 
 pub(crate) fn provider(
     config: &OtlpConfig,
+    service_name: &'static str,
 ) -> Result<Option<SdkMeterProvider>, Report<ExporterBuildError>> {
-    let Some(endpoint) = config.metrics_endpoint.as_deref() else {
+    let Some(endpoint) = config.endpoint.as_deref() else {
         return Ok(None);
     };
 
     Ok(Some(
         SdkMeterProvider::builder()
-            .with_resource(Resource::builder().with_service_name("graph").build())
+            .with_resource(Resource::builder().with_service_name(service_name).build())
             .with_periodic_exporter(
                 MetricExporter::builder()
                     .with_tonic()
