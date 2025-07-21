@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 use core::iter;
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::principal::actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId};
@@ -85,28 +85,25 @@ impl ToCedarEntityId for PublicActor {
 
 impl ToCedarEntity for PublicActor {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.to_euid(),
             [(
                 SmolStr::new_static("id"),
-                ast::RestrictedExpr::record([
-                    (
-                        SmolStr::new_static("id"),
-                        ast::RestrictedExpr::val("00000000-0000-0000-0000-000000000000"),
-                    ),
-                    (
-                        SmolStr::new_static("type"),
-                        ast::RestrictedExpr::val("public"),
-                    ),
-                ])
-                .expect("No duplicate keys in public actor record"),
+                ast::PartialValue::Value(ast::Value::record(
+                    [
+                        (
+                            SmolStr::new_static("id"),
+                            SmolStr::new_static("00000000-0000-0000-0000-000000000000"),
+                        ),
+                        (SmolStr::new_static("type"), SmolStr::new_static("public")),
+                    ],
+                    None,
+                )),
             )],
             HashSet::new(),
             HashSet::new(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Public actor should be a valid Cedar entity")
     }
 }
 

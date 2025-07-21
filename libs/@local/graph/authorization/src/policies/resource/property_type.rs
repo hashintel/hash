@@ -2,9 +2,9 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{error::Error, fmt, iter, ptr, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
-use smol_str::SmolStr;
+use smol_str::{SmolStr, ToSmolStr as _};
 use type_system::{
     ontology::id::{BaseUrl, OntologyTypeVersion, ParseVersionedUrlError, VersionedUrl},
     principal::actor_group::WebId,
@@ -74,20 +74,33 @@ pub struct PropertyTypeResource<'a> {
 
 impl PropertyTypeResource<'_> {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             [
                 (
                     SmolStr::new_static("base_url"),
-                    ast::RestrictedExpr::val(self.id.as_url().base_url.to_string()),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::String(
+                            self.id.as_url().base_url.to_smolstr(),
+                        )),
+                        None,
+                    )),
                 ),
                 (
                     SmolStr::new_static("version"),
-                    ast::RestrictedExpr::val(i64::from(self.id.as_url().version.inner())),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::Long(ast::Integer::from(
+                            self.id.as_url().version.inner(),
+                        ))),
+                        None,
+                    )),
                 ),
                 (
                     SmolStr::new_static("is_remote"),
-                    ast::RestrictedExpr::val(self.web_id.is_none()),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::Bool(self.web_id.is_none())),
+                        None,
+                    )),
                 ),
             ],
             HashSet::new(),
@@ -97,9 +110,7 @@ impl PropertyTypeResource<'_> {
                 .map(WebId::to_euid)
                 .collect(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Property type should be a valid Cedar entity")
     }
 }
 
