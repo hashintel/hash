@@ -182,6 +182,25 @@ fn system_actor_view_entity_policies(
                 filters: vec![
                     SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                     PROSPECTIVE_USER.entity_is_of_base_type(),
+                ],
+            },
+        })),
+    })
+}
+
+fn system_actor_invitation_entity_policies(
+    system_machine_actor: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("system-machine-invitation-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(system_machine_actor),
+        }),
+        actions: vec![ActionName::ViewEntity, ActionName::ArchiveEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: vec![
                     INVITATION_VIA_EMAIL.entity_is_of_base_type(),
                     INVITATION_VIA_SHORTNAME.entity_is_of_base_type(),
                     HAS_ISSUED_INVITATION.entity_is_of_base_type(),
@@ -196,6 +215,9 @@ pub(crate) fn system_actor_policies(
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
+        .chain(system_actor_invitation_entity_policies(
+            system_machine_actor,
+        ))
         .chain(iter::once(system_actor_meta_policy(system_machine_actor)))
 }
 
