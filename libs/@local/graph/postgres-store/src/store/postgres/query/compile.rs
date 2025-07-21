@@ -355,10 +355,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    #[expect(
-        clippy::return_and_then,
-        reason = "False positive: the function does not return an `Option`"
-    )]
     fn add_condition(&mut self, condition: Condition, table: Option<AliasedTable>) {
         // If a table is provided and we have a join on that table, we add the condition to the
         // join.

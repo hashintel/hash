@@ -8,13 +8,13 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+clorinde                 = { path = "clorinde", public = true, default-features = false, features = ["deadpool"] }
 hash-graph-authorization = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
-clorinde = { path = "clorinde", default-features = false, features = ["deadpool"] }
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
