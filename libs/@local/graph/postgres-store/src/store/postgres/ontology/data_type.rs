@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-    principal::actor::AuthenticatedActor,
+    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     data_type::{
@@ -485,7 +485,7 @@ where
 
         let policy_components = policy_components_builder
             .with_actor(actor_id)
-            .with_actions([ActionName::CreateDataType], false)
+            .with_actions([ActionName::CreateDataType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
 
@@ -656,7 +656,7 @@ where
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewDataType, true)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -680,7 +680,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewDataType, true)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -709,7 +709,7 @@ where
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewDataType, true)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -874,7 +874,7 @@ where
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
             .with_data_type_ids(&old_data_type_ids)
-            .with_actions([ActionName::UpdateDataType], false)
+            .with_actions([ActionName::UpdateDataType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1050,7 +1050,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_data_type_id(&params.data_type_id)
-            .with_actions([ActionName::ArchiveDataType], false)
+            .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1092,7 +1092,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_data_type_id(&params.data_type_id)
-            .with_actions([ActionName::ArchiveDataType], false)
+            .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1216,7 +1216,7 @@ where
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions([ActionName::ViewDataType], true)
+            .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1448,7 +1448,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(params.action, true)
+            .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(

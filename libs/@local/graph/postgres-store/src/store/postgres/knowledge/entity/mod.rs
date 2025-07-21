@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
-    Authorized, PolicyComponents, Request, RequestContext, ResourceId,
+    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
     principal::actor::AuthenticatedActor,
     resource::{EntityResourceConstraint, ResourceConstraint},
@@ -759,7 +759,10 @@ where
         let policy_components = policy_components_builder
             .with_actor(actor_id)
             .with_entity_type_ids(entity_type_id_set)
-            .with_actions([ActionName::Instantiate, ActionName::CreateEntity], false)
+            .with_actions(
+                [ActionName::Instantiate, ActionName::CreateEntity],
+                MergePolicies::No,
+            )
             .with_actions(
                 [
                     ActionName::ViewEntity,
@@ -767,7 +770,7 @@ where
                     ActionName::ViewPropertyType,
                     ActionName::ViewDataType,
                 ],
-                true,
+                MergePolicies::Yes,
             )
             .await
             .change_context(InsertionError)?;
@@ -1133,7 +1136,7 @@ where
                     ActionName::ViewPropertyType,
                     ActionName::ViewDataType,
                 ],
-                true,
+                MergePolicies::Yes,
             )
             .await
             .change_context(QueryError)?;
@@ -1221,7 +1224,7 @@ where
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1293,7 +1296,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions(actions, true)
+            .with_actions(actions, MergePolicies::Yes)
             .into_future()
             .await
             .change_context(QueryError)?;
@@ -1473,7 +1476,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1525,7 +1528,7 @@ where
     ) -> Result<Entity, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true)
+            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1622,7 +1625,7 @@ where
                     ActionName::UpdateEntity,
                     ActionName::ArchiveEntity,
                 ],
-                false,
+                MergePolicies::No,
             )
             .with_actions(
                 [
@@ -1631,7 +1634,7 @@ where
                     ActionName::ViewPropertyType,
                     ActionName::ViewDataType,
                 ],
-                true,
+                MergePolicies::Yes,
             )
             .await
             .change_context(UpdateError)?;
@@ -2225,7 +2228,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(params.action, true)
+            .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<Entity>::for_policies(

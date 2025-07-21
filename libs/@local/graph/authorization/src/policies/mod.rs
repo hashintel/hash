@@ -31,7 +31,7 @@ use self::{
 };
 pub use self::{
     cedar::PolicyExpressionTree,
-    components::{OptimizationData, PolicyComponents, PolicyComponentsBuilder},
+    components::{MergePolicies, OptimizationData, PolicyComponents, PolicyComponentsBuilder},
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,
