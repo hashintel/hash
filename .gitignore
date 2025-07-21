@@ -78,6 +78,7 @@ blocks/**/.env
 .env.*.local
 **/mise*.local.toml
 **/mise/config*.local.toml
+CLAUDE.local.md
 
 # macOS directory file
 **/.DS_Store
