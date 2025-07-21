@@ -2,9 +2,9 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{error::Error, iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
-use smol_str::SmolStr;
+use smol_str::{SmolStr, ToSmolStr as _};
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
     ontology::{BaseUrl, VersionedUrl},
@@ -15,7 +15,7 @@ use uuid::Uuid;
 use super::entity_type::EntityTypeId;
 use crate::policies::cedar::{
     CedarExpressionParseError, FromCedarEntityId, FromCedarExpr, PolicyExpressionTree,
-    ToCedarEntityId, ToCedarExpr, ToCedarRestrictedExpr as _,
+    ToCedarEntityId, ToCedarExpr, ToCedarValue as _,
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -151,36 +151,36 @@ impl FromCedarExpr for EntityResourceFilter {
 
 impl EntityResource<'_> {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.entity_uuid.to_euid(),
             [
                 (
                     SmolStr::new_static("entity_types"),
-                    ast::RestrictedExpr::set(
-                        self.entity_types
-                            .iter()
-                            .map(|url| ast::RestrictedExpr::val(versioned_url_to_euid(url))),
-                    ),
+                    ast::PartialValue::Value(ast::Value::set_of_lits(
+                        self.entity_types.iter().map(|url| {
+                            ast::Literal::EntityUID(Arc::new(versioned_url_to_euid(url)))
+                        }),
+                        None,
+                    )),
                 ),
                 (
-                    SmolStr::new_static("entity_base_types"),
-                    ast::RestrictedExpr::set(
+                    SmolStr::new_static("entity_types"),
+                    ast::PartialValue::Value(ast::Value::set_of_lits(
                         self.entity_base_types
                             .iter()
-                            .map(|url| ast::RestrictedExpr::val(url.as_str())),
-                    ),
+                            .map(|url| ast::Literal::String(url.to_smolstr())),
+                        None,
+                    )),
                 ),
                 (
                     SmolStr::new_static("created_by"),
-                    self.created_by.to_cedar_restricted_expr(),
+                    ast::PartialValue::Value(self.created_by.to_cedar_value()),
                 ),
             ],
             HashSet::new(),
             iter::once(self.id.web_id.to_euid()).collect(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Entity should be a valid Cedar entity")
     }
 }
 

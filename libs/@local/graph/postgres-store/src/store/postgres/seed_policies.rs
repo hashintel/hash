@@ -1019,18 +1019,33 @@ impl PostgresStore<Transaction<'_>> {
             ));
         }
 
-        for policy_id in policies_to_remove {
-            self.archive_policy_from_database(policy_id)
+        for (index, policy_id) in policies_to_remove.iter().enumerate() {
+            tracing::debug!(
+                %policy_id,
+                "Removing policy from database {index}/{}",
+                policies_to_remove.len()
+            );
+            self.archive_policy_from_database(*policy_id)
                 .await
                 .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
         }
-        for policy in policies_to_add {
-            self.insert_policy_into_database(&policy)
+        for (index, policy) in policies_to_add.iter().enumerate() {
+            tracing::debug!(
+                policy_name = policy.name,
+                "Adding policy to database {index}/{}",
+                policies_to_add.len()
+            );
+            self.insert_policy_into_database(policy)
                 .await
                 .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
         }
-        for (policy_id, operations) in policies_to_update {
-            self.update_policy_in_database(policy_id, &operations)
+        for (index, (policy_id, operations)) in policies_to_update.iter().enumerate() {
+            tracing::debug!(
+                %policy_id,
+                "Updating policy in database {index}/{}",
+                policies_to_update.len()
+            );
+            self.update_policy_in_database(*policy_id, operations)
                 .await
                 .change_context(EnsureSystemPoliciesError::UpdatePolicyFailed)?;
         }

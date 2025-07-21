@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::Report;
 use smol_str::SmolStr;
 use type_system::principal::{
@@ -11,20 +11,17 @@ use type_system::principal::{
 };
 use uuid::Uuid;
 
-use crate::policies::cedar::{
-    FromCedarEntityId, ToCedarEntity, ToCedarEntityId, ToCedarRestrictedExpr,
-};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId, ToCedarValue};
 
-impl ToCedarRestrictedExpr for AiId {
-    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr {
-        ast::RestrictedExpr::record([
-            (
-                SmolStr::new_static("id"),
-                ast::RestrictedExpr::val(self.to_string()),
-            ),
-            (SmolStr::new_static("type"), ast::RestrictedExpr::val("ai")),
-        ])
-        .expect("No duplicate keys in ai record")
+impl ToCedarValue for AiId {
+    fn to_cedar_value(&self) -> ast::Value {
+        ast::Value::record(
+            [
+                (SmolStr::new_static("id"), SmolStr::new(self.to_string())),
+                (SmolStr::new_static("type"), SmolStr::new_static("ai")),
+            ],
+            None,
+        )
     }
 }
 
@@ -54,18 +51,16 @@ impl ToCedarEntityId for AiId {
 
 impl ToCedarEntity for Ai {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             [(
                 SmolStr::new_static("id"),
-                self.id.to_cedar_restricted_expr(),
+                ast::PartialValue::Value(self.id.to_cedar_value()),
             )],
             HashSet::new(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Ai should be a valid Cedar entity")
     }
 }
 

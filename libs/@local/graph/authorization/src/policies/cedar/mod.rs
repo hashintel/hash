@@ -11,8 +11,8 @@ pub use self::expression_tree::PolicyExpressionTree;
 pub(crate) use self::visitor::CedarExpressionParseError;
 use crate::policies::error::FromCedarRefernceError;
 
-pub(crate) trait ToCedarRestrictedExpr {
-    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr;
+pub(crate) trait ToCedarValue {
+    fn to_cedar_value(&self) -> ast::Value;
 }
 
 pub(crate) trait ToCedarExpr {
@@ -21,10 +21,10 @@ pub(crate) trait ToCedarExpr {
 
 impl<T> ToCedarExpr for T
 where
-    T: ToCedarRestrictedExpr,
+    T: ToCedarValue,
 {
     fn to_cedar_expr(&self) -> ast::Expr {
-        self.to_cedar_restricted_expr().into()
+        self.to_cedar_value().into()
     }
 }
 

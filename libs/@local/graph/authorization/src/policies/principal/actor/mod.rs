@@ -13,8 +13,7 @@ use type_system::principal::actor::{Actor, ActorEntityUuid, ActorId, AiId, Machi
 
 use crate::policies::{
     cedar::{
-        FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId,
-        ToCedarRestrictedExpr,
+        FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId, ToCedarValue,
     },
     error::FromCedarRefernceError,
 };
@@ -111,12 +110,12 @@ impl ToCedarEntity for PublicActor {
     }
 }
 
-impl ToCedarRestrictedExpr for ActorId {
-    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr {
+impl ToCedarValue for ActorId {
+    fn to_cedar_value(&self) -> ast::Value {
         match self {
-            Self::User(user_id) => user_id.to_cedar_restricted_expr(),
-            Self::Machine(machine_id) => machine_id.to_cedar_restricted_expr(),
-            Self::Ai(ai_id) => ai_id.to_cedar_restricted_expr(),
+            Self::User(user_id) => user_id.to_cedar_value(),
+            Self::Machine(machine_id) => machine_id.to_cedar_value(),
+            Self::Ai(ai_id) => ai_id.to_cedar_value(),
         }
     }
 }

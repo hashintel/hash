@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{error::Error, iter};
 use std::collections::HashSet;
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
 use smol_str::{SmolStr, ToSmolStr as _};
 use type_system::principal::actor_group::WebId;
@@ -20,6 +20,7 @@ use crate::policies::{
     },
 };
 
+#[derive(Debug)]
 pub struct PolicyMetaResource<'a> {
     pub id: PolicyId,
     pub actions: &'a [ActionName],
@@ -44,22 +45,21 @@ impl PolicyMetaResource<'_> {
             ) => HashSet::from([web_id.to_euid()]),
             _ => HashSet::new(),
         };
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             [(
                 SmolStr::new_static("actions"),
-                ast::RestrictedExpr::set(
+                ast::PartialValue::Value(ast::Value::set_of_lits(
                     self.actions
                         .iter()
-                        .map(|action| ast::RestrictedExpr::val(action.to_smolstr())),
-                ),
+                        .map(|action| ast::Literal::String(action.to_smolstr())),
+                    None,
+                )),
             )],
             HashSet::new(),
             parents,
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Policy should be a valid Cedar entity")
     }
 }
 
