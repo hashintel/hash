@@ -38,7 +38,7 @@ tokio          = { workspace = true, features = ["fs"] }
 tracing        = { workspace = true }
 
 [features]
-macros = ["dep:hash-graph-migrations-macros", "dep:include_dir"]
+macros = ["dep:hash-graph-migrations-macros", "dep:include_dir", "dep:include_dir_macros"]
 cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-telemetry", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
 
 [lints]
