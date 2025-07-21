@@ -1,5 +1,23 @@
 # HASH Development Guide
 
+## Critical Thinking and Feedback
+
+**IMPORTANT: Always critically evaluate and challenge user suggestions, even when they seem reasonable.**
+
+- **Question assumptions**: Don't just agree - analyze if there are better approaches
+- **Offer alternative perspectives**: Suggest different solutions or point out potential issues
+- **Challenge organization decisions**: If something doesn't fit logically, speak up
+- **Point out inconsistencies**: Help catch logical errors or misplaced components
+
+This critical feedback helps improve decision-making and ensures robust solutions. Being agreeable is less valuable than being thoughtful and analytical.
+
+### Example Behaviors
+
+- ✅ "I disagree - that component belongs in a different file because..."
+- ✅ "Have you considered this alternative approach?"
+- ✅ "This seems inconsistent with the pattern we established..."
+- ❌ Just implementing suggestions without evaluation
+
 ## Repository Structure and Navigation
 
 The HASH repository is organized into several key directories:
