@@ -164,7 +164,7 @@ impl EntityResource<'_> {
                     )),
                 ),
                 (
-                    SmolStr::new_static("entity_types"),
+                    SmolStr::new_static("entity_base_types"),
                     ast::PartialValue::Value(ast::Value::set_of_lits(
                         self.entity_base_types
                             .iter()
