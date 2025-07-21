@@ -16,17 +16,22 @@ mod user;
 mod web;
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    principal::PrincipalConstraint,
+    store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
+};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings, error::StoreError,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        PostgresStoreSettings, error::StoreError,
     },
 };
 use hash_graph_store::pool::StorePool;
 use hash_telemetry::logging::env_filter;
-use tokio_postgres::NoTls;
+use tokio_postgres::{NoTls, Transaction};
 use type_system::principal::actor::ActorId;
 
 pub fn init_logging() {
@@ -92,7 +97,7 @@ impl DatabaseTestWrapper {
 
     pub(crate) async fn seed(
         &mut self,
-    ) -> Result<(PostgresStore<impl AsClient>, ActorId), Report<StoreError>> {
+    ) -> Result<(PostgresStore<Transaction<'_>>, ActorId), Report<StoreError>> {
         let mut transaction = self.connection.transaction().await?;
 
         transaction
@@ -100,11 +105,25 @@ impl DatabaseTestWrapper {
             .await
             .change_context(StoreError)?;
 
-        let actor = transaction
-            .get_or_create_system_machine("h")
+        let actor = ActorId::Machine(
+            transaction
+                .get_or_create_system_machine("h")
+                .await
+                .change_context(StoreError)?,
+        );
+
+        // Create a policy to allow the actor to create new policies
+        transaction
+            .insert_policy_into_database(&PolicyCreationParams {
+                name: None,
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Actor { actor }),
+                actions: vec![ActionName::CreatePolicy, ActionName::DeletePolicy],
+                resource: None,
+            })
             .await
             .change_context(StoreError)?;
 
-        Ok((transaction, ActorId::Machine(actor)))
+        Ok((transaction, actor))
     }
 }

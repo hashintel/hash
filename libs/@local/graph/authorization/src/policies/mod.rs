@@ -11,7 +11,8 @@ mod set;
 mod validation;
 
 use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
-use core::fmt;
+use core::{fmt, str::FromStr as _};
+use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
@@ -24,7 +25,7 @@ use uuid::Uuid;
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::ActionName,
-    cedar::{FromCedarEntityUId as _, ToCedarEntityId},
+    cedar::{FromCedarEntityId, FromCedarEntityUId as _, ToCedarEntityId},
     principal::{PrincipalConstraint, actor::PublicActor},
     resource::{DataTypeId, EntityTypeId, PropertyTypeId, ResourceConstraint},
 };
@@ -91,6 +92,30 @@ impl PolicyId {
     }
 }
 
+impl FromCedarEntityId for PolicyId {
+    type Error = Report<uuid::Error>;
+
+    fn entity_type() -> &'static Arc<ast::EntityType> {
+        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Policy"]));
+        &ENTITY_TYPE
+    }
+
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+impl ToCedarEntityId for PolicyId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
+}
+
 #[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -133,6 +158,7 @@ pub enum ResourceId<'a> {
     EntityType(Cow<'a, EntityTypeId>),
     PropertyType(Cow<'a, PropertyTypeId>),
     DataType(Cow<'a, DataTypeId>),
+    Policy(PolicyId),
 }
 
 impl ToCedarEntityId for ResourceId<'_> {
@@ -143,6 +169,7 @@ impl ToCedarEntityId for ResourceId<'_> {
             Self::EntityType(entity_type) => entity_type.to_cedar_entity_type(),
             Self::PropertyType(property_type) => property_type.to_cedar_entity_type(),
             Self::DataType(data_type) => data_type.to_cedar_entity_type(),
+            Self::Policy(policy_id) => policy_id.to_cedar_entity_type(),
         }
     }
 
@@ -153,6 +180,7 @@ impl ToCedarEntityId for ResourceId<'_> {
             Self::EntityType(entity_type) => entity_type.to_eid(),
             Self::PropertyType(property_type) => property_type.to_eid(),
             Self::DataType(data_type) => data_type.to_eid(),
+            Self::Policy(policy_id) => policy_id.to_eid(),
         }
     }
 }
@@ -167,16 +195,16 @@ pub struct Request<'a> {
 
 impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> ast::Request {
-        ast::Request::new_with_unknowns(
-            ast::EntityUIDEntry::known(
+        ast::Request::new(
+            (
                 self.actor
                     .as_ref()
                     .map_or_else(|| PublicActor.to_euid(), ActorId::to_euid),
                 None,
             ),
-            ast::EntityUIDEntry::known(self.action.to_euid(), None),
-            ast::EntityUIDEntry::known(self.resource.to_euid(), None),
-            Some(self.context.to_cedar()),
+            (self.action.to_euid(), None),
+            (self.resource.to_euid(), None),
+            self.context.to_cedar(),
             Some(PolicyValidator::schema()),
             Extensions::none(),
         )

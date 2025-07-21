@@ -11,7 +11,7 @@ use hash_graph_authorization::policies::{
     action::ActionName,
     principal::actor::AuthenticatedActor,
     resource::{EntityResourceConstraint, ResourceConstraint},
-    store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
+    store::{PolicyCreationParams, PrincipalStore as _},
 };
 use hash_graph_store::{
     entity::{
@@ -720,7 +720,7 @@ where
         //       multi-type entity types. We need a way to speed this up.
         let mut validation_params = Vec::with_capacity(params.len());
 
-        let mut transaction = self.transaction().await.change_context(InsertionError)?;
+        let transaction = self.transaction().await.change_context(InsertionError)?;
 
         let actor_id = transaction
             .determine_actor(actor_uuid)
@@ -1090,7 +1090,7 @@ where
 
         for policy in policies {
             transaction
-                .create_policy(actor_id.into(), policy)
+                .insert_policy_into_database(&policy)
                 .await
                 .change_context(InsertionError)?;
         }
