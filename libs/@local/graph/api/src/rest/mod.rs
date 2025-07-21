@@ -70,6 +70,7 @@ use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
+use tower::ServiceBuilder;
 use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -335,10 +336,14 @@ where
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
+    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc.
+    // We use a `ServiceBuilder` to add the layers in the correct order.
     let mut router = merged_routes
-        .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::default().enable_transaction())
+        .layer(
+            ServiceBuilder::new()
+                .layer(NewSentryLayer::new_from_top())
+                .layer(SentryHttpLayer::default().enable_transaction()),
+        )
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
         .layer(Extension(dependencies.domain_regex))
