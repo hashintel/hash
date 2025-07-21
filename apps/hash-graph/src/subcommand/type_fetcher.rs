@@ -14,6 +14,7 @@ use tarpc::{
 };
 use tokio::{signal, time::timeout};
 use tokio_util::sync::CancellationToken;
+use tracing::Instrument as _;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -83,7 +84,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
     listener.config_mut().max_frame_length(usize::MAX);
 
     let cancellation_token = CancellationToken::new();
-    let cancellation_token_clone = cancellation_token.clone();
+    let cancellation_token_ref = &cancellation_token;
 
     // Allow listener to accept up to 255 connections at a time.
     //
@@ -94,27 +95,28 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
             .filter_map(|result| future::ready(result.ok()))
             .map(server::BaseChannel::with_defaults)
             .map(|channel| {
-                let cancellation_token = cancellation_token_clone.clone();
-                let mut server = FetchServer {
-                    buffer_size: 10,
-                    predefined_types: HashMap::new(),
-                };
-                server
-                    .load_predefined_types()
-                    .expect("should be able to load predefined types");
-                channel.execute(server.serve()).for_each(move |response| {
-                    let cancellation_token = cancellation_token.clone();
-                    async move {
-                        tokio::spawn(async move {
-                            tokio::select! {
-                                () = response => {}
-                                () = cancellation_token.cancelled() => {
-                                    tracing::debug!("Type fetcher response task cancelled");
+                channel
+                    .execute(
+                        FetchServer {
+                            buffer_size: 10,
+                            predefined_types: HashMap::new(),
+                        }
+                        .serve(),
+                    )
+                    .for_each(async move |response| {
+                        let cancellation_token = cancellation_token_ref.clone();
+                        tokio::spawn(
+                            async move {
+                                tokio::select! {
+                                    () = response => {}
+                                    () = cancellation_token.cancelled() => {
+                                        tracing::debug!("Type fetcher response task cancelled");
+                                    }
                                 }
                             }
-                        });
-                    }
-                })
+                            .in_current_span(),
+                        );
+                    })
             })
             .buffer_unordered(255)
             .for_each(|()| async {})

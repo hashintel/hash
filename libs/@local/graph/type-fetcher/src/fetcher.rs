@@ -10,8 +10,9 @@ use type_system::ontology::{
 // we need Serialize and Deserialize for `Report`
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FetcherError {
-    NetworkError(String),
-    SerializationError(String),
+    Network(String),
+    PredefinedTypes(String),
+    Serialization(String),
 }
 
 impl Error for FetcherError {}
@@ -21,9 +22,9 @@ impl fmt::Display for FetcherError {
         fmt.write_str("the type fetcher encountered an error during execution: ")?;
 
         match self {
-            Self::NetworkError(message) | Self::SerializationError(message) => {
-                fmt.write_str(message)
-            }
+            Self::Network(message)
+            | Self::Serialization(message)
+            | Self::PredefinedTypes(message) => fmt.write_str(message),
         }
     }
 }

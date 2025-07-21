@@ -9,6 +9,7 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::account::{AccountStore as _, GetActorError};
 use tokio_postgres::{GenericClient as _, error::SqlState};
+use tracing::Instrument as _;
 use type_system::principal::{
     PrincipalId, PrincipalType,
     actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId},
@@ -61,6 +62,12 @@ where
                 },
                 &[&principal_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -96,6 +103,12 @@ where
                 "DELETE FROM principal WHERE id = $1 AND principal_type = $2",
                 &[&uuid, &principal_type],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -122,6 +135,12 @@ where
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO user_actor (id) VALUES ($1)", &[&user_id])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -152,6 +171,12 @@ where
                 "SELECT EXISTS(SELECT 1 FROM actor WHERE id = $1)",
                 &[&actor_id.into()],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map(|row| row.get(0))
             .change_context(PrincipalError::StoreError)
@@ -229,6 +254,12 @@ where
                 "INSERT INTO machine_actor (id, identifier) VALUES ($1, $2)",
                 &[&id, &identifier],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -293,6 +324,12 @@ where
                 "INSERT INTO ai_actor (id, identifier) VALUES ($1, $2)",
                 &[&ai_id, &identifier],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -348,6 +385,12 @@ where
                 "SELECT principal_type FROM actor_group WHERE id = $1",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroupId::Web(WebId::new(id)),
@@ -418,6 +461,12 @@ where
                 "INSERT INTO team (id, parent_id, name) VALUES ($1, $2, $3)",
                 &[&id, &parent_id, &name],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(Report::new)
             .map_err(|error| match error.current_context().code() {
@@ -447,6 +496,12 @@ where
                  WHERE child_id = $1::uuid",
                 &[&parent_id, &id],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -492,6 +547,12 @@ where
                 ORDER BY depth ASC",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| match row.get(0) {
@@ -557,6 +618,12 @@ where
                 VALUES ($1, $2, $3, $4)",
                 &[&role_id, &principal_type, &actor_group_id, &name],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| match error.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => {
@@ -616,6 +683,12 @@ where
                     },
                 ],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| match actor_group_id {
@@ -681,6 +754,12 @@ where
                 ON CONFLICT DO NOTHING",
                 &[&actor_id, &role_id],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -710,6 +789,12 @@ where
                 "DELETE FROM actor_role WHERE actor_id = $1 AND role_id = $2",
                 &[&actor_id, &role_id],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -748,6 +833,12 @@ where
                  WHERE actor_role.actor_id = $1",
                 &[&actor_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| {
@@ -811,6 +902,12 @@ where
                  WHERE actor_role.role_id = $1",
                 &[&role_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| match row.get(0) {
@@ -852,6 +949,12 @@ where
                 "INSERT INTO action (name, parent) VALUES ($1, $2)",
                 &[&action, &action.parent()],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| {
                 let policy_error = match (error.code(), action.parent()) {
@@ -879,6 +982,12 @@ where
                     FROM unnest($2::text[]) WITH ORDINALITY as t(parent_name, ordinality)",
                 &[&action, &action.parents().collect::<Vec<_>>()],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -904,6 +1013,12 @@ where
                 "SELECT EXISTS(SELECT 1 FROM action WHERE name = $1)",
                 &[&action],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -923,6 +1038,12 @@ where
         let actions_to_be_removed = self
             .as_client()
             .query("SELECT name FROM action", &[])
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?
             .into_iter()
@@ -943,6 +1064,12 @@ where
                 "DELETE FROM action WHERE name = ANY($1)",
                 &[&actions_to_be_removed],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -991,6 +1118,12 @@ where
                      ORDER BY depth",
                 &[&action],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?
             .map_ok(|row| row.get::<_, ActionName>(0))
@@ -1023,6 +1156,12 @@ where
         let num_deleted = self
             .as_mut_client()
             .execute("DELETE FROM action WHERE name = $1", &[&action])
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| {
                 let policy_error = match error.code() {

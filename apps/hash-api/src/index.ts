@@ -56,7 +56,6 @@ import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
-import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
@@ -117,8 +116,6 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 
 const main = async () => {
   logger.info("Type System initialized");
-
-  registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
 
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");

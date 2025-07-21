@@ -19,6 +19,7 @@ use hash_graph_store::{
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
+use tracing::Instrument as _;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
@@ -145,6 +146,12 @@ impl StoreWrapper {
                     ",
                     &[&bench_db_name],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .expect("failed to check if database exists")
                 .get(0);
@@ -164,6 +171,12 @@ impl StoreWrapper {
                         ",
                         &[&source_db_connection_info.database()],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .expect("failed to kill existing connections");
 
@@ -179,6 +192,12 @@ impl StoreWrapper {
                         ),
                         &[],
                     )
+                    .instrument(tracing::info_span!(
+                        "CREATE DATABASE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .expect("failed to clone database");
             }
@@ -267,6 +286,12 @@ impl Drop for StoreWrapper {
                     ),
                     &[],
                 )
+                .instrument(tracing::info_span!(
+                    "DROP DATABASE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .expect("failed to drop database");
         });

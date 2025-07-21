@@ -7,7 +7,6 @@
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
-pub mod middleware;
 pub mod permissions;
 pub mod principal;
 pub mod property_type;
@@ -31,6 +30,7 @@ use axum::{
     response::{IntoResponse as _, Response},
     routing::get,
 };
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
@@ -95,7 +95,6 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
@@ -344,10 +343,11 @@ where
                 .layer(NewSentryLayer::new_from_top())
                 .layer(SentryHttpLayer::default().enable_transaction()),
         )
+        .layer(OtelAxumLayer::default())
+        .layer(OtelInResponseLayer)
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
-        .layer(Extension(dependencies.domain_regex))
-        .layer(span_trace_layer());
+        .layer(Extension(dependencies.domain_regex));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
