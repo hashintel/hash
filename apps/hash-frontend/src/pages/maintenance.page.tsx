@@ -108,13 +108,12 @@ const DefaultFallback = () => {
         }}
       >
         <strong>New users:</strong>
-        {` please try `}
-        you can still{" "}
+        {" you can still "}
         <Link
           href="https://hash.ai?signup"
           sx={{ fontWeight: 600, textDecoration: "none" }}
         >
-          create an account
+          sign up for updates
         </Link>{" "}
         as we complete this upgrade
       </Typography>
