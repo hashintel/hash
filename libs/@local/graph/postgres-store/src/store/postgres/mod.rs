@@ -1915,7 +1915,6 @@ where
 
         transaction
             .update_seeded_policies(
-                ActorId::Machine(system_machine_actor),
                 seed_policies::system_actor_policies(system_machine_actor)
                     .chain(seed_policies::global_policies())
                     .chain(roles.iter().flat_map(seed_policies::web_policies))
