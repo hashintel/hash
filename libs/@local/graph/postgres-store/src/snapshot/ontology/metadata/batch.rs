@@ -1,6 +1,7 @@
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 
 use crate::{
     snapshot::WriteBatch,
@@ -20,14 +21,11 @@ pub enum OntologyTypeMetadataRowBatch {
     ExternalMetadata(Vec<OntologyExternalMetadataRow>),
 }
 
-impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
+impl<C> WriteBatch<C> for OntologyTypeMetadataRowBatch
 where
     C: AsClient,
-    A: Send + Sync,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -50,6 +48,12 @@ where
                         ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -58,7 +62,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -73,6 +77,12 @@ where
                         ",
                         &[&ontology_ids],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -89,6 +99,12 @@ where
                         ",
                         &[&ontology_temporal_metadata],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -106,6 +122,12 @@ where
                         ",
                         &[&ontology_owned_metadata],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -123,6 +145,12 @@ where
                         ",
                         &[&ontology_external_metadata],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -134,7 +162,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -154,6 +182,12 @@ where
                         SELECT * FROM ontology_external_metadata_tmp;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
         Ok(())

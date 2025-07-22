@@ -9,8 +9,8 @@
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::core::math::add<Number, Integer>
-└→ fn<T?13: Number, U?14: Number>(?13«Number», ?14«Integer») -> (?14«Integer»
-    | ?13«Number») where<?13 = Number, ?14 = Integer>
+└→ fn<T?25: Number, U?26: Number>(?25«Number», ?26«Integer») -> (?25«Number»
+    | ?26«Integer») where<?25 = Number, ?26 = Integer>
 
 ┌─ 42.12
 └→ Number

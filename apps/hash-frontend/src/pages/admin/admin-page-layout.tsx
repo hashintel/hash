@@ -16,7 +16,7 @@ import { SettingsSidebar } from "../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../shared/top-context-bar";
 
 const containerSx = {
-  maxWidth: { lg: 1040 },
+  maxWidth: { lg: 1240, xl: 1400 },
   margin: "0 auto",
   px: { xs: 4 },
 };
@@ -83,7 +83,11 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       </Box>
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar heading="Instance" menuItems={menuItems} />
+          <SettingsSidebar
+            heading="Instance"
+            menuItems={menuItems}
+            width={120}
+          />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

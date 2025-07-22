@@ -17,8 +17,8 @@ use crate::store::{
 };
 
 pub struct QueryIndices<R: QueryRecordDecode, S: QueryRecordDecode> {
-    record_indices: R::Indices,
-    cursor_indices: S::Indices,
+    pub record_indices: R::Indices,
+    pub cursor_indices: S::Indices,
 }
 
 pub trait QueryRecordDecode {
@@ -61,13 +61,12 @@ where
     }
 }
 
-impl<Cl, A, R, S> ReadPaginated<R, S> for PostgresStore<Cl, A>
+impl<Cl, R, S> ReadPaginated<R, S> for PostgresStore<Cl>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
     for<'s> S: PostgresSorting<'s, R> + Sync,
     S::Cursor: Send,
-    A: Send + Sync,
 {
     type QueryResult = TypedRow<R, S::Cursor>;
 
@@ -113,7 +112,13 @@ where
         let stream = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?;
 
@@ -129,11 +134,10 @@ where
     }
 }
 
-impl<Cl, A, R> Read<R> for PostgresStore<Cl, A>
+impl<Cl, R> Read<R> for PostgresStore<Cl>
 where
     Cl: AsClient,
     for<'c> R: PostgresRecord<QueryPath<'c>: PostgresQueryPath>,
-    A: Send + Sync,
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
@@ -157,7 +161,13 @@ where
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?
             .map(|row| row.change_context(QueryError))
@@ -184,16 +194,20 @@ where
         let rows = self
             .as_client()
             .query(&statement, parameters)
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = %statement,
+            ))
             .await
             .change_context(QueryError)?;
 
-        match rows.len() {
-            1 => Ok(R::decode(&rows[0], &record_indices)),
-            len => {
-                Err(Report::new(QueryError)
-                    .attach_printable(format!("Expected 1 result, got {len}")))
-            }
+        match rows.as_slice() {
+            [row] => Ok(R::decode(row, &record_indices)),
+            rows => Err(Report::new(QueryError)
+                .attach_printable(format!("Expected 1 result, got {}", rows.len()))),
         }
     }
 }

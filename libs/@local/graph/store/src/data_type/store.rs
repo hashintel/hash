@@ -1,9 +1,11 @@
 use alloc::borrow::Cow;
 use core::iter;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::schema::DataTypeRelationAndSubject;
+use hash_graph_authorization::policies::{
+    action::ActionName, principal::actor::AuthenticatedActor,
+};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{self, Embedding};
 use serde::{Deserialize, Serialize};
@@ -19,7 +21,7 @@ use type_system::{
 };
 
 use crate::{
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -27,15 +29,10 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateDataTypeParams<R> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateDataTypeParams {
     pub schema: DataType,
     pub ownership: OntologyOwnership,
-    pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -104,9 +101,8 @@ pub struct GetDataTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateDataTypesParams<R> {
+pub struct UpdateDataTypesParams {
     pub schema: DataType,
-    pub relationships: R,
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub conversions: HashMap<BaseUrl, Conversions>,
@@ -162,6 +158,15 @@ pub struct GetDataTypeConversionTargetsResponse {
     pub conversions: HashMap<VersionedUrl, HashMap<VersionedUrl, DataTypeConversionTargets>>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForDataTypesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub data_type_ids: Cow<'a, [VersionedUrl]>,
+}
+
 /// Describes the API of a store implementation for [`DataType`]s.
 pub trait DataTypeStore {
     /// Creates a new [`DataType`].
@@ -172,14 +177,13 @@ pub trait DataTypeStore {
     /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_data_type<R>(
+    fn create_data_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateDataTypeParams<R>,
+        params: CreateDataTypeParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -198,14 +202,13 @@ pub trait DataTypeStore {
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_data_types<P, R>(
+    fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<InsertionError>>> + Send
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = CreateDataTypeParams, IntoIter: Send> + Send;
 
     /// Count the number of [`DataType`]s specified by the [`CountDataTypesParams`].
     ///
@@ -245,14 +248,13 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    fn update_data_type<R>(
+    fn update_data_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: UpdateDataTypesParams<R>,
+        params: UpdateDataTypesParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<UpdateError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -268,14 +270,13 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`]s do not exist.
-    fn update_data_types<P, R>(
+    fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<UpdateError>>> + Send
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send;
 
     /// Archives the definition of an existing [`DataType`].
     ///
@@ -322,4 +323,20 @@ pub trait DataTypeStore {
     fn reindex_data_type_cache(
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Checks if the actor has permission for the given data types.
+    ///
+    /// Returns a set of [`VersionedUrl`]s the actor has permission for. If the actor has no
+    /// permission for a data type, it will not be included in the set.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_data_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForDataTypesParams<'_>,
+    ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

@@ -13,32 +13,33 @@ required-features = ["cli"]
 
 [dependencies]
 # Public workspace dependencies
-bytes          = { workspace = true, public = true }
-error-stack    = { workspace = true, public = true, features = ["unstable"] }
-postgres-types = { workspace = true, public = true, features = ["derive", "with-time-0_3"] }
-time           = { workspace = true, public = true, features = ["std"] }
-tokio-postgres = { workspace = true, public = true }
+bytes                        = { workspace = true, public = true }
+error-stack                  = { workspace = true, public = true, features = ["unstable"] }
+hash-graph-migrations-macros = { workspace = true, public = true, optional = true }
+postgres-types               = { workspace = true, public = true, features = ["derive", "with-time-0_3"] }
+time                         = { workspace = true, public = true, features = ["std"] }
+tokio-postgres               = { workspace = true, public = true }
 
 # Public third-party dependencies
+include_dir        = { workspace = true, public = true, optional = true }
+include_dir_macros = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
-hash-graph-migrations-macros = { workspace = true, optional = true }
-hash-tracing                 = { workspace = true, optional = true, features = ["clap"] }
+hash-telemetry = { workspace = true, optional = true, features = ["clap"] }
 
 # Private third-party dependencies
 clap           = { workspace = true, optional = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true, optional = true }
 derive_more    = { workspace = true, features = ["debug", "display", "error"] }
 futures        = { workspace = true }
-include_dir    = { workspace = true, optional = true }
 sha2           = { workspace = true }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }
 tracing        = { workspace = true }
 
 [features]
-macros = ["dep:hash-graph-migrations-macros", "dep:include_dir"]
-cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-tracing", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
+macros = ["dep:hash-graph-migrations-macros", "dep:include_dir", "dep:include_dir_macros"]
+cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-telemetry", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
 
 [lints]
 workspace = true

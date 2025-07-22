@@ -381,7 +381,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const internalEntitiesCount =
     externalWebsOnlyCountData?.countEntities == null || totalCount == null
       ? undefined
-      : filterState.includeGlobal
+      : filterState.includeGlobal && !entitiesData.loading
         ? totalCount - externalWebsOnlyCountData.countEntities
         : totalCount;
 

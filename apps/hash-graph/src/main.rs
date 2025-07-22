@@ -1,6 +1,10 @@
 //! # HASH Graph
 //!
 //! ## Workspace dependencies
+#![feature(
+    // Language features
+    impl_trait_in_assoc_type
+)]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![forbid(unsafe_code)]
 #![expect(
@@ -17,7 +21,7 @@ mod subcommand;
 
 use error_stack::Report;
 use hash_graph_postgres_store::load_env;
-use hash_tracing::sentry::{init, release_name};
+use hash_telemetry::traces::sentry::{init, release_name};
 
 use self::{args::Args, error::GraphError};
 

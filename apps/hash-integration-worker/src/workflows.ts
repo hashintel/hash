@@ -1,7 +1,7 @@
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
-  SyncWorkspaceWorkflow,
+  SyncWebWorkflow,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -11,7 +11,7 @@ import { proxyActivities } from "@temporalio/workflow";
 import type { createLinearIntegrationActivities } from "./linear-activities";
 
 const commonConfig: ActivityOptions = {
-  startToCloseTimeout: "180 second",
+  startToCloseTimeout: "360 second",
   retry: {
     maximumAttempts: 3,
   },
@@ -22,15 +22,15 @@ const linearActivities =
     commonConfig,
   );
 
-export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceWebId, authentication, teamIds } = params;
+export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
+  const { apiKey, webId, authentication, teamIds } = params;
 
   const organization = linearActivities
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceWebId,
+        webId,
         entities: [organizationEntity],
       }),
     );
@@ -40,21 +40,18 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
     .then((userEntities) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceWebId,
+        webId,
         entities: userEntities,
       }),
     );
 
   const issues = teamIds.map((teamId) =>
-    linearActivities
-      .readLinearIssues({ apiKey, filter: { teamId } })
-      .then((issueEntities) =>
-        linearActivities.createPartialEntities({
-          authentication,
-          workspaceWebId,
-          entities: issueEntities,
-        }),
-      ),
+    linearActivities.readAndCreateLinearIssues({
+      apiKey,
+      filter: { teamId },
+      authentication,
+      webId,
+    }),
   );
 
   await Promise.all([organization, users, ...issues]);

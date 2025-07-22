@@ -140,7 +140,7 @@ where
     /// colorized highlighting, and all the diagnostic information (message, labels, notes, and
     /// help messages). The report can be written to a terminal or other output destination.
     /// The visual appearance is controlled by the provided [`ReportConfig`].
-    pub fn report(&self, config: ReportConfig) -> ariadne::Report<AbsoluteDiagnosticSpan> {
+    pub fn report(&self, config: ReportConfig) -> ariadne::Report<'_, AbsoluteDiagnosticSpan> {
         // According to the examples, the span given to `Report::build` should be the span of the
         // primary (first) label.
         // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14

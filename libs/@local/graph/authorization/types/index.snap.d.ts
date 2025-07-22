@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "all" | "create" | "createWeb" | "view" | "viewEntity" | "viewEntityType" | "update" | "instantiate";
+export type ActionName = "createPolicy" | "createDataType" | "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewPolicy" | "viewDataType" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updatePolicy" | "updateDataType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archivePolicy" | "archiveDataType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "deletePolicy" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
@@ -27,13 +27,46 @@ export type PrincipalConstraint = {
 	actorType?: ActorType
 } & RoleId;
 export type ResourceConstraint = {
+	type: "meta"
+} & MetaResourceConstraint | {
 	type: "web"
 	webId: WebId
 } | {
 	type: "entity"
 } & EntityResourceConstraint | {
 	type: "entityType"
-} & EntityTypeResourceConstraint;
+} & EntityTypeResourceConstraint | {
+	type: "propertyType"
+} & PropertyTypeResourceConstraint | {
+	type: "dataType"
+} & DataTypeResourceConstraint;
+export type DataTypeId = string;
+export type DataTypeResourceConstraint = {
+	filter: DataTypeResourceFilter
+} | {
+	id: DataTypeId
+} | {
+	webId: WebId
+	filter: DataTypeResourceFilter
+};
+export type DataTypeResourceFilter = {
+	type: "all"
+	filters: DataTypeResourceFilter[]
+} | {
+	type: "any"
+	filters: DataTypeResourceFilter[]
+} | {
+	type: "not"
+	filter: DataTypeResourceFilter
+} | {
+	type: "isBaseUrl"
+	baseUrl: BaseUrl
+} | {
+	type: "isVersion"
+	version: OntologyTypeVersion
+} | {
+	type: "isRemote"
+};
 export type EntityResourceConstraint = {
 	filter: EntityResourceFilter
 } | {
@@ -54,6 +87,11 @@ export type EntityResourceFilter = {
 } | {
 	type: "isOfType"
 	entityType: VersionedUrl
+} | {
+	type: "isOfBaseType"
+	entityType: BaseUrl
+} | {
+	type: "createdByPrincipal"
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {
@@ -79,6 +117,54 @@ export type EntityTypeResourceFilter = {
 } | {
 	type: "isVersion"
 	version: OntologyTypeVersion
+} | {
+	type: "isRemote"
+};
+export type MetaResourceConstraint = {
+	filter: MetaResourceFilter
+} | {
+	webId: WebId
+	filter: MetaResourceFilter
+};
+export type MetaResourceFilter = {
+	type: "all"
+	filters: MetaResourceFilter[]
+} | {
+	type: "any"
+	filters: MetaResourceFilter[]
+} | {
+	type: "not"
+	filter: MetaResourceFilter
+} | {
+	type: "hasAction"
+	action: ActionName
+};
+export type PropertyTypeId = string;
+export type PropertyTypeResourceConstraint = {
+	filter: PropertyTypeResourceFilter
+} | {
+	id: PropertyTypeId
+} | {
+	webId: WebId
+	filter: PropertyTypeResourceFilter
+};
+export type PropertyTypeResourceFilter = {
+	type: "all"
+	filters: PropertyTypeResourceFilter[]
+} | {
+	type: "any"
+	filters: PropertyTypeResourceFilter[]
+} | {
+	type: "not"
+	filter: PropertyTypeResourceFilter
+} | {
+	type: "isBaseUrl"
+	baseUrl: BaseUrl
+} | {
+	type: "isVersion"
+	version: OntologyTypeVersion
+} | {
+	type: "isRemote"
 };
 export interface PolicyCreationParams {
 	name?: string;
@@ -109,3 +195,6 @@ export type PrincipalFilter = {
 } | {
 	filter: "constrained"
 } & PrincipalConstraint;
+export interface ResolvePoliciesParams {
+	actions: ActionName[];
+}

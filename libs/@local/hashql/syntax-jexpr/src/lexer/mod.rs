@@ -148,7 +148,7 @@ mod test {
     fn parse(
         source: &str,
         storage: impl Into<Arc<SpanStorage<Span>>>,
-    ) -> Result<Vec<Token>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
+    ) -> Result<Vec<Token<'_>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
         let lexer = Lexer::new(source.as_bytes(), storage.into());
 
         lexer.collect()
@@ -407,10 +407,13 @@ mod test {
 
         match diagnostic.category {
             LexerDiagnosticCategory::InvalidNumber => {}
-            _ => panic!(
-                "Expected InvalidNumber error, got {:?}",
-                diagnostic.category
-            ),
+            category @ (LexerDiagnosticCategory::InvalidString
+            | LexerDiagnosticCategory::InvalidCharacter
+            | LexerDiagnosticCategory::InvalidUtf8
+            | LexerDiagnosticCategory::UnexpectedEof
+            | LexerDiagnosticCategory::UnexpectedToken) => {
+                panic!("Expected InvalidNumber error, got {category:?}")
+            }
         }
     }
 

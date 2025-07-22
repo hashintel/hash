@@ -1,10 +1,15 @@
 use core::error::Error;
+use std::collections::HashSet;
 
-use type_system::principal::{
-    PrincipalId,
-    actor::ActorId,
-    actor_group::{ActorGroupId, TeamId, WebId},
-    role::RoleName,
+use type_system::{
+    knowledge::entity::id::EntityEditionId,
+    ontology::VersionedUrl,
+    principal::{
+        PrincipalId,
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::{ActorGroupId, TeamId, WebId},
+        role::RoleName,
+    },
 };
 
 use crate::policies::{PolicyId, action::ActionName};
@@ -54,6 +59,50 @@ pub enum EnsureSystemPoliciesError {
 impl Error for EnsureSystemPoliciesError {}
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not build entity type context: {_variant}")]
+pub enum BuildEntityTypeContextError {
+    #[display("Entity type with ID `{entity_type_id}` does not exist")]
+    EntityTypeNotFound { entity_type_id: VersionedUrl },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildEntityTypeContextError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not build property type context: {_variant}")]
+pub enum BuildPropertyTypeContextError {
+    #[display("Property type with ID `{property_type_id}` does not exist")]
+    PropertyTypeNotFound { property_type_id: VersionedUrl },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildPropertyTypeContextError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not build data type context: {_variant}")]
+pub enum BuildDataTypeContextError {
+    #[display("Data type with ID `{data_type_id}` does not exist")]
+    DataTypeNotFound { data_type_id: VersionedUrl },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildDataTypeContextError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not build entity type context: {_variant}")]
+pub enum BuildEntityContextError {
+    #[display("Entity with editionID `{}` does not exist", entity_edition_id.as_uuid())]
+    EntityNotFound { entity_edition_id: EntityEditionId },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildEntityContextError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
 pub enum ActorCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
@@ -69,6 +118,10 @@ impl Error for ActorCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create web: {_variant}")]
 pub enum WebCreationError {
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
     #[display("Web with ID `{web_id}` already exists")]
     AlreadyExists { web_id: WebId },
     #[display("Permission to create web was denied")]
@@ -173,11 +226,63 @@ impl Error for RoleAssignmentError {}
 pub enum ContextCreationError {
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
+    #[display("Actor with ID `{actor_id}` is not a valid actor")]
+    DetermineActor { actor_id: ActorEntityUuid },
+    #[display("Could not build principal context for actor with ID `{actor_id}`")]
+    BuildPrincipalContext { actor_id: ActorId },
+    #[display("Could not build entity type context for entity types with IDs `{}`",
+        entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    BuildEntityTypeContext {
+        entity_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("Could not build property type context for property types with IDs `{}`",
+        property_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    BuildPropertyTypeContext {
+        property_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("Could not build data type context for data types with IDs `{}`",
+        data_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    BuildDataTypeContext {
+        data_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("Could not build entity context for entity with edition IDs `{}`",
+        entity_edition_ids.iter().map(|id| id.as_uuid().to_string()).collect::<Vec<_>>().join(", "))]
+    BuildEntityContext {
+        entity_edition_ids: HashSet<EntityEditionId>,
+    },
+    #[display("Could not resolve policies for actor with ID `{}`", actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from))]
+    ResolveActorPolicies { actor_id: Option<ActorId> },
+    #[display("Could not create policy set")]
+    CreatePolicySet,
+    #[display("Could not create policy context")]
+    CreatePolicyContext,
     #[display("Store operation failed")]
     StoreError,
 }
 
 impl Error for ContextCreationError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not determine actor: {_variant}")]
+pub enum DetermineActorError {
+    #[display("Actor with ID `{actor_entity_uuid}` does not exist")]
+    ActorNotFound { actor_entity_uuid: ActorEntityUuid },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for DetermineActorError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not build principal context for actor with ID `{actor_id}`")]
+pub enum BuildPrincipalContextError {
+    #[display("Actor with ID `{actor_id}` does not exist")]
+    ActorNotFound { actor_id: ActorId },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildPrincipalContextError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not store policy: {_variant}")]
@@ -201,6 +306,12 @@ pub enum CreatePolicyError {
     PolicyHasNoActions,
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to create policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -212,6 +323,12 @@ impl Error for CreatePolicyError {}
 pub enum RemovePolicyError {
     #[display("Policy with ID `{id}` does not exist")]
     PolicyNotFound { id: PolicyId },
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to delete or archive policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -227,6 +344,12 @@ pub enum UpdatePolicyError {
     ActionNotFound { id: ActionName },
     #[display("No actions specified in policy")]
     PolicyHasNoActions,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to update policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -236,10 +359,16 @@ impl Error for UpdatePolicyError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get policies for actor: {_variant}")]
 pub enum GetPoliciesError {
+    #[display("Actor with UUID `{actor_entity_uuid}` does not exist")]
+    ActorIdNotFound { actor_entity_uuid: ActorEntityUuid },
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
     #[display("Store operation failed")]
     StoreError,
 }

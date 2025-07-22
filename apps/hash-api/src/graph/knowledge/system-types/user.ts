@@ -1,5 +1,6 @@
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
@@ -8,13 +9,19 @@ import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
+  addActorGroupMember,
+  createUserActor,
+} from "@local/hash-graph-sdk/principal/actor-group";
+import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -32,18 +39,17 @@ import type {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
+import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
-import {
-  addActorGroupMember,
-  createUserActor,
-} from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getEntityOutgoingLinks,
+  getEntitySubgraphResponse,
   getLatestEntityById,
 } from "../primitive/entity";
 import {
@@ -83,7 +89,11 @@ function assertUserEntity(
   entity: HashEntity,
 ): asserts entity is HashEntity<UserEntity> {
   if (
-    !entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
+    !entity.metadata.entityTypeIds.some(
+      (entityTypeId) =>
+        extractBaseUrl(entityTypeId) ===
+        systemEntityTypes.user.entityTypeBaseUrl,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -142,12 +152,64 @@ export const getUserById: ImpureGraphFunction<
 };
 
 /**
+ * Get a system user entity by their email.
+ *
+ * @param params.email - the email of the user
+ */
+export const getUserByEmail: ImpureGraphFunction<
+  { email: string; includeDrafts?: boolean },
+  Promise<User | null>
+> = async ({ graphApi }, { actorId }, params) => {
+  const [userEntity, ...unexpectedEntities] = await graphApi
+    .getEntities(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                /**
+                 * @todo H-4936 update when users can have more than one email
+                 */
+                path: [
+                  "properties",
+                  systemPropertyTypes.email.propertyTypeBaseUrl,
+                  0,
+                ],
+              },
+              { parameter: params.email },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+    })
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
+
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: More than one user entity with email ${params.email} found in the graph.`,
+    );
+  }
+
+  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
+};
+
+/**
  * Get a system user entity by their shortname.
  *
  * @param params.shortname - the shortname of the user
  */
 export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string; includeDrafts?: boolean },
+  { shortname: string; includeDrafts?: boolean; includeEmails?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -180,7 +242,7 @@ export const getUserByShortname: ImpureGraphFunction<
     })
     .then(({ data: response }) =>
       response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
+        mapGraphApiEntityToEntity(entity, actorId, params.includeEmails),
       ),
     );
 
@@ -309,10 +371,14 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = !!shortname && !!displayName;
 
-  const { userId, machineId } = await createUserActor(ctx, authentication, {
-    shortname,
-    registrationComplete: userShouldHavePermissionsOnWeb,
-  });
+  const { userId, machineId } = await createUserActor(
+    ctx.graphApi,
+    authentication,
+    {
+      shortname,
+      registrationComplete: userShouldHavePermissionsOnWeb,
+    },
+  );
 
   await createWebMachineActorEntity(ctx, {
     webId: userId,
@@ -379,11 +445,6 @@ export const createUser: ImpureGraphFunction<
   // TODO: Move User-Entity creation to Graph
   //   see https://linear.app/hash/issue/H-4559/move-user-entity-creation-to-graph
 
-  const { id: hashInstanceAdminsAccountGroupId } = await getInstanceAdminsTeam(
-    ctx,
-    authentication,
-  );
-
   const entity = await createEntity<UserEntity>(
     ctx,
     { actorId: machineId },
@@ -392,29 +453,6 @@ export const createUser: ImpureGraphFunction<
       properties,
       entityTypeIds: [systemEntityTypes.user.entityTypeId],
       entityUuid: userId,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "accountGroup",
-            subjectId: hashInstanceAdminsAccountGroupId,
-            subjectSet: "member",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-      ],
     },
   );
 
@@ -422,7 +460,7 @@ export const createUser: ImpureGraphFunction<
 
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
-    await addActorGroupMember(ctx, authentication, {
+    await addActorGroupMember(ctx.graphApi, authentication, {
       actorGroupId: instanceAdmins.id,
       actorId: user.accountId,
     });
@@ -489,7 +527,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
  *
  * @param params.user - the user
  * @param params.org - the organization the user is joining
- * @param params.actorId - the id of the account that is making the user a member of the organization
  */
 export const joinOrg: ImpureGraphFunction<
   {
@@ -559,4 +596,96 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
       extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
   );
+};
+
+export const getUserPendingInvitations: ImpureGraphFunction<
+  { user: User },
+  Promise<PendingOrgInvitation[]>
+> = async (context, _authentication, { user }) => {
+  /**
+   * The system account is used to manage invitations on behalf of the user,
+   * because the user does not have permissions on them,
+   * to avoid accidentally leaking their identity before they have accepted the invitation.
+   *
+   * Otherwise an org admin could issue an invitation to an email address and check which user was given permission on the invitation.
+   */
+  const systemAccountAuthentication = {
+    actorId: systemAccountId,
+  };
+
+  const { subgraph: invitationSubgraph } = await getEntitySubgraphResponse(
+    context,
+    systemAccountAuthentication,
+    {
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.invitation.entityTypeId,
+          ),
+          {
+            equal: [
+              {
+                path: ["archived"],
+              },
+              { parameter: false },
+            ],
+          },
+          {
+            any: [
+              {
+                equal: [
+                  {
+                    /**
+                     * @todo H-4936 update when users can have more than one email
+                     */
+                    path: [
+                      "properties",
+                      systemPropertyTypes.email.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: user.emails[0] },
+                ],
+              },
+              ...(user.shortname
+                ? [
+                    {
+                      equal: [
+                        {
+                          path: [
+                            "properties",
+                            systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                          ],
+                        },
+                        { parameter: user.shortname },
+                      ],
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasLeftEntity: {
+          incoming: 0,
+          outgoing: 1,
+        },
+        hasRightEntity: {
+          incoming: 1,
+          outgoing: 0,
+        },
+      },
+    },
+  );
+
+  const pendingInvitations = await getPendingOrgInvitationsFromSubgraph(
+    context,
+    systemAccountAuthentication,
+    invitationSubgraph,
+  );
+
+  return pendingInvitations;
 };

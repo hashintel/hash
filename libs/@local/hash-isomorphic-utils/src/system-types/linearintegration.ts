@@ -109,6 +109,11 @@ import type {
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIssuedInvitation,
+  HasIssuedInvitationOutgoingLinkAndTarget,
+  HasIssuedInvitationOutgoingLinksByLinkEntityTypeId,
+  HasIssuedInvitationProperties,
+  HasIssuedInvitationPropertiesWithMetadata,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasProperties,
@@ -125,6 +130,26 @@ import type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  Integration,
+  IntegrationOutgoingLinkAndTarget,
+  IntegrationOutgoingLinksByLinkEntityTypeId,
+  IntegrationProperties,
+  IntegrationPropertiesWithMetadata,
+  Invitation,
+  InvitationOutgoingLinkAndTarget,
+  InvitationOutgoingLinksByLinkEntityTypeId,
+  InvitationProperties,
+  InvitationPropertiesWithMetadata,
+  InvitationViaEmail,
+  InvitationViaEmailOutgoingLinkAndTarget,
+  InvitationViaEmailOutgoingLinksByLinkEntityTypeId,
+  InvitationViaEmailProperties,
+  InvitationViaEmailPropertiesWithMetadata,
+  InvitationViaShortname,
+  InvitationViaShortnameOutgoingLinkAndTarget,
+  InvitationViaShortnameOutgoingLinksByLinkEntityTypeId,
+  InvitationViaShortnameProperties,
+  InvitationViaShortnamePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -151,6 +176,7 @@ import type {
   OrganizationHasAvatarLink,
   OrganizationHasBioLink,
   OrganizationHasCoverImageLink,
+  OrganizationHasIssuedInvitationLink,
   OrganizationNamePropertyValue,
   OrganizationNamePropertyValueWithMetadata,
   OrganizationOutgoingLinkAndTarget,
@@ -315,6 +341,11 @@ export type {
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIssuedInvitation,
+  HasIssuedInvitationOutgoingLinkAndTarget,
+  HasIssuedInvitationOutgoingLinksByLinkEntityTypeId,
+  HasIssuedInvitationProperties,
+  HasIssuedInvitationPropertiesWithMetadata,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasProperties,
@@ -331,6 +362,26 @@ export type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  Integration,
+  IntegrationOutgoingLinkAndTarget,
+  IntegrationOutgoingLinksByLinkEntityTypeId,
+  IntegrationProperties,
+  IntegrationPropertiesWithMetadata,
+  Invitation,
+  InvitationOutgoingLinkAndTarget,
+  InvitationOutgoingLinksByLinkEntityTypeId,
+  InvitationProperties,
+  InvitationPropertiesWithMetadata,
+  InvitationViaEmail,
+  InvitationViaEmailOutgoingLinkAndTarget,
+  InvitationViaEmailOutgoingLinksByLinkEntityTypeId,
+  InvitationViaEmailProperties,
+  InvitationViaEmailPropertiesWithMetadata,
+  InvitationViaShortname,
+  InvitationViaShortnameOutgoingLinkAndTarget,
+  InvitationViaShortnameOutgoingLinksByLinkEntityTypeId,
+  InvitationViaShortnameProperties,
+  InvitationViaShortnamePropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -357,6 +408,7 @@ export type {
   OrganizationHasAvatarLink,
   OrganizationHasBioLink,
   OrganizationHasCoverImageLink,
+  OrganizationHasIssuedInvitationLink,
   OrganizationNamePropertyValue,
   OrganizationNamePropertyValueWithMetadata,
   OrganizationOutgoingLinkAndTarget,
@@ -421,7 +473,7 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/9",
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -439,16 +491,17 @@ export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegrationProperties = {
+export type LinearIntegrationProperties = IntegrationProperties & {
   "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 };
 
-export type LinearIntegrationPropertiesWithMetadata = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+export type LinearIntegrationPropertiesWithMetadata =
+  IntegrationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+    };
   };
-};
 
 export type LinearIntegrationSyncLinearDataWithLink = {
   linkEntity: SyncLinearDataWith;

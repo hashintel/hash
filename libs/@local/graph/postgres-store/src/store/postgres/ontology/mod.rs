@@ -18,6 +18,7 @@ use hash_graph_store::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
+use tracing::Instrument as _;
 use type_system::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
@@ -36,10 +37,15 @@ use crate::store::{
     },
 };
 
-impl<A> PostgresStore<Transaction<'_>, A>
-where
-    A: Send + Sync,
-{
+impl PostgresStore<Transaction<'_>> {
+    /// Deletes ontology metadata for the specified ontology type UUIDs.
+    ///
+    /// This function removes ontology ownership metadata, temporal metadata,
+    /// and edition provenance for the given ontology IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails.
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_ontology_ids(
         &self,
@@ -53,6 +59,12 @@ where
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -64,6 +76,12 @@ where
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -75,6 +93,12 @@ where
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -88,6 +112,12 @@ where
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?
             .into_iter()
@@ -102,6 +132,12 @@ where
                 ",
                 &[&base_urls],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 

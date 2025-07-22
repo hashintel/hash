@@ -1,9 +1,11 @@
 use alloc::borrow::Cow;
 use core::iter;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
+use hash_graph_authorization::policies::{
+    action::ActionName, principal::actor::AuthenticatedActor,
+};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
@@ -22,7 +24,7 @@ use type_system::{
 
 use crate::{
     entity::ClosedMultiEntityTypeMap,
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -30,15 +32,10 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateEntityTypeParams<R> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateEntityTypeParams {
     pub schema: EntityType,
     pub ownership: OntologyOwnership,
-    pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
@@ -212,9 +209,8 @@ pub struct GetClosedMultiEntityTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateEntityTypesParams<R> {
+pub struct UpdateEntityTypesParams {
     pub schema: EntityType,
-    pub relationships: R,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -246,6 +242,15 @@ pub struct UpdateEntityTypeEmbeddingParams<'a> {
     pub reset: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForEntityTypesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub entity_type_ids: Cow<'a, [VersionedUrl]>,
+}
+
 /// Describes the API of a store implementation for [`EntityType`]s.
 pub trait EntityTypeStore {
     /// Creates a new [`EntityType`].
@@ -256,14 +261,13 @@ pub trait EntityTypeStore {
     /// - if the [`BaseUrl`] of the `entity_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_entity_type<R>(
+    fn create_entity_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateEntityTypeParams<R>,
+        params: CreateEntityTypeParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -282,14 +286,13 @@ pub trait EntityTypeStore {
     /// - if any [`BaseUrl`] of the entity type already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_entity_types<P, R>(
+    fn create_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<InsertionError>>> + Send
     where
-        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send;
 
     /// Count the number of [`EntityType`]s specified by the [`CountEntityTypesParams`].
     ///
@@ -360,14 +363,13 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`] doesn't exist.
-    fn update_entity_type<R>(
+    fn update_entity_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: UpdateEntityTypesParams<R>,
+        params: UpdateEntityTypesParams,
     ) -> impl Future<Output = Result<EntityTypeMetadata, Report<UpdateError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -383,14 +385,13 @@ pub trait EntityTypeStore {
     /// # Errors
     ///
     /// - if the [`EntityType`]s do not exist.
-    fn update_entity_types<P, R>(
+    fn update_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<EntityTypeMetadata>, Report<UpdateError>>> + Send
     where
-        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send;
 
     /// Archives the definition of an existing [`EntityType`].
     ///
@@ -435,14 +436,19 @@ pub trait EntityTypeStore {
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
-    /// Checks if the given entity types can be instantiated by the actor.
+    /// Checks if the actor has permission for the given entity types.
+    ///
+    /// Returns a set of [`VersionedUrl`]s the actor has permission for. If the actor has no
+    /// permission for an entity type, it will not be included in the set.
     ///
     /// # Errors
     ///
-    /// - If reading the entity types fails.
-    fn can_instantiate_entity_types(
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_entity_types(
         &self,
-        authenticated_user: ActorEntityUuid,
-        entity_type_ids: &[VersionedUrl],
-    ) -> impl Future<Output = Result<Vec<bool>, Report<QueryError>>> + Send;
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntityTypesParams<'_>,
+    ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

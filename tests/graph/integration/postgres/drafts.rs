@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_temporal_versioning::ClosedTemporalBound;
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
@@ -21,9 +20,7 @@ use type_system::{
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn seed<A: AuthorizationApi>(
-    database: &mut DatabaseTestWrapper<A>,
-) -> DatabaseApi<'_, &mut A> {
+async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
         .seed(
             [
@@ -75,7 +72,7 @@ fn charles() -> PropertyObject {
 }
 
 #[must_use]
-async fn check_entity_exists<A: AuthorizationApi>(api: &DatabaseApi<'_, A>, id: EntityId) -> bool {
+async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
     api.get_entity_by_id(api.account_id, id, None, None)
         .await
         .is_ok()
@@ -100,7 +97,7 @@ async fn initial_draft() {
                 confidence: None,
                 link_data: None,
                 draft: true,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -285,7 +282,7 @@ async fn no_initial_draft() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -472,7 +469,7 @@ async fn multiple_drafts() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

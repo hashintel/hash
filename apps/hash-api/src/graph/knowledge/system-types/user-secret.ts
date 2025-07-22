@@ -13,8 +13,6 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   systemEntityTypes,
@@ -22,7 +20,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
@@ -119,28 +116,6 @@ export const createUserSecret = async <
   };
 
   /**
-   * The managing integration bot has edit access to allow it to edit and archive the user secret entity.
-   * The user themselves can read the secret.
-   * No other account requires access to it.
-   */
-  const botEditorUserViewerOnly: EntityRelationAndSubjectBranded[] = [
-    {
-      relation: "editor",
-      subject: {
-        kind: "account",
-        subjectId: managingBotAccountId,
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: userAccountId,
-      },
-    },
-  ];
-
-  /**
    * We currently don't bother to delete existing secrets at the path because when writing new secrets
    * we are using the same path in any case.
    * @todo consider deleting secret at existing path anyway
@@ -193,7 +168,18 @@ export const createUserSecret = async <
       webId: userAccountId as WebId,
       entityUuid: userSecretEntityUuid,
       properties: secretMetadata,
-      relationships: botEditorUserViewerOnly,
+      policies: [
+        {
+          name: `user-secret-entity-${userSecretEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: managingBotAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity", "updateEntity", "archiveEntity"],
+        },
+      ],
     },
   );
 
@@ -210,39 +196,20 @@ export const createUserSecret = async <
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
       },
       entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
-      relationships: botEditorUserViewerOnly,
+      policies: [
+        {
+          name: `user-secret-entity-${usesUserSecretEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: managingBotAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity", "updateEntity", "archiveEntity"],
+        },
+      ],
     },
   );
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "machine",
-      id: managingBotAccountId,
-    },
-  ];
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [userSecretEntityUuid, usesUserSecretEntityUuid]) {
-    for (const principal of viewPrincipals) {
-      await createPolicy(graphApi, authentication, {
-        name: `user-secret-view-entity-${entityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: entityUuid,
-        },
-      });
-    }
-  }
 
   return userSecretEntity.metadata.recordId.entityId;
 };

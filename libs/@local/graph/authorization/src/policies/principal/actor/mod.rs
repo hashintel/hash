@@ -3,16 +3,71 @@ mod machine;
 mod user;
 
 use alloc::sync::Arc;
-use std::sync::LazyLock;
+use core::iter;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
-use type_system::principal::actor::{Actor, ActorId, AiId, MachineId, UserId};
+use smol_str::SmolStr;
+use type_system::principal::actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId};
 
 use crate::policies::{
-    cedar::{FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId},
+    cedar::{
+        FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId, ToCedarValue,
+    },
     error::FromCedarRefernceError,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum AuthenticatedActor {
+    Id(ActorId),
+    Uuid(ActorEntityUuid),
+}
+
+impl From<AuthenticatedActor> for ActorEntityUuid {
+    fn from(authenticated_actor: AuthenticatedActor) -> Self {
+        match authenticated_actor {
+            AuthenticatedActor::Id(actor_id) => Self::new(actor_id),
+            AuthenticatedActor::Uuid(actor_uuid) => actor_uuid,
+        }
+    }
+}
+
+impl From<ActorId> for AuthenticatedActor {
+    fn from(actor_id: ActorId) -> Self {
+        Self::Id(actor_id)
+    }
+}
+
+impl From<Option<ActorId>> for AuthenticatedActor {
+    fn from(actor_id: Option<ActorId>) -> Self {
+        actor_id.map_or_else(|| Self::Uuid(ActorEntityUuid::public_actor()), Self::Id)
+    }
+}
+
+impl From<MachineId> for AuthenticatedActor {
+    fn from(machine_id: MachineId) -> Self {
+        Self::Id(machine_id.into())
+    }
+}
+
+impl From<UserId> for AuthenticatedActor {
+    fn from(user_id: UserId) -> Self {
+        Self::Id(user_id.into())
+    }
+}
+
+impl From<AiId> for AuthenticatedActor {
+    fn from(ai_id: AiId) -> Self {
+        Self::Id(ai_id.into())
+    }
+}
+
+impl From<ActorEntityUuid> for AuthenticatedActor {
+    fn from(actor_uuid: ActorEntityUuid) -> Self {
+        Self::Uuid(actor_uuid)
+    }
+}
 
 pub struct PublicActor;
 
@@ -25,6 +80,40 @@ impl ToCedarEntityId for PublicActor {
 
     fn to_eid(&self) -> ast::Eid {
         ast::Eid::new("public")
+    }
+}
+
+impl ToCedarEntity for PublicActor {
+    fn to_cedar_entity(&self) -> ast::Entity {
+        ast::Entity::new_with_attr_partial_value(
+            self.to_euid(),
+            [(
+                SmolStr::new_static("id"),
+                ast::PartialValue::Value(ast::Value::record(
+                    [
+                        (
+                            SmolStr::new_static("id"),
+                            SmolStr::new_static("00000000-0000-0000-0000-000000000000"),
+                        ),
+                        (SmolStr::new_static("type"), SmolStr::new_static("public")),
+                    ],
+                    None,
+                )),
+            )],
+            HashSet::new(),
+            HashSet::new(),
+            iter::empty(),
+        )
+    }
+}
+
+impl ToCedarValue for ActorId {
+    fn to_cedar_value(&self) -> ast::Value {
+        match self {
+            Self::User(user_id) => user_id.to_cedar_value(),
+            Self::Machine(machine_id) => machine_id.to_cedar_value(),
+            Self::Ai(ai_id) => ai_id.to_cedar_value(),
+        }
     }
 }
 

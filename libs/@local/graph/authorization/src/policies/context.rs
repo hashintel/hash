@@ -11,7 +11,11 @@ use type_system::principal::{Actor, ActorGroup, Role};
 use super::{
     PolicyValidator,
     cedar::ToCedarEntity as _,
-    resource::{EntityResource, EntityTypeResource},
+    principal::actor::PublicActor,
+    resource::{
+        DataTypeResource, EntityResource, EntityTypeResource, PolicyMetaResource,
+        PropertyTypeResource,
+    },
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -52,6 +56,14 @@ impl ContextBuilder {
         self.entities.push(actor.to_cedar_entity());
     }
 
+    /// Adds the public actor to the context for policy evaluation.
+    ///
+    /// This allows the actor to be identified as a principal during authorization,
+    /// making it available for matching against principal constraints in policies.
+    pub fn add_public_actor(&mut self) {
+        self.entities.push(PublicActor.to_cedar_entity());
+    }
+
     /// Adds an actor group to the context for policy evaluation.
     ///
     /// This allows policies associated with the actor group to be considered during authorization,
@@ -74,6 +86,18 @@ impl ContextBuilder {
 
     pub fn add_entity_type(&mut self, entity_type: &EntityTypeResource) {
         self.entities.push(entity_type.to_cedar_entity());
+    }
+
+    pub fn add_property_type(&mut self, property_type: &PropertyTypeResource) {
+        self.entities.push(property_type.to_cedar_entity());
+    }
+
+    pub fn add_data_type(&mut self, data_type: &DataTypeResource) {
+        self.entities.push(data_type.to_cedar_entity());
+    }
+
+    pub fn add_policy_meta_resource(&mut self, policy_resource: &PolicyMetaResource) {
+        self.entities.push(policy_resource.to_cedar_entity());
     }
 
     /// Builds the context.

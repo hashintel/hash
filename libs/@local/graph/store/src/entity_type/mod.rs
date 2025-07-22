@@ -6,8 +6,9 @@ pub use self::{
         CreateEntityTypeParams, EntityTypeResolveDefinitions, EntityTypeStore,
         GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, IncludeEntityTypeOption, IncludeResolvedEntityTypeOption,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
+        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
 };
 

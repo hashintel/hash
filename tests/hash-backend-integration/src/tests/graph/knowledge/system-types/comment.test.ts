@@ -17,7 +17,6 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -70,9 +69,6 @@ describe("Comment", () => {
                   { value: [] },
               },
             },
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: testUser.accountId,
-            }),
           },
         ),
       },

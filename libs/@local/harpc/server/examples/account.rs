@@ -1,4 +1,9 @@
-#![feature(never_type, impl_trait_in_assoc_type, return_type_notation)]
+#![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
+    never_type,
+    return_type_notation,
+)]
 #![expect(
     clippy::print_stdout,
     clippy::use_debug,

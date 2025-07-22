@@ -3,10 +3,23 @@
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
+  "type": "module",
+  "exports": {
+    "./types": "./types/index.snap.js"
+  },
+  "typesVersions": {
+    "*": {
+      "types": [
+        "./types/index.snap.d.ts"
+      ]
+    }
+  },
   "scripts": {
+    "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-store --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
+    "lint:tsc": "tsc --noEmit",
     "test:unit": "mise run test:unit @rust/hash-graph-store"
   },
   "dependencies": {
@@ -17,5 +30,10 @@
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-types": "0.0.0-private",
     "@rust/hash-temporal-client": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
+    "@rust/hash-codegen": "0.0.0-private",
+    "typescript": "5.7.3"
   }
 }

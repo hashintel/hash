@@ -1,19 +1,19 @@
 pub mod action;
 pub mod error;
-pub mod evaluation;
 pub mod principal;
 pub mod resource;
 pub mod store;
 
 pub(crate) mod cedar;
+mod components;
 mod context;
 mod set;
 mod validation;
 
 use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
-use core::fmt;
+use core::{fmt, str::FromStr as _};
+use std::sync::LazyLock;
 
-use cedar::FromCedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use type_system::{
@@ -25,12 +25,13 @@ use uuid::Uuid;
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::ActionName,
-    cedar::{FromCedarEntityUId as _, ToCedarEntityId as _},
+    cedar::{FromCedarEntityId, FromCedarEntityUId as _, ToCedarEntityId},
     principal::{PrincipalConstraint, actor::PublicActor},
-    resource::{EntityTypeId, ResourceConstraint},
+    resource::{DataTypeId, EntityTypeId, PropertyTypeId, ResourceConstraint},
 };
 pub use self::{
     cedar::PolicyExpressionTree,
+    components::{MergePolicies, OptimizationData, PolicyComponents, PolicyComponentsBuilder},
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,
@@ -91,6 +92,30 @@ impl PolicyId {
     }
 }
 
+impl FromCedarEntityId for PolicyId {
+    type Error = Report<uuid::Error>;
+
+    fn entity_type() -> &'static Arc<ast::EntityType> {
+        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Policy"]));
+        &ENTITY_TYPE
+    }
+
+    fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+    }
+}
+
+impl ToCedarEntityId for PolicyId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
+}
+
 #[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -127,81 +152,59 @@ impl RequestContext {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PartialResourceId<'a> {
-    Web(Option<WebId>),
-    Entity(Option<EntityUuid>),
-    EntityType(Option<Cow<'a, EntityTypeId>>),
+pub enum ResourceId<'a> {
+    Web(WebId),
+    Entity(EntityUuid),
+    EntityType(Cow<'a, EntityTypeId>),
+    PropertyType(Cow<'a, PropertyTypeId>),
+    DataType(Cow<'a, DataTypeId>),
+    Policy(PolicyId),
+}
+
+impl ToCedarEntityId for ResourceId<'_> {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        match self {
+            Self::Web(web_id) => web_id.to_cedar_entity_type(),
+            Self::Entity(entity) => entity.to_cedar_entity_type(),
+            Self::EntityType(entity_type) => entity_type.to_cedar_entity_type(),
+            Self::PropertyType(property_type) => property_type.to_cedar_entity_type(),
+            Self::DataType(data_type) => data_type.to_cedar_entity_type(),
+            Self::Policy(policy_id) => policy_id.to_cedar_entity_type(),
+        }
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        match self {
+            Self::Web(web_id) => web_id.to_eid(),
+            Self::Entity(entity_uuid) => entity_uuid.to_eid(),
+            Self::EntityType(entity_type) => entity_type.to_eid(),
+            Self::PropertyType(property_type) => property_type.to_eid(),
+            Self::DataType(data_type) => data_type.to_eid(),
+            Self::Policy(policy_id) => policy_id.to_eid(),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct Request<'a> {
     pub actor: Option<ActorId>,
     pub action: ActionName,
-    pub resource: Option<&'a PartialResourceId<'a>>,
+    pub resource: &'a ResourceId<'a>,
     pub context: RequestContext,
-}
-
-impl PartialResourceId<'_> {
-    fn to_euid(&self) -> ast::EntityUIDEntry {
-        match self {
-            Self::Web(web_id) => web_id.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**WebId::entity_type()).clone()),
-                    loc: None,
-                },
-                |web_id| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(web_id.to_euid()),
-                    loc: None,
-                },
-            ),
-            Self::Entity(entity_uuid) => entity_uuid.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**EntityUuid::entity_type()).clone()),
-                    loc: None,
-                },
-                |entity_uuid| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(entity_uuid.to_euid()),
-                    loc: None,
-                },
-            ),
-            Self::EntityType(entity_type_id) => entity_type_id.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**EntityTypeId::entity_type()).clone()),
-                    loc: None,
-                },
-                |entity_type_id| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(entity_type_id.to_euid()),
-                    loc: None,
-                },
-            ),
-        }
-    }
 }
 
 impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> ast::Request {
-        ast::Request::new_with_unknowns(
-            ast::EntityUIDEntry::Known {
-                euid: Arc::new(match self.actor {
-                    Some(ActorId::User(user_id)) => user_id.to_euid(),
-                    Some(ActorId::Machine(machine_id)) => machine_id.to_euid(),
-                    Some(ActorId::Ai(ai_id)) => ai_id.to_euid(),
-                    None => PublicActor.to_euid(),
-                }),
-                loc: None,
-            },
-            ast::EntityUIDEntry::Known {
-                euid: Arc::new(self.action.to_euid()),
-                loc: None,
-            },
-            self.resource.map_or(
-                ast::EntityUIDEntry::Unknown {
-                    ty: None,
-                    loc: None,
-                },
-                PartialResourceId::to_euid,
+        ast::Request::new(
+            (
+                self.actor
+                    .as_ref()
+                    .map_or_else(|| PublicActor.to_euid(), ActorId::to_euid),
+                None,
             ),
-            Some(self.context.to_cedar()),
+            (self.action.to_euid(), None),
+            (self.resource.to_euid(), None),
+            self.context.to_cedar(),
             Some(PolicyValidator::schema()),
             Extensions::none(),
         )
@@ -212,15 +215,15 @@ impl Request<'_> {
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum InvalidPolicy {
     #[display("Invalid policy ID")]
-    InvalidPolicyId,
+    PolicyId,
     #[display("Invalid principal constraint")]
-    InvalidPrincipalConstraint,
+    PrincipalConstraint,
     #[display("Invalid action constraint")]
-    InvalidActionConstraint,
+    ActionConstraint,
     #[display("Invalid resource constraint")]
-    InvalidResourceConstraint,
+    ResourceConstraint,
     #[display("Invalid policy syntax")]
-    InvalidSyntax,
+    Syntax,
 }
 
 impl Policy {
@@ -233,7 +236,7 @@ impl Policy {
                     .id()
                     .as_ref()
                     .parse()
-                    .change_context(InvalidPolicy::InvalidPolicyId)?,
+                    .change_context(InvalidPolicy::PolicyId)?,
             ),
             name: None,
             effect: match policy.effect() {
@@ -241,24 +244,24 @@ impl Policy {
                 ast::Effect::Forbid => Effect::Forbid,
             },
             principal: PrincipalConstraint::try_from_cedar(policy.principal_constraint())
-                .change_context(InvalidPolicy::InvalidPrincipalConstraint)?,
+                .change_context(InvalidPolicy::PrincipalConstraint)?,
             actions: match policy.action_constraint() {
                 ast::ActionConstraint::Any => vec![ActionName::All],
                 ast::ActionConstraint::Eq(action) => vec![
                     ActionName::from_euid(action)
-                        .change_context(InvalidPolicy::InvalidActionConstraint)?,
+                        .change_context(InvalidPolicy::ActionConstraint)?,
                 ],
                 ast::ActionConstraint::In(actions) => actions
                     .iter()
                     .map(|action| ActionName::from_euid(action))
                     .try_collect_reports()
-                    .change_context(InvalidPolicy::InvalidActionConstraint)?,
+                    .change_context(InvalidPolicy::ActionConstraint)?,
             },
             resource: ResourceConstraint::try_from_cedar(
                 policy.resource_constraint(),
                 policy.non_scope_constraints(),
             )
-            .change_context(InvalidPolicy::InvalidResourceConstraint)?,
+            .change_context(InvalidPolicy::ResourceConstraint)?,
             constraints: None,
         })
     }
@@ -306,7 +309,7 @@ impl Policy {
     ///
     /// # Errors
     ///
-    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy::Syntax`] if the Cedar policy is invalid.
     /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
     pub fn parse_cedar_policy(
         text: &str,
@@ -321,7 +324,7 @@ impl Policy {
                 )),
                 text,
             )
-            .change_context(InvalidPolicy::InvalidSyntax)
+            .change_context(InvalidPolicy::Syntax)
             .attach_printable_lazy(|| text.to_owned())?,
         )
     }
@@ -330,7 +333,7 @@ impl Policy {
     ///
     /// # Errors
     ///
-    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy::Syntax`] if the Cedar policy is invalid.
     /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
     pub fn parse_cedar_policies(text: &str) -> Result<Vec<Self>, Report<InvalidPolicy>> {
         text.split_inclusive(';')
@@ -381,8 +384,8 @@ mod tests {
         use std::collections::HashSet;
 
         use type_system::{
-            knowledge::entity::id::EntityUuid,
-            ontology::VersionedUrl,
+            knowledge::entity::{EntityId, id::EntityUuid},
+            ontology::{BaseUrl, VersionedUrl},
             principal::{
                 actor::{ActorId, User, UserId},
                 actor_group::WebId,
@@ -391,8 +394,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PolicyId,
-            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
+            ActionName, Authorized, ContextBuilder, Effect, PolicyId, PrincipalConstraint, Request,
+            RequestContext, ResourceConstraint, ResourceId,
             resource::{EntityResource, EntityResourceConstraint},
         };
 
@@ -448,29 +451,38 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: WebId::from(user_id),
-                id: entity_uuid,
-                entity_type: Cow::Owned(vec![
+                id: EntityId {
+                    web_id: WebId::from(user_id),
+                    entity_uuid,
+                    draft_id: None,
+                },
+                entity_types: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
                 ]),
+                entity_base_types: Cow::Owned(vec![
+                    BaseUrl::new("https://hash.ai/@hash/types/entity-type/user/".to_owned())?,
+                    BaseUrl::new("https://hash.ai/@hash/types/entity-type/actor/".to_owned())?,
+                ]),
+                created_by: user.id.into(),
             };
-            let resource_id = PartialResourceId::Entity(Some(user_entity.id));
+            let resource_id = ResourceId::Entity(user_entity.id.entity_uuid);
             let mut context = ContextBuilder::default();
             context.add_entity(&user_entity);
             let context = context.build()?;
 
             let actor_id = ActorId::User(user.id);
 
-            let mut policy_set = PolicySet::default();
-            policy_set.add_policy(&policy)?;
+            let policy_set = PolicySet::default()
+                .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+                .with_policy(&policy)?;
 
             assert!(matches!(
                 policy_set.evaluate(
                     &Request {
                         actor: Some(actor_id),
                         action: ActionName::View,
-                        resource: Some(&resource_id),
+                        resource: &resource_id,
                         context: RequestContext,
                     },
                     &context
@@ -483,7 +495,7 @@ mod tests {
                     &Request {
                         actor: Some(actor_id),
                         action: ActionName::Update,
-                        resource: Some(&resource_id),
+                        resource: &resource_id,
                         context: RequestContext,
                     },
                     &context

@@ -1,12 +1,9 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import {
-  addActorGroupMember,
-  removeActorGroupMember,
-} from "../../graph/account-permission-management";
 import type {
   EntityAuthorizationSubject,
   MutationResolvers,
+  PendingOrgInvitation,
   QueryResolvers,
   Resolvers,
 } from "../api-types.gen";
@@ -22,7 +19,7 @@ import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
+import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
@@ -37,20 +34,15 @@ import { resolveCommentResolver } from "./knowledge/comment/resolve";
 import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
 import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
-  addEntityEditorResolver,
-  addEntityOwnerResolver,
   addEntityViewerResolver,
   archiveEntitiesResolver,
   archiveEntityResolver,
   countEntitiesResolver,
   createEntityResolver,
-  getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
   getEntitySubgraphResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
-  removeEntityEditorResolver,
-  removeEntityOwnerResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
@@ -60,7 +52,13 @@ import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
+import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
+import { declineOrgInvitationResolver } from "./knowledge/org/decline-org-invitation";
+import { getMyPendingInvitationsResolver } from "./knowledge/org/get-my-pending-invitations";
+import { getPendingInvitationByEntityIdResolver } from "./knowledge/org/get-pending-invitation-by-entity-id";
+import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
+import { removeUserFromOrgResolver } from "./knowledge/org/remove-user-from-org";
 import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
@@ -143,12 +141,18 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
-    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
-      getEntityAuthorizationRelationshipsResolver,
-    ),
+    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
+      throw new Error(
+        "`getEntityAuthorizationRelationships` is not implemented",
+      );
+    }),
     countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
+    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
+      getMyPendingInvitationsResolver,
+    ),
+    getPendingInvitationByEntityId: getPendingInvitationByEntityIdResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
@@ -211,15 +215,29 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+    inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),
+    acceptOrgInvitation: loggedInAndSignedUpMiddleware(
+      acceptOrgInvitationResolver,
+    ),
+    declineOrgInvitation: loggedInAndSignedUpMiddleware(
+      declineOrgInvitationResolver,
+    ),
+    removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
 
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
-    addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
-    removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),
-    addEntityEditor: loggedInAndSignedUpMiddleware(addEntityEditorResolver),
-    removeEntityEditor: loggedInAndSignedUpMiddleware(
-      removeEntityEditorResolver,
-    ),
+    addEntityOwner: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`addEntityOwner` is not implemented");
+    }),
+    removeEntityOwner: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`removeEntityOwner` is not implemented");
+    }),
+    addEntityEditor: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`addEntityEditor` is not implemented");
+    }),
+    removeEntityEditor: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`removeEntityEditor` is not implemented");
+    }),
     addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
     removeEntityViewer: loggedInAndSignedUpMiddleware(
       removeEntityViewerResolver,
@@ -232,20 +250,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       submitExternalInputResponse,
     ),
 
-    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      addActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
-    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      removeActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
-
     // Integration
-    syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
-      syncLinearIntegrationWithWorkspacesMutation,
+    syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
+      syncLinearIntegrationWithWebsMutation,
     ),
   },
 
@@ -284,6 +291,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       } else {
         return "PublicAuthorizationSubject";
       }
+    },
+  },
+
+  PendingOrgInvitation: {
+    __resolveType(object: PendingOrgInvitation) {
+      if ("email" in object) {
+        return "PendingOrgInvitationByEmail";
+      }
+
+      return "PendingOrgInvitationByShortname";
     },
   },
 };

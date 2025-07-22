@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
-  tracesSampleRate: 1.0,
+  tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
 });
 
 import * as http from "node:http";

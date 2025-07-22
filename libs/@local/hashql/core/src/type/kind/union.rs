@@ -15,10 +15,10 @@ use crate::{
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-        inference::{Constraint, Inference, PartialStructuralEdge, Variable},
+        inference::{Constraint, Inference, Variable},
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -166,7 +166,7 @@ impl<'heap> UnionType<'heap> {
 
         for &self_variant in self_variants {
             let found = super_variants.iter().any(|&super_variant| {
-                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+                env.is_subtype_of(Variance::Covariant, self_variant, super_variant)
             });
 
             if found {
@@ -294,12 +294,12 @@ impl<'heap> UnionType<'heap> {
                 });
 
                 for &self_variant in self_variants {
-                    env.in_covariant(|env| env.collect_constraints(self_variant, never));
+                    env.collect_constraints(Variance::Covariant, self_variant, never);
                 }
             }
             (&[self_variant], &[super_variant]) => {
                 // Not a union, proceed
-                env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
+                env.collect_constraints(Variance::Covariant, self_variant, super_variant);
             }
             (&[self_variant], _) => {
                 // To be able to support recursing down union-right, we would need a fully fledged
@@ -332,7 +332,7 @@ impl<'heap> UnionType<'heap> {
             (self_variants, &[super_variant]) => {
                 // Single constraint, means we can actually recurse down
                 for &self_variant in self_variants {
-                    env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
+                    env.collect_constraints(Variance::Covariant, self_variant, super_variant);
                 }
             }
             (self_variants, super_variants) => {
@@ -619,9 +619,9 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let backup = variants.clone();
         variants.retain(|&mut subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
-            !backup
-                .iter()
-                .any(|&supertype| subtype != supertype && env.is_subtype_of(subtype, supertype))
+            !backup.iter().any(|&supertype| {
+                subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
+            })
         });
 
         // Collapse empty or singleton
@@ -663,26 +663,6 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
             &super_variants,
             env,
         );
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // We cannot collect any constraints union types **if** they are on the right side (e.g. the
-        // edge is a source), as `union-right` resolves into an or, and therefore any constraint
-        // wouldn't be additive.
-        // This is not the case with union-left, as union-left resolves into an and, and therefore
-        // any constraint would be additive.
-        if variable.is_source() {
-            // union-right
-            return;
-        }
-
-        for &variant in self.kind.variants {
-            env.in_covariant(|env| env.collect_structural_edges(variant, variable));
-        }
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

@@ -6,7 +6,8 @@ pub use self::{
         DataTypeConversionTargets, DataTypeStore, GetDataTypeConversionTargetsParams,
         GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams,
         GetDataTypeSubgraphResponse, GetDataTypesParams, GetDataTypesResponse,
-        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        HasPermissionForDataTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
     },
 };
 

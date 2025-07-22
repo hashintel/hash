@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::Report;
 use type_system::principal::actor_group::{Team, TeamId};
 use uuid::Uuid;
@@ -35,15 +35,13 @@ impl ToCedarEntityId for TeamId {
 
 impl ToCedarEntity for Team {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             iter::empty(),
             HashSet::new(),
             HashSet::from([self.parent_id.to_euid()]),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Team should be a valid Cedar entity")
     }
 }
 

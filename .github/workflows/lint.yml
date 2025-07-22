@@ -94,7 +94,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -136,6 +136,7 @@ jobs:
           pushd ${{ matrix.path }}
           turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
             | clippy-sarif \
+            | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
@@ -151,7 +152,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e # v3.28.19
+        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
         if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -190,7 +191,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
@@ -252,7 +253,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
+            echo 'Try running `yarn fix:format` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -311,6 +312,20 @@ jobs:
             echo 'This makes runtime less stable, so should be avoided.'
             echo 'Please run `yarn install` locally and commit yarn.lock.'
             echo 'You may also want to run `yarn fix:yarn-deduplicate` just in case.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
+          fi
+
+      - name: Check Cargo.lock stability
+        if: ${{ success() || failure() }}
+        run: |
+          if ! cargo update --workspace --locked; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in Cargo.lock file after running `cargo update --workspace`.'
+            echo 'This makes runtime less stable, so should be avoided.'
+            echo 'Please run `cargo update --workspace` locally and commit Cargo.lock.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;
           fi

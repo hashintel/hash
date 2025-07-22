@@ -20,6 +20,7 @@ import {
 } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
+import { createOrgWeb } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -35,7 +36,6 @@ import type {
 import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 import { logger } from "../../../logger";
-import { createOrgWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -61,14 +61,12 @@ export type Org = {
 
 function assertOrganizationEntity(
   entity: HashEntity,
-  permitOlderVersions = false,
 ): asserts entity is HashEntity<Organization> {
   if (
-    !entity.metadata.entityTypeIds.find((entityTypeId) =>
-      permitOlderVersions
-        ? extractBaseUrl(entityTypeId) ===
-          systemEntityTypes.organization.entityTypeBaseUrl
-        : entityTypeId === systemEntityTypes.organization.entityTypeId,
+    !entity.metadata.entityTypeIds.some(
+      (entityTypeId) =>
+        extractBaseUrl(entityTypeId) ===
+        systemEntityTypes.organization.entityTypeBaseUrl,
     )
   ) {
     throw new EntityTypeMismatchError(
@@ -80,10 +78,10 @@ function assertOrganizationEntity(
 }
 
 export const getOrgFromEntity: PureGraphFunction<
-  { entity: HashEntity; permitOlderVersions?: boolean },
+  { entity: HashEntity },
   Org
-> = ({ entity, permitOlderVersions }) => {
-  assertOrganizationEntity(entity, permitOlderVersions);
+> = ({ entity }) => {
+  assertOrganizationEntity(entity);
 
   const { organizationName: orgName, shortname } = simplifyProperties(
     entity.properties,
@@ -157,7 +155,7 @@ export const createOrg: ImpureGraphFunction<
     });
   } else {
     const { webId, machineId } = await createOrgWeb(
-      ctx,
+      ctx.graphApi,
       { actorId: systemAccountId },
       {
         shortname,
@@ -250,26 +248,10 @@ export const createOrg: ImpureGraphFunction<
       properties,
       entityTypeIds: [orgEntityTypeId],
       entityUuid: orgWebId,
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "administratorFromWeb",
-          },
-        },
-      ],
     });
 
     return getOrgFromEntity({
       entity,
-      permitOlderVersions: orgEntityTypeVersion !== undefined,
     });
   } finally {
     if (temporaryInstantiationPolicy) {
@@ -309,7 +291,7 @@ export const getOrgById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the organization
  */
 export const getOrgByShortname: ImpureGraphFunction<
-  { permitOlderVersions?: boolean; shortname: string },
+  { shortname: string },
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
@@ -357,7 +339,6 @@ export const getOrgByShortname: ImpureGraphFunction<
   return orgEntity
     ? getOrgFromEntity({
         entity: orgEntity,
-        permitOlderVersions: params.permitOlderVersions,
       })
     : null;
 };

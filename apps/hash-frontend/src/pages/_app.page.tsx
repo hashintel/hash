@@ -21,7 +21,7 @@ import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { configureScope, ErrorBoundary } from "@sentry/nextjs";
+import { ErrorBoundary, getClient } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
@@ -41,6 +41,7 @@ import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
+import { InvitesContextProvider } from "../shared/invites-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
@@ -81,10 +82,11 @@ const App: FunctionComponent<AppProps> = ({
   const router = useRouter();
 
   useEffect(() => {
-    configureScope((scope) =>
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
-    );
+    const release = getClient()?.getOptions().release;
+
+    // eslint-disable-next-line no-console -- TODO: consider using logger
+    console.log(`Build: ${release ?? "not set"}`);
+
     setSsr(false);
   }, []);
 
@@ -115,30 +117,32 @@ const App: FunctionComponent<AppProps> = ({
                 <SnackbarProvider maxSnack={3}>
                   <NotificationCountContextProvider>
                     <DraftEntitiesCountContextProvider>
-                      <EntityTypesContextProvider>
-                        <PropertyTypesContextProvider includeArchived>
-                          <DataTypesContextProvider>
-                            <FileUploadsProvider>
-                              <SidebarContextProvider>
-                                <SlideStackProvider>
-                                  <ErrorBoundary
-                                    beforeCapture={(scope) => {
-                                      scope.setTag("error-boundary", "_app");
-                                    }}
-                                    fallback={(props) =>
-                                      getLayoutWithSidebar(
-                                        <ErrorFallback {...props} />,
-                                      )
-                                    }
-                                  >
-                                    {getLayout(<Component {...pageProps} />)}
-                                  </ErrorBoundary>
-                                </SlideStackProvider>
-                              </SidebarContextProvider>
-                            </FileUploadsProvider>
-                          </DataTypesContextProvider>
-                        </PropertyTypesContextProvider>
-                      </EntityTypesContextProvider>
+                      <InvitesContextProvider>
+                        <EntityTypesContextProvider>
+                          <PropertyTypesContextProvider includeArchived>
+                            <DataTypesContextProvider>
+                              <FileUploadsProvider>
+                                <SidebarContextProvider>
+                                  <SlideStackProvider>
+                                    <ErrorBoundary
+                                      beforeCapture={(scope) => {
+                                        scope.setTag("error-boundary", "_app");
+                                      }}
+                                      fallback={(props) =>
+                                        getLayoutWithSidebar(
+                                          <ErrorFallback {...props} />,
+                                        )
+                                      }
+                                    >
+                                      {getLayout(<Component {...pageProps} />)}
+                                    </ErrorBoundary>
+                                  </SlideStackProvider>
+                                </SidebarContextProvider>
+                              </FileUploadsProvider>
+                            </DataTypesContextProvider>
+                          </PropertyTypesContextProvider>
+                        </EntityTypesContextProvider>
+                      </InvitesContextProvider>
                     </DraftEntitiesCountContextProvider>
                   </NotificationCountContextProvider>
                 </SnackbarProvider>
@@ -196,6 +200,8 @@ const publiclyAccessiblePagePathnames = [
   "/",
 ];
 
+const redirectIfAuthenticatedPathnames = ["/signup"];
+
 /**
  * A map from a feature flag, to the list of pages which should not be accessible
  * if that feature flag is not enabled for the user.
@@ -224,7 +230,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    * Fetch the authenticated user on the very first page load so it's available in the frontend.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    *
-   * @todo this is running on every page transition. make it stop or make caching work (need to create new client on request to stop sharing user data)
+   * @todo this is running on every page transition. make it stop or make caching work (need to create new client on request to avoid sharing user data)
    */
   const initialAuthenticatedUserSubgraph = await apolloClient
     .query<MeQuery>({
@@ -280,6 +286,12 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       // ...then redirect them to the home page.
       redirectInGetInitialProps({ appContext, location: "/" });
     }
+  } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
+    /**
+     * If the user has completed signup and is on a page they shouldn't be on
+     * (e.g. /signup), then redirect them to the home page.
+     */
+    redirectInGetInitialProps({ appContext, location: "/" });
   }
 
   // For each feature flag...

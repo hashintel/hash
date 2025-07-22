@@ -403,9 +403,14 @@ impl<C> Report<C> {
     /// [`frames()`]: Self::frames
     #[must_use]
     pub fn current_frame(&self) -> &Frame {
-        // this never fails, because one cannot push an additional frame without making it a
-        // `Report<[C]>`
-        &self.frames[0]
+        self.frames.first().unwrap_or_else(|| {
+            unreachable!(
+                "Report does not contain any frames. This should not happen as a Report must \
+                 always contain at least one frame.\n\n
+                 Please file an issue to https://github.com/hashintel/hash/issues/new?template=bug-report-error-stack.yml\n\n
+                 Report:\n{self:?}",
+            )
+        })
     }
 
     /// Returns the current context of the `Report`.
@@ -446,9 +451,11 @@ impl<C> Report<C> {
             // create a `Report` without a valid context and this method can only be called when `T`
             // is a valid context, it's guaranteed that the context is available.
             unreachable!(
-                "Report does not contain a context. This is considered a bug and should be \
-                reported to https://github.com/hashintel/hash/issues/new/choose"
-            );
+                "Report does not contain a context. This should not happen as a Report must \
+                 always contain at least one frame.\n\n
+                 Please file an issue to https://github.com/hashintel/hash/issues/new?template=bug-report-error-stack.yml\n\n
+                 Report:\n{self:?}",
+            )
         })
     }
 

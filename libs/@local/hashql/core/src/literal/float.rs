@@ -1,5 +1,9 @@
+use core::str::FromStr as _;
+
+use hash_codec::numeric::Real;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
+use super::IntegerLiteral;
 use crate::symbol::Symbol;
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
@@ -34,12 +38,12 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// ```
 ///
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct FloatLiteral<'heap> {
     pub value: Symbol<'heap>,
 }
 
-impl FloatLiteral<'_> {
+impl<'heap> FloatLiteral<'heap> {
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
     //
@@ -55,6 +59,27 @@ impl FloatLiteral<'_> {
     ///
     /// Conversion is lossy, meaning that the resulting [`f32`] value may not be exactly equal to
     /// the original value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let float = |value: &'static str| FloatLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // Standard decimal
+    /// assert_eq!(float("123.456").as_f32(), 123.456);
+    ///
+    /// // Negative value
+    /// assert_eq!(float("-0.5").as_f32(), -0.5);
+    ///
+    /// // Scientific notation
+    /// assert_eq!(float("1.23e4").as_f32(), 12300.0);
+    /// ```
     ///
     /// # Panics
     ///
@@ -74,6 +99,27 @@ impl FloatLiteral<'_> {
     /// Conversion is lossy, meaning that the resulting [`f64`] value may not be exactly equal to
     /// the original value.
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let float = |value: &'static str| FloatLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // High precision decimal
+    /// assert_eq!(float("123.456789012345").as_f64(), 123.456789012345);
+    ///
+    /// // Negative scientific notation
+    /// assert!((float("-1.23e-2").as_f64() - (-0.0123)).abs() < f64::EPSILON);
+    ///
+    /// // Large scientific notation
+    /// assert_eq!(float("1.23e4").as_f64(), 12300.0);
+    /// ```
+    ///
     /// # Panics
     ///
     /// Panics if the stored value is not a valid JSON-formatted floating-point number.
@@ -83,60 +129,89 @@ impl FloatLiteral<'_> {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
             .expect("float literal should be formatted according to JSON specification")
     }
+
+    /// Converts the float literal to an integer literal.
+    ///
+    /// Returns `Some` if the float literal represents a whole number (no decimal point,
+    /// scientific notation, or exponent). Returns `None` otherwise.
+    ///
+    /// Conversion is lossless, meaning that the resulting [`IntegerLiteral`] value will be exactly
+    /// equal to the original value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let float = |value: &'static str| FloatLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // Whole number (can convert)
+    /// assert!(float("42").as_integer().is_some());
+    /// assert_eq!(float("42").as_integer().unwrap().value.as_str(), "42");
+    ///
+    /// // Negative whole number
+    /// assert!(float("-123").as_integer().is_some());
+    ///
+    /// // Decimal number (cannot convert)
+    /// assert!(float("3.14").as_integer().is_none());
+    ///
+    /// // Scientific notation (cannot convert)
+    /// assert!(float("1.23e4").as_integer().is_none());
+    /// ```
+    #[must_use]
+    pub fn as_integer(self) -> Option<IntegerLiteral<'heap>> {
+        let is_integer = memchr::memchr3(b'.', b'e', b'E', self.value.as_bytes()).is_none();
+
+        is_integer.then_some(IntegerLiteral { value: self.value })
+    }
+
+    /// Converts the float literal to a real literal.
+    ///
+    /// Conversion is lossy, meaning that the resulting [`Real`] value may not be exactly equal to
+    /// the original value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let float = |value: &'static str| FloatLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // Standard decimal
+    /// let real = float("3.14159").as_real();
+    /// assert_eq!(real.to_string(), "3.14159");
+    ///
+    /// // Negative value
+    /// let real = float("-2.718").as_real();
+    /// assert_eq!(real.to_string(), "-2.718");
+    ///
+    /// // Scientific notation
+    /// let real = float("1.23e4").as_real();
+    /// assert_eq!(real.to_string(), "12300");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the float literal is not a valid JSON-formatted floating-point number.
+    /// This should never happen for properly constructed AST nodes.
+    #[must_use]
+    pub fn as_real(self) -> Real {
+        Real::from_str(self.value.as_str())
+            .expect("float literal should be formatted according to JSON specification")
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{heap::Heap, literal::FloatLiteral};
-
-    #[test]
-    #[expect(clippy::float_cmp)]
-    fn valid_json_f32() {
-        let heap = Heap::new();
-
-        let literal = FloatLiteral {
-            value: heap.intern_symbol("123.456"),
-        };
-
-        assert_eq!(literal.as_f32(), 123.456);
-    }
-
-    #[test]
-    #[expect(clippy::float_cmp)]
-    fn valid_json_f64() {
-        let heap = Heap::new();
-
-        let literal = FloatLiteral {
-            value: heap.intern_symbol("123.456789012345"),
-        };
-
-        assert_eq!(literal.as_f64(), 123.456_789_012_345);
-    }
-
-    #[test]
-    #[expect(clippy::float_cmp)]
-    fn scientific_notation() {
-        let heap = Heap::new();
-
-        let literal = FloatLiteral {
-            value: heap.intern_symbol("1.23e4"),
-        };
-
-        assert_eq!(literal.as_f32(), 12300.0);
-        assert_eq!(literal.as_f64(), 12300.0);
-    }
-
-    #[test]
-    fn negative_scientific_notation() {
-        let heap = Heap::new();
-
-        let literal = FloatLiteral {
-            value: heap.intern_symbol("-1.23e-2"),
-        };
-
-        assert!((literal.as_f32() - (-0.0123)).abs() < f32::EPSILON);
-        assert!((literal.as_f64() - (-0.0123)).abs() < f64::EPSILON);
-    }
 
     #[test]
     #[should_panic(expected = "float literal should be formatted according to JSON specification")]

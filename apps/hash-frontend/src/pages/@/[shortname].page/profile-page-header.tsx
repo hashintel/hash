@@ -1,5 +1,5 @@
-import { Avatar } from "@hashintel/design-system";
-import { Box, Container, Skeleton, Typography } from "@mui/material";
+import { Avatar, UserPlusRegularIcon } from "@hashintel/design-system";
+import { Box, Container, Skeleton, Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 
@@ -145,7 +145,25 @@ export const ProfilePageHeader: FunctionComponent<{
                 typesCount={typesCount}
               />
               {isEditable ? (
-                <>
+                <Stack direction="row" spacing={0.5} mb={0.5}>
+                  {profile?.kind === "org" && (
+                    <Button
+                      href={`/settings/organizations/${profile.shortname}/members#invite`}
+                      variant="secondary_quiet"
+                      size="xs"
+                      endIcon={
+                        <UserPlusRegularIcon
+                          sx={{
+                            color: ({ palette }) => palette.blue[70],
+                            height: 16,
+                            width: 16,
+                          }}
+                        />
+                      }
+                    >
+                      Invite
+                    </Button>
+                  )}
                   <Button
                     onClick={() => setDisplayEditPinnedEntityTypesModal(true)}
                     variant="secondary_quiet"
@@ -155,7 +173,6 @@ export const ProfilePageHeader: FunctionComponent<{
                         sx={{ color: ({ palette }) => palette.blue[70] }}
                       />
                     }
-                    sx={{ marginBottom: 0.5 }}
                   >
                     Modify
                   </Button>
@@ -169,7 +186,7 @@ export const ProfilePageHeader: FunctionComponent<{
                       refetchProfile={refetchProfile}
                     />
                   ) : null}
-                </>
+                </Stack>
               ) : null}
             </Box>
           </Box>

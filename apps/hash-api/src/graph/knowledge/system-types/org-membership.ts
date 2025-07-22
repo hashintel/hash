@@ -1,19 +1,20 @@
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
   EntityId,
+  EntityUuid,
+  UserId,
 } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-
 import {
   addActorGroupMember,
   removeActorGroupMember,
-} from "../../account-permission-management";
+} from "@local/hash-graph-sdk/principal/actor-group";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
+
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -71,20 +72,31 @@ export const createOrgMembershipLinkEntity: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
+  const userActorId = extractWebIdFromEntityId(userEntityId) as UserId;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
+  const linkEntityEntityUuid = generateUuid() as EntityUuid;
   const linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
     webId: orgWebId,
+    entityUuid: linkEntityEntityUuid,
     properties: { value: {} },
     linkData: {
       leftEntityId: userEntityId,
       rightEntityId: orgEntityId,
     },
     entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-    relationships: createOrgMembershipAuthorizationRelationships({
-      memberAccountId: userActorId,
-    }),
+    policies: [
+      {
+        name: `org-membership-update-entity-${linkEntityEntityUuid}`,
+        principal: {
+          type: "actor",
+          actorType: "user",
+          id: userActorId,
+        },
+        effect: "permit",
+        actions: ["updateEntity", "archiveEntity"],
+      },
+    ],
   });
 
   return { linkEntity };
@@ -113,9 +125,9 @@ export const createOrgMembership: ImpureGraphFunction<
   const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
-  await addActorGroupMember(ctx, authentication, {
+  await addActorGroupMember(ctx.graphApi, authentication, {
     actorId: userActorId,
-    actorGroupId: orgWebId as ActorGroupEntityUuid,
+    actorGroupId: orgWebId,
   });
 
   try {
@@ -124,9 +136,9 @@ export const createOrgMembership: ImpureGraphFunction<
       orgEntityId,
     });
   } catch (error) {
-    await removeActorGroupMember(ctx, authentication, {
+    await removeActorGroupMember(ctx.graphApi, authentication, {
       actorId: userActorId,
-      actorGroupId: orgWebId as ActorGroupEntityUuid,
+      actorGroupId: orgWebId,
     });
 
     throw error;

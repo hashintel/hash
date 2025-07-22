@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0",
+    "@rust/hash-graph-store": "0.0.0-private",
+    "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hashql-ast": "0.0.0-private",
     "@rust/hashql-core": "0.0.0-private",
     "@rust/hashql-diagnostics": "0.0.0-private",
+    "@rust/hashql-eval": "0.0.0-private",
     "@rust/hashql-hir": "0.0.0-private",
     "@rust/hashql-syntax-jexpr": "0.0.0-private"
   }

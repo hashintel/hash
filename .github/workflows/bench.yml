@@ -88,7 +88,7 @@ jobs:
 
       - name: Cache Rust dependencies
         if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
@@ -143,7 +143,7 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -206,14 +206,14 @@ jobs:
 
       - name: Cache Rust dependencies
         if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
         with:
           workspaces: ${{ matrix.path }}
           save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
-        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
+        run: yarn external-services:test up --wait
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -253,7 +253,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Launch external services
-        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
+        run: yarn external-services:test up --wait
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"
@@ -272,7 +272,7 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}

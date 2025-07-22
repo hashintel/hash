@@ -1,32 +1,16 @@
-/* eslint-disable import/first */
-
-import {
-  getRequiredEnv,
-  monorepoRootDir,
-  realtimeSyncEnabled,
-  waitOnResource,
-} from "@local/hash-backend-utils/environment";
-import type { ErrorRequestHandler } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
-
-// eslint-disable-next-line import/order
-import { initSentry } from "./sentry";
-
-const app = express();
-
-initSentry(app);
-
 import http from "node:http";
-import path from "node:path";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
-import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import {
+  getRequiredEnv,
+  realtimeSyncEnabled,
+  waitOnResource,
+} from "@local/hash-backend-utils/environment";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -39,6 +23,9 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
+import type { ErrorRequestHandler } from "express";
+import express, { raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { rateLimit } from "express-rate-limit";
@@ -65,15 +52,10 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
-import type { EmailTransporter } from "./email/transporters";
-import {
-  AwsSesEmailTransporter,
-  DummyEmailTransporter,
-} from "./email/transporters";
+import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
-import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
 import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
@@ -86,13 +68,7 @@ import {
   getEnvStorageType,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/env-config";
+import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -100,6 +76,8 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+
+const app = express();
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -139,8 +117,6 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 const main = async () => {
   logger.info("Type System initialized");
 
-  registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
-
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
@@ -178,14 +154,6 @@ const main = async () => {
   } catch (err) {
     logger.error(`Could not start StatsD client: ${err}`);
   }
-
-  // Configure Sentry error / trace handling
-  app.use(
-    Sentry.Handlers.requestHandler({
-      ip: true,
-    }),
-  );
-  app.use(Sentry.Handlers.tracingHandler());
 
   app.use(cors(CORS_CONFIG));
 
@@ -424,16 +392,14 @@ const main = async () => {
     scope.clear();
     scope.clearBreadcrumbs();
 
-    /**
-     * Sentry automatically populates a 'Headers' object, but for some reason it doesn't do this for GraphQL requests.
-     * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
-     * or how we're loading it.
-     */
-    const userAgent = req.header("user-agent");
-    const origin = req.header("origin");
-    const ip = req.ip;
-
-    scope.setContext("request", { ip, origin, userAgent });
+    if (req.ip) {
+      /**
+       * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
+       */
+      scope.setContext("request", { ip: req.ip });
+    }
 
     const user = req.user;
     scope.setUser({
@@ -462,33 +428,7 @@ const main = async () => {
   app.set("view engine", "hbs");
   app.set("views", "./views");
 
-  // Create an email transporter
-  const emailTransporter =
-    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
-      ? new DummyEmailTransporter({
-          copyCodesOrLinksToClipboard:
-            process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
-          displayCodesOrLinksInStdout: true,
-          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
-            ? path.resolve(
-                monorepoRootDir,
-                process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
-              )
-            : undefined,
-        })
-      : process.env.AWS_REGION
-        ? new AwsSesEmailTransporter({
-            from: `${getRequiredEnv(
-              "SYSTEM_EMAIL_SENDER_NAME",
-            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-            region: getAwsRegion(),
-            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-          })
-        : ({
-            sendMail: (mail) => {
-              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-            },
-          } as EmailTransporter);
+  const emailTransporter = createEmailTransporter();
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
@@ -687,16 +627,14 @@ const main = async () => {
    * 1. Come AFTER all non-error controllers
    * 2. Come BEFORE all error controllers/middleware
    */
-  app.use(
-    Sentry.Handlers.errorHandler({
-      shouldHandleError(_error) {
-        /**
-         * Capture all errors for now – we can selectively filter out errors based on code if needed.
-         */
-        return true;
-      },
-    }),
-  );
+  Sentry.setupExpressErrorHandler(app, {
+    shouldHandleError(_error) {
+      /**
+       * Capture all errors for now – we can selectively filter out errors based on code if needed.
+       */
+      return true;
+    },
+  });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
@@ -743,6 +681,7 @@ const main = async () => {
     });
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
     if (!vaultClient) {
       throw new Error(

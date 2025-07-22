@@ -2,9 +2,9 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{error::Error, fmt, iter, ptr, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
-use smol_str::SmolStr;
+use smol_str::{SmolStr, ToSmolStr as _};
 use type_system::{
     ontology::id::{BaseUrl, OntologyTypeVersion, ParseVersionedUrlError, VersionedUrl},
     principal::actor_group::WebId,
@@ -74,16 +74,33 @@ pub struct EntityTypeResource<'a> {
 
 impl EntityTypeResource<'_> {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             [
                 (
                     SmolStr::new_static("base_url"),
-                    ast::RestrictedExpr::val(self.id.as_url().base_url.to_string()),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::String(
+                            self.id.as_url().base_url.to_smolstr(),
+                        )),
+                        None,
+                    )),
                 ),
                 (
                     SmolStr::new_static("version"),
-                    ast::RestrictedExpr::val(i64::from(self.id.as_url().version.inner())),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::Long(ast::Integer::from(
+                            self.id.as_url().version.inner(),
+                        ))),
+                        None,
+                    )),
+                ),
+                (
+                    SmolStr::new_static("is_remote"),
+                    ast::PartialValue::Value(ast::Value::new(
+                        ast::ValueKind::Lit(ast::Literal::Bool(self.web_id.is_none())),
+                        None,
+                    )),
                 ),
             ],
             HashSet::new(),
@@ -93,9 +110,7 @@ impl EntityTypeResource<'_> {
                 .map(WebId::to_euid)
                 .collect(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Entity type should be a valid Cedar entity")
     }
 }
 
@@ -113,6 +128,8 @@ pub enum EntityTypeResourceFilter {
     IsBaseUrl { base_url: BaseUrl },
     #[serde(rename_all = "camelCase")]
     IsVersion { version: OntologyTypeVersion },
+    #[serde(rename_all = "camelCase")]
+    IsRemote,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -143,25 +160,32 @@ impl TryFrom<PolicyExpressionTree> for EntityTypeResourceFilter {
             }),
             PolicyExpressionTree::BaseUrl(base_url) => Ok(Self::IsBaseUrl { base_url }),
             PolicyExpressionTree::OntologyTypeVersion(version) => Ok(Self::IsVersion { version }),
-            condition => Err(Report::new(InvalidEntityTypeResourceFilter(condition))),
+            condition @ (PolicyExpressionTree::Is(_)
+            | PolicyExpressionTree::In(_)
+            | PolicyExpressionTree::IsOfType(_)
+            | PolicyExpressionTree::IsOfBaseType(_)
+            | PolicyExpressionTree::HasAction(_)
+            | PolicyExpressionTree::CreatedByPrincipal) => {
+                Err(Report::new(InvalidEntityTypeResourceFilter(condition)))
+            }
         }
     }
 }
 
 impl ToCedarExpr for EntityTypeResourceFilter {
-    fn to_cedar(&self) -> ast::Expr {
+    fn to_cedar_expr(&self) -> ast::Expr {
         match self {
             Self::All { filters } => filters
                 .iter()
-                .map(Self::to_cedar)
+                .map(Self::to_cedar_expr)
                 .reduce(ast::Expr::and)
                 .unwrap_or_else(|| ast::Expr::val(true)),
             Self::Any { filters } => filters
                 .iter()
-                .map(Self::to_cedar)
+                .map(Self::to_cedar_expr)
                 .reduce(ast::Expr::or)
                 .unwrap_or_else(|| ast::Expr::val(false)),
-            Self::Not { filter } => ast::Expr::not(filter.to_cedar()),
+            Self::Not { filter } => ast::Expr::not(filter.to_cedar_expr()),
             Self::IsBaseUrl { base_url } => ast::Expr::is_eq(
                 ast::Expr::get_attr(
                     ast::Expr::var(ast::Var::Resource),
@@ -175,6 +199,10 @@ impl ToCedarExpr for EntityTypeResourceFilter {
                     SmolStr::new_static("version"),
                 ),
                 ast::Expr::val(version.inner().to_string()),
+            ),
+            Self::IsRemote => ast::Expr::get_attr(
+                ast::Expr::var(ast::Var::Resource),
+                SmolStr::new_static("is_remote"),
             ),
         }
     }
@@ -247,7 +275,7 @@ impl EntityTypeResourceConstraint {
         match self {
             Self::Any { filter } => (
                 ast::ResourceConstraint::is_entity_type(Arc::clone(EntityTypeId::entity_type())),
-                filter.to_cedar(),
+                filter.to_cedar_expr(),
             ),
             Self::Exact { id } => (
                 ast::ResourceConstraint::is_eq(Arc::new(id.to_euid())),
@@ -258,7 +286,7 @@ impl EntityTypeResourceConstraint {
                     Arc::clone(EntityTypeId::entity_type()),
                     Arc::new(web_id.to_euid()),
                 ),
-                filter.to_cedar(),
+                filter.to_cedar_expr(),
             ),
         }
     }

@@ -25,6 +25,7 @@ type VaultLoginResult = {
  * @see https://developer.hashicorp.com/vault/docs/auth/aws
  */
 const loginToVaultViaIam = async (opts: {
+  logger: Logger;
   vaultAddr: string;
 }): Promise<VaultLoginResult> => {
   const unsigned = new HttpRequest({
@@ -87,19 +88,23 @@ const loginToVaultViaIam = async (opts: {
 
     return response.data.auth;
   } catch (error) {
+    let errorMessage = "IAM auth failed on request to Vault: ";
     if (error instanceof AxiosError) {
-      throw new Error(`Failed to login to Vault via IAM: ${error.message}`);
+      errorMessage += `(AxiosError): ${JSON.stringify(error)}`;
+    } else {
+      errorMessage += `(Non-AxiosError): ${stringifyError(error)}`;
     }
 
-    throw new Error(
-      `Failed to login to Vault via IAM: ${stringifyError(error)}`,
-    );
+    opts.logger.error(errorMessage);
+
+    throw new Error("Failed to login to Vault via IAM");
   }
 };
 
 const renewToken = async (
   vaultAddr: string,
   token: string,
+  logger: Logger,
 ): Promise<Omit<VaultLoginResult, "client_token">> => {
   try {
     const { data } = await axios.post<{
@@ -115,11 +120,16 @@ const renewToken = async (
 
     return data.auth;
   } catch (error) {
+    let errorMessage = "Failed to renew Vault token: ";
     if (error instanceof AxiosError) {
-      throw new Error(`Failed to renew Vault token: ${error.message}`);
+      errorMessage += `(AxiosError): ${JSON.stringify(error)}`;
+    } else {
+      errorMessage += `(Non-AxiosError): ${stringifyError(error)}`;
     }
 
-    throw new Error(`Failed to renew Vault token: ${stringifyError(error)}`);
+    logger.error(errorMessage);
+
+    throw new Error("Failed to renew Vault token");
   }
 };
 
@@ -235,6 +245,7 @@ export class VaultClient {
           const renewedToken = await renewToken(
             this.#vaultAddr,
             this.#token.clientToken,
+            this.#logger,
           );
 
           this.#token.leaseDurationMs =
@@ -249,6 +260,7 @@ export class VaultClient {
 
       const login = await loginToVaultViaIam({
         vaultAddr: this.#vaultAddr,
+        logger: this.#logger,
       });
 
       this.#token = {
@@ -321,6 +333,7 @@ export const createVaultClient = async ({
     try {
       const login = await loginToVaultViaIam({
         vaultAddr: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+        logger,
       });
 
       logger.info("Successfully logged in to Vault via IAM");
@@ -338,6 +351,10 @@ export const createVaultClient = async ({
       return undefined;
     }
   }
+
+  logger.info(
+    "Creating Vault client with HASH_VAULT_ROOT_TOKEN from environment",
+  );
 
   return new VaultClient({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,

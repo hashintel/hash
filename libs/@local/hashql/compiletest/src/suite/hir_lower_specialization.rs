@@ -20,7 +20,7 @@ use hashql_hir::{
 
 use super::{
     Suite, SuiteDiagnostic,
-    common::{Header, process_diagnostics},
+    common::{Header, process_diagnostics, process_result},
 };
 
 pub(crate) struct HirLowerSpecializationSuite;
@@ -68,14 +68,7 @@ impl Suite for HirLowerSpecializationSuite {
         let mut converter =
             ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
 
-        let node = match converter.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
+        let node = process_result(diagnostics, converter.fold_node(node))?;
 
         let mut inference = TypeInference::new(&environment, &registry);
         inference.visit_node(&node);
@@ -94,17 +87,14 @@ impl Suite for HirLowerSpecializationSuite {
         let (mut residual, checking_diagnostics) = checking.finish();
         process_diagnostics(diagnostics, checking_diagnostics)?;
 
-        let mut specialisation =
-            Specialization::new(&interner, &mut residual.types, residual.intrinsics);
+        let mut specialisation = Specialization::new(
+            &environment,
+            &interner,
+            &mut residual.types,
+            residual.intrinsics,
+        );
 
-        let node = match specialisation.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
+        let node = process_result(diagnostics, specialisation.fold_node(node))?;
 
         let _ = writeln!(
             output,

@@ -55,7 +55,7 @@ use hashql_core::{
     intern::Interned,
     module::locals::TypeDef,
     span::{SpanId, Spanned},
-    symbol::Ident,
+    symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
@@ -69,7 +69,10 @@ use crate::{
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
-        graph::Graph,
+        graph::{
+            Graph, GraphKind,
+            read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+        },
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -145,6 +148,10 @@ pub trait Fold<'heap> {
 
     fn fold_type_def(&mut self, def: TypeDef<'heap>) -> Self::Output<TypeDef<'heap>> {
         walk_type_def(self, def)
+    }
+
+    fn fold_symbol(&mut self, symbol: Symbol<'heap>) -> Self::Output<Symbol<'heap>> {
+        Try::from_output(symbol)
     }
 
     // TODO: we might want to expand on these in the future, for now tho this is sufficient.
@@ -342,6 +349,35 @@ pub trait Fold<'heap> {
     fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
         walk_graph(self, graph)
     }
+
+    fn fold_graph_read(&mut self, read: GraphRead<'heap>) -> Self::Output<GraphRead<'heap>> {
+        walk_graph_read(self, read)
+    }
+
+    fn fold_graph_read_head(
+        &mut self,
+        head: GraphReadHead<'heap>,
+    ) -> Self::Output<GraphReadHead<'heap>> {
+        walk_graph_read_head(self, head)
+    }
+
+    fn fold_graph_read_body(
+        &mut self,
+        body: Interned<'heap, [GraphReadBody<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [GraphReadBody<'heap>]>> {
+        walk_graph_read_body(self, body)
+    }
+
+    fn fold_graph_read_body_step(
+        &mut self,
+        body: GraphReadBody<'heap>,
+    ) -> Self::Output<GraphReadBody<'heap>> {
+        walk_graph_read_body_step(self, body)
+    }
+
+    fn fold_graph_read_tail(&mut self, tail: GraphReadTail) -> Self::Output<GraphReadTail> {
+        walk_graph_read_tail(self, tail)
+    }
 }
 
 pub fn walk_type_def<'heap, T: Fold<'heap> + ?Sized>(
@@ -359,6 +395,7 @@ pub fn walk_ident<'heap, T: Fold<'heap> + ?Sized>(
     Ident { value, span, kind }: Ident<'heap>,
 ) -> T::Output<Ident<'heap>> {
     let span = visitor.fold_span(span)?;
+    let value = visitor.fold_symbol(value)?;
 
     Try::from_output(Ident { value, span, kind })
 }
@@ -630,16 +667,19 @@ pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     }: TypeConstructor<'heap>,
 ) -> T::Output<TypeConstructor<'heap>> {
     let span = visitor.fold_span(span)?;
+    let name = visitor.fold_symbol(name)?;
     let closure = visitor.fold_type_id(closure)?;
     let arguments = visitor.fold_generic_argument_references(arguments)?;
 
     Try::from_output(TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     })
@@ -827,13 +867,82 @@ pub fn walk_closure_params<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_graph<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Graph {
-        span,
-        kind,
-        _marker: _,
-    }: Graph<'heap>,
+    Graph { span, kind }: Graph<'heap>,
 ) -> T::Output<Graph<'heap>> {
-    let _span = visitor.fold_span(span)?;
+    let span = visitor.fold_span(span)?;
 
-    match kind {}
+    let kind = match kind {
+        GraphKind::Read(read) => GraphKind::Read(visitor.fold_graph_read(read)?),
+    };
+
+    Try::from_output(Graph { span, kind })
+}
+
+pub fn walk_graph_read<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    GraphRead {
+        span,
+        head,
+        body,
+        tail,
+    }: GraphRead<'heap>,
+) -> T::Output<GraphRead<'heap>> {
+    let span = visitor.fold_span(span)?;
+
+    let head = visitor.fold_graph_read_head(head)?;
+    let body = visitor.fold_graph_read_body(body)?;
+    let tail = visitor.fold_graph_read_tail(tail)?;
+
+    Try::from_output(GraphRead {
+        span,
+        head,
+        body,
+        tail,
+    })
+}
+
+pub fn walk_graph_read_head<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    head: GraphReadHead<'heap>,
+) -> T::Output<GraphReadHead<'heap>> {
+    match head {
+        GraphReadHead::Entity { axis } => {
+            let axis = visitor.fold_nested_node(axis)?;
+            Try::from_output(GraphReadHead::Entity { axis })
+        }
+    }
+}
+
+pub fn walk_graph_read_body<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    body: Interned<'heap, [GraphReadBody<'heap>]>,
+) -> T::Output<Interned<'heap, [GraphReadBody<'heap>]>> {
+    if body.is_empty() {
+        return Try::from_output(body);
+    }
+
+    let mut body = Beef::new(body);
+    body.try_map::<_, T::Output<()>>(|body| visitor.fold_graph_read_body_step(body))?;
+
+    Try::from_output(body.finish(&visitor.interner().graph_read_body))
+}
+
+pub fn walk_graph_read_body_step<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    body: GraphReadBody<'heap>,
+) -> T::Output<GraphReadBody<'heap>> {
+    match body {
+        GraphReadBody::Filter(node) => {
+            let node = visitor.fold_nested_node(node)?;
+            Try::from_output(GraphReadBody::Filter(node))
+        }
+    }
+}
+
+#[must_use]
+pub fn walk_graph_read_tail<'heap, T: Fold<'heap> + ?Sized>(
+    _: &mut T,
+    tail: GraphReadTail,
+) -> T::Output<GraphReadTail> {
+    Try::from_output(tail)
 }

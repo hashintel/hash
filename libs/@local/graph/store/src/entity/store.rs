@@ -3,7 +3,11 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::TryFutureExt as _;
-use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::knowledge::entity::EntityEmbedding;
 use serde::{Deserialize, Serialize};
@@ -12,7 +16,7 @@ use type_system::{
         Confidence,
         entity::{
             Entity, LinkData,
-            id::{EntityId, EntityUuid},
+            id::{EntityEditionId, EntityId, EntityUuid},
             metadata::EntityTypeIdDiff,
             provenance::ProvidedEntityEditionProvenance,
         },
@@ -32,7 +36,7 @@ use utoipa::{
 use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
@@ -116,17 +120,18 @@ impl Default for ValidateEntityComponents {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[cfg_attr(
-    feature = "utoipa",
-    derive(utoipa::ToSchema),
-    aliases(CreateEntityRequest = CreateEntityParams<Vec<EntityRelationAndSubject>>),
-)]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateEntityParams<R> {
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+pub struct CreateEntityPolicyParams {
+    pub name: String,
+    pub effect: Effect,
+    pub principal: Option<PrincipalConstraint>,
+    pub actions: Vec<ActionName>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateEntityParams {
     pub web_id: WebId,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -144,7 +149,9 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub draft: bool,
-    pub relationships: R,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,
 }
 
@@ -369,6 +376,17 @@ pub struct DiffEntityResult<'e> {
     pub draft_state: Option<bool>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForEntitiesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub entity_ids: Cow<'a, [EntityId]>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
@@ -384,14 +402,11 @@ pub trait EntityStore {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    fn create_entity<R>(
+    fn create_entity(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateEntityParams<R>,
-    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
-    {
+        params: CreateEntityParams,
+    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send {
         self.create_entities(actor_id, vec![params])
             .map_ok(|mut entities| {
                 let entity = entities.pop().expect("Expected a single entity");
@@ -401,13 +416,11 @@ pub trait EntityStore {
     }
 
     /// Creates new [`Entities`][Entity].
-    fn create_entities<R>(
+    fn create_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
-        params: Vec<CreateEntityParams<R>>,
-    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync;
+        actor_uuid: ActorEntityUuid,
+        params: Vec<CreateEntityParams>,
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send;
 
     /// Validates an [`Entity`].
     ///
@@ -417,10 +430,10 @@ pub trait EntityStore {
     fn validate_entity(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
-        self.validate_entities(actor_id, consistency, vec![params])
+    ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send
+    {
+        self.validate_entities(actor_id, vec![params])
     }
 
     /// Validates [`Entities`][Entity].
@@ -431,9 +444,8 @@ pub trait EntityStore {
     fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
+    ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///
@@ -566,4 +578,22 @@ pub trait EntityStore {
     fn reindex_entity_cache(
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Checks if the actor has permission for the given entities.
+    ///
+    /// Returns a map of entity IDs to the edition IDs that the actor has permission for. If the
+    /// actor has no permission for an entity, it will not be included in the map.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> impl Future<
+        Output = Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>>,
+    > + Send;
 }

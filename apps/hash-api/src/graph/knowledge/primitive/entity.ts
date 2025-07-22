@@ -1,19 +1,21 @@
 import {
   type EntityRootType,
   isEntityVertex,
+  type QueryTemporalAxesUnresolved,
   type Subgraph,
 } from "@blockprotocol/graph";
 import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
   BaseUrl,
   Entity,
+  EntityEditionId,
   EntityId,
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
+  TeamId,
   TypeIdsAndPropertiesForEntity,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
@@ -21,6 +23,7 @@ import {
   extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -29,13 +32,11 @@ import type {
   AllFilter,
   CountEntitiesParams,
   DiffEntityResult,
-  EntityPermission,
   Filter,
   GraphResolveDepths,
-  ModifyRelationshipOperation,
+  HasPermissionForEntitiesParams,
 } from "@local/hash-graph-client";
 import type {
-  EntityAuthorizationRelationship,
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
@@ -45,8 +46,9 @@ import {
   type GetEntitiesRequest,
   type GetEntitySubgraphRequest,
   HashEntity,
+  HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -57,6 +59,7 @@ import {
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { ActionName } from "@rust/hash-graph-authorization/types";
 import { ApolloError } from "apollo-server-errors";
 
 import type {
@@ -542,6 +545,7 @@ type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
       entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
       propertyPatches?: PropertyPatchOperation[];
       draft?: boolean;
+      archived?: boolean;
     },
     Promise<HashEntity<Properties>>,
     false,
@@ -581,6 +585,7 @@ export const updateEntity = async <
       draft: params.draft,
       propertyPatches,
       provenance: context.provenance,
+      archived: params.archived,
     },
   );
 
@@ -763,19 +768,19 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 /**
  * Get subgraph rooted at the entity.
  *
- * @param params.entity - the entity
+ * @param params.entityId - the entityId of the entity
  * @param params.graphResolveDepths - the custom resolve depths of the subgraph
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
-    entity: Entity;
+    entityId: EntityId;
     graphResolveDepths: Partial<GraphResolveDepths>;
   },
-  Promise<Subgraph<EntityRootType>>,
+  Promise<Subgraph<EntityRootType<HashEntity>>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, graphResolveDepths } = params;
+  const { entityId, graphResolveDepths } = params;
 
   const { subgraph } = await getEntitySubgraphResponse(
     context,
@@ -787,9 +792,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             equal: [
               { path: ["uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(entityId),
               },
             ],
           },
@@ -797,9 +800,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             equal: [
               { path: ["webId"] },
               {
-                parameter: extractWebIdFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
+                parameter: extractWebIdFromEntityId(entityId),
               },
             ],
           },
@@ -818,66 +819,50 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   return subgraph;
 };
 
-export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: EntityAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyEntityAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationSubject: relationship,
-    })),
-  );
-};
-
-export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityAdministrator(
-    actorId,
-    params.entityId,
-    params.administrator,
-  );
-};
-
-export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityAdministrator(
-    actorId,
-    params.entityId,
-    params.administrator,
-  );
-};
-
-export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
-};
-
-export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
-};
-
-export const checkEntityPermission: ImpureGraphFunction<
-  { entityId: EntityId; permission: EntityPermission },
-  Promise<boolean>
+/**
+ * Checks if the actor has permission for the given entities.
+ *
+ * Returns a map of entity IDs to the edition IDs that the actor has permission for. If the actor
+ * has no permission for an entity, it will not be included in the map.
+ */
+export const hasPermissionForEntities: ImpureGraphFunction<
+  Subtype<
+    HasPermissionForEntitiesParams,
+    {
+      entityIds: EntityId[];
+      action: Subtype<
+        ActionName,
+        "viewEntity" | "updateEntity" | "archiveEntity"
+      >;
+      temporalAxes: QueryTemporalAxesUnresolved;
+      includeDrafts: boolean;
+    }
+  >,
+  Promise<Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .checkEntityPermission(actorId, params.entityId, params.permission)
-    .then(({ data }) => data.has_permission);
+    .hasPermissionForEntities(actorId, params)
+    .then(
+      ({ data }) =>
+        data as Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>,
+    );
+
+export const checkEntityPermission: ImpureGraphFunction<
+  {
+    entityId: EntityId;
+    permission: Subtype<
+      ActionName,
+      "viewEntity" | "updateEntity" | "archiveEntity"
+    >;
+  },
+  Promise<boolean>
+> = async (context, authentication, params) =>
+  hasPermissionForEntities(context, authentication, {
+    action: params.permission,
+    entityIds: [params.entityId],
+    includeDrafts: true,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  }).then((data) => !!data[params.entityId]);
 
 export const checkPermissionsOnEntity: ImpureGraphFunction<
   { entity: Pick<Entity, "metadata"> },
@@ -899,18 +884,21 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
       : await checkEntityPermission(
           graphContext,
           { actorId },
-          { entityId, permission: "update" },
+          { entityId, permission: "updateEntity" },
         ),
     isAccountGroup
       ? isPublicUser
         ? false
-        : await graphContext.graphApi
-            .checkAccountGroupPermission(
+        : await getActorGroupRole(
+            graphContext.graphApi,
+            { actorId },
+            {
               actorId,
-              extractEntityUuidFromEntityId(entityId),
-              "add_member",
-            )
-            .then(({ data }) => data.has_permission)
+              actorGroupId: extractEntityUuidFromEntityId(entityId) as
+                | WebId
+                | TeamId,
+            },
+          ).then((role) => role === "administrator")
       : null,
   ]);
 
@@ -958,22 +946,6 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 
   return userPermissionsOnEntities;
 };
-
-export const getEntityAuthorizationRelationships: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<EntityAuthorizationRelationship[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getEntityAuthorizationRelationships(actorId, params.entityId)
-    .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "entity", resourceId: params.entityId },
-            ...relationship,
-          }) as EntityAuthorizationRelationship,
-      ),
-    );
 
 export const calculateEntityDiff: ImpureGraphFunction<
   DiffEntityInput,

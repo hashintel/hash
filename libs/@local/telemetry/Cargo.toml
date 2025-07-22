@@ -1,0 +1,41 @@
+[package]
+name              = "hash-telemetry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack        = { workspace = true, public = true }
+opentelemetry      = { workspace = true, public = true }
+opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic"] }
+
+# Public third-party dependencies
+clap_builder       = { workspace = true, public = true }
+sentry-core        = { workspace = true, public = true }
+sentry-types       = { workspace = true, public = true }
+tokio              = { workspace = true, public = true }
+tracing-appender   = { workspace = true, public = true }
+tracing-core       = { workspace = true, public = true }
+tracing-subscriber = { workspace = true, public = true, features = ["std", "ansi", "env-filter", "json"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+clap                           = { workspace = true, optional = true, features = ["derive", "env"] }
+derive_more                    = { workspace = true, features = ["display", "error"] }
+opentelemetry-appender-tracing = { workspace = true }
+opentelemetry_sdk              = { workspace = true, features = ["trace", "logs", "metrics", "rt-tokio"] }
+sentry                         = { workspace = true }
+simple-mermaid                 = { workspace = true }
+tracing                        = { workspace = true }
+tracing-error                  = { workspace = true }
+tracing-opentelemetry          = { workspace = true }
+
+[features]
+clap = ["dep:clap"]
+
+[lints]
+workspace = true

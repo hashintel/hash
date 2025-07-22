@@ -1,0 +1,25 @@
+/** Required to load environment variables */
+import "@local/hash-backend-utils/environment";
+
+import * as Sentry from "@sentry/node";
+
+import { isProdEnv } from "./lib/env-config";
+
+// Initialize OpenTelemetry BEFORE any app code
+const otlpEndpoint = process.env.HASH_OTLP_ENDPOINT;
+if (otlpEndpoint) {
+  const { registerOpenTelemetryTracing } = await import(
+    "./graphql/opentelemetry.js"
+  );
+  registerOpenTelemetryTracing(otlpEndpoint, "Node API");
+}
+
+const sentryDsn = process.env.NODE_API_SENTRY_DSN;
+
+Sentry.init({
+  dsn: sentryDsn,
+  enabled: !!sentryDsn,
+  environment: isProdEnv ? "production" : "development",
+  sendDefaultPii: true,
+  tracesSampleRate: isProdEnv ? 1.0 : 0,
+});

@@ -29,16 +29,45 @@ use crate::policies::cedar::FromCedarEntityId;
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub enum ActionName {
+    #[cfg_attr(feature = "codegen", specta(skip))]
     All,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     Create,
+    CreatePolicy,
+    CreateDataType,
+    CreateEntity,
+    CreateEntityType,
+    CreatePropertyType,
     CreateWeb,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     View,
+    ViewPolicy,
+    ViewDataType,
     ViewEntity,
     ViewEntityType,
+    ViewPropertyType,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
+    UpdatePolicy,
+    UpdateDataType,
+    UpdateEntity,
+    UpdateEntityType,
+    UpdatePropertyType,
+
+    #[cfg_attr(feature = "codegen", specta(skip))]
+    Archive,
+    ArchivePolicy,
+    ArchiveDataType,
+    ArchiveEntity,
+    ArchiveEntityType,
+    ArchivePropertyType,
+
+    #[cfg_attr(feature = "codegen", specta(skip))]
+    Delete,
+    DeletePolicy,
 
     Instantiate,
 }
@@ -52,10 +81,34 @@ impl ActionName {
     pub const fn parent(self) -> Option<Self> {
         match self {
             Self::All => None,
-            Self::Create | Self::CreateWeb | Self::View | Self::Update | Self::Instantiate => {
-                Some(Self::All)
-            }
-            Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
+            Self::Create
+            | Self::CreateWeb
+            | Self::View
+            | Self::Update
+            | Self::Archive
+            | Self::Delete
+            | Self::Instantiate => Some(Self::All),
+            Self::CreatePolicy
+            | Self::CreateDataType
+            | Self::CreateEntity
+            | Self::CreateEntityType
+            | Self::CreatePropertyType => Some(Self::Create),
+            Self::ViewPolicy
+            | Self::ViewDataType
+            | Self::ViewEntity
+            | Self::ViewEntityType
+            | Self::ViewPropertyType => Some(Self::View),
+            Self::UpdatePolicy
+            | Self::UpdateDataType
+            | Self::UpdateEntity
+            | Self::UpdateEntityType
+            | Self::UpdatePropertyType => Some(Self::Update),
+            Self::ArchivePolicy
+            | Self::ArchiveDataType
+            | Self::ArchiveEntity
+            | Self::ArchiveEntityType
+            | Self::ArchivePropertyType => Some(Self::Archive),
+            Self::DeletePolicy => Some(Self::Delete),
         }
     }
 
@@ -265,7 +318,6 @@ mod tests {
             let action_name = ActionName::from_euid(action_id.name())?;
             for descendant_id in action_id.descendants() {
                 let descendant = ActionName::from_euid(descendant_id)?;
-                println!("{action_name} is parent of {descendant}");
                 assert!(
                     action_name.is_parent_of(descendant),
                     "{action_name} is not a parent of {descendant}"
@@ -341,44 +393,145 @@ mod tests {
             vec![ActionName::All]
         );
         assert_eq!(
+            ActionName::Archive.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
             ActionName::Instantiate.parents().collect::<Vec<_>>(),
             vec![ActionName::All]
         );
 
         // Second level actions have their direct parent and All as ancestors
-        assert_eq!(
-            ActionName::ViewEntity.parents().collect::<Vec<_>>(),
-            vec![ActionName::View, ActionName::All]
-        );
-        assert_eq!(
-            ActionName::ViewEntityType.parents().collect::<Vec<_>>(),
-            vec![ActionName::View, ActionName::All]
-        );
+        for action in [
+            ActionName::CreatePolicy,
+            ActionName::CreateDataType,
+            ActionName::CreateEntity,
+            ActionName::CreateEntityType,
+            ActionName::CreatePropertyType,
+        ] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::Create, ActionName::All]
+            );
+        }
+
+        for action in [
+            ActionName::ViewPolicy,
+            ActionName::ViewDataType,
+            ActionName::ViewEntity,
+            ActionName::ViewEntityType,
+            ActionName::ViewPropertyType,
+        ] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::View, ActionName::All]
+            );
+        }
+
+        for action in [
+            ActionName::UpdatePolicy,
+            ActionName::UpdateDataType,
+            ActionName::UpdateEntity,
+            ActionName::UpdateEntityType,
+            ActionName::UpdatePropertyType,
+        ] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::Update, ActionName::All]
+            );
+        }
+
+        for action in [
+            ActionName::ArchivePolicy,
+            ActionName::ArchiveDataType,
+            ActionName::ArchiveEntity,
+            ActionName::ArchiveEntityType,
+            ActionName::ArchivePropertyType,
+        ] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::Archive, ActionName::All]
+            );
+        }
+
+        #[expect(
+            clippy::single_element_loop,
+            reason = "More actions may be added in the future"
+        )]
+        for action in [ActionName::DeletePolicy] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::Delete, ActionName::All]
+            );
+        }
     }
 
     #[test]
     fn is_parent_of() {
-        // View is parent of ViewEntity and ViewEntityType
-        assert!(ActionName::View.is_parent_of(ActionName::ViewEntity));
-        assert!(ActionName::View.is_parent_of(ActionName::ViewEntityType));
+        for action in [
+            ActionName::CreatePolicy,
+            ActionName::CreateDataType,
+            ActionName::CreateEntity,
+            ActionName::CreateEntityType,
+            ActionName::CreatePropertyType,
+        ] {
+            assert!(ActionName::Create.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::Create));
+        }
+
+        for action in [
+            ActionName::ViewPolicy,
+            ActionName::ViewDataType,
+            ActionName::ViewEntity,
+            ActionName::ViewEntityType,
+            ActionName::ViewPropertyType,
+        ] {
+            assert!(ActionName::View.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::View));
+        }
+
+        for action in [
+            ActionName::UpdatePolicy,
+            ActionName::UpdateDataType,
+            ActionName::UpdateEntity,
+            ActionName::UpdateEntityType,
+            ActionName::UpdatePropertyType,
+        ] {
+            assert!(ActionName::Update.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::Update));
+        }
+
+        for action in [
+            ActionName::ArchivePolicy,
+            ActionName::ArchiveDataType,
+            ActionName::ArchiveEntity,
+            ActionName::ArchiveEntityType,
+            ActionName::ArchivePropertyType,
+        ] {
+            assert!(ActionName::Archive.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::Archive));
+        }
+
+        #[expect(
+            clippy::single_element_loop,
+            reason = "More actions may be added in the future"
+        )]
+        for action in [ActionName::DeletePolicy] {
+            assert!(ActionName::Delete.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::Delete));
+        }
 
         // Negative cases
         assert!(!ActionName::Create.is_parent_of(ActionName::View));
         assert!(!ActionName::View.is_parent_of(ActionName::Create));
         assert!(!ActionName::All.is_parent_of(ActionName::All));
         assert!(!ActionName::ViewEntity.is_parent_of(ActionName::View));
-    }
+        assert!(!ActionName::CreateEntity.is_parent_of(ActionName::Create));
 
-    #[test]
-    fn is_child_of() {
-        // ViewEntity and ViewEntityType are children of View
-        assert!(ActionName::ViewEntity.is_child_of(ActionName::View));
-        assert!(ActionName::ViewEntityType.is_child_of(ActionName::View));
-
-        // Negative cases
         assert!(!ActionName::View.is_child_of(ActionName::Create));
         assert!(!ActionName::Create.is_child_of(ActionName::View));
         assert!(!ActionName::All.is_child_of(ActionName::All));
         assert!(!ActionName::View.is_child_of(ActionName::ViewEntity));
+        assert!(!ActionName::Create.is_child_of(ActionName::CreateEntity));
     }
 }

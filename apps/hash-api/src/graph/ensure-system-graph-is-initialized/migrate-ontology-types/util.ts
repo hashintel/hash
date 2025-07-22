@@ -37,11 +37,6 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
-import type {
-  DataTypeRelationAndSubjectBranded,
-  EntityTypeRelationAndSubjectBranded,
-  PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/authorization";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -257,15 +252,6 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     webShortname,
   );
 
-  const relationships: DataTypeRelationAndSubjectBranded[] = [
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
-
   if (isSelfHostedInstance) {
     /**
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
@@ -274,7 +260,6 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     await context.graphApi.loadExternalDataType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: dataTypeSchema,
-      relationships,
       conversions,
       provenance: context.provenance,
     });
@@ -291,7 +276,6 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
         webId,
         schema: dataTypeSchema,
         webShortname,
-        relationships,
         conversions,
       },
     ).catch((createError) => {
@@ -351,22 +335,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     webShortname,
   );
 
-  const relationships: PropertyTypeRelationAndSubjectBranded[] = [
-    {
-      relation: "editor",
-      subject: {
-        kind: "account",
-        subjectId: systemActorMachineId,
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
-
   if (isSelfHostedInstance) {
     /**
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an
@@ -375,7 +343,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: propertyTypeSchema,
-      relationships,
       provenance: context.provenance,
     });
 
@@ -391,7 +358,6 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
         webId,
         schema: propertyTypeSchema,
         webShortname,
-        relationships,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create property type: ${propertyTypeId}`);
@@ -573,22 +539,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     webShortname,
   );
 
-  const relationships: EntityTypeRelationAndSubjectBranded[] = [
-    {
-      relation: "editor",
-      subject: {
-        kind: "account",
-        subjectId: systemActorMachineId,
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
-
   // The type was missing, try and create it
   if (isSelfHostedInstance) {
     /**
@@ -598,7 +548,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     await context.graphApi.loadExternalEntityType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
-      relationships,
       provenance: context.provenance,
     });
 
@@ -614,7 +563,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         webId,
         schema: entityTypeSchema,
         webShortname,
-        relationships,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create entity type: ${entityTypeSchema.$id}`);
@@ -759,19 +707,6 @@ export const updateSystemEntityType: ImpureGraphFunction<
     // the next version doesn't exist, continue to create it
   }
 
-  const currentRelationships = await context.graphApi
-    .getEntityTypeAuthorizationRelationships(
-      authentication.actorId,
-      currentEntityTypeId,
-    )
-    .then((resp) =>
-      resp.data.filter(
-        (rel) =>
-          // the Graph API automatically reapplies the existing ownership relationship between the type and the web
-          rel.subject.kind !== "web",
-      ),
-    );
-
   const { $id: _, ...schemaWithout$id } = newSchema;
 
   const schemaWithConsistentSelfReferences = {
@@ -785,7 +720,6 @@ export const updateSystemEntityType: ImpureGraphFunction<
   const updatedTypeMetadata = isSelfHostedInstance
     ? await context.graphApi
         .loadExternalEntityType(authentication.actorId, {
-          relationships: currentRelationships,
           schema: {
             ...schemaWithConsistentSelfReferences,
             $id: nextEntityTypeId,
@@ -797,7 +731,6 @@ export const updateSystemEntityType: ImpureGraphFunction<
         .updateEntityType(authentication.actorId, {
           typeToUpdate: currentEntityTypeId,
           schema: schemaWithConsistentSelfReferences,
-          relationships: currentRelationships,
           provenance: context.provenance,
         })
         .then((resp) => resp.data);
@@ -854,19 +787,11 @@ export const updateSystemPropertyType: ImpureGraphFunction<
     // the next version doesn't exist, continue to create it
   }
 
-  const currentRelationships = await context.graphApi
-    .getPropertyTypeAuthorizationRelationships(
-      authentication.actorId,
-      currentPropertyTypeId,
-    )
-    .then((resp) => resp.data);
-
   const { $id: _, ...schemaWithout$id } = newSchema;
 
   const updatedPropertyTypeMetadata = isSelfHostedInstance
     ? await context.graphApi
         .loadExternalPropertyType(authentication.actorId, {
-          relationships: currentRelationships,
           schema: {
             ...newSchema,
             $id: nextPropertyTypeId,
@@ -878,7 +803,6 @@ export const updateSystemPropertyType: ImpureGraphFunction<
         .updatePropertyType(authentication.actorId, {
           typeToUpdate: currentPropertyTypeId,
           schema: schemaWithout$id,
-          relationships: currentRelationships,
           provenance: context.provenance,
         })
         .then((resp) => resp.data);

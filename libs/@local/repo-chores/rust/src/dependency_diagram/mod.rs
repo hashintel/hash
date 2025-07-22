@@ -250,7 +250,7 @@ fn would_break_connectivity(
     packages = set.len(),
 ))]
 fn graph_to_mermaid(
-    set: PackageSet,
+    set: &PackageSet,
     root_crate: Option<&str>,
     dedup_transitive: bool,
     link_mode: LinkMode,
@@ -300,8 +300,12 @@ fn graph_to_mermaid(
     let mut edges = BTreeMap::new();
 
     for link in set.links(DependencyDirection::Forward) {
-        let from = package_id_lookup[link.from().id()];
-        let to = package_id_lookup[link.to().id()];
+        let from = *package_id_lookup
+            .get(link.from().id())
+            .expect("package should exist");
+        let to = *package_id_lookup
+            .get(link.to().id())
+            .expect("package should exist");
         edges.insert((from, to), link);
     }
 
@@ -543,7 +547,7 @@ pub fn generate_dependency_diagram(
 
     let mut set = graph
         .query_forward(iter::empty())
-        .expect("infallible; is empty")
+        .unwrap_or_else(|error| unreachable!("{error}"))
         .resolve();
 
     if let Some(root) = &root_set
@@ -575,7 +579,7 @@ pub fn generate_dependency_diagram(
     tracing::info!(packages = set.len(), "Graph has been filtered");
 
     // Convert the package set to a mermaid diagram
-    let diagram = graph_to_mermaid(set, root.as_deref(), !no_dedup_transitive, *link_mode);
+    let diagram = graph_to_mermaid(&set, root.as_deref(), !no_dedup_transitive, *link_mode);
 
     Ok(diagram)
 }

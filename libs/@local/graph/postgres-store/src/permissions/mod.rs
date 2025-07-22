@@ -1,32 +1,20 @@
-use alloc::borrow::Cow;
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        ContextBuilder,
-        action::ActionName,
-        resource::{EntityTypeId, EntityTypeResource},
-        store::{RoleAssignmentStatus, RoleUnassignmentStatus},
-    },
+use hash_graph_authorization::policies::{
+    action::ActionName,
+    store::{RoleAssignmentStatus, RoleUnassignmentStatus},
 };
-use hash_graph_store::{
-    account::{AccountStore as _, GetActorError},
-    error::QueryError,
-};
-use hash_status::StatusCode;
+use hash_graph_store::account::{AccountStore as _, GetActorError};
 use tokio_postgres::{GenericClient as _, error::SqlState};
-use type_system::{
-    ontology::VersionedUrl,
-    principal::{
-        PrincipalId, PrincipalType,
-        actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId},
-        actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
-        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
-    },
+use tracing::Instrument as _;
+use type_system::principal::{
+    PrincipalId, PrincipalType,
+    actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId},
+    actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
+    role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
 use uuid::Uuid;
 
@@ -35,10 +23,9 @@ use crate::store::{AsClient, PostgresStore};
 mod error;
 pub use self::error::{ActionError, PolicyError, PrincipalError};
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     async fn is_principal(
         &self,
@@ -75,6 +62,12 @@ where
                 },
                 &[&principal_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -110,6 +103,12 @@ where
                 "DELETE FROM principal WHERE id = $1 AND principal_type = $2",
                 &[&uuid, &principal_type],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -136,6 +135,12 @@ where
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO user_actor (id) VALUES ($1)", &[&user_id])
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -148,40 +153,6 @@ where
         }
 
         Ok(user_id)
-    }
-
-    /// Determines the type of an actor by its ID.
-    ///
-    /// Returns `None` if the ID is the public actor.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    /// - [`ActorNotFound`] if the actor with the given ID doesn't exist
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    /// [`ActorNotFound`]: PrincipalError::ActorNotFound
-    pub async fn determine_actor(
-        &self,
-        id: ActorEntityUuid,
-    ) -> Result<Option<ActorId>, Report<PrincipalError>> {
-        if id.is_public_actor() {
-            return Ok(None);
-        }
-
-        let row = self
-            .as_client()
-            .query_opt("SELECT principal_type FROM actor WHERE id = $1", &[&id])
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .ok_or(PrincipalError::ActorNotFound { id })?;
-
-        Ok(Some(match row.get(0) {
-            PrincipalType::User => ActorId::User(UserId::new(id)),
-            PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
-            PrincipalType::Ai => ActorId::Ai(AiId::new(id)),
-            principal_type => unreachable!("Unexpected actor type: {principal_type:?}"),
-        }))
     }
 
     /// Determines the type of an actor by its ID.
@@ -200,6 +171,12 @@ where
                 "SELECT EXISTS(SELECT 1 FROM actor WHERE id = $1)",
                 &[&actor_id.into()],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map(|row| row.get(0))
             .change_context(PrincipalError::StoreError)
@@ -277,6 +254,12 @@ where
                 "INSERT INTO machine_actor (id, identifier) VALUES ($1, $2)",
                 &[&id, &identifier],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -341,6 +324,12 @@ where
                 "INSERT INTO ai_actor (id, identifier) VALUES ($1, $2)",
                 &[&ai_id, &identifier],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -396,11 +385,23 @@ where
                 "SELECT principal_type FROM actor_group WHERE id = $1",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroupId::Web(WebId::new(id)),
                 PrincipalType::Team => ActorGroupId::Team(TeamId::new(id)),
-                principal_type => unreachable!("Unexpected actor group type: {principal_type:?}"),
+                principal_type @ (PrincipalType::User
+                | PrincipalType::Machine
+                | PrincipalType::Ai
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
+                    unreachable!("Unexpected actor group type: {principal_type:?}")
+                }
             })
             .change_context(PrincipalError::StoreError)
     }
@@ -460,6 +461,12 @@ where
                 "INSERT INTO team (id, parent_id, name) VALUES ($1, $2, $3)",
                 &[&id, &parent_id, &name],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(Report::new)
             .map_err(|error| match error.current_context().code() {
@@ -489,6 +496,12 @@ where
                  WHERE child_id = $1::uuid",
                 &[&parent_id, &id],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -534,12 +547,22 @@ where
                 ORDER BY depth ASC",
                 &[&id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroupId::Web(row.get(1)),
                 PrincipalType::Team => ActorGroupId::Team(row.get(1)),
-                principal_type => {
+                principal_type @ (PrincipalType::User
+                | PrincipalType::Machine
+                | PrincipalType::Ai
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
                     unreachable!("Unexpected principal type {principal_type}")
                 }
             })
@@ -595,6 +618,12 @@ where
                 VALUES ($1, $2, $3, $4)",
                 &[&role_id, &principal_type, &actor_group_id, &name],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| match error.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => {
@@ -654,6 +683,12 @@ where
                     },
                 ],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| match actor_group_id {
@@ -719,6 +754,12 @@ where
                 ON CONFLICT DO NOTHING",
                 &[&actor_id, &role_id],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -748,6 +789,12 @@ where
                 "DELETE FROM actor_role WHERE actor_id = $1 AND role_id = $2",
                 &[&actor_id, &role_id],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?;
 
@@ -786,6 +833,12 @@ where
                  WHERE actor_role.actor_id = $1",
                 &[&actor_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| {
@@ -807,7 +860,13 @@ where
                             name: row.get(3),
                         }),
                     ),
-                    principal_type => unreachable!("Unexpected role type: {principal_type:?}"),
+                    principal_type @ (PrincipalType::User
+                    | PrincipalType::Machine
+                    | PrincipalType::Ai
+                    | PrincipalType::Web
+                    | PrincipalType::Team) => {
+                        unreachable!("Unexpected role type: {principal_type:?}")
+                    }
                 }
             })
             .try_collect()
@@ -843,13 +902,24 @@ where
                  WHERE actor_role.role_id = $1",
                 &[&role_id],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| match row.get(0) {
                 PrincipalType::User => ActorId::User(row.get(1)),
                 PrincipalType::Machine => ActorId::Machine(row.get(1)),
                 PrincipalType::Ai => ActorId::Ai(row.get(1)),
-                principal_type => unreachable!("Unexpected principal type: {principal_type:?}"),
+                principal_type @ (PrincipalType::Web
+                | PrincipalType::Team
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
+                    unreachable!("Unexpected principal type: {principal_type:?}")
+                }
             })
             .try_collect()
             .await
@@ -879,6 +949,12 @@ where
                 "INSERT INTO action (name, parent) VALUES ($1, $2)",
                 &[&action, &action.parent()],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| {
                 let policy_error = match (error.code(), action.parent()) {
@@ -906,6 +982,12 @@ where
                     FROM unnest($2::text[]) WITH ORDINALITY as t(parent_name, ordinality)",
                 &[&action, &action.parents().collect::<Vec<_>>()],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -931,6 +1013,12 @@ where
                 "SELECT EXISTS(SELECT 1 FROM action WHERE name = $1)",
                 &[&action],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -950,6 +1038,12 @@ where
         let actions_to_be_removed = self
             .as_client()
             .query("SELECT name FROM action", &[])
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?
             .into_iter()
@@ -970,6 +1064,12 @@ where
                 "DELETE FROM action WHERE name = ANY($1)",
                 &[&actions_to_be_removed],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?;
 
@@ -1018,6 +1118,12 @@ where
                      ORDER BY depth",
                 &[&action],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(ActionError::StoreError)?
             .map_ok(|row| row.get::<_, ActionName>(0))
@@ -1050,6 +1156,12 @@ where
         let num_deleted = self
             .as_mut_client()
             .execute("DELETE FROM action WHERE name = $1", &[&action])
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .map_err(|error| {
                 let policy_error = match error.code() {
@@ -1066,205 +1178,5 @@ where
         } else {
             Err(Report::new(ActionError::NotFound { id: action }))
         }
-    }
-
-    /// Builds a context used to evaluate policies for an actor.
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalNotFound`] if the actor with the given ID doesn't exist
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
-    /// [`StoreError`]: PrincipalError::StoreError
-    ///
-    /// # Performance considerations
-    ///
-    /// This function performs multiple database queries to collect all entities needed for policy
-    /// evaluation, which could become a performance bottleneck for frequently accessed actors.
-    /// Future optimizations may include:
-    ///   - Combining some queries into a single more complex query
-    ///   - Implementing caching strategies for frequently accessed contexts
-    ///   - Prefetching contexts for related actors in batch operations
-    pub async fn build_principal_context(
-        &self,
-        actor_id: ActorId,
-        context_builder: &mut ContextBuilder,
-    ) -> Result<(), Report<PrincipalError>> {
-        let actor = self
-            .get_actor(actor_id.into(), actor_id)
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .ok_or(PrincipalError::PrincipalNotFound {
-                id: PrincipalId::Actor(actor_id),
-            })?;
-        context_builder.add_actor(&actor);
-
-        let group_ids = self
-            .get_actor_roles(actor_id)
-            .await?
-            .into_values()
-            .map(|role| {
-                context_builder.add_role(&role);
-                role.actor_group_id()
-            })
-            .collect::<Vec<_>>();
-
-        self.as_client()
-            .query_raw(
-                "
-                WITH groups AS (
-                    SELECT parent_id AS id FROM team_hierarchy WHERE child_id = ANY($1)
-                    UNION ALL
-                    SELECT id FROM actor_group WHERE id = ANY($1)
-                )
-                SELECT
-                    'team'::PRINCIPAL_TYPE,
-                    team.id,
-                    team.name,
-                    parent.principal_type,
-                    parent.id
-                 FROM team
-                 JOIN groups ON team.id = groups.id
-                 JOIN actor_group parent ON team.parent_id = parent.id
-
-                 UNION
-
-                 SELECT
-                    'web'::PRINCIPAL_TYPE,
-                    web.id,
-                    web.shortname,
-                    NULL,
-                    NULL
-                 FROM web
-                 JOIN groups ON web.id = groups.id
-                 ",
-                &[&group_ids],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map_ok(|row| match row.get(0) {
-                PrincipalType::Web => ActorGroup::Web(Web {
-                    id: row.get(1),
-                    shortname: row.get(2),
-                    roles: HashSet::new(),
-                }),
-                PrincipalType::Team => ActorGroup::Team(Team {
-                    id: row.get(1),
-                    name: row.get(2),
-                    parent_id: match row.get(3) {
-                        PrincipalType::Web => ActorGroupId::Web(row.get(4)),
-                        PrincipalType::Team => ActorGroupId::Team(row.get(4)),
-                        actor_group_type => {
-                            unreachable!("Unexpected actor group type: {actor_group_type:?}")
-                        }
-                    },
-                    roles: HashSet::new(),
-                }),
-                actor_group_type => {
-                    unreachable!("Unexpected actor group type: {actor_group_type:?}")
-                }
-            })
-            .try_collect::<Vec<_>>()
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .into_iter()
-            .for_each(|actor_group| {
-                context_builder.add_actor_group(&actor_group);
-            });
-
-        Ok(())
-    }
-
-    /// Builds a context used to evaluate policies for a set of entity types.
-    ///
-    /// # Errors
-    ///
-    /// - [`QueryError`] if a database error occurs
-    pub async fn build_entity_type_context(
-        &self,
-        entity_type_ids: &[VersionedUrl],
-        context_builder: &mut ContextBuilder,
-    ) -> Result<(), Report<QueryError>> {
-        let () = self
-            .as_client()
-            .query(
-                "
-                    SELECT input.idx
-                    FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM entity_types
-                        WHERE entity_types.schema ->> '$id' = input.url
-                    )",
-                &[&entity_type_ids],
-            )
-            .await
-            .change_context(QueryError)?
-            .into_iter()
-            .map(|row| {
-                #[expect(
-                    clippy::cast_possible_truncation,
-                    clippy::cast_sign_loss,
-                    reason = "The index is 1-based and is always less than or equal to the length \
-                              of the array"
-                )]
-                Err(Report::new(QueryError).attach_printable(format!(
-                    "Entity type not found: `{}`",
-                    entity_type_ids[row.get::<_, i64>(0) as usize - 1]
-                )))
-            })
-            .try_collect_reports()
-            .change_context(QueryError)
-            .attach(StatusCode::NotFound)?;
-
-        self.as_client()
-            .query(
-                "
-                WITH filtered AS (
-                    SELECT entity_types.ontology_id
-                    FROM entity_types
-                    WHERE entity_types.schema ->> '$id' = any($1)
-                )
-                SELECT
-                    ontology_ids.base_url,
-                    ontology_ids.version,
-                    ontology_owned_metadata.web_id
-                FROM filtered
-                INNER JOIN ontology_ids
-                    ON filtered.ontology_id = ontology_ids.ontology_id
-                LEFT OUTER JOIN ontology_owned_metadata
-                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
-
-                UNION
-
-                SELECT
-                    ontology_ids.base_url,
-                    ontology_ids.version,
-                    ontology_owned_metadata.web_id
-                FROM filtered
-                INNER JOIN
-                    entity_type_inherits_from
-                    ON filtered.ontology_id = source_entity_type_ontology_id
-                INNER JOIN ontology_ids
-                    ON target_entity_type_ontology_id = ontology_ids.ontology_id
-                LEFT OUTER JOIN ontology_owned_metadata
-                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id;
-                 ",
-                &[&entity_type_ids],
-            )
-            .await
-            .change_context(QueryError)?
-            .into_iter()
-            .for_each(|row| {
-                context_builder.add_entity_type(&EntityTypeResource {
-                    id: Cow::Owned(EntityTypeId::new(VersionedUrl {
-                        base_url: row.get(0),
-                        version: row.get(1),
-                    })),
-                    web_id: row.get(2),
-                });
-            });
-
-        Ok(())
     }
 }

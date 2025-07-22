@@ -1,5 +1,23 @@
 # HASH Development Guide
 
+## Critical Thinking and Feedback
+
+**IMPORTANT: Always critically evaluate and challenge user suggestions, even when they seem reasonable.**
+
+- **Question assumptions**: Don't just agree - analyze if there are better approaches
+- **Offer alternative perspectives**: Suggest different solutions or point out potential issues
+- **Challenge organization decisions**: If something doesn't fit logically, speak up
+- **Point out inconsistencies**: Help catch logical errors or misplaced components
+
+This critical feedback helps improve decision-making and ensures robust solutions. Being agreeable is less valuable than being thoughtful and analytical.
+
+### Example Behaviors
+
+- ✅ "I disagree - that component belongs in a different file because..."
+- ✅ "Have you considered this alternative approach?"
+- ✅ "This seems inconsistent with the pattern we established..."
+- ❌ Just implementing suggestions without evaluation
+
 ## Repository Structure and Navigation
 
 The HASH repository is organized into several key directories:
@@ -18,7 +36,7 @@ The HASH repository is organized into several key directories:
   - `/@blockprotocol` - Block Protocol related libraries
   - `/@hashintel` - HASH-specific libraries
   - `/@local` - Internal libraries for the monorepo
-  - Other core libraries (e.g., `error-stack`, `deer`)
+  - Other core libraries (e.g., `error-stack`)
 
 - `/infra` - Deployment and infrastructure code
   - `/docker` - Docker configurations
@@ -77,6 +95,115 @@ When documenting Rust code, follow these guidelines:
 
 This balanced approach maintains readability while providing necessary structure for complex APIs.
 
+## Tracing and Instrumentation
+
+### Function-level Instrumentation (Preferred)
+
+For most cases, use `#[tracing::instrument]` directly on functions:
+
+```rust
+// ✅ Best - automatic span creation with function name and arguments
+#[tracing::instrument(level = "info", skip(self))]
+async fn compile_query(&self, params: &QueryParams) -> Result<Query, Error> {
+    // Function body automatically wrapped in span
+}
+
+// ✅ Good - customize span name and fields
+#[tracing::instrument(level = "info", name = "db_query", skip(self), fields(table = %table_name))]
+async fn execute_query(&self, table_name: &str) -> Result<Rows, Error> {
+    // Function body
+}
+```
+
+### Manual Instrumentation for Async Calls
+
+When adding tracing spans to async code, use `.instrument()` before `.await`:
+
+```rust
+// ✅ Good - clean and readable
+let result = some_async_function()
+    .instrument(tracing::info_span!("operation_name"))
+    .await?;
+
+// ❌ Avoid - unnecessarily verbose
+let result = async {
+    some_async_function().await
+}
+.instrument(tracing::info_span!("operation_name"))
+.await?;
+```
+
+### Span Context Inheritance
+
+Use `.in_current_span()` when span context would otherwise be lost:
+
+```rust
+// ✅ Required for spawned tasks
+tokio::spawn(async {
+    background_work().await
+}.in_current_span());
+
+// ❌ Bad - loses tracing context
+tokio::spawn(async {
+    background_work().await
+});
+
+// ✅ Required for non-async functions returning Future with combinators
+#[tracing::instrument]
+fn some_function() -> impl Future<Output = Result<T, E>> {
+    async_operation()
+        .and_then(|x| other_operation(x))
+        .in_current_span()  // Required because no .await possible here
+}
+
+// ✅ Not needed - async functions inherit span context automatically
+#[tracing::instrument]
+async fn some_function() -> Result<T, E> {
+    let result = async_operation().await?;  // Span context preserved automatically
+    other_operation(result).await
+}
+```
+
+**Simple Rule: Use `.in_current_span()` when you CANNOT use `.await`**
+
+### Synchronous Span Execution
+
+For synchronous operations within a specific span context:
+
+```rust
+// ✅ Execute synchronous work within a span
+let span = tracing::info_span!("sync_operation", field = %value);
+let result = span.in_scope(|| {
+    expensive_computation()
+});
+```
+
+**Prefer `.in_scope()` over `.enter()` when possible:**
+
+- **Cannot use `.await`**: `.in_scope()` requires a synchronous closure - cannot accidentally mix async code
+- **Clear boundaries**: Explicit scope for when the span is active
+
+### Span API Reference
+
+**Creating and Entering Spans:**
+
+- `tracing::info_span!("name")` - Create a span
+- `span.in_scope(|| { ... })` - Execute closure within span context
+- `span.enter()` - Enter span context (less preferred than `.in_scope()`, in particular in async code as it's not compatible with `.await`)
+- `#[tracing::instrument]` - Automatic function-level instrumentation
+
+**Async Span Integration:**
+
+- `.instrument(span)` - Wrap Future with span
+- `.in_current_span()` - Inherit current span context for Future
+- `#[tracing::instrument]` - Automatic function-level instrumentation
+
+### When to Use Each Approach
+
+- **Function-level (`#[instrument]`)**: Use for entire functions, especially when you want to trace function entry/exit and arguments
+- **Manual (`.instrument()`)**: Use for specific async operations within a function or when you need fine-grained control over span creation
+- **Context inheritance (`.in_current_span()`)**: Use when span context would otherwise be lost (spawned tasks, combinator chains without `.await`)
+
 ## Creating code context in Rust
 
 To get an idea about an API in rust, the easiest way is to generate it's documentation:
@@ -96,6 +223,47 @@ These commands will generate HTML documentation from the code and docstrings, pr
 3. Finding usage examples in doctest code blocks
 4. Understanding error conditions and handling
 5. Generating test data based on documented structures
+
+## Branch Naming Convention
+
+**IMPORTANT: Branch names should always include the Linear ticket number.**
+
+When creating branches for Linear issues, use the format:
+
+- `<shortname>/h-XXXX-description`
+
+Examples:
+
+- `t/h-4892-support-baseurl-and-version-filter`
+- `alice/h-1234-add-user-authentication`
+- `bob/h-5678-resolve-database-connection-issue`
+
+This ensures traceability between code changes and Linear issues, making it easier to:
+
+- Track progress on specific tickets
+- Link PRs to their corresponding issues
+- Maintain a clear development history
+
+## Pull Request Template
+
+**IMPORTANT: PR titles should start with the Linear issue number in format `H-XXXX: Description`**
+
+When creating PRs, use the template located at `.github/pull_request_template.md`. This template ensures consistency and includes all necessary sections:
+
+- Purpose and high-level explanation
+- Related links (Linear issues, discussions, etc.)
+- Detailed changes and implementation notes
+- Pre-merge checklist for publishable libraries
+- Documentation and Turbo Graph impact assessment
+- Testing coverage and manual testing steps
+
+Examples of proper PR titles:
+
+- `H-4922: Add branch naming and PR template instructions to CLAUDE.md`
+- `H-1234: Implement user authentication system`
+- `H-5678: Fix database connection timeout issue`
+
+The template helps reviewers understand the context and ensures all important aspects are covered before merging.
 
 ## Common Commands
 

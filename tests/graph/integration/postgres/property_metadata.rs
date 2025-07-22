@@ -3,7 +3,6 @@ use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use hash_codec::numeric::Real;
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _, PatchEntityParams};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
@@ -30,9 +29,7 @@ use type_system::{
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 
-async fn seed<A: AuthorizationApi>(
-    database: &mut DatabaseTestWrapper<A>,
-) -> DatabaseApi<'_, &mut A> {
+async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
         .seed(
             [
@@ -191,7 +188,7 @@ async fn initial_metadata() {
                 confidence: Confidence::new(0.5),
                 link_data: None,
                 draft: true,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -328,7 +325,7 @@ async fn no_initial_metadata() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -548,7 +545,7 @@ async fn properties_add() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -653,7 +650,7 @@ async fn properties_remove() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

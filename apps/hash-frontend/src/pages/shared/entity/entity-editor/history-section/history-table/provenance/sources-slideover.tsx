@@ -20,7 +20,7 @@ import {
 
 import { useUserOrOrgShortnameByWebId } from "../../../../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { Link } from "../../../../../../../shared/ui/link";
-import { Cell } from "../../../../../../settings/organizations/shared/cell";
+import { SettingsTableCell } from "../../../../../../settings/shared/settings-table-cell";
 import { ValueChip } from "../../../../../value-chip";
 import type { HistoryEvent } from "../../shared/types";
 import { EventDetail } from "../shared/event-detail";
@@ -214,9 +214,9 @@ export const SourcesSlideover = ({
               >
                 <TableHead>
                   <TableRow>
-                    <Cell>Type</Cell>
-                    <Cell>Title</Cell>
-                    <Cell>Location</Cell>
+                    <SettingsTableCell>Type</SettingsTableCell>
+                    <SettingsTableCell>Title</SettingsTableCell>
+                    <SettingsTableCell>Location</SettingsTableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

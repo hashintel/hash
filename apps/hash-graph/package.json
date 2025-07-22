@@ -9,6 +9,8 @@
     "compile": "cargo build --bin hash-graph --all-features",
     "compile:release": "cargo build --bin hash-graph --all-features --release",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
     "start": "../../target/release/hash-graph server",
     "start:healthcheck": "../../target/release/hash-graph server --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
@@ -28,7 +30,7 @@
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-test-server": "0.0.0-private",
     "@rust/hash-graph-type-fetcher": "0.0.0-private",
-    "@rust/hash-temporal-client": "0.0.0-private",
-    "@rust/hash-tracing": "0.0.0-private"
+    "@rust/hash-telemetry": "0.0.0-private",
+    "@rust/hash-temporal-client": "0.0.0-private"
   }
 }

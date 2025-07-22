@@ -13,10 +13,10 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, Variance,
             instantiate::{InstantiateEnvironment, SubstitutionState},
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         kind::TypeKind,
         lattice::{Lattice, Projection, Subscript},
     },
@@ -301,7 +301,7 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.is_subtype_of(self.kind.base, supertype.kind.base)
+        env.is_subtype_of(Variance::Covariant, self.kind.base, supertype.kind.base)
     }
 
     fn is_equivalent(
@@ -354,7 +354,7 @@ impl<'heap> Apply<'heap> {
                 })),
             });
 
-            env.in_invariant(|env| env.collect_constraints(param, substitution.value));
+            env.collect_constraints(Variance::Invariant, param, substitution.value);
         }
     }
 }
@@ -371,17 +371,7 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
             .kind
             .collect_substitution_constraints(supertype.span, env);
 
-        env.collect_constraints(self.kind.base, supertype.kind.base);
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // As the value is invariant, there are no structural edges between the value of the
-        // substitution and argument
-        env.collect_structural_edges(self.kind.base, variable);
+        env.collect_constraints(Variance::Covariant, self.kind.base, supertype.kind.base);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

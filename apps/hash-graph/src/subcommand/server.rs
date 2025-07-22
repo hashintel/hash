@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, channel::mpsc};
+use futures::{FutureExt as _, StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
@@ -17,10 +17,7 @@ use hash_graph_api::{
     rest::{QueryLogger, RestRouterDependencies, rest_api_router},
     rpc::Dependencies,
 };
-use hash_graph_authorization::{
-    AuthorizationApiPool, backend::SpiceDbOpenApi, policies::store::PrincipalStore,
-    zanzibar::ZanzibarClient,
-};
+use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -30,9 +27,9 @@ use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
-use tokio::{io, net::TcpListener, time::timeout};
+use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
-use tokio_util::codec::FramedWrite;
+use tokio_util::{codec::FramedWrite, sync::CancellationToken, task::TaskTracker};
 use type_system::ontology::json_schema::DomainValidator;
 
 use crate::{
@@ -149,18 +146,6 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false)]
     pub offline: bool,
 
-    /// The host the Spice DB server is listening at.
-    #[clap(long, env = "HASH_SPICEDB_HOST")]
-    pub spicedb_host: String,
-
-    /// The port the Spice DB server is listening at.
-    #[clap(long, env = "HASH_SPICEDB_HTTP_PORT", default_value_t = 8443)]
-    pub spicedb_http_port: u16,
-
-    /// The secret key used to authenticate with the Spice DB server.
-    #[clap(long, env = "HASH_SPICEDB_GRPC_PRESHARED_KEY")]
-    pub spicedb_grpc_preshared_key: Option<String>,
-
     /// The URL of the Temporal server.
     ///
     /// If not set, the service will not trigger workflows.
@@ -177,33 +162,57 @@ pub struct ServerArgs {
     #[clap(long)]
     pub skip_link_validation: bool,
 
+    /// Skips the creation of embeddings when creating/updating entities or types.
+    #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
+    pub skip_embedding_creation: bool,
+
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
 }
 
-fn server_rpc<S, A>(
+#[derive(Debug)]
+struct RpcServerTaskTracker {
+    tracker: TaskTracker,
+    cancellation_token: CancellationToken,
+}
+
+impl IntoFuture for RpcServerTaskTracker {
+    type Output = ();
+
+    type IntoFuture = impl Future<Output = Self::Output>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            self.tracker.close();
+            self.cancellation_token.cancel();
+            self.tracker.wait().await;
+        }
+    }
+}
+
+fn server_rpc<S>(
     address: RpcAddress,
-    dependencies: Dependencies<S, A, ()>,
-) -> Result<(), Report<GraphError>>
+    dependencies: Dependencies<S, ()>,
+) -> Result<RpcServerTaskTracker, Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+    for<'p> S::Store<'p>: PrincipalStore,
 {
     let server = Server::new(harpc_server::ServerConfig::default()).change_context(GraphError)?;
+    let cancellation_token = server.cancellation_token();
 
     let (router, task) = hash_graph_api::rpc::rpc_router(
         Dependencies {
             store: dependencies.store,
-            authorization_api: dependencies.authorization_api,
             temporal_client: dependencies.temporal_client,
             codec: JsonCodec,
         },
         server.events(),
     );
 
-    tokio::spawn(task.into_future());
+    let tracker = TaskTracker::new();
+    tracker.spawn(task.into_future());
 
     let socket_address: SocketAddr = SocketAddr::try_from(address).change_context(GraphError)?;
     let mut address = Multiaddr::empty();
@@ -219,7 +228,7 @@ where
     }
 
     #[expect(clippy::significant_drop_tightening, reason = "false positive")]
-    tokio::spawn(async move {
+    tracker.spawn(async move {
         let stream = server
             .listen(address)
             .await
@@ -228,7 +237,10 @@ where
         harpc_server::serve::serve(stream, router).await;
     });
 
-    Ok(())
+    Ok(RpcServerTaskTracker {
+        tracker,
+        cancellation_token,
+    })
 }
 
 #[expect(
@@ -252,6 +264,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         NoTls,
         PostgresStoreSettings {
             validate_links: !args.skip_link_validation,
+            skip_embedding_creation: args.skip_embedding_creation,
         },
     )
     .await
@@ -260,14 +273,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         tracing::error!(error = ?report, "Failed to connect to database");
         report
     })?;
-
-    let zanzibar_client = ZanzibarClient::new(
-        SpiceDbOpenApi::new(
-            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-            args.spicedb_grpc_preshared_key.as_deref(),
-        )
-        .change_context(GraphError)?,
-    );
 
     let temporal_client_fn = |host: Option<String>, port: u16| async move {
         if let Some(host) = host {
@@ -285,17 +290,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
 
     // Just test the connection; we don't need to use the store
     _ = pool
-        .acquire(
-            zanzibar_client
-                .acquire()
-                .await
-                .change_context(GraphError)
-                .map_err(|report| {
-                    tracing::error!(error = ?report, "Failed to acquire authorization client");
-                    report
-                })?,
-            None,
-        )
+        .acquire(None)
         .await
         .change_context(GraphError)
         .attach_printable("Connection to database failed")?;
@@ -313,7 +308,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         )
     };
 
-    let (query_logger, _handle) = if let Some(query_log_file) = args.log_queries {
+    let (query_logger, log_queries_join_handle) = if let Some(query_log_file) = args.log_queries {
         let file = tokio::fs::File::create(query_log_file)
             .await
             .change_context(GraphError)?;
@@ -325,32 +320,36 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         (None, None)
     };
 
-    let router = {
+    let (router, rpc_server_task_tracker) = {
         let dependencies = RestRouterDependencies {
             store: Arc::new(pool),
-            authorization_api: Arc::new(zanzibar_client),
             domain_regex: DomainValidator::new(args.allowed_url_domain),
             temporal_client: temporal_client_fn(args.temporal_host.clone(), args.temporal_port)
                 .await?,
             query_logger: query_logger.map(QueryLogger::new),
         };
 
-        if args.rpc_enabled {
+        #[expect(
+            clippy::if_then_some_else_none,
+            reason = "False positive, this is in an async context"
+        )]
+        let rpc_server_task_tracker = if args.rpc_enabled {
             tracing::info!("Starting RPC server...");
 
-            server_rpc(
+            Some(server_rpc(
                 args.rpc_address,
                 Dependencies {
                     store: Arc::clone(&dependencies.store),
-                    authorization_api: Arc::clone(&dependencies.authorization_api),
                     temporal_client: temporal_client_fn(args.temporal_host, args.temporal_port)
                         .await?,
                     codec: (),
                 },
-            )?;
-        }
+            )?)
+        } else {
+            None
+        };
 
-        rest_api_router(dependencies)
+        (rest_api_router(dependencies), rpc_server_task_tracker)
     };
 
     tracing::info!("Listening on {}", args.http_address);
@@ -360,8 +359,25 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(signal::ctrl_c().map(|result| match result {
+        Ok(()) => (),
+        Err(error) => {
+            tracing::error!("Failed to install Ctrl+C handler: {error}");
+            // Continue with shutdown even if signal handling had issues
+        }
+    }))
     .await
     .expect("failed to start server");
+
+    if let Some(rpc_server_task_tracker) = rpc_server_task_tracker {
+        rpc_server_task_tracker.await;
+    }
+
+    if let Some(log_queries_join_handle) = log_queries_join_handle
+        && let Err(error) = log_queries_join_handle.await
+    {
+        tracing::error!("Failed to join log queries task: {error}");
+    }
 
     Ok(())
 }

@@ -42,7 +42,7 @@ provider "cloudflare" {
 data "vault_kv_secret_v2" "secrets" {
   mount = "automation"
   # Remove leading and trailing slashes from the path so we ensure it's a path and not a file
-  name  = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
+  name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
 }
 
 module "vault_aws_auth" {
@@ -99,16 +99,16 @@ module "postgres" {
 }
 
 module "temporal" {
-  depends_on          = [module.networking, module.postgres]
-  source              = "./temporal"
-  prefix              = module.variables_temporal.prefix
-  param_prefix        = module.variables_temporal.param_prefix
-  subnets             = module.networking.snpub
-  vpc                 = module.networking.vpc
-  env                 = local.env
-  region              = local.region
-  cpu                 = 256
-  memory              = 512
+  depends_on   = [module.networking, module.postgres]
+  source       = "./temporal"
+  prefix       = module.variables_temporal.prefix
+  param_prefix = module.variables_temporal.param_prefix
+  subnets      = module.networking.snpub
+  vpc          = module.networking.vpc
+  env          = local.env
+  region       = local.region
+  cpu          = 256
+  memory       = 512
   # TODO: provide by the HASH variables.tf
   temporal_version    = "1.23.1.0"
   temporal_ui_version = "2.27.2"
@@ -126,13 +126,18 @@ module "temporal" {
 
 
 module "tunnel" {
-  source             = "../modules/tunnel"
-  ssh_host           = module.bastion.ssh_info.host
-  ssh_port           = 22
-  ssh_user           = module.bastion.ssh_info.user
-  ssh_private_key    = module.bastion.ssh_info.private_key
-  tunnel_target_host = module.postgres.pg_host
-  tunnel_target_port = 5432
+  source              = "../modules/tunnel"
+  use_ssm             = true
+  bastion_instance_id = module.bastion.instance_id
+  aws_region          = local.region
+  tunnel_target_host  = module.postgres.pg_host
+  tunnel_target_port  = 5432
+  local_tunnel_port   = 45678
+  # Set this to a rather high value to avoid the tunnel being terminated too early.
+  # We've seen the tunnel being established after the first attempt, but it's not reliable.
+  # In particular in CI, it sometimes takes a while to establish the tunnel and we've seen
+  # waiting times of more than a minute.
+  tunnel_max_attempts = 30
 }
 
 # This provider is accessed through the bastion host using the above SSH tunnel
@@ -157,7 +162,6 @@ module "postgres_roles" {
   pg_hydra_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
-  pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
 }
 
 module "redis" {
@@ -220,6 +224,7 @@ module "application" {
   providers                    = { cloudflare = cloudflare }
   source                       = "./hash_application"
   subnets                      = module.networking.snpub
+  cluster_arn                  = module.application_ecs.ecs_cluster_arn
   env                          = local.env
   region                       = local.region
   vpc                          = module.networking.vpc
@@ -231,7 +236,7 @@ module "application" {
   worker_memory                = 1024
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
-  graph_migration_env_vars     = concat(var.hash_graph_env_vars, [
+  graph_migration_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "superuser" },
     {
       name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
@@ -240,10 +245,6 @@ module "application" {
     { name = "HASH_GRAPH_PG_HOST", secret = false, value = module.postgres.pg_host },
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
-    {
-      name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
     {
       name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
@@ -263,10 +264,6 @@ module "application" {
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
     { name = "HASH_GRAPH_RPC_ENABLED", secret = false, value = "true" },
     {
-      name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
-    {
       name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
@@ -277,7 +274,7 @@ module "application" {
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
   kratos_image       = module.kratos_ecr
-  kratos_env_vars    = concat(var.kratos_env_vars, [
+  kratos_env_vars = concat(var.kratos_env_vars, [
     {
       name  = "SECRETS_COOKIE", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cookie"])
@@ -291,7 +288,7 @@ module "application" {
       value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos"
     },
   ])
-  hydra_image    = module.hydra_ecr
+  hydra_image = module.hydra_ecr
   hydra_env_vars = concat(var.hydra_env_vars, [
     {
       name  = "DSN", secret = true,
@@ -372,10 +369,6 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
     {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
-    },
-    {
       name  = "INTERNAL_API_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
     },
@@ -398,7 +391,7 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
   ])
-  temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
+  temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
     { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
@@ -445,10 +438,6 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
     {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
-    },
-    {
       name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
     },
@@ -470,15 +459,15 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
     },
     {
-      name = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
+      name  = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_access_key_id"])
     },
     {
-      name = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
+      name  = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_secret_access_key"])
     }
   ]
-  temporal_worker_integration_image    = module.temporal_worker_integration_ecr
+  temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
     { name = "AWS_REGION", secret = false, value = local.region },
     { name = "LOG_LEVEL", secret = false, value = "debug" },
@@ -491,42 +480,10 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
     {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
-    },
-    {
       name  = "HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_integration_sentry_dsn"])
     },
   ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.port
-  spicedb_image = {
-    name    = "authzed/spicedb"
-    version = "1.28.0"
-  }
-  spicedb_migration_env_vars = [
-    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
-    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
-    {
-      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
-      value = sensitive("postgres://superuser:${data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb")
-    },
-  ]
-  spicedb_env_vars = [
-    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
-    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
-    {
-      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
-      value = sensitive("postgres://spicedb:${data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_raw"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb?plan_cache_mode=force_custom_plan")
-    },
-    { name = "SPICEDB_HTTP_ENABLED", secret = false, value = "True" },
-    { name = "SPICEDB_SCHEMA_PREFIXES_REQUIRED", secret = false, value = "True" },
-    { name = "SPICEDB_TELEMETRY_ENDPOINT", secret = false, value = "" },
-    { name = "SPICEDB_DATASTORE_GC_WINDOW", secret = false, value = "2m0s" },
-    {
-      name  = "SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
-  ]
 }

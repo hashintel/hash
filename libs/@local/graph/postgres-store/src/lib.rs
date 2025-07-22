@@ -2,17 +2,19 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-// Not required, reason: code quality
-// Not required, reason: Simpler than using blanket implementations
-#![feature(trait_alias)]
-// Not required, reason: much more simple bounds
-#![feature(impl_trait_in_assoc_type)]
-#![feature(try_find)]
-#![feature(type_alias_impl_trait)]
-#![feature(let_chains)]
-#![feature(never_type)]
-#![feature(extend_one)]
-#![feature(doc_auto_cfg)]
+#![feature(
+    // Language Features
+    doc_auto_cfg,
+    impl_trait_in_assoc_type,
+    never_type,
+    trait_alias,
+    type_alias_impl_trait,
+
+    // Library Features
+    extend_one,
+    iter_intersperse,
+    try_find,
+)]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
     unreachable_pub,

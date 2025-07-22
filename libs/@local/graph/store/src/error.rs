@@ -45,3 +45,20 @@ impl fmt::Display for DeletionError {
         fmt.write_str("Could not delete from the store")
     }
 }
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not check permissions: {_variant}")]
+pub enum CheckPermissionError {
+    #[display("Could not resolve policies")]
+    BuildPolicyContext,
+    #[display("Could not build policy set")]
+    BuildPolicySet,
+    #[display("Could not evaluate policy set")]
+    EvaluatePolicySet,
+    #[display("Could not compile filter")]
+    CompileFilter,
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for CheckPermissionError {}

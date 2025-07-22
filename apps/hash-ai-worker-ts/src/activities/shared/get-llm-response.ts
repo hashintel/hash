@@ -1,11 +1,11 @@
 import type {
   EntityId,
+  EntityUuid,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -159,9 +159,6 @@ export const getLlmResponse = async <T extends LlmParams>(
           createUsageRecord(
             { graphApi: graphApiClient },
             {
-              additionalViewers: [
-                { actorType: "ai", id: aiAssistantAccountId },
-              ],
               assignUsageToWebId: webId,
               customMetadata,
               serviceName: isLlmParamsAnthropicLlmParams(llmParams)
@@ -173,6 +170,7 @@ export const getLlmResponse = async <T extends LlmParams>(
               inputUnitCount: usage.inputTokens,
               outputUnitCount: usage.outputTokens,
               userAccountId,
+              aiAssistantAccountId,
             },
           ),
         {
@@ -192,11 +190,6 @@ export const getLlmResponse = async <T extends LlmParams>(
     const { incurredInEntities } = usageTrackingParams;
 
     if (incurredInEntities.length > 0) {
-      const { id: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
-        { graphApi: graphApiClient },
-        { actorId: aiAssistantAccountId },
-      );
-
       const provenance: ProvidedEntityEditionProvenance = {
         actorType: "ai",
         origin: {
@@ -209,6 +202,7 @@ export const getLlmResponse = async <T extends LlmParams>(
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
+            const incurredInEntityUuid = generateUuid() as EntityUuid;
             await HashEntity.create<IncurredIn>(
               graphApiClient,
               { actorId: aiAssistantAccountId },
@@ -217,6 +211,7 @@ export const getLlmResponse = async <T extends LlmParams>(
                 properties: { value: {} },
                 provenance,
                 webId,
+                entityUuid: incurredInEntityUuid,
                 entityTypeIds: [
                   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
                 ],
@@ -224,30 +219,6 @@ export const getLlmResponse = async <T extends LlmParams>(
                   leftEntityId: usageRecordEntity.metadata.recordId.entityId,
                   rightEntityId: entityId,
                 },
-                relationships: [
-                  {
-                    relation: "administrator",
-                    subject: {
-                      kind: "account",
-                      subjectId: aiAssistantAccountId,
-                    },
-                  },
-                  {
-                    relation: "setting",
-                    subject: {
-                      kind: "setting",
-                      subjectId: "viewFromWeb",
-                    },
-                  },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "accountGroup",
-                      subjectId: hashInstanceAdminGroupId,
-                      subjectSet: "member",
-                    },
-                  },
-                ],
               },
             );
 

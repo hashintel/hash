@@ -1,5 +1,4 @@
 import type {
-  Machine,
   Web,
   WebId,
   WebRole,
@@ -45,21 +44,6 @@ export const getWebByShortname = (
         return null;
       }
       return web;
-    });
-
-export const getMachineByIdentifier = (
-  graphAPI: GraphApi,
-  authentication: AuthenticationContext,
-  identifier: string,
-): Promise<Machine | null> =>
-  graphAPI
-    .getMachineByIdentifier(authentication.actorId, identifier)
-    .then(({ data }) => {
-      const machine = data as Machine | null;
-      if (!machine) {
-        return null;
-      }
-      return machine;
     });
 
 /**

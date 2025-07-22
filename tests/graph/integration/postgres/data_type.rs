@@ -38,7 +38,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::{DatabaseTestWrapper, data_type_relationships};
+use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
@@ -58,7 +58,6 @@ async fn insert() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -90,7 +89,6 @@ async fn query() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -182,7 +180,6 @@ async fn inheritance() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -282,7 +279,6 @@ async fn inheritance() {
         api.account_id,
         UpdateDataTypesParams {
             schema: centimeter_dt_v2.clone(),
-            relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -331,7 +327,7 @@ async fn inheritance() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -378,7 +374,7 @@ async fn inheritance() {
             confidence: None,
             link_data: None,
             draft: false,
-            relationships: [],
+            policies: Vec::new(),
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -423,7 +419,7 @@ async fn inheritance() {
             confidence: None,
             link_data: None,
             draft: false,
-            relationships: [],
+            policies: Vec::new(),
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -456,7 +452,6 @@ async fn update() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -473,7 +468,6 @@ async fn update() {
         api.account_id,
         UpdateDataTypesParams {
             schema: object_dt_v2.clone(),
-            relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -559,7 +553,6 @@ async fn insert_same_base_url() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -580,7 +573,6 @@ async fn insert_same_base_url() {
                 ownership: OntologyOwnership::Local {
                     web_id: WebId::new(api.account_id),
                 },
-                relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
@@ -605,7 +597,6 @@ async fn insert_same_base_url() {
                 ownership: OntologyOwnership::Local {
                     web_id: WebId::new(api.account_id),
                 },
-                relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
@@ -630,7 +621,6 @@ async fn insert_same_base_url() {
                 ownership: OntologyOwnership::Remote {
                     fetched_at: OffsetDateTime::now_utc(),
                 },
-                relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
@@ -655,7 +645,6 @@ async fn insert_same_base_url() {
                 ownership: OntologyOwnership::Remote {
                     fetched_at: OffsetDateTime::now_utc(),
                 },
-                relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
@@ -674,7 +663,6 @@ async fn insert_same_base_url() {
 }
 
 #[tokio::test]
-#[expect(clippy::too_many_lines)]
 async fn wrong_update_order() {
     let object_dt_v1: DataType = serde_json::from_str(hash_graph_test_data::data_type::OBJECT_V1)
         .expect("could not parse data type representation");
@@ -693,7 +681,6 @@ async fn wrong_update_order() {
             api.account_id,
             UpdateDataTypesParams {
                 schema: object_dt_v1.clone(),
-                relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -716,7 +703,6 @@ async fn wrong_update_order() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -734,7 +720,6 @@ async fn wrong_update_order() {
             api.account_id,
             UpdateDataTypesParams {
                 schema: object_dt_v1.clone(),
-                relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -754,7 +739,6 @@ async fn wrong_update_order() {
         api.account_id,
         UpdateDataTypesParams {
             schema: object_dt_v2.clone(),
-            relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -771,7 +755,6 @@ async fn wrong_update_order() {
             api.account_id,
             UpdateDataTypesParams {
                 schema: object_dt_v2.clone(),
-                relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -809,7 +792,6 @@ async fn update_external_with_owned() {
             ownership: OntologyOwnership::Remote {
                 fetched_at: OffsetDateTime::now_utc(),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -827,7 +809,6 @@ async fn update_external_with_owned() {
             api.account_id,
             UpdateDataTypesParams {
                 schema: object_dt_v2.clone(),
-                relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -850,7 +831,6 @@ async fn update_external_with_owned() {
             ownership: OntologyOwnership::Remote {
                 fetched_at: OffsetDateTime::now_utc(),
             },
-            relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -868,7 +848,6 @@ async fn update_external_with_owned() {
             api.account_id,
             UpdateDataTypesParams {
                 schema: object_dt_v2,
-                relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

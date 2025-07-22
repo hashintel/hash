@@ -41,7 +41,7 @@ export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
         whiteSpace: "nowrap",
       }}
     >
-      {error.message}
+      {error instanceof Error ? error.message : String(error)}
     </span>
     <Button sx={{ whiteSpace: "nowrap" }} onClick={onRetry}>
       Reload block

@@ -1,14 +1,17 @@
-import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
+import {
+  addActorGroupAdministrator,
+  removeActorGroupAdministrator,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
-import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util";
 import { systemAccountId } from "../../../../system-account";
 import {
   shortnameContainsInvalidCharacter,
@@ -50,7 +53,7 @@ const validateAccountShortname = async (
 };
 
 export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback =
-  async ({ previousEntity, propertyPatches, context }) => {
+  async ({ previousEntity, propertyPatches, context, authentication }) => {
     const user = getUserFromEntity({ entity: previousEntity });
 
     const isShortnameRemoved = isValueRemovedByPatches<UserProperties>({
@@ -127,7 +130,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
        * we need to forbid them from completing account signup
        * and prevent them from receiving ownership of the web.
        */
-      if (!userHasAccessToHash({ user })) {
+      if (!(await userHasAccessToHash(context, authentication, user))) {
         throw new Error(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
         );
@@ -135,39 +138,16 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
 
       // Now that the user has completed signup, we can transfer the ownership of the web
       // allowing them to create entities and types.
-      await modifyWebAuthorizationRelationships(
-        context,
+      await addActorGroupAdministrator(
+        context.graphApi,
         { actorId: systemAccountId },
-        [
-          {
-            operation: "delete",
-            relationship: {
-              subject: {
-                kind: "account",
-                subjectId: systemAccountId,
-              },
-              resource: {
-                kind: "web",
-                resourceId: user.accountId as WebId,
-              },
-              relation: "owner",
-            },
-          },
-          {
-            operation: "create",
-            relationship: {
-              subject: {
-                kind: "account",
-                subjectId: user.accountId,
-              },
-              resource: {
-                kind: "web",
-                resourceId: user.accountId as WebId,
-              },
-              relation: "owner",
-            },
-          },
-        ],
+        { actorId: user.accountId, actorGroupId: user.accountId },
+      );
+
+      await removeActorGroupAdministrator(
+        context.graphApi,
+        { actorId: user.accountId },
+        { actorId: systemAccountId, actorGroupId: user.accountId },
       );
     }
   };

@@ -96,14 +96,14 @@ export type QueryEntitiesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type CreateEntityRequest = {
+export type CreateEntityParams = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
   linkData?: LinkData;
 };
 
 export type CreateEntityMessageCallback = MessageCallback<
-  CreateEntityRequest,
+  CreateEntityParams,
   null,
   MessageReturn<HashEntity>,
   CreateResourceError

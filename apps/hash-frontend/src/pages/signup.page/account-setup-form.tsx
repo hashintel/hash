@@ -9,17 +9,13 @@ import {
   typographyClasses,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { SelectInput } from "../../components/forms/select-input";
 import { useShortnameInput } from "../../components/hooks/use-shortname-input";
 import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regular-icon";
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
 import { Button, Link } from "../../shared/ui";
-import type { InvitationInfo } from "../shared/auth-utils";
-import { ORG_ROLES } from "../shared/auth-utils";
 
 const inputWidth = 250;
 
@@ -68,22 +64,17 @@ type AccountSetupFormProps = {
   onSubmit: (details: { shortname: string; displayName: string }) => void;
   loading: boolean;
   errorMessage?: string;
-  email: string;
-  invitationInfo: InvitationInfo | null;
 };
 
 export type AccountSetupFormData = {
   shortname: string;
   displayName: string;
-  responsibility?: string;
 };
 
 export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   onSubmit: setupAccount,
   loading,
   errorMessage,
-  email,
-  invitationInfo,
 }) => {
   const {
     register,
@@ -96,42 +87,21 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
     defaultValues: {
       shortname: "",
       displayName: "",
-      responsibility: undefined,
     },
   });
 
   const shortnameWatcher = watch("shortname", "");
   const displayNameWatcher = watch("displayName", "");
-  const responsibilityWatcher = watch("responsibility", "");
 
   const { validateShortname, parseShortnameInput, getShortnameError } =
     useShortnameInput();
 
-  const onSubmit = handleSubmit(
-    ({ shortname, displayName, responsibility }) => {
-      setupAccount({
-        shortname,
-        displayName,
-        ...(!!invitationInfo && { responsibility }),
-      });
-    },
-  );
-
-  const [title, subtitle] = useMemo(() => {
-    if (invitationInfo) {
-      return [
-        "inviterdisplayName" in invitationInfo
-          ? `${invitationInfo.inviterdisplayName} has invited you to join ${invitationInfo.orgName} on HASH`
-          : `You have been invited to join ${invitationInfo.orgName} on HASH`,
-        `${email} has been confirmed. Now it’s time to set your name...`,
-      ];
-    }
-
-    return [
-      "Thanks for confirming your account",
-      "Now it’s time to set your name...",
-    ];
-  }, [invitationInfo, email]);
+  const onSubmit = handleSubmit(({ shortname, displayName }) => {
+    setupAccount({
+      shortname,
+      displayName,
+    });
+  });
 
   const shortnameError = getShortnameError(
     errors.shortname?.message,
@@ -147,7 +117,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           fontSize: 32,
         }}
       >
-        {title}
+        Thanks for confirming your account
       </Typography>
       <Typography
         sx={{
@@ -155,7 +125,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           fontSize: 24,
         }}
       >
-        {subtitle}
+        Now it’s time to set your name...
       </Typography>
       <Box
         component="form"
@@ -328,43 +298,23 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           </Box>
         </Box>
 
-        {!!invitationInfo && (
-          <Box style={{ marginTop: 2 }}>
-            <Controller
-              control={control}
-              name="responsibility"
-              rules={{ required: true }}
-              render={({ field: { onChange, value } }) => (
-                <SelectInput
-                  className="w-64"
-                  label={`Your Role at ${invitationInfo.orgName}`}
-                  labelClass="font-bold text-base mb-4"
-                  id="responsibility"
-                  options={ORG_ROLES}
-                  onChange={onChange}
-                  value={value}
-                />
-              )}
-            />
-            {errorMessage ? (
-              <Typography
-                sx={{
-                  marginTop: "1.25rem",
-                  color: "#EF4444",
-                  fontSize: "0.875rem",
-                  lineHeight: "1.25rem",
-                }}
-              >
-                {errorMessage}
-              </Typography>
-            ) : null}
+        {errorMessage ? (
+          <Box mt={2}>
+            <Typography
+              sx={{
+                marginTop: "1.25rem",
+                color: "#EF4444",
+                fontSize: "0.875rem",
+                lineHeight: "1.25rem",
+              }}
+            >
+              {errorMessage}
+            </Typography>
           </Box>
-        )}
+        ) : null}
         <Button
           type="submit"
-          disabled={
-            !isValid || loading || (!!invitationInfo && !responsibilityWatcher)
-          }
+          disabled={!isValid || loading}
           loading={loading}
           endIcon={<ChevronRightRegularIcon />}
           sx={{ width: inputWidth }}

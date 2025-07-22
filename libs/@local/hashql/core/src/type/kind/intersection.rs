@@ -15,7 +15,7 @@ use crate::{
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         inference::Inference,
@@ -183,7 +183,7 @@ impl<'heap> IntersectionType<'heap> {
 
         for &self_variant in self_variants {
             let found = supertype_variants.iter().all(|&super_variant| {
-                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+                env.is_subtype_of(Variance::Covariant, self_variant, super_variant)
             });
 
             if found {
@@ -308,7 +308,7 @@ impl<'heap> IntersectionType<'heap> {
                 });
 
                 for &super_variant in super_variants {
-                    env.in_covariant(|env| env.collect_constraints(this, super_variant));
+                    env.collect_constraints(Variance::Covariant, this, super_variant);
                 }
             }
             (_, []) => {
@@ -320,15 +320,13 @@ impl<'heap> IntersectionType<'heap> {
                 });
 
                 for &self_variant in self_variants {
-                    env.in_covariant(|env| env.collect_constraints(self_variant, supertype));
+                    env.collect_constraints(Variance::Covariant, self_variant, supertype);
                 }
             }
             (_, _) => {
                 for &self_variant in self_variants {
                     for &super_variant in super_variants {
-                        env.in_covariant(|env| {
-                            env.collect_constraints(self_variant, super_variant);
-                        });
+                        env.collect_constraints(Variance::Covariant, self_variant, super_variant);
                     }
                 }
             }
@@ -637,9 +635,9 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         let backup = variants.clone();
         variants.retain(|&mut supertype| {
             // keep `supertype` only if it is not a supertype of any other variant
-            !backup
-                .iter()
-                .any(|&subtype| subtype != supertype && env.is_subtype_of(subtype, supertype))
+            !backup.iter().any(|&subtype| {
+                subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)
+            })
         });
 
         match variants.as_slice() {
@@ -680,16 +678,6 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
             &super_variants,
             env,
         );
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: crate::r#type::inference::PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for &variant in self.kind.variants {
-            env.in_covariant(|env| env.collect_structural_edges(variant, variable));
-        }
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

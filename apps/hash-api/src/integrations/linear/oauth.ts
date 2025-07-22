@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
 
 import type {
-  ActorEntityUuid,
   Entity,
   EntityId,
   EntityUuid,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -14,7 +14,7 @@ import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { RequestHandler } from "express";
@@ -197,11 +197,23 @@ export const oAuthLinearCallback: RequestHandler<
 
   const linearOrgId = org.id;
 
-  const userAccountId = extractEntityUuidFromEntityId(
-    actorEntityId,
-  ) as ActorEntityUuid;
+  const userAccountId = extractEntityUuidFromEntityId(actorEntityId) as UserId;
 
   const authentication = { actorId: userAccountId };
+
+  /**
+   * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
+   */
+  const linearBotAccountId = await getMachineIdByIdentifier(
+    req.context,
+    authentication,
+    { identifier: "linear" },
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error("Failed to get linear bot");
+    }
+    return maybeMachineId;
+  });
 
   /**
    * Create the linear integration entity if it doesn't exist, and link it to the user secret
@@ -230,14 +242,15 @@ export const oAuthLinearCallback: RequestHandler<
       };
 
     // Create the Linear integration entity, which any web member can view and edit
+    const entityUuid = generateUuid() as EntityUuid;
     const linearIntegrationEntity = await createEntity(
       req.context,
       authentication,
       {
         entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
         webId: userAccountId as WebId,
+        entityUuid,
         properties: linearIntegrationProperties,
-        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
 
@@ -245,20 +258,6 @@ export const oAuthLinearCallback: RequestHandler<
       entity: linearIntegrationEntity,
     });
   }
-
-  /**
-   * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
-   */
-  const linearBotAccountId = await getMachineIdByIdentifier(
-    req.context,
-    authentication,
-    { identifier: "linear" },
-  ).then((maybeMachineId) => {
-    if (!maybeMachineId) {
-      throw new Error("Failed to get linear bot");
-    }
-    return maybeMachineId;
-  });
 
   await createUserSecret({
     /**

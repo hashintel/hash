@@ -39,8 +39,6 @@ export const scalars = {
   SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
-  EntityRelationAndSubject:
-    "@local/hash-graph-sdk/authorization#EntityRelationAndSubjectBranded",
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",

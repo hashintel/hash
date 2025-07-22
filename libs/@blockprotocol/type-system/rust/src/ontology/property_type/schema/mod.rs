@@ -291,7 +291,7 @@ pub enum PropertyValues {
     /// ```json
     /// { "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1" }
     /// ```
-    DataTypeReference(DataTypeReference),
+    Value(DataTypeReference),
 
     /// An object structure with nested property type references.
     ///
@@ -313,7 +313,7 @@ pub enum PropertyValues {
     ///   }
     /// }
     /// ```
-    PropertyTypeObject(PropertyValueObject<ValueOrArray<PropertyTypeReference>>),
+    Object(PropertyValueObject<ValueOrArray<PropertyTypeReference>>),
 
     /// An array of property values.
     ///
@@ -333,7 +333,7 @@ pub enum PropertyValues {
     ///   }
     /// }
     /// ```
-    ArrayOfPropertyValues(PropertyValueArray<OneOfSchema<PropertyValues>>),
+    Array(PropertyValueArray<OneOfSchema<PropertyValues>>),
 }
 
 /// Categorizes property value structures by their basic structural type.
@@ -362,22 +362,21 @@ impl PropertyValues {
     /// Collects all [`DataTypeReference`]s that are directly or indirectly referenced by this
     /// property value structure. The collection method depends on the variant:
     ///
-    /// - For [`PropertyValues::DataTypeReference`], returns the single reference
-    /// - For [`PropertyValues::ArrayOfPropertyValues`], recursively collects references from all
-    ///   possibilities
-    /// - For [`PropertyValues::PropertyTypeObject`], returns an empty collection (objects only
-    ///   reference property types)
+    /// - For [`PropertyValues::Value`], returns the single reference
+    /// - For [`PropertyValues::Array`], recursively collects references from all possibilities
+    /// - For [`PropertyValues::Object`], returns an empty collection (objects only reference
+    ///   property types)
     #[must_use]
     fn data_type_references(&self) -> Vec<&DataTypeReference> {
         match self {
-            Self::DataTypeReference(reference) => vec![reference],
-            Self::ArrayOfPropertyValues(values) => values
+            Self::Value(reference) => vec![reference],
+            Self::Array(values) => values
                 .items
                 .possibilities
                 .iter()
                 .flat_map(|value| value.data_type_references().into_iter())
                 .collect(),
-            Self::PropertyTypeObject(_) => vec![],
+            Self::Object(_) => vec![],
         }
     }
 
@@ -386,22 +385,21 @@ impl PropertyValues {
     /// Collects all [`PropertyTypeReference`]s that are directly or indirectly referenced by this
     /// property value structure. The collection method depends on the variant:
     ///
-    /// - For [`PropertyValues::DataTypeReference`], returns an empty collection (data types don't
-    ///   reference property types)
-    /// - For [`PropertyValues::ArrayOfPropertyValues`], recursively collects references from all
-    ///   possibilities
-    /// - For [`PropertyValues::PropertyTypeObject`], collects references from all object properties
+    /// - For [`PropertyValues::Value`], returns an empty collection (data types don't reference
+    ///   property types)
+    /// - For [`PropertyValues::Array`], recursively collects references from all possibilities
+    /// - For [`PropertyValues::Object`], collects references from all object properties
     #[must_use]
     fn property_type_references(&self) -> Vec<&PropertyTypeReference> {
         match self {
-            Self::DataTypeReference(_) => vec![],
-            Self::ArrayOfPropertyValues(values) => values
+            Self::Value(_) => vec![],
+            Self::Array(values) => values
                 .items
                 .possibilities
                 .iter()
                 .flat_map(Self::property_type_references)
                 .collect(),
-            Self::PropertyTypeObject(object) => object
+            Self::Object(object) => object
                 .properties
                 .values()
                 .map(|value| match value {
@@ -425,9 +423,9 @@ impl PropertyValues {
     #[must_use]
     pub const fn property_value_type(&self) -> PropertyValueType {
         match self {
-            Self::DataTypeReference(_) => PropertyValueType::Value,
-            Self::PropertyTypeObject(_) => PropertyValueType::Object,
-            Self::ArrayOfPropertyValues(_) => PropertyValueType::Array,
+            Self::Value(_) => PropertyValueType::Value,
+            Self::Object(_) => PropertyValueType::Object,
+            Self::Array(_) => PropertyValueType::Array,
         }
     }
 }
@@ -439,7 +437,7 @@ impl OntologyTypeSchema for PropertyType {
         &self.id
     }
 
-    fn references(&self) -> Vec<OntologyTypeReference> {
+    fn references(&self) -> Vec<OntologyTypeReference<'_>> {
         self.property_type_references()
             .into_iter()
             .map(OntologyTypeReference::PropertyTypeReference)

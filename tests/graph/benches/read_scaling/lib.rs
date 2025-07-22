@@ -1,4 +1,7 @@
-#![feature(custom_test_frameworks)]
+#![feature(
+    // Language Features
+    custom_test_frameworks,
+)]
 #![test_runner(criterion::runner)]
 #![expect(
     clippy::print_stderr,

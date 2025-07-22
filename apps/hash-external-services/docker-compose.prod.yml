@@ -1,9 +1,5 @@
 services:
   postgres:
-    environment:
-      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
-      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
-      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
 
@@ -45,31 +41,6 @@ services:
       SERVE_COOKIES_DOMAIN: "${KRATOS_COOKIE_DOMAIN}"
       SERVE_COOKIES_SAME_SITE_MODE: "Lax"
 
-  spicedb-migrate:
-    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}"
-      SPICEDB_LOG_FORMAT: "console"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    command: migrate head
-
-  spicedb:
-    depends_on:
-      postgres:
-        condition: service_healthy
-      spicedb-migrate:
-        condition: service_completed_successfully
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
-      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
-
   # TODO: Services below this line are developed by HASH and should not be part of this file
 
   type-fetcher:
@@ -92,7 +63,7 @@ services:
       HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
       RUST_BACKTRACE: 1
     healthcheck:
-      test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
+      test: [ "CMD", "/hash-graph", "type-fetcher", "--healthcheck" ]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -120,17 +91,12 @@ services:
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-migrations"
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
       HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
-      HASH_SPICEDB_HOST: http://spicedb
-      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
-      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
       RUST_BACKTRACE: 1
 
   graph:
     init: true
     depends_on:
       postgres:
-        condition: service_healthy
-      spicedb:
         condition: service_healthy
       temporal:
         condition: service_healthy
@@ -162,22 +128,11 @@ services:
       HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
-      HASH_SPICEDB_HOST: http://spicedb
-      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
-      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       RUST_BACKTRACE: 0
     healthcheck:
-      test:
-        [
-          "CMD",
-          "/hash-graph",
-          "server",
-          "--healthcheck",
-          "--api-port",
-          "${HASH_GRAPH_HTTP_PORT}",
-        ]
+      test: [ "CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "${HASH_GRAPH_HTTP_PORT}" ]
       interval: 2s
       timeout: 2s
       retries: 10

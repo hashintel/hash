@@ -6,7 +6,6 @@ use axum::{
     response::{IntoResponse as _, Response},
 };
 use error_stack::Report;
-use hash_graph_authorization::backend::PermissionAssertion;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status, StatusCode};
@@ -47,9 +46,7 @@ where
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
         .unwrap_or_else(|| {
-            if report.contains::<PermissionAssertion>() {
-                StatusCode::PermissionDenied
-            } else if report.contains::<BaseUrlAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 StatusCode::AlreadyExists
             } else {
                 StatusCode::Unknown
@@ -58,7 +55,7 @@ where
 
     // TODO: Currently, this mostly duplicates the error printed below, when more information is
     //       added to the `Report` event consider commenting in this line again.
-    // hash_tracing::sentry::capture_report(&report);
+    // hash_telemetry::sentry::capture_report(&report);
 
     let message = report.to_string();
     if let Some(validation) = report

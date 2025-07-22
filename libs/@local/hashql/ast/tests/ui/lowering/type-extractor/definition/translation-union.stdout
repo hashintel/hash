@@ -3,4 +3,4 @@ Expr#4294967040@22
 
 ------------------------
 
-type Either:0 = (String | Number)
+type Either:0 = (Number | String)

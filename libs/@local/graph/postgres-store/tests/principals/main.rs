@@ -1,5 +1,10 @@
+#![feature(
+    // Library Features
+    assert_matches,
+)]
 #![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
-#![feature(assert_matches)]
+
+extern crate alloc;
 
 mod actions;
 mod ai;
@@ -11,20 +16,22 @@ mod user;
 mod web;
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    policies::store::{PolicyStore as _, PrincipalStore as _},
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    principal::PrincipalConstraint,
+    store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings, error::StoreError,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        PostgresStoreSettings, error::StoreError,
     },
 };
 use hash_graph_store::pool::StorePool;
-use hash_tracing::logging::env_filter;
-use tokio_postgres::NoTls;
+use hash_telemetry::logging::env_filter;
+use tokio_postgres::{NoTls, Transaction};
 use type_system::principal::actor::ActorId;
 
 pub fn init_logging() {
@@ -39,12 +46,12 @@ pub fn init_logging() {
         .try_init();
 }
 
-pub struct DatabaseTestWrapper<A: AuthorizationApi> {
+pub struct DatabaseTestWrapper {
     _pool: PostgresStorePool,
-    connection: <PostgresStorePool as StorePool>::Store<'static, A>,
+    connection: <PostgresStorePool as StorePool>::Store<'static>,
 }
 
-impl DatabaseTestWrapper<NoAuthorization> {
+impl DatabaseTestWrapper {
     pub(crate) async fn new() -> Self {
         load_env(Environment::Test);
         init_logging();
@@ -78,7 +85,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
         .expect("could not connect to database");
 
         let connection = pool
-            .acquire_owned(NoAuthorization, None)
+            .acquire_owned(None)
             .await
             .expect("could not acquire a database connection");
 
@@ -90,8 +97,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
 
     pub(crate) async fn seed(
         &mut self,
-    ) -> Result<(PostgresStore<impl AsClient, impl AuthorizationApi>, ActorId), Report<StoreError>>
-    {
+    ) -> Result<(PostgresStore<Transaction<'_>>, ActorId), Report<StoreError>> {
         let mut transaction = self.connection.transaction().await?;
 
         transaction
@@ -99,11 +105,25 @@ impl DatabaseTestWrapper<NoAuthorization> {
             .await
             .change_context(StoreError)?;
 
-        let actor = transaction
-            .get_or_create_system_machine("h")
+        let actor = ActorId::Machine(
+            transaction
+                .get_or_create_system_machine("h")
+                .await
+                .change_context(StoreError)?,
+        );
+
+        // Create a policy to allow the actor to create new policies
+        transaction
+            .insert_policy_into_database(&PolicyCreationParams {
+                name: None,
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Actor { actor }),
+                actions: vec![ActionName::CreatePolicy, ActionName::DeletePolicy],
+                resource: None,
+            })
             .await
             .change_context(StoreError)?;
 
-        Ok((transaction, ActorId::Machine(actor)))
+        Ok((transaction, actor))
     }
 }

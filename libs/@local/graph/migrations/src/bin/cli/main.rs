@@ -1,4 +1,8 @@
-#![feature(impl_trait_in_assoc_type, return_type_notation)]
+#![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
+    return_type_notation,
+)]
 #![expect(clippy::future_not_send)]
 
 pub use self::subcommand::Subcommand;
@@ -8,8 +12,7 @@ mod subcommand;
 use core::error::Error;
 
 use clap::Parser as _;
-use hash_tracing::{TracingConfig, init_tracing};
-use tokio::runtime::Handle;
+use hash_telemetry::{TracingConfig, init_tracing};
 
 pub trait Command {
     async fn execute(self) -> Result<(), Box<dyn Error>>;
@@ -33,9 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .enable_all()
         .build()?
         .block_on(async {
-            let handle = Handle::current();
-            let _log_guard = init_tracing(entry.tracing_config, &handle)
-                .expect("should be able to initialize tracing");
+            let _telemetry_guard = init_tracing(entry.tracing_config, "Graph Migrations")
+                .expect("should be able to initialize telemetry");
 
             entry.subcommand.execute().await
         })

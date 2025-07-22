@@ -2,9 +2,11 @@ use alloc::rc::Rc;
 use core::ops::Index;
 
 use ena::unify::{NoError, UnifyKey, UnifyValue};
+use pretty::RcDoc;
 
 use crate::{
     collection::FastHashMap,
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     r#type::{
         PartialType, Type,
@@ -35,6 +37,16 @@ impl Variable {
             span: self.span,
             kind: env.intern_kind(kind),
         })
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Variable {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        self.kind.pretty(env, boundary)
     }
 }
 
@@ -87,6 +99,19 @@ impl VariableKind {
         match self {
             Self::Hole(_) => VariableProvenance::Hole,
             Self::Generic(_) => VariableProvenance::Generic,
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for VariableKind {
+    fn pretty(
+        &self,
+        _: &Environment<'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        match self {
+            Self::Hole(id) => RcDoc::text(format!("_{id}")),
+            Self::Generic(id) => RcDoc::text(format!("?{id}")),
         }
     }
 }

@@ -2,7 +2,11 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(never_type, marker_trait_attr)]
+#![feature(
+    // Language Features
+    marker_trait_attr,
+    never_type,
+)]
 
 use harpc_types::{
     subsystem::{SubsystemDescriptor, SubsystemId},

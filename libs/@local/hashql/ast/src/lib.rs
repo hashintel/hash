@@ -45,12 +45,14 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::indexing_slicing)]
 #![feature(
     // Language Features
+    coverage_attribute,
     if_let_guard,
+
     // Library Features
     allocator_api,
-    coverage_attribute,
     formatting_options,
     iter_intersperse,
 )]

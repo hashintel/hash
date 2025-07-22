@@ -1,13 +1,13 @@
-use core::{iter::repeat_n, str::FromStr as _};
+use core::iter::repeat_n;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
+use hash_graph_authorization::policies::store::{
+    CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
@@ -20,7 +20,6 @@ use type_system::{
     },
     provenance::{OriginProvenance, OriginType},
 };
-use uuid::Uuid;
 
 use crate::util::{StoreWrapper, seed};
 
@@ -127,10 +126,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(
-    account_id: ActorEntityUuid,
-    store_wrapper: &mut StoreWrapper<A>,
-) {
+pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -207,7 +203,7 @@ async fn seed_db<A: AuthorizationApi>(
                         confidence: None,
                         link_data: None,
                         draft: false,
-                        relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -233,9 +229,15 @@ async fn seed_db<A: AuthorizationApi>(
         let uuids = transaction
             .create_entities(
                 account_id,
-                entity_uuids[*left_entity_index]
+                entity_uuids
+                    .get(*left_entity_index)
+                    .unwrap_or_else(|| {
+                        panic!("left entity index `{left_entity_index}` out of bounds")
+                    })
                     .iter()
-                    .zip(&entity_uuids[*right_entity_index])
+                    .zip(entity_uuids.get(*right_entity_index).unwrap_or_else(|| {
+                        panic!("right entity index `{right_entity_index}` out of bounds")
+                    }))
                     .map(|(left_entity, right_entity)| CreateEntityParams {
                         web_id: WebId::new(account_id),
                         entity_uuid: None,
@@ -256,7 +258,7 @@ async fn seed_db<A: AuthorizationApi>(
                             right_entity_provenance: PropertyProvenance::default(),
                         }),
                         draft: false,
-                        relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -290,10 +292,7 @@ pub struct Samples {
     pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
 }
 
-async fn get_samples<A: AuthorizationApi>(
-    account_id: ActorEntityUuid,
-    store_wrapper: &StoreWrapper<A>,
-) -> Samples {
+async fn get_samples(account_id: ActorEntityUuid, store_wrapper: &StoreWrapper) -> Samples {
     let mut entity_types = HashMap::new();
     entity_types.insert(
         account_id,
@@ -340,6 +339,12 @@ async fn get_samples<A: AuthorizationApi>(
                 ",
                 &[&entity_type_id.base_url, &entity_type_id.version],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .unwrap_or_else(|err| {
                 panic!("failed to sample entities for entity type `{entity_type_id}`: {err}");
@@ -358,18 +363,10 @@ async fn get_samples<A: AuthorizationApi>(
     samples
 }
 
-pub async fn setup_and_extract_samples<A: AuthorizationApi>(
-    store_wrapper: &mut StoreWrapper<A>,
+pub async fn setup_and_extract_samples(
+    store_wrapper: &mut StoreWrapper,
+    account_id: ActorEntityUuid,
 ) -> Samples {
-    // TODO: We'll want to test distribution across accounts
-    //   see https://linear.app/hash/issue/H-3012
-    //
-    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
-    // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
-        Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
-    );
-
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper
         .store
@@ -380,6 +377,12 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
             ",
             &[&account_id],
         )
+        .instrument(tracing::info_span!(
+            "SELECT",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres"
+        ))
         .await
         .expect("failed to check if account id exists")
         .get(0);

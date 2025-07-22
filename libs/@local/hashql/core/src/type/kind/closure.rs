@@ -12,13 +12,13 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{
             UnsupportedProjectionCategory, UnsupportedSubscriptCategory,
             function_parameter_count_mismatch, unsupported_projection, unsupported_subscript,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -212,7 +212,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         // Parameters are contravariant
         for (&self_param, &super_param) in self.kind.params.iter().zip(supertype.kind.params.iter())
         {
-            compatible &= env.in_contravariant(|env| env.is_subtype_of(self_param, super_param));
+            compatible &= env.is_subtype_of(Variance::Contravariant, self_param, super_param);
 
             if !compatible && env.is_fail_fast() {
                 return false;
@@ -220,8 +220,11 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         }
 
         // Return type is covariant
-        compatible &=
-            env.in_covariant(|env| env.is_subtype_of(self.kind.returns, supertype.kind.returns));
+        compatible &= env.is_subtype_of(
+            Variance::Covariant,
+            self.kind.returns,
+            supertype.kind.returns,
+        );
 
         compatible
     }
@@ -250,7 +253,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         // Parameters are contravariant
         for (&self_param, &other_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
-            compatible &= env.in_contravariant(|env| env.is_equivalent(self_param, other_param));
+            compatible &= env.is_equivalent(self_param, other_param);
 
             if !compatible && env.is_fail_fast() {
                 return false;
@@ -258,8 +261,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         }
 
         // Return type is covariant
-        compatible &=
-            env.in_covariant(|env| env.is_equivalent(self.kind.returns, other.kind.returns));
+        compatible &= env.is_equivalent(self.kind.returns, other.kind.returns);
 
         compatible
     }
@@ -299,23 +301,15 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
         // root cause.
         for (&param, &supertype_param) in self.kind.params.iter().zip(supertype.kind.params.iter())
         {
-            env.in_contravariant(|env| env.collect_constraints(param, supertype_param));
+            env.collect_constraints(Variance::Contravariant, param, supertype_param);
         }
 
         // Collect constraints for the return type
-        env.in_covariant(|env| env.collect_constraints(self.kind.returns, supertype.kind.returns));
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for &param in self.kind.params {
-            env.in_contravariant(|env| env.collect_structural_edges(param, variable));
-        }
-
-        env.in_covariant(|env| env.collect_structural_edges(self.kind.returns, variable));
+        env.collect_constraints(
+            Variance::Covariant,
+            self.kind.returns,
+            supertype.kind.returns,
+        );
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

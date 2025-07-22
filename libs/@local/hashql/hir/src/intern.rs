@@ -6,7 +6,9 @@ use hashql_core::{
     r#type::TypeId,
 };
 
-use crate::node::{Node, PartialNode, call::CallArgument, closure::ClosureParam};
+use crate::node::{
+    Node, PartialNode, call::CallArgument, closure::ClosureParam, graph::read::GraphReadBody,
+};
 
 #[derive(Debug)]
 pub struct Interner<'heap> {
@@ -15,6 +17,7 @@ pub struct Interner<'heap> {
     pub type_ids: InternSet<'heap, [Spanned<TypeId>]>,
     pub closure_params: InternSet<'heap, [ClosureParam<'heap>]>,
     pub call_arguments: InternSet<'heap, [CallArgument<'heap>]>,
+    pub graph_read_body: InternSet<'heap, [GraphReadBody<'heap>]>,
 
     pub node: InternMap<'heap, Node<'heap>>,
 }
@@ -28,6 +31,7 @@ impl<'heap> Interner<'heap> {
 
             closure_params: InternSet::new(heap),
             call_arguments: InternSet::new(heap),
+            graph_read_body: InternSet::new(heap),
 
             node: InternMap::new(heap),
         }

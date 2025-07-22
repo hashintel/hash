@@ -1,13 +1,6 @@
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, fs, path::Path};
 
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeRelationAndSubject,
-        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeViewerSubject,
-    },
-};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -26,6 +19,7 @@ use hash_graph_store::{
 use hash_repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
+use tracing::Instrument as _;
 use tracing_flame::FlameLayer;
 use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
@@ -43,15 +37,15 @@ use type_system::{
 };
 
 type Pool = PostgresStorePool;
-pub type Store<A> = <Pool as StorePool>::Store<'static, A>;
+pub type Store = <Pool as StorePool>::Store<'static>;
 
 // TODO - deduplicate with integration/postgres.rs
-pub struct StoreWrapper<A: AuthorizationApi> {
+pub struct StoreWrapper {
     delete_on_drop: bool,
     pub bench_db_name: String,
     source_db_pool: Pool,
     pool: ManuallyDrop<Pool>,
-    pub store: ManuallyDrop<Store<A>>,
+    pub store: ManuallyDrop<Store>,
     #[expect(clippy::allow_attributes, reason = "False positive")]
     #[allow(dead_code, reason = "False positive")]
     pub account_id: ActorEntityUuid,
@@ -81,17 +75,13 @@ pub fn setup_subscriber(
     Guard(default_guard, file_guard)
 }
 
-impl<A> StoreWrapper<A>
-where
-    A: AuthorizationApi,
-{
+impl StoreWrapper {
     #[expect(clippy::too_many_lines)]
     pub async fn new(
         bench_db_name: &str,
         fail_on_exists: bool,
         delete_on_drop: bool,
         account_id: ActorEntityUuid,
-        mut authorization_api: A,
     ) -> Self {
         load_env(Environment::Test);
 
@@ -142,7 +132,7 @@ where
         // Create a new connection to the source database, copy the database, drop the connection
         {
             let conn = source_db_pool
-                .acquire_owned(&mut authorization_api, None)
+                .acquire_owned(None)
                 .await
                 .expect("could not acquire a database connection");
             let client = conn.as_client();
@@ -156,6 +146,12 @@ where
                     ",
                     &[&bench_db_name],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .expect("failed to check if database exists")
                 .get(0);
@@ -175,6 +171,12 @@ where
                         ",
                         &[&source_db_connection_info.database()],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .expect("failed to kill existing connections");
 
@@ -190,6 +192,12 @@ where
                         ),
                         &[],
                     )
+                    .instrument(tracing::info_span!(
+                        "CREATE DATABASE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .expect("failed to clone database");
             }
@@ -214,7 +222,7 @@ where
             .expect("could not connect to database");
 
             db_pool
-                .acquire(&mut authorization_api, None)
+                .acquire(None)
                 .await
                 .expect("could not acquire a database connection")
                 .run_migrations()
@@ -233,7 +241,7 @@ where
 
         // _owned is necessary as otherwise we have a self-referential struct
         let store = pool
-            .acquire_owned(authorization_api, None)
+            .acquire_owned(None)
             .await
             .expect("could not acquire a database connection");
 
@@ -248,10 +256,7 @@ where
     }
 }
 
-impl<A> Drop for StoreWrapper<A>
-where
-    A: AuthorizationApi,
-{
+impl Drop for StoreWrapper {
     fn drop(&mut self) {
         if !(self.delete_on_drop) {
             return;
@@ -268,7 +273,7 @@ where
         let runtime = Runtime::new().expect("could not create runtime");
         runtime.block_on(async {
             self.source_db_pool
-                .acquire_owned(NoAuthorization, None)
+                .acquire_owned(None)
                 .await
                 .expect("could not acquire a database connection")
                 .as_client()
@@ -281,6 +286,12 @@ where
                     ),
                     &[],
                 )
+                .instrument(tracing::info_span!(
+                    "DROP DATABASE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .expect("failed to drop database");
         });
@@ -288,8 +299,8 @@ where
 }
 
 #[expect(clippy::too_many_lines)]
-pub async fn seed<D, P, E, C, A>(
-    store: &mut PostgresStore<C, A>,
+pub async fn seed<D, P, E, C>(
+    store: &mut PostgresStore<C>,
     account_id: ActorEntityUuid,
     data_types: D,
     property_types: P,
@@ -299,7 +310,6 @@ pub async fn seed<D, P, E, C, A>(
     P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     C: AsClient,
-    A: AuthorizationApi,
 {
     for data_type_str in data_types {
         let data_type: DataType =
@@ -313,10 +323,6 @@ pub async fn seed<D, P, E, C, A>(
                     ownership: OntologyOwnership::Local {
                         web_id: WebId::new(account_id),
                     },
-                    relationships: [DataTypeRelationAndSubject::Viewer {
-                        subject: DataTypeViewerSubject::Public,
-                        level: 0,
-                    }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
@@ -336,10 +342,6 @@ pub async fn seed<D, P, E, C, A>(
                             account_id,
                             UpdateDataTypesParams {
                                 schema: data_type,
-                                relationships: [DataTypeRelationAndSubject::Viewer {
-                                    subject: DataTypeViewerSubject::Public,
-                                    level: 0,
-                                }],
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -369,10 +371,6 @@ pub async fn seed<D, P, E, C, A>(
                     ownership: OntologyOwnership::Local {
                         web_id: WebId::new(account_id),
                     },
-                    relationships: [PropertyTypeRelationAndSubject::Viewer {
-                        subject: PropertyTypeViewerSubject::Public,
-                        level: 0,
-                    }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
@@ -391,10 +389,6 @@ pub async fn seed<D, P, E, C, A>(
                             account_id,
                             UpdatePropertyTypesParams {
                                 schema: property_type,
-                                relationships: [PropertyTypeRelationAndSubject::Viewer {
-                                    subject: PropertyTypeViewerSubject::Public,
-                                    level: 0,
-                                }],
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -423,10 +417,6 @@ pub async fn seed<D, P, E, C, A>(
                     ownership: OntologyOwnership::Local {
                         web_id: WebId::new(account_id),
                     },
-                    relationships: [EntityTypeRelationAndSubject::Viewer {
-                        subject: EntityTypeViewerSubject::Public,
-                        level: 0,
-                    }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
@@ -445,10 +435,6 @@ pub async fn seed<D, P, E, C, A>(
                             account_id,
                             UpdateEntityTypesParams {
                                 schema: entity_type,
-                                relationships: [EntityTypeRelationAndSubject::Viewer {
-                                    subject: EntityTypeViewerSubject::Public,
-                                    level: 0,
-                                }],
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -466,13 +452,12 @@ pub async fn seed<D, P, E, C, A>(
     }
 }
 
-pub fn setup<A: AuthorizationApi>(
+pub fn setup(
     db_name: &str,
     fail_on_exists: bool,
     delete_on_drop: bool,
     account_id: ActorEntityUuid,
-    authorization_api: A,
-) -> (Runtime, StoreWrapper<A>) {
+) -> (Runtime, StoreWrapper) {
     let runtime = Runtime::new().expect("could not create runtime");
 
     let store_wrapper = runtime.block_on(StoreWrapper::new(
@@ -480,7 +465,6 @@ pub fn setup<A: AuthorizationApi>(
         fail_on_exists,
         delete_on_drop,
         account_id,
-        authorization_api,
     ));
     (runtime, store_wrapper)
 }

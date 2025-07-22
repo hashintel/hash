@@ -1,7 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   createPolicy,
@@ -51,7 +50,7 @@ describe("Policy CRUD", () => {
     };
   });
 
-  it("can create a policy", async () => {
+  it("can create a web-policy", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const policyCreationParams = {
@@ -74,6 +73,25 @@ describe("Policy CRUD", () => {
       policyCreationParams,
     );
     testPolicy = { id: policyId, ...policyCreationParams };
+  });
+
+  it("cannot create a global policy", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    const policyCreationParams = {
+      effect: "permit",
+      principal: {
+        type: "actor",
+        actorType: "user",
+        id: testUser.accountId,
+      },
+      actions: ["instantiate"],
+      resource: null,
+    } satisfies PolicyCreationParams;
+
+    await expect(
+      createPolicy(graphApi, authentication, policyCreationParams),
+    ).rejects.toThrowError("Permission to create policy was denied");
   });
 
   it("can query all policies", async () => {
@@ -112,8 +130,25 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actions: ["createWeb"],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actions: [],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actions: ["instantiate"],
+      }),
+    ).toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actions: ["createWeb", "instantiate"],
       }),
     ).toContainEqual(testPolicy);
   });
@@ -128,11 +163,11 @@ describe("Policy CRUD", () => {
       [
         {
           type: "add-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
-          action: "create",
+          action: "updateEntity",
         },
         {
           type: "remove-action",
@@ -140,14 +175,37 @@ describe("Policy CRUD", () => {
         },
         {
           type: "set-resource-constraint",
-          resourceConstraint: null,
+          resourceConstraint: {
+            type: "entity",
+            webId: testUser.accountId,
+            filter: {
+              type: "all",
+              filters: [],
+            },
+          },
         },
       ],
     );
 
     expect(testPolicy).not.toEqual(updatedPolicy);
     expect(updatedPolicy.actions.length).toBe(2);
-    expect(updatedPolicy.resource).toBeNull();
+    expect(updatedPolicy.resource).toStrictEqual({
+      type: "entity",
+      webId: testUser.accountId,
+      filter: {
+        type: "all",
+        filters: [],
+      },
+    });
+
+    await expect(
+      updatePolicyById(graphApi, authentication, testPolicy.id, [
+        {
+          type: "set-resource-constraint",
+          resourceConstraint: null,
+        },
+      ]),
+    ).rejects.toThrowError("Permission to update policy was denied");
 
     updatedPolicy = await updatePolicyById(
       graphApi,
@@ -156,29 +214,18 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "create",
-        },
-        {
-          type: "set-resource-constraint",
-          resourceConstraint: {
-            type: "entity",
-            id: extractEntityUuidFromEntityId(testUser.entity.entityId),
-          },
+          action: "updateEntity",
         },
       ],
     );
-    expect(updatedPolicy.actions).toStrictEqual(["view"]);
-    expect(updatedPolicy.resource).toStrictEqual({
-      type: "entity",
-      id: extractEntityUuidFromEntityId(testUser.entity.entityId),
-    });
+    expect(updatedPolicy.actions).toStrictEqual(["viewEntity"]);
 
     // At least one action must exist ...
     await expect(
       updatePolicyById(graphApi, authentication, testPolicy.id, [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
       ]),
     ).rejects.toThrowError(
@@ -193,7 +240,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
@@ -223,8 +270,7 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actions: ["instantiate"],
       }),
     ).not.toContainEqual(testPolicy);
   });

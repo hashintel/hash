@@ -83,7 +83,7 @@ async fn insert() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -107,7 +107,7 @@ async fn insert() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -145,7 +145,7 @@ async fn insert() {
                 right_entity_provenance: PropertyProvenance::default(),
             }),
             draft: false,
-            relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -334,7 +334,7 @@ async fn get_entity_links() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -358,7 +358,7 @@ async fn get_entity_links() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -383,7 +383,7 @@ async fn get_entity_links() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -412,7 +412,7 @@ async fn get_entity_links() {
                 right_entity_provenance: PropertyProvenance::default(),
             }),
             draft: false,
-            relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -442,7 +442,7 @@ async fn get_entity_links() {
                 right_entity_provenance: PropertyProvenance::default(),
             }),
             draft: false,
-            relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -589,7 +589,7 @@ async fn remove_link() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -613,7 +613,7 @@ async fn remove_link() {
                     .expect("could not create property with metadata object"),
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -644,7 +644,7 @@ async fn remove_link() {
                     right_entity_provenance: PropertyProvenance::default(),
                 }),
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,

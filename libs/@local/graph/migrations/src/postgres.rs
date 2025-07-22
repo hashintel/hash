@@ -5,6 +5,7 @@ use futures::{StreamExt as _, TryStreamExt as _};
 use postgres_types::ToSql;
 use time::OffsetDateTime;
 use tokio_postgres::{Client, GenericClient};
+use tracing::Instrument as _;
 
 use crate::{
     Digest, MigrationInfo, MigrationState, StateStore,
@@ -108,6 +109,12 @@ where
                 );
             ",
         )
+        .instrument(tracing::info_span!(
+            "CREATE",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        ))
         .await?;
 
         Ok(())
@@ -128,6 +135,12 @@ where
             ",
             &[&info_row_ref],
         )
+        .instrument(tracing::info_span!(
+            "INSERT",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        ))
         .await?;
         Ok(())
     }
@@ -153,6 +166,12 @@ where
             ",
             &[&info_row_ref],
         )
+        .instrument(tracing::info_span!(
+            "UPDATE",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        ))
         .await?;
         Ok(())
     }
@@ -162,6 +181,12 @@ where
             "SELECT ROW(migration_states.*)::migration_states FROM migration_states;",
             iter::empty::<&(dyn ToSql + Sync)>(),
         )
+        .instrument(tracing::info_span!(
+            "SELECT",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        ))
         .await?
         .map(|row| Ok(row?.try_get::<_, MigrationStateRow>(0)?.into_info()))
         .try_collect()
@@ -184,6 +209,12 @@ where
             ",
             &[&(number as i64)],
         )
+        .instrument(tracing::info_span!(
+            "DELETE",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres",
+        ))
         .await?
         .map(|row| Ok(row.try_get::<_, MigrationStateRow>(0)?.into_info()))
         .transpose()

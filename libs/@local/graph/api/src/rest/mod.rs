@@ -1,12 +1,12 @@
+#![expect(clippy::needless_for_each, reason = "Utoipa derive macro uses it")]
+
 //! The Axum webserver for accessing the Graph API operations.
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-pub mod actor_group;
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
-pub mod middleware;
 pub mod permissions;
 pub mod principal;
 pub mod property_type;
@@ -16,7 +16,11 @@ mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
-use std::{fs, io, time::Instant};
+use std::{
+    fs,
+    io::{self, Write as _},
+    time::Instant,
+};
 
 use async_trait::async_trait;
 use axum::{
@@ -26,17 +30,11 @@ use axum::{
     response::{IntoResponse as _, Response},
     routing::get,
 };
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
-use hash_graph_authorization::{
-    AuthorizationApiPool,
-    policies::store::{PolicyStore, PrincipalStore},
-    schema::{
-        AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
-        PropertyTypePermission,
-    },
-};
+use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
@@ -72,8 +70,8 @@ use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
+use tower::ServiceBuilder;
 use type_system::{
-    knowledge::entity::EntityId,
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,
@@ -85,10 +83,7 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    principal::{
-        actor::ActorEntityUuid,
-        actor_group::{ActorGroupEntityUuid, WebId},
-    },
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -100,7 +95,6 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
@@ -194,20 +188,18 @@ where
 
 static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/json_schemas");
 
-fn api_resources<S, A>() -> Vec<Router>
+fn api_resources<S>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore,
 {
     vec![
-        data_type::DataTypeResource::routes::<S, A>(),
-        property_type::PropertyTypeResource::routes::<S, A>(),
-        entity_type::EntityTypeResource::routes::<S, A>(),
-        entity::EntityResource::routes::<S, A>(),
-        actor_group::ActorGroupResource::routes::<S, A>(),
-        permissions::PermissionResource::routes::<S, A>(),
-        principal::PrincipalResource::routes::<S, A>(),
+        data_type::DataTypeResource::routes::<S>(),
+        property_type::PropertyTypeResource::routes::<S>(),
+        entity_type::EntityTypeResource::routes::<S>(),
+        entity::EntityResource::routes::<S>(),
+        permissions::PermissionResource::routes::<S>(),
+        principal::PrincipalResource::routes::<S>(),
     ]
 }
 
@@ -217,7 +209,6 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::openapi(),
         entity_type::EntityTypeResource::openapi(),
         entity::EntityResource::openapi(),
-        actor_group::ActorGroupResource::openapi(),
         permissions::PermissionResource::openapi(),
         principal::PrincipalResource::openapi(),
     ]
@@ -290,62 +281,25 @@ impl QueryLogger {
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
-    CheckAccountGroupPermission {
-        actor_group_id: ActorGroupEntityUuid,
-        permission: AccountGroupPermission,
-    },
-    GetActorGroupRelations {
-        actor_group_id: ActorGroupEntityUuid,
-    },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),
-    GetDataTypeAuthorizationRelationships {
-        data_type_id: &'a VersionedUrl,
-    },
-    CheckDataTypePermission {
-        data_type_id: &'a VersionedUrl,
-        permission: DataTypePermission,
-    },
     GetPropertyTypes(&'a JsonValue),
     GetPropertyTypeSubgraph(&'a JsonValue),
-    GetPropertyTypeAuthorizationRelationships {
-        property_type_id: &'a VersionedUrl,
-    },
-    CheckPropertyTypePermission {
-        property_type_id: &'a VersionedUrl,
-        permission: PropertyTypePermission,
-    },
     GetEntityTypes(&'a JsonValue),
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
-    GetEntityTypeAuthorizationRelationships {
-        entity_type_id: &'a VersionedUrl,
-    },
-    CheckEntityTypePermission {
-        entity_type_id: &'a VersionedUrl,
-        permission: EntityTypePermission,
-    },
     GetEntities(&'a JsonValue),
     CountEntities(&'a JsonValue),
     GetEntitySubgraph(&'a JsonValue),
     ValidateEntity(&'a JsonValue),
     DiffEntity(&'a DiffEntityParams),
-    GetEntityAuthorizationRelationships {
-        entity_id: EntityId,
-    },
-    CheckEntityPermission {
-        entity_id: EntityId,
-        permission: EntityPermission,
-    },
 }
 
-pub struct RestRouterDependencies<S, A>
+pub struct RestRouterDependencies<S>
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
 {
     pub store: Arc<S>,
-    pub authorization_api: Arc<A>,
     pub temporal_client: Option<TemporalClient>,
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
@@ -365,14 +319,13 @@ pub fn openapi_only_router() -> Router {
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
-pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Router
+pub fn rest_api_router<S>(dependencies: RestRouterDependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: RestApiStore + PrincipalStore + PolicyStore,
+    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
     // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<S, A>()
+    let merged_routes = api_resources::<S>()
         .into_iter()
         .fold(Router::new(), Router::merge)
         .fallback(|| {
@@ -382,15 +335,19 @@ where
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
+    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc.
+    // We use a `ServiceBuilder` to add the layers in the correct order.
     let mut router = merged_routes
-        .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::with_transaction())
+        .layer(
+            ServiceBuilder::new()
+                .layer(NewSentryLayer::new_from_top())
+                .layer(SentryHttpLayer::default().enable_transaction()),
+        )
+        .layer(OtelAxumLayer::default())
+        .layer(OtelInResponseLayer)
         .layer(Extension(dependencies.store))
-        .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
-        .layer(Extension(dependencies.domain_regex))
-        .layer(span_trace_layer());
+        .layer(Extension(dependencies.domain_regex));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
@@ -501,15 +458,18 @@ impl OpenApiDocumentation {
         fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
-        serde_json::to_writer_pretty(
-            io::BufWriter::new(
+
+        {
+            let mut writer = io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
                     .attach_printable("could not write openapi.json")
                     .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
-            ),
-            &openapi,
-        )
-        .map_err(io::Error::from)?;
+            );
+            serde_json::to_writer_pretty(&mut writer, &openapi).map_err(io::Error::from)?;
+            // Add a newline to the end of the file because many IDEs and tools expect or
+            // automatically add a trailing newline.
+            writeln!(&mut writer)?;
+        }
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")

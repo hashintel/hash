@@ -1,14 +1,17 @@
 use core::ops::Deref;
 
-use super::{Environment, Variance};
+use super::{
+    Environment, Variance,
+    context::variance::{VarianceFlow, VarianceState},
+};
 use crate::{
     span::SpanId,
     symbol::Ident,
     r#type::{
         TypeId,
         inference::{
-            Constraint, DeferralDepth, Inference as _, InferenceSolver, PartialStructuralEdge,
-            ResolutionStrategy, SelectionConstraint, Subject, Variable, VariableKind,
+            Constraint, DeferralDepth, Inference as _, InferenceSolver, ResolutionStrategy,
+            SelectionConstraint, Subject, Variable, VariableDependencyCollector, VariableKind,
         },
         recursion::RecursionBoundary,
     },
@@ -18,10 +21,11 @@ use crate::{
 pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
+    variables: VariableDependencyCollector<'env, 'heap>,
 
-    constraints: Vec<Constraint<'heap>>,
+    pub constraints: Vec<Constraint<'heap>>,
 
-    variance: Variance,
+    variance: VarianceState,
 }
 
 impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
@@ -29,8 +33,9 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            variables: VariableDependencyCollector::new(environment),
             constraints: Vec::new(),
-            variance: Variance::default(),
+            variance: VarianceState::new(Variance::Covariant),
         }
     }
 
@@ -57,7 +62,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         #[expect(clippy::match_same_arms, reason = "readability")]
-        if self.variance == Variance::Invariant {
+        if self.variance.get() == Variance::Invariant {
             constraint = match constraint {
                 Constraint::Unify { .. } => constraint,
                 Constraint::UpperBound { variable, bound }
@@ -73,15 +78,8 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     lhs: lower,
                     rhs: upper,
                 },
-                Constraint::StructuralEdge {
-                    source: _,
-                    target: _,
-                } => {
-                    // Do not install any structural edges, as they would violate the invariant
-                    // variance.
-                    // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
-                    return;
-                }
+                // dependencies are unaffected by variance
+                Constraint::Dependency { .. } => constraint,
                 // Nothing happens when we have a selection constraint, as selection constraints are
                 // deferred constraints
                 Constraint::Selection(..) => constraint,
@@ -91,16 +89,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.constraints.push(constraint);
     }
 
-    pub fn add_structural_edge(&mut self, variable: PartialStructuralEdge, other: Variable) {
-        let constraint = match variable {
-            PartialStructuralEdge::Source(source) => Constraint::StructuralEdge {
-                source,
-                target: other,
-            },
-            PartialStructuralEdge::Target(target) => Constraint::StructuralEdge {
-                source: other,
-                target,
-            },
+    pub fn add_dependency(&mut self, variable: Variable, other: Variable) {
+        let constraint = Constraint::Dependency {
+            source: variable,
+            target: other,
         };
 
         self.constraints.push(constraint);
@@ -163,16 +155,18 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
+    pub fn collect_constraints(&mut self, variance: Variance, subtype: TypeId, supertype: TypeId) {
+        let (_guard, variance_flow) = self.variance.transition(variance);
+
         #[expect(
             clippy::match_same_arms,
             reason = "explicit to document why invariant is covariant in disguise"
         )]
-        let (subtype, supertype) = match self.variance {
-            Variance::Covariant => (subtype, supertype),
-            Variance::Contravariant => (supertype, subtype),
+        let (subtype, supertype) = match variance_flow {
+            VarianceFlow::Forward => (subtype, supertype),
+            VarianceFlow::Reverse => (supertype, subtype),
             // The same subtype relationship, but `add_constraint` changes what's registered
-            Variance::Invariant => (subtype, supertype),
+            VarianceFlow::Invariant => (subtype, supertype),
         };
 
         let subtype = self.environment.r#type(subtype);
@@ -189,51 +183,15 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.boundary.exit(subtype, supertype);
     }
 
-    pub fn collect_structural_edges(&mut self, id: TypeId, variable: PartialStructuralEdge) {
-        let variable = match self.variance {
-            Variance::Covariant => variable,
-            Variance::Contravariant => variable.invert(),
-            // We cannot safely collect structural edges for invariant types
-            Variance::Invariant => return,
-        };
-
+    pub fn collect_dependencies(&mut self, id: TypeId, variable: Variable) {
         let r#type = self.environment.r#type(id);
 
-        if self.boundary.enter(r#type, r#type).is_break() {
-            // In a recursive type, we've already collected the constraints once, so can simply
-            // terminate
-            return;
+        for depends_on in self.variables.collect(r#type) {
+            self.constraints.push(Constraint::Dependency {
+                source: variable,
+                target: depends_on,
+            });
         }
-
-        r#type.collect_structural_edges(variable, self);
-
-        self.boundary.exit(r#type, r#type);
-    }
-
-    pub(crate) fn with_variance<T>(
-        &mut self,
-        variance: Variance,
-        closure: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let old_variance = self.variance;
-
-        self.variance = old_variance.transition(variance);
-
-        let result = closure(self);
-        self.variance = old_variance;
-        result
-    }
-
-    pub fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Contravariant, closure)
-    }
-
-    pub fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Covariant, closure)
-    }
-
-    pub fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Invariant, closure)
     }
 
     #[must_use]

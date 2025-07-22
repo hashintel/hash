@@ -65,7 +65,7 @@ pub(crate) fn convert_parse_error<I>(
     // adapted from the `Display` for `ContextError`.
     let expression = error.context().find_map(|context| match context {
         StrContext::Label(label) => Some(*label),
-        _ => None,
+        StrContext::Expected(_) | _ => None,
     });
 
     let message = expression.map_or_else(
@@ -79,7 +79,7 @@ pub(crate) fn convert_parse_error<I>(
         .context()
         .filter_map(|context| match context {
             StrContext::Expected(expected) => Some(expected),
-            _ => None,
+            StrContext::Label(_) | _ => None,
         })
         .collect();
 

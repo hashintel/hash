@@ -5,6 +5,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveEntityType,
+  checkPermissionsOnEntityType,
   createEntityType,
   getClosedEntityTypes,
   getClosedMultiEntityTypes,
@@ -31,6 +32,7 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -108,14 +110,6 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -127,14 +121,6 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -145,14 +131,6 @@ beforeAll(async () => {
         description: "Favorite book of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -163,14 +141,6 @@ beforeAll(async () => {
         description: "The name of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       namePropertyType = val;
     }),
@@ -184,14 +154,6 @@ beforeAll(async () => {
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -204,14 +166,6 @@ beforeAll(async () => {
         allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -265,21 +219,6 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(graphContext, authentication, {
       webId: testOrg.webId,
       schema: entityTypeSchema,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
   });
 
@@ -513,15 +452,6 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        relationships: [
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-        ],
         provenance: {
           actorType: "machine",
           origin: {
@@ -536,6 +466,27 @@ describe("Entity type CRU", () => {
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
         updatedEntityType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can check permissions on an entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: createdEntityType.schema.$id,
+      }),
+    ).toStrictEqual({
+      edit: true,
+      instantiate: true,
+      view: true,
+    });
+
+    expect(
+      await hasPermissionForEntityTypes(graphContext.graphApi, authentication, {
+        entityTypeIds: [createdEntityType.schema.$id],
+        action: "viewEntityType",
+      }),
+    ).toStrictEqual([createdEntityType.schema.$id]);
   });
 
   it("can archive a entity type", async () => {

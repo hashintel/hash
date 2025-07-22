@@ -228,9 +228,7 @@ export const runFlowWorkflow = async (
   const userHasPermissionToRunFlowInWeb = await userHasPermissionActivity();
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
-    const errorMessage = `User does not have permission to run flow in web ${webId}, because they are missing permissions: ${userHasPermissionToRunFlowInWeb.missingPermissions.join(
-      `,`,
-    )}`;
+    const errorMessage = `User does not have permission to run flow in web ${webId}: ${userHasPermissionToRunFlowInWeb.errorMessage}`;
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [

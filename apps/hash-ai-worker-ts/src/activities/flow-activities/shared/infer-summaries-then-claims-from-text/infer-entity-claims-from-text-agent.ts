@@ -8,7 +8,6 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
 import dedent from "dedent";
 
@@ -672,9 +671,6 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
             webId,
             provenance,
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: userAuthentication.actorId,
-            }),
             properties: {
               value: {
                 "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":

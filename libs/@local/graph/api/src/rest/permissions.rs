@@ -8,17 +8,16 @@ use axum::{
     response::Response,
     routing::{delete, get, post},
 };
-use hash_graph_authorization::{
-    AuthorizationApiPool,
-    policies::{
-        Policy, PolicyId,
-        store::{PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation},
+use hash_graph_authorization::policies::{
+    Policy, PolicyId,
+    store::{
+        PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation,
+        ResolvePoliciesParams,
     },
 };
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use http::StatusCode;
-use type_system::principal::actor::ActorId;
 use utoipa::OpenApi;
 
 use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
@@ -44,31 +43,30 @@ pub(crate) struct PermissionResource;
 
 impl PermissionResource {
     /// Create routes for interacting with actors.
-    pub(crate) fn routes<S, A>() -> Router
+    pub(crate) fn routes<S>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
-        A: AuthorizationApiPool + Send + Sync + 'static,
-        for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+        for<'p> S::Store<'p>: PolicyStore,
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
             "/policies",
             Router::new()
-                .route("/", post(create_policy::<S, A>))
+                .route("/", post(create_policy::<S>))
                 .nest(
                     "/:policy_id",
                     Router::new()
                         .route(
                             "/",
-                            get(get_policy_by_id::<S, A>)
-                                .put(update_policy_by_id::<S, A>)
-                                .delete(archive_policy_by_id::<S, A>),
+                            get(get_policy_by_id::<S>)
+                                .put(update_policy_by_id::<S>)
+                                .delete(archive_policy_by_id::<S>),
                         )
-                        .route("/delete", delete(delete_policy_by_id::<S, A>)),
+                        .route("/delete", delete(delete_policy_by_id::<S>)),
                 )
-                .route("/query", post(query_policies::<S, A>))
-                .route("/resolve/actor", post(resolve_policies_for_actor::<S, A>))
-                .route("/seed", get(seed_system_policies::<S, A>)),
+                .route("/query", post(query_policies::<S>))
+                .route("/resolve/actor", post(resolve_policies_for_actor::<S>))
+                .route("/seed", get(seed_system_policies::<S>)),
         )
     }
 }
@@ -87,33 +85,22 @@ impl PermissionResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn create_policy<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn create_policy<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(policy): Json<PolicyCreationParams>,
 ) -> Result<Json<PolicyId>, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .create_policy(authenticated_actor_id, policy)
+        .create_policy(authenticated_actor_id.into(), policy)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -133,33 +120,22 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn get_policy_by_id<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn get_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<Json<Option<Policy>>, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .get_policy_by_id(authenticated_actor_id, policy_id)
+        .get_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -179,33 +155,22 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn query_policies<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn query_policies<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(filter): Json<PolicyFilter>,
 ) -> Result<Json<Vec<Policy>>, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .query_policies(authenticated_actor_id, &filter)
+        .query_policies(authenticated_actor_id.into(), &filter)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -225,33 +190,22 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn resolve_policies_for_actor<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn resolve_policies_for_actor<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(actor_id): Json<ActorId>,
+    Json(params): Json<ResolvePoliciesParams<'static>>,
 ) -> Result<Json<Vec<Policy>>, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .resolve_policies_for_actor(authenticated_actor_id, Some(actor_id))
+        .resolve_policies_for_actor(authenticated_actor_id.into(), params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -272,34 +226,23 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn update_policy_by_id<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn update_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(operations): Json<Vec<PolicyUpdateOperation>>,
 ) -> Result<Json<Policy>, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .update_policy_by_id(authenticated_actor_id, policy_id, &operations)
+        .update_policy_by_id(authenticated_actor_id.into(), policy_id, &operations)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -319,33 +262,22 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn archive_policy_by_id<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn archive_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .archive_policy_by_id(authenticated_actor_id, policy_id)
+        .archive_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
@@ -365,33 +297,22 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn delete_policy_by_id<S, A>(
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn delete_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .delete_policy_by_id(authenticated_actor_id, policy_id)
+        .delete_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
@@ -407,28 +328,17 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn seed_system_policies<S, A>(
-    authorization_api_pool: Extension<Arc<A>>,
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+async fn seed_system_policies<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
 ) -> Result<StatusCode, Response>
 where
     S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+    for<'p> S::Store<'p>: PolicyStore,
 {
     store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
+        .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
         .seed_system_policies()

@@ -11,7 +11,6 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
 use type_system::{
     Valid, Validator as _,
     ontology::{
@@ -43,7 +42,6 @@ pub struct EntityTypeSender {
     validator: Arc<EntityTypeValidator>,
     metadata: OntologyTypeMetadataSender,
     schema: Sender<EntityTypeRow>,
-    relations: Sender<(EntityTypeUuid, Vec<EntityTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
@@ -58,9 +56,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
-        ready!(self.relations.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -113,11 +108,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
 
-        self.relations
-            .start_send_unpin((ontology_id, entity_type.relations))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity relations")?;
-
         Ok(())
     }
 
@@ -127,9 +117,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
-        ready!(self.relations.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -140,9 +127,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
-        ready!(self.relations.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -175,24 +159,18 @@ pub(crate) fn entity_type_channel(
     embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
-    let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         EntityTypeSender {
             validator: Arc::new(EntityTypeValidator),
             metadata: metadata_sender,
             schema: schema_tx,
-            relations: relations_tx,
         },
         EntityTypeReceiver {
             stream: select_all([
                 schema_rx
                     .ready_chunks(chunk_size)
                     .map(EntityTypeRowBatch::Schema)
-                    .boxed(),
-                relations_rx
-                    .ready_chunks(chunk_size)
-                    .map(|relations| EntityTypeRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
                 embedding_rx
                     .ready_chunks(chunk_size)

@@ -18,14 +18,14 @@ export const getLinearOrganizationQuery = gql`
   }
 `;
 
-export const syncLinearIntegrationWithWorkspacesMutation = gql`
-  mutation syncLinearIntegrationWithWorkspaces(
+export const syncLinearIntegrationWithWebsMutation = gql`
+  mutation syncLinearIntegrationWithWebs(
     $linearIntegrationEntityId: EntityId!
-    $syncWithWorkspaces: [SyncWithWorkspace!]!
+    $syncWithWebs: [SyncWithWeb!]!
   ) {
-    syncLinearIntegrationWithWorkspaces(
+    syncLinearIntegrationWithWebs(
       linearIntegrationEntityId: $linearIntegrationEntityId
-      syncWithWorkspaces: $syncWithWorkspaces
+      syncWithWebs: $syncWithWebs
     )
   }
 `;

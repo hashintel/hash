@@ -79,7 +79,6 @@ const ProfilePage: NextPageWithLayout = () => {
         hasRightEntity: { incoming: 1, outgoing: 1 },
       },
       includePermissions: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const profile = useMemo(() => {
@@ -222,10 +221,14 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const baseTabs = useMemo<ProfilePageTab[]>(
     () => [
-      {
-        kind: "profile",
-        title: "Profile",
-      },
+      ...(enabledFeatureFlags.pages
+        ? [
+            {
+              kind: "profile",
+              title: "Profile",
+            } as const,
+          ]
+        : []),
       ...pinnedEntityTypeBaseUrls.map<ProfilePageTab>((entityTypeBaseUrl) => ({
         kind: "pinned-entity-type",
         entityTypeBaseUrl,
@@ -235,7 +238,7 @@ const ProfilePage: NextPageWithLayout = () => {
         title: "Types",
       },
     ],
-    [pinnedEntityTypeBaseUrls],
+    [enabledFeatureFlags.pages, pinnedEntityTypeBaseUrls],
   );
 
   const includeEntityTypeIds = useMemo(

@@ -14,6 +14,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::ontology::{
     EntityTypeWithMetadata, OntologyTemporalMetadata,
     entity_type::{ClosedEntityTypeWithMetadata, EntityTypeMetadata, EntityTypeUuid},
@@ -58,11 +59,11 @@ pub struct OntologyEdgeTraversal<L, R> {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
+impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
-        filter: &Filter<'f, EntityTypeWithMetadata>,
+        filter: &[Filter<'f, EntityTypeWithMetadata>],
         temporal_axes: Option<&'f QueryTemporalAxes>,
     ) -> Result<
         impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityTypeWithMetadata), Report<QueryError>>>,
@@ -86,12 +87,21 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         let provenance_index =
             compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None));
 
-        compiler.add_filter(filter).change_context(QueryError)?;
+        for filter in filter {
+            compiler.add_filter(filter).change_context(QueryError)?;
+        }
         let (statement, parameters) = compiler.compile();
 
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(QueryError)?
             .map(move |row| {
@@ -190,6 +200,12 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                 ),
                 &[&record_ids.ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -202,6 +218,10 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                 let right_endpoint_ontology_id = row.get(5);
                 (
                     right_endpoint_ontology_id,
+                    #[expect(
+                        clippy::indexing_slicing,
+                        reason = "index is guaranteed to be in bounds"
+                    )]
                     OntologyEdgeTraversal {
                         left_endpoint: L::from(VersionedUrl {
                             base_url: row.get(1),

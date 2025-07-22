@@ -122,16 +122,16 @@ impl Validator<DataType> for DataTypeValidator {
     ///   directly inherits from the value data type
     fn validate_ref<'v>(&self, value: &'v DataType) -> Result<&'v Valid<DataType>, Self::Error> {
         if value.all_of.is_empty() && value.id != VALUE_DATA_TYPE_ID.url {
-            return Err(ValidateDataTypeError::MissingParent);
+            Err(ValidateDataTypeError::MissingParent)
         } else if value.all_of.contains(&*VALUE_DATA_TYPE_ID)
             && !PRIMITIVE_DATA_TYPE_IDS.contains(&value.id)
         {
-            return Err(ValidateDataTypeError::NonPrimitiveValueInheritance);
+            Err(ValidateDataTypeError::NonPrimitiveValueInheritance)
+        } else {
+            // Unsatisfiable constraints will automatically be checked when attempting to close the
+            // schema so it's not needed to check constraints here.
+            Ok(Valid::new_ref_unchecked(value))
         }
-
-        // Unsatisfiable constraints will automatically be checked when attempting to close the
-        // schema so it's not needed to check constraints here.
-        Ok(Valid::new_ref_unchecked(value))
     }
 }
 

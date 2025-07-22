@@ -170,6 +170,8 @@ impl Trial {
             write!(output, " ({YELLOW}ignored{YELLOW:#} by parent)")?;
         } else if self.ignore {
             write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
+        } else {
+            // Test is not ignored, runs normally
         }
 
         if let Some(description) = &self.annotations.directive.description {
@@ -210,7 +212,10 @@ impl Trial {
     }
 
     fn run_impl(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
-        let heap = Heap::new();
+        // This is *way more* than we need, but allows us to avoid allocating a new slice, which we
+        // don't do for speed, but instead do because it keeps the indices stable during printing of
+        // types as we don't allocate a new block.
+        let heap = Heap::with_capacity(4 * 1024 * 1024); // 4MiB
 
         let (source, line_index, annotations) = self.load_source()?;
 

@@ -1,7 +1,7 @@
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 
 use super::table::{ActionHierarchyRow, ActionRow};
 use crate::{
@@ -14,14 +14,11 @@ pub enum ActionRowBatch {
     Hierarchy(Vec<ActionHierarchyRow>),
 }
 
-impl<C, A> WriteBatch<C, A> for ActionRowBatch
+impl<C> WriteBatch<C> for ActionRowBatch
 where
     C: AsClient,
-    A: AuthorizationApi + ZanzibarBackend + Send + Sync,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -36,6 +33,12 @@ where
                         ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -44,7 +47,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -58,6 +61,12 @@ where
                         ",
                         &[&actions],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -74,6 +83,12 @@ where
                         ",
                         &[&hierarchy],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -85,7 +100,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -100,6 +115,12 @@ where
                         SELECT * FROM action_hierarchy_tmp;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 

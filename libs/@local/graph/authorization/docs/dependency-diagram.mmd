@@ -24,13 +24,18 @@ graph TD
     12[<a href="../hash_graph_validation">hash-graph-validation</a>]
     13[<a href="../harpc_types">harpc-types</a>]
     14[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
-    15[<a href="../error_stack">error-stack</a>]
-    16[<a href="../hash_graph_benches">hash-graph-benches</a>]
-    17[<a href="../hash_graph_integration">hash-graph-integration</a>]
-    18[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    15[<a href="../hashql_ast">hashql-ast</a>]
+    16[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    17[<a href="../hashql_eval">hashql-eval</a>]
+    18[<a href="../hashql_hir">hashql-hir</a>]
+    19[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    20[<a href="../error_stack">error-stack</a>]
+    21[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    22[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    23[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
     0 --> 10
     1 --> 9
-    1 -.-> 18
+    1 -.-> 23
     2 -.-> 3
     2 --> 14
     4 --> 7
@@ -46,6 +51,13 @@ graph TD
     12 --> 8
     14 -.-> 13
     14 --> 13
-    14 --> 15
-    16 -.-> 4
-    17 -.-> 7
+    14 --> 20
+    15 -.-> 16
+    16 --> 17
+    16 --> 19
+    17 --> 8
+    17 --> 18
+    18 -.-> 16
+    19 --> 15
+    21 -.-> 4
+    22 -.-> 7

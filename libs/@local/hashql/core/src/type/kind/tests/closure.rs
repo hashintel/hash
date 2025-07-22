@@ -12,10 +12,10 @@ use crate::{
         PartialType, TypeBuilder, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
-        inference::{Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
             ClosureType, Generic, Param, TypeKind,
             generic::{GenericArgument, GenericArgumentId},
@@ -681,14 +681,14 @@ fn collect_constraints_nested_closure() {
 
     // Collect constraints with nested closures
     // closure_a <: closure_b
-    // This requires inner_closure_a <: inner_closure_b
-    // For return types, this means ?T <: Boolean
+    // This requires inner_closure_b <: inner_closure_a
+    // For return types, this means Boolean <: ?T
     closure_a.collect_constraints(closure_b, &mut inference_env);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::UpperBound {
+        [Constraint::LowerBound {
             variable: Variable::synthetic(VariableKind::Hole(hole)),
             bound: boolean
         }]
@@ -756,7 +756,7 @@ fn collect_constraints_with_generic_args() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Collect constraints between closures with generic parameters
-    inference_env.collect_constraints(fn_a, fn_b);
+    inference_env.collect_constraints(Variance::Covariant, fn_a, fn_b);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
@@ -775,7 +775,7 @@ fn collect_constraints_with_generic_args() {
 }
 
 #[test]
-fn collect_structural_edges_param() {
+fn collect_dependencies_param() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -790,61 +790,25 @@ fn collect_structural_edges_param() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
     // Collect structural edges
-    param_fn.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(param_fn.id, variable);
 
     // Since parameters are contravariant, the flow direction is from param to the source
     // We expect _0 -> _1 (where _0 is the param infer var and _1 is the source var)
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: source_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_param_target() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create a closure with an inference variable in parameter position: fn(_0) -> String
-    closure!(env, param_fn, [infer_var], string);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    let target_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Target(target_var);
-
-    // Collect structural edges
-    param_fn.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Since parameters are contravariant and we're using Target, the flow is from target to
-    // param We expect _1 -> _0 (where _1 is the target var and _0 is the param infer
-    // var)
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: target_var,
+        [Constraint::Dependency {
+            source: variable,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
     );
 }
 
 #[test]
-fn collect_structural_edges_return() {
+fn collect_dependencies_return() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -859,60 +823,25 @@ fn collect_structural_edges_return() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the target in a structural edge
-    let target_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Target(target_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
     // Collect structural edges
-    return_fn.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(return_fn.id, variable);
 
     // Since return types are covariant, the flow is from return to target
     // We expect _0 -> _1 (where _0 is the infer var in return position and _1 is target)
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: target_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_return_source() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-    let number = primitive!(env, PrimitiveType::Number);
-
-    // Create a closure with an inference variable in return position: fn(Number) -> _0
-    closure!(env, return_fn, [number], infer_var);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    return_fn.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Since return types are covariant, the flow is from source to return
-    // We expect _1 -> _0 (where _1 is the source var and _0 is return)
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
+        [Constraint::Dependency {
+            source: variable,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
     );
 }
 
 #[test]
-fn collect_structural_edges_both_param_and_return() {
+fn collect_dependencies_both_param_and_return() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -928,11 +857,10 @@ fn collect_structural_edges_both_param_and_return() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the source in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
 
     // Collect structural edges
-    both_fn.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(both_fn.id, variable);
 
     // We expect two edges:
     // 1. _0 -> _2 (contravariant parameter position: param flows to source)
@@ -941,12 +869,12 @@ fn collect_structural_edges_both_param_and_return() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
-                source: Variable::synthetic(VariableKind::Hole(hole_param)),
-                target: edge_var,
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole_param)),
             },
-            Constraint::StructuralEdge {
-                source: edge_var,
+            Constraint::Dependency {
+                source: variable,
                 target: Variable::synthetic(VariableKind::Hole(hole_return)),
             }
         ]
@@ -954,7 +882,7 @@ fn collect_structural_edges_both_param_and_return() {
 }
 
 #[test]
-fn collect_structural_edges_multiple_params() {
+fn collect_dependencies_multiple_params() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -971,11 +899,10 @@ fn collect_structural_edges_multiple_params() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable for the edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(3)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(3)));
 
     // Collect structural edges
-    multi_param_fn.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(multi_param_fn.id, variable);
 
     // Since parameters are contravariant and we provided a Target edge,
     // we expect the flow from the target to each parameter:
@@ -986,12 +913,12 @@ fn collect_structural_edges_multiple_params() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
-                source: edge_var,
+            Constraint::Dependency {
+                source: variable,
                 target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
-            Constraint::StructuralEdge {
-                source: edge_var,
+            Constraint::Dependency {
+                source: variable,
                 target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
         ]
@@ -999,7 +926,7 @@ fn collect_structural_edges_multiple_params() {
 }
 
 #[test]
-fn collect_structural_edges_nested_closure() {
+fn collect_dependencies_nested_closure() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1019,11 +946,10 @@ fn collect_structural_edges_nested_closure() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Edge variable
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
 
     // Collect structural edges for the outer function
-    outer_fn.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(outer_fn.id, variable);
 
     // We expect:
     // 1. _1 -> _2 (contravariant parameter of outer closure flows to source)
@@ -1032,12 +958,12 @@ fn collect_structural_edges_nested_closure() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
-                source: Variable::synthetic(VariableKind::Hole(hole_outer)),
-                target: edge_var,
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole_outer)),
             },
-            Constraint::StructuralEdge {
-                source: edge_var,
+            Constraint::Dependency {
+                source: variable,
                 target: Variable::synthetic(VariableKind::Hole(hole_inner)),
             }
         ]
@@ -1045,7 +971,7 @@ fn collect_structural_edges_nested_closure() {
 }
 
 #[test]
-fn collect_structural_edges_invariant_context() {
+fn collect_dependencies_invariant_context() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1061,17 +987,20 @@ fn collect_structural_edges_invariant_context() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Edge variable
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
     // Collect structural edges in an invariant context
-    inference_env.in_invariant(|env| {
-        fn_with_infer.collect_structural_edges(partial_edge, env);
-    });
+    inference_env.collect_dependencies(fn_with_infer.id, variable);
 
     // In invariant context, no structural edges should be collected
     let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(
+        constraints,
+        [Constraint::Dependency {
+            source: variable,
+            target: Variable::synthetic(VariableKind::Hole(hole)),
+        },]
+    );
 }
 
 #[test]
@@ -1203,4 +1132,22 @@ fn subscript() {
         diagnostics[0].category,
         TypeCheckDiagnosticCategory::UnsupportedSubscript
     );
+}
+
+#[test]
+fn regression_contravariance_flip_flop() {
+    // given
+    // A: `fn(List<Number>) -> Number`
+    // B: `fn(List<Integer>) -> Number`
+    // then if `A <: B`
+    // List<Integer> <: List<Number>
+    // Integer <: Number
+    // Ok!
+    // before https://linear.app/hash/issue/H-4899/hashql-fix-contravariance-applying-unilaterally this would've failed
+    scaffold!(heap, env, builder, [analysis: analysis]);
+
+    let a = builder.closure([builder.list(builder.number())], builder.number());
+    let b = builder.closure([builder.list(builder.integer())], builder.number());
+
+    assert!(analysis.is_subtype_of(Variance::Covariant, a, b));
 }

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { useAuthenticatedUser } from "./auth-info-context";
 
 export const useEnabledFeatureFlags = () => {
-  const { authenticatedUser, isInstanceAdmin } = useAuthenticatedUser();
+  const { authenticatedUser } = useAuthenticatedUser();
 
   return useMemo(() => {
     /**
@@ -16,9 +16,7 @@ export const useEnabledFeatureFlags = () => {
      * @todo: revise this when we have an `/admin` page to manage
      * feature flags.
      */
-    const enabledFeatureFlags = isInstanceAdmin
-      ? Array.from(featureFlags)
-      : authenticatedUser.enabledFeatureFlags;
+    const { enabledFeatureFlags } = authenticatedUser;
 
     return featureFlags.reduce<Record<FeatureFlag, boolean>>(
       (prev, featureFlag) => ({
@@ -27,5 +25,5 @@ export const useEnabledFeatureFlags = () => {
       }),
       {} as Record<FeatureFlag, boolean>,
     );
-  }, [authenticatedUser, isInstanceAdmin]);
+  }, [authenticatedUser]);
 };

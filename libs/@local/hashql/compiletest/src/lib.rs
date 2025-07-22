@@ -1,22 +1,29 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::indexing_slicing)]
 #![feature(
+    // Language Features
+    coverage_attribute,
+    decl_macro,
+    if_let_guard,
+
     // Library Features
     assert_matches,
-    coverage_attribute,
     file_buffered,
     formatting_options,
     lock_value_accessors,
+    panic_payload_as_str,
     pattern,
-    // Language Features
-    decl_macro,
-    if_let_guard,
 )]
+
 extern crate alloc;
 
+use core::sync::atomic::{AtomicBool, Ordering};
 use std::{
+    backtrace::Backtrace,
     env,
     io::{Write as _, stdout},
+    panic::{self, PanicHookInfo},
     path::PathBuf,
     process::exit,
 };
@@ -39,6 +46,21 @@ mod find;
 mod reporter;
 mod styles;
 mod suite;
+
+static PANICKED: AtomicBool = AtomicBool::new(false);
+
+fn panic_hook(panic_info: &PanicHookInfo) {
+    let message = panic_info
+        .payload_as_str()
+        .map_or_else(|| "Box<dyn Any>".to_owned(), ToOwned::to_owned);
+
+    let location = panic_info.location().map(ToString::to_string);
+
+    let backtrace = Backtrace::force_capture();
+
+    tracing::error!(message, location, %backtrace, "encountered panic");
+    PANICKED.store(true, Ordering::SeqCst);
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
 struct Spec {
@@ -110,6 +132,7 @@ impl Options {
                 let ignored = trials.ignored();
 
                 setup_progress_header!(reporter, Summary { total, ignored }, statistics);
+                panic::set_hook(Box::new(panic_hook));
 
                 let reports = trials.run(&TrialContext { bless });
                 let failures = reports.len();
@@ -122,7 +145,8 @@ impl Options {
 
                 Reporter::report_errors(reports).expect("should be able to report errors");
 
-                if failures > 0 {
+                let panicked = PANICKED.load(Ordering::SeqCst);
+                if failures > 0 || panicked {
                     exit(1);
                 }
             }

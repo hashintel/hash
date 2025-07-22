@@ -9,7 +9,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         PartialType,
-        environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
+        environment::{AnalysisEnvironment, Environment, InferenceEnvironment, Variance},
         error::TypeCheckDiagnosticCategory,
         inference::{
             Variable, VariableKind,
@@ -22,6 +22,7 @@ use crate::{
             intrinsic::ListType,
             r#struct::StructField,
             test::{assert_equiv, intersection, list, primitive, r#struct, struct_field, union},
+            tests::assert_equivalent,
         },
         tests::{instantiate, instantiate_infer, scaffold},
     },
@@ -329,6 +330,7 @@ fn apply_constraints_with_unification() {
 #[test]
 fn solve_constraints() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -348,10 +350,19 @@ fn solve_constraints() {
     applied_constraints.insert(variable.kind, (variable, constraint));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(variable.kind);
+
+    let graph = Graph::new(&mut solver.unification);
 
     // Directly call solve_constraints
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     // Verify the substitution
     assert_eq!(substitutions.len(), 1);
@@ -361,6 +372,7 @@ fn solve_constraints() {
 #[test]
 fn solve_constraints_with_equality() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -379,9 +391,18 @@ fn solve_constraints_with_equality() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
+
+    let graph = Graph::new(&mut solver.unification);
 
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     assert_eq!(substitutions.len(), 1);
     assert_eq!(substitutions[&var.kind], string);
@@ -390,6 +411,7 @@ fn solve_constraints_with_equality() {
 #[test]
 fn solve_constraints_with_incompatible_bounds() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -409,10 +431,19 @@ fn solve_constraints_with_incompatible_bounds() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
+
+    let graph = Graph::new(&mut solver.unification);
 
     // These bounds are incompatible, so a diagnostic should be created
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -426,6 +457,7 @@ fn solve_constraints_with_incompatible_bounds() {
 #[test]
 fn solve_constraints_with_incompatible_equality() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -445,9 +477,18 @@ fn solve_constraints_with_incompatible_equality() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
+
+    let graph = Graph::new(&mut solver.unification);
 
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -460,6 +501,7 @@ fn solve_constraints_with_incompatible_equality() {
 #[test]
 fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -480,10 +522,19 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
+
+    let graph = Graph::new(&mut solver.unification);
 
     // This should exercise lines 916-929
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     // Should have a diagnostic for incompatible upper equal constraint
     let diagnostics = solver.diagnostics.into_vec();
@@ -638,57 +689,6 @@ fn cyclic_ordering_constraints() {
 }
 
 #[test]
-fn cyclic_structural_edges_constraints() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    let hole1 = HoleId::new(1);
-    let hole2 = HoleId::new(2);
-    let hole3 = HoleId::new(3);
-
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
-    let variable3 = Variable::synthetic(VariableKind::Hole(hole3));
-
-    // Create a cycle
-    let constraints = [
-        Constraint::StructuralEdge {
-            source: variable1,
-            target: variable2,
-        },
-        Constraint::StructuralEdge {
-            source: variable2,
-            target: variable3,
-        },
-        Constraint::StructuralEdge {
-            source: variable3,
-            target: variable1,
-        },
-    ];
-
-    let mut solver =
-        InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-
-    // Directly call the anti-symmetry solver
-    let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
-    solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
-
-    // Verify all variables are unified
-    assert!(
-        solver
-            .unification
-            .is_unioned(variable1.kind, variable2.kind)
-    );
-    assert!(
-        solver
-            .unification
-            .is_unioned(variable2.kind, variable3.kind)
-    );
-}
-
-#[test]
 fn bounds_at_lattice_extremes() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
@@ -731,7 +731,13 @@ fn bounds_at_lattice_extremes() {
 
     // These bounds should be compatible
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&variables, &mut substitutions);
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &variables,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)
@@ -750,7 +756,7 @@ fn collect_constraints_with_structural_edge() {
     let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     // Create a structural edge constraint
-    let constraints = [Constraint::StructuralEdge {
+    let constraints = [Constraint::Dependency {
         source: var1,
         target: var2,
     }];
@@ -1161,7 +1167,7 @@ fn pipeline_environment_to_solver() {
     let number = primitive!(env, PrimitiveType::Number);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(union, number);
+    environment.collect_constraints(Variance::Covariant, union, number);
 
     let solver = environment.into_solver();
     let (substitution, diagnostics) = solver.solve();
@@ -1275,6 +1281,7 @@ fn early_projection() {
     let mut environment = InferenceEnvironment::new(&env);
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable,
         r#struct!(
             env,
@@ -1326,6 +1333,7 @@ fn late_projection() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable,
         r#struct!(
             env,
@@ -1449,6 +1457,7 @@ fn projection_equality_constraint() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable.into_type(&env).id,
         primitive!(env, PrimitiveType::String),
     );
@@ -1482,7 +1491,11 @@ fn projection_unify_variables_lower() {
     let r#struct = r#struct!(env, [struct_field!(env, "a", hole1_type)]);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(hole1_type, primitive!(env, PrimitiveType::Number));
+    environment.collect_constraints(
+        Variance::Covariant,
+        hole1_type,
+        primitive!(env, PrimitiveType::Number),
+    );
 
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
@@ -1491,6 +1504,7 @@ fn projection_unify_variables_lower() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable.into_type(&env).id,
         primitive!(env, PrimitiveType::Integer),
     );
@@ -1524,7 +1538,11 @@ fn projection_unify_variables_upper() {
     let r#struct = r#struct!(env, [struct_field!(env, "a", hole1_type)]);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(primitive!(env, PrimitiveType::Number), hole1_type);
+    environment.collect_constraints(
+        Variance::Covariant,
+        primitive!(env, PrimitiveType::Number),
+        hole1_type,
+    );
 
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
@@ -1533,6 +1551,7 @@ fn projection_unify_variables_upper() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         primitive!(env, PrimitiveType::Integer),
         variable.into_type(&env).id,
     );
@@ -1784,7 +1803,11 @@ fn early_subscript() {
 
     let mut environment = InferenceEnvironment::new(&env);
 
-    environment.collect_constraints(variable, list!(env, primitive!(env, PrimitiveType::String)));
+    environment.collect_constraints(
+        Variance::Covariant,
+        variable,
+        list!(env, primitive!(env, PrimitiveType::String)),
+    );
 
     let variable = environment.add_subscript(
         SpanId::SYNTHETIC,
@@ -1832,6 +1855,7 @@ fn late_subscript() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         hole_type,
         list!(env, primitive!(env, PrimitiveType::String)),
     );
@@ -1944,6 +1968,7 @@ fn discharged_element_subscript() {
     let mut environment = InferenceEnvironment::new(&env);
 
     environment.collect_constraints(
+        Variance::Covariant,
         instantiate_infer(&env, hole),
         primitive!(env, PrimitiveType::String),
     );
@@ -2179,4 +2204,116 @@ fn never_upper_constraints() {
     let solver = inference.into_solver();
     let (_substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
+}
+
+#[test]
+fn deferred_lower_constraint() {
+    // ?1 <: ?2
+    // Number <: ?2
+    // -> ?1 = Number
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+
+    let hole2 = builder.fresh_hole();
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let number = builder.number();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Ordering {
+        lower: variable1,
+        upper: variable2,
+    });
+    inference.add_constraint(Constraint::LowerBound {
+        bound: number,
+        variable: variable2,
+    });
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole1).expect("should be resolved"),
+        number,
+    );
+}
+
+#[test]
+fn deferred_upper_constraint() {
+    // ?1 <: ?2
+    // ?1 <: Number
+    // -> ?2 = Number
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+
+    let hole2 = builder.fresh_hole();
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let number = builder.number();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Ordering {
+        lower: variable1,
+        upper: variable2,
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable: variable1,
+        bound: number,
+    });
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole2).expect("should be resolved"),
+        number,
+    );
+}
+
+// The problem that we currently have is that when we have a nested inference constraint we do
+// **not** "freeze" a variable in place when we've already determined it's type. We require doing
+// so, so that we can propagate the type.
+#[test]
+fn nested_inference_constraints() {
+    // List<?1> <: ?2
+    // ?2 <: List<String>
+    // -> ?1 <: String
+    // -> ?1 = String
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+
+    let hole2 = builder.fresh_hole();
+
+    let string = builder.string();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.list(builder.infer(hole1)),
+        builder.infer(hole2),
+    );
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.infer(hole2),
+        builder.list(string),
+    );
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole1).expect("should be resolved"),
+        string,
+    );
 }

@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
-use type_system::ontology::property_type::PropertyTypeUuid;
+use tracing::Instrument as _;
 
 use crate::{
     snapshot::WriteBatch,
@@ -21,18 +18,14 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
-    Relations(HashMap<PropertyTypeUuid, Vec<PropertyTypeRelationAndSubject>>),
     Embeddings(Vec<PropertyTypeEmbeddingRow<'static>>),
 }
 
-impl<C, A> WriteBatch<C, A> for PropertyTypeRowBatch
+impl<C> WriteBatch<C> for PropertyTypeRowBatch
 where
     C: AsClient,
-    A: ZanzibarBackend + Send + Sync,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -55,6 +48,12 @@ where
                     ) ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -63,7 +62,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -77,6 +76,12 @@ where
                         ",
                         &[&property_types],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -94,6 +99,12 @@ where
                         ",
                         &[&values],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -111,29 +122,17 @@ where
                         ",
                         &[&properties],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} property type property type constrains", rows.len());
                 }
-            }
-            #[expect(
-                clippy::needless_collect,
-                reason = "Lifetime error, probably the signatures are wrong"
-            )]
-            Self::Relations(relations) => {
-                postgres_client
-                    .authorization_api
-                    .touch_relationships(
-                        relations
-                            .into_iter()
-                            .flat_map(|(id, relations)| {
-                                relations.into_iter().map(move |relation| (id, relation))
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
             }
             Self::Embeddings(embeddings) => {
                 let rows = client
@@ -145,6 +144,12 @@ where
                         ",
                         &[&embeddings],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -156,7 +161,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -177,6 +182,12 @@ where
                         SELECT * FROM property_type_embeddings_tmp;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
         Ok(())

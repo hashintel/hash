@@ -550,7 +550,7 @@ impl OntologyTypeSchema for DataType {
         &self.id
     }
 
-    fn references(&self) -> Vec<OntologyTypeReference> {
+    fn references(&self) -> Vec<OntologyTypeReference<'_>> {
         self.data_type_references()
             .map(|(reference, _)| OntologyTypeReference::DataTypeReference(reference))
             .collect()

@@ -112,7 +112,16 @@ export const SignupRegistrationForm: FunctionComponent = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user losing
       // their data when they reload the page.
-      .push(`/signup?flow=${flow.id}`, undefined, { shallow: true })
+      .push(
+        {
+          query: {
+            ...restOfQuery,
+            flow: flow.id,
+          },
+        },
+        undefined,
+        { shallow: true },
+      )
       .then(() =>
         oryKratosClient
           .updateRegistrationFlow({

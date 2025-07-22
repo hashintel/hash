@@ -1,10 +1,10 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type {
   CreateEntityParameters,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -153,33 +153,10 @@ export const createComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { webId, textualContent, parentEntityId, author } = params;
 
-  // the author has full access, regardless of which web the comment belongs to (webId)
-  const relationships: EntityRelationAndSubjectBranded[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: author.accountId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "administratorFromWeb",
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ];
-
+  const textEntityEntityUuid = generateUuid() as EntityUuid;
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {
     webId,
+    entityUuid: textEntityEntityUuid,
     properties: {
       value: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -195,7 +172,18 @@ export const createComment: ImpureGraphFunction<
       },
     },
     entityTypeIds: [systemEntityTypes.text.entityTypeId],
-    relationships,
+    policies: [
+      {
+        name: `comment-text-creator-update-entity-${textEntityEntityUuid}`,
+        principal: {
+          type: "actor",
+          actorType: "user",
+          id: author.accountId,
+        },
+        effect: "permit",
+        actions: ["updateEntity", "archiveEntity"],
+      },
+    ],
   });
 
   const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
@@ -210,7 +198,6 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: parentEntityId,
         },
         entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
-        relationships,
       },
       {
         webId,
@@ -219,7 +206,6 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: author.entity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
-        relationships,
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -233,10 +219,8 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: textEntity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.hasText.linkEntityTypeId],
-        relationships,
       },
     ],
-    relationships,
   });
 
   return getCommentFromEntity({ entity: commentEntity });

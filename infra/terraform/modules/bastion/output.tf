@@ -6,3 +6,8 @@ output "ssh_info" {
     user = "ec2-user"
   }
 }
+
+output "instance_id" {
+  description = "The EC2 instance ID of the bastion host"
+  value       = aws_instance.bastion.id
+}

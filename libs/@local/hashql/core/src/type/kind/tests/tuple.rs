@@ -9,10 +9,10 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
-        inference::{Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
             Generic, GenericArgument, TupleType, TypeKind,
             generic::GenericArgumentId,
@@ -915,7 +915,7 @@ fn collect_constraints_generic_params() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Collect constraints between the generic tuples
-    inference_env.collect_constraints(tuple_a, tuple_b);
+    inference_env.collect_constraints(Variance::Covariant, tuple_a, tuple_b);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
@@ -954,65 +954,7 @@ fn collect_constraints_concrete() {
 }
 
 #[test]
-fn collect_structural_edges_tuple_basic() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a tuple with an inference variable: (_0,)
-    tuple!(env, tuple_type, [infer_var]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
-
-    // Collect structural edges
-    tuple_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Tuple fields are covariant, so the source should flow to the field inference variable
-    // We expect: _1 -> _0
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: edge_var,
-            target: Variable::synthetic(VariableKind::Hole(hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_tuple_empty() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an empty tuple: ()
-    tuple!(env, empty_tuple, []);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(0)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
-
-    // Collect structural edges
-    empty_tuple.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Empty tuple has no inference variables, so no edges should be collected
-    let constraints = inference_env.take_constraints();
-    assert!(
-        constraints.is_empty(),
-        "Empty tuple should not produce any structural edges"
-    );
-}
-
-#[test]
-fn collect_structural_edges_tuple_multiple_elements() {
+fn collect_dependencies() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1028,11 +970,10 @@ fn collect_structural_edges_tuple_multiple_elements() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the target in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
 
     // Collect structural edges
-    tuple_type.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(tuple_type.id, variable);
 
     // Tuple elements are covariant, so both inference variables should flow to the target
     // We expect: _0 -> _2 and _1 -> _2
@@ -1040,91 +981,15 @@ fn collect_structural_edges_tuple_multiple_elements() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
-                source: Variable::synthetic(VariableKind::Hole(hole1)),
-                target: edge_var,
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
-            Constraint::StructuralEdge {
-                source: Variable::synthetic(VariableKind::Hole(hole2)),
-                target: edge_var,
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
         ]
-    );
-}
-
-#[test]
-fn collect_structural_edges_tuple_with_generic_args() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create a generic argument
-    let arg_id = GenericArgumentId::new(0);
-    let generic_arg = GenericArgument {
-        id: arg_id,
-        name: heap.intern_symbol("T"),
-        constraint: None,
-    };
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a tuple with generic arguments: T<_0>
-    let tuple_type = generic!(env, tuple!(env, [infer_var]), [generic_arg]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
-
-    // Collect structural edges
-    inference_env.collect_structural_edges(tuple_type, partial_edge);
-
-    // The generic arguments shouldn't affect the edge propagation behavior
-    // We expect: _1 -> _0
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: edge_var,
-            target: Variable::synthetic(VariableKind::Hole(hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_tuple_contravariant_context() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a tuple with an inference variable: (_0,)
-    tuple!(env, tuple_type, [infer_var]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
-
-    // Collect structural edges in a contravariant context
-    inference_env.in_contravariant(|env| {
-        tuple_type.collect_structural_edges(partial_edge, env);
-    });
-
-    // In a contravariant context, the flow direction is inverted
-    // We expect: _0 -> _1
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: edge_var,
-        }]
     );
 }
 

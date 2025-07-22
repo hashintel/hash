@@ -2,9 +2,6 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use hash_graph_authorization::{
-    AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
-};
 use hash_graph_store::{
     entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
@@ -15,8 +12,9 @@ use hash_graph_types::{
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{
-    knowledge::{Entity, entity::id::EntityUuid, property::PropertyObjectWithMetadata},
+    knowledge::{Entity, property::PropertyObjectWithMetadata},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
 };
 
@@ -43,17 +41,13 @@ pub enum EntityRowBatch {
     LeftLinks(Vec<EntityHasLeftEntityRow>),
     RightLinks(Vec<EntityHasRightEntityRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
-    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
 
-impl<C, A> WriteBatch<C, A> for EntityRowBatch
+impl<C> WriteBatch<C> for EntityRowBatch
 where
     C: AsClient,
-    A: ZanzibarBackend + AuthorizationApi,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -92,6 +86,12 @@ where
                         ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -101,7 +101,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -116,6 +116,12 @@ where
                         ",
                         &[&ids],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -133,6 +139,12 @@ where
                         ",
                         &[&drafts],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -150,6 +162,12 @@ where
                         ",
                         &[&editions],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -167,6 +185,12 @@ where
                         ",
                         &[&types],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -183,6 +207,12 @@ where
                         ",
                         &[&temporal_metadata],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -199,6 +229,12 @@ where
                         ",
                         &[&links],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -215,18 +251,17 @@ where
                         ",
                         &[&links],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
                     tracing::info!("Read {} right entity links", rows.len());
                 }
-            }
-            Self::Relations(relations) => {
-                postgres_client
-                    .authorization_api
-                    .touch_relationships(relations)
-                    .await
-                    .change_context(InsertionError)?;
             }
             Self::Embeddings(embeddings) => {
                 let rows = client
@@ -238,6 +273,12 @@ where
                         ",
                         &[&embeddings],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -250,7 +291,7 @@ where
 
     #[expect(clippy::too_many_lines)]
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client
@@ -283,6 +324,12 @@ where
                         SELECT * FROM entity_embeddings_tmp;
             ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -297,8 +344,8 @@ where
 
         let validator_provider = StoreProvider {
             store: postgres_client,
-            cache: StoreCache::default(),
-            authorization: None,
+            cache: Box::new(StoreCache::default()),
+            policy_components: None,
         };
 
         let mut edition_ids_updates = Vec::new();
@@ -409,6 +456,12 @@ where
                 ",
                 &[&edition_ids_updates, &properties_updates, &metadata_updates],
             )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 

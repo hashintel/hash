@@ -1,26 +1,24 @@
 import { useMutation } from "@apollo/client";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
-import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import type {
-  RemoveAccountGroupMemberMutation,
-  RemoveAccountGroupMemberMutationVariables,
+  RemoveUserFromOrgMutation,
+  RemoveUserFromOrgMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { removeAccountGroupMemberMutation } from "../../../../graphql/queries/account-group.queries";
+import { removeUserFromOrgMutation } from "../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { Cell } from "../shared/cell";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { OrgContextMenu } from "./org-row/org-context-menu";
 
 export const OrgRow = ({ org }: { org: Org }) => {
-  const { archiveEntity } = useBlockProtocolArchiveEntity();
   const { authenticatedUser, refetch } = useAuthenticatedUser();
 
-  const [removeMemberPermission] = useMutation<
-    RemoveAccountGroupMemberMutation,
-    RemoveAccountGroupMemberMutationVariables
-  >(removeAccountGroupMemberMutation);
+  const [removeUserFromOrg] = useMutation<
+    RemoveUserFromOrgMutation,
+    RemoveUserFromOrgMutationVariables
+  >(removeUserFromOrgMutation);
 
   const leaveOrg = async () => {
     const membership = org.memberships.find(
@@ -31,33 +29,26 @@ export const OrgRow = ({ org }: { org: Org }) => {
       throw new Error("Membership not found");
     }
 
-    await Promise.all([
-      archiveEntity({
-        data: {
-          entityId: membership.linkEntity.metadata.recordId.entityId,
-        },
-      }),
-      removeMemberPermission({
-        variables: {
-          accountGroupId: org.webId,
-          accountId: membership.user.accountId,
-        },
-      }),
-    ]);
+    await removeUserFromOrg({
+      variables: {
+        orgWebId: org.webId,
+        userEntityId: membership.user.entity.entityId,
+      },
+    });
 
     void refetch();
   };
 
   return (
     <TableRow key={org.entity.metadata.recordId.entityId}>
-      <Cell>
+      <SettingsTableCell>
         <Link
           href={`/settings/organizations/${org.shortname}/general`}
           sx={{ textDecoration: "none" }}
         >
           {org.name}
         </Link>
-      </Cell>
+      </SettingsTableCell>
       <TableCell>
         <Typography
           variant="smallTextLabels"

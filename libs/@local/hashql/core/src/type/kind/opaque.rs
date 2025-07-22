@@ -11,10 +11,10 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::opaque_type_name_mismatch,
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -256,7 +256,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return false;
         }
 
-        env.in_invariant(|env| env.is_subtype_of(self.kind.repr, supertype.kind.repr))
+        env.is_subtype_of(Variance::Invariant, self.kind.repr, supertype.kind.repr)
     }
 
     fn is_equivalent(
@@ -306,16 +306,7 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
         }
 
         // Opaque types are invariant in regards to their arguments
-        env.in_invariant(|env| env.collect_constraints(self.kind.repr, supertype.kind.repr));
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // Opaque types are invariant in regards to their arguments
-        env.in_invariant(|env| env.collect_structural_edges(self.kind.repr, variable));
+        env.collect_constraints(Variance::Invariant, self.kind.repr, supertype.kind.repr);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
@@ -342,7 +333,14 @@ impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(self.name.unwrap())
+        // Remove the module from the name (if exists) this increases readability during
+        // pretty-printing.
+        let name = self.name.unwrap();
+        let name = name
+            .rsplit_once("::")
+            .map_or_else(|| name, |(_, name)| name);
+
+        RcDoc::text(name)
             .append(RcDoc::text("["))
             .append(boundary.pretty_type(env, self.repr).group())
             .append(RcDoc::text("]"))

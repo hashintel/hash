@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
   ActorId,
+  AiId,
   Entity,
   MachineId,
   ProvidedEntityEditionProvenance,
@@ -9,7 +10,10 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getMachineByIdentifier } from "@local/hash-graph-sdk/principal/web";
+import {
+  getAiByIdentifier,
+  getMachineByIdentifier,
+} from "@local/hash-graph-sdk/principal/actor";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -24,11 +28,13 @@ import type { Logger } from "./logger.js";
 
 export type WebMachineActorIdentifier = `system-${WebId}`;
 
-export type GlobalMachineActorIdentifier = SystemTypeWebShortname | "hash-ai";
+export type GlobalMachineActorIdentifier = SystemTypeWebShortname;
 
 export type MachineActorIdentifier =
   | GlobalMachineActorIdentifier
   | WebMachineActorIdentifier;
+
+export type AiActorIdentifier = "hash-ai";
 
 export const getMachineIdByIdentifier = async (
   context: { graphApi: GraphApi },
@@ -37,6 +43,15 @@ export const getMachineIdByIdentifier = async (
 ): Promise<MachineId | null> =>
   getMachineByIdentifier(context.graphApi, authentication, identifier).then(
     (machineEntity) => machineEntity?.id ?? null,
+  );
+
+export const getAiIdByIdentifier = async (
+  context: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+  { identifier }: { identifier: AiActorIdentifier },
+): Promise<AiId | null> =>
+  getAiByIdentifier(context.graphApi, authentication, identifier).then(
+    (aiEntity) => aiEntity?.id ?? null,
   );
 
 export const getWebMachineId = async (
@@ -51,7 +66,7 @@ export const getWebMachineId = async (
 export const getMachineEntityByIdentifier = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
-  { identifier }: { identifier: MachineActorIdentifier },
+  { identifier }: { identifier: MachineActorIdentifier | AiActorIdentifier },
 ): Promise<Entity<Machine> | null> => {
   const [machineEntity, ...unexpectedEntities] = await backOff(
     () =>
@@ -129,7 +144,7 @@ export const createMachineActorEntity = async (
     machineEntityTypeId,
   }: {
     // A unique identifier for the machine actor
-    identifier: MachineActorIdentifier;
+    identifier: MachineActorIdentifier | AiActorIdentifier;
     // A logger instance
     logger: Logger;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
@@ -181,21 +196,6 @@ export const createMachineActorEntity = async (
         },
       },
       provenance,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: actor.id,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     },
   );
 

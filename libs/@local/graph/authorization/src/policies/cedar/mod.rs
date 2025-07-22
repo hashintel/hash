@@ -1,8 +1,5 @@
-mod entity;
 mod expression_tree;
-mod ontology;
 mod visitor;
-mod web;
 
 use alloc::sync::Arc;
 use core::iter;
@@ -11,19 +8,24 @@ use cedar_policy_core::ast;
 use error_stack::{IntoReport, Report, ResultExt as _};
 
 pub use self::expression_tree::PolicyExpressionTree;
-pub(crate) use self::{
-    entity::EntityUuidVisitor,
-    ontology::{BaseUrlVisitor, EntityTypeIdVisitor, OntologyTypeVersionVisitor},
-    visitor::{
-        CedarExpressionParseError, CedarExpressionParser, CedarExpressionVisitor, SimpleParser,
-        walk_expr,
-    },
-    web::WebIdVisitor,
-};
+pub(crate) use self::visitor::CedarExpressionParseError;
 use crate::policies::error::FromCedarRefernceError;
 
+pub(crate) trait ToCedarValue {
+    fn to_cedar_value(&self) -> ast::Value;
+}
+
 pub(crate) trait ToCedarExpr {
-    fn to_cedar(&self) -> ast::Expr;
+    fn to_cedar_expr(&self) -> ast::Expr;
+}
+
+impl<T> ToCedarExpr for T
+where
+    T: ToCedarValue,
+{
+    fn to_cedar_expr(&self) -> ast::Expr {
+        self.to_cedar_value().into()
+    }
 }
 
 pub(crate) trait FromCedarExpr: Sized {

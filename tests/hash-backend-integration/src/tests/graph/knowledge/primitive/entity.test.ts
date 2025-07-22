@@ -13,6 +13,7 @@ import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
+  checkPermissionsOnEntityType,
   createEntityType,
   getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -29,9 +30,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { canInstantiateEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -114,14 +113,6 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -137,14 +128,6 @@ describe("Entity CRU", () => {
           description: "The favorite book of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -160,14 +143,6 @@ describe("Entity CRU", () => {
           description: "The name of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           namePropertyType = val;
@@ -199,14 +174,6 @@ describe("Entity CRU", () => {
           },
         ],
       }),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
 
     return async () => {
@@ -243,7 +210,6 @@ describe("Entity CRU", () => {
         },
       },
       entityTypeIds: [entityType.schema.$id],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -271,7 +237,6 @@ describe("Entity CRU", () => {
         systemEntityTypes.imageFile.entityTypeId,
         systemEntityTypes.text.entityTypeId,
       ],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -494,9 +459,6 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: testUser.accountId,
-        }),
       },
     );
 
@@ -526,10 +488,14 @@ describe("Entity CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
-        systemEntityTypes.actor.entityTypeId,
-      ]),
-    ).toStrictEqual([false]);
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: systemEntityTypes.actor.entityTypeId,
+      }),
+    ).toStrictEqual({
+      edit: false,
+      instantiate: false,
+      view: true,
+    });
 
     await expect(
       createEntity<Actor>(graphContext, authentication, {
@@ -546,7 +512,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.actor.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -555,10 +520,14 @@ describe("Entity CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
-        systemEntityTypes.user.entityTypeId,
-      ]),
-    ).toStrictEqual([false]);
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: systemEntityTypes.user.entityTypeId,
+      }),
+    ).toStrictEqual({
+      edit: false,
+      instantiate: false,
+      view: true,
+    });
 
     await expect(
       createEntity<UserEntity>(graphContext, authentication, {
@@ -584,7 +553,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.user.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -593,10 +561,14 @@ describe("Entity CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
-        systemEntityTypes.machine.entityTypeId,
-      ]),
-    ).toStrictEqual([false]);
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: systemEntityTypes.machine.entityTypeId,
+      }),
+    ).toStrictEqual({
+      edit: false,
+      instantiate: false,
+      view: true,
+    });
 
     await expect(
       createEntity<Machine>(graphContext, authentication, {
@@ -619,7 +591,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.machine.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -628,10 +599,14 @@ describe("Entity CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
-        systemEntityTypes.organization.entityTypeId,
-      ]),
-    ).toStrictEqual([false]);
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: systemEntityTypes.organization.entityTypeId,
+      }),
+    ).toStrictEqual({
+      edit: false,
+      instantiate: false,
+      view: true,
+    });
 
     await expect(
       createEntity<Organization>(graphContext, authentication, {
@@ -653,7 +628,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.organization.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -662,10 +636,14 @@ describe("Entity CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
-        systemEntityTypes.hashInstance.entityTypeId,
-      ]),
-    ).toStrictEqual([false]);
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
+      }),
+    ).toStrictEqual({
+      edit: false,
+      instantiate: false,
+      view: true,
+    });
 
     await expect(
       createEntity<HASHInstance>(graphContext, authentication, {
@@ -702,7 +680,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });

@@ -9,7 +9,7 @@ pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 pub mod tuple;
 pub mod union;
 
@@ -34,13 +34,13 @@ use super::{
     PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, instantiate::InstantiateEnvironment,
+        SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
     },
     error::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
         type_mismatch, type_parameter_not_found, unsupported_projection, unsupported_subscript,
     },
-    inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
+    inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
 use crate::{
@@ -77,7 +77,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn opaque(&self) -> Option<&OpaqueType<'heap>> {
         match self {
             Self::Opaque(r#type) => Some(r#type),
-            _ => None,
+            Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -85,7 +97,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn primitive(&self) -> Option<&PrimitiveType> {
         match self {
             Self::Primitive(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -93,7 +117,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn intrinsic(&self) -> Option<&IntrinsicType> {
         match self {
             Self::Intrinsic(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -101,7 +137,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn r#struct(&self) -> Option<&StructType<'heap>> {
         match self {
             Self::Struct(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -109,7 +157,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn tuple(&self) -> Option<&TupleType<'heap>> {
         match self {
             Self::Tuple(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -117,7 +177,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn closure(&self) -> Option<&ClosureType<'heap>> {
         match self {
             Self::Closure(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -125,7 +197,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn union(&self) -> Option<&UnionType<'heap>> {
         match self {
             Self::Union(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -133,7 +217,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn intersection(&self) -> Option<&IntersectionType<'heap>> {
         match self {
             Self::Intersection(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -141,7 +237,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn apply(&self) -> Option<&Apply<'heap>> {
         match self {
             Self::Apply(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -149,7 +257,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn generic(&self) -> Option<&Generic<'heap>> {
         match self {
             Self::Generic(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -157,7 +277,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn param(&self) -> Option<&Param> {
         match self {
             Self::Param(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -165,7 +297,18 @@ impl<'heap> TypeKind<'heap> {
         match self {
             Self::Infer(Infer { hole }) => Some(VariableKind::Hole(hole)),
             Self::Param(Param { argument }) => Some(VariableKind::Generic(argument)),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 }
@@ -1528,7 +1671,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Union(_)
                 | Self::Intersection(_),
-            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            ) => return env.is_subtype_of(Variance::Covariant, lhs.base, supertype.id),
             (
                 Self::Opaque(_)
                 | Self::Primitive(_)
@@ -1539,7 +1682,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_),
                 Self::Apply(rhs),
-            ) => return env.is_subtype_of(self.id, rhs.base),
+            ) => return env.is_subtype_of(Variance::Covariant, self.id, rhs.base),
 
             // Generic <: _
             (Self::Generic(lhs), Self::Generic(rhs)) => {
@@ -1556,7 +1699,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Apply(_),
-            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            ) => return env.is_subtype_of(Variance::Covariant, lhs.base, supertype.id),
             (
                 Self::Opaque(_)
                 | Self::Primitive(_)
@@ -1568,7 +1711,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_),
                 Self::Generic(rhs),
-            ) => return env.is_subtype_of(self.id, rhs.base),
+            ) => return env.is_subtype_of(Variance::Covariant, self.id, rhs.base),
 
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
@@ -1903,10 +2046,12 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Union(_)
-                | Self::Intersection(_),
+                | Self::Intersection(_)
+                | Self::Infer(_)
+                | Self::Param(_),
             ) => {
                 lhs.collect_substitution_constraints(self.span, env);
-                env.collect_constraints(lhs.base, supertype.id);
+                env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
             }
             (
                 Self::Opaque(_)
@@ -1916,11 +2061,13 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Union(_)
-                | Self::Intersection(_),
+                | Self::Intersection(_)
+                | Self::Infer(_)
+                | Self::Param(_),
                 Self::Apply(rhs),
             ) => {
                 rhs.collect_substitution_constraints(supertype.span, env);
-                env.collect_constraints(self.id, rhs.base);
+                env.collect_constraints(Variance::Covariant, self.id, rhs.base);
             }
 
             // Generic <: _
@@ -1937,10 +2084,12 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Union(_)
                 | Self::Intersection(_)
-                | Self::Apply(_),
+                | Self::Apply(_)
+                | Self::Infer(_)
+                | Self::Param(_),
             ) => {
                 lhs.collect_argument_constraints(self.span, env, false);
-                env.collect_constraints(lhs.base, supertype.id);
+                env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
             }
             (
                 Self::Opaque(_)
@@ -1951,11 +2100,13 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Union(_)
                 | Self::Intersection(_)
-                | Self::Apply(_),
+                | Self::Apply(_)
+                | Self::Infer(_)
+                | Self::Param(_),
                 Self::Generic(rhs),
             ) => {
                 rhs.collect_argument_constraints(supertype.span, env, false);
-                env.collect_constraints(self.id, rhs.base);
+                env.collect_constraints(Variance::Covariant, self.id, rhs.base);
             }
 
             // Union <: _
@@ -1970,7 +2121,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_)
-                | Self::Intersection(_),
+                | Self::Intersection(_)
+                | Self::Infer(_)
+                | Self::Param(_),
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
@@ -1990,7 +2143,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_)
-                | Self::Intersection(_),
+                | Self::Intersection(_)
+                | Self::Infer(_)
+                | Self::Param(_),
                 Self::Union(rhs),
             ) => {
                 let self_variants = [self.id];
@@ -2016,7 +2171,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Infer(_)
+                | Self::Param(_),
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
@@ -2035,7 +2192,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Infer(_)
+                | Self::Param(_),
                 Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
@@ -2062,7 +2221,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: supertype.id,
                 });
 
-                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
+                env.collect_dependencies(supertype.id, variable);
             }
 
             // _ <: Infer
@@ -2077,7 +2236,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: self.id,
                 });
 
-                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
+                env.collect_dependencies(self.id, variable);
             }
 
             // Param <: _
@@ -2092,7 +2251,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: supertype.id,
                 });
 
-                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
+                env.collect_dependencies(supertype.id, variable);
             }
 
             // _ <: Param
@@ -2107,7 +2266,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: self.id,
                 });
 
-                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
+                env.collect_dependencies(self.id, variable);
             }
 
             // `Never <: _` | `_ <: Never`
@@ -2115,60 +2274,6 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // `_ <: Unknown` | `Unknown <: _`
             (_, Self::Unknown) | (Self::Unknown, _) => {}
-        }
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        #[expect(clippy::match_same_arms)]
-        match self.kind {
-            Self::Opaque(opaque_type) => self
-                .with(opaque_type)
-                .collect_structural_edges(variable, env),
-            Self::Primitive(primitive_type) => self
-                .with(primitive_type)
-                .collect_structural_edges(variable, env),
-            Self::Intrinsic(intrinsic_type) => self
-                .with(intrinsic_type)
-                .collect_structural_edges(variable, env),
-            Self::Struct(struct_type) => self
-                .with(struct_type)
-                .collect_structural_edges(variable, env),
-            Self::Tuple(tuple_type) => self
-                .with(tuple_type)
-                .collect_structural_edges(variable, env),
-            Self::Union(union_type) => self
-                .with(union_type)
-                .collect_structural_edges(variable, env),
-            Self::Intersection(intersection_type) => self
-                .with(intersection_type)
-                .collect_structural_edges(variable, env),
-            Self::Closure(closure_type) => self
-                .with(closure_type)
-                .collect_structural_edges(variable, env),
-            Self::Apply(apply_type) => self
-                .with(apply_type)
-                .collect_structural_edges(variable, env),
-            Self::Generic(generic) => self.with(generic).collect_structural_edges(variable, env),
-            &Self::Param(Param { argument }) => env.add_structural_edge(
-                variable,
-                Variable {
-                    span: self.span,
-                    kind: VariableKind::Generic(argument),
-                },
-            ),
-            &Self::Infer(Infer { hole }) => env.add_structural_edge(
-                variable,
-                Variable {
-                    span: self.span,
-                    kind: VariableKind::Hole(hole),
-                },
-            ),
-            Self::Never => {}
-            Self::Unknown => {}
         }
     }
 

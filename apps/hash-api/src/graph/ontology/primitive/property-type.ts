@@ -17,16 +17,9 @@ import type {
   ArchivePropertyTypeParams,
   GetPropertyTypesParams,
   GetPropertyTypeSubgraphParams,
-  ModifyRelationshipOperation,
-  PropertyTypePermission,
-  PropertyTypeRelationAndSubject,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
-import type {
-  PropertyTypeAuthorizationRelationship,
-  PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/authorization";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -52,7 +45,6 @@ export const createPropertyType: ImpureGraphFunction<
     webId: WebId;
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
-    relationships: PropertyTypeRelationAndSubject[];
     provenance?: Omit<
       ProvidedOntologyEditionProvenance,
       "origin" | "actorType"
@@ -88,7 +80,6 @@ export const createPropertyType: ImpureGraphFunction<
     {
       webId,
       schema,
-      relationships: params.relationships,
       provenance: {
         ...ctx.provenance,
         ...params.provenance,
@@ -204,7 +195,6 @@ export const updatePropertyType: ImpureGraphFunction<
   {
     propertyTypeId: VersionedUrl;
     schema: ConstructPropertyTypeParams;
-    relationships: PropertyTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<PropertyTypeWithMetadata>
@@ -217,7 +207,6 @@ export const updatePropertyType: ImpureGraphFunction<
       kind: "propertyType" as const,
       ...schema,
     },
-    relationships: params.relationships,
     provenance: {
       ...ctx.provenance,
       ...params.provenance,
@@ -283,48 +272,3 @@ export const unarchivePropertyType: ImpureGraphFunction<
 
   return temporalMetadata as OntologyTemporalMetadata;
 };
-
-export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
-  { propertyTypeId: VersionedUrl },
-  Promise<PropertyTypeAuthorizationRelationship[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getPropertyTypeAuthorizationRelationships(actorId, params.propertyTypeId)
-    .then(({ data }) =>
-      data.map((relationship) => ({
-        resource: {
-          kind: "propertyType",
-          resourceId: params.propertyTypeId,
-        },
-        ...(relationship as PropertyTypeRelationAndSubjectBranded),
-      })),
-    );
-
-export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: PropertyTypeAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyPropertyTypeAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkPropertyTypePermission: ImpureGraphFunction<
-  { propertyTypeId: VersionedUrl; permission: PropertyTypePermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkPropertyTypePermission(
-      actorId,
-      params.propertyTypeId,
-      params.permission,
-    )
-    .then(({ data }) => data.has_permission);

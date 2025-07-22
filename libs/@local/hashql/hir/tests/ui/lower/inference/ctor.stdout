@@ -4,19 +4,16 @@
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
-arguments: [T])(2)
+#ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ 2
 └→ Integer
 
-┌─ #ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
-│  arguments: [T])
-└→ fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»]
+┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
+└→ fn<T?25>(?25«Integer») -> Some[?25«Integer»]
 
-┌─ #ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
-│  arguments: [T])(2)
-└→ _0«::core::option::Some[Integer]»
+┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
+└→ _0«Some[Integer]»
 

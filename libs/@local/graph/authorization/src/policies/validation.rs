@@ -1,7 +1,9 @@
 use std::sync::LazyLock;
 
-use cedar_policy_core::extensions::Extensions;
-use cedar_policy_validator::{CoreSchema, ValidationMode, ValidatorSchema};
+use cedar_policy_core::{
+    extensions::Extensions,
+    validator::{CoreSchema, ValidationMode, Validator, ValidatorSchema},
+};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
 use super::set::PolicySet;
@@ -25,8 +27,7 @@ static SCHEMA: LazyLock<ValidatorSchema> = LazyLock::new(|| {
     schema
 });
 
-static VALIDATOR: LazyLock<cedar_policy_validator::Validator> =
-    LazyLock::new(|| cedar_policy_validator::Validator::new((*SCHEMA).clone()));
+static VALIDATOR: LazyLock<Validator> = LazyLock::new(|| Validator::new((*SCHEMA).clone()));
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("pocliy validation failed")]

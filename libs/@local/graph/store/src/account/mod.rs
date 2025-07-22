@@ -1,13 +1,10 @@
 use error_stack::Report;
-use hash_graph_authorization::{policies::store::CreateWebResponse, schema::WebOwnerSubject};
+use hash_graph_authorization::policies::store::CreateWebResponse;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    principal::{
-        actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
-        actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
-    },
+use type_system::principal::{
+    actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
+    actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
 };
 
 #[derive(Debug, Error)]
@@ -239,18 +236,4 @@ pub trait AccountStore {
         actor_id: ActorEntityUuid,
         name: &str,
     ) -> impl Future<Output = Result<Option<Team>, Report<TeamRetrievalError>>> + Send;
-
-    /// Returns either an [`Account`] or an [`AccountGroup`] for the specified
-    /// [`WebId`].
-    ///
-    /// [`Account`]: WebOwnerSubject::Account
-    /// [`AccountGroup`]: WebOwnerSubject::AccountGroup
-    ///
-    /// # Errors
-    ///
-    /// - if the [`WebId`] does not exist
-    fn identify_subject_id(
-        &self,
-        subject_id: EntityUuid,
-    ) -> impl Future<Output = Result<WebOwnerSubject, Report<QueryWebError>>> + Send;
 }

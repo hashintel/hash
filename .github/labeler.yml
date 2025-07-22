@@ -79,10 +79,6 @@ area/libs > chonky:
   - changed-files:
       - any-glob-to-any-file: libs/chonky/**
 
-area/libs > deer:
-  - changed-files:
-      - any-glob-to-any-file: libs/deer/**
-
 area/libs > error-stack:
   - changed-files:
       - any-glob-to-any-file: libs/error-stack/**

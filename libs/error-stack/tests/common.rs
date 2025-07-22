@@ -211,7 +211,7 @@ pub fn messages<E>(report: &Report<E>) -> Vec<String> {
         .collect()
 }
 
-pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
+pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind<'_>> {
     remove_builtin_frames(report).map(Frame::kind).collect()
 }
 

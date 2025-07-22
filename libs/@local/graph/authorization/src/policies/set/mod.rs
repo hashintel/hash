@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashSet;
 
 use cedar_policy_core::{
     ast,
@@ -6,11 +7,7 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
-use super::{
-    Context, Policy, Request,
-    cedar::{CedarExpressionParser as _, SimpleParser},
-    evaluation::{PermissionCondition, PermissionConditionVisitor},
-};
+use super::{Context, Policy, Request, action::ActionName};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]
@@ -23,6 +20,7 @@ pub struct PolicyEvaluationError;
 #[derive(Default)]
 pub struct PolicySet {
     policies: ast::PolicySet,
+    tracked_actions: HashSet<ActionName>,
 }
 
 impl fmt::Debug for PolicySet {
@@ -44,10 +42,18 @@ pub struct PolicyConstraintError;
 pub enum Authorized {
     Always,
     Never,
-    Partial(PermissionCondition),
 }
 
 impl PolicySet {
+    /// Sets the tracked actions for the policy set.
+    ///
+    /// The policy set will fail to evaluate requests with actions that are not in this set.
+    #[must_use]
+    pub fn with_tracked_actions(mut self, actions: HashSet<ActionName>) -> Self {
+        self.tracked_actions = actions;
+        self
+    }
+
     /// Adds a list of policies to the policy set.
     ///
     /// # Errors
@@ -121,57 +127,29 @@ impl PolicySet {
         request: &Request,
         context: &Context,
     ) -> Result<Authorized, Report<PolicyEvaluationError>> {
+        if !self.tracked_actions.contains(&request.action) {
+            return Err(Report::new(PolicyEvaluationError).attach_printable(format!(
+                "Action `{}` is not tracked and cannot be evaluated",
+                request.action
+            )));
+        }
+
         let authorizer = Authorizer::new();
 
         let response =
-            authorizer.is_authorized_core(request.to_cedar(), self.policies(), context.entities());
-
-        let decision = response.decision();
+            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities());
 
         response
+            .diagnostics
             .errors
             .into_iter()
             .map(|error| Err(Report::new(error)))
             .try_collect_reports::<()>()
             .change_context(PolicyEvaluationError)?;
 
-        if let Some(decision) = decision {
-            return Ok(match decision {
-                Decision::Allow => Authorized::Always,
-                Decision::Deny => Authorized::Never,
-            });
-        }
-
-        let forbids = response
-            .residual_forbids
-            .values()
-            .map(|(expr, _)| (**expr).clone())
-            .fold(ast::Expr::val(true), |acc, expr| {
-                if acc == ast::Expr::val(true) {
-                    ast::Expr::not(expr)
-                } else {
-                    ast::Expr::and(acc, ast::Expr::not(expr))
-                }
-            });
-        let permits = response
-            .residual_permits
-            .values()
-            .map(|(expr, _)| (**expr).clone())
-            .fold(ast::Expr::val(false), |acc, expr| {
-                if acc == ast::Expr::val(false) {
-                    expr
-                } else {
-                    ast::Expr::or(acc, expr)
-                }
-            });
-
-        Ok(Authorized::Partial(
-            SimpleParser
-                .parse_expr(
-                    &ast::Expr::and(forbids, permits),
-                    &PermissionConditionVisitor,
-                )
-                .change_context(PolicyEvaluationError)?,
-        ))
+        Ok(match response.decision {
+            Decision::Allow => Authorized::Always,
+            Decision::Deny => Authorized::Never,
+        })
     }
 }

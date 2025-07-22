@@ -54,7 +54,7 @@
 //! [`Fold`]: crate::fold::Fold
 use hashql_core::{
     span::SpanId,
-    symbol::Ident,
+    symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
@@ -66,7 +66,10 @@ use crate::{
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
-        graph::{Graph, GraphKind},
+        graph::{
+            Graph, GraphKind,
+            read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+        },
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -132,6 +135,11 @@ pub trait Visitor<'heap> {
 
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_span(&mut self, span: SpanId) {
+        // do nothing, no fields to walk
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_symbol(&mut self, symbol: &'heap Symbol<'heap>) {
         // do nothing, no fields to walk
     }
 
@@ -238,17 +246,22 @@ pub trait Visitor<'heap> {
     fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
         walk_graph(self, graph);
     }
+
+    fn visit_graph_read(&mut self, graph_read: &'heap GraphRead<'heap>) {
+        walk_graph_read(self, graph_read);
+    }
 }
 
 pub fn walk_ident<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Ident {
-        value: _,
+        value,
         span,
         kind: _,
     }: &'heap Ident<'heap>,
 ) {
     visitor.visit_span(*span);
+    visitor.visit_symbol(value);
 }
 
 pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
@@ -420,11 +433,13 @@ pub fn walk_type_constructor<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     }: &'heap TypeConstructor<'heap>,
 ) {
     visitor.visit_span(*span);
+    visitor.visit_symbol(name);
     visitor.visit_type_id(*closure);
 
     for reference in arguments {
@@ -564,15 +579,37 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Graph {
-        span,
-        kind,
-        _marker: _,
-    }: &'heap Graph<'heap>,
+    Graph { span, kind }: &'heap Graph<'heap>,
 ) {
     visitor.visit_span(*span);
 
     match kind {
-        GraphKind::Never(_) => unreachable!(),
+        GraphKind::Read(read) => visitor.visit_graph_read(read),
+    }
+}
+
+pub fn walk_graph_read<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    GraphRead {
+        span,
+        head,
+        body,
+        tail,
+    }: &'heap GraphRead<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    match head {
+        GraphReadHead::Entity { axis } => visitor.visit_node(axis),
+    }
+
+    for body in body {
+        match body {
+            GraphReadBody::Filter(node) => visitor.visit_node(node),
+        }
+    }
+
+    match tail {
+        GraphReadTail::Collect => {}
     }
 }

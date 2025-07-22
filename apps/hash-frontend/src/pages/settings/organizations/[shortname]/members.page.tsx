@@ -1,5 +1,6 @@
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
+  Box,
   styled,
   TableBody,
   TableCell,
@@ -17,10 +18,11 @@ import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissi
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import { Cell } from "../shared/cell";
-import { OrgTable } from "../shared/org-table";
+import { SettingsTable } from "../../shared/settings-table";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
+import { PendingInvitationsTable } from "./members.page/pending-invitations-table";
 
 const InviteNewButton = styled("button")`
   background: none;
@@ -37,7 +39,8 @@ const OrgMembersPage: NextPageWithLayout = () => {
 
   const { shortname } = router.query as { shortname: string };
 
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { authenticatedUser, refetch: refetchAuthenticatedUser } =
+    useAuthenticatedUser();
 
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
@@ -67,16 +70,19 @@ const OrgMembersPage: NextPageWithLayout = () => {
       <NextSeo title={`${org.name} | Members`} />
 
       <SettingsPageContainer
+        disableContentWrapper
         heading={org.name}
         sectionLabel="Members"
         ref={topRef}
       >
-        <OrgTable>
+        <SettingsTable
+          sx={{ background: ({ palette }) => palette.common.white }}
+        >
           <TableHead>
             <TableRow>
-              <Cell width="70%">Name</Cell>
-              <Cell>Username</Cell>
-              <Cell />
+              <SettingsTableCell width="70%">Name</SettingsTableCell>
+              <SettingsTableCell>Username</SettingsTableCell>
+              <SettingsTableCell />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -125,7 +131,20 @@ const OrgMembersPage: NextPageWithLayout = () => {
               </TableCell>
             </TableRow>
           </TableFooter>
-        </OrgTable>
+        </SettingsTable>
+        {!readonly && org.invitations.length > 0 && (
+          <Box mt={6}>
+            <Typography component="h4" variant="mediumCaps" mb={2}>
+              Pending invitations
+            </Typography>
+            <PendingInvitationsTable
+              invitations={org.invitations}
+              refetchOrg={() => {
+                void refetchAuthenticatedUser();
+              }}
+            />
+          </Box>
+        )}
       </SettingsPageContainer>
     </>
   );

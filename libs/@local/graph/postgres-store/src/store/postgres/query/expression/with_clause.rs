@@ -21,10 +21,12 @@ impl WithExpression {
         });
     }
 
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.common_table_expressions.len()
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.common_table_expressions.is_empty()
     }

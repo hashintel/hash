@@ -5,6 +5,5 @@ export interface EmailTransporterSendMailOptions {
 }
 
 export interface EmailTransporter {
-  /** Send an email */
   sendMail(options: EmailTransporterSendMailOptions): Promise<void>;
 }

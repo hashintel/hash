@@ -6,6 +6,8 @@
   "scripts": {
     "bench:integration": "cargo bench --bench read-scaling --bench representative-read",
     "bench:integration:manual": "cargo bench --bench manual-queries",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
     "test:integration": "cargo test --bench read-scaling --bench representative-read",
     "test:integration:manual": "cargo test --bench manual-queries"
   },

@@ -62,6 +62,7 @@ pub enum ReferenceTable {
 }
 
 impl ReferenceTable {
+    #[must_use]
     pub const fn inheritance_depth_column(self) -> Option<Column> {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => Some(Column::DataTypeInheritsFrom(
@@ -93,10 +94,14 @@ impl ReferenceTable {
                 EntityIsOfType::InheritanceDepth,
                 inheritance_depth,
             )),
-            _ => None,
+            Self::PropertyTypeConstrainsValuesOn
+            | Self::PropertyTypeConstrainsPropertiesOn
+            | Self::EntityHasLeftEntity
+            | Self::EntityHasRightEntity => None,
         }
     }
 
+    #[must_use]
     pub const fn source_relation(self) -> ForeignKeyReference {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -189,6 +194,7 @@ impl ReferenceTable {
         }
     }
 
+    #[must_use]
     pub const fn target_relation(self) -> ForeignKeyReference {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -312,10 +318,12 @@ impl ReferenceTable {
 }
 
 impl Table {
+    #[must_use]
     pub const fn aliased(self, alias: Alias) -> AliasedTable {
         AliasedTable { table: self, alias }
     }
 
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::OntologyIds => "ontology_ids",
@@ -364,6 +372,7 @@ pub enum JsonField<'p> {
 }
 
 impl<'p> JsonField<'p> {
+    #[must_use]
     pub const fn into_owned(
         self,
         current_parameter_index: usize,
@@ -1573,6 +1582,7 @@ impl From<EntityHasRightEntity> for Column {
 }
 
 impl Column {
+    #[must_use]
     pub const fn table(self) -> Table {
         match self {
             Self::OntologyIds(_) => Table::OntologyIds,
@@ -1630,6 +1640,7 @@ impl Column {
         }
     }
 
+    #[must_use]
     pub const fn inheritance_depth(self) -> Option<u32> {
         match self {
             Self::DataTypeInheritsFrom(_, inheritance_depth)
@@ -1638,10 +1649,36 @@ impl Column {
             | Self::EntityTypeConstrainsLinksOn(_, inheritance_depth)
             | Self::EntityTypeConstrainsLinkDestinationsOn(_, inheritance_depth)
             | Self::EntityIsOfType(_, inheritance_depth) => inheritance_depth,
-            _ => None,
+            Self::OntologyIds(_)
+            | Self::OntologyTemporalMetadata(_)
+            | Self::OntologyOwnedMetadata(_)
+            | Self::OntologyExternalMetadata(_)
+            | Self::OntologyAdditionalMetadata(_)
+            | Self::DataTypes(_)
+            | Self::DataTypeEmbeddings(_)
+            | Self::DataTypeConversions(_)
+            | Self::DataTypeConversionAggregation(_)
+            | Self::PropertyTypes(_)
+            | Self::PropertyTypeEmbeddings(_)
+            | Self::EntityTypes(_)
+            | Self::EntityTypeEmbeddings(_)
+            | Self::EntityIds(_)
+            | Self::EntityTemporalMetadata(_)
+            | Self::EntityEditions(_)
+            | Self::FirstLabelForEntity(_)
+            | Self::LastLabelForEntity(_)
+            | Self::FirstTitleForEntity(_)
+            | Self::LastTitleForEntity(_)
+            | Self::EntityEmbeddings(_)
+            | Self::PropertyTypeConstrainsValuesOn(_)
+            | Self::PropertyTypeConstrainsPropertiesOn(_)
+            | Self::EntityIsOfTypeIds(_)
+            | Self::EntityHasLeftEntity(_)
+            | Self::EntityHasRightEntity(_) => None,
         }
     }
 
+    #[must_use]
     pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
         Expression::ColumnReference {
             column: self,
@@ -1881,6 +1918,7 @@ pub enum ForeignKeyReference {
 }
 
 impl ForeignKeyReference {
+    #[must_use]
     pub const fn reverse(self) -> Self {
         match self {
             Self::Single {
@@ -1939,6 +1977,7 @@ impl Iterator for ForeignKeyJoin {
 
 impl Relation {
     #[expect(clippy::too_many_lines)]
+    #[must_use]
     pub fn joins(self) -> ForeignKeyJoin {
         match self {
             Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
@@ -2102,6 +2141,7 @@ impl Relation {
         }
     }
 
+    #[must_use]
     pub fn additional_conditions(self, aliased_table: AliasedTable) -> Vec<Condition> {
         match (self, aliased_table.table) {
             (Self::Reference { table, .. }, Table::Reference(reference_table))

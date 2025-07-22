@@ -57,7 +57,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -83,6 +83,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-api:
     name: Build and push HASH api image
@@ -95,7 +96,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -121,6 +122,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-kratos:
     name: Build and push Kratos image
@@ -133,7 +135,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -159,6 +161,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
             API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
@@ -174,7 +177,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -200,6 +203,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_HYDRA_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
 
@@ -214,7 +218,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -240,6 +244,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
@@ -254,7 +259,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -280,6 +285,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-temporal-migrate:
     name: Build and push Temporal Migrate image
@@ -292,7 +298,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -318,6 +324,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_MIGRATE_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
@@ -333,7 +340,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -359,6 +366,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
@@ -376,7 +384,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -417,7 +425,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -457,7 +465,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}
@@ -495,7 +503,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           exportToken: true
           url: ${{ env.VAULT_ADDR }}

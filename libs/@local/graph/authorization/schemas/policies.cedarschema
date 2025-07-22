@@ -8,19 +8,43 @@ namespace HASH {
   entity Team in [Web, Team] {
   };
 
+  entity Policy in [Web] {
+    actions: Set<String>
+  };
+
   entity Entity in [Web] {
     entity_types: Set<EntityType>,
+    entity_base_types: Set<String>,
+    created_by: ActorId,
   };
 
   entity EntityType in [Web] {
     base_url: String,
     version: Long,
+    is_remote: Bool,
+  };
+
+  entity PropertyType in [Web] {
+    base_url: String,
+    version: Long,
+    is_remote: Bool,
+  };
+
+  entity DataType in [Web] {
+    base_url: String,
+    version: Long,
+    is_remote: Bool,
   };
 
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
+    id: ActorId,
   };
 
   entity Public {
+    // This is required to add policies depending on `principal.id`
+    // in Cedar policies. Effectively, we set this to a dummy value
+    // `{"type": "public", "id": "00000000-0000-0000-0000-000000000000"}`.
+    id: ActorId,
   };
 
   action all;
@@ -30,9 +54,39 @@ namespace HASH {
     resource: [Web],
   };
 
-  action create, view, update in [all] appliesTo {
+  action create, view, update, archive, delete in [all] appliesTo {
     principal: [User, Machine, Ai],
-    resource: [Entity, EntityType],
+    resource: [Entity, EntityType, PropertyType, DataType, Policy],
+  };
+
+  action createPolicy in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
+  };
+
+  action createEntity in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Entity],
+  };
+
+  action createEntityType in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
+  action createPropertyType in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
+  };
+
+  action createDataType in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [DataType],
+  };
+
+  action viewPolicy in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [Policy],
   };
 
   action viewEntity in [view] appliesTo {
@@ -45,9 +99,79 @@ namespace HASH {
     resource: [EntityType],
   };
 
+  action viewPropertyType in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [PropertyType],
+  };
+
+  action viewDataType in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [DataType],
+  };
+
+  action updatePolicy in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
+  };
+
+  action updateEntity in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Entity],
+  };
+
+  action updateEntityType in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
+  action updatePropertyType in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
+  };
+
+  action updateDataType in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [DataType],
+  };
+
+  action archivePolicy in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
+  };
+
+  action archiveEntity in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Entity],
+  };
+
+  action archiveEntityType in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
+  action archivePropertyType in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
+  };
+
+  action archiveDataType in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [DataType],
+  };
+
+  action deletePolicy in [delete] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
+  };
+
   action instantiate in [all] appliesTo {
     principal: [User, Machine, Ai],
     resource: [EntityType],
+  };
+
+  type ActorId = {
+    type: String,
+    id: String,
   };
 }
 

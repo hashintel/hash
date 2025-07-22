@@ -1,6 +1,5 @@
 import {
   faCheck,
-  faCircleInfo,
   // faEnvelope,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
@@ -26,12 +25,6 @@ const infoItems: { title: string; description: string; icon: ReactNode }[] = [
     title: "Reserve your username",
     description: "@pizza goes fast!",
     icon: <PizzaSolidIcon />,
-  },
-  {
-    title: "Use your personal email",
-    description:
-      "Sign up with your home email address to stay in control, and add a work or school email address later",
-    icon: <FontAwesomeIcon icon={faCircleInfo} />,
   },
 ];
 

@@ -19,22 +19,15 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
-  EntityTypePermission,
-  EntityTypeRelationAndSubject,
   GetClosedMultiEntityTypesParams,
   GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
-  ModifyRelationshipOperation,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import type {
-  EntityTypeAuthorizationRelationship,
-  EntityTypeRelationAndSubjectBranded,
-  UserPermissionsOnEntityType,
-} from "@local/hash-graph-sdk/authorization";
-import { canInstantiateEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedEntityTypeWithMetadata,
   ConstructEntityTypeParams,
@@ -54,44 +47,6 @@ import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname, isExternalTypeId } from "./util";
 
-export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
-  { entityTypeId: VersionedUrl },
-  Promise<EntityTypeAuthorizationRelationship[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getEntityTypeAuthorizationRelationships(actorId, params.entityTypeId)
-    .then(({ data }) =>
-      data.map((relationship) => ({
-        resource: { kind: "entityType", resourceId: params.entityTypeId },
-        ...(relationship as EntityTypeRelationAndSubjectBranded),
-      })),
-    );
-
-export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: EntityTypeAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyEntityTypeAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkEntityTypePermission: ImpureGraphFunction<
-  { entityTypeId: VersionedUrl; permission: EntityTypePermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkEntityTypePermission(actorId, params.entityTypeId, params.permission)
-    .then(({ data }) => data.has_permission);
-
 export const checkPermissionsOnEntityType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
   Promise<UserPermissionsOnEntityType>
@@ -103,18 +58,24 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
   const [canUpdate, canInstantiateEntities] = await Promise.all([
     isPublicUser
       ? false
-      : await checkEntityTypePermission(
-          graphContext,
+      : await hasPermissionForEntityTypes(
+          graphContext.graphApi,
           { actorId },
-          { entityTypeId, permission: "update" },
-        ),
+          {
+            entityTypeIds: [entityTypeId],
+            action: "updateEntityType",
+          },
+        ).then((permitted) => permitted.includes(entityTypeId)),
     isPublicUser
       ? false
-      : (
-          await canInstantiateEntityTypes(graphContext.graphApi, { actorId }, [
-            entityTypeId,
-          ])
-        )[0],
+      : await hasPermissionForEntityTypes(
+          graphContext.graphApi,
+          { actorId },
+          {
+            entityTypeIds: [entityTypeId],
+            action: "instantiate",
+          },
+        ).then((permitted) => permitted.includes(entityTypeId)),
   ]);
 
   return {
@@ -139,7 +100,6 @@ export const createEntityType: ImpureGraphFunction<
     webId: WebId;
     schema: ConstructEntityTypeParams;
     webShortname?: string;
-    relationships: EntityTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
   },
   Promise<EntityTypeWithMetadata>
@@ -172,7 +132,6 @@ export const createEntityType: ImpureGraphFunction<
     {
       webId,
       schema,
-      relationships: params.relationships,
       provenance: {
         ...ctx.provenance,
         ...params.provenance,
@@ -338,7 +297,6 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
 type UpdateEntityTypeParams = {
   entityTypeId: VersionedUrl;
   schema: ConstructEntityTypeParams;
-  relationships: EntityTypeRelationAndSubject[];
   provenance?: ProvidedOntologyEditionProvenance;
 };
 
@@ -361,7 +319,6 @@ export const updateEntityType: ImpureGraphFunction<
       $schema: ENTITY_TYPE_META_SCHEMA,
       ...schema,
     },
-    relationships: params.relationships,
     provenance: {
       ...ctx.provenance,
       ...params.provenance,
@@ -407,14 +364,13 @@ export const updateEntityTypes: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { entityTypeUpdates } = params;
   const updateArguments: UpdateEntityTypeRequest[] = entityTypeUpdates.map(
-    ({ entityTypeId, schema, relationships, provenance }) => ({
+    ({ entityTypeId, schema, provenance }) => ({
       typeToUpdate: entityTypeId,
       schema: {
         kind: "entityType",
         $schema: ENTITY_TYPE_META_SCHEMA,
         ...schema,
       },
-      relationships,
       provenance: {
         ...ctx.provenance,
         ...provenance,

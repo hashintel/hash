@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::Report;
 use type_system::principal::role::{WebRole, WebRoleId};
 use uuid::Uuid;
@@ -35,15 +35,13 @@ impl ToCedarEntityId for WebRoleId {
 
 impl ToCedarEntity for WebRole {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
             iter::empty(),
             HashSet::new(),
             HashSet::from([self.web_id.to_euid()]),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("Web role should be a valid Cedar entity")
     }
 }
 

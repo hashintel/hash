@@ -2,8 +2,7 @@ import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
-  ActorId,
+  AiId,
   ClosedTemporalBound,
   EntityUuid,
   ProvidedEntityEditionProvenance,
@@ -13,9 +12,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -37,10 +34,9 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
-import { getInstanceAdminsTeam } from "./hash-instance.js";
+import { getWebMachineId } from "./machine-actors.js";
 
 /**
  * Retrieve a web's service usage
@@ -60,10 +56,22 @@ export const getWebServiceUsage = async (
     webId: WebId;
   },
 ): Promise<AggregatedUsageRecord[]> => {
+  const webBotId = await getWebMachineId(
+    context,
+    {
+      actorId: userAccountId,
+    },
+    { webId },
+  );
+
+  if (!webBotId) {
+    throw new Error(`Web bot for web ${webId} not found`);
+  }
+
   const serviceUsageRecordSubgraph = await backOff(
     () =>
       context.graphApi
-        .getEntitySubgraph(userAccountId, {
+        .getEntitySubgraph(webBotId, {
           filter: {
             all: [
               generateVersionedUrlMatchingFilter(
@@ -126,7 +134,6 @@ export const getWebServiceUsage = async (
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
   {
-    additionalViewers,
     assignUsageToWebId,
     customMetadata,
     serviceName,
@@ -134,11 +141,8 @@ export const createUsageRecord = async (
     inputUnitCount,
     outputUnitCount,
     userAccountId,
+    aiAssistantAccountId,
   }: {
-    /**
-     * Grant view access on the usage record to these additional accounts
-     */
-    additionalViewers?: ActorId[];
     /**
      * The web the usage will be assigned to (user or org)
      */
@@ -156,6 +160,7 @@ export const createUsageRecord = async (
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
     userAccountId: UserId;
+    aiAssistantAccountId: AiId;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -203,11 +208,6 @@ export const createUsageRecord = async (
    * For automatically triggered (scheduled, reactive), this is the user that created the trigger/schedule.
    */
   const authentication = { actorId: userAccountId };
-
-  const hashInstanceAdminGroup = await getInstanceAdminsTeam(
-    context,
-    authentication,
-  );
 
   const serviceFeatureEntities = await context.graphApi
     .getEntities(authentication.actorId, {
@@ -257,55 +257,6 @@ export const createUsageRecord = async (
   }
   const serviceFeatureEntity = serviceFeatureEntities[0]!;
 
-  const entityRelationships: EntityRelationAndSubjectBranded[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "accountGroup",
-        subjectId: hashInstanceAdminGroup.id,
-        subjectSet: "member",
-      },
-    },
-  ];
-
-  if (assignUsageToWebId === userAccountId) {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: userAccountId,
-      },
-    });
-  } else {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "accountGroup",
-        subjectId: assignUsageToWebId as ActorGroupEntityUuid,
-        subjectSet: "administrator",
-      },
-    });
-  }
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-  ];
-
-  for (const additionalViewer of additionalViewers ?? []) {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: additionalViewer.id,
-      },
-    });
-    viewPrincipals.push({ type: "actor", ...additionalViewer });
-  }
-
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
@@ -331,7 +282,18 @@ export const createUsageRecord = async (
       properties,
       provenance,
       entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
-      relationships: entityRelationships,
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
     {
       webId: assignUsageToWebId,
@@ -344,26 +306,20 @@ export const createUsageRecord = async (
         rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
       entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-      relationships: entityRelationships,
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
   ]);
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [usageRecordEntityUuid, recordsUsageOfEntityUuid]) {
-    for (const principal of viewPrincipals) {
-      await createPolicy(context.graphApi, authentication, {
-        name: `usage-record-view-entity-${entityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: entityUuid,
-        },
-      });
-    }
-  }
 
   return usageRecord;
 };

@@ -1,7 +1,6 @@
 use core::{assert_matches::assert_matches, str::FromStr as _};
 use std::collections::HashSet;
 
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
@@ -28,9 +27,7 @@ use type_system::{
 
 use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
 
-async fn seed<A: AuthorizationApi>(
-    database: &mut DatabaseTestWrapper<A>,
-) -> DatabaseApi<'_, &mut A> {
+async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
         .seed(
             [
@@ -92,7 +89,7 @@ async fn empty_entity() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -126,7 +123,7 @@ async fn initial_person() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -297,7 +294,7 @@ async fn create_multi() {
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

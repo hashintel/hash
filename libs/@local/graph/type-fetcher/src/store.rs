@@ -3,61 +3,58 @@ use core::mem;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        Policy, PolicyId,
-        store::{
-            CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
-            error::{
-                CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-                UpdatePolicyError, WebCreationError, WebRoleError,
-            },
+use hash_graph_authorization::policies::{
+    ContextBuilder, Policy, PolicyId,
+    principal::actor::AuthenticatedActor,
+    resource::{DataTypeResource, EntityResource, EntityTypeResource, PropertyTypeResource},
+    store::{
+        CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
+        PolicyUpdateOperation, PrincipalStore, ResolvePoliciesParams, RoleAssignmentStatus,
+        RoleUnassignmentStatus,
+        error::{
+            BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
+            BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
+            DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
+            GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+            UpdatePolicyError, WebCreationError, WebRoleError,
         },
     },
-    schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeViewerSubject, WebOwnerSubject,
-    },
-    zanzibar::Consistency,
 };
 use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
-        CreateUserActorResponse, GetActorError, QueryWebError, TeamRetrievalError,
-        WebInsertionError, WebRetrievalError,
+        CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
+        WebRetrievalError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-        UpdateDataTypesParams,
+        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
+        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
         GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
         GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
         GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
         GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
-        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
     subgraph::temporal_axes::{
@@ -76,7 +73,7 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{EntityId, id::EntityUuid},
+        entity::{EntityId, id::EntityEditionId},
     },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
@@ -141,38 +138,30 @@ where
     }
 }
 
-impl<P, Add> StorePool for FetchingPool<P, Add>
+impl<P, A> StorePool for FetchingPool<P, A>
 where
     P: StorePool + Send + Sync,
-    Add: ToSocketAddrs + Send + Sync + Clone,
+    A: ToSocketAddrs + Send + Sync + Clone,
 {
     type Error = P::Error;
-    type Store<'pool, A: AuthorizationApi> = FetchingStore<P::Store<'pool, A>, Add>;
+    type Store<'pool> = FetchingStore<P::Store<'pool>, A>;
 
-    async fn acquire<A: AuthorizationApi>(
+    async fn acquire(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'_, A>, Report<Self::Error>> {
+    ) -> Result<Self::Store<'_>, Report<Self::Error>> {
         Ok(FetchingStore {
-            store: self
-                .pool
-                .acquire(authorization_api, temporal_client)
-                .await?,
+            store: self.pool.acquire(temporal_client).await?,
             connection_info: self.connection_info.clone(),
         })
     }
 
-    async fn acquire_owned<A: AuthorizationApi>(
+    async fn acquire_owned(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'static, A>, Report<Self::Error>> {
+    ) -> Result<Self::Store<'static>, Report<Self::Error>> {
         Ok(FetchingStore {
-            store: self
-                .pool
-                .acquire_owned(authorization_api, temporal_client)
-                .await?,
+            store: self.pool.acquire_owned(temporal_client).await?,
             connection_info: self.connection_info.clone(),
         })
     }
@@ -185,8 +174,8 @@ pub struct FetchingStore<S, A> {
 
 impl<S, A> PrincipalStore for FetchingStore<S, A>
 where
-    S: PrincipalStore + Send,
-    A: Send,
+    S: PrincipalStore + Send + Sync,
+    A: Send + Sync,
 {
     async fn get_or_create_system_machine(
         &mut self,
@@ -231,12 +220,14 @@ where
             .await
     }
 
-    async fn is_assigned(
+    async fn get_actor_group_role(
         &mut self,
         actor_id: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
     ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
-        self.store.is_assigned(actor_id, actor_group_id).await
+        self.store
+            .get_actor_group_role(actor_id, actor_group_id)
+            .await
     }
 
     async fn get_role_assignments(
@@ -258,6 +249,23 @@ where
             .unassign_role(actor_id, actor_to_unassign, actor_group_id, name)
             .await
     }
+
+    async fn determine_actor(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
+        self.store.determine_actor(actor_entity_uuid).await
+    }
+
+    async fn build_principal_context(
+        &self,
+        actor_id: ActorId,
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<BuildPrincipalContextError>> {
+        self.store
+            .build_principal_context(actor_id, context_builder)
+            .await
+    }
 }
 
 impl<S, A> PolicyStore for FetchingStore<S, A>
@@ -267,7 +275,7 @@ where
 {
     async fn create_policy(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>> {
         self.store.create_policy(authenticated_actor, policy).await
@@ -275,7 +283,7 @@ where
 
     async fn get_policy_by_id(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.store.get_policy_by_id(authenticated_actor, id).await
@@ -283,25 +291,26 @@ where
 
     async fn query_policies(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store.query_policies(authenticated_actor, filter).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: ActorEntityUuid,
-        actor_id: Option<ActorId>,
+        authenticated_actor: AuthenticatedActor,
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
-            .resolve_policies_for_actor(authenticated_actor, actor_id)
+            .resolve_policies_for_actor(authenticated_actor, params)
             .await
     }
 
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>> {
@@ -312,7 +321,7 @@ where
 
     async fn archive_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         self.store
@@ -322,7 +331,7 @@ where
 
     async fn delete_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         self.store
@@ -333,23 +342,37 @@ where
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
         self.store.seed_system_policies().await
     }
-}
 
-const DATA_TYPE_RELATIONSHIPS: [DataTypeRelationAndSubject; 1] =
-    [DataTypeRelationAndSubject::Viewer {
-        subject: DataTypeViewerSubject::Public,
-        level: 0,
-    }];
-const PROPERTY_TYPE_RELATIONSHIPS: [PropertyTypeRelationAndSubject; 1] =
-    [PropertyTypeRelationAndSubject::Viewer {
-        subject: PropertyTypeViewerSubject::Public,
-        level: 0,
-    }];
-const ENTITY_TYPE_RELATIONSHIPS: [EntityTypeRelationAndSubject; 1] =
-    [EntityTypeRelationAndSubject::Viewer {
-        subject: EntityTypeViewerSubject::Public,
-        level: 0,
-    }];
+    async fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
+        self.store.build_entity_type_context(entity_type_ids).await
+    }
+
+    async fn build_property_type_context(
+        &self,
+        property_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<PropertyTypeResource<'_>>, Report<[BuildPropertyTypeContextError]>> {
+        self.store
+            .build_property_type_context(property_type_ids)
+            .await
+    }
+
+    async fn build_data_type_context(
+        &self,
+        data_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<DataTypeResource<'_>>, Report<[BuildDataTypeContextError]>> {
+        self.store.build_data_type_context(data_type_ids).await
+    }
+
+    async fn build_entity_context(
+        &self,
+        entity_edition_ids: &[EntityEditionId],
+    ) -> Result<Vec<EntityResource<'static>>, Report<[BuildEntityContextError]>> {
+        self.store.build_entity_context(entity_edition_ids).await
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 pub enum FetchingStoreError {
@@ -518,6 +541,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, ontology_type_references))]
+    #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -692,7 +716,6 @@ where
                         .map(|(schema, metadata)| CreateDataTypeParams {
                             schema,
                             ownership: metadata.ownership,
-                            relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
                                 actor_type: ActorType::Machine,
@@ -715,7 +738,6 @@ where
                         .map(|(schema, metadata)| CreatePropertyTypeParams {
                             schema,
                             ownership: metadata.ownership,
-                            relationships: PROPERTY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
                                 actor_type: ActorType::Machine,
@@ -737,7 +759,6 @@ where
                         .map(|(schema, metadata)| CreateEntityTypeParams {
                             schema,
                             ownership: metadata.ownership,
-                            relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance {
                                 actor_type: ActorType::Machine,
@@ -789,7 +810,6 @@ where
                             .map(|(schema, metadata)| CreateDataTypeParams {
                                 schema,
                                 ownership: metadata.ownership,
-                                relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::Machine,
@@ -812,7 +832,6 @@ where
                             |(schema, metadata)| CreatePropertyTypeParams {
                                 schema,
                                 ownership: metadata.ownership,
-                                relationships: PROPERTY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::Machine,
@@ -835,7 +854,6 @@ where
                             |(schema, metadata)| CreateEntityTypeParams {
                                 schema,
                                 ownership: metadata.ownership,
-                                relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::Machine,
@@ -1081,13 +1099,6 @@ where
     ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
         self.store.get_team_by_name(actor_id, name).await
     }
-
-    async fn identify_subject_id(
-        &self,
-        subject_id: EntityUuid,
-    ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        self.store.identify_subject_id(subject_id).await
-    }
 }
 
 impl<S, A> DataTypeStore for FetchingStore<S, A>
@@ -1095,14 +1106,13 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_data_types<P, R>(
+    async fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateDataTypeParams> + Send,
     {
         let creation_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = creation_parameters
@@ -1155,14 +1165,13 @@ where
         self.store.get_data_type_subgraph(actor_id, params).await
     }
 
-    async fn update_data_types<P, R>(
+    async fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send,
     {
         let update_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = update_parameters
@@ -1231,6 +1240,16 @@ where
     async fn reindex_data_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_data_type_cache().await
     }
+
+    async fn has_permission_for_data_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForDataTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_data_types(authenticated_actor, params)
+            .await
+    }
 }
 
 impl<S, A> PropertyTypeStore for FetchingStore<S, A>
@@ -1238,14 +1257,13 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_property_types<P, R>(
+    async fn create_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreatePropertyTypeParams, IntoIter: Send> + Send,
     {
         let creation_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = creation_parameters
@@ -1300,14 +1318,13 @@ where
             .await
     }
 
-    async fn update_property_types<P, R>(
+    async fn update_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdatePropertyTypesParams, IntoIter: Send> + Send,
     {
         let update_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = update_parameters
@@ -1365,6 +1382,16 @@ where
             .update_property_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn has_permission_for_property_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForPropertyTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_property_types(authenticated_actor, params)
+            .await
+    }
 }
 
 impl<S, A> EntityTypeStore for FetchingStore<S, A>
@@ -1372,14 +1399,13 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entity_types<P, R>(
+    async fn create_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send,
     {
         let creation_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = creation_parameters
@@ -1453,14 +1479,13 @@ where
         self.store.get_entity_type_subgraph(actor_id, params).await
     }
 
-    async fn update_entity_types<P, R>(
+    async fn update_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send,
     {
         let update_parameters = params.into_iter().collect::<Vec<_>>();
         let requested_types = update_parameters
@@ -1523,13 +1548,13 @@ where
         self.store.reindex_entity_type_cache().await
     }
 
-    async fn can_instantiate_entity_types(
+    async fn has_permission_for_entity_types(
         &self,
-        authenticated_user: ActorEntityUuid,
-        entity_type_ids: &[VersionedUrl],
-    ) -> Result<Vec<bool>, Report<QueryError>> {
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntityTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
         self.store
-            .can_instantiate_entity_types(authenticated_user, entity_type_ids)
+            .has_permission_for_entity_types(authenticated_actor, params)
             .await
     }
 }
@@ -1539,14 +1564,11 @@ where
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore + Send + Sync,
     A: ToSocketAddrs + Send + Sync,
 {
-    async fn create_entities<R>(
+    async fn create_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
-        params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>>
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
-    {
+        actor_uuid: ActorEntityUuid,
+        params: Vec<CreateEntityParams>,
+    ) -> Result<Vec<Entity>, Report<InsertionError>> {
         let type_ids = params
             .iter()
             .flat_map(|params| &params.entity_type_ids)
@@ -1557,7 +1579,7 @@ where
                 url: entity_type_id.clone(),
             };
             self.insert_external_types_by_reference(
-                actor_id,
+                actor_uuid,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
                 ConflictBehavior::Skip,
                 FetchBehavior::ExcludeProvidedReferences,
@@ -1566,18 +1588,15 @@ where
             .await?;
         }
 
-        self.store.create_entities(actor_id, params).await
+        self.store.create_entities(actor_uuid, params).await
     }
 
     async fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> HashMap<usize, EntityValidationReport> {
-        self.store
-            .validate_entities(actor_id, consistency, params)
-            .await
+    ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
+        self.store.validate_entities(actor_id, params).await
     }
 
     async fn get_entities(
@@ -1648,5 +1667,15 @@ where
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
+    }
+
+    async fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_entities(authenticated_actor, params)
+            .await
     }
 }

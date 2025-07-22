@@ -6,9 +6,9 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
-        inference::{Constraint, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Variable, VariableKind},
         kind::{
             Apply, Generic, GenericArgument, IntersectionType, PrimitiveType, StructType, TypeKind,
             UnionType,
@@ -497,8 +497,8 @@ fn is_subtype_of() {
     let number = apply!(env, primitive!(env, PrimitiveType::Number), []);
 
     let mut analysis = AnalysisEnvironment::new(&env);
-    assert!(analysis.is_subtype_of(integer, number));
-    assert!(!analysis.is_subtype_of(number, integer));
+    assert!(analysis.is_subtype_of(Variance::Covariant, integer, number));
+    assert!(!analysis.is_subtype_of(Variance::Covariant, number, integer));
 }
 
 #[test]
@@ -592,7 +592,7 @@ fn collect_constraints() {
 
     let supertype = apply!(env, primitive!(env, PrimitiveType::String), []);
 
-    infer.collect_constraints(subtype, supertype);
+    infer.collect_constraints(Variance::Covariant, subtype, supertype);
 
     let constraints = infer.take_constraints();
     assert_eq!(
@@ -605,8 +605,7 @@ fn collect_constraints() {
 }
 
 #[test]
-fn collect_structural_constraints() {
-    // Nothing should happen as they are invariant
+fn collect_dependencies() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -621,13 +620,19 @@ fn collect_structural_constraints() {
         }]
     );
 
-    infer.collect_structural_edges(
+    infer.collect_dependencies(
         subtype,
-        PartialStructuralEdge::Source(Variable::synthetic(VariableKind::Hole(HoleId::new(0)))),
+        Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
     );
 
     let constraints = infer.take_constraints();
-    assert_eq!(constraints, []);
+    assert_eq!(
+        constraints,
+        [Constraint::Dependency {
+            source: Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
+            target: Variable::synthetic(VariableKind::Generic(GenericArgumentId::new(0)))
+        }]
+    );
 }
 
 #[test]

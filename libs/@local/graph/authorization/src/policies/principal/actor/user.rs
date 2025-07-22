@@ -2,15 +2,28 @@ use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
-use cedar_policy_core::{ast, extensions::Extensions};
+use cedar_policy_core::ast;
 use error_stack::Report;
+use smol_str::SmolStr;
 use type_system::principal::{
     actor::{User, UserId},
     role::RoleId,
 };
 use uuid::Uuid;
 
-use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId, ToCedarValue};
+
+impl ToCedarValue for UserId {
+    fn to_cedar_value(&self) -> ast::Value {
+        ast::Value::record(
+            [
+                (SmolStr::new_static("id"), SmolStr::new(self.to_string())),
+                (SmolStr::new_static("type"), SmolStr::new_static("user")),
+            ],
+            None,
+        )
+    }
+}
 
 impl FromCedarEntityId for UserId {
     type Error = Report<uuid::Error>;
@@ -38,15 +51,16 @@ impl ToCedarEntityId for UserId {
 
 impl ToCedarEntity for User {
     fn to_cedar_entity(&self) -> ast::Entity {
-        ast::Entity::new(
+        ast::Entity::new_with_attr_partial_value(
             self.id.to_euid(),
-            iter::empty(),
+            [(
+                SmolStr::new_static("id"),
+                ast::PartialValue::Value(self.id.to_cedar_value()),
+            )],
             HashSet::new(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
-            Extensions::none(),
         )
-        .expect("User should be a valid Cedar entity")
     }
 }
 

@@ -1,14 +1,12 @@
-use alloc::sync::Arc;
-use core::{iter, mem};
+use alloc::{borrow::Cow, sync::Arc};
+use core::mem;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
-use futures::StreamExt as _;
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
-    zanzibar::{Consistency, Zookie},
+use futures::{StreamExt as _, TryStreamExt as _};
+use hash_graph_authorization::policies::{
+    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     data_type::{
@@ -16,12 +14,12 @@ use hash_graph_store::{
         DataTypeConversionTargets, DataTypeQueryPath, DataTypeStore,
         GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-        UpdateDataTypesParams,
+        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
+        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
-    query::{Ordering, QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
+    query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -37,7 +35,7 @@ use hash_graph_types::Embedding;
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::{GenericClient as _, Row};
-use tracing::instrument;
+use tracing::{Instrument as _, instrument};
 use type_system::{
     Valid, Validator as _,
     ontology::{
@@ -58,27 +56,25 @@ use crate::store::{
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, TraversalContext,
-        crud::QueryRecordDecode,
+        crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
-            Distinctness, InsertStatementBuilder, PostgresRecord, ReferenceTable, SelectCompiler,
-            Table, rows::DataTypeConversionsRow,
+            Distinctness, InsertStatementBuilder, PostgresRecord, PostgresSorting, ReferenceTable,
+            SelectCompiler, Table, rows::DataTypeConversionsRow,
         },
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(data_types, provider))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
+        temporal_axes: QueryTemporalAxes,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<DataTypeUuid> + Send,
@@ -89,26 +85,58 @@ where
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_data_types_permission(
-                actor_id,
-                DataTypePermission::View,
-                ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
+        let allowed_ids = if let Some(policy_components) = provider.policy_components {
+            let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
+
+            let data_type_ids_filter = Filter::for_data_type_uuids(&ids);
+            compiler
+                .add_filter(&data_type_ids_filter)
+                .change_context(QueryError)?;
+
+            let permission_filter = Filter::<DataTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewDataType),
+                policy_components.optimization_data(ActionName::ViewDataType),
+            );
+            compiler
+                .add_filter(&permission_filter)
+                .change_context(QueryError)?;
+
+            let data_type_uuid_idx = compiler.add_selection_path(&DataTypeQueryPath::OntologyId);
+
+            let (statement, parameters) = compiler.compile();
+
+            Some(
+                provider
+                    .store
+                    .as_client()
+                    .query_raw(&statement, parameters.iter().copied())
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                        db.query.text = statement,
+                    ))
+                    .await
+                    .change_context(QueryError)?
+                    .map_ok(|row| row.get::<_, DataTypeUuid>(data_type_uuid_idx))
+                    .try_collect::<HashSet<_>>()
+                    .await
+                    .change_context(QueryError)?,
             )
-            .await
-            .change_context(QueryError)?
-            .0;
+        } else {
+            None
+        };
 
         Ok(ids
             .into_iter()
             .zip(data_types)
             .filter_map(move |(id, data_type)| {
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(data_type)
+                let Some(allowed_ids) = &allowed_ids else {
+                    return Some(data_type);
+                };
+
+                allowed_ids.contains(&id).then_some(data_type)
             }))
     }
 
@@ -136,6 +164,12 @@ where
                 ",
                 &[&data_types],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -161,100 +195,118 @@ where
 
     async fn get_data_types_impl(
         &self,
-        actor_id: ActorEntityUuid,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetDataTypesResponse, Zookie<'static>), Report<QueryError>> {
-        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+        policy_components: &PolicyComponents,
+    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(
+            policy_components.extract_filter_policies(ActionName::ViewDataType),
+            policy_components.optimization_data(ActionName::ViewDataType),
+        );
+
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(QueryError)?;
+        compiler
+            .add_filter(&params.filter)
+            .change_context(QueryError)?;
+
+        let ontology_id_idx = compiler.add_selection_path(&DataTypeQueryPath::OntologyId);
+
         let count = if params.include_count {
-            Some(
-                self.count_data_types(
-                    actor_id,
-                    CountDataTypesParams {
-                        filter: params.filter.clone(),
-                        temporal_axes: params.temporal_axes.clone(),
-                        include_drafts: params.include_drafts,
-                    },
-                )
-                .await?,
-            )
+            let (statement, parameters) = compiler.compile();
+
+            let data_type_rows = self
+                .as_client()
+                .query(&statement, parameters)
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                    db.query.text = statement,
+                ))
+                .await
+                .change_context(QueryError)?;
+
+            Some(data_type_rows.len())
         } else {
             None
+        };
+
+        if let Some(limit) = params.limit {
+            compiler.set_limit(limit);
+        }
+
+        let sorting = VersionedUrlSorting {
+            cursor: params.after,
+        };
+        let cursor_parameters =
+            <VersionedUrlSorting as PostgresSorting<DataTypeWithMetadata>>::encode(&sorting)
+                .change_context(QueryError)?;
+        let cursor_indices = sorting
+            .compile(&mut compiler, cursor_parameters.as_ref(), temporal_axes)
+            .change_context(QueryError)?;
+
+        let record_indices = DataTypeWithMetadata::compile(&mut compiler, &());
+
+        let (statement, parameters) = compiler.compile();
+
+        let rows = self
+            .as_client()
+            .query(&statement, parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
+            .await
+            .change_context(QueryError)?;
+        let indices = QueryIndices::<DataTypeWithMetadata, VersionedUrlSorting> {
+            record_indices,
+            cursor_indices,
         };
 
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
+        let (data_types, cursor) = {
+            let _span =
+                tracing::trace_span!("process_query_results", row_count = rows.len()).entered();
+            let mut cursor = None;
+            let num_rows = rows.len();
+            let data_types = rows
+                .into_iter()
+                .enumerate()
+                .filter_map(|(idx, row)| {
+                    let id = row.get::<_, DataTypeUuid>(ontology_id_idx);
+                    let typed_row = TypedRow::<DataTypeWithMetadata, VersionedUrl>::from(row);
+                    if idx == num_rows - 1 && params.limit == Some(num_rows) {
+                        cursor = Some(typed_row.decode_cursor(&indices));
+                    }
+                    // The records are already sorted by time, so we can just take the first one
+                    visited_ontology_ids
+                        .insert(id)
+                        .then(|| typed_row.decode_record(&indices))
+                })
+                .collect::<Vec<_>>();
+            (data_types, cursor)
+        };
 
-        let (data, artifacts) =
-            ReadPaginated::<DataTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
-                self,
-                &[params.filter],
-                Some(temporal_axes),
-                &VersionedUrlSorting {
-                    cursor: params.after,
-                },
-                params.limit,
-                params.include_drafts,
-            )
-            .await?;
-        let data_types = data
-            .into_iter()
-            .filter_map(|row| {
-                let data_type = row.decode_record(&artifacts);
-                let id = DataTypeUuid::from_url(&data_type.schema.id);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids.insert(id).then_some((id, data_type))
-            })
-            .collect::<Vec<_>>();
-
-        let filtered_ids = data_types
-            .iter()
-            .map(|(data_type_id, _)| *data_type_id)
-            .collect::<Vec<_>>();
-
-        let (permissions, zookie) = self
-            .authorization_api
-            .check_data_types_permission(
-                actor_id,
-                DataTypePermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(QueryError)?;
-
-        let data_types = data_types
-            .into_iter()
-            .filter_map(|(id, data_type)| {
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(data_type)
-            })
-            .collect::<Vec<_>>();
-
-        Ok((
-            GetDataTypesResponse {
-                cursor: if params.limit.is_some() {
-                    data_types
-                        .last()
-                        .map(|data_type| data_type.schema.id.clone())
-                } else {
-                    None
-                },
-                data_types,
-                count,
-            },
-            zookie,
-        ))
+        Ok(GetDataTypesResponse {
+            cursor,
+            data_types,
+            count,
+        })
     }
 
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
@@ -263,8 +315,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         while !data_type_queue.is_empty() {
@@ -305,9 +356,8 @@ where
                                 table,
                             )
                             .await?,
-                            actor_id,
-                            &self.authorization_api,
-                            zookie,
+                            provider,
+                            subgraph.temporal_axes.resolved.clone(),
                         )
                         .await?
                         .flat_map(|edge| {
@@ -332,6 +382,15 @@ where
         Ok(())
     }
 
+    /// Deletes all data types from the database.
+    ///
+    /// This function removes all data types along with their associated metadata,
+    /// including embeddings, inheritance relationships, and conversions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails or
+    /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_data_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
@@ -345,6 +404,12 @@ where
                     DELETE FROM data_type_conversions;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -357,6 +422,12 @@ where
                 ",
                 &[],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?
             .into_iter()
@@ -371,29 +442,28 @@ where
     }
 }
 
-impl<C, A> DataTypeStore for PostgresStore<C, A>
+impl<C> DataTypeStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn create_data_types<P, R>(
+    #[expect(clippy::too_many_lines)]
+    async fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateDataTypeParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
         let mut data_type_conversions_rows = Vec::new();
+
+        let mut policy_components_builder = PolicyComponents::builder(&transaction);
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -407,34 +477,10 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
             if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                transaction
-                    .authorization_api
-                    .check_web_permission(
-                        actor_id,
-                        WebPermission::CreateDataType,
-                        *web_id,
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(InsertionError)?
-                    .assert_permission()
-                    .change_context(InsertionError)?;
-
-                relationships.insert((
-                    data_type_id,
-                    DataTypeRelationAndSubject::Owner {
-                        subject: DataTypeOwnerSubject::Web { id: *web_id },
-                        level: 0,
-                    },
-                ));
+                policy_components_builder.add_data_type(&parameters.schema.id, Some(*web_id));
+            } else {
+                policy_components_builder.add_data_type(&parameters.schema.id, None);
             }
-
-            relationships.extend(
-                parameters
-                    .relationships
-                    .into_iter()
-                    .map(|relation_and_subject| (data_type_id, relation_and_subject)),
-            );
 
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
@@ -470,9 +516,43 @@ where
             }
         }
 
+        let policy_components = policy_components_builder
+            .with_actor(actor_id)
+            .with_actions([ActionName::CreateDataType], MergePolicies::No)
+            .await
+            .change_context(InsertionError)?;
+
+        let policy_set = policy_components
+            .build_policy_set([ActionName::CreateDataType])
+            .change_context(InsertionError)?;
+
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         for (data_type_id, inserted_data_type) in &inserted_data_types {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::CreateDataType,
+                        resource: &ResourceId::DataType(Cow::Borrowed(
+                            (&inserted_data_type.id).into(),
+                        )),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(InsertionError)
+                        .attach(StatusCode::PermissionDenied)
+                        .attach_printable(format!(
+                            "The actor does not have permission to create the data type `{}`",
+                            inserted_data_type.id
+                        )));
+                }
+            }
             ontology_type_resolver
                 .add_unresolved_data_type(*data_type_id, Arc::clone(inserted_data_type));
         }
@@ -575,68 +655,38 @@ where
         transaction
             .as_client()
             .query(&statement, &parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(InsertionError)?;
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        transaction
-            .authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_data_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_data_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_data_types
+                        .iter()
+                        .zip(&inserted_data_type_metadata)
+                        .map(|((_, schema), metadata)| DataTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(InsertionError))
-        } else {
-            if let Some(temporal_client) = &self.temporal_client {
-                temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_data_types
-                            .iter()
-                            .zip(&inserted_data_type_metadata)
-                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-
-            Ok(inserted_data_type_metadata)
+                .change_context(InsertionError)?;
         }
+
+        Ok(inserted_data_type_metadata)
     }
 
     async fn get_data_types(
@@ -644,20 +694,21 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_data_types_impl(actor_id, params, &temporal_axes)
+        self.get_data_types_impl(params, &temporal_axes, &policy_components)
             .await
-            .map(|(response, _)| response)
     }
 
     // TODO: take actor ID into consideration, but currently we don't have any non-public data types
@@ -667,13 +718,15 @@ where
         actor_id: ActorEntityUuid,
         mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
@@ -694,29 +747,29 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_action(ActionName::ViewDataType, MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (
-            GetDataTypesResponse {
-                data_types,
-                cursor,
-                count,
-            },
-            zookie,
-        ) = self
+        let GetDataTypesResponse {
+            data_types,
+            cursor,
+            count,
+        } = self
             .get_data_types_impl(
-                actor_id,
                 GetDataTypesParams {
                     filter: params.filter,
                     temporal_axes: params.temporal_axes.clone(),
@@ -726,6 +779,7 @@ where
                     include_count: params.include_count,
                 },
                 &temporal_axes,
+                &policy_components,
             )
             .await?;
 
@@ -766,8 +820,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            &zookie,
+            &provider,
             &mut subgraph,
         )
         .await?;
@@ -784,23 +837,23 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn update_data_types<P, R>(
+    #[expect(clippy::too_many_lines)]
+    async fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(UpdateError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut updated_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
         let mut data_type_conversions_rows = Vec::new();
+
+        let mut old_data_type_ids = Vec::new();
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -811,7 +864,7 @@ where
                 },
             };
 
-            let old_ontology_id = DataTypeUuid::from_url(&VersionedUrl {
+            old_data_type_ids.push(VersionedUrl {
                 base_url: parameters.schema.id.base_url.clone(),
                 version: OntologyTypeVersion::new(
                     parameters
@@ -830,31 +883,9 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
 
-            transaction
-                .authorization_api
-                .check_data_type_permission(
-                    actor_id,
-                    DataTypePermission::Update,
-                    old_ontology_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(UpdateError)?
-                .assert_permission()
-                .change_context(UpdateError)?;
-
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
-
-            relationships.extend(
-                iter::once(DataTypeRelationAndSubject::Owner {
-                    subject: DataTypeOwnerSubject::Web { id: web_id },
-                    level: 0,
-                })
-                .chain(parameters.relationships)
-                .map(|relation_and_subject| (data_type_id, relation_and_subject)),
-            );
 
             data_type_reference_ids.extend(
                 parameters
@@ -878,6 +909,42 @@ where
                 provenance,
                 conversions: parameters.conversions,
             });
+        }
+
+        let policy_components = PolicyComponents::builder(&transaction)
+            .with_actor(actor_id)
+            .with_data_type_ids(&old_data_type_ids)
+            .with_actions([ActionName::UpdateDataType], MergePolicies::No)
+            .await
+            .change_context(UpdateError)?;
+
+        let policy_set = policy_components
+            .build_policy_set([ActionName::UpdateDataType])
+            .change_context(UpdateError)?;
+
+        for property_type_id in &old_data_type_ids {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::UpdateDataType,
+                        resource: &ResourceId::DataType(Cow::Borrowed(property_type_id.into())),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(UpdateError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(UpdateError)
+                        .attach(StatusCode::PermissionDenied)
+                        .attach_printable(format!(
+                            "The actor does not have permission to update the data type \
+                             `{property_type_id}`"
+                        )));
+                }
+            }
         }
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -987,68 +1054,38 @@ where
         transaction
             .as_client()
             .query(&statement, &parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(UpdateError)?;
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        transaction
-            .authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_data_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_data_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_data_types
+                        .iter()
+                        .zip(&updated_data_type_metadata)
+                        .map(|((_, schema), metadata)| DataTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(UpdateError))
-        } else {
-            if let Some(temporal_client) = &self.temporal_client {
-                temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_data_types
-                            .iter()
-                            .zip(&updated_data_type_metadata)
-                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(UpdateError)?;
-            }
-
-            Ok(updated_data_type_metadata)
+                .change_context(UpdateError)?;
         }
+
+        Ok(updated_data_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1057,6 +1094,38 @@ where
         actor_id: ActorEntityUuid,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_data_type_id(&params.data_type_id)
+            .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
+            .await
+            .change_context(UpdateError)?;
+
+        match policy_components
+            .build_policy_set([ActionName::ArchiveDataType])
+            .change_context(UpdateError)?
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ArchiveDataType,
+                    resource: &ResourceId::DataType(Cow::Borrowed((&*params.data_type_id).into())),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(UpdateError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(UpdateError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(format!(
+                        "The actor does not have permission to archive the data type `{}`",
+                        params.data_type_id
+                    )));
+            }
+        }
+
         self.archive_ontology_type(&params.data_type_id, actor_id)
             .await
     }
@@ -1067,6 +1136,38 @@ where
         actor_id: ActorEntityUuid,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_data_type_id(&params.data_type_id)
+            .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
+            .await
+            .change_context(UpdateError)?;
+
+        match policy_components
+            .build_policy_set([ActionName::ArchiveDataType])
+            .change_context(UpdateError)?
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ArchiveDataType,
+                    resource: &ResourceId::DataType(Cow::Borrowed((&params.data_type_id).into())),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(UpdateError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(UpdateError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(format!(
+                        "The actor does not have permission to unarchive the data type `{}`",
+                        params.data_type_id
+                    )));
+            }
+        }
+
         self.unarchive_ontology_type(
             &params.data_type_id,
             &OntologyEditionProvenance {
@@ -1144,6 +1245,12 @@ where
                 ",
                 &[&data_type_embeddings, &params.reset],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -1151,11 +1258,62 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This function is complex and needs refactoring"
+    )]
     async fn get_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
         params: GetDataTypeConversionTargetsParams,
     ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
+            .await
+            .change_context(QueryError)?;
+
+        // Create filters to check permissions for all requested data types
+        let data_type_uuids = params
+            .data_type_ids
+            .iter()
+            .map(DataTypeUuid::from_url)
+            .collect::<Vec<_>>();
+
+        let filters = vec![
+            Filter::for_data_type_uuids(&data_type_uuids),
+            Filter::<DataTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewDataType),
+                policy_components.optimization_data(ActionName::ViewDataType),
+            ),
+        ];
+
+        // Check which data types the user can access
+        let allowed_data_types: HashSet<DataTypeUuid> = {
+            let mut compiler = SelectCompiler::new(None, false);
+            for filter in &filters {
+                compiler.add_filter(filter).change_context(QueryError)?;
+            }
+            let data_type_uuid_idx = compiler.add_selection_path(&DataTypeQueryPath::OntologyId);
+            let (statement, parameters) = compiler.compile();
+
+            self.as_client()
+                .query_raw(&statement, parameters.iter().copied())
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                    db.query.text = statement,
+                ))
+                .await
+                .change_context(QueryError)?
+                .map_ok(|row| row.get::<_, DataTypeUuid>(data_type_uuid_idx))
+                .try_collect()
+                .await
+                .change_context(QueryError)?
+        };
+
         let mut response = GetDataTypeConversionTargetsResponse {
             conversions: HashMap::with_capacity(params.data_type_ids.len()),
         };
@@ -1164,17 +1322,13 @@ where
             let mut conversions = HashMap::new();
             let data_type_uuid = DataTypeUuid::from_url(&data_type_id);
 
-            self.authorization_api
-                .check_data_type_permission(
-                    actor_id,
-                    DataTypePermission::View,
-                    data_type_uuid,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
+            if !allowed_data_types.contains(&data_type_uuid) {
+                return Err(Report::new(QueryError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(format!(
+                        "The actor does not have permission to view the data type `{data_type_id}`",
+                    )));
+            }
 
             // Get the conversions between non-canonical data types to other non-canonical data
             // types
@@ -1189,6 +1343,12 @@ where
                             WHERE conversion_a.source_data_type_ontology_id = $1;
                         "#,
                         &[&data_type_uuid])
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1213,6 +1373,12 @@ where
                         "#,
                         &[&data_type_uuid],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1239,6 +1405,12 @@ where
                         "#,
                         &[&data_type_id.base_url],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1272,6 +1444,12 @@ where
                     DELETE FROM data_type_inherits_from;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -1319,6 +1497,12 @@ where
                     ",
                     &[&data_type_id, &closed_schema],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?;
         }
@@ -1326,6 +1510,63 @@ where
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self, params))]
+    async fn has_permission_for_data_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForDataTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
+        let temporal_axes = QueryTemporalAxesUnresolved::DecisionTime {
+            pinned: PinnedTemporalAxisUnresolved::new(None),
+            variable: VariableTemporalAxisUnresolved::new(None, None),
+        }
+        .resolve();
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
+
+        let data_type_uuids = params
+            .data_type_ids
+            .iter()
+            .map(DataTypeUuid::from_url)
+            .collect::<Vec<_>>();
+
+        let data_type_filter = Filter::for_data_type_uuids(&data_type_uuids);
+        compiler
+            .add_filter(&data_type_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+        let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(
+            policy_components.extract_filter_policies(params.action),
+            policy_components.optimization_data(params.action),
+        );
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let versioned_url_idx = compiler.add_selection_path(&DataTypeQueryPath::VersionedUrl);
+
+        let (statement, parameters) = compiler.compile();
+        self.as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
+            .await
+            .change_context(CheckPermissionError::StoreError)?
+            .map_ok(|row| row.get(versioned_url_idx))
+            .try_collect()
+            .await
+            .change_context(CheckPermissionError::StoreError)
     }
 }
 

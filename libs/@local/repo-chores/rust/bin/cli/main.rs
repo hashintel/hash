@@ -1,8 +1,7 @@
 use core::error::Error;
 
 use clap::Parser;
-use hash_tracing::{TracingConfig, init_tracing};
-use tokio::runtime::Handle;
+use hash_telemetry::{TracingConfig, init_tracing};
 
 mod subcommand;
 
@@ -23,9 +22,8 @@ struct Args {
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let args = Args::parse();
 
-    let handle = Handle::current();
-    let _log_guard =
-        init_tracing(args.tracing_config, &handle).expect("should be able to initialize tracing");
+    let _telemetry_guard = init_tracing(args.tracing_config, "Repo Chores")
+        .expect("should be able to initialize telemetry");
 
     args.subcommand.run().await
 }

@@ -48,7 +48,7 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  CreateEntityRequest as GraphApiCreateEntityRequest,
+  CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
   GetEntitiesRequest as GetEntitiesRequestGraphApi,
@@ -57,6 +57,7 @@ import type {
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
+import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 import type {
@@ -126,8 +127,13 @@ export type WebIdsMap = Record<WebId, number>;
 export type CreateEntityParameters<
   T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = Omit<
-  GraphApiCreateEntityRequest,
-  "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
+  GraphApiCreateEntityParams,
+  | "decisionTime"
+  | "entityTypeIds"
+  | "draft"
+  | "properties"
+  | "provenance"
+  | "policies"
 > & {
   webId: WebId;
   properties: T["propertiesWithMetadata"];
@@ -136,6 +142,7 @@ export type CreateEntityParameters<
   entityUuid?: EntityUuid;
   provenance: ProvidedEntityEditionProvenance;
   draft?: boolean;
+  policies?: CreateEntityPolicyParams[];
 };
 
 export type PatchEntityParameters = Omit<

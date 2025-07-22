@@ -9,6 +9,7 @@ use hashql_core::{
         locals::{TypeDef, TypeLocals},
     },
     span::{SpanId, Spanned},
+    symbol::Symbol,
     r#type::{
         TypeBuilder, TypeId,
         environment::{Environment, instantiate::InstantiateEnvironment},
@@ -100,7 +101,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         span: SpanId,
         opaque_id: TypeId,
         generics: GenericArguments<'heap>,
-    ) -> TypeId {
+    ) -> (Symbol<'heap>, TypeId) {
         let opaque = self
             .environment
             .r#type(opaque_id)
@@ -132,7 +133,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
             closure = builder.generic(generics, closure);
         }
 
-        closure
+        (opaque.name, closure)
     }
 
     fn apply_generics(
@@ -140,6 +141,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         node: &Node<'heap>,
         variable: &Variable<'heap>,
         closure_def: TypeDef<'heap>,
+        name: Symbol<'heap>,
         generic_arguments: Interned<'heap, [Spanned<TypeId>]>,
     ) -> Option<Node<'heap>> {
         let make = |constructor| PartialNode {
@@ -157,6 +159,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
             // We're done here, as we don't need to apply anything
             return Some(self.interner.intern_node(make(TypeConstructor {
                 span: variable.span,
+                name,
                 closure: closure_def.id,
                 arguments: closure_def.arguments,
             })));
@@ -196,6 +199,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         // unused and unique, we don't need to α-rename again.
         Some(self.interner.intern_node(make(TypeConstructor {
             span: variable.span,
+            name,
             closure: closure_id,
             arguments: self.environment.intern_generic_argument_references(&[]),
         })))
@@ -229,14 +233,14 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
             opaque_id = generic.base;
         }
 
-        let closure = self.build_closure(variable.span, opaque_id, generic_parameters);
+        let (name, closure) = self.build_closure(variable.span, opaque_id, generic_parameters);
         let mut closure_def = TypeDef {
             id: closure,
             arguments: generic_references,
         };
         closure_def.instantiate(&mut self.instantiate);
 
-        self.apply_generics(node, variable, closure_def, generic_arguments)
+        self.apply_generics(node, variable, closure_def, name, generic_arguments)
     }
 }
 
@@ -274,6 +278,8 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
         } else if let Some(converted) = self.convert_variable(&node) {
             self.cache.insert(node_id, converted);
             node = converted;
+        } else {
+            // Node cannot be converted, use the original node as-is
         }
 
         if !self.nested && !self.diagnostics.is_empty() {
