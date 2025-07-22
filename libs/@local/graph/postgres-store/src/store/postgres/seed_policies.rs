@@ -16,8 +16,7 @@ use hash_graph_authorization::policies::{
         PropertyTypeResourceFilter, ResourceConstraint,
     },
     store::{
-        PolicyCreationParams, PolicyFilter, PolicyStore as _, PolicyUpdateOperation,
-        error::EnsureSystemPoliciesError,
+        PolicyCreationParams, PolicyFilter, PolicyUpdateOperation, error::EnsureSystemPoliciesError,
     },
 };
 use tokio_postgres::Transaction;
@@ -881,7 +880,6 @@ impl PostgresStore<Transaction<'_>> {
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn update_seeded_policies(
         &mut self,
-        authenticated_actor: ActorId,
         policies: impl IntoIterator<Item = PolicyCreationParams>,
     ) -> Result<(), Report<EnsureSystemPoliciesError>> {
         type PolicyParts = (Effect, Vec<ActionName>, Option<ResourceConstraint>);
@@ -906,13 +904,10 @@ impl PostgresStore<Transaction<'_>> {
 
         for (name, policies) in policy_map {
             let mut existing_policies = self
-                .query_policies(
-                    authenticated_actor.into(),
-                    &PolicyFilter {
-                        name: Some(name.clone()),
-                        principal: None,
-                    },
-                )
+                .read_policies_from_database(&PolicyFilter {
+                    name: Some(name.clone()),
+                    principal: None,
+                })
                 .await
                 .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
                 .into_iter()
