@@ -19,7 +19,7 @@ $ terraform workspace select prod
 prod
 ```
 
-By default, the selected region is `us-east-1` and can be configured by editing the Terraform variables used for applying the Terraform plan (e.g. the one in [`./hash/prod-usea1.tfvars`](./hash/prod-usea1.tfvars)).
+By default, the selected region is `us-east-1` and can be configured by editing the Terraform variables used for applying the Terraform plan (e.g. the one in [`./hash/prod.auto.tfvars`](./hash/prod.auto.tfvars)).
 
 # Naming convention
 
@@ -126,7 +126,7 @@ Deployment can then be done by issuing the following command after initializing 
 ```console
 $ terraform workspace show
 prod
-$ terraform apply --var-file prod-usea1.tfvars
+$ terraform apply
 ..
 ```
 
