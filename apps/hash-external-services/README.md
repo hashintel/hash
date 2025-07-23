@@ -2,27 +2,90 @@
 
 ## Overview
 
-This directory contains a number of external services used throughout HASH (Ory Kratos, OpenSearch, Postgres, and Temporal).
+This directory contains external services used throughout HASH, including authentication, database, search, observability, and workflow execution services.
 
-### LLM prototyping
+## Services
 
-This also contains an experimental Docker compose file for prototyping LLM-based services using relevant external services such as a vector database.
-You'll be able to execute the following command from the repository root directory to start the prototyping external services:
+### Core Infrastructure
 
-```sh
-yarn external-services:prototype up
+- **PostgreSQL** - Primary database for user data, graph data, and application state
+- **MinIO** - S3-compatible object storage for file uploads and assets
+- **Redis** - Caching and session storage
+- **Vault** - Secrets management and secure storage
+
+### Authentication & Authorization
+
+- **Ory Kratos** - Identity and user management service
+- **Ory Hydra** - OAuth2 and OpenID Connect server
+- **MailSlurper** - Development email testing server
+
+### Search & Analytics
+
+- **OpenSearch** - Full-text search and analytics (alternative configuration available)
+
+### Workflow Execution
+
+- **Temporal** - Reliable workflow execution and task orchestration
+
+### Observability Stack
+
+The observability stack follows a centralized collection pattern: all applications send telemetry data (traces, metrics, logs) to the **OpenTelemetry Collector**, which processes and routes the data to specialized storage backends. **Grafana** then reads from all backends to provide unified visualization.
+
+**Flow:** `Applications → OTel Collector → Storage Backends ← Grafana`
+
+- **OpenTelemetry Collector** - Central telemetry hub that receives, processes, and routes data
+- **Grafana Tempo** - Distributed tracing backend with service graph generation
+- **Grafana Loki** - Log aggregation and storage
+- **Prometheus** - Metrics collection and storage
+- **Grafana** - Unified observability dashboard reading from all backends
+
+## Quick Start
+
+### Development Environment
+
+Start all development services:
+
+```bash
+# From the repository root
+yarn external-services up --wait
 ```
 
-As with other external services, the arguments passed after the script name are arguments for `docker compose`.
+### Service Management
 
-## Future plans
+Each service includes health checks and proper dependency management. Services will start in the correct order automatically.
 
-These will be migrated into semantic folders in the future. For example, within the `apps` folder:
+**Access URLs (Development):**
+
+- Grafana Dashboard: http://localhost:3001
+- Prometheus: http://localhost:9090
+- Kratos Admin API: http://localhost:4434
+- Hydra Admin API: http://localhost:4445
+
+## Configuration Files
+
+### Observability Configuration
+
+- `opentelemetry-collector/otel-collector-config.yaml` - OpenTelemetry Collector pipeline configuration
+- `tempo/tempo.yaml` - Tempo tracing backend configuration
+- `loki/loki.yaml` - Loki log aggregation configuration
+- `prometheus/prometheus.yml` - Prometheus metrics collection configuration
+- `grafana/provisioning/` - Grafana data source and dashboard provisioning
+
+### Authentication Configuration
+
+- `kratos/kratos.dev.yml` - Kratos development configuration
+- `kratos/identity.schema.json` - User identity schema
+- `kratos/templates/` - Email templates for verification and recovery
+
+## Future Plans
+
+Services may be migrated into semantic folders:
 
 1. `hash-external-services/kratos` → `hash-authentication`
 2. `hash-external-services/opensearch` → `hash-search`
 3. `hash-external-services/postgres` → `hash-database`
 4. `hash-external-services/temporal` → `hash-executor`
+5. `hash-external-services/grafana` → `hash-observability`
 
 ## Database Backups
 

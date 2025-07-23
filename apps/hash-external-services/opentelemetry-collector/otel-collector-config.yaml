@@ -3,14 +3,27 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
+  resource/deployment_environment:
+    attributes:
+      # Ory sets an empty deployment.environment attribute in dev
+      - key: deployment.environment
+        action: delete
 
 exporters:
-  nop:
-  otlp/jaeger:
-    endpoint: jaeger:4317
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "otel"
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
     tls:
       insecure: true
 
@@ -23,11 +36,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp/jaeger]
+      processors: [resource/deployment_environment, batch]
+      exporters: [otlp/tempo]
     metrics:
       receivers: [otlp]
-      exporters: [nop]
+      processors: [batch]
+      exporters: [prometheus]
     logs:
       receivers: [otlp]
-      exporters: [nop]
+      processors: [batch]
+      exporters: [otlphttp/loki]
