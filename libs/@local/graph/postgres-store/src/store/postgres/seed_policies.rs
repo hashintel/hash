@@ -209,12 +209,33 @@ fn system_actor_invitation_entity_policies(
     })
 }
 
+fn system_actor_create_prospective_user_entity_policies(
+    system_machine_actor: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("system-machine-create-prospective-user-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(system_machine_actor),
+        }),
+        actions: vec![ActionName::CreateEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: vec![PROSPECTIVE_USER.entity_is_of_base_type()],
+            },
+        })),
+    })
+}
+
 pub(crate) fn system_actor_policies(
     system_machine_actor: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
         .chain(system_actor_invitation_entity_policies(
+            system_machine_actor,
+        ))
+        .chain(system_actor_create_prospective_user_entity_policies(
             system_machine_actor,
         ))
         .chain(iter::once(system_actor_meta_policy(system_machine_actor)))

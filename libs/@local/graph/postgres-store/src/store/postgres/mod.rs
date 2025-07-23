@@ -270,7 +270,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     system_machine_id.into(),
                     CreateWebParameter {
                         id: None,
-                        administrator: machine_id.into(),
+                        administrator: Some(machine_id.into()),
                         shortname: Some(identifier.to_owned()),
                         is_actor_web: false,
                     },
@@ -809,10 +809,12 @@ where
             .await
             .change_context(WebCreationError::RoleCreationError)?;
 
-        transaction
-            .assign_role_by_id(parameter.administrator, admin_role)
-            .await
-            .change_context(WebCreationError::RoleAssignmentError)?;
+        if let Some(administrator) = parameter.administrator {
+            transaction
+                .assign_role_by_id(administrator, admin_role)
+                .await
+                .change_context(WebCreationError::RoleAssignmentError)?;
+        }
 
         let member_role_id = Uuid::new_v4();
         let member_role = transaction
@@ -950,8 +952,15 @@ where
             .change_context(RoleAssignmentError::StoreError)?
             != Some(RoleName::Administrator)
         {
-            return Err(Report::new(RoleAssignmentError::PermissionDenied)
-                .attach(StatusCode::PermissionDenied));
+            // We allow the system machine to generally assign roles to other actors
+            let system_machine = self
+                .get_or_create_system_machine("h")
+                .await
+                .change_context(RoleAssignmentError::StoreError)?;
+            if actor_id != system_machine.into() {
+                return Err(Report::new(RoleAssignmentError::PermissionDenied)
+                    .attach(StatusCode::PermissionDenied));
+            }
         }
 
         let mut transaction = self
@@ -3305,11 +3314,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 actor_id,
                 CreateWebParameter {
                     id: Some(user_id.into()),
-                    administrator: if params.registration_complete {
-                        user_id.into()
-                    } else {
-                        actor_id
-                    },
+                    administrator: params.registration_complete.then(|| user_id.into()),
                     shortname: params.shortname,
                     is_actor_web: true,
                 },
@@ -3644,7 +3649,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 CreateWebParameter {
                     id: None,
                     shortname: Some(params.shortname),
-                    administrator,
+                    administrator: Some(administrator),
                     is_actor_web: false,
                 },
             )

@@ -72,7 +72,7 @@ pub struct CreateUserParameter {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CreateWebParameter {
     pub id: Option<Uuid>,
-    pub administrator: ActorId,
+    pub administrator: Option<ActorId>,
     pub shortname: Option<String>,
     pub is_actor_web: bool,
 }
