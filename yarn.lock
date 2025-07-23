@@ -298,7 +298,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     cache-manager: "npm:5.7.6"
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
@@ -396,7 +396,7 @@ __metadata:
     apollo-server-errors: "npm:3.3.1"
     apollo-server-express: "npm:3.9.0"
     app-root-path: "npm:3.1.0"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     body-parser: "npm:1.20.3"
     clipboardy: "npm:2.3.0"
     cors: "npm:2.8.5"
@@ -516,7 +516,7 @@ __metadata:
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
     "@welldone-software/why-did-you-render": "npm:10.0.1"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     buffer: "npm:6.0.3"
     clsx: "npm:1.2.1"
     date-fns: "npm:4.1.0"
@@ -626,7 +626,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.12.1"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.6.0"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
@@ -8951,7 +8951,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
@@ -8976,7 +8976,7 @@ __metadata:
     "@openapitools/openapi-generator-cli": "npm:2.21.3"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.16.5"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -9064,7 +9064,7 @@ __metadata:
   dependencies:
     "@openapitools/openapi-generator-cli": "npm:2.21.3"
     "@types/node": "npm:22.16.5"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -21081,7 +21081,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.10.0, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
+"axios@npm:1.10.0":
   version: 1.10.0
   resolution: "axios@npm:1.10.0"
   dependencies:
@@ -21089,6 +21089,17 @@ __metadata:
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
   checksum: 10c0/2239cb269cc789eac22f5d1aabd58e1a83f8f364c92c2caa97b6f5cbb4ab2903d2e557d9dc670b5813e9bcdebfb149e783fb8ab3e45098635cd2f559b06bd5d8
+  languageName: node
+  linkType: hard
+
+"axios@npm:1.11.0, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
+  version: 1.11.0
+  resolution: "axios@npm:1.11.0"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.4"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/5de273d33d43058610e4d252f0963cc4f10714da0bfe872e8ef2cbc23c2c999acc300fd357b6bce0fc84a2ca9bd45740fa6bb28199ce2c1266c8b1a393f2b36e
   languageName: node
   linkType: hard
 
@@ -25339,14 +25350,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"es-set-tostringtag@npm:^2.0.3":
-  version: 2.0.3
-  resolution: "es-set-tostringtag@npm:2.0.3"
+"es-set-tostringtag@npm:^2.0.3, es-set-tostringtag@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "es-set-tostringtag@npm:2.1.0"
   dependencies:
-    get-intrinsic: "npm:^1.2.4"
+    es-errors: "npm:^1.3.0"
+    get-intrinsic: "npm:^1.2.6"
     has-tostringtag: "npm:^1.0.2"
-    hasown: "npm:^2.0.1"
-  checksum: 10c0/f22aff1585eb33569c326323f0b0d175844a1f11618b86e193b386f8be0ea9474cfbe46df39c45d959f7aa8f6c06985dc51dd6bce5401645ec5a74c4ceaa836a
+    hasown: "npm:^2.0.2"
+  checksum: 10c0/ef2ca9ce49afe3931cb32e35da4dcb6d86ab02592cfc2ce3e49ced199d9d0bb5085fc7e73e06312213765f5efa47cc1df553a6a5154584b21448e9fb8355b1af
   languageName: node
   linkType: hard
 
@@ -27868,14 +27880,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^4.0.0":
-  version: 4.0.1
-  resolution: "form-data@npm:4.0.1"
+"form-data@npm:^4.0.0, form-data@npm:^4.0.4":
+  version: 4.0.4
+  resolution: "form-data@npm:4.0.4"
   dependencies:
     asynckit: "npm:^0.4.0"
     combined-stream: "npm:^1.0.8"
+    es-set-tostringtag: "npm:^2.1.0"
+    hasown: "npm:^2.0.2"
     mime-types: "npm:^2.1.12"
-  checksum: 10c0/bb102d570be8592c23f4ea72d7df9daa50c7792eb0cf1c5d7e506c1706e7426a4e4ae48a35b109e91c85f1c0ec63774a21ae252b66f4eb981cb8efef7d0463c8
+  checksum: 10c0/373525a9a034b9d57073e55eab79e501a714ffac02e7a9b01be1c820780652b16e4101819785e1e18f8d98f0aee866cc654d660a435c378e16a72f2e7cac9695
   languageName: node
   linkType: hard
 
@@ -28244,7 +28258,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"get-intrinsic@npm:^1.1.3, get-intrinsic@npm:^1.2.1, get-intrinsic@npm:^1.2.2, get-intrinsic@npm:^1.2.3, get-intrinsic@npm:^1.2.4, get-intrinsic@npm:^1.2.5, get-intrinsic@npm:^1.3.0":
+"get-intrinsic@npm:^1.1.3, get-intrinsic@npm:^1.2.1, get-intrinsic@npm:^1.2.2, get-intrinsic@npm:^1.2.3, get-intrinsic@npm:^1.2.4, get-intrinsic@npm:^1.2.5, get-intrinsic@npm:^1.2.6, get-intrinsic@npm:^1.3.0":
   version: 1.3.0
   resolution: "get-intrinsic@npm:1.3.0"
   dependencies:
@@ -29209,7 +29223,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hasown@npm:^2.0.0, hasown@npm:^2.0.1, hasown@npm:^2.0.2":
+"hasown@npm:^2.0.0, hasown@npm:^2.0.2":
   version: 2.0.2
   resolution: "hasown@npm:2.0.2"
   dependencies:
