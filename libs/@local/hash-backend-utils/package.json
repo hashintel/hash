@@ -56,7 +56,7 @@
     "redis": "4.7.1",
     "slonik": "24.2.0",
     "uuid": "11.1.0",
-    "wait-on": "8.0.3",
+    "wait-on": "8.0.4",
     "winston": "3.17.0"
   },
   "devDependencies": {
