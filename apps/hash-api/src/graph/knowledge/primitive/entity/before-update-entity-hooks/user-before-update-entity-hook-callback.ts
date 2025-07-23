@@ -3,10 +3,7 @@ import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
-import {
-  addActorGroupAdministrator,
-  removeActorGroupAdministrator,
-} from "@local/hash-graph-sdk/principal/actor-group";
+import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
@@ -142,12 +139,6 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         context.graphApi,
         { actorId: systemAccountId },
         { actorId: user.accountId, actorGroupId: user.accountId },
-      );
-
-      await removeActorGroupAdministrator(
-        context.graphApi,
-        { actorId: user.accountId },
-        { actorId: systemAccountId, actorGroupId: user.accountId },
       );
     }
   };

@@ -24,7 +24,7 @@ async fn create_web() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -54,7 +54,7 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: Some(id),
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -77,7 +77,7 @@ async fn delete_web() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -102,7 +102,7 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: Some(Uuid::new_v4()),
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -114,7 +114,7 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: Some(web_id.into()),
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },

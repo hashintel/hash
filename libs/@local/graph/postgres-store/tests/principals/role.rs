@@ -30,7 +30,7 @@ async fn create_role() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -68,7 +68,7 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -129,7 +129,7 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -164,7 +164,7 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -231,7 +231,7 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -284,7 +284,7 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -344,7 +344,7 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -420,7 +420,7 @@ async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -451,7 +451,7 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -488,7 +488,7 @@ async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },

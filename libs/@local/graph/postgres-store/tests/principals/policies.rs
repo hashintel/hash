@@ -149,7 +149,7 @@ async fn setup_policy_test_environment(
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -161,7 +161,7 @@ async fn setup_policy_test_environment(
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -1039,7 +1039,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
