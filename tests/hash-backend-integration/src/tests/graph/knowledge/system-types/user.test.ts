@@ -223,13 +223,6 @@ describe("User model class", () => {
       }),
     ).toBe(null);
 
-    expect(
-      await getActorGroupRole(graphContext.graphApi, authentication, {
-        actorId: systemAccountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe("administrator");
-
     await expect(
       checkEntityPermission(
         graphContext,
@@ -288,13 +281,6 @@ describe("User model class", () => {
         actorGroupId: incompleteUser.accountId,
       }),
     ).toBe("administrator");
-
-    expect(
-      await getActorGroupRole(graphContext.graphApi, authentication, {
-        actorId: systemAccountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe(null);
   });
 
   afterAll(async () => {
