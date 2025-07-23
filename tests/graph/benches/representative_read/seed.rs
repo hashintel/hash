@@ -161,7 +161,7 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
                 ActorId::from(system_account_id),
                 CreateWebParameter {
                     id: Some(user_id.into()),
-                    administrator: user_id.into(),
+                    administrator: Some(user_id.into()),
                     shortname: Some("alice".to_owned()),
                     is_actor_web: true,
                 },

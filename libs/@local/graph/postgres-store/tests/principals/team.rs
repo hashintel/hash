@@ -22,7 +22,7 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -54,7 +54,7 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -83,7 +83,7 @@ async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -162,7 +162,7 @@ async fn can_delete_team_with_children() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -197,7 +197,7 @@ async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },
@@ -257,7 +257,7 @@ async fn get_team() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: Some("test-web".to_owned()),
                 is_actor_web: false,
             },

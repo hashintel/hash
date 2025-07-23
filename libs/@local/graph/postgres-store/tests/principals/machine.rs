@@ -99,7 +99,7 @@ async fn create_web_machine_relation() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },
@@ -162,7 +162,7 @@ async fn machine_role_assignment() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },

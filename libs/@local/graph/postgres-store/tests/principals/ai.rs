@@ -118,7 +118,7 @@ async fn create_web_ai_relation() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: ai_id.into(),
+                administrator: Some(ai_id.into()),
                 is_actor_web: true,
                 shortname: None,
             },
@@ -143,7 +143,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: None,
-                administrator: actor_id,
+                administrator: Some(actor_id),
                 shortname: None,
                 is_actor_web: false,
             },

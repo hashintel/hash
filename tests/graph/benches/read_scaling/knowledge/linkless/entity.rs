@@ -75,7 +75,7 @@ async fn seed_db(
             ActorId::from(system_account_id),
             CreateWebParameter {
                 id: Some(user_id.into()),
-                administrator: user_id.into(),
+                administrator: Some(user_id.into()),
                 shortname: Some("alice".to_owned()),
                 is_actor_web: true,
             },
