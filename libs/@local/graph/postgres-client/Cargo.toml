@@ -1,0 +1,26 @@
+[package]
+name              = "hash-graph-postgres-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+hash-telemetry = { workspace = true }
+tracing        = { workspace = true }
+
+# Private third-party dependencies
+pgwire            = { workspace = true }
+simple-mermaid    = { workspace = true }
+tokio             = { workspace = true, features = ["macros", "rt-multi-thread", "net"] }
+bytes             = { workspace = true }
+postgres-protocol = { workspace = true }                                                  # TODO: Replace with own SCRAM implementation later
+
+[lints]
+workspace = true

@@ -15,6 +15,7 @@ members = [
     "libs/@local/graph/authorization",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
+    "libs/@local/graph/postgres-client",
     "libs/@local/graph/postgres-queries",
     "libs/@local/graph/postgres-queries/clorinde",
     "libs/@local/graph/postgres-store",
@@ -73,6 +74,7 @@ hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
+hash-graph-postgres-client.path     = "libs/@local/graph/postgres-client"
 hash-graph-postgres-queries.path    = "libs/@local/graph/postgres-queries"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store"
@@ -204,6 +206,7 @@ owo-colors                     = { version = "=4.2.2", default-features = false 
 oxc                            = { version = "=0.67.0", default-features = false, features = ["allocator_api"] }
 paste                          = { version = "=1.0.15", default-features = false }
 pdfium-render                  = { version = "=0.8.26" }
+pgwire                         = { version = "=0.31.0", default-features = false }
 pin-project                    = { version = "=1.1.10", default-features = false }
 pin-project-lite               = { version = "=0.2.16", default-features = false }
 postgres                       = { version = "=0.19.10", default-features = false }

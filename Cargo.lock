@@ -2193,6 +2193,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-new"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cdc8d50f426189eef89dac62fabfa0abb27d5cc008f25bf4156a0203325becc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
 name = "derive-where"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3582,6 +3593,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-graph-postgres-client"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "hash-telemetry",
+ "pgwire",
+ "postgres-protocol",
+ "simple-mermaid",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "hash-graph-postgres-queries"
 version = "0.0.0"
 dependencies = [
@@ -4902,6 +4926,29 @@ checksum = "b5baa5e9ff84f1aefd264e6869907646538a52147a755d494517a8007fb48733"
 dependencies = [
  "regex-automata 0.4.9",
  "rustversion",
+]
+
+[[package]]
+name = "lazy-regex"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d8e41c97e6bc7ecb552016274b99fbb5d035e8de288c582d9b933af6677bfda"
+dependencies = [
+ "lazy-regex-proc_macros",
+ "once_cell",
+ "regex-lite",
+]
+
+[[package]]
+name = "lazy-regex-proc_macros"
+version = "3.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ba01db5ef81e17eb10a5e0f2109d1b3a3e29bac3070fdbd7d156bf7dbd206a1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn 2.0.104",
 ]
 
 [[package]]
@@ -6732,6 +6779,18 @@ dependencies = [
  "hashbrown 0.15.4",
  "indexmap 2.10.0",
  "serde",
+]
+
+[[package]]
+name = "pgwire"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "449fecabd6a04033ec9c12e6c0bb7e663e03c3731f59d1e196c1ae9f1b65a9a9"
+dependencies = [
+ "bytes",
+ "derive-new",
+ "lazy-regex",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

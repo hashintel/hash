@@ -1,0 +1,11 @@
+{
+  "name": "@rust/hash-graph-postgres-client",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-postgres-client --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy"
+  }
+}

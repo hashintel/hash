@@ -13044,6 +13044,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-graph-postgres-client@workspace:libs/@local/graph/postgres-client":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-postgres-client@workspace:libs/@local/graph/postgres-client"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-postgres-queries@npm:0.0.0-private, @rust/hash-graph-postgres-queries@workspace:libs/@local/graph/postgres-queries":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-postgres-queries@workspace:libs/@local/graph/postgres-queries"
