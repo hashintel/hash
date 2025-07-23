@@ -59,7 +59,7 @@ $ terraform init
 ..
 $ terraform workspace new prod
 ..
-$ terraform apply --var-file prod-usea1.tfvars
+$ terraform apply
 ..
 ```
 
