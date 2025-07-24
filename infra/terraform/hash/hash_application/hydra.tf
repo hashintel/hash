@@ -4,11 +4,28 @@ locals {
   hydra_param_prefix = "${local.param_prefix}/${local.hydra_service_name}"
   hydra_public_port  = 4444
   hydra_private_port = 4445
+  hydra_env_vars = concat(var.hydra_env_vars, [
+    {
+      name   = "TRACING_PROVIDER",
+      secret = false,
+      value  = "otel"
+    },
+    {
+      name   = "TRACING_PROVIDERS_OTLP_INSECURE",
+      secret = false,
+      value  = "true"
+    },
+    {
+      name   = "TRACING_PROVIDERS_OTLP_SERVER_URL",
+      secret = false,
+      value  = "http://${local.otel_http_container_port_dns}:${local.otel_http_container_port}"
+    }
+  ])
 }
 
 resource "aws_ssm_parameter" "hydra_env_vars" {
   # Only put secrets into SSM
-  for_each = { for env_var in var.hydra_env_vars : env_var.name => env_var if env_var.secret }
+  for_each = { for env_var in local.hydra_env_vars : env_var.name => env_var if env_var.secret }
 
   name = "${local.hydra_param_prefix}/${each.value.name}"
   # Still supports non-secret values
@@ -36,11 +53,11 @@ locals {
       }
     }
 
-    Environment = [for env_var in var.hydra_env_vars :
-      { name = env_var.name, value = env_var.value } if !env_var.secret]
+    Environment = [for env_var in local.hydra_env_vars :
+    { name = env_var.name, value = env_var.value } if !env_var.secret]
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.hydra_env_vars :
-      { name = env_name, valueFrom = ssm_param.arn }]
+    { name = env_name, valueFrom = ssm_param.arn }]
 
     essential = false
   }
@@ -50,7 +67,7 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [
+    dependsOn = [
       { condition = "SUCCESS", containerName = local.hydra_migration_container_def.name },
     ]
     healthCheck = {
@@ -83,7 +100,7 @@ locals {
         "awslogs-region"        = var.region
       }
     }
-    Environment = [for env_var in var.hydra_env_vars :
+    Environment = [for env_var in local.hydra_env_vars :
     { name = env_var.name, value = env_var.value } if !env_var.secret]
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.hydra_env_vars :

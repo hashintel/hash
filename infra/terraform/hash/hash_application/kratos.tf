@@ -4,7 +4,23 @@ locals {
   kratos_param_prefix = "${local.param_prefix}/${local.kratos_service_name}"
   kratos_public_port  = 4433
   kratos_private_port = 4434
-  kratos_env_vars     = concat(var.kratos_env_vars, local.kratos_email_env_vars)
+  kratos_env_vars = concat(var.kratos_env_vars, local.kratos_email_env_vars, [
+    {
+      name   = "TRACING_PROVIDER",
+      secret = false,
+      value  = "otel"
+    },
+    {
+      name   = "TRACING_PROVIDERS_OTLP_INSECURE",
+      secret = false,
+      value  = "true"
+    },
+    {
+      name   = "TRACING_PROVIDERS_OTLP_SERVER_URL",
+      secret = false,
+      value  = "http://${local.otel_http_container_port_dns}:${local.otel_http_container_port}"
+    }
+  ])
 }
 
 
@@ -40,10 +56,10 @@ locals {
     }
 
     Environment = [for env_var in local.kratos_env_vars :
-      { name = env_var.name, value = env_var.value } if !env_var.secret]
+    { name = env_var.name, value = env_var.value } if !env_var.secret]
 
     secrets = [for env_name, ssm_param in aws_ssm_parameter.kratos_env_vars :
-      { name = env_name, valueFrom = ssm_param.arn }]
+    { name = env_name, valueFrom = ssm_param.arn }]
 
     essential = false
   }
@@ -53,7 +69,7 @@ locals {
     cpu         = 0 # let ECS divvy up the available CPU
     mountPoints = []
     volumesFrom = []
-    dependsOn   = [
+    dependsOn = [
       { condition = "SUCCESS", containerName = local.kratos_migration_container_def.name },
     ]
     healthCheck = {

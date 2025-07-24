@@ -76,6 +76,15 @@ resource "aws_security_group" "graph" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Egress to local OTel collector (gRPC only for Graph)
+  egress {
+    from_port   = local.otel_grpc_container_port
+    to_port     = local.otel_grpc_container_port
+    protocol    = "tcp"
+    description = "Allow sending telemetry to local OTel collector (gRPC)"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   ingress {
     from_port   = local.graph_http_container_port
     to_port     = local.graph_http_container_port
@@ -168,6 +177,9 @@ locals {
     Environment = concat([
       for env_var in var.graph_migration_env_vars :
       { name = env_var.name, value = env_var.value } if !env_var.secret
+      ],
+      [
+        { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
       ]
     )
     secrets = [
@@ -226,6 +238,7 @@ locals {
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_GRAPH_TYPE_FETCHER_HOST", value = local.type_fetcher_container_port_dns },
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
+        { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
       ]
