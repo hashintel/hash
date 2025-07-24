@@ -23,8 +23,6 @@ locals {
   ])
 }
 
-
-
 resource "aws_ssm_parameter" "kratos_env_vars" {
   # Only put secrets into SSM
   for_each = { for env_var in local.kratos_env_vars : env_var.name => env_var if env_var.secret }
