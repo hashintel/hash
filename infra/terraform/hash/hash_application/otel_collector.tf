@@ -111,7 +111,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
     # Main OpenTelemetry Collector container
     {
       name  = local.otel_service_name
-      image = "otel/opentelemetry-collector:0.130.0"
+      image = "otel/opentelemetry-collector-contrib:0.128.0"
 
       cpu    = 256
       memory = 512
