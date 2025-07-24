@@ -4,23 +4,7 @@ locals {
   kratos_param_prefix = "${local.param_prefix}/${local.kratos_service_name}"
   kratos_public_port  = 4433
   kratos_private_port = 4434
-  kratos_env_vars = concat(var.kratos_env_vars, local.kratos_email_env_vars, [
-    {
-      name   = "TRACING_PROVIDER",
-      secret = false,
-      value  = "otel"
-    },
-    {
-      name   = "TRACING_PROVIDERS_OTLP_INSECURE",
-      secret = false,
-      value  = "true"
-    },
-    {
-      name   = "TRACING_PROVIDERS_OTLP_SERVER_URL",
-      secret = false,
-      value  = "http://${local.otel_http_container_port_dns}:${local.otel_http_container_port}"
-    }
-  ])
+  kratos_env_vars     = concat(var.kratos_env_vars, local.kratos_email_env_vars)
 }
 
 resource "aws_ssm_parameter" "kratos_env_vars" {
