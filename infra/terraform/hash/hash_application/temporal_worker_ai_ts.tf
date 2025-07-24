@@ -6,9 +6,9 @@ locals {
 
 resource "aws_ssm_parameter" "temporal_worker_ai_ts_env_vars" {
   # Only put secrets into SSM
-  for_each = {for env_var in var.temporal_worker_ai_ts_env_vars : env_var.name => env_var if env_var.secret}
+  for_each = { for env_var in var.temporal_worker_ai_ts_env_vars : env_var.name => env_var if env_var.secret }
 
-  name      = "${local.temporal_worker_ai_ts_param_prefix}/${each.value.name}"
+  name = "${local.temporal_worker_ai_ts_param_prefix}/${each.value.name}"
   # Still supports non-secret values
   type      = each.value.secret ? "SecureString" : "String"
   value     = each.value.secret ? sensitive(each.value.value) : each.value.value
@@ -18,10 +18,10 @@ resource "aws_ssm_parameter" "temporal_worker_ai_ts_env_vars" {
 
 locals {
   temporal_worker_ai_ts_service_container_def = {
-    essential   = true
-    name        = local.temporal_worker_ai_ts_prefix
-    image       = "${var.temporal_worker_ai_ts_image.url}:latest"
-    cpu         = 0 # let ECS divvy up the available CPU
+    essential = true
+    name      = local.temporal_worker_ai_ts_prefix
+    image     = "${var.temporal_worker_ai_ts_image.url}:latest"
+    cpu       = 0 # let ECS divvy up the available CPU
     healthCheck = {
       command     = ["CMD", "/bin/sh", "-c", "curl -f http://localhost:4100/health || exit 1"]
       startPeriod = 10
@@ -32,7 +32,7 @@ locals {
 
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.temporal_worker_ai_ts_service_name
@@ -51,6 +51,7 @@ locals {
         { name = "HASH_GRAPH_HTTP_PORT", value = tostring(local.graph_http_container_port) },
         { name = "HASH_GRAPH_RPC_HOST", value = local.graph_rpc_container_port_dns },
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
+        { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
       ],
     )
 

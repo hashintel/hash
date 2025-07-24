@@ -90,6 +90,40 @@ data "aws_vpc_endpoint" "s3" {
   tags = { Name = "${var.prefix}-vpces3" }
 }
 
+resource "aws_s3_bucket" "app_configs" {
+  bucket = "${local.prefix}-configs"
+  tags = {
+    Purpose = "App cluster service configurations"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "app_configs" {
+  bucket = aws_s3_bucket.app_configs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "app_configs" {
+  bucket = aws_s3_bucket.app_configs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "app_configs" {
+  bucket = aws_s3_bucket.app_configs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+
 data "cloudflare_ip_ranges" "cloudflare" {}
 
 resource "aws_security_group" "alb_sg" {
@@ -331,6 +365,18 @@ resource "aws_iam_role" "task_role" {
           Effect   = "Allow",
           Resource = "*"
         },
+        # Allow S3 access for config downloader
+        {
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:ListBucket"
+          ]
+          Resource = [
+            aws_s3_bucket.app_configs.arn,
+            "${aws_s3_bucket.app_configs.arn}/*"
+          ]
+        },
       ]
     })
   }
@@ -504,6 +550,23 @@ resource "aws_security_group" "app_sg" {
     to_port     = local.graph_rpc_container_port
     protocol    = "tcp"
     description = "Allow connections to the Graph RPC interface"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+
+  # Egress to local OTel collector
+  egress {
+    from_port   = local.otel_grpc_container_port
+    to_port     = local.otel_grpc_container_port
+    protocol    = "tcp"
+    description = "Allow sending telemetry to local OTel collector (gRPC)"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  egress {
+    from_port   = local.otel_http_container_port
+    to_port     = local.otel_http_container_port
+    protocol    = "tcp"
+    description = "Allow sending telemetry to local OTel collector (HTTP)"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

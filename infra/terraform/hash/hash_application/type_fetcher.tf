@@ -35,6 +35,7 @@ locals {
     Environment = [
       { name = "HASH_GRAPH_TYPE_FETCHER_HOST", value = "0.0.0.0" },
       { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
+      { name = "HASH_OTLP_ENDPOINT", value = "grpc://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
     ]
 
     essential = true
