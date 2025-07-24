@@ -24,8 +24,8 @@ resource "aws_security_group" "alb" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    description = "HTTPS for OpenTelemetry receiver (external - HTTP and gRPC)"
-    cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTPS for OpenTelemetry receiver (internal - HTTP and gRPC)"
+    cidr_blocks = [var.vpc.cidr_block]
   }
 
   # Allow inbound HTTPS for OTel receiver internal (supports both gRPC and HTTP over HTTPS)

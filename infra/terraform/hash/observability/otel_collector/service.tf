@@ -101,13 +101,13 @@ resource "aws_ecs_service" "otel_collector" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.http.arn
-    container_name   = local.service_name
+    container_name   = "otel-collector"
     container_port   = local.http_port
   }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.grpc.arn
-    container_name   = local.service_name
+    container_name   = "otel-collector"
     container_port   = local.grpc_port
   }
 
