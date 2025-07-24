@@ -52,7 +52,6 @@ resource "aws_security_group" "alb" {
   }
 }
 
-
 # External HTTPS listener for telemetry.hash.ai (Cloudflare certificate)
 resource "aws_lb_listener" "otel_external" {
   load_balancer_arn = aws_lb.observability.arn

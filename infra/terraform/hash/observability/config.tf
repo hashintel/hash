@@ -8,13 +8,6 @@ resource "aws_s3_bucket" "configs" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "configs" {
-  bucket = aws_s3_bucket.configs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
 resource "aws_s3_bucket_server_side_encryption_configuration" "configs" {
   bucket = aws_s3_bucket.configs.id
 
@@ -33,3 +26,4 @@ resource "aws_s3_bucket_public_access_block" "configs" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
+
