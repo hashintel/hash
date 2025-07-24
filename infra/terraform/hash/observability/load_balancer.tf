@@ -58,7 +58,7 @@ resource "aws_lb_listener" "otel_external" {
   load_balancer_arn = aws_lb.observability.arn
   port              = "443"
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
   certificate_arn   = data.aws_acm_certificate.hash_wildcard_cert.arn
 
   default_action {

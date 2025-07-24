@@ -26,4 +26,3 @@ variable "subnets" {
   type        = list(string)
   description = "List of subnet IDs for the ECS services"
 }
-
