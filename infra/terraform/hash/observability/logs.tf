@@ -5,6 +5,7 @@
 resource "aws_kms_key" "log_group" {
   description             = "KMS key for observability CloudWatch log group encryption"
   deletion_window_in_days = 7
+  enable_key_rotation     = true
 
   tags = {
     Purpose = "CloudWatch log group encryption for observability cluster"
