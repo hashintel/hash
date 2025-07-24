@@ -281,6 +281,12 @@ jobs:
       - name: Start background tasks
         id: background-tasks
         if: steps.tests.outputs.has-background-tasks == 'true'
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: var/logs
         run: |
           # Optimistically compile background tasks. Ideally, we also `build` them but this includes
           # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
