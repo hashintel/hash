@@ -114,6 +114,15 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "app_configs" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "app_configs" {
+  bucket = aws_s3_bucket.app_configs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 
 data "cloudflare_ip_ranges" "cloudflare" {}
 

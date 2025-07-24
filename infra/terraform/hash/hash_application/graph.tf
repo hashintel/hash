@@ -179,7 +179,7 @@ locals {
       { name = env_var.name, value = env_var.value } if !env_var.secret
       ],
       [
-        { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
+        { name = "HASH_OTLP_ENDPOINT", value = "grpc://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
       ]
     )
     secrets = [
@@ -238,7 +238,7 @@ locals {
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_GRAPH_TYPE_FETCHER_HOST", value = local.type_fetcher_container_port_dns },
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
-        { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
+        { name = "HASH_OTLP_ENDPOINT", value = "grpc://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
       ]
