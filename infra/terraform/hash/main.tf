@@ -124,6 +124,17 @@ module "temporal" {
   postgres_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
 }
 
+module "observability" {
+  depends_on   = [module.networking]
+  source       = "./observability"
+  env          = local.env
+  region       = local.region
+  vpc          = module.networking.vpc
+  prefix       = "h-${terraform.workspace}-observability"
+  param_prefix = local.param_prefix
+  subnets      = module.networking.snpub
+}
+
 
 module "tunnel" {
   source              = "../modules/tunnel"
@@ -486,4 +497,7 @@ module "application" {
   ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.port
+
+  telemetry_endpoint_dns       = module.observability.otlp_dns
+  telemetry_endpoint_http_port = module.observability.otlp_http_port
 }
