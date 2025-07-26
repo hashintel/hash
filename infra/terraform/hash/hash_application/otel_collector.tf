@@ -27,6 +27,16 @@ locals {
     }
     processors = {
       batch = {}
+
+      # Ory sets the `deployment.environment` attribute to an empty string
+      resource = {
+        attributes = [
+          {
+            key    = "deployment.environment"
+            action = "delete"
+          }
+        ]
+      }
     }
     exporters = {
       otlphttp = {
@@ -40,7 +50,7 @@ locals {
       pipelines = {
         traces = {
           receivers  = ["otlp"]
-          processors = ["batch"]
+          processors = ["batch", "resource"]
           exporters  = ["otlphttp"]
         }
         metrics = {

@@ -8,39 +8,6 @@ data "aws_acm_certificate" "hash_wildcard_cert" {
   most_recent = true
 }
 
-locals {
-  # Shared config-downloader container definition for all services
-  config_downloader_container = {
-    name  = "config-downloader"
-    image = "amazon/aws-cli:latest"
-
-    command = [
-      "s3", "cp",
-      "s3://${aws_s3_bucket.configs.id}/",
-      "/etc/",
-      "--recursive"
-    ]
-
-    mountPoints = [
-      {
-        sourceVolume  = "config"
-        containerPath = "/etc"
-      }
-    ]
-
-    essential = false
-
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-group"         = aws_cloudwatch_log_group.observability.name
-        "awslogs-region"        = var.region
-        "awslogs-stream-prefix" = "config-downloader"
-      }
-    }
-  }
-}
-
 # Dedicated ECS cluster for observability stack
 resource "aws_ecs_cluster" "observability" {
   name = var.prefix
@@ -57,16 +24,114 @@ resource "aws_ecs_cluster_capacity_providers" "observability" {
   capacity_providers = ["FARGATE"]
 }
 
+# Shared SSL setup configuration for all services
+locals {
+  ssl_config = {
+    init_container = {
+      name  = "ssl-setup"
+      image = "debian:bookworm-slim"
+
+      command = [
+        "sh", "-c",
+        "apt-get update && apt-get install -y ca-certificates && cp -r /etc/ssl/certs/* /shared-ssl/"
+      ]
+
+      mountPoints = [
+        {
+          sourceVolume  = "ssl-certs"
+          containerPath = "/shared-ssl"
+        }
+      ]
+
+      essential = false
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.observability.name
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "ssl-setup"
+        }
+      }
+    }
+
+    volume = {
+      name = "ssl-certs"
+    }
+
+    mount_point = {
+      sourceVolume  = "ssl-certs"
+      containerPath = "/usr/local/ssl"
+      readOnly      = true
+    }
+
+    environment_vars = [
+      {
+        name  = "SSL_CERT_DIR"
+        value = "/usr/local/ssl"
+      },
+      {
+        name  = "SSL_CERT_FILE"
+        value = "/usr/local/ssl/ca-certificates.crt"
+      }
+    ]
+  }
+}
+
 # OpenTelemetry Collector service
 module "otel_collector" {
-  source                      = "./otel_collector"
-  prefix                      = var.prefix
-  cluster_arn                 = aws_ecs_cluster.observability.arn
-  vpc                         = var.vpc
-  subnets                     = var.subnets
-  config_bucket               = aws_s3_bucket.configs
-  log_group_name              = aws_cloudwatch_log_group.observability.name
-  region                      = var.region
-  config_downloader_container = local.config_downloader_container
-  service_discovery_namespace = aws_service_discovery_private_dns_namespace.observability.arn
+  source                          = "./otel_collector"
+  prefix                          = var.prefix
+  cluster_arn                     = aws_ecs_cluster.observability.arn
+  vpc                             = var.vpc
+  subnets                         = var.subnets
+  config_bucket                   = aws_s3_bucket.configs
+  log_group_name                  = aws_cloudwatch_log_group.observability.name
+  region                          = var.region
+  service_discovery_namespace_arn = aws_service_discovery_private_dns_namespace.observability.arn
+  tempo_otlp_grpc_dns             = module.tempo.otlp_grpc_dns
+  tempo_otlp_grpc_port            = module.tempo.otlp_grpc_port
+
+  # Shared SSL configuration
+  ssl_config = local.ssl_config
+}
+
+# Tempo service for distributed tracing
+module "tempo" {
+  source                           = "./tempo"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+
+  # Shared SSL configuration
+  ssl_config = local.ssl_config
+}
+
+# Grafana service for distributed tracing visualization
+module "grafana" {
+  source                           = "./grafana"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+  grafana_database_host            = var.grafana_database_host
+  grafana_database_port            = var.grafana_database_port
+  grafana_database_password        = var.grafana_database_password
+  grafana_secret_key               = var.grafana_secret_key
+  tempo_api_dns                    = module.tempo.api_dns
+  tempo_api_port                   = module.tempo.api_port
+
+  # Shared SSL configuration
+  ssl_config = local.ssl_config
 }
