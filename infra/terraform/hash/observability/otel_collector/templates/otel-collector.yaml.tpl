@@ -35,14 +35,14 @@ processors:
     attributes:
       - key: environment
         value: ${environment}
-        action: insert
+        action: insert  # Preserve existing environment attributes (e.g., "development", "staging")
 
   # Resource processor for external services - upsert environment attribute
   resource/external:
     attributes:
       - key: environment
         value: external
-        action: upsert
+        action: upsert  # Always set external services to "external" environment
 
 connectors:
   forward/traces:
