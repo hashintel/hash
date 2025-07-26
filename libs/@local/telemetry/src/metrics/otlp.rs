@@ -1,5 +1,8 @@
 use error_stack::Report;
-use opentelemetry_otlp::{ExporterBuildError, MetricExporter, WithExportConfig as _};
+use opentelemetry_otlp::{
+    ExporterBuildError, MetricExporter, WithExportConfig as _, WithTonicConfig as _,
+    tonic_types::transport::ClientTlsConfig,
+};
 use opentelemetry_sdk::{Resource, metrics::SdkMeterProvider};
 
 use crate::OtlpConfig;
@@ -19,6 +22,7 @@ pub(crate) fn provider(
                 MetricExporter::builder()
                     .with_tonic()
                     .with_endpoint(endpoint)
+                    .with_tls_config(ClientTlsConfig::new().with_enabled_roots())
                     .build()?,
             )
             .build(),

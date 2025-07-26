@@ -1,10 +1,10 @@
 # Target groups for OpenTelemetry Collector endpoints
-# These are attached to the parent module's load balancer
+# Internal target groups for service-to-service communication
 
-# Target group for OpenTelemetry Collector HTTP endpoint
-resource "aws_lb_target_group" "http" {
-  name        = "${var.prefix}-otel-http"
-  port        = local.http_port
+# Internal HTTP target group (port 4318)
+resource "aws_lb_target_group" "http_internal" {
+  name        = "${var.prefix}-http-int"
+  port        = local.http_port_internal
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = var.vpc.id
@@ -22,15 +22,44 @@ resource "aws_lb_target_group" "http" {
   }
 
   tags = {
-    Name    = "${var.prefix}-otel-http"
-    Purpose = "OpenTelemetry Collector HTTP target group"
+    Name    = "${var.prefix}-http-int"
+    Purpose = "OpenTelemetry Collector internal HTTP target group"
   }
 }
 
-# Target group for OpenTelemetry Collector gRPC endpoint
-resource "aws_lb_target_group" "grpc" {
-  name             = "${var.prefix}-otel-grpc"
-  port             = local.grpc_port
+
+# External target groups for client applications
+
+# External HTTP target group (port 4320)
+resource "aws_lb_target_group" "http_external" {
+  name        = "${var.prefix}-http-ext"
+  port        = local.http_port_external
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = var.vpc.id
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/"
+    port                = tostring(local.health_port)
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = {
+    Name    = "${var.prefix}-http-ext"
+    Purpose = "OpenTelemetry Collector external HTTP target group"
+  }
+}
+
+# External gRPC target group (port 4319)
+resource "aws_lb_target_group" "grpc_external" {
+  name             = "${var.prefix}-grpc-ext"
+  port             = local.grpc_port_external
   protocol         = "HTTP"
   protocol_version = "GRPC"
   target_type      = "ip"
@@ -44,14 +73,14 @@ resource "aws_lb_target_group" "grpc" {
   #   interval            = 30
   #   matcher             = "0"
   #   path                = "/grpc.health.v1.Health/Check"
-  #   port                = tostring(module.otel_collector.grpc_port)
+  #   port                = tostring(local.grpc_port_external)
   #   protocol            = "HTTP"
   #   timeout             = 5
   #   unhealthy_threshold = 2
   # }
 
   tags = {
-    Name    = "${var.prefix}-otel-grpc"
-    Purpose = "OpenTelemetry Collector gRPC target group"
+    Name    = "${var.prefix}-grpc-ext"
+    Purpose = "OpenTelemetry Collector external gRPC target group"
   }
 }

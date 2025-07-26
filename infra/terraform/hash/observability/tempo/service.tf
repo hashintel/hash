@@ -1,18 +1,18 @@
-# ECS Task Definition and Service for OpenTelemetry Collector
+# ECS Task Definition and Service for Tempo
 
 # Configuration hash for task definition versioning
 locals {
   config_hash = sha256(jsonencode({
-    otel_collector_config = aws_s3_object.otel_collector_config.content
+    tempo_config = aws_s3_object.tempo_config.content
   }))
 }
 
 # ECS Task Definition
-resource "aws_ecs_task_definition" "otel_collector" {
+resource "aws_ecs_task_definition" "tempo" {
   family                   = "${local.prefix}-${substr(local.config_hash, 0, 8)}"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
-  memory                   = 512
+  memory                   = 2048
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
@@ -21,15 +21,15 @@ resource "aws_ecs_task_definition" "otel_collector" {
     # SSL certificates setup (shared configuration)
     var.ssl_config.init_container,
 
-    # OpenTelemetry Collector-specific config-downloader
+    # Tempo-specific config-downloader
     {
       name  = "config-downloader"
       image = "amazon/aws-cli:latest"
 
       command = [
         "s3", "cp",
-        "s3://${var.config_bucket.id}/otelcol/",
-        "/etc/otelcol/",
+        "s3://${var.config_bucket.id}/tempo/",
+        "/etc/tempo/",
         "--recursive"
       ]
 
@@ -47,18 +47,18 @@ resource "aws_ecs_task_definition" "otel_collector" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "otelcol-config-downloader"
+          "awslogs-stream-prefix" = "tempo-config-downloader"
         }
       }
     },
 
-    # Main OpenTelemetry Collector container
+    # Main Tempo container
     {
-      name  = "otel-collector"
-      image = "otel/opentelemetry-collector-contrib:0.128.0"
+      name  = "tempo"
+      image = "grafana/tempo:2.8.1"
 
       command = [
-        "--config=/etc/otelcol/config.yaml"
+        "-config.file=/etc/tempo/config.yaml"
       ]
 
       dependsOn = [
@@ -84,39 +84,35 @@ resource "aws_ecs_task_definition" "otel_collector" {
       environment = var.ssl_config.environment_vars
 
       portMappings = [
-        # Internal ports with names for Service Connect
         {
-          name          = local.grpc_port_name_internal
-          containerPort = local.grpc_port_internal
+          name          = local.otlp_grpc_port_name
+          containerPort = local.otlp_port
           protocol      = "tcp"
         },
         {
-          name          = local.http_port_name_internal
-          containerPort = local.http_port_internal
-          protocol      = "tcp"
-        },
-        # External ports without names (ALB only)
-        {
-          containerPort = local.grpc_port_external
-          protocol      = "tcp"
-        },
-        {
-          containerPort = local.http_port_external
-          protocol      = "tcp"
-        },
-        {
-          name          = local.health_port_name
-          containerPort = local.health_port
+          name          = local.api_port_name
+          containerPort = local.api_port
           protocol      = "tcp"
         }
       ]
+
+      healthCheck = {
+        command     = ["CMD", "wget", "--spider", "-q", "http://localhost:${local.api_port}/status"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+
+      readonlyRootFilesystem   = false
+      allowPrivilegeEscalation = false
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "otel-collector"
+          "awslogs-stream-prefix" = "tempo"
         }
       }
 
@@ -135,22 +131,17 @@ resource "aws_ecs_task_definition" "otel_collector" {
     }
   }
 
-  runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "ARM64"
-  }
-
   tags = {
-    Name    = local.service_name
-    Purpose = "OpenTelemetry Collector"
+    Name    = "${local.prefix}-task-definition"
+    Purpose = "Tempo ECS task definition"
   }
 }
 
 # ECS Service
-resource "aws_ecs_service" "otel_collector" {
+resource "aws_ecs_service" "tempo" {
   name                   = local.service_name
   cluster                = var.cluster_arn
-  task_definition        = aws_ecs_task_definition.otel_collector.arn
+  task_definition        = aws_ecs_task_definition.tempo.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
@@ -158,53 +149,32 @@ resource "aws_ecs_service" "otel_collector" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.otel_collector.id]
+    security_groups  = [aws_security_group.tempo.id]
   }
 
   service_connect_configuration {
     enabled   = true
     namespace = var.service_discovery_namespace_arn
 
-    # Only internal ports are exposed via Service Connect
     service {
-      port_name = local.grpc_port_name_internal
+      port_name = local.otlp_grpc_port_name
 
       client_alias {
-        port = local.grpc_port_internal
+        port = local.otlp_port
       }
     }
 
     service {
-      port_name = local.http_port_name_internal
+      port_name = local.api_port_name
 
       client_alias {
-        port = local.http_port_internal
+        port = local.api_port
       }
     }
-  }
-
-  # Internal ALB target groups
-  load_balancer {
-    target_group_arn = aws_lb_target_group.http_internal.arn
-    container_name   = "otel-collector"
-    container_port   = local.http_port_internal
-  }
-
-  # External ALB target groups
-  load_balancer {
-    target_group_arn = aws_lb_target_group.http_external.arn
-    container_name   = "otel-collector"
-    container_port   = local.http_port_external
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.grpc_external.arn
-    container_name   = "otel-collector"
-    container_port   = local.grpc_port_external
   }
 
   tags = {
     Name    = local.service_name
-    Purpose = "OpenTelemetry Collector"
+    Purpose = "Tempo distributed tracing"
   }
 }
