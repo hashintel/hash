@@ -133,6 +133,10 @@ module "observability" {
   prefix       = "h-${terraform.workspace}-observability"
   param_prefix = local.param_prefix
   subnets      = module.networking.snpub
+  grafana_database_host     = module.postgres.pg_host
+  grafana_database_port     = module.postgres.pg_port
+  grafana_database_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_raw"])
+  grafana_admin_password    = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_admin_user_password"])
 }
 
 
@@ -173,6 +177,7 @@ module "postgres_roles" {
   pg_hydra_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
+  pg_grafana_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_hash"]
 }
 
 module "redis" {

@@ -1,7 +1,10 @@
 use error_stack::Report;
 use opentelemetry::{InstrumentationScope, logs::LogRecord as _, trace::TraceContextExt as _};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_otlp::{ExporterBuildError, WithExportConfig as _};
+use opentelemetry_otlp::{
+    ExporterBuildError, WithExportConfig as _, WithTonicConfig as _,
+    tonic_types::transport::ClientTlsConfig,
+};
 use opentelemetry_sdk::{
     Resource,
     error::OTelSdkResult,
@@ -57,6 +60,7 @@ pub(crate) fn provider(
                 opentelemetry_otlp::LogExporter::builder()
                     .with_tonic()
                     .with_endpoint(endpoint)
+                    .with_tls_config(ClientTlsConfig::new().with_enabled_roots())
                     .build()?,
             )
             .build(),

@@ -1,6 +1,9 @@
 use error_stack::Report;
 use opentelemetry::global;
-use opentelemetry_otlp::{ExporterBuildError, SpanExporter, WithExportConfig as _};
+use opentelemetry_otlp::{
+    ExporterBuildError, SpanExporter, WithExportConfig as _, WithTonicConfig as _,
+    tonic_types::transport::ClientTlsConfig,
+};
 use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use tracing::Subscriber;
 use tracing_subscriber::{Layer, registry::LookupSpan};
@@ -22,6 +25,7 @@ pub(crate) fn provider(
                 SpanExporter::builder()
                     .with_tonic()
                     .with_endpoint(endpoint)
+                    .with_tls_config(ClientTlsConfig::new().with_enabled_roots())
                     .build()?,
             )
             .build(),

@@ -5,12 +5,18 @@ locals {
   prefix       = "${var.prefix}-${local.service_name}"
 
   # Port definitions for OpenTelemetry Collector
-  grpc_port   = 4317
-  http_port   = 4318
+  # Internal ports for service-to-service communication (Tempo, etc.)
+  grpc_port_internal = 4317
+  http_port_internal = 4318
+  
+  # External ports for client applications sending traces/metrics
+  grpc_port_external = 4319  
+  http_port_external = 4320
+  
   health_port = 13133
   
-  # Port names for Service Connect
-  grpc_port_name   = "${local.service_name}-grpc"
-  http_port_name   = "${local.service_name}-http"
-  health_port_name = "${local.service_name}-health"
+  # Port names for Service Connect (internal communication only)
+  grpc_port_name_internal = "${local.service_name}-grpc-internal"
+  http_port_name_internal = "${local.service_name}-http-internal"
+  health_port_name        = "${local.service_name}-health"
 }
