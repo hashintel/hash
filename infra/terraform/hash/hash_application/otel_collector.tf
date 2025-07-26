@@ -29,24 +29,29 @@ locals {
       batch = {}
     }
     exporters = {
-      nop = {}
+      otlphttp = {
+        endpoint = "http://${var.telemetry_endpoint_dns}:${var.telemetry_endpoint_http_port}"
+        tls = {
+          insecure = true
+        }
+      }
     }
     service = {
       pipelines = {
         traces = {
           receivers  = ["otlp"]
           processors = ["batch"]
-          exporters  = ["nop"]
+          exporters  = ["otlphttp"]
         }
         metrics = {
           receivers  = ["otlp", "awsecscontainermetrics"]
           processors = ["batch"]
-          exporters  = ["nop"]
+          exporters  = ["otlphttp"]
         }
         logs = {
           receivers  = ["otlp"]
           processors = ["batch"]
-          exporters  = ["nop"]
+          exporters  = ["otlphttp"]
         }
       }
     }
@@ -206,6 +211,15 @@ resource "aws_security_group" "otel_collector" {
     protocol    = "tcp"
     description = "Allow HTTPS for AWS services, Docker Hub, and ECR"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Egress: Allow sending telemetry to observability cluster
+  egress {
+    from_port   = var.telemetry_endpoint_http_port
+    to_port     = var.telemetry_endpoint_http_port
+    protocol    = "tcp"
+    description = "Allow sending telemetry to observability cluster"
+    cidr_blocks = [var.vpc.cidr_block]
   }
 
   tags = {

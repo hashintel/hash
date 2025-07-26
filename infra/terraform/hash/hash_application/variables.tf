@@ -209,3 +209,13 @@ variable "temporal_port" {
   default     = "7233"
   description = "The port of the Temporal cluster to connect to."
 }
+
+variable "telemetry_endpoint_dns" {
+  type        = string
+  description = "The DNS name of the ALB that the observability cluster exposes."
+}
+
+variable "telemetry_endpoint_http_port" {
+  type        = number
+  description = "The HTTP port of the ALB that the observability cluster exposes."
+}

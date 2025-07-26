@@ -97,12 +97,6 @@ resource "aws_s3_bucket" "app_configs" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "app_configs" {
-  bucket = aws_s3_bucket.app_configs.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "app_configs" {
   bucket = aws_s3_bucket.app_configs.id
