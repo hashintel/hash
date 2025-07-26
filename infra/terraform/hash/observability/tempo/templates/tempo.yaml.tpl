@@ -47,6 +47,13 @@ storage:
     # block:
     #   version: vParquet4  # Would enable better search performance but increase memory usage
     wal:
+      # Using /tmp for WAL (Write-Ahead Log) storage
+      # Data loss on container restart is acceptable for this deployment phase:
+      # - WAL is temporary storage for in-flight traces before S3 persistence
+      # - Container restarts are rare in ECS with proper health checks
+      # - S3 backend provides durability for completed trace data
+      # - EFS would add latency and potential concurrency issues (WAL is local per-instance storage)
+      # - WAL is designed for local file system persistence, not shared storage
       path: /tmp/tempo-wal
     s3:
       bucket: ${tempo_bucket}
