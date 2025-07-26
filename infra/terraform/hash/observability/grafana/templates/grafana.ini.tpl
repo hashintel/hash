@@ -11,7 +11,7 @@ host = ${database_host}:${database_port}
 name = grafana
 user = grafana
 password = $__env{GF_DATABASE_PASSWORD}
-ssl_mode = disable
+ssl_mode = require
 
 [security]
 admin_user = admin
