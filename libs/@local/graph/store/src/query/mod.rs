@@ -64,7 +64,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
         clippy::type_complexity,
         reason = "simplification of type would lead to more unreadable code"
     )]
-    #[tracing::instrument(level = "debug", skip(self, filters, sorting))]
+    #[tracing::instrument(level = "info", skip(self, filters, sorting))]
     fn read_paginated_vec(
         &self,
         filters: &[Filter<'_, R>],
@@ -102,7 +102,7 @@ pub trait Read<R: QueryRecord>: Sync {
         include_drafts: bool,
     ) -> impl Future<Output = Result<Self::ReadStream, Report<QueryError>>> + Send;
 
-    #[tracing::instrument(level = "debug", skip(self, filters))]
+    #[tracing::instrument(level = "info", skip(self, filters))]
     fn read_vec(
         &self,
         filters: &[Filter<'_, R>],

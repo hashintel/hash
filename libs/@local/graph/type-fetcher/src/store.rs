@@ -297,7 +297,6 @@ where
         self.store.query_policies(authenticated_actor, filter).await
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
@@ -540,7 +539,7 @@ where
         Ok(references)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, ontology_type_references))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type_references))]
     #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
@@ -669,7 +668,7 @@ where
         Ok(fetched_ontology_types)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, ontology_types))]
+    #[tracing::instrument(level = "info", skip(self, ontology_types))]
     async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -773,7 +772,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_external_types_by_reference(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -891,7 +890,7 @@ where
     A: ToSocketAddrs + Send + Sync,
     S: DataTypeStore + PropertyTypeStore + EntityTypeStore + Send + Sync,
 {
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_external_ontology_type(
         &mut self,
         actor_id: ActorEntityUuid,
