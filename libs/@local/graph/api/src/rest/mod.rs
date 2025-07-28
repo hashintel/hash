@@ -12,6 +12,8 @@ pub mod principal;
 pub mod property_type;
 pub mod status;
 
+pub mod http_tracing_layer;
+
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -30,7 +32,6 @@ use axum::{
     response::{IntoResponse as _, Response},
     routing::get,
 };
-use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
@@ -343,8 +344,7 @@ where
                 .layer(NewSentryLayer::new_from_top())
                 .layer(SentryHttpLayer::default().enable_transaction()),
         )
-        .layer(OtelAxumLayer::default())
-        .layer(OtelInResponseLayer)
+        .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))
         .layer(Extension(dependencies.domain_regex));

@@ -927,32 +927,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d6fd624c75e18b3b4c6b9caf42b1afe24437daaee904069137d8bab077be8b8"
-dependencies = [
- "axum-core 0.5.0",
- "bytes",
- "futures-util",
- "http 1.3.1",
- "http-body 1.0.1",
- "http-body-util",
- "itoa",
- "matchit 0.8.4",
- "memchr",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "rustversion",
- "serde",
- "sync_wrapper",
- "tower 0.5.2",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
 name = "axum-core"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,24 +964,6 @@ dependencies = [
  "sync_wrapper",
  "tower-layer",
  "tower-service",
-]
-
-[[package]]
-name = "axum-tracing-opentelemetry"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd3e188039e0e9e3dce1ad873358fd6bab72e6496e18b898bc36d72c07af4b26"
-dependencies = [
- "axum 0.8.1",
- "futures-core",
- "futures-util",
- "http 1.3.1",
- "opentelemetry",
- "pin-project-lite",
- "tower 0.5.2",
- "tracing",
- "tracing-opentelemetry",
- "tracing-opentelemetry-instrumentation-sdk",
 ]
 
 [[package]]
@@ -3374,7 +3330,7 @@ dependencies = [
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
- "axum 0.7.5",
+ "axum",
  "clap",
  "clap_complete",
  "error-stack",
@@ -3409,9 +3365,8 @@ name = "hash-graph-api"
 version = "0.0.0"
 dependencies = [
  "async-trait",
- "axum 0.7.5",
+ "axum",
  "axum-core 0.5.0",
- "axum-tracing-opentelemetry",
  "bytes",
  "derive-where",
  "derive_more 2.0.1",
@@ -3441,6 +3396,7 @@ dependencies = [
  "include_dir",
  "mime",
  "opentelemetry",
+ "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
  "sentry",
  "serde",
@@ -3693,8 +3649,7 @@ dependencies = [
 name = "hash-graph-test-server"
 version = "0.0.0"
 dependencies = [
- "axum 0.7.5",
- "axum-tracing-opentelemetry",
+ "axum",
  "error-stack",
  "futures",
  "hash-codec",
@@ -9532,7 +9487,7 @@ checksum = "877c5b330756d856ffcc4553ab34a5684481ade925ecc54bcd1bf02b1d0d4d52"
 dependencies = [
  "async-stream",
  "async-trait",
- "axum 0.7.5",
+ "axum",
  "base64 0.22.1",
  "bytes",
  "h2",
@@ -9575,7 +9530,9 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "prost",
+ "rustls-native-certs",
  "tokio",
+ "tokio-rustls",
  "tokio-stream",
  "tower 0.5.2",
  "tower-layer",
@@ -9780,24 +9737,10 @@ dependencies = [
  "once_cell",
  "opentelemetry",
  "opentelemetry_sdk",
- "smallvec 1.15.1",
  "tracing",
  "tracing-core",
- "tracing-log",
  "tracing-subscriber",
  "web-time",
-]
-
-[[package]]
-name = "tracing-opentelemetry-instrumentation-sdk"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1dda3080d8657b99ddd303a4bda25ebd3479820abbd5a67af70a9dafd06b1713"
-dependencies = [
- "http 1.3.1",
- "opentelemetry",
- "tracing",
- "tracing-opentelemetry",
 ]
 
 [[package]]

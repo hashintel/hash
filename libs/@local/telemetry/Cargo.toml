@@ -10,7 +10,7 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack        = { workspace = true, public = true }
 opentelemetry      = { workspace = true, public = true }
-opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic"] }
+opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic", "tls", "tls-roots"] }
 
 # Public third-party dependencies
 clap_builder       = { workspace = true, public = true }

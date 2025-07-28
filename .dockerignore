@@ -170,3 +170,4 @@ seed-users.json
 # Turbo
 .turbo/
 out/
+**/out/
