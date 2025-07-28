@@ -15,11 +15,10 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
-use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use error_stack::Report;
 use futures::TryStreamExt as _;
 use hash_codec::bytes::JsonLinesDecoder;
-use hash_graph_api::rest::status::status_to_response;
+use hash_graph_api::rest::{http_tracing_layer, status::status_to_response};
 use hash_graph_postgres_store::{snapshot::SnapshotStore, store::PostgresStorePool};
 use hash_graph_store::pool::StorePool as _;
 use hash_graph_type_defs::error::{ErrorInfo, StatusPayloadInfo};
@@ -32,8 +31,7 @@ use uuid::Uuid;
 /// Create routes for interacting with entities.
 pub fn routes(store_pool: PostgresStorePool) -> Router {
     Router::new()
-        .layer(OtelAxumLayer::default())
-        .layer(OtelInResponseLayer)
+        .layer(http_tracing_layer::HttpTracingLayer)
         .route("/snapshot", post(restore_snapshot))
         .route("/accounts", delete(delete_accounts))
         .route("/data-types", delete(delete_data_types))

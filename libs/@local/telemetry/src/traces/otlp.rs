@@ -1,6 +1,9 @@
 use error_stack::Report;
 use opentelemetry::global;
-use opentelemetry_otlp::{ExporterBuildError, SpanExporter, WithExportConfig as _};
+use opentelemetry_otlp::{
+    ExporterBuildError, SpanExporter, WithExportConfig as _, WithTonicConfig as _,
+    tonic_types::transport::ClientTlsConfig,
+};
 use opentelemetry_sdk::{Resource, propagation::TraceContextPropagator, trace::SdkTracerProvider};
 use tracing::Subscriber;
 use tracing_subscriber::{Layer, registry::LookupSpan};
@@ -15,15 +18,18 @@ pub(crate) fn provider(
         return Ok(None);
     };
 
+    let mut exporter = SpanExporter::builder().with_tonic().with_endpoint(endpoint);
+
+    // TODO: Properly check for `OTEL_EXPORTER_*` variables
+    //  see https://linear.app/hash/issue/H-5070/modernize-rust-opentelemetry-traces-module-to-be-fully-standard
+    if endpoint.starts_with("https://") {
+        exporter = exporter.with_tls_config(ClientTlsConfig::new().with_enabled_roots());
+    }
+
     Ok(Some(
         SdkTracerProvider::builder()
             .with_resource(Resource::builder().with_service_name(service_name).build())
-            .with_batch_exporter(
-                SpanExporter::builder()
-                    .with_tonic()
-                    .with_endpoint(endpoint)
-                    .build()?,
-            )
+            .with_batch_exporter(exporter.build()?)
             .build(),
     ))
 }

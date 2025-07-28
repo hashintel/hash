@@ -1165,7 +1165,7 @@ where
         }))
     }
 
-    #[tracing::instrument(level = "debug", skip(self, context_builder))]
+    #[tracing::instrument(level = "info", skip(self, context_builder))]
     async fn build_principal_context(
         &self,
         actor_id: ActorId,
@@ -1943,7 +1943,7 @@ where
             .change_context(EnsureSystemPoliciesError::StoreError)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, entity_type_ids))]
+    #[tracing::instrument(level = "info", skip(self, entity_type_ids))]
     async fn build_entity_type_context(
         &self,
         entity_type_ids: &[&VersionedUrl],
@@ -2043,7 +2043,7 @@ where
             .change_context(BuildEntityTypeContextError::StoreError)?)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, property_type_ids))]
+    #[tracing::instrument(level = "info", skip(self, property_type_ids))]
     async fn build_property_type_context(
         &self,
         property_type_ids: &[&VersionedUrl],
@@ -2125,7 +2125,7 @@ where
             .change_context(BuildPropertyTypeContextError::StoreError)?)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, data_type_ids))]
+    #[tracing::instrument(level = "info", skip(self, data_type_ids))]
     async fn build_data_type_context(
         &self,
         data_type_ids: &[&VersionedUrl],
@@ -2204,7 +2204,7 @@ where
             .change_context(BuildDataTypeContextError::StoreError)?)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
+    #[tracing::instrument(level = "info", skip(self, entity_edition_ids))]
     #[expect(
         clippy::too_many_lines,
         reason = "A large part of this function is for a SQL query that is complex but necessary \
@@ -2761,7 +2761,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_data_type_with_id(
         &self,
         ontology_id: DataTypeUuid,
@@ -2803,7 +2803,7 @@ where
     /// # Errors
     ///
     /// Returns [`InsertionError`] if the database insertion operation fails.
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn insert_data_type_references(
         &self,
         ontology_id: DataTypeUuid,
@@ -2843,7 +2843,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_property_type_with_id(
         &self,
         ontology_id: OntologyTypeUuid,
@@ -2878,7 +2878,7 @@ where
     /// # Errors
     ///
     /// - if inserting failed.
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_entity_type_with_id(
         &self,
         ontology_id: EntityTypeUuid,
@@ -2910,7 +2910,7 @@ where
             .map(|row| row.get(0)))
     }
 
-    #[tracing::instrument(level = "debug", skip(self, property_type))]
+    #[tracing::instrument(level = "info", skip(self, property_type))]
     async fn insert_property_type_references(
         &self,
         property_type: &PropertyType,
@@ -2977,7 +2977,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     #[expect(clippy::too_many_lines)]
     async fn insert_entity_type_references(
         &self,
@@ -3179,7 +3179,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     /// - [`VersionedUrlAlreadyExists`] if [`VersionedUrl`] does already exist in the database
     /// - [`OntologyVersionDoesNotExist`] if the previous version does not exist
     /// - [`OntologyTypeIsNotOwned`] if ontology type is an external ontology type
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn update_owned_ontology_id(
         &self,
         url: &VersionedUrl,
