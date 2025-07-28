@@ -109,7 +109,11 @@ fn record_response_attributes(span: &Span, response: &http::Response<axum::body:
 
     // Add error attributes for 4xx/5xx responses
     if status_code >= 400 {
-        span.record("error", true);
+        span.set_status(opentelemetry::trace::Status::error(format!(
+            "HTTP {status_code}",
+        )));
+    } else {
+        span.set_status(opentelemetry::trace::Status::Ok);
     }
 }
 
