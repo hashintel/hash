@@ -15,24 +15,24 @@ impl fmt::Display for RootError {
 
 impl Error for RootError {}
 
-fn invalid_report_arg() -> Result<(), Report<RootError>> {
-    let _ = report!("Error");
+fn empty_report_arg() -> Result<(), Report<RootError>> {
+    let _ = report!();
 
     Ok(())
 }
 
-fn invalid_bail_arg() -> Result<(), Report<RootError>> {
-    bail!("Error")
+fn empty_bail_arg() -> Result<(), Report<RootError>> {
+    bail!()
 }
 
-fn invalid_ensure_error_arg() -> Result<(), Report<RootError>> {
-    let _ = ensure!(true, "Error");
+fn empty_ensure_arg() -> Result<(), Report<RootError>> {
+    let _ = ensure!();
 
     Ok(())
 }
 
-fn invalid_ensure_condition_arg() -> Result<(), Report<RootError>> {
-    let _ = ensure!("No boolean", RootError);
+fn missing_ensure_arg() -> Result<(), Report<RootError>> {
+    let _ = ensure!(true);
 
     Ok(())
 }
