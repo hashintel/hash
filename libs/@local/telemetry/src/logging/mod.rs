@@ -140,6 +140,7 @@ pub struct ConsoleConfig {
         clap(
             id = "logging-console-level",
             long = "logging-console-level",
+            env = "HASH_GRAPH_LOG_CONSOLE_LEVEL",
             global = true
         )
     )]
@@ -285,6 +286,7 @@ pub struct FileConfig {
             id = "logging-file-level",
             long = "logging-file-level",
             value_enum,
+            env = "HASH_GRAPH_LOG_FILE_LEVEL",
             global = true
         )
     )]
