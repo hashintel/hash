@@ -11,7 +11,6 @@ use tower::{Layer, Service};
 use tracing::{Instrument as _, Span, field::Empty};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
-// Header extractor for OpenTelemetry trace propagation
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 
 impl Extractor for HeaderExtractor<'_> {
@@ -25,7 +24,6 @@ impl Extractor for HeaderExtractor<'_> {
     }
 }
 
-// Header injector for OpenTelemetry trace propagation
 struct HeaderInjector<'a>(&'a mut http::HeaderMap);
 
 impl Injector for HeaderInjector<'_> {
@@ -38,13 +36,11 @@ impl Injector for HeaderInjector<'_> {
     }
 }
 
-// Extract OpenTelemetry context from HTTP headers
 fn extract_context_from_headers(headers: &http::HeaderMap) -> Context {
     let extractor = HeaderExtractor(headers);
     global::get_text_map_propagator(|propagator| propagator.extract(&extractor))
 }
 
-// Create HTTP span with all request attributes and parent context
 fn create_http_span<B>(request: &Request<B>) -> Span {
     let http_span = tracing::info_span!(
         "HTTP request",
@@ -55,29 +51,24 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         { trace::HTTP_RESPONSE_STATUS_CODE } = Empty
     );
 
-    // Set parent context for distributed tracing
     http_span.set_parent(extract_context_from_headers(request.headers()));
 
-    // Record URL scheme
     if let Some(schema) = request.uri().scheme_str() {
         http_span.record(trace::URL_SCHEME, schema);
     }
 
-    // Record user agent
     if let Some(user_agent) = request.headers().get("user-agent")
         && let Ok(user_agent_str) = user_agent.to_str()
     {
         http_span.record(trace::USER_AGENT_ORIGINAL, user_agent_str);
     }
 
-    // Record server address
     if let Some(host) = request.headers().get("host")
         && let Ok(host_str) = host.to_str()
     {
         http_span.record(trace::SERVER_ADDRESS, host_str);
     }
 
-    // Record request body size
     if let Some(content_length) = request.headers().get("content-length")
         && let Ok(content_length_str) = content_length.to_str()
         && let Ok(body_size) = content_length_str.parse::<u64>()
@@ -85,7 +76,6 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         http_span.record(trace::HTTP_REQUEST_BODY_SIZE, body_size);
     }
 
-    // Record client address
     if let Some(ConnectInfo(addr)) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
         http_span.record(trace::NETWORK_PEER_ADDRESS, addr.ip().to_string());
         http_span.record(trace::NETWORK_PEER_PORT, i64::from(addr.port()));
@@ -95,11 +85,10 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
 }
 
 // Record response-specific attributes on the span
-fn record_response_attributes(span: &Span, response: &http::Response<axum::body::Body>) {
+fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
     let status_code = response.status().as_u16();
     span.record(trace::HTTP_RESPONSE_STATUS_CODE, status_code);
 
-    // Record response body size
     if let Some(content_length) = response.headers().get("content-length")
         && let Ok(content_length_str) = content_length.to_str()
         && let Ok(body_size) = content_length_str.parse::<u64>()
@@ -107,7 +96,6 @@ fn record_response_attributes(span: &Span, response: &http::Response<axum::body:
         span.record(trace::HTTP_RESPONSE_BODY_SIZE, body_size);
     }
 
-    // Add error attributes for 4xx/5xx responses
     if status_code >= 400 {
         span.set_status(opentelemetry::trace::Status::error(format!(
             "HTTP {status_code}",
@@ -141,12 +129,9 @@ pub struct HttpTracingService<S> {
     inner: S,
 }
 
-impl<S, B> Service<Request<B>> for HttpTracingService<S>
+impl<S, Req, Res> Service<Request<Req>> for HttpTracingService<S>
 where
-    S: Service<Request<B>, Response = Response<axum::body::Body>> + Clone + Send + 'static,
-    S::Error: core::error::Error + 'static,
-    S::Future: Send + 'static,
-    B: Send + 'static,
+    S: Service<Request<Req>, Response = Response<Res>, Future: Send> + Send,
 {
     type Error = S::Error;
     type Response = S::Response;
@@ -160,7 +145,7 @@ where
         self.inner.poll_ready(cx)
     }
 
-    fn call(&mut self, req: Request<B>) -> Self::Future {
+    fn call(&mut self, req: Request<Req>) -> Self::Future {
         let http_span = create_http_span(&req);
         let future = self.inner.call(req);
 
