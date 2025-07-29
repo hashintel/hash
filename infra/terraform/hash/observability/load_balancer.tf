@@ -52,6 +52,10 @@ resource "aws_security_group" "alb_internal" {
   }
 }
 
+
+# Get Cloudflare IP ranges for security group restrictions
+data "cloudflare_ip_ranges" "cloudflare" {}
+
 # External Application Load Balancer for public access
 # Provides HTTPS access to Grafana and external telemetry endpoints
 
@@ -75,11 +79,12 @@ resource "aws_security_group" "alb_external" {
 
   # Allow inbound HTTPS from internet
   ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    description = "HTTPS from internet for Grafana and external telemetry"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    description      = "HTTPS from internet for Grafana and external telemetry"
+    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks)
+    ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks)
   }
 
   # Allow outbound to Grafana containers
@@ -159,7 +164,7 @@ resource "aws_lb_listener_rule" "grafana_routing" {
 
   condition {
     host_header {
-      values = ["grafana.hash.ai"]
+      values = ["grafana.internal.hash.ai"]
     }
   }
 
