@@ -1,6 +1,7 @@
 [tools]
 "cargo:clippy-sarif" = "0.6.5"
 "cargo:sarif-fmt"    = "0.6.5"
+"npm:renovate"       = "41.40.0"
 
 [env]
 HASH_GRAPH_SKIP_EMBEDDING_CREATION = "true"
