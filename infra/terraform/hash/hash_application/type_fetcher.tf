@@ -24,7 +24,7 @@ locals {
     }
     logConfiguration = {
       logDriver = "awslogs"
-      options   = {
+      options = {
         "awslogs-create-group"  = "true"
         "awslogs-group"         = local.log_group_name
         "awslogs-stream-prefix" = local.type_fetcher_service_name

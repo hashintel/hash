@@ -18,7 +18,7 @@ locals {
     {
       name   = "TRACING_PROVIDERS_OTLP_SERVER_URL",
       secret = false,
-      value  = "http://${local.otel_http_container_port_dns}:${local.otel_http_container_port}"
+      value  = "${local.otel_http_container_port_dns}:${local.otel_http_container_port}"
     }
   ])
 }
