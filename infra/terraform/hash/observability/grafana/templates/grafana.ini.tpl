@@ -28,7 +28,7 @@ disable_login_form = false
 
 [log]
 mode = console
-level = info
+level = warn
 
 [paths]
 # Provision configuration from mounted volume

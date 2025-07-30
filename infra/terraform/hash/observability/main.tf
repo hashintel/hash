@@ -91,8 +91,8 @@ module "otel_collector" {
   service_discovery_namespace_arn = aws_service_discovery_private_dns_namespace.observability.arn
   tempo_otlp_grpc_dns             = module.tempo.otlp_grpc_dns
   tempo_otlp_grpc_port            = module.tempo.otlp_grpc_port
-  loki_api_dns                    = module.loki.api_dns
-  loki_api_port                   = module.loki.api_port
+  loki_http_dns                   = module.loki.http_dns
+  loki_http_port                  = module.loki.http_port
 
   # Shared SSL configuration
   ssl_config = local.ssl_config
@@ -151,8 +151,9 @@ module "grafana" {
   grafana_secret_key               = var.grafana_secret_key
   tempo_api_dns                    = module.tempo.api_dns
   tempo_api_port                   = module.tempo.api_port
-  loki_api_dns                     = module.loki.api_dns
-  loki_api_port                    = module.loki.api_port
+  loki_http_dns                    = module.loki.http_dns
+  loki_http_port                   = module.loki.http_port
+  loki_grpc_port                   = module.loki.grpc_port
 
   # Shared SSL configuration
   ssl_config = local.ssl_config

@@ -58,7 +58,7 @@ exporters:
     tls:
       insecure: true
   otlphttp/loki:
-    endpoint: http://${loki_api_dns}:${loki_api_port}/otlp
+    endpoint: http://${loki_http_dns}:${loki_http_port}/otlp
     tls:
       insecure: true
 

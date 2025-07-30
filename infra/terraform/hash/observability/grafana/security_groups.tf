@@ -42,10 +42,19 @@ resource "aws_security_group" "grafana" {
 
   # Allow outbound HTTP for Loki API
   egress {
-    from_port   = var.loki_api_port
-    to_port     = var.loki_api_port
+    from_port   = var.loki_http_port
+    to_port     = var.loki_http_port
     protocol    = "tcp"
     description = "Loki API access"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  # Allow outbound gRPC for Loki live tail streaming
+  egress {
+    from_port   = var.loki_grpc_port
+    to_port     = var.loki_grpc_port
+    protocol    = "tcp"
+    description = "Loki gRPC API for live tail streaming"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

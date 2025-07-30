@@ -7,11 +7,10 @@ prune: true
 
 datasources:
   - name: Loki
-    version: 1
     type: loki
     uid: loki
     access: proxy
-    url: http://${loki_api_dns}:${loki_api_port}
+    url: http://${loki_http_dns}:${loki_http_port}
     isDefault: false
     editable: false
     jsonData:

@@ -8,7 +8,8 @@ resource "aws_s3_object" "loki_config" {
   # Generate config from template with environment-specific parameters
   content = templatefile("${path.module}/templates/loki.yaml.tpl", {
     environment = terraform.workspace
-    api_port    = local.api_port
+    http_port   = local.http_port
+    grpc_port   = local.grpc_port
     loki_bucket = aws_s3_bucket.loki_logs.bucket
     aws_region  = var.region
   })

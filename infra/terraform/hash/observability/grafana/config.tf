@@ -52,8 +52,8 @@ resource "aws_s3_object" "grafana_loki_datasource" {
   bucket = var.config_bucket.id
   key    = "grafana/provisioning/datasources/loki.yaml"
   content = templatefile("${path.module}/templates/provisioning/datasources/loki.yaml.tpl", {
-    loki_api_dns  = var.loki_api_dns
-    loki_api_port = var.loki_api_port
+    loki_http_dns  = var.loki_http_dns
+    loki_http_port = var.loki_http_port
   })
   content_type = "application/x-yaml"
 

@@ -46,12 +46,12 @@ variable "tempo_otlp_grpc_port" {
   description = "Tempo OTLP gRPC port number"
 }
 
-variable "loki_api_dns" {
+variable "loki_http_dns" {
   type        = string
   description = "Loki HTTP API DNS name for log forwarding"
 }
 
-variable "loki_api_port" {
+variable "loki_http_port" {
   type        = number
   description = "Loki HTTP API port number"
 }

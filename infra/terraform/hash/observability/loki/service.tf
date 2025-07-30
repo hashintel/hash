@@ -85,14 +85,19 @@ resource "aws_ecs_task_definition" "loki" {
 
       portMappings = [
         {
-          name          = local.api_port_name
-          containerPort = local.api_port
+          name          = local.http_port_name
+          containerPort = local.http_port
+          protocol      = "tcp"
+        },
+        {
+          name          = local.grpc_port_name
+          containerPort = local.grpc_port
           protocol      = "tcp"
         }
       ]
 
       healthCheck = {
-        command     = ["CMD", "wget", "--spider", "-q", "http://localhost:${local.api_port}/ready"]
+        command     = ["CMD", "wget", "--spider", "-q", "http://localhost:${local.http_port}/ready"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -152,10 +157,18 @@ resource "aws_ecs_service" "loki" {
     namespace = var.service_discovery_namespace_arn
 
     service {
-      port_name = local.api_port_name
+      port_name = local.http_port_name
 
       client_alias {
-        port = local.api_port
+        port = local.http_port
+      }
+    }
+
+    service {
+      port_name = local.grpc_port_name
+
+      client_alias {
+        port = local.grpc_port
       }
     }
   }

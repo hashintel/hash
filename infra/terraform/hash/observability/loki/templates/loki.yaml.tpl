@@ -4,7 +4,9 @@
 auth_enabled: false
 
 server:
-  http_listen_port: ${api_port}
+  http_listen_port: ${http_port}
+  grpc_listen_port: ${grpc_port}
+  grpc_server_max_concurrent_streams: 1000
 
 common:
   instance_addr: 127.0.0.1
@@ -61,3 +63,8 @@ query_range:
 frontend:
   max_outstanding_per_tenant: 2048
   compress_responses: true
+
+# Pattern ingester for live tail streaming in Loki 3.x
+pattern_ingester:
+  enabled: true
+

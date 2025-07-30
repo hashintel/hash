@@ -96,8 +96,8 @@ resource "aws_security_group" "otel_collector" {
 
   # Allow outbound traffic to Loki HTTP API
   egress {
-    from_port   = var.loki_api_port
-    to_port     = var.loki_api_port
+    from_port   = var.loki_http_port
+    to_port     = var.loki_http_port
     protocol    = "tcp"
     description = "OTLP HTTP to Loki"
     cidr_blocks = [var.vpc.cidr_block]

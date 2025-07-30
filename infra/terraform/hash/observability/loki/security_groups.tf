@@ -6,10 +6,19 @@ resource "aws_security_group" "loki" {
 
   # Allow inbound HTTP API from OpenTelemetry Collector and Grafana
   ingress {
-    from_port   = local.api_port
-    to_port     = local.api_port
+    from_port   = local.http_port
+    to_port     = local.http_port
     protocol    = "tcp"
     description = "Loki HTTP API for log ingestion and queries"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  # Allow inbound gRPC API for live tail streaming from Grafana
+  ingress {
+    from_port   = local.grpc_port
+    to_port     = local.grpc_port
+    protocol    = "tcp"
+    description = "Loki gRPC API for live tail streaming"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

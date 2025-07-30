@@ -78,14 +78,19 @@ variable "tempo_api_port" {
   description = "Port for Tempo API service"
 }
 
-variable "loki_api_dns" {
+variable "loki_http_dns" {
   type        = string
-  description = "DNS name for Loki API service"
+  description = "DNS name for Loki HTTP API service"
 }
 
-variable "loki_api_port" {
+variable "loki_http_port" {
   type        = number
-  description = "Port for Loki API service"
+  description = "Port for Loki HTTP API service"
+}
+
+variable "loki_grpc_port" {
+  type        = number
+  description = "Port for Loki gRPC API service"
 }
 
 variable "ssl_config" {

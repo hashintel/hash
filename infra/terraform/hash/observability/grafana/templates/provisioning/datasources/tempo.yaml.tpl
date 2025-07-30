@@ -7,7 +7,6 @@ prune: true
 
 datasources:
   - name: Tempo
-    version: 1
     type: tempo
     uid: tempo
     access: proxy
