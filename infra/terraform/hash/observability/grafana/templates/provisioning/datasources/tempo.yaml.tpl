@@ -3,8 +3,11 @@
 
 apiVersion: 1
 
+prune: true
+
 datasources:
   - name: Tempo
+    version: 1
     type: tempo
     uid: tempo
     access: proxy
@@ -17,4 +20,13 @@ datasources:
         hide: false
       nodeGraph:
         enabled: true
-    version: 1
+      tracesToLogs:
+        datasourceUid: loki
+        tags: ['service.name']
+        mappedTags: [
+          { key: 'service.name', value: 'service_name' }
+        ]
+        mapTagNamesEnabled: true
+        filterByTraceID: true
+      lokiSearch:
+        datasourceUid: loki

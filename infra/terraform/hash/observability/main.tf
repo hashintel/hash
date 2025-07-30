@@ -91,6 +91,8 @@ module "otel_collector" {
   service_discovery_namespace_arn = aws_service_discovery_private_dns_namespace.observability.arn
   tempo_otlp_grpc_dns             = module.tempo.otlp_grpc_dns
   tempo_otlp_grpc_port            = module.tempo.otlp_grpc_port
+  loki_api_dns                    = module.loki.api_dns
+  loki_api_port                   = module.loki.api_port
 
   # Shared SSL configuration
   ssl_config = local.ssl_config
@@ -99,6 +101,23 @@ module "otel_collector" {
 # Tempo service for distributed tracing
 module "tempo" {
   source                           = "./tempo"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+
+  # Shared SSL configuration
+  ssl_config = local.ssl_config
+}
+
+# Loki service for log aggregation
+module "loki" {
+  source                           = "./loki"
   prefix                           = var.prefix
   cluster_arn                      = aws_ecs_cluster.observability.arn
   vpc                              = var.vpc
@@ -132,6 +151,8 @@ module "grafana" {
   grafana_secret_key               = var.grafana_secret_key
   tempo_api_dns                    = module.tempo.api_dns
   tempo_api_port                   = module.tempo.api_port
+  loki_api_dns                     = module.loki.api_dns
+  loki_api_port                    = module.loki.api_port
 
   # Shared SSL configuration
   ssl_config = local.ssl_config

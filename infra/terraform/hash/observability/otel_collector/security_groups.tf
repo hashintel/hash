@@ -67,12 +67,21 @@ resource "aws_security_group" "otel_collector" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow outbound DNS
+  # Allow outbound DNS (TCP)
   egress {
     from_port   = 53
     to_port     = 53
     protocol    = "tcp"
-    description = "DNS resolution"
+    description = "DNS resolution TCP"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow outbound DNS (UDP)
+  egress {
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    description = "DNS resolution UDP"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -82,6 +91,15 @@ resource "aws_security_group" "otel_collector" {
     to_port     = var.tempo_otlp_grpc_port
     protocol    = "tcp"
     description = "OTLP gRPC to Tempo"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  # Allow outbound traffic to Loki HTTP API
+  egress {
+    from_port   = var.loki_api_port
+    to_port     = var.loki_api_port
+    protocol    = "tcp"
+    description = "OTLP HTTP to Loki"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

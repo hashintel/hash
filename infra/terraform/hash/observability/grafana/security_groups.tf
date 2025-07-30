@@ -40,6 +40,15 @@ resource "aws_security_group" "grafana" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  # Allow outbound HTTP for Loki API
+  egress {
+    from_port   = var.loki_api_port
+    to_port     = var.loki_api_port
+    protocol    = "tcp"
+    description = "Loki API access"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   # Allow outbound PostgreSQL
   egress {
     from_port   = var.grafana_database_port
