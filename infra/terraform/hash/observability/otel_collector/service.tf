@@ -190,6 +190,12 @@ resource "aws_ecs_service" "otel_collector" {
     container_port   = local.http_port_internal
   }
 
+  load_balancer {
+    target_group_arn = aws_lb_target_group.grpc_internal.arn
+    container_name   = "otel-collector"
+    container_port   = local.grpc_port_internal
+  }
+
   # External ALB target groups
   load_balancer {
     target_group_arn = aws_lb_target_group.http_external.arn

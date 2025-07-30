@@ -3,7 +3,7 @@
 
 [server]
 http_port = ${grafana_port}
-root_url = https://grafana.internal.hash.ai
+root_url = https://${root_url}
 
 [database]
 type = postgres

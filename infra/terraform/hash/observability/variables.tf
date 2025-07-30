@@ -48,3 +48,8 @@ variable "grafana_secret_key" {
   sensitive   = true
   description = "Grafana secret key"
 }
+
+variable "vpc_zone_id" {
+  type        = string
+  description = "Route53 private hosted zone ID for services within the VPC"
+}

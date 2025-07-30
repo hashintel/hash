@@ -36,7 +36,7 @@ provider "vault" {
 }
 
 provider "cloudflare" {
-  api_token = "dummy-key-we-dont-need-privileged-access"
+  api_token = sensitive(data.vault_kv_secret_v2.secrets.data["cloudflare_api_token"])
 }
 
 data "vault_kv_secret_v2" "secrets" {
@@ -137,6 +137,7 @@ module "observability" {
   grafana_database_port     = module.postgres.pg_port
   grafana_database_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_raw"])
   grafana_secret_key        = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
+  vpc_zone_id               = aws_route53_zone.vpc.zone_id
 }
 
 
@@ -503,6 +504,6 @@ module "application" {
   temporal_host = module.temporal.host
   temporal_port = module.temporal.port
 
-  telemetry_endpoint_dns       = module.observability.otlp_dns
-  telemetry_endpoint_http_port = module.observability.otlp_http_port
+  otel_exporter_otlp_endpoint = module.observability.otel_otlp_endpoint
+  amazon_trust_ca_bundle      = local.amazon_trust_ca_bundle
 }

@@ -39,10 +39,10 @@ locals {
       }
     }
     exporters = {
-      otlphttp = {
-        endpoint = "http://${var.telemetry_endpoint_dns}:${var.telemetry_endpoint_http_port}"
+      otlp = {
+        endpoint = "${var.otel_exporter_otlp_endpoint}:443"
         tls = {
-          insecure = true
+          ca_pem = var.amazon_trust_ca_bundle
         }
       }
     }
@@ -51,17 +51,17 @@ locals {
         traces = {
           receivers  = ["otlp"]
           processors = ["batch", "resource"]
-          exporters  = ["otlphttp"]
+          exporters  = ["otlp"]
         }
         metrics = {
           receivers  = ["otlp", "awsecscontainermetrics"]
           processors = ["batch"]
-          exporters  = ["otlphttp"]
+          exporters  = ["otlp"]
         }
         logs = {
           receivers  = ["otlp"]
           processors = ["batch"]
-          exporters  = ["otlphttp"]
+          exporters  = ["otlp"]
         }
       }
     }
@@ -225,8 +225,8 @@ resource "aws_security_group" "otel_collector" {
 
   # Egress: Allow sending telemetry to observability cluster
   egress {
-    from_port   = var.telemetry_endpoint_http_port
-    to_port     = var.telemetry_endpoint_http_port
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     description = "Allow sending telemetry to observability cluster"
     cidr_blocks = [var.vpc.cidr_block]
