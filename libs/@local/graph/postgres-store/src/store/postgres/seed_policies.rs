@@ -620,12 +620,7 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
                         EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
-                                filters: vec![
-                                    USER_SECRET.entity_is_of_base_type(),
-                                    USAGE_RECORD.entity_is_of_base_type(),
-                                    INCURRED_IN.entity_is_of_base_type(),
-                                    RECORDS_USAGE_OF.entity_is_of_base_type(),
-                                ],
+                                filters: vec![USER_SECRET.entity_is_of_base_type()],
                             }),
                         },
                     ],
