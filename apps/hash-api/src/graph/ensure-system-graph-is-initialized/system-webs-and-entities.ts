@@ -51,6 +51,11 @@ export const owningWebs: Record<
     name: "Linear",
     websiteUrl: "https://linear.app",
   },
+  sap: {
+    enabled: true,
+    name: "SAP",
+    websiteUrl: "https://www.sap.com",
+  },
 };
 
 export const getOrCreateOwningWebId = async (

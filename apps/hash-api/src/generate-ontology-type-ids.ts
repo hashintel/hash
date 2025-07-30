@@ -202,7 +202,7 @@ const generateOntologyIds = async () => {
     graphApi,
   };
 
-  const [hashOrg, googleOrg, linearOrg] = await Promise.all([
+  const [hashOrg, googleOrg, linearOrg, sapOrg] = await Promise.all([
     getOrgByShortname(
       graphContext,
       { actorId: publicUserAccountId },
@@ -218,6 +218,11 @@ const generateOntologyIds = async () => {
       { actorId: publicUserAccountId },
       { shortname: "linear" },
     ),
+    getOrgByShortname(
+      graphContext,
+      { actorId: publicUserAccountId },
+      { shortname: "sap" },
+    ),
   ]);
 
   if (!hashOrg) {
@@ -230,6 +235,10 @@ const generateOntologyIds = async () => {
 
   if (!linearOrg) {
     throw new Error("Linear org not found");
+  }
+
+  if (!sapOrg) {
+    throw new Error("SAP org not found");
   }
 
   const authentication = { actorId: publicUserAccountId };
@@ -245,6 +254,9 @@ const generateOntologyIds = async () => {
     blockProtocolEntityTypes,
     blockProtocolPropertyTypes,
     blockProtocolDataTypes,
+    sapEntityTypes,
+    sapPropertyTypes,
+    sapDataTypes,
   ] = await Promise.all([
     // HASH types
     getEntityTypes(
@@ -300,6 +312,22 @@ const generateOntologyIds = async () => {
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),
+    // SAP types
+    getEntityTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: sapOrg }),
+    ),
+    getPropertyTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: sapOrg }),
+    ),
+    getDataTypes(
+      graphContext,
+      authentication,
+      getLatestTypesInOrganizationQuery({ organization: sapOrg }),
+    ),
   ]);
 
   const outputPath = path.join(
@@ -334,6 +362,12 @@ import type { BaseUrl } from "@blockprotocol/type-system";\n\n`;
         propertyTypes: blockProtocolPropertyTypes,
         dataTypes: blockProtocolDataTypes,
         prefix: "blockProtocol",
+      }),
+      serializeTypes(graphContext, authentication, {
+        entityTypes: sapEntityTypes,
+        propertyTypes: sapPropertyTypes,
+        dataTypes: sapDataTypes,
+        prefix: "sap",
       }),
     ]).then((serializations) => serializations.join("\n\n")));
 
