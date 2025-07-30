@@ -153,7 +153,6 @@ module "grafana" {
   tempo_api_port                   = module.tempo.api_port
   loki_http_dns                    = module.loki.http_dns
   loki_http_port                   = module.loki.http_port
-  loki_grpc_port                   = module.loki.grpc_port
 
   # Shared SSL configuration
   ssl_config = local.ssl_config

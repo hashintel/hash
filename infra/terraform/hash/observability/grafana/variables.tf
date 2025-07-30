@@ -88,11 +88,6 @@ variable "loki_http_port" {
   description = "Port for Loki HTTP API service"
 }
 
-variable "loki_grpc_port" {
-  type        = number
-  description = "Port for Loki gRPC API service"
-}
-
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
 }

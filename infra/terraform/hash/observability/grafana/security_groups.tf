@@ -49,15 +49,6 @@ resource "aws_security_group" "grafana" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
-  # Allow outbound gRPC for Loki live tail streaming
-  egress {
-    from_port   = var.loki_grpc_port
-    to_port     = var.loki_grpc_port
-    protocol    = "tcp"
-    description = "Loki gRPC API for live tail streaming"
-    cidr_blocks = [var.vpc.cidr_block]
-  }
-
   # Allow outbound PostgreSQL
   egress {
     from_port   = var.grafana_database_port
