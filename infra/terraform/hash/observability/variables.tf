@@ -53,3 +53,8 @@ variable "vpc_zone_id" {
   type        = string
   description = "Route53 private hosted zone ID for services within the VPC"
 }
+
+variable "amazon_trust_ca_bundle" {
+  type        = string
+  description = "Amazon Trust Services CA Bundle for SSL verification"
+}

@@ -28,12 +28,12 @@ resource "aws_ecs_cluster_capacity_providers" "observability" {
 locals {
   ssl_config = {
     init_container = {
-      name  = "ssl-setup"
-      image = "debian:bookworm-slim"
+      name  = "ca-setup"
+      image = "busybox:latest"
 
       command = [
         "sh", "-c",
-        "apt-get update && apt-get install -y ca-certificates && cp -r /etc/ssl/certs/* /shared-ssl/"
+        "cat > /shared-ssl/ca-certificates.crt << 'EOF'\n${var.amazon_trust_ca_bundle}\nEOF"
       ]
 
       mountPoints = [
@@ -50,7 +50,7 @@ locals {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.observability.name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "ssl-setup"
+          "awslogs-stream-prefix" = "ca-setup"
         }
       }
     }
@@ -66,10 +66,6 @@ locals {
     }
 
     environment_vars = [
-      {
-        name  = "SSL_CERT_DIR"
-        value = "/usr/local/ssl"
-      },
       {
         name  = "SSL_CERT_FILE"
         value = "/usr/local/ssl/ca-certificates.crt"
