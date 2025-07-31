@@ -6,7 +6,7 @@
 
 server:
   http_listen_port: ${api_port}
-  log_level: info
+  log_level: warn
 
 distributor:
   receivers:
@@ -89,3 +89,8 @@ compactor:
   compaction:
     compaction_cycle: 5m   # Reduced from 30m to prevent memory spikes from large batches
     block_retention: 168h  # 7 days (matches S3 lifecycle policy)
+
+# Disable usage reporting (requires external HTTPS calls)
+# Note: Services only have AWS CA bundle, not full system CAs
+usage_report:
+  reporting_enabled: false

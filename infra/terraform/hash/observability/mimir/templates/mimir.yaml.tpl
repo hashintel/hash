@@ -5,7 +5,7 @@ multitenancy_enabled: false
 server:
   http_listen_port: ${http_port}
   grpc_listen_port: ${grpc_port}
-  log_level: info
+  log_level: warn
 
 # Common S3 configuration
 common:
@@ -44,3 +44,9 @@ ingester:
 limits:
   ingestion_rate: 100000
   compactor_blocks_retention_period: 168h  # 7 days
+  max_global_series_per_user: 0  # Unlimited series for single-tenant setup
+
+# Disable usage reporting (requires external HTTPS calls)
+# Note: Services only have AWS CA bundle, not full system CAs
+usage_stats:
+  enabled: false
