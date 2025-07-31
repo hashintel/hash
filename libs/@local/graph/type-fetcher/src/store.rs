@@ -517,7 +517,7 @@ where
         .attach_printable("Could not check if ontology type exists")
     }
 
-    #[tracing::instrument(level = "trace", skip(self, ontology_type))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type))]
     async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
         actor_id: ActorEntityUuid,

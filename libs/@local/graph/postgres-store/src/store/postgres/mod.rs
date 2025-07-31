@@ -3900,7 +3900,7 @@ where
     /// # Errors
     ///
     /// Returns [`DeletionError`] if any of the database deletion operations fail.
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_principals(
         &self,
         actor_id: ActorEntityUuid,

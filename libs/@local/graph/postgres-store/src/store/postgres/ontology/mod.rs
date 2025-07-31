@@ -46,7 +46,7 @@ impl PostgresStore<Transaction<'_>> {
     /// # Errors
     ///
     /// Returns [`DeletionError`] if the database deletion operation fails.
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_ontology_ids(
         &self,
         ontology_ids: &[OntologyTypeUuid],

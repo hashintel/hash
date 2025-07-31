@@ -102,7 +102,7 @@ impl<C> PostgresStore<C>
 where
     C: AsClient,
 {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
@@ -200,7 +200,7 @@ where
             }))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, provider))]
+    #[tracing::instrument(level = "info", skip(self, provider))]
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn read_knowledge_edges<'t>(
         &self,

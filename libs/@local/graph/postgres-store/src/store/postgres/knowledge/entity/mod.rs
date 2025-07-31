@@ -368,7 +368,7 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
-    #[tracing::instrument(level = "info", skip(self, provider, entity, conversions))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn convert_entity<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
@@ -397,7 +397,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, params, policy_components))]
+    #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
     async fn get_entities_impl(
         &self,
@@ -1154,7 +1154,7 @@ where
     //   see https://linear.app/hash/issue/H-1449
     // TODO: Restrict non-draft links to non-draft entities
     //   see https://linear.app/hash/issue/H-1450
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, params))]
     async fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
@@ -2368,7 +2368,7 @@ struct LockedEntityEdition {
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
-    #[tracing::instrument(level = "trace", skip(self, entity_type_ids))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
         archived: bool,
@@ -2455,7 +2455,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         Ok(edition_id)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn lock_entity_edition(
         &self,
         entity_id: EntityId,
@@ -2540,7 +2540,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     async fn insert_temporal_metadata(
         &self,
         entity_id: EntityId,
@@ -2591,7 +2591,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     #[expect(clippy::too_many_lines)]
     async fn update_temporal_metadata(
         &self,
@@ -2783,7 +2783,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     #[expect(clippy::too_many_lines)]
     async fn archive_entity(
         &self,
