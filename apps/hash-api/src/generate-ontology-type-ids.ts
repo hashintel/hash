@@ -15,6 +15,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { convertTitleToCamelCase } from "@local/hash-isomorphic-utils/convert-title-to-camel-case";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import type {
@@ -34,19 +35,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const outputFileName = "ontology-type-ids.ts";
-
-const convertTitleToCamelCase = (title: string) =>
-  title
-    .split(" ")
-    .map((word, index) =>
-      // If it's the first word, convert it to lowercase
-      // Otherwise, capitalize the first letter and then add the rest of the word in lowercase
-      index === 0
-        ? word.toLowerCase()
-        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-    )
-    // Join all the processed words to get the camelCase result
-    .join("");
 
 type OntologyTypeWithMetadata =
   | EntityTypeWithMetadata

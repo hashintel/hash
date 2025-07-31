@@ -9,6 +9,10 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
+import {
+  type SystemTypeWebShortname,
+  systemTypeWebShortnames,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import type { ApolloError } from "apollo-server-express";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -79,8 +83,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   const shouldServeHashAiType =
     frontendUrl === "https://app.hash.ai" ||
     (frontendUrl === "http://localhost:3000" &&
-      ["h", "google", "linear"].includes(
-        urlObject.pathname.split("/")[1]!.slice(1),
+      systemTypeWebShortnames.includes(
+        urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
       ));
 
   const urlToRequest = shouldServeHashAiType

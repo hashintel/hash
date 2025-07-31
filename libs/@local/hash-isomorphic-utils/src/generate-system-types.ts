@@ -6,6 +6,7 @@ import {
   blockProtocolEntityTypes,
   googleEntityTypes,
   linearEntityTypes,
+  sapEntityTypes,
   systemEntityTypes,
 } from "./ontology-type-ids.js";
 import { slugify } from "./slugify.js";
@@ -83,6 +84,7 @@ const generateSystemTypeTypes = async () => {
     "Block Protocol",
     "blockprotocol",
   );
+  await generateTypes(sapEntityTypes, "SAP", "sap");
 };
 
 void generateSystemTypeTypes();

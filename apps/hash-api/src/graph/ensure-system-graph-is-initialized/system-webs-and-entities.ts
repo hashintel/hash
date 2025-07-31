@@ -148,6 +148,9 @@ export const ensureSystemWebEntitiesExist = async ({
       case "linear":
         displayName = "Linear Integration";
         break;
+      case "sap":
+        displayName = "SAP Integration";
+        break;
       default:
         throw new Error(
           `Unhandled web shortname ${webShortname} requires a display name for the machine actor specified`,

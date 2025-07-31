@@ -37,12 +37,14 @@ type SAPFieldMapping =
       link: SAPLink;
     };
 
-type SAPTable<FieldName extends string> = {
+export type SAPTable<FieldName extends string> = {
   tableKey: string;
   tableTitle: string;
   tableDescription: string;
   fields: Record<FieldName, SAPFieldMapping>;
   primaryKey: FieldName[];
+  // the unique key in the table that other tables will use to join to this table
+  joinKey: FieldName | null;
 };
 
 const propertyTypeFields = {
@@ -123,7 +125,7 @@ const propertyTypeFields = {
   },
   NAME1: {
     propertyType: {
-      title: "Name 1",
+      title: "Name",
       description: "Primary business or individual name",
       dataType: "text",
     },
@@ -357,6 +359,351 @@ const propertyTypeFields = {
     },
     // @todo why isn't SPRAS a reference field?
   },
+  MMSTA: {
+    propertyType: {
+      title: "Maintenance Status",
+      description: "Status code indicating material status at the plant level",
+      dataType: "text",
+    },
+    // this is actually a link to the T141 table, not in the dummy data
+  },
+  DISPO: {
+    propertyType: {
+      title: "MRP Type",
+      description: "Material Requirements Planning type (e.g. PD,VB, or ND)",
+      dataType: "text",
+    },
+    // this is actually a link to the T024D table, not in the dummy data
+  },
+  EISBE: {
+    propertyType: {
+      title: "Safety Stock",
+      description: "Safety stock level for the material (at plant level)",
+      dataType: "number",
+    },
+    // data type should be determined by MEINS field in related MARA table
+  },
+  BSTMA: {
+    propertyType: {
+      title: "Maximum Lot Size",
+      description: "Maximum lot size allowed for planning orders",
+      dataType: "number",
+    },
+    // data type should be determined by MEINS field in related MARA table
+  },
+  PLIFZ: {
+    propertyType: {
+      title: "Planned Delivery Time (days)",
+      description: "Standard procurement lead time in days",
+      dataType: "number",
+    },
+  },
+  LABST: {
+    propertyType: {
+      title: "Unrestricted‑Use Stock",
+      description: "Quantity of valuated stock available without restrictions",
+      dataType: "number",
+      // data type should be determined by MEINS field in related MARA table
+    },
+  },
+  UMLME: {
+    propertyType: {
+      title: "Stock in Transfer",
+      description: "Quantity in transit between storage locations",
+      dataType: "number",
+      // data type should be determined by MEINS field in related MARA table
+    },
+  },
+  INSME: {
+    propertyType: {
+      title: "Stock in Quality Inspection",
+      description: "Quantity currently in quality inspection",
+      dataType: "number",
+      // data type should be determined by MEINS field in related MARA table
+    },
+  },
+  SPEME: {
+    propertyType: {
+      title: "Blocked Stock",
+      description: "Quantity currently blocked and not available for use",
+      dataType: "number",
+      // data type should be determined by MEINS field in related MARA table
+    },
+  },
+  RETME: {
+    propertyType: {
+      title: "Blocked Stock Returns",
+      description: "Quantity returned and blocked from use",
+      dataType: "number",
+      // data type should be determined by MEINS field in related MARA table
+    },
+  },
+  LGPBE: {
+    propertyType: {
+      title: "Storage Bin",
+      description: "Internal putaway bin identifier",
+      dataType: "text",
+    },
+  },
+  MBLNR: {
+    propertyType: {
+      title: "Material Doc Number",
+      description: "Unique number assigned to each material document",
+      dataType: "text",
+    },
+  },
+  MJAHR: {
+    propertyType: {
+      title: "Material Doc Fiscal Year",
+      description: "Fiscal year in which the material document was posted",
+      dataType: "year",
+    },
+  },
+  ZEILE: {
+    propertyType: {
+      title: "Line Number",
+      description: "Line item number within the material document",
+      dataType: "number",
+    },
+  },
+  LINE_ID: {
+    propertyType: {
+      title: "Internal Line ID",
+      description: "Internal identifier for the document line",
+      dataType: "number",
+    },
+  },
+  HEADER_COUNTER: {
+    propertyType: {
+      title: "Header Counter",
+      description:
+        "Counter used to identify different header segments of the same record",
+      dataType: "integer",
+    },
+  },
+  BLDAT: {
+    propertyType: {
+      title: "Document Date",
+      description: "Date shown on the document (often business/doc date)",
+      dataType: "date",
+    },
+  },
+  BUDAT: {
+    propertyType: {
+      title: "Posting Date",
+      description: "Date when the movement was posted into the system",
+      dataType: "date",
+    },
+  },
+  CPUDT: {
+    propertyType: {
+      title: "Entry Date",
+      description: "Date when the document was entered into the system",
+      dataType: "date",
+    },
+  },
+  CPUTM: {
+    propertyType: {
+      title: "Entry Time",
+      description: "Time when the document was entered",
+      dataType: "time",
+    },
+  },
+  USNAM: {
+    propertyType: {
+      title: "Created By",
+      description: "SAP username who entered the document",
+      dataType: "text",
+    },
+  },
+  TCODE: {
+    propertyType: {
+      title: "Transaction Code",
+      description: "SAP t-code used to create or modify this material document",
+      dataType: "text",
+    },
+  },
+  XBLNR: {
+    propertyType: {
+      title: "Reference Document",
+      description: "External reference number (e.g. PO/invoice)",
+      dataType: "text",
+    },
+  },
+  BKTXT: {
+    propertyType: {
+      title: "Document Header Text",
+      description: "Short header text/description associated with the document",
+      dataType: "text",
+    },
+  },
+  BLART: {
+    propertyType: {
+      title: "Document Type",
+      description:
+        "Code representing document category (e.g. goods receipt, goods issue)",
+      dataType: "text",
+    },
+  },
+  VGART: {
+    propertyType: {
+      title: "Movement Category",
+      description: "Movement category for valuation (e.g. 01=GR, 03=GI)",
+      dataType: "text",
+    },
+  },
+  BWART: {
+    propertyType: {
+      title: "Movement Type",
+      description: "Specific type of goods movement (e.g. 101, 261)",
+      dataType: "text",
+    },
+    // this is actually a link to the T156 table, not in the dummy data
+  },
+  BWKEY: {
+    propertyType: {
+      title: "Valuation Area",
+      description: "Area (e.g. plant) where material valuation is maintained",
+      dataType: "text",
+    },
+    // this is actually a link to the T001K table, not in the dummy data
+  },
+  BWTAR: {
+    propertyType: {
+      title: "Valuation Type",
+      description: "Type/class of valuation, such as legal vs. group valuation",
+      dataType: "text",
+    },
+  },
+  LBKUM: {
+    propertyType: {
+      title: "Stock Qty (Beginning)",
+      description: "Total valuated stock quantity before posting",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  SALK3: {
+    propertyType: {
+      title: "Stock Value (Beginning)",
+      description: "Total value of valuated stock before posting",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  VPRSV: {
+    propertyType: {
+      title: "Price Control Flag",
+      description: "Indicates price method used (Standard or Moving Average)",
+      dataType: "text",
+    },
+  },
+  VERPR: {
+    propertyType: {
+      title: "Moving Avg Price",
+      description: "Current moving-average per-unit price",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  STPRS: {
+    propertyType: {
+      title: "Standard Price",
+      description: "Fixed standard price set for the material",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  PEINH: {
+    propertyType: {
+      title: "Price Unit",
+      description: "Number of units the prices refer to (e.g. per 1, per 100)",
+      dataType: "number",
+    },
+  },
+  BKLAS: {
+    propertyType: {
+      title: "Valuation Class",
+      description: "Classification linking to GL accounts",
+      dataType: "text",
+    },
+    // this is actually a link to the T025 table, not in the dummy data
+  },
+  SALKV: {
+    propertyType: {
+      title: "Value (Std Price)",
+      description: "Value based on standard price (only if standard priced)",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  VMKUM: {
+    propertyType: {
+      title: "Prior-period Stock Qty",
+      description: "Stock quantity in previous period",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  VMSAL: {
+    propertyType: {
+      title: "Prior-period Stock Value",
+      description: "Stock value in previous period",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  LAEPR: {
+    propertyType: {
+      title: "Last Price Change Date",
+      description: "Date when the price (e.g. standard) was last updated",
+      dataType: "date",
+    },
+  },
+  ZKPRS: {
+    propertyType: {
+      title: "Future Price Value",
+      description: "Validated future price due to future-dated settings",
+      dataType: "number",
+      dataUnitReferenceField: "PEINH",
+    },
+  },
+  ZKDAT: {
+    propertyType: {
+      title: "Future Price Date",
+      description: "Effective date when the future price will apply",
+      dataType: "date",
+    },
+  },
+  LFGJA: {
+    propertyType: {
+      title: "Fiscal Year",
+      description: "Fiscal year for the current valuation data",
+      dataType: "year",
+    },
+  },
+  LFMON: {
+    propertyType: {
+      title: "Posting Period",
+      description: "Accounting period within the fiscal year",
+      dataType: "number",
+    },
+  },
+  BWTTY: {
+    propertyType: {
+      title: "Valuation Category",
+      description: "Indicates split valuation category type",
+      dataType: "text",
+    },
+    // this is actually a link to the T149 table, not in the dummy data
+  },
+  TIMESTAMP: {
+    propertyType: {
+      title: "UTC Timestamp (short)",
+      description: "UTC equivalent of last update timestamp",
+      dataType: "time",
+    },
+  },
 } as const satisfies Record<string, SAPFieldMapping>;
 
 const linkTypeFields = {
@@ -386,14 +733,10 @@ const linkTypeFields = {
   },
 } as const satisfies Record<string, SAPFieldMapping>;
 
-const commonFields = {
+const kna1Fields = {
   MANDT: propertyTypeFields.MANDT,
   ERDAT: propertyTypeFields.ERDAT,
   ERNAM: propertyTypeFields.ERNAM,
-};
-
-const kna1Fields = {
-  ...commonFields,
   KUNNR: propertyTypeFields.KUNNR,
   NAME1: propertyTypeFields.NAME1,
   ORT01: propertyTypeFields.ORT01,
@@ -409,16 +752,19 @@ const kna1Fields = {
  */
 export const kna1TableDefinition: SAPTable<keyof typeof kna1Fields> = {
   tableKey: "KNA1",
-  tableTitle: "Customer Master Data",
+  tableTitle: "Master Customer Data",
   tableDescription:
     // as opposed to KNVV, which has sales area-specific data on a customer
     "General data on a customer, shared across sales areas",
   primaryKey: ["MANDT", "KUNNR"],
   fields: kna1Fields,
+  joinKey: "KUNNR",
 };
 
 const likpFields = {
-  ...commonFields,
+  MANDT: propertyTypeFields.MANDT,
+  ERDAT: propertyTypeFields.ERDAT,
+  ERNAM: propertyTypeFields.ERNAM,
   KUNNR: linkTypeFields.KUNNR,
   VBELN: propertyTypeFields.VBELN,
   LFART: propertyTypeFields.LFART,
@@ -436,35 +782,7 @@ export const likpTableDefinition: SAPTable<keyof typeof likpFields> = {
   tableDescription: "Key data for sales deliveries",
   primaryKey: ["MANDT", "VBELN"],
   fields: likpFields,
-};
-
-export const lipsFields = {
-  ...commonFields,
-  // no KUNNR in this table, found via likp table
-  VBELN: linkTypeFields.VBELN,
-  MATNR: linkTypeFields.MATNR,
-  POSNR: propertyTypeFields.POSNR,
-  WERKS: propertyTypeFields.WERKS,
-  LGORT: propertyTypeFields.LGORT,
-  LFIMG: propertyTypeFields.LFIMG,
-  MEINS: propertyTypeFields.MEINS,
-  VRKME: propertyTypeFields.VRKME,
-  VGBEL: propertyTypeFields.VGBEL,
-  VGPOS: propertyTypeFields.VGPOS,
-  KCMENG: propertyTypeFields.KCMENG,
-  CHARG: propertyTypeFields.CHARG,
-  CHGME: propertyTypeFields.CHGME,
-} as const satisfies Record<string, SAPFieldMapping>;
-
-/**
- * Sales Delivery Item Data (LIPS)
- */
-export const lipsTableDefinition: SAPTable<keyof typeof lipsFields> = {
-  tableKey: "LIPS",
-  tableTitle: "Sales Delivery Item Data",
-  tableDescription: "Detailed data for sales delivery items",
-  primaryKey: ["MANDT", "VBELN", "POSNR"],
-  fields: lipsFields,
+  joinKey: "VBELN",
 };
 
 const maraFields = {
@@ -490,6 +808,38 @@ export const maraTableDefinition: SAPTable<keyof typeof maraFields> = {
   tableDescription: "Master data for materials or products",
   primaryKey: ["MANDT", "MATNR"],
   fields: maraFields,
+  joinKey: "MATNR",
+};
+
+export const lipsFields = {
+  MANDT: propertyTypeFields.MANDT,
+  ERDAT: propertyTypeFields.ERDAT,
+  ERNAM: propertyTypeFields.ERNAM,
+  VBELN: linkTypeFields.VBELN,
+  MATNR: linkTypeFields.MATNR,
+  POSNR: propertyTypeFields.POSNR,
+  WERKS: propertyTypeFields.WERKS,
+  LGORT: propertyTypeFields.LGORT,
+  LFIMG: propertyTypeFields.LFIMG,
+  MEINS: propertyTypeFields.MEINS,
+  VRKME: propertyTypeFields.VRKME,
+  VGBEL: propertyTypeFields.VGBEL,
+  VGPOS: propertyTypeFields.VGPOS,
+  KCMENG: propertyTypeFields.KCMENG,
+  CHARG: propertyTypeFields.CHARG,
+  CHGME: propertyTypeFields.CHGME,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Sales Delivery Item Data (LIPS)
+ */
+export const lipsTableDefinition: SAPTable<keyof typeof lipsFields> = {
+  tableKey: "LIPS",
+  tableTitle: "Sales Delivery Item Data",
+  tableDescription: "Detailed data for sales delivery items",
+  primaryKey: ["MANDT", "VBELN", "POSNR"],
+  fields: lipsFields,
+  joinKey: null,
 };
 
 const maktFields = {
@@ -505,4 +855,138 @@ export const maktTableDefinition: SAPTable<keyof typeof maktFields> = {
   tableDescription: "Descriptions of materials or products",
   primaryKey: ["MANDT", "MATNR", "SPRAS"],
   fields: maktFields,
+  joinKey: null,
 };
+
+const marcFields = {
+  MANDT: propertyTypeFields.MANDT,
+  MATNR: linkTypeFields.MATNR,
+  WERKS: propertyTypeFields.WERKS,
+  LGORT: propertyTypeFields.LGORT,
+  MMSTA: propertyTypeFields.MMSTA,
+  DISPO: propertyTypeFields.DISPO,
+  EISBE: propertyTypeFields.EISBE,
+  BSTMA: propertyTypeFields.BSTMA,
+  PLIFZ: propertyTypeFields.PLIFZ,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+const marcTableDefinition: SAPTable<keyof typeof marcFields> = {
+  tableKey: "MARC",
+  tableTitle: "Plant Material Data",
+  tableDescription: "Plant-specific data for materials or products",
+  primaryKey: ["MANDT", "MATNR", "WERKS"],
+  fields: marcFields,
+  joinKey: null,
+};
+
+const mardFields = {
+  MANDT: propertyTypeFields.MANDT,
+  MATNR: linkTypeFields.MATNR,
+  WERKS: propertyTypeFields.WERKS,
+  LGORT: propertyTypeFields.LGORT,
+  LABST: propertyTypeFields.LABST,
+  UMLME: propertyTypeFields.UMLME,
+  INSME: propertyTypeFields.INSME,
+  SPEME: propertyTypeFields.SPEME,
+  RETME: propertyTypeFields.RETME,
+  LGPBE: propertyTypeFields.LGPBE,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Storage Location Data for Material (MARD)
+ */
+export const mardTableDefinition: SAPTable<keyof typeof mardFields> = {
+  tableKey: "MARD",
+  tableTitle: "Storage Location Data for Material",
+  tableDescription:
+    "Stock levels and storage information for materials at specific storage locations",
+  primaryKey: ["MANDT", "MATNR", "WERKS", "LGORT"],
+  fields: mardFields,
+  joinKey: null,
+};
+
+const matdocFields = {
+  MANDT: propertyTypeFields.MANDT,
+  MBLNR: propertyTypeFields.MBLNR,
+  MJAHR: propertyTypeFields.MJAHR,
+  ZEILE: propertyTypeFields.ZEILE,
+  LINE_ID: propertyTypeFields.LINE_ID,
+  HEADER_COUNTER: propertyTypeFields.HEADER_COUNTER,
+  BLDAT: propertyTypeFields.BLDAT,
+  BUDAT: propertyTypeFields.BUDAT,
+  CPUDT: propertyTypeFields.CPUDT,
+  CPUTM: propertyTypeFields.CPUTM,
+  USNAM: propertyTypeFields.USNAM,
+  TCODE: propertyTypeFields.TCODE,
+  XBLNR: propertyTypeFields.XBLNR,
+  BKTXT: propertyTypeFields.BKTXT,
+  BLART: propertyTypeFields.BLART,
+  VGART: propertyTypeFields.VGART,
+  BWART: propertyTypeFields.BWART,
+  MATNR: linkTypeFields.MATNR,
+  WERKS: propertyTypeFields.WERKS,
+  LGORT: propertyTypeFields.LGORT,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Material Document (MATDOC)
+ */
+export const matdocTableDefinition: SAPTable<keyof typeof matdocFields> = {
+  tableKey: "MATDOC",
+  tableTitle: "Material Document",
+  tableDescription:
+    "Records of material movements and transactions in the warehouse",
+  primaryKey: ["MANDT", "MBLNR", "MJAHR", "ZEILE", "LINE_ID"],
+  fields: matdocFields,
+  joinKey: null,
+};
+
+const mbewFields = {
+  MANDT: propertyTypeFields.MANDT,
+  MATNR: linkTypeFields.MATNR,
+  BWKEY: propertyTypeFields.BWKEY,
+  BWTAR: propertyTypeFields.BWTAR,
+  LVORM: propertyTypeFields.LVORM,
+  LBKUM: propertyTypeFields.LBKUM,
+  SALK3: propertyTypeFields.SALK3,
+  VPRSV: propertyTypeFields.VPRSV,
+  VERPR: propertyTypeFields.VERPR,
+  STPRS: propertyTypeFields.STPRS,
+  PEINH: propertyTypeFields.PEINH,
+  BKLAS: propertyTypeFields.BKLAS,
+  SALKV: propertyTypeFields.SALKV,
+  VMKUM: propertyTypeFields.VMKUM,
+  VMSAL: propertyTypeFields.VMSAL,
+  LAEPR: propertyTypeFields.LAEPR,
+  ZKPRS: propertyTypeFields.ZKPRS,
+  ZKDAT: propertyTypeFields.ZKDAT,
+  LFGJA: propertyTypeFields.LFGJA,
+  LFMON: propertyTypeFields.LFMON,
+  BWTTY: propertyTypeFields.BWTTY,
+  TIMESTAMP: propertyTypeFields.TIMESTAMP,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Material Valuation (MBEW)
+ */
+export const mbewTableDefinition: SAPTable<keyof typeof mbewFields> = {
+  tableKey: "MBEW",
+  tableTitle: "Material Valuation",
+  tableDescription:
+    "Valuation data for materials including prices, stock values, and accounting information",
+  primaryKey: ["MANDT", "MATNR", "BWKEY", "BWTAR"],
+  fields: mbewFields,
+  joinKey: null,
+};
+
+export const sapTableDefinitions = {
+  kna1: kna1TableDefinition,
+  likp: likpTableDefinition,
+  mara: maraTableDefinition,
+  lips: lipsTableDefinition,
+  makt: maktTableDefinition,
+  marc: marcTableDefinition,
+  mard: mardTableDefinition,
+  matdoc: matdocTableDefinition,
+  mbew: mbewTableDefinition,
+} as const satisfies Record<string, SAPTable<string>>;

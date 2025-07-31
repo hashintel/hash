@@ -1200,7 +1200,7 @@ export const systemDataTypes = {
     description:
       "A measure of the length of time, defined as exactly 3,600 seconds.",
   },
-  "imperialLength(uk)": {
+  imperialLengthUk: {
     dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-uk/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/imperial-length-uk/" as BaseUrl,
@@ -1208,7 +1208,7 @@ export const systemDataTypes = {
     description:
       "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
   },
-  "imperialLength(us)": {
+  imperialLengthUs: {
     dataTypeId: "https://hash.ai/@h/types/data-type/imperial-length-us/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/imperial-length-us/" as BaseUrl,
@@ -1312,7 +1312,7 @@ export const systemDataTypes = {
     description:
       "The base unit of length in the International System of Units (SI).",
   },
-  "metricLength(si)": {
+  metricLengthSi: {
     dataTypeId: "https://hash.ai/@h/types/data-type/metric-length-si/v/1",
     dataTypeBaseUrl:
       "https://hash.ai/@h/types/data-type/metric-length-si/" as BaseUrl,
@@ -2143,6 +2143,571 @@ export const blockProtocolDataTypes = {
       "A piece of data that can be used to convey information about an attribute, quality or state of something.",
   },
 } as const satisfies Record<
+  string,
+  {
+    dataTypeId: VersionedUrl;
+    dataTypeBaseUrl: BaseUrl;
+    title: string;
+    description: string;
+  }
+>;
+
+export const sapEntityTypes = {
+  masterCustomerData: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/master-customer-data/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/master-customer-data/" as BaseUrl,
+  },
+  materialDescription: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/material-description/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/material-description/" as BaseUrl,
+  },
+  materialDocument: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/material-document/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/material-document/" as BaseUrl,
+  },
+  materialMasterData: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/material-master-data/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/material-master-data/" as BaseUrl,
+  },
+  materialValuation: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/material-valuation/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/material-valuation/" as BaseUrl,
+  },
+  plantMaterialData: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/plant-material-data/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/plant-material-data/" as BaseUrl,
+  },
+  salesDeliveryHeaderData: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/sales-delivery-header-data/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/sales-delivery-header-data/" as BaseUrl,
+  },
+  salesDeliveryItemData: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/sales-delivery-item-data/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/sales-delivery-item-data/" as BaseUrl,
+  },
+  storageLocationDataForMaterial: {
+    entityTypeId:
+      "https://hash.ai/@sap/types/entity-type/storage-location-data-for-material/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/storage-location-data-for-material/" as BaseUrl,
+  },
+} as const satisfies Record<
+  string,
+  { entityTypeId: VersionedUrl; entityTypeBaseUrl: BaseUrl }
+>;
+
+export const sapLinkEntityTypes = {
+  belongsToDelivery: {
+    linkEntityTypeId:
+      "https://hash.ai/@sap/types/entity-type/belongs-to-delivery/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/belongs-to-delivery/" as BaseUrl,
+  },
+  relatesToCustomer: {
+    linkEntityTypeId:
+      "https://hash.ai/@sap/types/entity-type/relates-to-customer/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/relates-to-customer/" as BaseUrl,
+  },
+  relatesToMaterial: {
+    linkEntityTypeId:
+      "https://hash.ai/@sap/types/entity-type/relates-to-material/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@sap/types/entity-type/relates-to-material/" as BaseUrl,
+  },
+} as const satisfies Record<
+  string,
+  { linkEntityTypeId: VersionedUrl; linkEntityTypeBaseUrl: BaseUrl }
+>;
+
+export const sapPropertyTypes = {
+  actualDeliveredQty: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/actual-delivered-qty/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/actual-delivered-qty/" as BaseUrl,
+  },
+  baseUom: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/base-uom/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/base-uom/" as BaseUrl,
+  },
+  batchNumber: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/batch-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/batch-number/" as BaseUrl,
+  },
+  batchUom: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/batch-uom/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/batch-uom/" as BaseUrl,
+  },
+  blockedStock: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/blocked-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/blocked-stock/" as BaseUrl,
+  },
+  blockedStockReturns: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/blocked-stock-returns/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/blocked-stock-returns/" as BaseUrl,
+  },
+  city: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/city/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/city/" as BaseUrl,
+  },
+  client: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/client/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/client/" as BaseUrl,
+  },
+  countryKey: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/country-key/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/country-key/" as BaseUrl,
+  },
+  createdAt: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/created-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/created-at/" as BaseUrl,
+  },
+  createdBy: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/created-by/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/created-by/" as BaseUrl,
+  },
+  createdOnMasterRecord: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/created-on-master-record/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/created-on-master-record/" as BaseUrl,
+  },
+  createdOnRecord: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/created-on-record/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/created-on-record/" as BaseUrl,
+  },
+  cumulatedBatchQty: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/cumulated-batch-qty/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/cumulated-batch-qty/" as BaseUrl,
+  },
+  customerNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/customer-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/customer-number/" as BaseUrl,
+  },
+  deletionFlag: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/deletion-flag/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/deletion-flag/" as BaseUrl,
+  },
+  deliveryDate: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/delivery-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/delivery-date/" as BaseUrl,
+  },
+  deliveryNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/delivery-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/delivery-number/" as BaseUrl,
+  },
+  deliveryType: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/delivery-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/delivery-type/" as BaseUrl,
+  },
+  documentDate: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/document-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/document-date/" as BaseUrl,
+  },
+  documentHeaderText: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/document-header-text/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/document-header-text/" as BaseUrl,
+  },
+  documentType: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/document-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/document-type/" as BaseUrl,
+  },
+  entryDate: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/entry-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/entry-date/" as BaseUrl,
+  },
+  entryTime: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/entry-time/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/entry-time/" as BaseUrl,
+  },
+  fiscalYear: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/fiscal-year/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/fiscal-year/" as BaseUrl,
+  },
+  futurePriceDate: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/future-price-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/future-price-date/" as BaseUrl,
+  },
+  futurePriceValue: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/future-price-value/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/future-price-value/" as BaseUrl,
+  },
+  grossWeight: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/gross-weight/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/gross-weight/" as BaseUrl,
+  },
+  headerCounter: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/header-counter/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/header-counter/" as BaseUrl,
+  },
+  industryKey: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/industry-key/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/industry-key/" as BaseUrl,
+  },
+  internalLineId: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/internal-line-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/internal-line-id/" as BaseUrl,
+  },
+  itemCategoryGroup: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/item-category-group/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/item-category-group/" as BaseUrl,
+  },
+  itemNumber: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/item-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/item-number/" as BaseUrl,
+  },
+  languageKey: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/language-key/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/language-key/" as BaseUrl,
+  },
+  lastPriceChangeDate: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/last-price-change-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/last-price-change-date/" as BaseUrl,
+  },
+  lineNumber: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/line-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/line-number/" as BaseUrl,
+  },
+  maintenanceStatus: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/maintenance-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/maintenance-status/" as BaseUrl,
+  },
+  materialDescription: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-description/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-description/" as BaseUrl,
+  },
+  materialDocFiscalYear: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-doc-fiscal-year/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-doc-fiscal-year/" as BaseUrl,
+  },
+  materialDocNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-doc-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-doc-number/" as BaseUrl,
+  },
+  materialGroup: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-group/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-group/" as BaseUrl,
+  },
+  materialNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-number/" as BaseUrl,
+  },
+  materialType: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/material-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/material-type/" as BaseUrl,
+  },
+  maximumLotSize: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/maximum-lot-size/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/maximum-lot-size/" as BaseUrl,
+  },
+  movementCategory: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/movement-category/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/movement-category/" as BaseUrl,
+  },
+  movementType: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/movement-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/movement-type/" as BaseUrl,
+  },
+  movingAvgPrice: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/moving-avg-price/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/moving-avg-price/" as BaseUrl,
+  },
+  mrpType: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/mrp-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/mrp-type/" as BaseUrl,
+  },
+  name: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/name/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/name/" as BaseUrl,
+  },
+  netWeight: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/net-weight/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/net-weight/" as BaseUrl,
+  },
+  plannedDeliveryTimeDays: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/planned-delivery-time-days/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/planned-delivery-time-days/" as BaseUrl,
+  },
+  plant: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/plant/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/plant/" as BaseUrl,
+  },
+  postalCode: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/postal-code/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/postal-code/" as BaseUrl,
+  },
+  postingDate: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/posting-date/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/posting-date/" as BaseUrl,
+  },
+  postingPeriod: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/posting-period/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/posting-period/" as BaseUrl,
+  },
+  priceControlFlag: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/price-control-flag/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/price-control-flag/" as BaseUrl,
+  },
+  priceUnit: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/price-unit/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/price-unit/" as BaseUrl,
+  },
+  priorperiodStockQty: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/prior-period-stock-qty/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/prior-period-stock-qty/" as BaseUrl,
+  },
+  priorperiodStockValue: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/prior-period-stock-value/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/prior-period-stock-value/" as BaseUrl,
+  },
+  refDocumentItem: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/ref-document-item/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/ref-document-item/" as BaseUrl,
+  },
+  refDocumentNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/ref-document-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/ref-document-number/" as BaseUrl,
+  },
+  referenceDocument: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/reference-document/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/reference-document/" as BaseUrl,
+  },
+  region: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/region/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/region/" as BaseUrl,
+  },
+  safetyStock: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/safety-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/safety-stock/" as BaseUrl,
+  },
+  salesUom: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/sales-uom/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/sales-uom/" as BaseUrl,
+  },
+  standardPrice: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/standard-price/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/standard-price/" as BaseUrl,
+  },
+  stockInQualityInspection: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/stock-in-quality-inspection/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/stock-in-quality-inspection/" as BaseUrl,
+  },
+  stockInTransfer: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/stock-in-transfer/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/stock-in-transfer/" as BaseUrl,
+  },
+  stockQtyBeginning: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/stock-qty-beginning/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/stock-qty-beginning/" as BaseUrl,
+  },
+  stockValueBeginning: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/stock-value-beginning/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/stock-value-beginning/" as BaseUrl,
+  },
+  storageBin: {
+    propertyTypeId: "https://hash.ai/@sap/types/property-type/storage-bin/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/storage-bin/" as BaseUrl,
+  },
+  storageLocation: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/storage-location/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/storage-location/" as BaseUrl,
+  },
+  streetAndHouseNumber: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/street-and-house-number/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/street-and-house-number/" as BaseUrl,
+  },
+  transactionCode: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/transaction-code/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/transaction-code/" as BaseUrl,
+  },
+  unrestricteduseStock: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/unrestricted-use-stock/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/unrestricted-use-stock/" as BaseUrl,
+  },
+  utcTimestampShort: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/utc-timestamp-short/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/utc-timestamp-short/" as BaseUrl,
+  },
+  valuationArea: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/valuation-area/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/valuation-area/" as BaseUrl,
+  },
+  valuationCategory: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/valuation-category/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/valuation-category/" as BaseUrl,
+  },
+  valuationClass: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/valuation-class/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/valuation-class/" as BaseUrl,
+  },
+  valuationType: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/valuation-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/valuation-type/" as BaseUrl,
+  },
+  valueStdPrice: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/value-std-price/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/value-std-price/" as BaseUrl,
+  },
+  weightUnitOfMeasure: {
+    propertyTypeId:
+      "https://hash.ai/@sap/types/property-type/weight-unit-of-measure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@sap/types/property-type/weight-unit-of-measure/" as BaseUrl,
+  },
+} as const satisfies Record<
+  string,
+  { propertyTypeId: VersionedUrl; propertyTypeBaseUrl: BaseUrl }
+>;
+
+export const sapDataTypes = {} as const satisfies Record<
   string,
   {
     dataTypeId: VersionedUrl;
