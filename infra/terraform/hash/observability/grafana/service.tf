@@ -1,14 +1,29 @@
-# ECS Task Definition and Service for OpenTelemetry Collector
+# ECS Task Definition and Service for Grafana
 
 # Configuration hash for task definition versioning
 locals {
   config_hash = sha256(jsonencode({
-    otel_collector_config = aws_s3_object.otel_collector_config.content
+    grafana_config   = aws_s3_object.grafana_config.content
+    tempo_datasource = aws_s3_object.grafana_tempo_datasource.content
   }))
 }
 
+# SSM Parameters for Grafana secrets
+resource "aws_ssm_parameter" "grafana_env_vars" {
+  for_each = {
+    "GF_DATABASE_PASSWORD"   = var.grafana_database_password
+    "GF_SECURITY_SECRET_KEY" = var.grafana_secret_key
+  }
+
+  name      = "/${var.prefix}/grafana/${each.key}"
+  type      = "SecureString"
+  value     = sensitive(each.value)
+  overwrite = true
+  tags      = {}
+}
+
 # ECS Task Definition
-resource "aws_ecs_task_definition" "otel_collector" {
+resource "aws_ecs_task_definition" "grafana" {
   family                   = "${local.prefix}-${substr(local.config_hash, 0, 8)}"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
@@ -21,15 +36,15 @@ resource "aws_ecs_task_definition" "otel_collector" {
     # SSL certificates setup (shared configuration)
     var.ssl_config.init_container,
 
-    # OpenTelemetry Collector-specific config-downloader
+    # Grafana-specific config-downloader
     {
       name  = "config-downloader"
       image = "amazon/aws-cli:latest"
 
       command = [
         "s3", "cp",
-        "s3://${var.config_bucket.id}/otelcol/",
-        "/etc/otelcol/",
+        "s3://${var.config_bucket.id}/${local.service_name}/",
+        "/etc/grafana/",
         "--recursive"
       ]
 
@@ -47,19 +62,15 @@ resource "aws_ecs_task_definition" "otel_collector" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "otelcol-config-downloader"
+          "awslogs-stream-prefix" = "grafana-config-downloader"
         }
       }
     },
 
-    # Main OpenTelemetry Collector container
+    # Main Grafana container
     {
-      name  = "otel-collector"
-      image = "otel/opentelemetry-collector-contrib:0.128.0"
-
-      command = [
-        "--config=/etc/otelcol/config.yaml"
-      ]
+      name  = "grafana"
+      image = "grafana/grafana:12.1.0"
 
       dependsOn = [
         {
@@ -76,47 +87,43 @@ resource "aws_ecs_task_definition" "otel_collector" {
         {
           sourceVolume  = "config"
           containerPath = "/etc"
-          readOnly      = true
+          readOnly      = false
         },
         var.ssl_config.mount_point
       ]
 
       environment = var.ssl_config.environment_vars
 
+      secrets = [
+        for env_name, ssm_param in aws_ssm_parameter.grafana_env_vars :
+        { name = env_name, valueFrom = ssm_param.arn }
+      ]
+
       portMappings = [
-        # Internal ports with names for Service Connect
         {
-          name          = local.grpc_port_name_internal
-          containerPort = local.grpc_port_internal
-          protocol      = "tcp"
-        },
-        {
-          name          = local.http_port_name_internal
-          containerPort = local.http_port_internal
-          protocol      = "tcp"
-        },
-        # External ports without names (ALB only)
-        {
-          containerPort = local.grpc_port_external
-          protocol      = "tcp"
-        },
-        {
-          containerPort = local.http_port_external
-          protocol      = "tcp"
-        },
-        {
-          name          = local.health_port_name
-          containerPort = local.health_port
+          name          = local.grafana_port_name
+          containerPort = local.grafana_port
           protocol      = "tcp"
         }
       ]
+
+      healthCheck = {
+        command     = ["CMD", "curl", "-f", "http://localhost:${local.grafana_port}/api/health"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+
+      readonlyRootFilesystem   = false
+      allowPrivilegeEscalation = false
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "otel-collector"
+          "awslogs-stream-prefix" = local.service_name
         }
       }
 
@@ -141,16 +148,16 @@ resource "aws_ecs_task_definition" "otel_collector" {
   }
 
   tags = {
-    Name    = local.service_name
-    Purpose = "OpenTelemetry Collector"
+    Name    = "${local.prefix}-task-definition"
+    Purpose = "Grafana ECS task definition"
   }
 }
 
 # ECS Service
-resource "aws_ecs_service" "otel_collector" {
+resource "aws_ecs_service" "grafana" {
   name                   = local.service_name
   cluster                = var.cluster_arn
-  task_definition        = aws_ecs_task_definition.otel_collector.arn
+  task_definition        = aws_ecs_task_definition.grafana.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
@@ -158,53 +165,30 @@ resource "aws_ecs_service" "otel_collector" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.otel_collector.id]
+    security_groups  = [aws_security_group.grafana.id]
   }
 
   service_connect_configuration {
     enabled   = true
     namespace = var.service_discovery_namespace_arn
 
-    # Only internal ports are exposed via Service Connect
     service {
-      port_name = local.grpc_port_name_internal
+      port_name = local.grafana_port_name
 
       client_alias {
-        port = local.grpc_port_internal
-      }
-    }
-
-    service {
-      port_name = local.http_port_name_internal
-
-      client_alias {
-        port = local.http_port_internal
+        port = local.grafana_port
       }
     }
   }
 
-  # Internal ALB target groups
   load_balancer {
-    target_group_arn = aws_lb_target_group.http_internal.arn
-    container_name   = "otel-collector"
-    container_port   = local.http_port_internal
-  }
-
-  # External ALB target groups
-  load_balancer {
-    target_group_arn = aws_lb_target_group.http_external.arn
-    container_name   = "otel-collector"
-    container_port   = local.http_port_external
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.grpc_external.arn
-    container_name   = "otel-collector"
-    container_port   = local.grpc_port_external
+    target_group_arn = aws_lb_target_group.grafana.arn
+    container_name   = "grafana"
+    container_port   = local.grafana_port
   }
 
   tags = {
     Name    = local.service_name
-    Purpose = "OpenTelemetry Collector"
+    Purpose = "Grafana observability dashboard"
   }
 }

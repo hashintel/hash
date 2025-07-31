@@ -230,3 +230,32 @@ resource "postgresql_default_privileges" "temporal_visibility_readwrite_tables" 
   object_type = "table"
   privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
 }
+
+# Grafana
+resource "postgresql_role" "grafana_user" {
+  name           = "grafana"
+  login          = true
+  password       = var.pg_grafana_user_password_hash
+  inherit        = true
+  roles          = [postgresql_role.readwrite.name]
+  skip_drop_role = false
+}
+
+resource "postgresql_database" "grafana" {
+  name              = "grafana"
+  owner             = postgresql_role.grafana_user.name
+  template          = "template0"
+  lc_collate        = "C"
+  connection_limit  = -1
+  allow_connections = true
+}
+
+resource "postgresql_default_privileges" "grafana_readwrite_tables" {
+  owner    = var.pg_superuser_username
+  role     = postgresql_role.grafana_user.name
+  database = postgresql_database.grafana.name
+  schema   = "public"
+
+  object_type = "table"
+  privileges  = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+}

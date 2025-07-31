@@ -36,14 +36,9 @@ variable "service_discovery_namespace_arn" {
   description = "ARN of the service discovery namespace for Service Connect"
 }
 
-variable "tempo_otlp_grpc_dns" {
+variable "service_discovery_namespace_name" {
   type        = string
-  description = "Tempo OTLP gRPC DNS name for trace forwarding"
-}
-
-variable "tempo_otlp_grpc_port" {
-  type        = number
-  description = "Tempo OTLP gRPC port number"
+  description = "Name of the service discovery namespace for DNS resolution"
 }
 
 variable "ssl_config" {

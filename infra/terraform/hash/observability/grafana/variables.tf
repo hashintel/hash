@@ -36,14 +36,41 @@ variable "service_discovery_namespace_arn" {
   description = "ARN of the service discovery namespace for Service Connect"
 }
 
-variable "tempo_otlp_grpc_dns" {
+variable "service_discovery_namespace_name" {
   type        = string
-  description = "Tempo OTLP gRPC DNS name for trace forwarding"
+  description = "Name of the service discovery namespace for DNS resolution"
 }
 
-variable "tempo_otlp_grpc_port" {
+variable "grafana_database_host" {
+  type        = string
+  description = "PostgreSQL database host"
+}
+
+variable "grafana_database_port" {
   type        = number
-  description = "Tempo OTLP gRPC port number"
+  description = "PostgreSQL database port"
+}
+
+variable "grafana_database_password" {
+  type        = string
+  sensitive   = true
+  description = "PostgreSQL database password for grafana user"
+}
+
+variable "grafana_secret_key" {
+  type        = string
+  sensitive   = true
+  description = "Grafana secret key"
+}
+
+variable "tempo_api_dns" {
+  type        = string
+  description = "DNS name for Tempo API service"
+}
+
+variable "tempo_api_port" {
+  type        = number
+  description = "Port for Tempo API service"
 }
 
 variable "ssl_config" {

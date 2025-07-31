@@ -26,3 +26,25 @@ variable "subnets" {
   type        = list(string)
   description = "List of subnet IDs for the ECS services"
 }
+
+variable "grafana_database_host" {
+  type        = string
+  description = "PostgreSQL database host for Grafana"
+}
+
+variable "grafana_database_port" {
+  type        = number
+  description = "PostgreSQL database port for Grafana"
+}
+
+variable "grafana_database_password" {
+  type        = string
+  sensitive   = true
+  description = "PostgreSQL database password for Grafana user"
+}
+
+variable "grafana_secret_key" {
+  type        = string
+  sensitive   = true
+  description = "Grafana secret key"
+}
