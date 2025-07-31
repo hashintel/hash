@@ -20,7 +20,7 @@ brute_force_login_protection_max_attempts = 5
 [users]
 # No sign-up allowed - admin manages users
 allow_sign_up = false
-# Allow users to change their own password
+# Admins manage orgs
 allow_org_create = false
 
 [auth]
