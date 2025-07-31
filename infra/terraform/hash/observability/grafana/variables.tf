@@ -88,6 +88,16 @@ variable "loki_http_port" {
   description = "Port for Loki HTTP API service"
 }
 
+variable "mimir_http_dns" {
+  type        = string
+  description = "DNS name for Mimir HTTP API service"
+}
+
+variable "mimir_http_port" {
+  type        = number
+  description = "Port for Mimir HTTP API service"
+}
+
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
 }

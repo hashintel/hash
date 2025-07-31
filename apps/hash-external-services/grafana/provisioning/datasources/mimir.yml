@@ -1,10 +1,10 @@
 apiVersion: 1
 
 datasources:
-  - name: Metrics
+  - name: Mimir
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
-    uid: prometheus
+    url: http://mimir:8080/prometheus
+    uid: mimir
     isDefault: true
     editable: true

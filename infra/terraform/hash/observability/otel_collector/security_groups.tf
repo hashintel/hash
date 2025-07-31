@@ -103,6 +103,15 @@ resource "aws_security_group" "otel_collector" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  # Allow outbound traffic to Mimir HTTP API
+  egress {
+    from_port   = var.mimir_http_port
+    to_port     = var.mimir_http_port
+    protocol    = "tcp"
+    description = "OTLP HTTP to Mimir"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   tags = {
     Name    = "${local.prefix}-sg"
     Purpose = "OpenTelemetry Collector security group"

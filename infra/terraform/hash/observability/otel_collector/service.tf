@@ -95,6 +95,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
           containerPort = local.http_port_internal
           protocol      = "tcp"
         },
+
         # External ports without names (ALB only)
         {
           containerPort = local.grpc_port_external
@@ -105,7 +106,6 @@ resource "aws_ecs_task_definition" "otel_collector" {
           protocol      = "tcp"
         },
         {
-          name          = local.health_port_name
           containerPort = local.health_port
           protocol      = "tcp"
         }

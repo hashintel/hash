@@ -20,10 +20,6 @@ locals {
           }
         }
       }
-      # AWS ECS container metrics (current task only)
-      awsecscontainermetrics = {
-        collection_interval = "30s"
-      }
     }
     processors = {
       batch = {}
@@ -54,7 +50,7 @@ locals {
           exporters  = ["otlp"]
         }
         metrics = {
-          receivers  = ["otlp", "awsecscontainermetrics"]
+          receivers  = ["otlp"]
           processors = ["batch"]
           exporters  = ["otlp"]
         }

@@ -36,7 +36,7 @@ The observability stack follows a centralized collection pattern: all applicatio
 - **OpenTelemetry Collector** - Central telemetry hub that receives, processes, and routes data
 - **Grafana Tempo** - Distributed tracing backend with service graph generation
 - **Grafana Loki** - Log aggregation and storage
-- **Prometheus** - Metrics collection and storage
+- **Grafana Mimir** - Metrics collection and storage
 - **Grafana** - Unified observability dashboard reading from all backends
 
 ## Quick Start
@@ -57,7 +57,6 @@ Each service includes health checks and proper dependency management. Services w
 **Access URLs (Development):**
 
 - Grafana Dashboard: http://localhost:3001
-- Prometheus: http://localhost:9090
 - Kratos Admin API: http://localhost:4434
 - Hydra Admin API: http://localhost:4445
 
@@ -68,7 +67,7 @@ Each service includes health checks and proper dependency management. Services w
 - `opentelemetry-collector/otel-collector-config.yaml` - OpenTelemetry Collector pipeline configuration
 - `tempo/tempo.yaml` - Tempo tracing backend configuration
 - `loki/loki.yaml` - Loki log aggregation configuration
-- `prometheus/prometheus.yml` - Prometheus metrics collection configuration
+- `mimir/mimir.yml` - Mimir metrics collection configuration
 - `grafana/provisioning/` - Grafana data source and dashboard provisioning
 
 ### Authentication Configuration
