@@ -46,6 +46,11 @@ output "http_internal_target_group_arn" {
   value       = aws_lb_target_group.http_internal.arn
 }
 
+output "grpc_internal_target_group_arn" {
+  description = "Internal gRPC target group ARN"
+  value       = aws_lb_target_group.grpc_internal.arn
+}
+
 # External target groups (client applications)
 output "http_external_target_group_arn" {
   description = "External HTTP target group ARN"

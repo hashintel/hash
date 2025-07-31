@@ -19,30 +19,38 @@ resource "aws_security_group" "alb_internal" {
   name_prefix = "${var.prefix}-internal-"
   vpc_id      = var.vpc.id
 
-  # Allow inbound HTTP for OTel receiver internal
+  # Allow inbound HTTPS for OTel receiver
   ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    description = "Internal HTTPS"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  # Allow outbound to OTel Collector for internal telemetry
+  egress {
     from_port   = module.otel_collector.http_port_internal
     to_port     = module.otel_collector.http_port_internal
     protocol    = "tcp"
-    description = "HTTP for OpenTelemetry receiver (internal)"
+    description = "Allow outbound to OTel Collector for internal telemetry"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
-  # Allow inbound gRPC for OTel receiver internal
-  ingress {
+  egress {
     from_port   = module.otel_collector.grpc_port_internal
     to_port     = module.otel_collector.grpc_port_internal
     protocol    = "tcp"
-    description = "gRPC for OpenTelemetry receiver (internal)"
+    description = "Allow outbound to OTel Collector for internal telemetry"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
-  # Allow all outbound traffic to reach ECS services
+  # Allow outbound to OTel Collector health check port
   egress {
-    from_port   = 0
-    to_port     = 65535
+    from_port   = module.otel_collector.health_port
+    to_port     = module.otel_collector.health_port
     protocol    = "tcp"
-    description = "Allow outbound to ECS services"
+    description = "Allow health checks to OTel Collector"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
@@ -128,7 +136,6 @@ resource "aws_security_group" "alb_external" {
   }
 }
 
-# External HTTPS listener for grafana.hash.ai and telemetry.hash.ai
 resource "aws_lb_listener" "external_https" {
   load_balancer_arn = aws_lb.observability_external.arn
   port              = "443"
@@ -152,6 +159,15 @@ resource "aws_lb_listener" "external_https" {
   }
 }
 
+resource "cloudflare_record" "cname_grafana_internal" {
+  zone_id = data.cloudflare_zone.hash_ai.id
+  name    = "grafana.internal"
+  type    = "CNAME"
+  content = aws_lb.observability_external.dns_name
+  proxied = true
+  tags    = ["terraform"]
+}
+
 # Grafana routing rule for grafana.hash.ai
 resource "aws_lb_listener_rule" "grafana_routing" {
   listener_arn = aws_lb_listener.external_https.arn
@@ -164,7 +180,7 @@ resource "aws_lb_listener_rule" "grafana_routing" {
 
   condition {
     host_header {
-      values = ["grafana.internal.hash.ai"]
+      values = [cloudflare_record.cname_grafana_internal.hostname]
     }
   }
 
@@ -173,7 +189,15 @@ resource "aws_lb_listener_rule" "grafana_routing" {
   }
 }
 
-# External telemetry routing rules for telemetry.hash.ai
+resource "cloudflare_record" "cname_telemetry" {
+  zone_id = data.cloudflare_zone.hash_ai.id
+  name    = "telemetry"
+  type    = "CNAME"
+  content = aws_lb.observability_external.dns_name
+  proxied = true
+  tags    = ["terraform"]
+}
+
 resource "aws_lb_listener_rule" "telemetry_external_http_routing" {
   listener_arn = aws_lb_listener.external_https.arn
   priority     = 100
@@ -185,7 +209,7 @@ resource "aws_lb_listener_rule" "telemetry_external_http_routing" {
 
   condition {
     host_header {
-      values = ["telemetry.hash.ai"]
+      values = [cloudflare_record.cname_telemetry.hostname]
     }
   }
 
@@ -212,14 +236,7 @@ resource "aws_lb_listener_rule" "telemetry_external_grpc_routing" {
 
   condition {
     host_header {
-      values = ["telemetry.hash.ai"]
-    }
-  }
-
-  condition {
-    http_header {
-      http_header_name = "content-type"
-      values           = ["application/grpc"]
+      values = [cloudflare_record.cname_telemetry.hostname]
     }
   }
 
@@ -228,18 +245,75 @@ resource "aws_lb_listener_rule" "telemetry_external_grpc_routing" {
   }
 }
 
-# Internal HTTP listener for app cluster OTel collector
-resource "aws_lb_listener" "otel_internal_http" {
+# Internal HTTPS listener using our custom certificate
+resource "aws_lb_listener" "internal_https" {
   load_balancer_arn = aws_lb.observability_internal.arn
-  port              = module.otel_collector.http_port_internal
-  protocol          = "HTTP"
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.otlp.certificate_arn
 
+  # Default action - return 404 for unknown hosts
   default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-internal-https-listener"
+  }
+}
+
+# Internal telemetry routing rule for HTTP/JSON requests
+resource "aws_lb_listener_rule" "telemetry_internal_http_routing" {
+  listener_arn = aws_lb_listener.internal_https.arn
+  priority     = 100
+
+  action {
     type             = "forward"
     target_group_arn = module.otel_collector.http_internal_target_group_arn
   }
 
+  condition {
+    host_header {
+      values = [aws_route53_record.otlp.fqdn]
+    }
+  }
+
+  condition {
+    http_header {
+      http_header_name = "content-type"
+      values           = ["application/json", "application/x-protobuf"]
+    }
+  }
+
   tags = {
-    Name = "${var.prefix}-otel-internal-http-listener"
+    Name = "${var.prefix}-telemetry-internal-http-routing"
+  }
+}
+
+# Internal telemetry routing rule for gRPC requests
+resource "aws_lb_listener_rule" "telemetry_internal_grpc_routing" {
+  listener_arn = aws_lb_listener.internal_https.arn
+  priority     = 101
+
+  action {
+    type             = "forward"
+    target_group_arn = module.otel_collector.grpc_internal_target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = [aws_route53_record.otlp.fqdn]
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-telemetry-internal-grpc-routing"
   }
 }

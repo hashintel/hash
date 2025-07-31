@@ -31,6 +31,11 @@ variable "region" {
   description = "AWS region"
 }
 
+variable "root_url" {
+  type        = string
+  description = "Public DNS name for Grafana"
+}
+
 variable "service_discovery_namespace_arn" {
   type        = string
   description = "ARN of the service discovery namespace for Service Connect"

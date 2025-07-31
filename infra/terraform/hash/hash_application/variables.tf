@@ -210,12 +210,12 @@ variable "temporal_port" {
   description = "The port of the Temporal cluster to connect to."
 }
 
-variable "telemetry_endpoint_dns" {
+variable "otel_exporter_otlp_endpoint" {
   type        = string
-  description = "The DNS name of the ALB that the observability cluster exposes."
+  description = "The DNS endpoint for the OpenTelemetry Collector OTLP exporter."
 }
 
-variable "telemetry_endpoint_http_port" {
-  type        = number
-  description = "The HTTP port of the ALB that the observability cluster exposes."
+variable "amazon_trust_ca_bundle" {
+  type        = string
+  description = "Combined Amazon Trust Services CA bundle for ACM certificate verification."
 }

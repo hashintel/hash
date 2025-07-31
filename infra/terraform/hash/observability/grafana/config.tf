@@ -8,6 +8,7 @@ resource "aws_s3_object" "grafana_config" {
   # Generate config from template with environment-specific parameters
   content = templatefile("${path.module}/templates/grafana.ini.tpl", {
     environment   = terraform.workspace
+    root_url      = var.root_url
     grafana_port  = local.grafana_port
     database_host = var.grafana_database_host
     database_port = var.grafana_database_port
