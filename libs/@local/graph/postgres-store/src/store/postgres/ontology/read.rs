@@ -60,7 +60,7 @@ pub struct OntologyEdgeTraversal<L, R> {
 }
 
 impl<C: AsClient> PostgresStore<C> {
-    #[tracing::instrument(level = "trace", skip(self, filter))]
+    #[tracing::instrument(level = "info", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
         filter: &[Filter<'f, EntityTypeWithMetadata>],
@@ -134,7 +134,7 @@ impl<C: AsClient> PostgresStore<C> {
             }))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn read_ontology_edges<'r, L, R>(
         &self,
         record_ids: &'r OntologyTypeTraversalData,

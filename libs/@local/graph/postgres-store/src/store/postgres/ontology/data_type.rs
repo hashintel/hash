@@ -70,7 +70,7 @@ impl<C> PostgresStore<C>
 where
     C: AsClient,
 {
-    #[tracing::instrument(level = "trace", skip(data_types, provider))]
+    #[tracing::instrument(level = "info", skip(data_types, provider))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
         provider: &StoreProvider<'_, Self>,

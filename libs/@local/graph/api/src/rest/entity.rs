@@ -243,7 +243,7 @@ impl EntityResource {
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+#[tracing::instrument(level = "info", skip_all)]
 async fn create_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -327,7 +327,7 @@ where
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+#[tracing::instrument(level = "info", skip_all)]
 async fn validate_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -869,7 +869,7 @@ where
     ),
     request_body = PatchEntityParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client, params))]
 async fn patch_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -958,7 +958,7 @@ where
     ),
     request_body = DiffEntityParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client, params))]
 async fn diff_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,

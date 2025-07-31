@@ -226,7 +226,7 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
+#[tracing::instrument(level = "info", skip(store_pool, temporal_client, operations))]
 async fn update_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
