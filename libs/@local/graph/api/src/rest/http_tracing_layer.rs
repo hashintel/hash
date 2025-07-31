@@ -1,6 +1,6 @@
 use core::{future::Future, net::SocketAddr};
 
-use axum::extract::{ConnectInfo, Request};
+use axum::extract::{ConnectInfo, MatchedPath, Request};
 use http::Response;
 use opentelemetry::{
     Context, global,
@@ -42,13 +42,27 @@ fn extract_context_from_headers(headers: &http::HeaderMap) -> Context {
 }
 
 fn create_http_span<B>(request: &Request<B>) -> Span {
+    // Use MatchedPath if available (route template like /entities/{id}),
+    // fallback to actual URI path for unmatched requests
+    let path = request
+        .extensions()
+        .get::<MatchedPath>()
+        .map_or_else(|| request.uri().path(), MatchedPath::as_str);
+
     let http_span = tracing::info_span!(
         "HTTP request",
         otel.kind = "server",
-        otel.name = format!("{} {}", request.method(), request.uri().path()),
+        otel.name = format!("{} {}", request.method(), path),
         { trace::HTTP_REQUEST_METHOD } = %request.method(),
-        { trace::URL_PATH } = request.uri().path(),
-        { trace::HTTP_RESPONSE_STATUS_CODE } = Empty
+        { trace::URL_PATH } = path,
+        { trace::URL_SCHEME } = Empty,
+        { trace::USER_AGENT_ORIGINAL } = Empty,
+        { trace::SERVER_ADDRESS } = Empty,
+        { trace::HTTP_REQUEST_BODY_SIZE } = Empty,
+        { trace::NETWORK_PEER_ADDRESS } = Empty,
+        { trace::NETWORK_PEER_PORT } = Empty,
+        { trace::HTTP_RESPONSE_STATUS_CODE } = Empty,
+        { trace::HTTP_RESPONSE_BODY_SIZE } = Empty
     );
 
     http_span.set_parent(extract_context_from_headers(request.headers()));
