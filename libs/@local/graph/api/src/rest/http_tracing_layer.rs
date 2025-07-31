@@ -47,8 +47,7 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
     let path = request
         .extensions()
         .get::<MatchedPath>()
-        .map(|matched_path| matched_path.as_str())
-        .unwrap_or_else(|| request.uri().path());
+        .map_or_else(|| request.uri().path(), MatchedPath::as_str);
 
     let http_span = tracing::info_span!(
         "HTTP request",
