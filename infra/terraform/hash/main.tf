@@ -138,6 +138,7 @@ module "observability" {
   grafana_database_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_raw"])
   grafana_secret_key        = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
   vpc_zone_id               = aws_route53_zone.vpc.zone_id
+  amazon_trust_ca_bundle    = local.amazon_trust_ca_bundle
 }
 
 

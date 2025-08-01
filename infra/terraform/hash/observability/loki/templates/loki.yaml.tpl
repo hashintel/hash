@@ -7,6 +7,7 @@ server:
   http_listen_port: ${http_port}
   grpc_listen_port: ${grpc_port}
   grpc_server_max_concurrent_streams: 1000
+  log_level: warn
 
 common:
   instance_addr: 127.0.0.1
@@ -67,4 +68,9 @@ frontend:
 # Pattern ingester for live tail streaming in Loki 3.x
 pattern_ingester:
   enabled: true
+
+# Disable usage reporting (requires external HTTPS calls)
+# Note: Services only have AWS CA bundle, not full system CAs
+analytics:
+  reporting_enabled: false
 

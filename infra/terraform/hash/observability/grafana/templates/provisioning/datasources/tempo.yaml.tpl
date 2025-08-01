@@ -19,6 +19,7 @@ datasources:
         hide: false
       nodeGraph:
         enabled: true
+
       tracesToLogs:
         datasourceUid: loki
         tags: ['service.name']
@@ -29,3 +30,16 @@ datasources:
         filterByTraceID: true
       lokiSearch:
         datasourceUid: loki
+
+      tracesToMetrics:
+        datasourceUid: 'mimir'
+        tags: [
+          { key: 'service.name', value: 'service' }
+        ]
+        queries:
+          - name: 'Request rate'
+            query: 'rate(traces_spanmetrics_latency_bucket{$$__tags}[5m])'
+          - name: 'Request duration'
+            query: 'histogram_quantile(0.95, rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+      serviceMap:
+        datasourceUid: mimir

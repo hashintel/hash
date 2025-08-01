@@ -6,7 +6,7 @@
 
 server:
   http_listen_port: ${api_port}
-  log_level: info
+  log_level: warn
 
 distributor:
   receivers:
@@ -16,7 +16,7 @@ distributor:
           endpoint: 0.0.0.0:${otlp_port}
 
 ingester:
-  # Memory management - balance between performance and memory usage  
+  # Memory management - balance between performance and memory usage
   max_block_duration: 5m         # Force block creation every 5 minutes (default: 30m)
   max_block_bytes: 50000000      # Force block creation at 50MB (default: 500MB)
   complete_block_timeout: 3m     # Wait 3min for late spans before flushing (default: 15m)
@@ -39,6 +39,23 @@ querier:
     # TODO: Tune trace lookup timeout
     query_timeout: 10s                # TODO: Consider increasing if needed
 
+# Metrics generator for RED metrics (Rate, Errors, Duration)
+metrics_generator:
+  registry:
+    collection_interval: 15s
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://${mimir_http_dns}:${mimir_http_port}/api/v1/push
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    span_metrics:
+      dimensions: ["service.name", "http.method", "status_code"]
+    service_graphs: {}
+    local_blocks: {}
+
 storage:
   trace:
     backend: s3
@@ -60,28 +77,20 @@ storage:
       region: ${aws_region}
       endpoint: s3.${aws_region}.amazonaws.com
 
-# TODO: Replace temporary local storage with Mimir integration for persistent metrics
-# Currently using /tmp storage - metrics will be lost on container restart
-# Need to configure remote_write to Mimir when available
-metrics_generator:
-  storage:
-    path: /tmp/tempo-metrics          # TODO: Replace with persistent storage or remote_write to Mimir
-  ring:
-    kvstore:
-      store: memberlist
-  # TODO: Tune ingestion controls for memory management
-  metrics_ingestion_time_range_slack: 30s   # TODO: Reduce to 15s when memory issues resolved
-  # TODO: Adjust query timeout for metrics queries
-  query_timeout: 30s                        # TODO: Consider reducing to 15s for faster failures  
-  processor:
-    service_graphs:
-      # TODO: Tune max_items based on actual service topology
-      max_items: 1000                 # TODO: Increase to 10000 when memory issues resolved
-    span_metrics:
-      # TODO: Add more dimensions when memory allows (http.method, status.code, etc)
-      dimensions: ["service.name"]    # TODO: Add resource.deployment.environment, http.method
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - span-metrics
+        - service-graphs
+        - local-blocks
 
 compactor:
   compaction:
     compaction_cycle: 5m   # Reduced from 30m to prevent memory spikes from large batches
     block_retention: 168h  # 7 days (matches S3 lifecycle policy)
+
+# Disable usage reporting (requires external HTTPS calls)
+# Note: Services only have AWS CA bundle, not full system CAs
+usage_report:
+  reporting_enabled: false

@@ -1,18 +1,11 @@
-# ECS Task Definition and Service for Loki
-
-# Configuration hash for task definition versioning
-locals {
-  config_hash = sha256(jsonencode({
-    loki_config = aws_s3_object.loki_config.content
-  }))
-}
+# ECS Task Definition and Service for Mimir
 
 # ECS Task Definition
-resource "aws_ecs_task_definition" "loki" {
+resource "aws_ecs_task_definition" "mimir" {
   family                   = "${local.prefix}-${substr(local.config_hash, 0, 8)}"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
-  memory                   = 1024
+  memory                   = 2048
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
@@ -21,15 +14,15 @@ resource "aws_ecs_task_definition" "loki" {
     # CA certificates setup (shared configuration)
     var.ssl_config.init_container,
 
-    # Loki-specific config-downloader
+    # Mimir-specific config-downloader
     {
       name  = "config-downloader"
       image = "amazon/aws-cli:latest"
 
       command = [
         "s3", "cp",
-        "s3://${var.config_bucket.id}/loki/",
-        "/etc/loki/",
+        "s3://${var.config_bucket.id}/mimir/",
+        "/etc/mimir/",
         "--recursive"
       ]
 
@@ -47,18 +40,18 @@ resource "aws_ecs_task_definition" "loki" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "loki-config-downloader"
+          "awslogs-stream-prefix" = "mimir-config-downloader"
         }
       }
     },
 
-    # Main Loki container
+    # Main Mimir container
     {
-      name  = "loki"
-      image = "grafana/loki:3.5.2"
+      name  = "mimir"
+      image = "grafana/mimir:2.16.1"
 
       command = [
-        "-config.file=/etc/loki/config.yaml"
+        "-config.file=/etc/mimir/config.yaml"
       ]
 
       dependsOn = [
@@ -96,14 +89,6 @@ resource "aws_ecs_task_definition" "loki" {
         }
       ]
 
-      healthCheck = {
-        command     = ["CMD", "wget", "--spider", "-q", "http://localhost:${local.http_port}/ready"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
-
       readonlyRootFilesystem   = false
       allowPrivilegeEscalation = false
 
@@ -112,7 +97,7 @@ resource "aws_ecs_task_definition" "loki" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "loki"
+          "awslogs-stream-prefix" = "mimir"
         }
       }
 
@@ -133,15 +118,15 @@ resource "aws_ecs_task_definition" "loki" {
 
   tags = {
     Name    = "${local.prefix}-task-definition"
-    Purpose = "Loki ECS task definition"
+    Purpose = "Mimir ECS task definition"
   }
 }
 
 # ECS Service
-resource "aws_ecs_service" "loki" {
+resource "aws_ecs_service" "mimir" {
   name                   = local.service_name
   cluster                = var.cluster_arn
-  task_definition        = aws_ecs_task_definition.loki.arn
+  task_definition        = aws_ecs_task_definition.mimir.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
@@ -149,7 +134,7 @@ resource "aws_ecs_service" "loki" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.loki.id]
+    security_groups  = [aws_security_group.mimir.id]
   }
 
   service_connect_configuration {
@@ -175,6 +160,6 @@ resource "aws_ecs_service" "loki" {
 
   tags = {
     Name    = local.service_name
-    Purpose = "Loki log aggregation"
+    Purpose = "Mimir metrics storage"
   }
 }

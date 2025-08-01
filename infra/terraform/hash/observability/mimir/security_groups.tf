@@ -1,28 +1,28 @@
-# Security group for Tempo
+# Security group for Mimir
 
-resource "aws_security_group" "tempo" {
+resource "aws_security_group" "mimir" {
   name_prefix = "${local.prefix}-"
   vpc_id      = var.vpc.id
 
-  # Allow inbound OTLP gRPC traces from OpenTelemetry Collector
+  # Allow inbound HTTP API from ALB and other services
   ingress {
-    from_port   = local.otlp_port
-    to_port     = local.otlp_port
+    from_port   = local.http_port
+    to_port     = local.http_port
     protocol    = "tcp"
-    description = "Tempo OTLP gRPC receiver for traces"
+    description = "Mimir HTTP API for metrics ingestion and queries"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
-  # Allow inbound API queries from Grafana
+  # Allow inbound gRPC for internal communication between Mimir instances
   ingress {
-    from_port   = local.api_port
-    to_port     = local.api_port
+    from_port   = local.grpc_port
+    to_port     = local.grpc_port
     protocol    = "tcp"
-    description = "Tempo API for Grafana queries"
+    description = "Mimir gRPC API for internal communication"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
-  # Allow outbound HTTPS for S3 trace storage and config download
+  # Allow outbound HTTPS for S3 storage access
   egress {
     from_port   = 443
     to_port     = 443
@@ -57,17 +57,17 @@ resource "aws_security_group" "tempo" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow outbound to Mimir for metrics remote_write
+  # Allow outbound gRPC for internal Mimir communication
   egress {
-    from_port   = var.mimir_http_port
-    to_port     = var.mimir_http_port
+    from_port   = local.grpc_port
+    to_port     = local.grpc_port
     protocol    = "tcp"
-    description = "HTTP outbound to Mimir for metrics remote_write"
+    description = "Mimir gRPC internal communication"
     cidr_blocks = [var.vpc.cidr_block]
   }
 
   tags = {
     Name    = "${local.prefix}-sg"
-    Purpose = "Tempo security group"
+    Purpose = "Mimir security group"
   }
 }

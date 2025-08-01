@@ -2,7 +2,7 @@ volumes:
   hash-vault-data:
   loki_data:
   tempo_data:
-  prometheus_data:
+  mimir_data:
   grafana_data:
 
 
@@ -52,8 +52,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
-      prometheus:
-        condition: service_healthy
+      mimir:
+        condition: service_started
     volumes:
       - ./opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     ports:
@@ -160,29 +160,17 @@ services:
       timeout: 2s
       retries: 10
 
-  # Prometheus - Metrics Storage
-  prometheus:
-    image: prom/prometheus:v3.5.0
+  # Mimir - Metrics Storage
+  mimir:
+    image: grafana/mimir:2.16.1
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
+      - mimir_data:/data
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-      - '--web.enable-remote-write-receiver'
+      - '-config.file=/etc/mimir/mimir.yml'
     restart: unless-stopped
-    read_only: true
     security_opt:
       - no-new-privileges:true
-    healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
-      interval: 2s
-      timeout: 2s
-      retries: 10
 
   # Grafana - Telemetry Visualization
   grafana:
@@ -194,8 +182,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
-      prometheus:
-        condition: service_healthy
+      mimir:
+        condition: service_started
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

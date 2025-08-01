@@ -52,13 +52,16 @@ connectors:
   forward/logs:
 
 exporters:
-  nop:
   otlp/tempo:
     endpoint: ${tempo_otlp_grpc_dns}:${tempo_otlp_grpc_port}
     tls:
       insecure: true
   otlphttp/loki:
     endpoint: http://${loki_http_dns}:${loki_http_port}/otlp
+    tls:
+      insecure: true
+  otlphttp/mimir:
+    endpoint: http://${mimir_http_dns}:${mimir_http_port}/otlp
     tls:
       insecure: true
 
@@ -112,7 +115,7 @@ service:
     metrics:
       receivers: [forward/metrics]
       processors: [batch]
-      exporters: [nop]
+      exporters: [otlphttp/mimir]
 
     logs:
       receivers: [forward/logs]

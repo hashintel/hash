@@ -44,3 +44,13 @@ variable "service_discovery_namespace_name" {
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
 }
+
+variable "mimir_http_dns" {
+  type        = string
+  description = "Mimir HTTP API DNS name for metrics forwarding"
+}
+
+variable "mimir_http_port" {
+  type        = number
+  description = "Mimir HTTP API port number"
+}
