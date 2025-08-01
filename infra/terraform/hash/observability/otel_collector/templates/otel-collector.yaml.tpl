@@ -57,6 +57,10 @@ exporters:
     endpoint: ${tempo_otlp_grpc_dns}:${tempo_otlp_grpc_port}
     tls:
       insecure: true
+  otlphttp/loki:
+    endpoint: http://${loki_http_dns}:${loki_http_port}/otlp
+    tls:
+      insecure: true
 
 extensions:
   health_check:
@@ -113,4 +117,4 @@ service:
     logs:
       receivers: [forward/logs]
       processors: [batch]
-      exporters: [nop]
+      exporters: [otlphttp/loki]

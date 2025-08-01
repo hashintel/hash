@@ -29,6 +29,8 @@ resource "aws_s3_object" "otel_collector_config" {
     health_port            = local.health_port
     tempo_otlp_grpc_dns    = var.tempo_otlp_grpc_dns
     tempo_otlp_grpc_port   = var.tempo_otlp_grpc_port
+    loki_http_dns          = var.loki_http_dns
+    loki_http_port         = var.loki_http_port
   })
 
   content_type = "application/x-yaml"
