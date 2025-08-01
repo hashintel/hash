@@ -25,7 +25,7 @@ All services are deployed on ECS cluster `h-prod-observability` with internal se
 ### 1. CloudFlare Zero Trust (Web UI)
 
 - Grafana UI available at configured CloudFlare domain
-- Requires WARP client and authentication
+- Requires authentication
 
 ### 2. ECS Exec (CLI Access)
 
