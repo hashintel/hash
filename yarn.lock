@@ -582,7 +582,7 @@ __metadata:
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:11.1.0"
     wait-on: "npm:8.0.4"
-    webpack: "npm:5.100.2"
+    webpack: "npm:5.101.0"
   languageName: unknown
   linkType: soft
 
@@ -815,7 +815,7 @@ __metadata:
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
     webextension-polyfill: "npm:0.12.0"
-    webpack: "npm:5.100.2"
+    webpack: "npm:5.101.0"
     webpack-cli: "npm:4.10.0"
     webpack-dev-server: "npm:5.2.2"
     ws: "npm:8.18.3"
@@ -45061,9 +45061,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:5, webpack@npm:5.100.2, webpack@npm:^5.94.0":
-  version: 5.100.2
-  resolution: "webpack@npm:5.100.2"
+"webpack@npm:5, webpack@npm:5.101.0, webpack@npm:^5.94.0":
+  version: 5.101.0
+  resolution: "webpack@npm:5.101.0"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.7"
     "@types/estree": "npm:^1.0.8"
@@ -45095,7 +45095,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/0add75d44c482634c6879a3fc87fa2af6a6c7c8eacda5d5f60ed778a2ce13d33fd6178a2b4750368706a49e769af6d828934c28914b4faa2e21be790f92b4110
+  checksum: 10c0/0fb5f70032ac53cfc2e667c97c6ceb903d280cebd03dd7f7ca794d8ab75d4f692483313efb90c616c2e4e266cf580a54df84cbaee43db36d7d42e450bf1569fd
   languageName: node
   linkType: hard
 
