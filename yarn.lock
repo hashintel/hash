@@ -380,7 +380,7 @@ __metadata:
     "@temporalio/proto": "npm:1.12.1"
     "@types/app-root-path": "npm:3.1.0"
     "@types/dedent": "npm:0.7.2"
-    "@types/express-http-proxy": "npm:1.6.6"
+    "@types/express-http-proxy": "npm:1.6.7"
     "@types/html-to-text": "npm:8.1.1"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.20"
@@ -17905,12 +17905,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express-http-proxy@npm:1.6.6":
-  version: 1.6.6
-  resolution: "@types/express-http-proxy@npm:1.6.6"
+"@types/express-http-proxy@npm:1.6.7":
+  version: 1.6.7
+  resolution: "@types/express-http-proxy@npm:1.6.7"
   dependencies:
     "@types/express": "npm:*"
-  checksum: 10c0/4ac9fecafacde1453ffd58b4af717d784b87c247f21e240b6774dca6ce85257d4b3a7bd3166bfd40d30ef319b39a0a251ee3c012ff5c4f8ac880a88614b146c7
+  checksum: 10c0/f790fe1b989048d23f6d77a904fe55f711e72f16b18409f33b70ac4567e60c1e5dfb5b76815128a91a501e32f9ce7b2c8583a4eff1cb2d78a808c5f7229a5a6c
   languageName: node
   linkType: hard
 
