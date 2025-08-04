@@ -373,7 +373,7 @@ __metadata:
     "@ory/client": "npm:1.1.41"
     "@ory/hydra-client": "npm:2.2.1"
     "@ory/kratos-client": "npm:1.0.0"
-    "@rudderstack/rudder-sdk-node": "npm:2.1.4"
+    "@rudderstack/rudder-sdk-node": "npm:2.1.6"
     "@sentry/node": "npm:9.40.0"
     "@snowplow/node-tracker": "npm:3.24.6"
     "@temporalio/client": "npm:1.12.1"
@@ -12782,13 +12782,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rudderstack/rudder-sdk-node@npm:2.1.4":
-  version: 2.1.4
-  resolution: "@rudderstack/rudder-sdk-node@npm:2.1.4"
+"@rudderstack/rudder-sdk-node@npm:2.1.6":
+  version: 2.1.6
+  resolution: "@rudderstack/rudder-sdk-node@npm:2.1.6"
   dependencies:
-    axios: "npm:1.8.3"
+    axios: "npm:1.11.0"
     axios-retry: "npm:4.5.0"
-    bull: "npm:4.16.4"
+    bull: "npm:4.16.5"
     component-type: "npm:2.0.0"
     join-component: "npm:1.1.0"
     lodash.clonedeep: "npm:4.5.0"
@@ -12797,13 +12797,13 @@ __metadata:
     ms: "npm:2.1.3"
     remove-trailing-slash: "npm:0.1.1"
     serialize-javascript: "npm:6.0.2"
-    uuid: "npm:11.0.2"
+    uuid: "npm:11.1.0"
   peerDependencies:
     tslib: 2.6.2
   dependenciesMeta:
     bull:
       optional: true
-  checksum: 10c0/136db4c96ceb1a629fb4ae24fa3cc7e0686e13ea828f4d3001ba0ab2586585ca01e362ed578f0550685e0e83cc9dd671992adb7c3adbd904fa41094b0cf92cda
+  checksum: 10c0/edef9608af8c7e808f4773ec2a279b3ed1d24a27196417efe61fdff954b11a0676bdfc3894375111379f4d8bdc50d0eac8fa574a959c79853dbe6b2774c6862b
   languageName: node
   linkType: hard
 
@@ -21092,17 +21092,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.8.3":
-  version: 1.8.3
-  resolution: "axios@npm:1.8.3"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/de75da9859adf0a6481d4af2b687db357a054d20f0d69b99d502b71dae3578326b1fdc0951dabaef769827484941cda93d3f89150bf9e04f05f6615fb8316780
-  languageName: node
-  linkType: hard
-
 "axios@npm:^0.21.4":
   version: 0.21.4
   resolution: "axios@npm:0.21.4"
@@ -21830,18 +21819,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bull@npm:4.16.4":
-  version: 4.16.4
-  resolution: "bull@npm:4.16.4"
+"bull@npm:4.16.5":
+  version: 4.16.5
+  resolution: "bull@npm:4.16.5"
   dependencies:
-    cron-parser: "npm:^4.2.1"
+    cron-parser: "npm:^4.9.0"
     get-port: "npm:^5.1.1"
     ioredis: "npm:^5.3.2"
     lodash: "npm:^4.17.21"
     msgpackr: "npm:^1.11.2"
     semver: "npm:^7.5.2"
     uuid: "npm:^8.3.0"
-  checksum: 10c0/48b4345549708686b3f498c99c64b7cfc4bbd75b8d207935e8d556110a28dad993ae6852900af92c5834a057b8403f25fbc4319246510f1d101469990750006a
+  checksum: 10c0/0ec565216dad2759254a5e625d84edcd943f19062e8eec9361995984111fda53bc2fc82b45a6c62a26ec10e96b0381f1c2fe16d45b68686981a2a192748b47f8
   languageName: node
   linkType: hard
 
@@ -23449,7 +23438,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cron-parser@npm:^4.2.1":
+"cron-parser@npm:^4.9.0":
   version: 4.9.0
   resolution: "cron-parser@npm:4.9.0"
   dependencies:
@@ -44340,15 +44329,6 @@ __metadata:
   version: 1.1.0
   resolution: "uuid-parse@npm:1.1.0"
   checksum: 10c0/513d5b0407b8929c54d452e8e286a1f6f00d40a2ebf6607fc7297b9caa40eee35230dcc4ce3f178f84d89704e8147e24d1a33d680a8afb7e12a5700714db7f51
-  languageName: node
-  linkType: hard
-
-"uuid@npm:11.0.2":
-  version: 11.0.2
-  resolution: "uuid@npm:11.0.2"
-  bin:
-    uuid: dist/esm/bin/uuid
-  checksum: 10c0/bd0670a0d6f77f1932da7544c51c32ceb467f3835382df2265f3275c4981d32c136a08a4369fb027ecfffd0b2ae48f19a28266ef636c7347264d5720e85d5ba0
   languageName: node
   linkType: hard
 
