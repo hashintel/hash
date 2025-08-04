@@ -18,7 +18,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
   task_role_arn            = aws_iam_role.task_role.arn
 
   container_definitions = jsonencode([
-    # SSL certificates setup (shared configuration)
+    # CA certificates setup (shared configuration)
     var.ssl_config.init_container,
 
     # OpenTelemetry Collector-specific config-downloader
@@ -63,7 +63,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
 
       dependsOn = [
         {
-          containerName = "ssl-setup"
+          containerName = var.ssl_config.init_container.name
           condition     = "SUCCESS"
         },
         {
@@ -95,6 +95,7 @@ resource "aws_ecs_task_definition" "otel_collector" {
           containerPort = local.http_port_internal
           protocol      = "tcp"
         },
+
         # External ports without names (ALB only)
         {
           containerPort = local.grpc_port_external
@@ -105,7 +106,6 @@ resource "aws_ecs_task_definition" "otel_collector" {
           protocol      = "tcp"
         },
         {
-          name          = local.health_port_name
           containerPort = local.health_port
           protocol      = "tcp"
         }

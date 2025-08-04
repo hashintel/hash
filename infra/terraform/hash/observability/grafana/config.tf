@@ -6,6 +6,7 @@ locals {
     grafana_config   = aws_s3_object.grafana_config.content
     tempo_datasource = aws_s3_object.grafana_tempo_datasource.content
     loki_datasource  = aws_s3_object.grafana_loki_datasource.content
+    mimi_datasource  = aws_s3_object.grafana_mimir_datasource.content
   }))
 }
 
@@ -59,6 +60,22 @@ resource "aws_s3_object" "grafana_loki_datasource" {
 
   tags = {
     Purpose = "Grafana Loki Datasource"
+    Service = "grafana"
+  }
+}
+
+# Mimir datasource provisioning
+resource "aws_s3_object" "grafana_mimir_datasource" {
+  bucket = var.config_bucket.id
+  key    = "grafana/provisioning/datasources/mimir.yaml"
+  content = templatefile("${path.module}/templates/provisioning/datasources/mimir.yaml.tpl", {
+    mimir_http_dns  = var.mimir_http_dns
+    mimir_http_port = var.mimir_http_port
+  })
+  content_type = "application/x-yaml"
+
+  tags = {
+    Purpose = "Grafana Mimir Datasource"
     Service = "grafana"
   }
 }

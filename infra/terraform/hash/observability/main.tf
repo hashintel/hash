@@ -24,9 +24,58 @@ resource "aws_ecs_cluster_capacity_providers" "observability" {
   capacity_providers = ["FARGATE"]
 }
 
-# Shared SSL setup configuration for all services
+# SSL configurations for different service requirements
 locals {
-  ssl_config = {
+  # AWS-specific CA bundle for S3/AWS services
+  aws_ca_ssl_config = {
+    init_container = {
+      name  = "ca-setup"
+      image = "busybox:latest"
+
+      command = [
+        "sh", "-c",
+        "cat > /shared-ssl/ca-certificates.crt << 'EOF'\n${var.amazon_trust_ca_bundle}\nEOF"
+      ]
+
+      mountPoints = [
+        {
+          sourceVolume  = "ssl-certs"
+          containerPath = "/shared-ssl"
+        }
+      ]
+
+      essential = false
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.observability.name
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = "ca-setup"
+        }
+      }
+    }
+
+    volume = {
+      name = "ssl-certs"
+    }
+
+    mount_point = {
+      sourceVolume  = "ssl-certs"
+      containerPath = "/usr/local/ssl"
+      readOnly      = true
+    }
+
+    environment_vars = [
+      {
+        name  = "SSL_CERT_FILE"
+        value = "/usr/local/ssl/ca-certificates.crt"
+      }
+    ]
+  }
+
+  # Full system CA bundle for external HTTPS calls
+  full_ca_ssl_config = {
     init_container = {
       name  = "ssl-setup"
       image = "debian:bookworm-slim"
@@ -80,22 +129,24 @@ locals {
 
 # OpenTelemetry Collector service
 module "otel_collector" {
-  source                          = "./otel_collector"
-  prefix                          = var.prefix
-  cluster_arn                     = aws_ecs_cluster.observability.arn
-  vpc                             = var.vpc
-  subnets                         = var.subnets
-  config_bucket                   = aws_s3_bucket.configs
-  log_group_name                  = aws_cloudwatch_log_group.observability.name
-  region                          = var.region
-  service_discovery_namespace_arn = aws_service_discovery_private_dns_namespace.observability.arn
-  tempo_otlp_grpc_dns             = module.tempo.otlp_grpc_dns
-  tempo_otlp_grpc_port            = module.tempo.otlp_grpc_port
-  loki_http_dns                   = module.loki.http_dns
-  loki_http_port                  = module.loki.http_port
+  source                           = "./otel_collector"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+  tempo_otlp_grpc_dns              = module.tempo.otlp_grpc_dns
+  tempo_otlp_grpc_port             = module.tempo.otlp_grpc_port
+  loki_http_dns                    = module.loki.http_dns
+  loki_http_port                   = module.loki.http_port
+  mimir_http_dns                   = module.mimir.http_dns
+  mimir_http_port                  = module.mimir.http_port
 
-  # Shared SSL configuration
-  ssl_config = local.ssl_config
+  ssl_config = local.aws_ca_ssl_config
 }
 
 # Tempo service for distributed tracing
@@ -110,9 +161,10 @@ module "tempo" {
   region                           = var.region
   service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
   service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+  mimir_http_dns                   = module.mimir.http_dns
+  mimir_http_port                  = module.mimir.http_port
 
-  # Shared SSL configuration
-  ssl_config = local.ssl_config
+  ssl_config = local.aws_ca_ssl_config
 }
 
 # Loki service for log aggregation
@@ -128,8 +180,23 @@ module "loki" {
   service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
   service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
 
-  # Shared SSL configuration
-  ssl_config = local.ssl_config
+  ssl_config = local.aws_ca_ssl_config
+}
+
+# Mimir service for metrics storage
+module "mimir" {
+  source                           = "./mimir"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+
+  ssl_config = local.aws_ca_ssl_config
 }
 
 # Grafana service for distributed tracing visualization
@@ -153,7 +220,8 @@ module "grafana" {
   tempo_api_port                   = module.tempo.api_port
   loki_http_dns                    = module.loki.http_dns
   loki_http_port                   = module.loki.http_port
+  mimir_http_dns                   = module.mimir.http_dns
+  mimir_http_port                  = module.mimir.http_port
 
-  # Shared SSL configuration
-  ssl_config = local.ssl_config
+  ssl_config = local.full_ca_ssl_config
 }

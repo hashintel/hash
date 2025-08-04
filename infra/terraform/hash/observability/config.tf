@@ -1,5 +1,5 @@
 # S3 bucket for observability service configurations
-# Shared by all observability services (otel_collector, tempo, loki, prometheus, grafana)
+# Shared by all observability services (otel_collector, tempo, loki, mimir, grafana)
 
 resource "aws_s3_bucket" "configs" {
   bucket = "${var.prefix}-configs"
@@ -26,4 +26,3 @@ resource "aws_s3_bucket_public_access_block" "configs" {
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
-

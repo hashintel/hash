@@ -18,7 +18,7 @@ resource "aws_ecs_task_definition" "tempo" {
   task_role_arn            = aws_iam_role.task_role.arn
 
   container_definitions = jsonencode([
-    # SSL certificates setup (shared configuration)
+    # CA certificates setup (shared configuration)
     var.ssl_config.init_container,
 
     # Tempo-specific config-downloader
@@ -63,7 +63,7 @@ resource "aws_ecs_task_definition" "tempo" {
 
       dependsOn = [
         {
-          containerName = "ssl-setup"
+          containerName = var.ssl_config.init_container.name
           condition     = "SUCCESS"
         },
         {

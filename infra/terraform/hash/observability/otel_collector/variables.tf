@@ -36,6 +36,11 @@ variable "service_discovery_namespace_arn" {
   description = "ARN of the service discovery namespace for Service Connect"
 }
 
+variable "service_discovery_namespace_name" {
+  type        = string
+  description = "Name of the service discovery namespace for Service Connect"
+}
+
 variable "tempo_otlp_grpc_dns" {
   type        = string
   description = "Tempo OTLP gRPC DNS name for trace forwarding"
@@ -54,6 +59,16 @@ variable "loki_http_dns" {
 variable "loki_http_port" {
   type        = number
   description = "Loki HTTP API port number"
+}
+
+variable "mimir_http_dns" {
+  type        = string
+  description = "Mimir HTTP API DNS name for metrics forwarding"
+}
+
+variable "mimir_http_port" {
+  type        = number
+  description = "Mimir HTTP API port number"
 }
 
 variable "ssl_config" {
