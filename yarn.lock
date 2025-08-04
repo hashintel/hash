@@ -509,9 +509,9 @@ __metadata:
     "@types/lodash": "npm:4.17.20"
     "@types/papaparse": "npm:5.3.16"
     "@types/prismjs": "npm:1.26.5"
-    "@types/react": "npm:19.1.8"
+    "@types/react": "npm:19.1.9"
     "@types/react-beautiful-dnd": "npm:13.1.8"
-    "@types/react-dom": "npm:19.1.6"
+    "@types/react-dom": "npm:19.1.7"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
@@ -555,9 +555,9 @@ __metadata:
     prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
-    react: "npm:19.1.0"
+    react: "npm:19.1.1"
     react-beautiful-dnd: "npm:13.1.1"
-    react-dom: "npm:19.1.0"
+    react-dom: "npm:19.1.1"
     react-dropzone: "npm:14.3.8"
     react-full-screen: "npm:1.1.1"
     react-hook-form: "npm:7.60.0"
@@ -688,8 +688,8 @@ __metadata:
     "@storybook/react": "npm:7.6.20"
     "@storybook/react-webpack5": "npm:7.6.20"
     "@storybook/testing-library": "npm:0.2.2"
-    "@types/react": "npm:19.1.8"
-    "@types/react-dom": "npm:19.1.6"
+    "@types/react": "npm:19.1.9"
+    "@types/react-dom": "npm:19.1.7"
     storybook: "npm:7.6.20"
   peerDependencies:
     "@emotion/cache": 11.14.0
@@ -778,8 +778,8 @@ __metadata:
     "@sentry/browser": "npm:9.40.0"
     "@sentry/webpack-plugin": "npm:3.6.1"
     "@types/lodash.debounce": "npm:4.0.9"
-    "@types/react": "npm:19.1.8"
-    "@types/react-dom": "npm:19.1.6"
+    "@types/react": "npm:19.1.9"
+    "@types/react-dom": "npm:19.1.7"
     "@types/webextension-polyfill": "npm:0.12.2"
     "@types/ws": "npm:8.18.1"
     babel-loader: "npm:9.2.1"
@@ -799,8 +799,8 @@ __metadata:
     html-webpack-plugin: "npm:5.6.3"
     lodash.debounce: "npm:4.0.8"
     process: "npm:0.11.10"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
     react-refresh: "npm:0.17.0"
     react-refresh-typescript: "npm:2.0.10"
     rimraf: "npm:6.0.1"
@@ -4305,7 +4305,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
     "@types/node": "npm:22.16.5"
-    "@types/react": "npm:19.1.8"
+    "@types/react": "npm:19.1.9"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
     eslint: "npm:9.20.1"
@@ -4375,10 +4375,10 @@ __metadata:
     "@rollup/plugin-typescript": "npm:12.1.4"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.16.5"
-    "@types/react": "npm:19.1.8"
+    "@types/react": "npm:19.1.9"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.20.1"
-    react: "npm:19.1.0"
+    react: "npm:19.1.1"
     rimraf: "npm:6.0.1"
     rollup: "npm:4.45.1"
     tslib: "npm:2.8.1"
@@ -7062,14 +7062,14 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
-    "@types/react": "npm:19.1.8"
-    "@types/react-dom": "npm:19.1.6"
+    "@types/react": "npm:19.1.9"
+    "@types/react-dom": "npm:19.1.7"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.20.1"
     eslint-plugin-storybook: "npm:0.11.3"
     lowlight: "npm:2.9.0"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
     react-syntax-highlighter: "npm:15.6.1"
     react-type-animation: "npm:3.2.0"
     typescript: "npm:5.7.3"
@@ -7100,14 +7100,14 @@ __metadata:
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
     "@storybook/react": "npm:7.6.20"
-    "@types/react": "npm:19.1.8"
-    "@types/react-dom": "npm:19.1.6"
+    "@types/react": "npm:19.1.9"
+    "@types/react-dom": "npm:19.1.7"
     clsx: "npm:1.2.1"
     echarts: "npm:5.6.0"
     eslint: "npm:9.20.1"
     eslint-plugin-storybook: "npm:0.11.3"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
     react-loading-skeleton: "npm:3.5.0"
     typescript: "npm:5.7.3"
   peerDependencies:
@@ -7136,8 +7136,8 @@ __metadata:
     clsx: "npm:1.2.1"
     eslint: "npm:9.20.1"
     eslint-plugin-storybook: "npm:0.11.3"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
     react-hook-form: "npm:7.60.0"
     typescript: "npm:5.7.3"
   peerDependencies:
@@ -7170,8 +7170,8 @@ __metadata:
     lodash.memoize: "npm:4.1.2"
     lodash.uniqueid: "npm:4.0.1"
     material-ui-popup-state: "npm:4.1.0"
-    react: "npm:19.1.0"
-    react-dom: "npm:19.1.0"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
     react-hook-form: "npm:7.60.0"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
@@ -8818,7 +8818,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     eslint: "npm:9.20.1"
-    react: "npm:19.1.0"
+    react: "npm:19.1.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -9048,7 +9048,7 @@ __metadata:
     prosemirror-state: "npm:1.4.3"
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
-    react: "npm:19.1.0"
+    react: "npm:19.1.1"
     rimraf: "npm:6.0.1"
     serialize-error: "npm:12.0.0"
     tsx: "npm:4.20.3"
@@ -18500,12 +18500,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:19.1.6":
-  version: 19.1.6
-  resolution: "@types/react-dom@npm:19.1.6"
+"@types/react-dom@npm:19.1.7":
+  version: 19.1.7
+  resolution: "@types/react-dom@npm:19.1.7"
   peerDependencies:
     "@types/react": ^19.0.0
-  checksum: 10c0/7ba74eee2919e3f225e898b65fdaa16e54952aaf9e3472a080ddc82ca54585e46e60b3c52018d21d4b7053f09d27b8293e9f468b85f9932ff452cd290cc131e8
+  checksum: 10c0/8db5751c1567552fe4e1ece9f5823b682f2994ec8d30ed34ba0ef984e3c8ace1435f8be93d02f55c350147e78ac8c4dbcd8ed2c3b6a60f575bc5374f588c51c9
   languageName: node
   linkType: hard
 
@@ -18548,12 +18548,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:19.1.8":
-  version: 19.1.8
-  resolution: "@types/react@npm:19.1.8"
+"@types/react@npm:19.1.9":
+  version: 19.1.9
+  resolution: "@types/react@npm:19.1.9"
   dependencies:
     csstype: "npm:^3.0.2"
-  checksum: 10c0/4908772be6dc941df276931efeb0e781777fa76e4d5d12ff9f75eb2dcc2db3065e0100efde16fde562c5bafa310cc8f50c1ee40a22640459e066e72cd342143e
+  checksum: 10c0/b418da4aaf18fbc6df4f1b7096dda7ee152d697cac00d729ffd855b2b44a3a9cfb2ecb017ed20979ea3a7d98a5ce5fcf01ac1a3614d4a3e4d7069a0c45e49b0f
   languageName: node
   linkType: hard
 
@@ -38553,14 +38553,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:19.1.0":
-  version: 19.1.0
-  resolution: "react-dom@npm:19.1.0"
+"react-dom@npm:19.1.1":
+  version: 19.1.1
+  resolution: "react-dom@npm:19.1.1"
   dependencies:
     scheduler: "npm:^0.26.0"
   peerDependencies:
-    react: ^19.1.0
-  checksum: 10c0/3e26e89bb6c67c9a6aa86cb888c7a7f8258f2e347a6d2a15299c17eb16e04c19194e3452bc3255bd34000a61e45e2cb51e46292392340432f133e5a5d2dfb5fc
+    react: ^19.1.1
+  checksum: 10c0/8c91198510521299c56e4e8d5e3a4508b2734fb5e52f29eeac33811de64e76fe586ad32c32182e2e84e070d98df67125da346c3360013357228172dbcd20bcdd
   languageName: node
   linkType: hard
 
@@ -38939,10 +38939,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:19.1.0":
-  version: 19.1.0
-  resolution: "react@npm:19.1.0"
-  checksum: 10c0/530fb9a62237d54137a13d2cfb67a7db6a2156faed43eecc423f4713d9b20c6f2728b026b45e28fcd72e8eadb9e9ed4b089e99f5e295d2f0ad3134251bdd3698
+"react@npm:19.1.1":
+  version: 19.1.1
+  resolution: "react@npm:19.1.1"
+  checksum: 10c0/8c9769a2dfd02e603af6445058325e6c8a24b47b185d0e461f66a6454765ddcaecb3f0a90184836c68bb509f3c38248359edbc42f0d07c23eb500a5c30c87b4e
   languageName: node
   linkType: hard
 
