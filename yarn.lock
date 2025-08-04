@@ -8973,7 +8973,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@openapitools/openapi-generator-cli": "npm:2.21.3"
+    "@openapitools/openapi-generator-cli": "npm:2.21.4"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.16.5"
     axios: "npm:1.11.0"
@@ -9062,7 +9062,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@openapitools/openapi-generator-cli": "npm:2.21.3"
+    "@openapitools/openapi-generator-cli": "npm:2.21.4"
     "@types/node": "npm:22.16.5"
     axios: "npm:1.11.0"
     rimraf: "npm:6.0.1"
@@ -9944,15 +9944,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.21.3":
-  version: 2.21.3
-  resolution: "@openapitools/openapi-generator-cli@npm:2.21.3"
+"@openapitools/openapi-generator-cli@npm:2.21.4":
+  version: 2.21.4
+  resolution: "@openapitools/openapi-generator-cli@npm:2.21.4"
   dependencies:
     "@nestjs/axios": "npm:4.0.1"
     "@nestjs/common": "npm:11.1.5"
     "@nestjs/core": "npm:11.1.5"
     "@nuxtjs/opencollective": "npm:0.3.2"
-    axios: "npm:1.10.0"
+    axios: "npm:1.11.0"
     chalk: "npm:4.1.2"
     commander: "npm:8.3.0"
     compare-versions: "npm:4.1.4"
@@ -9968,7 +9968,7 @@ __metadata:
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/11bfc39fc7bbe2e8a4d7800c2cb875f4db01cba4eab3abd32f25e6972d097eef5bb7c1193fd0ae347c724ad3e03e3f4b0fe95e25458f95233af677ed1f943371
+  checksum: 10c0/0fb28e2d9149b0370edb2274d2c4d913487867fab1e1f1991b32d897cae6d1810cf7721d72a821060f2bc9ce5029a53d9ee95c5920d3fb5861dc97f141661fc1
   languageName: node
   linkType: hard
 
@@ -21078,17 +21078,6 @@ __metadata:
   peerDependencies:
     axios: 0.x || 1.x
   checksum: 10c0/574e7b1bf24aad99b560042d232a932d51bfaa29b5a6d4612d748ed799a6f11a5afb2582792492c55d95842200cbdfbe3454027a8c1b9a2d3e895d13c3d03c10
-  languageName: node
-  linkType: hard
-
-"axios@npm:1.10.0":
-  version: 1.10.0
-  resolution: "axios@npm:1.10.0"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/2239cb269cc789eac22f5d1aabd58e1a83f8f364c92c2caa97b6f5cbb4ab2903d2e557d9dc670b5813e9bcdebfb149e783fb8ab3e45098635cd2f559b06bd5d8
   languageName: node
   linkType: hard
 
