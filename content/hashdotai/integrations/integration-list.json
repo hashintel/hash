@@ -1,7 +1,7 @@
 [
   {
     "name": "Anaplan",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_anaplan.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_anaplan_dm.svg",
     "productUrl": "https://www.anaplan.com/platform/",
     "summaryHtml": "Demand planning, scenario forecasting, and decision-making data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/anaplan",
@@ -41,7 +41,7 @@
   },
   {
     "name": "PAS-X MES",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_pas-x.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_pas-x_dm.svg",
     "productUrl": "https://www.koerber-pharma.com/en/solutions/software/werum-pas-x-mes-suite",
     "summaryHtml": "Biopharmaceutical manufacturing execution and electronic batch recording data",
     "integrationUrl": "https://app.hash.ai/settings/integrations/pas-x-mes",
@@ -91,7 +91,7 @@
   },
   {
     "name": "Linear",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_linear_dm.svg",
     "productUrl": "https://linear.app/",
     "summaryHtml": "Issues, users, organizations, projects, milestones, and much more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/linear",
@@ -231,7 +231,7 @@
   },
   {
     "name": "Apple Notes",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_apple-notes.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_apple-notes_dm.svg",
     "productUrl": "https://www.icloud.com/notes/",
     "summaryHtml": "Private/shared notes, and folders (inc. smart folders)",
     "integrationUrl": "https://app.hash.ai/settings/integrations/apple-notes",
@@ -291,7 +291,7 @@
   },
   {
     "name": "Granola",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_granola.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_granola_dm.svg",
     "productUrl": "https://www.granola.ai/",
     "summaryHtml": "AI-assisted notetaking and transcription for virtual meetings and calls",
     "integrationUrl": "https://app.hash.ai/settings/integrations/granola",
@@ -301,7 +301,7 @@
   },
   {
     "name": "Sentry",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry_dm.svg",
     "productUrl": "https://sentry.io/features",
     "summaryHtml": "Issues, traces, profiles, replays, user feedback, crons, alerts, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/sentry",
@@ -321,7 +321,7 @@
   },
   {
     "name": "GitHub",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_github.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_github_dm.svg",
     "productUrl": "https://github.com/features",
     "summaryHtml": "Repos, pull requests, issues, discussions, actions, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/github",
