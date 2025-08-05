@@ -197,7 +197,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(CreatePolicyError::StoreError)?;
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => CreatePolicyError::PoliciesAlreadyExist,
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
 
         client
             .execute(
@@ -238,7 +244,14 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(CreatePolicyError::StoreError)?;
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => CreatePolicyError::PoliciesAlreadyExist,
+                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => CreatePolicyError::PrincipalsNotFound,
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
 
         client
             .execute(
@@ -261,7 +274,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 peer.service = "Postgres"
             ))
             .await
-            .change_context(CreatePolicyError::StoreError)?;
+            .map_err(|error| {
+                let policy_error = match error.code() {
+                    Some(&SqlState::FOREIGN_KEY_VIOLATION) => CreatePolicyError::ActionsNotFound,
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
 
         Ok(policy_ids)
     }
@@ -1661,7 +1680,6 @@ where
                 FROM policy_edition
                     LEFT JOIN policy_action
                     ON policy_action.policy_id = policy_edition.id
-                    AND policy_action.action_name = ANY($3)
                     AND policy_action.transaction_time @> now()
                 GROUP BY
                     policy_edition.id,

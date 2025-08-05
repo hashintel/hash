@@ -5,7 +5,6 @@ use type_system::{
     knowledge::entity::id::EntityEditionId,
     ontology::VersionedUrl,
     principal::{
-        PrincipalId,
         actor::{ActorEntityUuid, ActorId},
         actor_group::{ActorGroupId, TeamId, WebId},
         role::RoleName,
@@ -296,12 +295,12 @@ impl Error for PolicyStoreError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Policy operation failed: {_variant}")]
 pub enum CreatePolicyError {
-    #[display("Principal with ID `{id}` doesn't exist")]
-    PrincipalNotFound { id: PrincipalId },
-    #[display("Action `{id}` doesn't exist")]
-    ActionNotFound { id: ActionName },
-    #[display("Policy with ID `{id}` already exists")]
-    PolicyAlreadyExists { id: PolicyId },
+    #[display("One or more principals don't exist")]
+    PrincipalsNotFound,
+    #[display("One or more actions don't exist")]
+    ActionsNotFound,
+    #[display("One or more policies already exist")]
+    PoliciesAlreadyExist,
     #[display("No actions specified in policy")]
     PolicyHasNoActions,
     #[display("Invalid principal constraint")]
