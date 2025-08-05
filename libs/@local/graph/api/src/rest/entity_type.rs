@@ -143,7 +143,6 @@ impl EntityTypeResource {
         (status = 500, description = "Internal error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn has_permission_for_entity_types<S>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -189,7 +188,6 @@ struct CreateEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = Status),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, domain_validator, temporal_client))]
 #[expect(clippy::too_many_lines)]
 async fn create_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
@@ -361,7 +359,6 @@ enum LoadExternalEntityTypeRequest {
         (status = 500, content_type = "application/json", description = "Store error occurred", body = Status),
     ),
 )]
-#[tracing::instrument(level = "info", skip(store_pool, domain_validator, temporal_client))]
 async fn load_external_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -467,7 +464,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, request))]
 async fn get_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -525,7 +521,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, request))]
 async fn get_closed_multi_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -600,7 +595,6 @@ struct GetEntityTypeSubgraphResponse {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, request))]
 async fn get_entity_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -669,7 +663,6 @@ struct UpdateEntityTypeRequest {
     ),
     request_body = UpdateEntityTypeRequest,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn update_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -723,7 +716,6 @@ where
     ),
     request_body = [UpdateEntityTypeRequest],
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn update_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -780,7 +772,6 @@ where
     ),
     request_body = UpdateEntityTypeEmbeddingParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, body))]
 async fn update_entity_type_embeddings<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -824,7 +815,6 @@ where
     ),
     request_body = ArchiveEntityTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn archive_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -877,7 +867,6 @@ where
     ),
     request_body = UnarchiveEntityTypeParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn unarchive_entity_type<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,

@@ -243,7 +243,6 @@ impl EntityResource {
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip_all)]
 async fn create_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -285,7 +284,6 @@ where
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip_all)]
 async fn create_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -327,7 +325,6 @@ where
         (status = 500, description = "Store error occurred"),
     ),
 )]
-#[tracing::instrument(level = "info", skip_all)]
 async fn validate_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -376,7 +373,6 @@ where
         (status = 500, description = "Internal error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn has_permission_for_entities<S>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -397,6 +393,7 @@ where
         .map_err(report_to_response)
 }
 
+#[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
     paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
     limit: Option<usize>,
@@ -567,11 +564,6 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    fields(actor=%actor_id)
-)]
 async fn get_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -738,11 +730,6 @@ struct GetEntitySubgraphResponse<'r> {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    fields(actor=%actor_id, %request)
-)]
 async fn get_entity_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -816,7 +803,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, request))]
 async fn count_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -869,7 +855,6 @@ where
     ),
     request_body = PatchEntityParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, params))]
 async fn patch_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -915,7 +900,6 @@ where
     ),
     request_body = UpdateEntityEmbeddingsParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, body))]
 async fn update_entity_embeddings<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -958,7 +942,6 @@ where
     ),
     request_body = DiffEntityParams,
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, params))]
 async fn diff_entity<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,

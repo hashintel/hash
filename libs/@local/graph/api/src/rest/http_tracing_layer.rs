@@ -62,7 +62,8 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         { trace::NETWORK_PEER_ADDRESS } = Empty,
         { trace::NETWORK_PEER_PORT } = Empty,
         { trace::HTTP_RESPONSE_STATUS_CODE } = Empty,
-        { trace::HTTP_RESPONSE_BODY_SIZE } = Empty
+        { trace::HTTP_RESPONSE_BODY_SIZE } = Empty,
+        { "actor_entity_uuid" } = Empty,
     );
 
     http_span.set_parent(extract_context_from_headers(request.headers()));
@@ -83,11 +84,18 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         http_span.record(trace::SERVER_ADDRESS, host_str);
     }
 
-    if let Some(content_length) = request.headers().get("content-length")
+    let headers = request.headers();
+    if let Some(content_length) = headers.get("content-length")
         && let Ok(content_length_str) = content_length.to_str()
-        && let Ok(body_size) = content_length_str.parse::<u64>()
+        && let Ok(body_size) = content_length_str.parse::<i64>()
     {
         http_span.record(trace::HTTP_REQUEST_BODY_SIZE, body_size);
+    }
+
+    if let Some(actor_id_header) = headers.get("X-Authenticated-User-Actor-Id")
+        && let Ok(actor_id) = actor_id_header.to_str()
+    {
+        http_span.record("actor_entity_uuid", actor_id);
     }
 
     if let Some(ConnectInfo(addr)) = request.extensions().get::<ConnectInfo<SocketAddr>>() {
@@ -101,11 +109,11 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
 // Record response-specific attributes on the span
 fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
     let status_code = response.status().as_u16();
-    span.record(trace::HTTP_RESPONSE_STATUS_CODE, status_code);
+    span.record(trace::HTTP_RESPONSE_STATUS_CODE, i64::from(status_code));
 
     if let Some(content_length) = response.headers().get("content-length")
         && let Ok(content_length_str) = content_length.to_str()
-        && let Ok(body_size) = content_length_str.parse::<u64>()
+        && let Ok(body_size) = content_length_str.parse::<i64>()
     {
         span.record(trace::HTTP_RESPONSE_BODY_SIZE, body_size);
     }

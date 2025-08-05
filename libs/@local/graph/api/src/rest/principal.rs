@@ -176,7 +176,6 @@ impl PrincipalResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_or_create_system_machine<S>(
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -210,7 +209,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_machine_by_identifier<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(identifier): Path<String>,
@@ -245,7 +243,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn create_user_actor<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -279,7 +276,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn create_ai_actor<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -313,7 +309,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_ai_by_identifier<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(identifier): Path<String>,
@@ -348,7 +343,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn create_org_web<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -385,7 +379,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_web_by_id<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(web_id): Path<WebId>,
@@ -420,7 +413,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_web_by_shortname<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(shortname): Path<String>,
@@ -455,7 +447,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_web_roles<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(web_id): Path<WebId>,
@@ -490,7 +481,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_team_by_name<S>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
     Path(name): Path<String>,
@@ -525,7 +515,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_team_roles<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(team_id): Path<TeamId>,
@@ -562,9 +551,8 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_actor_group_role_assignments<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedUserHeader(_actor): AuthenticatedUserHeader,
     Path((actor_group_id, role_name)): Path<(ActorGroupEntityUuid, RoleName)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -601,9 +589,8 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_actor_group_role<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedUserHeader(_actor): AuthenticatedUserHeader,
     Path((actor_group_id, actor_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
@@ -641,7 +628,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn assign_actor_group_role<S>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
     Path((actor_group_id, role_name, actor_id)): Path<(
@@ -683,7 +669,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn unassign_actor_group_role<S>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
     Path((actor_group_id, role_name, actor_id)): Path<(
