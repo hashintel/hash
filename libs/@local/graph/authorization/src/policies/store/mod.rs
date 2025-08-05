@@ -177,16 +177,16 @@ pub trait PolicyStore {
     ///
     /// # Errors
     ///
-    /// - [`PolicyAlreadyExists`] if a policy with the same ID already exists
-    /// - [`PrincipalNotFound`] if the referenced principal does not exist
+    /// - [`PoliciesAlreadyExist`] if a policy with the same ID already exists
+    /// - [`PrincipalsNotFound`] if the referenced principal does not exist
     /// - [`PolicyHasNoActions`] if the policy is missing actions
-    /// - [`ActionNotFound`] if any of the actions do not exist
+    /// - [`ActionsNotFound`] if any of the actions do not exist
     /// - [`StoreError`] if a database or storage level error occurs
     ///
-    /// [`PolicyAlreadyExists`]: CreatePolicyError::PolicyAlreadyExists
-    /// [`PrincipalNotFound`]: CreatePolicyError::PrincipalNotFound
+    /// [`PoliciesAlreadyExist`]: CreatePolicyError::PoliciesAlreadyExist
+    /// [`PrincipalsNotFound`]: CreatePolicyError::PrincipalsNotFound
     /// [`PolicyHasNoActions`]: CreatePolicyError::PolicyHasNoActions
-    /// [`ActionNotFound`]: CreatePolicyError::ActionNotFound
+    /// [`ActionsNotFound`]: CreatePolicyError::ActionsNotFound
     /// [`StoreError`]: CreatePolicyError::StoreError
     async fn create_policy(
         &mut self,

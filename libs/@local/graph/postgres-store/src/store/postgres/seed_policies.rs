@@ -1040,16 +1040,14 @@ impl PostgresStore<Transaction<'_>> {
                 .await
                 .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
         }
-        for (index, policy) in policies_to_add.iter().enumerate() {
-            tracing::debug!(
-                policy_name = policy.name,
-                "Adding policy to database {index}/{}",
-                policies_to_add.len()
-            );
-            self.insert_policy_into_database(policy)
+
+        if !policies_to_add.is_empty() {
+            tracing::debug!("Adding {} policies to database", policies_to_add.len());
+            self.insert_policies_into_database(policies_to_add)
                 .await
                 .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
         }
+
         for (index, (policy_id, operations)) in policies_to_update.iter().enumerate() {
             tracing::debug!(
                 %policy_id,

@@ -114,13 +114,13 @@ impl DatabaseTestWrapper {
 
         // Create a policy to allow the actor to create new policies
         transaction
-            .insert_policy_into_database(&PolicyCreationParams {
+            .insert_policies_into_database(&[PolicyCreationParams {
                 name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor { actor }),
                 actions: vec![ActionName::CreatePolicy, ActionName::DeletePolicy],
                 resource: None,
-            })
+            }])
             .await
             .change_context(StoreError)?;
 
