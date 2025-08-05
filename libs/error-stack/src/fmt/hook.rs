@@ -409,8 +409,8 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
 /// This closure will downcast/request the [`Frame`] to the requested type.
 ///
-/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
-/// output.
+/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the
+/// [`Debug`] output.
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
@@ -420,6 +420,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
+/// [`.attach()`]: crate::Report::attach
 #[expect(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the
