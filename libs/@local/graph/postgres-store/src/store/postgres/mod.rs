@@ -8,7 +8,7 @@ mod seed_policies;
 mod traversal_context;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{fmt::Debug, hash::Hash};
+use core::{borrow::Borrow, fmt::Debug, hash::Hash};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
@@ -106,31 +106,90 @@ pub struct PostgresStore<C> {
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
-    /// Inserts a new policy into the database.
+    /// Inserts multiple policies into the database.
     ///
     /// # Errors
     ///
-    /// Returns an error if the policy is invalid or if the insertion fails.
-    pub async fn insert_policy_into_database(
+    /// Returns an error if any policy is invalid or if the insertion fails.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "We could try to split this function up, but this does not help the readability"
+    )]
+    pub async fn insert_policies_into_database<I, P>(
         &self,
-        policy: &PolicyCreationParams,
-    ) -> Result<PolicyId, Report<CreatePolicyError>> {
-        if policy.actions.is_empty() {
-            return Err(Report::new(CreatePolicyError::PolicyHasNoActions));
+        policies: I,
+    ) -> Result<Vec<PolicyId>, Report<CreatePolicyError>>
+    where
+        I: IntoIterator<Item = P>,
+        P: Borrow<PolicyCreationParams>,
+    {
+        // As `into_iter` consumes the iterator, we need to collect the policies first to later
+        // borrow them
+        let policies = policies.into_iter().collect::<Vec<_>>();
+        if policies.is_empty() {
+            return Ok(Vec::new());
         }
 
-        let policy_id = PolicyId::new(Uuid::new_v4());
+        let mut all_action_policy_ids = Vec::new();
+        let mut all_action_names = Vec::new();
 
-        let (principal_id, actor_type) = policy
-            .principal
-            .as_ref()
-            .map(PrincipalConstraint::to_parts)
-            .unwrap_or_default();
+        #[expect(clippy::type_complexity)]
+        let (
+            policy_ids,
+            names,
+            effects,
+            principal_ids,
+            principal_types,
+            actor_types,
+            resource_constraints,
+        ): (
+            Vec<PolicyId>,
+            Vec<Option<&str>>,
+            Vec<Effect>,
+            Vec<Option<PrincipalId>>,
+            Vec<Option<PrincipalType>>,
+            Vec<Option<PrincipalType>>,
+            Vec<Option<Json<&ResourceConstraint>>>,
+        ) = policies
+            .iter()
+            .map(|policy| {
+                let policy = policy.borrow();
+                let policy_id = PolicyId::new(Uuid::new_v4());
+                let (principal_id, actor_type) = policy
+                    .principal
+                    .as_ref()
+                    .map(PrincipalConstraint::to_parts)
+                    .unwrap_or_default();
+
+                if policy.actions.is_empty() {
+                    return Err(Report::new(CreatePolicyError::PolicyHasNoActions));
+                }
+
+                // Collect all actions with their policy IDs
+                for action in &policy.actions {
+                    all_action_policy_ids.push(policy_id);
+                    all_action_names.push(*action);
+                }
+
+                Ok((
+                    policy_id,
+                    policy.name.as_deref(),
+                    policy.effect,
+                    principal_id,
+                    principal_id.map(PrincipalId::principal_type),
+                    actor_type.map(PrincipalType::from),
+                    policy.resource.as_ref().map(Json),
+                ))
+            })
+            .collect::<Result<_, Report<CreatePolicyError>>>()?;
 
         let client = self.as_client();
 
         client
-            .execute("INSERT INTO policy (id) VALUES ($1)", &[&policy_id])
+            .execute(
+                "INSERT INTO policy (id) SELECT unnest($1::uuid[])",
+                &[&policy_ids],
+            )
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -143,19 +202,33 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         client
             .execute(
                 "INSERT INTO policy_edition (
-                    id, transaction_time, name, effect, principal_id,
-                    principal_type, actor_type, resource_constraint
-                ) VALUES (
-                    $1, tstzrange(now(), NULL, '[)'), $2, $3, $4, $5, $6, $7
-                )",
+                        id,
+                        transaction_time,
+                        name,
+                        effect,
+                        principal_id,
+                        principal_type,
+                        actor_type,
+                        resource_constraint
+                    )
+                    SELECT
+                        unnest($1::uuid[]),
+                        tstzrange(now(), NULL, '[)'),
+                        unnest($2::text[]),
+                        unnest($3::policy_effect[]),
+                        unnest($4::uuid[]),
+                        unnest($5::principal_type[]),
+                        unnest($6::principal_type[]),
+                        unnest($7::jsonb[])
+                    ",
                 &[
-                    &policy_id,
-                    &policy.name,
-                    &policy.effect,
-                    &principal_id,
-                    &principal_id.map(PrincipalId::principal_type),
-                    &actor_type.map(PrincipalType::from),
-                    &policy.resource.as_ref().map(Json),
+                    &policy_ids,
+                    &names,
+                    &effects,
+                    &principal_ids,
+                    &principal_types,
+                    &actor_types,
+                    &resource_constraints,
                 ],
             )
             .instrument(tracing::info_span!(
@@ -165,52 +238,32 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 peer.service = "Postgres",
             ))
             .await
-            .map_err(|error| {
-                let policy_error = match (error.code(), principal_id) {
-                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
-                        CreatePolicyError::PolicyAlreadyExists { id: policy_id }
-                    }
-                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(principal_id)) => {
-                        CreatePolicyError::PrincipalNotFound { id: principal_id }
-                    }
-                    _ => CreatePolicyError::StoreError,
-                };
-                Report::new(error).change_context(policy_error)
-            })?;
+            .change_context(CreatePolicyError::StoreError)?;
 
-        for action in &policy.actions {
-            client
-                .execute(
-                    "INSERT INTO policy_action (
-                        policy_id,
-                        action_name,
-                        transaction_time
-                    ) VALUES (
-                        $1,
-                        $2,
-                        tstzrange(now(), NULL, '[)')
-                    )",
-                    &[&policy_id, &action],
+        client
+            .execute(
+                "INSERT INTO policy_action (
+                    policy_id,
+                    action_name,
+                    transaction_time
                 )
-                .instrument(tracing::info_span!(
-                    "INSERT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .map_err(|error| {
-                    let policy_error = match error.code() {
-                        Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                            CreatePolicyError::ActionNotFound { id: *action }
-                        }
-                        _ => CreatePolicyError::StoreError,
-                    };
-                    Report::new(error).change_context(policy_error)
-                })?;
-        }
+                SELECT
+                    unnest($1::uuid[]),
+                    unnest($2::text[]),
+                    tstzrange(now(), NULL, '[)')
+                ",
+                &[&all_action_policy_ids, &all_action_names],
+            )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres"
+            ))
+            .await
+            .change_context(CreatePolicyError::StoreError)?;
 
-        Ok(policy_id)
+        Ok(policy_ids)
     }
 
     async fn get_or_create_system_machine_impl(
@@ -254,11 +307,10 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             let system_machine_id = if identifier == "h" {
                 // We need to create the system web for the system machine actor, so the system
                 // machine needs to be allowed to create webs.
-                self.insert_policy_into_database(&seed_policies::system_actor_create_web_policy(
-                    machine_id,
-                ))
-                .await
-                .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                let policies = [seed_policies::system_actor_create_web_policy(machine_id)];
+                self.insert_policies_into_database(policies)
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
                 machine_id
             } else {
@@ -302,18 +354,18 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     );
                 }
                 "google" => {
-                    for policy in seed_policies::google_bot_policies(machine_id) {
-                        self.insert_policy_into_database(&policy)
-                            .await
-                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
-                    }
+                    self.insert_policies_into_database(seed_policies::google_bot_policies(
+                        machine_id,
+                    ))
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
                 }
                 "linear" => {
-                    for policy in seed_policies::linear_bot_policies(machine_id) {
-                        self.insert_policy_into_database(&policy)
-                            .await
-                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
-                    }
+                    self.insert_policies_into_database(seed_policies::linear_bot_policies(
+                        machine_id,
+                    ))
+                    .await
+                    .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
                 }
                 _ => {}
             }
@@ -845,12 +897,10 @@ where
         ];
 
         for web_role in web_roles {
-            for policy in seed_policies::web_policies(&web_role) {
-                transaction
-                    .insert_policy_into_database(&policy)
-                    .await
-                    .change_context(WebCreationError::PolicyCreationError)?;
-            }
+            transaction
+                .insert_policies_into_database(seed_policies::web_policies(&web_role))
+                .await
+                .change_context(WebCreationError::PolicyCreationError)?;
         }
 
         transaction
@@ -1353,7 +1403,10 @@ where
             .await
             .change_context(CreatePolicyError::StoreError)?;
 
-        let policy_id = transaction.insert_policy_into_database(&policy).await?;
+        let policy_ids = transaction.insert_policies_into_database([&policy]).await?;
+        let &[policy_id] = policy_ids.as_slice() else {
+            unreachable!("Expected exactly one policy ID");
+        };
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(authenticated_actor)
@@ -1596,27 +1649,28 @@ where
 
                 -- We have all the policies that apply to the actor, now we associate the actions
                 policy_with_actions AS (
-                    SELECT
+                SELECT
                         policy_edition.id,
                         policy_edition.name,
-                        policy_edition.effect,
+                    policy_edition.effect,
                         policy_edition.principal_id,
                         policy_edition.principal_type,
                         policy_edition.actor_type,
-                        policy_edition.resource_constraint,
+                    policy_edition.resource_constraint,
                         array_remove(array_agg(policy_action.action_name), NULL) AS actions
-                    FROM policy_edition
+                FROM policy_edition
                     LEFT JOIN policy_action
-                        ON policy_action.policy_id = policy_edition.id
-                        AND policy_action.transaction_time @> now()
-                    GROUP BY
-                        policy_edition.id,
+                    ON policy_action.policy_id = policy_edition.id
+                    AND policy_action.action_name = ANY($3)
+                    AND policy_action.transaction_time @> now()
+                GROUP BY
+                    policy_edition.id,
                         policy_edition.name,
-                        policy_edition.effect,
+                    policy_edition.effect,
                         policy_edition.principal_id,
                         policy_edition.principal_type,
                         policy_edition.actor_type,
-                        policy_edition.resource_constraint
+                    policy_edition.resource_constraint
                 )
                 SELECT
                     id,

@@ -1124,12 +1124,10 @@ where
             }
         }
 
-        for policy in policies {
-            transaction
-                .insert_policy_into_database(&policy)
-                .await
-                .change_context(InsertionError)?;
-        }
+        transaction
+            .insert_policies_into_database(policies)
+            .await
+            .change_context(InsertionError)?;
 
         ensure!(
             validation_reports.is_empty(),
