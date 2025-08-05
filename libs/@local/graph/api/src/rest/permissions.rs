@@ -85,7 +85,6 @@ impl PermissionResource {
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn create_policy<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -120,7 +119,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn get_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
@@ -155,7 +153,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn query_policies<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -190,7 +187,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn resolve_policies_for_actor<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
@@ -226,7 +222,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client, operations))]
 async fn update_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
@@ -262,7 +257,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn archive_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
@@ -297,7 +291,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn delete_policy_by_id<S>(
     AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
     Path(policy_id): Path<PolicyId>,
@@ -328,7 +321,6 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(store_pool, temporal_client))]
 async fn seed_system_policies<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
