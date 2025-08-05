@@ -109,7 +109,7 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
 // Record response-specific attributes on the span
 fn record_response_attributes<B>(span: &Span, response: &http::Response<B>) {
     let status_code = response.status().as_u16();
-    span.record(trace::HTTP_RESPONSE_STATUS_CODE, status_code as i64);
+    span.record(trace::HTTP_RESPONSE_STATUS_CODE, i64::from(status_code));
 
     if let Some(content_length) = response.headers().get("content-length")
         && let Ok(content_length_str) = content_length.to_str()
