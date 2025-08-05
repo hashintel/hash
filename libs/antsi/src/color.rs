@@ -127,7 +127,7 @@ pub struct BrightColor(BasicColor);
 /// [ISO 8613-6] was rediscovered in the early 2010s implementations used the format initially used
 /// by `xterm`, which used `;` as a separator instead of `:`. Most actively maintained open-source
 /// terminal emulators like [xterm], [kitty] or [wezterm] support both delimiter and recommend
-/// the use of `:`. Note that most built-in terminal emulators like [`Terminal.app`] do **not**
+/// the use of `:`. Note that most built-in terminal emulators like `Terminal.app` do **not**
 /// support `;` as a delimiter.
 /// A detailed explanation as to why this discrepancy between standard and implementation
 /// happened can be read in the [xterm repository](https://github.com/ThomasDickey/xterm-snapshots/blob/8d625aa49d5fdaa055a9f26d514121f032c7b771/charproc.c#L1957-L2028).
