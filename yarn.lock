@@ -317,7 +317,7 @@ __metadata:
     openai: "npm:4.104.0"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.3"
-    pdf2json: "npm:3.1.6"
+    pdf2json: "npm:3.2.0"
     puppeteer: "npm:22.15.0"
     puppeteer-extra: "npm:3.3.6"
     puppeteer-extra-plugin-stealth: "npm:2.11.2"
@@ -36859,12 +36859,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pdf2json@npm:3.1.6":
-  version: 3.1.6
-  resolution: "pdf2json@npm:3.1.6"
+"pdf2json@npm:3.2.0":
+  version: 3.2.0
+  resolution: "pdf2json@npm:3.2.0"
   bin:
     pdf2json: bin/pdf2json.js
-  checksum: 10c0/5d4246468ad3472d42ef36becac1ca0e283f73d94080dab980fe4abf2a8b3c2502a2c9ebc4aa787ea9169acf5e4517e5a41add739048a1ae8141c71be854bd21
+  checksum: 10c0/affc3ddc7ba7234bf5ba0cb8aca19b75fbc9e8ddfe5e8139396804b5bf0ec84e262569d53c181f096b7e05c96c3efcdf4787a0874dd69320905db3679a3e19b2
   languageName: node
   linkType: hard
 
