@@ -101,17 +101,6 @@ pub struct BenchConfig {
     pub action_selectivity: ActionSelectivity,
 }
 
-impl BenchConfig {
-    /// Generate benchmark ID
-    pub fn bench_id(&self) -> String {
-        format!(
-            "user: {}, selectivity: {}",
-            self.user.as_str(),
-            self.action_selectivity.as_str()
-        )
-    }
-}
-
 /// Benchmark matrix definition
 pub struct BenchmarkMatrix {
     pub users: Vec<UserType>,
@@ -250,23 +239,22 @@ fn run_benchmark_seed_group(
         });
         assert!(
             policy_count > 0,
-            "Seeded user should have policies! Config: {}, Actor: {:?}, Policy count: {}",
-            config.bench_id(),
-            test_actor,
+            "Seeded user should have policies! Seed level: {}, Actor: {:?}, Policy count: {}",
+            config.seed.as_str(),
+            config.user.as_str(),
             policy_count
         );
-        eprintln!(
-            "{} has {} policies for actions {:?}",
-            config.bench_id(),
-            policy_count,
-            actions
-        );
 
+        let bench_id = format!(
+            "user: {}, selectivity: {}, policies: {}",
+            config.user.as_str(),
+            config.action_selectivity.as_str(),
+            policy_count
+        );
         group.bench_with_input(
-            BenchmarkId::new("resolve_policies_for_actor", config.bench_id()),
+            BenchmarkId::new("resolve_policies_for_actor", &bench_id),
             &(&test_actor, &actions),
             |bencher, &(test_actor, actions)| {
-                let bench_id = config.bench_id();
                 let _guard = setup_subscriber(
                     &group_name,
                     Some("resolve_policies_for_actor"),
