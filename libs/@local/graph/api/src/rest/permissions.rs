@@ -9,7 +9,7 @@ use axum::{
     routing::{delete, get, post},
 };
 use hash_graph_authorization::policies::{
-    Policy, PolicyId,
+    Policy, PolicyId, ResolvedPolicy,
     store::{
         PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation,
         ResolvePoliciesParams,
@@ -192,7 +192,7 @@ async fn resolve_policies_for_actor<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<ResolvePoliciesParams<'static>>,
-) -> Result<Json<Vec<Policy>>, Response>
+) -> Result<Json<Vec<ResolvedPolicy>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PolicyStore,

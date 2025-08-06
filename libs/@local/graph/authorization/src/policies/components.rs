@@ -18,7 +18,7 @@ use type_system::{
 };
 
 use super::{
-    Context, ContextBuilder, Effect, Policy, PolicySet,
+    Context, ContextBuilder, Effect, PolicySet, ResolvedPolicy,
     action::ActionName,
     principal::actor::AuthenticatedActor,
     resource::{
@@ -65,7 +65,7 @@ pub enum MergePolicies {
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
-    policies: Vec<Policy>,
+    policies: Vec<ResolvedPolicy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
     tracked_entity_types: HashSet<VersionedUrl>,
     tracked_property_types: HashSet<VersionedUrl>,
@@ -726,22 +726,19 @@ mod tests {
 
     use super::PolicyComponents;
     use crate::policies::{
-        Context, Effect, Policy, PolicyId,
+        Context, Effect, PolicyId, ResolvedPolicy,
         action::ActionName,
         resource::{EntityResourceConstraint, ResourceConstraint},
     };
 
-    fn create_test_entity_permit_policy(entity_uuid: EntityUuid) -> Policy {
-        Policy {
-            id: PolicyId(Uuid::new_v4()),
-            name: Some(format!("permit-entity-{entity_uuid}")),
+    fn create_test_entity_permit_policy(entity_uuid: EntityUuid) -> ResolvedPolicy {
+        ResolvedPolicy {
+            original_policy_id: PolicyId(Uuid::new_v4()),
             effect: Effect::Permit,
-            principal: None,
             actions: vec![ActionName::View],
             resource: Some(ResourceConstraint::Entity(
                 EntityResourceConstraint::Exact { id: entity_uuid },
             )),
-            constraints: None,
         }
     }
 

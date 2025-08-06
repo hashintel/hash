@@ -7,7 +7,7 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
-use super::{Context, Policy, Request, action::ActionName};
+use super::{Context, Policy, Request, ResolvedPolicy, action::ActionName};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]
@@ -61,7 +61,7 @@ impl PolicySet {
     /// Returns an error if the policy is not valid.
     pub fn with_policies<'p>(
         mut self,
-        policies: impl IntoIterator<Item = &'p Policy>,
+        policies: impl IntoIterator<Item = &'p ResolvedPolicy>,
     ) -> Result<Self, Report<PolicySetInsertionError>> {
         for policy in policies {
             self.add_policy(policy)?;
@@ -90,7 +90,10 @@ impl PolicySet {
     /// # Errors
     ///
     /// Returns an error if the policy is not valid.
-    pub fn add_policy(&mut self, policy: &Policy) -> Result<(), Report<PolicySetInsertionError>> {
+    pub fn add_policy(
+        &mut self,
+        policy: &ResolvedPolicy,
+    ) -> Result<(), Report<PolicySetInsertionError>> {
         self.policies
             .add_static(
                 policy

@@ -15,7 +15,7 @@ use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, Effect, MergePolicies, Policy, PolicyComponents, PolicyId, Request,
-    RequestContext, ResourceId,
+    RequestContext, ResolvedPolicy, ResourceId,
     action::ActionName,
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
     resource::{
@@ -1571,7 +1571,7 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         params: ResolvePoliciesParams<'_>,
-    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+    ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>> {
         let actor_id = match authenticated_actor {
             AuthenticatedActor::Uuid(actor_entity_uuid) => self
                 .determine_actor(actor_entity_uuid)
@@ -1582,12 +1582,20 @@ where
 
         let Some(actor_id) = actor_id else {
             // If no actor is provided, only policies without principal constraints are returned.
-            return self
+            return Ok(self
                 .read_policies_from_database(&PolicyFilter {
                     name: None,
                     principal: Some(PrincipalFilter::Unconstrained),
                 })
-                .await;
+                .await?
+                .into_iter()
+                .map(|policy| ResolvedPolicy {
+                    original_policy_id: policy.id,
+                    effect: policy.effect,
+                    actions: policy.actions,
+                    resource: policy.resource,
+                })
+                .collect());
         };
 
         // The below query does several things. It:
@@ -1640,8 +1648,7 @@ where
                     SELECT parent.id, parent.principal_type
                     FROM actor_role
                     JOIN role ON actor_role.role_id = role.id
-                    JOIN team_hierarchy
-                      ON team_hierarchy.child_id = role.actor_group_id
+                    JOIN team_hierarchy ON team_hierarchy.child_id = role.actor_group_id
                     JOIN actor_group parent ON parent.id = team_hierarchy.parent_id
                     WHERE actor_role.actor_id = $1
                 ),
@@ -1664,43 +1671,22 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
-                ),
+                )
 
-                -- We have all the policies that apply to the actor, now we associate the actions
-                policy_with_actions AS (
                 SELECT
-                        policy_edition.id,
-                        policy_edition.name,
+                    policy_edition.id as original_policy_id,
                     policy_edition.effect,
-                        policy_edition.principal_id,
-                        policy_edition.principal_type,
-                        policy_edition.actor_type,
                     policy_edition.resource_constraint,
-                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
+                    array_agg(policy_action.action_name) AS actions
                 FROM policy_edition
-                    LEFT JOIN policy_action
+                JOIN policy_action
                     ON policy_action.policy_id = policy_edition.id
+                    AND policy_action.action_name = ANY($3)
                     AND policy_action.transaction_time @> now()
                 GROUP BY
                     policy_edition.id,
-                        policy_edition.name,
                     policy_edition.effect,
-                        policy_edition.principal_id,
-                        policy_edition.principal_type,
-                        policy_edition.actor_type,
                     policy_edition.resource_constraint
-                )
-                SELECT
-                    id,
-                    name,
-                    effect,
-                    principal_id,
-                    principal_type,
-                    actor_type,
-                    resource_constraint,
-                    actions
-                FROM policy_with_actions
-                WHERE actions && $3
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
@@ -1717,26 +1703,19 @@ where
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
-            .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+            .map_ok( |row| {
                 let _span = tracing::info_span!(
-                    "policy_conversion",
-                    policy_id = ?row.get::<_, PolicyId>(0),
-                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(6).is_some()
+                    "filtered_policy_conversion",
+                    original_policy_id = ?row.get::<_, PolicyId>(0),
+                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(2).is_some()
                 ).entered();
 
-                PolicyParts {
-                    id: row.get(0),
-                    name: row.get(1),
-                    effect: row.get(2),
-                    principal_uuid: row.get(3),
-                    principal_type: row.get(4),
-                    actor_type: row.get(5),
-                    resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(6)
-                        .map(|json| json.0),
-                    actions: row.get(7),
+                ResolvedPolicy {
+                    original_policy_id: row.get(0),
+                    effect: row.get(1),
+                    actions: row.get(3),
+                    resource: row.get::<_, Option<Json<_>>>(2).map(|json| json.0),
                 }
-                .into_policy()
             })
             .try_collect::<Vec<_>>()
             .instrument(tracing::info_span!("policy_result_collection"))

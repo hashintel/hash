@@ -2,7 +2,7 @@ use core::error::Error;
 
 use cedar_policy_core::parser::parse_policy_or_template;
 use error_stack::ResultExt as _;
-use hash_graph_authorization::policies::{Policy, PolicySet, PolicyValidator};
+use hash_graph_authorization::policies::{Policy, PolicySet, PolicyValidator, ResolvedPolicy};
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::entity::EntityId,
@@ -14,7 +14,7 @@ use type_system::{
 };
 
 #[track_caller]
-fn check_policy(policy: &Policy) -> Result<(), Box<dyn Error>> {
+fn check_policy(policy: &ResolvedPolicy) -> Result<(), Box<dyn Error>> {
     let mut policy_set = PolicySet::default();
     policy_set.add_policy(policy)?;
 
@@ -40,7 +40,16 @@ fn read_policies(policy_strings: &str) -> Vec<Policy> {
             format!("{policy:?}"),
         );
 
-        check_policy(policy).expect("should be a valid policy");
+        let parsed_policy = Policy::parse_cedar_policy(cedar_policy_string, None)
+            .expect("should be a valid policy");
+
+        check_policy(&ResolvedPolicy {
+            original_policy_id: parsed_policy.id,
+            effect: parsed_policy.effect,
+            actions: parsed_policy.actions,
+            resource: parsed_policy.resource,
+        })
+        .expect("should be a valid policy");
     }
 
     policies
