@@ -78,9 +78,9 @@ pub enum ActionSelectivity {
 impl ActionSelectivity {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::High => "high_sel",
-            Self::Medium => "med_sel",
-            Self::Low => "low_sel",
+            Self::High => "high",
+            Self::Medium => "medium",
+            Self::Low => "low",
         }
     }
 
@@ -98,17 +98,16 @@ impl ActionSelectivity {
 pub struct BenchConfig {
     pub user: UserType,
     pub seed: SeedLevel,
-    pub actions: ActionSelectivity,
+    pub action_selectivity: ActionSelectivity,
 }
 
 impl BenchConfig {
     /// Generate benchmark ID
     pub fn bench_id(&self) -> String {
         format!(
-            "{}_{}_{}",
+            "user: {}, selectivity: {}",
             self.user.as_str(),
-            self.seed.as_str(),
-            self.actions.as_str()
+            self.action_selectivity.as_str()
         )
     }
 }
@@ -136,7 +135,7 @@ impl BenchmarkMatrix {
                     configs.push(BenchConfig {
                         user,
                         seed,
-                        actions: *actions,
+                        action_selectivity: *actions,
                     });
                 }
             }
@@ -231,12 +230,12 @@ fn run_benchmark_seed_group(
     });
 
     // Now run all configs that use this seed level
+    let group_name = format!("policy_resolution_{}", seed_level.as_str());
     for config in configs {
-        let group_name = "policy_benchmarks";
-        let mut group = crit.benchmark_group(group_name);
+        let mut group = crit.benchmark_group(&group_name);
 
         let test_actor = get_test_actor(config.user, system_actor_id, benchmark_data.as_ref());
-        let actions = config.actions.to_actions();
+        let actions = config.action_selectivity.to_actions();
 
         let policy_count = runtime.block_on(async {
             let params = ResolvePoliciesParams {
@@ -264,12 +263,15 @@ fn run_benchmark_seed_group(
         );
 
         group.bench_with_input(
-            BenchmarkId::new("resolve_policies", config.bench_id()),
+            BenchmarkId::new("resolve_policies_for_actor", config.bench_id()),
             &(&test_actor, &actions),
             |bencher, &(test_actor, actions)| {
                 let bench_id = config.bench_id();
-                let _guard =
-                    setup_subscriber(group_name, Some("resolve_policies"), Some(&bench_id));
+                let _guard = setup_subscriber(
+                    &group_name,
+                    Some("resolve_policies_for_actor"),
+                    Some(&bench_id),
+                );
 
                 bencher.iter(|| {
                     runtime.block_on(async {
