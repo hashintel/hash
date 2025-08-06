@@ -881,8 +881,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     );
     assert_eq!(
         deny_policy.actions.iter().copied().collect::<HashSet<_>>(),
-        HashSet::from([ActionName::ViewEntity, ActionName::Update]),
-        "Deny policy should have Update action"
+        HashSet::from([ActionName::ViewEntity]),
+        "Deny policy should have no Update action"
     );
 
     Ok(())
