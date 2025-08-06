@@ -1,9 +1,9 @@
 import type { Components, Theme } from "@mui/material";
 import { svgIconClasses } from "@mui/material";
 
-import { CheckboxBlankIcon } from "./mui-checkbox-theme-options/checkbox-blank-icon";
-import { CheckboxCheckedIcon } from "./mui-checkbox-theme-options/checkbox-checked-icon";
-import { CheckboxIndeterminateIcon } from "./mui-checkbox-theme-options/checkbox-indeterminate-icon";
+import { CheckboxBlankIcon } from "./mui-checkbox-theme-options/checkbox-blank-icon.js";
+import { CheckboxCheckedIcon } from "./mui-checkbox-theme-options/checkbox-checked-icon.js";
+import { CheckboxIndeterminateIcon } from "./mui-checkbox-theme-options/checkbox-indeterminate-icon.js";
 
 const focusBorderOffset = 4;
 const focusBorderWidth = 2;

@@ -2,9 +2,9 @@ import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
-import { Button } from "./button";
-import { Callout } from "./callout";
-import { Modal } from "./modal";
+import { Button } from "./button.js";
+import { Callout } from "./callout.js";
+import { Modal } from "./modal.js";
 
 type AlertModalProps = {
   callback?: () => void;

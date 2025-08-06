@@ -8,7 +8,7 @@ import clsx from "clsx";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef } from "react";
 
-import { fluidFontClassName } from "./fluid-fonts";
+import { fluidFontClassName } from "./fluid-fonts.js";
 
 export type ModalProps = MuiModalProps & {
   contentStyle?: SxProps<Theme>;

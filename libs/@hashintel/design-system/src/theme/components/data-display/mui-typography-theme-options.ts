@@ -1,6 +1,6 @@
 import type { Components, Theme } from "@mui/material";
 
-import { customColors } from "../../palette";
+import { customColors } from "../../palette.js";
 
 export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
   defaultProps: {

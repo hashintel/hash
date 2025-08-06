@@ -3,7 +3,7 @@ import { Box, Stack, Typography, typographyClasses } from "@mui/material";
 import type { ForwardRefRenderFunction } from "react";
 import { forwardRef, useMemo } from "react";
 
-import { IconRainbowHash } from "./icon-rainbow-hash";
+import { IconRainbowHash } from "./icon-rainbow-hash.js";
 
 // @todo make this take the id
 const OntologyChip: ForwardRefRenderFunction<

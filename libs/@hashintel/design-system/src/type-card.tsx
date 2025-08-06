@@ -11,12 +11,12 @@ import {
 import type { ElementType } from "react";
 import { useState } from "react";
 
-import { EntityOrTypeIcon } from "./entity-or-type-icon";
-import { FontAwesomeIcon } from "./fontawesome-icon";
-import { ArrowsRotateRegularIcon } from "./icon-arrows-rotate-regular";
-import { IconButton } from "./icon-button";
-import { CloseIcon } from "./icon-close";
-import { WhiteCard } from "./white-card";
+import { EntityOrTypeIcon } from "./entity-or-type-icon.js";
+import { FontAwesomeIcon } from "./fontawesome-icon.js";
+import { ArrowsRotateRegularIcon } from "./icon-arrows-rotate-regular.js";
+import { IconButton } from "./icon-button.js";
+import { CloseIcon } from "./icon-close.js";
+import { WhiteCard } from "./white-card.js";
 
 const deleteButtonSx: SxProps<Theme> = ({ palette }) => ({
   width: 11,

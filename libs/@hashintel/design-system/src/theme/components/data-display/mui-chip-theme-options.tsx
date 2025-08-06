@@ -2,7 +2,7 @@ import { faClose } from "@fortawesome/free-solid-svg-icons";
 import type { ChipProps, Components, PaletteValue, Theme } from "@mui/material";
 import { Box } from "@mui/material";
 
-import { FontAwesomeIcon } from "../../../fontawesome-icon";
+import { FontAwesomeIcon } from "../../../fontawesome-icon.js";
 
 const getColors = (
   theme: Theme,

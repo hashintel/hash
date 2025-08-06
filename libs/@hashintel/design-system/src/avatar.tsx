@@ -2,8 +2,8 @@ import type { BoxProps } from "@mui/material";
 import { Box, styled } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { IconButton } from "./icon-button";
-import { PenRegularIcon } from "./pen-regular-icon";
+import { IconButton } from "./icon-button.js";
+import { PenRegularIcon } from "./pen-regular-icon.js";
 
 const EditEmojiIconButton = styled(IconButton)(({ theme }) => ({
   background: theme.palette.common.white,

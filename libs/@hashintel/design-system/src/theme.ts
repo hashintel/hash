@@ -2,11 +2,11 @@ import createCache from "@emotion/cache";
 import type { ThemeOptions } from "@mui/material";
 import { createTheme } from "@mui/material";
 
-import { borderRadii } from "./theme/border-radii";
-import { components } from "./theme/components";
-import { palette } from "./theme/palette";
-import { boxShadows, dropShadows, shadows } from "./theme/shadows";
-import { typography } from "./theme/typography";
+import { borderRadii } from "./theme/border-radii.js";
+import { components } from "./theme/components.js";
+import { palette } from "./theme/palette.js";
+import { boxShadows, dropShadows, shadows } from "./theme/shadows.js";
+import { typography } from "./theme/typography.js";
 
 export const theme = createTheme({
   palette,
@@ -22,7 +22,7 @@ export const theme = createTheme({
 export const createEmotionCache = (key?: string) =>
   createCache({ key: key ?? "css" });
 
-export * from "./fluid-fonts";
+export * from "./fluid-fonts.js";
 // @todo - consider re-exporting textFieldBorderRadius from another file
-export { textFieldBorderRadius } from "./theme/components/inputs/mui-outlined-input-theme-options";
-export * from "./theme/palette";
+export { textFieldBorderRadius } from "./theme/components/inputs/mui-outlined-input-theme-options.js";
+export * from "./theme/palette.js";

@@ -3,8 +3,8 @@ import type { Components } from "@mui/material";
 import {
   fluidFontClassName,
   fluidTypographyStyles,
-} from "../../../fluid-fonts";
-import { customColors } from "../../palette";
+} from "../../../fluid-fonts.js";
+import { customColors } from "../../palette.js";
 
 const typographyVariableSelector = `:root, .${fluidFontClassName}`;
 

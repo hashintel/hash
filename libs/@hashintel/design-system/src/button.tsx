@@ -7,7 +7,7 @@ import type {
 } from "react";
 import { forwardRef, useMemo } from "react";
 
-import { LoadingSpinner } from "./loading-spinner";
+import { LoadingSpinner } from "./loading-spinner.js";
 
 export type ButtonProps = {
   children: ReactNode;

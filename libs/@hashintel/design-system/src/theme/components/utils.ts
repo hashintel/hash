@@ -1,1 +1,1 @@
-export * from "./utils/mui-css-baseline-theme-options";
+export * from "./utils/mui-css-baseline-theme-options.js";

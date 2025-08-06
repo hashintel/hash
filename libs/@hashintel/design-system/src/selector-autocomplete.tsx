@@ -10,22 +10,22 @@ import clsx from "clsx";
 import type { Ref } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
-import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import type { ButtonProps } from "./button";
-import { Button } from "./button";
-import { Chip } from "./chip";
-import { GRID_CLICK_IGNORE_CLASS } from "./constants";
-import { fluidFontClassName } from "./fluid-fonts";
-import { FontAwesomeIcon } from "./fontawesome-icon";
-import { StyledPlusCircleIcon } from "./icon-circle-plus";
+import { AutocompleteDropdown } from "./autocomplete-dropdown.js";
+import type { ButtonProps } from "./button.js";
+import { Button } from "./button.js";
+import { Chip } from "./chip.js";
+import { GRID_CLICK_IGNORE_CLASS } from "./constants.js";
+import { fluidFontClassName } from "./fluid-fonts.js";
+import { FontAwesomeIcon } from "./fontawesome-icon.js";
+import { StyledPlusCircleIcon } from "./icon-circle-plus.js";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
-} from "./popper-placement-modifier";
-import type { SelectorAutocompleteOptionProps } from "./selector-autocomplete/selector-autocomplete-option";
-import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option";
-import { TextField } from "./text-field";
+} from "./popper-placement-modifier.js";
+import type { SelectorAutocompleteOptionProps } from "./selector-autocomplete/selector-autocomplete-option.js";
+import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option.js";
+import { TextField } from "./text-field.js";
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 

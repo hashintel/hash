@@ -7095,7 +7095,6 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@local/eslint": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"

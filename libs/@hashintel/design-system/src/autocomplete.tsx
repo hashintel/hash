@@ -12,14 +12,14 @@ import {
 import type { Ref } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import { FontAwesomeIcon } from "./fontawesome-icon";
+import { AutocompleteDropdown } from "./autocomplete-dropdown.js";
+import { FontAwesomeIcon } from "./fontawesome-icon.js";
 import {
   addPopperPositionClassPopperModifier,
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
-} from "./popper-placement-modifier";
-import { TextField } from "./text-field";
+} from "./popper-placement-modifier.js";
+import { TextField } from "./text-field.js";
 
 type AutocompleteProps<
   T,
