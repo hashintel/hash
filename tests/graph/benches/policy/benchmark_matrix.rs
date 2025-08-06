@@ -257,7 +257,7 @@ fn run_benchmark_seed_group(
             policy_count
         );
         eprintln!(
-            "✓ Validated: {} has {} policies for actions {:?}",
+            "{} has {} policies for actions {:?}",
             config.bench_id(),
             policy_count,
             actions

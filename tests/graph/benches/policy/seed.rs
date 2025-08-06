@@ -114,10 +114,10 @@ pub async fn seed_benchmark_data(
 
     let mut data = BenchmarkData::default();
 
-    eprintln!("📊 Starting benchmark data seeding with config: {config:#?}");
+    eprintln!("Starting benchmark data seeding with config: {config:#?}");
+    let seeding_start = std::time::Instant::now();
 
     // Create webs (organizations)
-    eprintln!("🌐 Creating {} webs...", config.webs);
     for web_idx in 0..config.webs {
         let web_id = transaction
             .create_web(
@@ -133,10 +133,8 @@ pub async fn seed_benchmark_data(
             .web_id;
         data.webs.push(web_id);
     }
-    eprintln!("✅ Created {} webs", data.webs.len());
 
     // Create team hierarchies
-    eprintln!("🏢 Creating team hierarchies...");
     for (web_idx, &web_id) in data.webs.iter().enumerate() {
         let (web_teams, web_leaf_teams) = create_team_hierarchy(
             &mut transaction,
@@ -151,18 +149,14 @@ pub async fn seed_benchmark_data(
         data.teams.extend(web_teams);
         data.leaf_teams.extend(web_leaf_teams);
     }
-    eprintln!("✅ Created {} teams total", data.teams.len());
 
     // Create users
-    eprintln!("👥 Creating {} users...", config.users);
     for _ in 0..config.users {
         let user_id = transaction.create_user(None).await?;
         data.users.push(user_id);
     }
-    eprintln!("✅ Created {} users", data.users.len());
 
     // Use existing roles created by create_web/create_team and assign users
-    eprintln!("🔑 Creating and assigning roles...");
     for (web_idx, &web_id) in data.webs.iter().enumerate() {
         // Get the existing web roles (Administrator, Member)
         let web_admin_role = transaction
@@ -223,18 +217,8 @@ pub async fn seed_benchmark_data(
             }
         }
     }
-    eprintln!(
-        "✅ Created {} roles total, assigned to users",
-        data.roles.len()
-    );
 
     // Create realistic policy distribution with explicit principal constraints
-    eprintln!("📜 Creating policies...");
-    let expected_policies = config.global_policies
-        + (data.teams.len() * config.policies_per_team)
-        + (data.roles.len() * config.policies_per_role)
-        + (data.users.len() * config.policies_per_user);
-    eprintln!("📊 Expected total policies: {}", expected_policies);
     let action_combinations = [
         &[ActionName::ViewEntity] as &[_],
         &[ActionName::ViewEntity, ActionName::CreateEntity],
@@ -249,7 +233,6 @@ pub async fn seed_benchmark_data(
     let mut all_policies = Vec::new();
 
     // 1. Global policies (accessible to all users)
-    eprintln!("🌍 Creating {} global policies...", config.global_policies);
     for policy_idx in 0..config.global_policies {
         let actions = &action_combinations[policy_idx % action_combinations.len()];
         all_policies.push(PolicyCreationParams {
@@ -260,15 +243,8 @@ pub async fn seed_benchmark_data(
             resource: None,
         });
     }
-    eprintln!("✅ Created {} global policies", config.global_policies);
 
     // 2. Team-specific policies (only accessible to team members)
-    eprintln!(
-        "🏢 Creating {} team policies ({} teams × {} policies per team)...",
-        data.teams.len() * config.policies_per_team,
-        data.teams.len(),
-        config.policies_per_team
-    );
     for (team_idx, &team_id) in data.teams.iter().enumerate() {
         for policy_idx in 0..config.policies_per_team {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -284,18 +260,8 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    eprintln!(
-        "✅ Created {} team policies",
-        data.teams.len() * config.policies_per_team
-    );
 
     // 3. Role-specific policies (only accessible to specific role holders)
-    eprintln!(
-        "👤 Creating {} role policies ({} roles × {} policies per role)...",
-        data.roles.len() * config.policies_per_role,
-        data.roles.len(),
-        config.policies_per_role
-    );
     for (role_idx, &role_id) in data.roles.iter().enumerate() {
         for policy_idx in 0..config.policies_per_role {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -311,18 +277,8 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    eprintln!(
-        "✅ Created {} role policies",
-        data.roles.len() * config.policies_per_role
-    );
 
     // 4. User-specific policies (only accessible to specific users)
-    eprintln!(
-        "🧑 Creating {} user policies ({} users × {} policies per user)...",
-        data.users.len() * config.policies_per_user,
-        data.users.len(),
-        config.policies_per_user
-    );
     for (user_idx, &user_id) in data.users.iter().enumerate() {
         for policy_idx in 0..config.policies_per_user {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -337,31 +293,17 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    eprintln!(
-        "✅ Created {} user policies",
-        data.users.len() * config.policies_per_user
-    );
 
-    eprintln!(
-        "💾 Inserting {} policies into database...",
-        all_policies.len()
-    );
-    let start_time = std::time::Instant::now();
     data.policies = transaction
         .insert_policies_into_database(all_policies.iter())
         .await?;
-    eprintln!(
-        "✅ Inserted {} policies in {:?}",
-        data.policies.len(),
-        start_time.elapsed()
-    );
 
-    eprintln!("🔄 Committing transaction...");
-    let commit_start = std::time::Instant::now();
     transaction.commit().await?;
-    eprintln!("✅ Transaction committed in {:?}", commit_start.elapsed());
 
-    eprintln!("🎉 Seeding completed! Summary:");
+    eprintln!(
+        "Seeding completed after {:?}! Summary:",
+        seeding_start.elapsed()
+    );
     eprintln!("  - {} webs", data.webs.len());
     eprintln!("  - {} teams", data.teams.len());
     eprintln!("  - {} users", data.users.len());
