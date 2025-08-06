@@ -45,7 +45,7 @@ mod seed;
 
 use core::str::FromStr as _;
 
-use criterion::{BenchmarkId, Criterion, SamplingMode};
+use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_store::subgraph::edges::{
     EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
