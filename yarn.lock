@@ -7087,7 +7087,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
