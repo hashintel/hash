@@ -55,6 +55,10 @@ path = "representative_read/lib.rs"
 name = "manual-queries"
 path = "manual_queries/lib.rs"
 
+[[bench]]
+name = "policy"
+path = "policy/lib.rs"
+
 [package.metadata.cargo-shear]
 # Cargo shear does not detect these dependencies
 ignored = ["tokio-postgres", "tracing-subscriber", "hash-repo-chores", "tracing-flame", "tracing"]
