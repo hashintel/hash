@@ -3,8 +3,8 @@ import type { Components } from "@mui/material";
 import {
   fluidFontClassName,
   fluidTypographyStyles,
-} from "../../../fluid-fonts.js";
-import { customColors } from "../../palette.js";
+} from "../../../fluid-fonts";
+import { customColors } from "../../palette";
 
 const typographyVariableSelector = `:root, .${fluidFontClassName}`;
 
@@ -23,7 +23,7 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
 
           body {
             overflow-x: hidden !important;
-          }          
+          }
 
           body, p {
             font-size: var(--step-0);

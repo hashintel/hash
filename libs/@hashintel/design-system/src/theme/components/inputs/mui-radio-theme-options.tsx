@@ -1,7 +1,7 @@
 import type { Components, Theme } from "@mui/material";
 
-import { RadioCheckedIcon } from "./mui-radio-theme-options/radio-checked-icon.js";
-import { RadioUncheckedIcon } from "./mui-radio-theme-options/radio-unchecked-icon.js";
+import { RadioCheckedIcon } from "./mui-radio-theme-options/radio-checked-icon";
+import { RadioUncheckedIcon } from "./mui-radio-theme-options/radio-unchecked-icon";
 
 const focusBorderOffset = 4;
 const focusBorderWidth = 2;

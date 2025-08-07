@@ -3,7 +3,7 @@ import type { ChipProps as MuiChipProps } from "@mui/material";
 import { Chip as MuiChip, chipClasses } from "@mui/material";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon.js";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type ChipProps = {
   hasCircleStartIcon?: boolean;

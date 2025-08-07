@@ -12,7 +12,7 @@ import {
 import type { ReactElement, ReactNode, Ref } from "react";
 import { forwardRef } from "react";
 
-import { FontAwesomeIcon } from "./fontawesome-icon.js";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export type SelectProps<T = unknown> = {
   children: ReactNode;

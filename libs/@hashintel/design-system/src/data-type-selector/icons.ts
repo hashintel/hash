@@ -1,17 +1,17 @@
 import type { StringConstraints } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
-import { fa100 } from "../fa-icons/fa-100.js";
-import { faAtRegular } from "../fa-icons/fa-at-regular.js";
-import { faBracketsCurly } from "../fa-icons/fa-brackets-curly.js";
-import { faCalendarClockRegular } from "../fa-icons/fa-calendar-clock-regular.js";
-import { faCalendarRegular } from "../fa-icons/fa-calendar-regular.js";
-import { faClockRegular } from "../fa-icons/fa-clock-regular.js";
-import { faEmptySet } from "../fa-icons/fa-empty-set.js";
-import { faInputPipeRegular } from "../fa-icons/fa-input-pipe-regular.js";
-import { faRulerRegular } from "../fa-icons/fa-ruler-regular.js";
-import { faSquareCheck } from "../fa-icons/fa-square-check.js";
-import { faText } from "../fa-icons/fa-text.js";
+import { fa100 } from "../fa-icons/fa-100";
+import { faAtRegular } from "../fa-icons/fa-at-regular";
+import { faBracketsCurly } from "../fa-icons/fa-brackets-curly";
+import { faCalendarClockRegular } from "../fa-icons/fa-calendar-clock-regular";
+import { faCalendarRegular } from "../fa-icons/fa-calendar-regular";
+import { faClockRegular } from "../fa-icons/fa-clock-regular";
+import { faEmptySet } from "../fa-icons/fa-empty-set";
+import { faInputPipeRegular } from "../fa-icons/fa-input-pipe-regular";
+import { faRulerRegular } from "../fa-icons/fa-ruler-regular";
+import { faSquareCheck } from "../fa-icons/fa-square-check";
+import { faText } from "../fa-icons/fa-text";
 
 export const identifierTypeTitles = ["URL", "URI"];
 

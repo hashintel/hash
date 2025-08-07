@@ -8,13 +8,13 @@ import clsx from "clsx";
 import type { HTMLAttributes, ReactElement } from "react";
 import { useRef, useState } from "react";
 
-import { Chip } from "../chip.js";
-import { GRID_CLICK_IGNORE_CLASS } from "../constants.js";
-import { EntityOrTypeIcon } from "../entity-or-type-icon.js";
-import { FeatherRegularIcon } from "../icon-feather-regular.js";
-import { ImageWithCheckedBackground } from "../image-with-checked-background.js";
-import { OntologyChip } from "../ontology-chip.js";
-import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip.js";
+import { Chip } from "../chip";
+import { GRID_CLICK_IGNORE_CLASS } from "../constants";
+import { EntityOrTypeIcon } from "../entity-or-type-icon";
+import { FeatherRegularIcon } from "../icon-feather-regular";
+import { ImageWithCheckedBackground } from "../image-with-checked-background";
+import { OntologyChip } from "../ontology-chip";
+import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
 
 const descriptionPropertyKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/" as BaseUrl;

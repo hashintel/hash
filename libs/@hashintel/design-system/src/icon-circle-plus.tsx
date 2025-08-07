@@ -1,5 +1,5 @@
-import { faCirclePlus } from "./fa-icons/icons.js";
-import { FontAwesomeIcon } from "./fontawesome-icon.js";
+import { faCirclePlus } from "./fa-icons/icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
 
 export const StyledPlusCircleIcon = () => (
   <FontAwesomeIcon

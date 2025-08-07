@@ -11,8 +11,8 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import { FontAwesomeIcon } from "./fontawesome-icon.js";
-import { LoadingSpinner } from "./loading-spinner.js";
+import { FontAwesomeIcon } from "./fontawesome-icon";
+import { LoadingSpinner } from "./loading-spinner";
 
 export type TextFieldProps = {
   /**

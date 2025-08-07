@@ -18,17 +18,17 @@ import {
 import type { MouseEventHandler, ReactNode, RefObject } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { getIconForDataType } from "./data-type-selector/icons.js";
-import { FontAwesomeIcon } from "./fontawesome-icon.js";
-import { IconButton } from "./icon-button.js";
-import { CaretDownSolidIcon } from "./icon-caret-down-solid.js";
-import { CheckIcon } from "./icon-check.js";
+import { getIconForDataType } from "./data-type-selector/icons";
+import { FontAwesomeIcon } from "./fontawesome-icon";
+import { IconButton } from "./icon-button";
+import { CaretDownSolidIcon } from "./icon-caret-down-solid";
+import { CheckIcon } from "./icon-check";
 
 export {
   getIconForDataType,
   identifierTypeTitles,
   measurementTypeTitles,
-} from "./data-type-selector/icons.js";
+} from "./data-type-selector/icons";
 
 /**
  * Keep synced with the DataTypeForSelector type in @local/hash-isomorphic-utils/data-types.ts
