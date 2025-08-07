@@ -1,7 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 
-import { Button } from "../../../shared/ui";
+import { Button } from "../../../../shared/ui";
 import { nodeDimensions } from "./styling";
 import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
 
@@ -9,7 +9,7 @@ export type PlaceEditorProps = {
   selectedPlace: PlaceNodeType;
   tokenTypes: TokenType[];
   onClose: () => void;
-  onUpdateTokens: (nodeId: string, tokenCounts: TokenCounts) => void;
+  onUpdateInitialTokens: (nodeId: string, tokenCounts: TokenCounts) => void;
   onUpdateNodeLabel: (nodeId: string, label: string) => void;
 };
 
@@ -17,22 +17,22 @@ export const PlaceEditor = ({
   selectedPlace,
   tokenTypes,
   onClose,
-  onUpdateTokens,
+  onUpdateInitialTokens,
   onUpdateNodeLabel,
 }: PlaceEditorProps) => {
   const { data, id: placeId, position } = selectedPlace;
-  const { label: nodeName, tokenCounts } = data;
+  const { label: nodeName, initialTokenCounts } = data;
 
   const handleTokenCountChange = (tokenTypeId: string, value: string) => {
     const numValue = parseInt(value, 10);
     const newCount = Number.isNaN(numValue) ? 0 : Math.max(0, numValue);
 
     const newTokenCounts = {
-      ...tokenCounts,
+      ...initialTokenCounts,
       [tokenTypeId]: newCount,
     };
 
-    onUpdateTokens(placeId, newTokenCounts);
+    onUpdateInitialTokens(placeId, newTokenCounts);
   };
 
   const handleNodeNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,7 +77,7 @@ export const PlaceEditor = ({
         {tokenTypes.length > 0 && (
           <Box>
             <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
-              Tokens
+              Initial Token Counts
             </Typography>
             <Stack spacing={1}>
               {tokenTypes.map((tokenType) => (
@@ -104,7 +104,7 @@ export const PlaceEditor = ({
                   </Box>
                   <TextField
                     type="number"
-                    value={tokenCounts[tokenType.id] ?? 0}
+                    value={initialTokenCounts?.[tokenType.id] ?? 0}
                     onChange={(event) =>
                       handleTokenCountChange(tokenType.id, event.target.value)
                     }

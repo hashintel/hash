@@ -8,31 +8,28 @@ import {
 } from "react";
 
 import { useEditorContext } from "./editor-context";
-import type {
-  ArcType,
-  NodeType,
-  PlaceNodeType,
-  TransitionNodeType,
-} from "./types";
+import type { ArcType, PlaceMarkingsById, TransitionNodeType } from "./types";
 
 /**
  * Check if a transition is enabled, i.e. that the tokens required by each incoming arc are available in the source place.
  */
-const checkTransitionEnabled = (
-  transitionId: string,
-  nodes: NodeType[],
-  arcs: ArcType[],
-): boolean => {
+const checkTransitionEnabled = ({
+  transitionId,
+  arcs,
+  placeMarkingsById,
+}: {
+  transitionId: string;
+  arcs: ArcType[];
+  placeMarkingsById: PlaceMarkingsById;
+}): boolean => {
   const incomingArcs = arcs.filter((arc) => arc.target === transitionId);
 
   return incomingArcs.every((arc) => {
-    const sourceNode = nodes.find((node) => node.id === arc.source);
+    const tokenCounts = placeMarkingsById[arc.source];
 
-    if (!sourceNode || sourceNode.data.type !== "place") {
-      throw new Error(`Could not find source place node for arc ${arc.id}`);
+    if (!tokenCounts) {
+      throw new Error(`Could not find token counts for place ${arc.source}`);
     }
-
-    const tokenCounts = sourceNode.data.tokenCounts;
 
     return Object.entries(arc.data?.tokenWeights ?? {}).every(
       ([tokenTypeId, requiredWeight]) => {
@@ -47,6 +44,7 @@ type SimulationContextValue = {
   currentStep: number;
   fireNextStep: () => void;
   isSimulating: boolean;
+  placeMarkingsById: PlaceMarkingsById;
   simulationSpeed: number;
   simulationLogs: Array<{ id: string; text: string }>;
   setSimulationSpeed: (speed: number) => void;
@@ -71,14 +69,29 @@ export const SimulationContextProvider = ({
   const [simulationLogs, setSimulationLogs] = useState<
     Array<{ id: string; text: string }>
   >([]);
+  const [placeMarkingsById, setPlaceMarkingsById] = useState<PlaceMarkingsById>(
+    {},
+  );
 
-  const { arcs, nodes, setNodes } = useEditorContext();
+  const { petriNetDefinition } = useEditorContext();
 
   const resetSimulation = useCallback(() => {
     setIsSimulating(false);
     setSimulationLogs([]);
     setCurrentStep(0);
   }, []);
+
+  useEffect(() => {
+    const placeMarkings = petriNetDefinition.nodes.reduce((acc, node) => {
+      if (node.data.type === "place") {
+        acc[node.id] = node.data.initialTokenCounts ?? {};
+      }
+      return acc;
+    }, {} as PlaceMarkingsById);
+
+    setPlaceMarkingsById(placeMarkings);
+    resetSimulation();
+  }, [petriNetDefinition.nodes, resetSimulation]);
 
   const addLogEntry = useCallback(
     (message: string) => {
@@ -97,19 +110,27 @@ export const SimulationContextProvider = ({
   const fireNextStep = useCallback(() => {
     setCurrentStep((prevStep) => prevStep + 1);
 
-    const enabledTransitions = nodes
+    const enabledTransitions = petriNetDefinition.nodes
       .filter((node) => node.type === "transition")
-      .filter((node) => checkTransitionEnabled(node.id, nodes, arcs));
+      .filter((node) =>
+        checkTransitionEnabled({
+          transitionId: node.id,
+          arcs: petriNetDefinition.arcs,
+          placeMarkingsById,
+        }),
+      );
 
     if (enabledTransitions.length === 0) {
       setIsSimulating(false);
       return;
     }
 
-    const updatedNodes: NodeType[] = JSON.parse(JSON.stringify(nodes));
+    const updatedMarkings: PlaceMarkingsById = JSON.parse(
+      JSON.stringify(placeMarkingsById),
+    );
 
     for (const transition of enabledTransitions) {
-      const transitionNode = nodes.find(
+      const transitionNode = petriNetDefinition.nodes.find(
         (node): node is TransitionNodeType =>
           node.id === transition.id && node.data.type === "transition",
       );
@@ -143,7 +164,7 @@ export const SimulationContextProvider = ({
           throw new Error("No condition was selected");
         }
 
-        outgoingArc = arcs.find(
+        outgoingArc = petriNetDefinition.arcs.find(
           (arc) =>
             arc.source === transition.id &&
             arc.id === selectedCondition.outputEdgeId,
@@ -156,7 +177,9 @@ export const SimulationContextProvider = ({
         /**
          * If the transition has only one output, we can just use that.
          */
-        outgoingArc = arcs.find((arc) => arc.source === transition.id);
+        outgoingArc = petriNetDefinition.arcs.find(
+          (arc) => arc.source === transition.id,
+        );
       }
 
       if (!outgoingArc) {
@@ -165,7 +188,9 @@ export const SimulationContextProvider = ({
         );
       }
 
-      const incomingArcs = arcs.filter((arc) => arc.target === transition.id);
+      const incomingArcs = petriNetDefinition.arcs.filter(
+        (arc) => arc.target === transition.id,
+      );
 
       if (incomingArcs.length === 0) {
         throw new Error(
@@ -177,17 +202,6 @@ export const SimulationContextProvider = ({
        * Update the token counts of each source node based on the requirements of the incoming arc.
        */
       for (const incomingArc of incomingArcs) {
-        const sourceNode = updatedNodes.find(
-          (node): node is PlaceNodeType =>
-            node.id === incomingArc.source && node.data.type === "place",
-        );
-
-        if (!sourceNode) {
-          throw new Error(
-            `Source node for transition ${transition.id} not found`,
-          );
-        }
-
         for (const [tokenTypeId, weight] of Object.entries(
           incomingArc.data?.tokenWeights ?? {},
         )) {
@@ -195,8 +209,16 @@ export const SimulationContextProvider = ({
             continue;
           }
 
-          sourceNode.data.tokenCounts[tokenTypeId] =
-            (sourceNode.data.tokenCounts[tokenTypeId] ?? 0) - weight;
+          const sourceMarkings = updatedMarkings[incomingArc.source];
+
+          if (!sourceMarkings) {
+            throw new Error(
+              `Could not find token counts for place ${incomingArc.source}`,
+            );
+          }
+
+          sourceMarkings[tokenTypeId] =
+            (sourceMarkings[tokenTypeId] ?? 0) - weight;
 
           /**
            * This triggers the token animating along the input arc.
@@ -214,16 +236,6 @@ export const SimulationContextProvider = ({
         }
       }
 
-      const targetNode = updatedNodes.find(
-        (node): node is PlaceNodeType =>
-          node.id === outgoingArc.target && node.data.type === "place",
-      );
-
-      if (!targetNode) {
-        throw new Error(
-          `Target node for transition ${transition.id} not found`,
-        );
-      }
       for (const [tokenTypeId, weight] of Object.entries(
         outgoingArc.data?.tokenWeights ?? {},
       )) {
@@ -231,8 +243,16 @@ export const SimulationContextProvider = ({
           continue;
         }
 
-        targetNode.data.tokenCounts[tokenTypeId] =
-          (targetNode.data.tokenCounts[tokenTypeId] ?? 0) + weight;
+        const targetMarkings = updatedMarkings[outgoingArc.target];
+
+        if (!targetMarkings) {
+          throw new Error(
+            `Could not find token counts for place ${outgoingArc.target}`,
+          );
+        }
+
+        targetMarkings[tokenTypeId] =
+          (targetMarkings[tokenTypeId] ?? 0) + weight;
 
         /**
          * This triggers the token animating along the output arc.
@@ -255,8 +275,14 @@ export const SimulationContextProvider = ({
       }
     }
 
-    setNodes(updatedNodes);
-  }, [arcs, nodes, setNodes, addLogEntry, simulationSpeed]);
+    setPlaceMarkingsById(updatedMarkings);
+  }, [
+    petriNetDefinition.arcs,
+    petriNetDefinition.nodes,
+    addLogEntry,
+    simulationSpeed,
+    placeMarkingsById,
+  ]);
 
   useEffect(() => {
     if (!isSimulating) {
@@ -273,6 +299,7 @@ export const SimulationContextProvider = ({
       currentStep,
       fireNextStep,
       isSimulating,
+      placeMarkingsById,
       resetSimulation,
       setIsSimulating,
       setSimulationSpeed,
@@ -283,6 +310,7 @@ export const SimulationContextProvider = ({
       currentStep,
       fireNextStep,
       isSimulating,
+      placeMarkingsById,
       resetSimulation,
       setIsSimulating,
       setSimulationSpeed,
@@ -298,7 +326,7 @@ export const SimulationContextProvider = ({
   );
 };
 
-export const useSimulation = (): SimulationContextValue => {
+export const useSimulationContext = (): SimulationContextValue => {
   const context = useContext(SimulationContext);
   if (!context) {
     throw new Error("useSimulation must be used within a SimulationProvider");

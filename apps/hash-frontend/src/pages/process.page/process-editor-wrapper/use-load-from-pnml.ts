@@ -1,18 +1,17 @@
 import { useCallback } from "react";
 import type { Edge, Node } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
-import { useSimulation } from "./simulation-context";
 import type {
   ArcData,
   ArcType,
   NodeType,
+  PetriNetDefinitionObject,
   PlaceNodeData,
   TokenCounts,
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "./types";
+} from "./process-editor/types";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent?.trim() ?? "";
@@ -84,7 +83,6 @@ const parsePnml = (
     const data: PlaceNodeData = {
       label,
       initialTokenCounts: tokenCounts,
-      tokenCounts,
       type: "place",
     };
 
@@ -168,16 +166,19 @@ const parsePnml = (
   };
 };
 
-export const useLoadFromPnml = () => {
-  const {
-    setEntityId,
-    setParentProcess: setParentProcessId,
-    setPetriNetDefinition,
-    setTitle,
-    setUserEditable,
-  } = useEditorContext();
-  const { resetSimulation } = useSimulation();
-
+export const useLoadFromPnml = ({
+  setParentProcess,
+  setPetriNetDefinition,
+  setSelectedNetId,
+  setTitle,
+  setUserEditable,
+}: {
+  setParentProcess: (parentProcess: null) => void;
+  setPetriNetDefinition: (petriNet: PetriNetDefinitionObject) => void;
+  setSelectedNetId: (selectedNetId: null) => void;
+  setTitle: (title: string) => void;
+  setUserEditable: (userEditable: boolean) => void;
+}) => {
   const load = useCallback(
     (xml: string) => {
       const { nodes, arcs, tokenTypes, title } = parsePnml(xml);
@@ -188,18 +189,15 @@ export const useLoadFromPnml = () => {
         tokenTypes,
       });
 
-      setEntityId(null);
-      setParentProcessId(null);
+      setSelectedNetId(null);
+      setParentProcess(null);
       setTitle(title);
       setUserEditable(true);
-
-      resetSimulation();
     },
     [
-      resetSimulation,
-      setEntityId,
-      setParentProcessId,
+      setParentProcess,
       setPetriNetDefinition,
+      setSelectedNetId,
       setTitle,
       setUserEditable,
     ],

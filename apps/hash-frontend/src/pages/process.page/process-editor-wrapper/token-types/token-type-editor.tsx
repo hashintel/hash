@@ -10,8 +10,8 @@ import {
 import { useEffect, useState } from "react";
 
 import { Button } from "../../../../shared/ui";
-import { useEditorContext } from "../editor-context";
-import type { TokenType } from "../types";
+import { useEditorContext } from "../process-editor/editor-context";
+import type { TokenType } from "../process-editor/types";
 
 export const defaultTokenTypes: TokenType[] = [
   { id: "default", name: "Default", color: "#3498db" },
@@ -23,14 +23,15 @@ type TokenTypeEditorProps = {
 };
 
 export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
-  const { tokenTypes, setTokenTypes } = useEditorContext();
+  const { petriNetDefinition, setPetriNetDefinition } = useEditorContext();
 
-  const [localTokenTypes, setLocalTokenTypes] =
-    useState<TokenType[]>(tokenTypes);
+  const [localTokenTypes, setLocalTokenTypes] = useState<TokenType[]>(
+    petriNetDefinition.tokenTypes,
+  );
 
   useEffect(() => {
-    setLocalTokenTypes(tokenTypes);
-  }, [tokenTypes]);
+    setLocalTokenTypes(petriNetDefinition.tokenTypes);
+  }, [petriNetDefinition.tokenTypes]);
 
   const [newTokenName, setNewTokenName] = useState("");
   const [newTokenColor, setNewTokenColor] = useState("#3498db");
@@ -66,7 +67,10 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
   };
 
   const handleSave = () => {
-    setTokenTypes(localTokenTypes);
+    setPetriNetDefinition((existingNet) => ({
+      ...existingNet,
+      tokenTypes: localTokenTypes,
+    }));
     onClose();
   };
 

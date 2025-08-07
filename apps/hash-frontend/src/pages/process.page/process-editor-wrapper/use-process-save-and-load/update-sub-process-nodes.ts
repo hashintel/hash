@@ -1,7 +1,8 @@
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import { nodeDimensions } from "../styling";
-import type { NodeType, PersistedNet } from "../types";
+import { nodeDimensions } from "../process-editor/styling";
+import type { NodeType } from "../process-editor/types";
+import type { PersistedNet } from "../use-process-save-and-load";
 
 /**
  * Updates the input and output place nodes in a sub-process net to include new input and output places from the parent transition,
@@ -119,7 +120,7 @@ export const updateSubProcessDefinitionForParentPlaces = ({
     minX = 0;
   }
   if (maxX === -Infinity) {
-    maxX = 0;
+    maxX = 300;
   }
   if (minYLeft === Infinity) {
     minYLeft = 0;
@@ -147,7 +148,6 @@ export const updateSubProcessDefinitionForParentPlaces = ({
       ...nodeDimensions.place,
       data: {
         label,
-        tokenCounts: {},
         type: "place",
         parentProcessNode: {
           id: inputPlaceId,
@@ -176,7 +176,6 @@ export const updateSubProcessDefinitionForParentPlaces = ({
       ...nodeDimensions.place,
       data: {
         label,
-        tokenCounts: {},
         type: "place",
         parentProcessNode: {
           id: outputPlaceId,

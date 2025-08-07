@@ -1,5 +1,8 @@
-import { useEditorContext } from "./editor-context";
-import type { PlaceNodeData, TransitionNodeData } from "./types";
+import type {
+  PetriNetDefinitionObject,
+  PlaceNodeData,
+  TransitionNodeData,
+} from "./process-editor/types";
 
 const escapeXml = (str: string) =>
   str
@@ -12,8 +15,14 @@ const escapeXml = (str: string) =>
 /**
  * Convert the current process to an ISO-15909-2-conformant HLPN PNML document.
  */
-export const useConvertToPnml = () => {
-  const { nodes, arcs, tokenTypes, title } = useEditorContext();
+export const useConvertToPnml = ({
+  petriNet,
+  title,
+}: {
+  petriNet: PetriNetDefinitionObject;
+  title: string;
+}) => {
+  const { nodes, arcs, tokenTypes } = petriNet;
 
   const convertToPnml = (): string => {
     /* ---------- Header & namespaces---------- */
@@ -61,7 +70,9 @@ export const useConvertToPnml = () => {
         <initialMarking>
           <hlpn:multiset>`;
 
-      for (const [tokId, count] of Object.entries(placeData.tokenCounts)) {
+      for (const [tokId, count] of Object.entries(
+        placeData.initialTokenCounts ?? {},
+      )) {
         if (count > 0) {
           pnml += `
             <hlpn:element multiplicity="${count}">

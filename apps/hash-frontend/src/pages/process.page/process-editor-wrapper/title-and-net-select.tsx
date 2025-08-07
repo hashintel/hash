@@ -1,23 +1,29 @@
+import type { EntityId } from "@blockprotocol/type-system";
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { EditableField } from "@hashintel/block-design-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 
-import { useEditorContext } from "./editor-context";
-import { PersistedNetSelector } from "./persisted-net-selector";
+import { NetSelector } from "./net-selector";
+import type { PersistedNet } from "./use-process-save-and-load";
 
-export const TitleAndNetSelect = () => {
-  const {
-    entityId,
-    parentProcess,
-    persistedNets,
-    switchToNet,
-    setTitle,
-    title,
-  } = useEditorContext();
-
+export const TitleAndNetSelect = ({
+  parentProcess,
+  persistedNets,
+  selectedNetId,
+  setTitle,
+  switchToNet,
+  title,
+}: {
+  parentProcess: { parentProcessId: EntityId; title: string } | null;
+  persistedNets: PersistedNet[];
+  selectedNetId: EntityId | null;
+  setTitle: (title: string) => void;
+  switchToNet: (net: PersistedNet) => void;
+  title: string;
+}) => {
   const parentProcessPersistedNet = persistedNets.find(
-    (net) => net.entityId === parentProcess?.entityId,
+    (net) => net.entityId === parentProcess?.parentProcessId,
   );
 
   return (
@@ -73,10 +79,25 @@ export const TitleAndNetSelect = () => {
         />
       </Stack>
 
-      <PersistedNetSelector
-        onSelect={switchToNet}
-        options={persistedNets}
-        value={entityId}
+      <NetSelector
+        disabledOptions={selectedNetId ? [selectedNetId] : undefined}
+        key={selectedNetId}
+        onSelect={(net) => {
+          const foundNet = persistedNets.find(
+            (netOption) => net.netId === netOption.entityId,
+          );
+
+          if (!foundNet) {
+            throw new Error(`Net ${net.netId} not found`);
+          }
+
+          switchToNet(foundNet);
+        }}
+        options={persistedNets.map((net) => ({
+          netId: net.entityId,
+          title: net.title,
+        }))}
+        value={selectedNetId}
       />
     </Stack>
   );

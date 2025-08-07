@@ -4,7 +4,6 @@ import type {
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@blockprotocol/type-system";
-import { AlertModal } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
@@ -17,16 +16,12 @@ import type {
   SubProcessOfPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/petrinet";
 import {
-  createContext,
   type Dispatch,
   type SetStateAction,
   useCallback,
-  useContext,
   useMemo,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
-import { useReactFlow } from "reactflow";
 
 import type {
   ArchiveEntityMutation,
@@ -42,49 +37,16 @@ import {
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
-import { updateSubProcessDefinitionForParentPlaces } from "./editor-context/sub-process-nodes";
+import type {
+  NodeType,
+  PetriNetDefinitionObject,
+  TransitionNodeType,
+} from "./process-editor/types";
+import { updateSubProcessDefinitionForParentPlaces } from "./use-process-save-and-load/update-sub-process-nodes";
 import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
-} from "./editor-context/use-persisted-nets";
-import { defaultTokenTypes } from "./token-types";
-import type {
-  ArcType,
-  NodeType,
-  PersistedNet,
-  PetriNetDefinitionObject,
-  TokenType,
-  TransitionNodeType,
-} from "./types";
-
-type EditorContextValue = {
-  arcs: ArcType[];
-  discardChanges: null | (() => void);
-  isDirty: boolean;
-  entityId: EntityId | null;
-  nodes: NodeType[];
-  parentProcess: { entityId: EntityId; title: string } | null;
-  persistedNets: PersistedNet[];
-  persistPending: boolean;
-  persistToGraph: () => void;
-  refetchPersistedNets: (args: { updatedEntityId: EntityId | null }) => void;
-  setArcs: Dispatch<SetStateAction<ArcType[]>>;
-  setEntityId: Dispatch<SetStateAction<EntityId | null>>;
-  setNodes: Dispatch<SetStateAction<NodeType[]>>;
-  setParentProcess: Dispatch<
-    SetStateAction<{ entityId: EntityId; title: string } | null>
-  >;
-  setPetriNetDefinition: (params: PetriNetDefinitionObject) => void;
-  setUserEditable: Dispatch<SetStateAction<boolean>>;
-  setTitle: Dispatch<SetStateAction<string>>;
-  setTokenTypes: Dispatch<SetStateAction<TokenType[]>>;
-  switchToNet: (persistedNet: PersistedNet) => void;
-  title: string;
-  tokenTypes: TokenType[];
-  userEditable: boolean;
-};
-
-const EditorContext = createContext<EditorContextValue | undefined>(undefined);
+} from "./use-process-save-and-load/use-persisted-nets";
 
 const stripUnwantedProperties = (node: NodeType) => {
   const { selected: _, dragging: __, ...rest } = node;
@@ -100,33 +62,60 @@ const areSetsEquivalent = (a: Set<string>, b: Set<string>) => {
   return a.isSubsetOf(b);
 };
 
-export const EditorContextProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [entityId, setEntityId] = useState<EntityId | null>(null);
+export type PersistedNet = {
+  entityId: EntityId;
+  title: string;
+  definition: PetriNetDefinitionObject;
+  parentProcess: { parentProcessId: EntityId; title: string } | null;
+  subProcessLinksByNodeIdAndSubProcessId: {
+    [nodeId: string]: {
+      [subProcessId: string]: {
+        linkEntityId: EntityId;
+      };
+    };
+  };
+  userEditable: boolean;
+};
 
-  const [userEditable, setUserEditable] = useState<boolean>(true);
+type UseProcessSaveAndLoadParams = {
+  parentProcess: { parentProcessId: EntityId; title: string } | null;
+  petriNet: PetriNetDefinitionObject;
+  selectedNetId: EntityId | null;
+  setParentProcess: Dispatch<
+    SetStateAction<{ parentProcessId: EntityId; title: string } | null>
+  >;
+  setPetriNet: Dispatch<SetStateAction<PetriNetDefinitionObject>>;
+  setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
+  setTitle: Dispatch<SetStateAction<string>>;
+  title: string;
+};
 
-  const [nodes, setNodes] = useState<NodeType[]>([]);
-
-  const [arcs, setArcs] = useState<ArcType[]>([]);
-
-  const [tokenTypes, setTokenTypes] = useState<TokenType[]>(defaultTokenTypes);
-
-  const [title, setTitle] = useState<string>("Process");
-
-  const [parentProcess, setParentProcess] = useState<{
-    entityId: EntityId;
-    title: string;
-  } | null>(null);
-
+export const useProcessSaveAndLoad = ({
+  parentProcess,
+  petriNet,
+  selectedNetId,
+  setParentProcess,
+  setSelectedNetId,
+  setPetriNet,
+  setTitle,
+  title,
+}: UseProcessSaveAndLoadParams): {
+  discardChanges: (() => void) | null;
+  isDirty: boolean;
+  loadPersistedNet: (net: PersistedNet) => void;
+  persistedNets: PersistedNet[];
+  persistPending: boolean;
+  persistToGraph: () => void;
+  setUserEditable: Dispatch<SetStateAction<boolean>>;
+  userEditable: boolean;
+} => {
   const { persistedNets, refetch } = usePersistedNets();
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
   const [persistPending, setPersistPending] = useState(false);
+
+  const [userEditable, setUserEditable] = useState(true);
 
   const [createEntity] = useMutation<
     CreateEntityMutation,
@@ -143,32 +132,9 @@ export const EditorContextProvider = ({
     ArchiveEntityMutationVariables
   >(archiveEntityMutation);
 
-  const { fitView } = useReactFlow();
-
-  const setPetriNetDefinition: EditorContextValue["setPetriNetDefinition"] =
-    useCallback(
-      ({ nodes: newNodes, arcs: newArcs, tokenTypes: newTokenTypes }) => {
-        /**
-         * We flush this update first because reactflow seems to take an extra render to clear the nodes and edges,
-         * and there's a crash if the token types are cleared in the same cycle as the nodes/arcs (which depend on the types).
-         */
-        flushSync(() => {
-          setArcs(newArcs);
-          setNodes(newNodes);
-        });
-
-        setTokenTypes(newTokenTypes);
-
-        setTimeout(() => {
-          fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
-        }, 100);
-      },
-      [fitView, setArcs, setNodes, setTokenTypes],
-    );
-
   const persistedNet = useMemo(() => {
-    return persistedNets.find((net) => net.entityId === entityId);
-  }, [persistedNets, entityId]);
+    return persistedNets.find((net) => net.entityId === selectedNetId);
+  }, [persistedNets, selectedNetId]);
 
   const isDirty = useMemo(() => {
     if (!persistedNet) {
@@ -179,76 +145,66 @@ export const EditorContextProvider = ({
       return true;
     }
 
-    if (parentProcess?.entityId !== persistedNet.parentProcess?.entityId) {
+    if (
+      parentProcess?.parentProcessId !==
+      persistedNet.parentProcess?.parentProcessId
+    ) {
       return true;
     }
 
-    if (arcs.length !== persistedNet.definition.arcs.length) {
+    if (petriNet.arcs.length !== persistedNet.definition.arcs.length) {
       return true;
     }
 
-    if (nodes.length !== persistedNet.definition.nodes.length) {
-      return true;
-    }
-
-    if (tokenTypes.length !== persistedNet.definition.tokenTypes.length) {
+    if (petriNet.nodes.length !== persistedNet.definition.nodes.length) {
       return true;
     }
 
     if (
-      JSON.stringify(arcs.map(({ selected: _, ...arc }) => arc)) !==
+      petriNet.tokenTypes.length !== persistedNet.definition.tokenTypes.length
+    ) {
+      return true;
+    }
+
+    if (
+      JSON.stringify(petriNet.arcs.map(({ selected: _, ...arc }) => arc)) !==
       JSON.stringify(persistedNet.definition.arcs)
     ) {
       return true;
     }
 
     if (
-      JSON.stringify(nodes.map(stripUnwantedProperties)) !==
+      JSON.stringify(petriNet.nodes.map(stripUnwantedProperties)) !==
       JSON.stringify(persistedNet.definition.nodes)
     ) {
       return true;
     }
 
     if (
-      JSON.stringify(tokenTypes) !==
+      JSON.stringify(petriNet.tokenTypes) !==
       JSON.stringify(persistedNet.definition.tokenTypes)
     ) {
       return true;
     }
 
     return false;
-  }, [arcs, nodes, tokenTypes, persistedNet, title, parentProcess]);
-
-  const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
-    useState<PersistedNet | null>(null);
+  }, [petriNet, persistedNet, title, parentProcess]);
 
   const loadPersistedNet = useCallback(
     (net: PersistedNet) => {
-      setSwitchTargetPendingConfirmation(null);
-      setEntityId(net.entityId);
+      setSelectedNetId(net.entityId);
       setParentProcess(net.parentProcess);
-      setPetriNetDefinition(net.definition);
+      setPetriNet(net.definition);
       setTitle(net.title);
       setUserEditable(net.userEditable);
     },
     [
-      setEntityId,
       setParentProcess,
-      setPetriNetDefinition,
+      setPetriNet,
+      setSelectedNetId,
       setTitle,
       setUserEditable,
     ],
-  );
-
-  const switchToNet = useCallback(
-    (net: PersistedNet) => {
-      if (isDirty) {
-        setSwitchTargetPendingConfirmation(net);
-      } else {
-        loadPersistedNet(net);
-      }
-    },
-    [isDirty, loadPersistedNet],
   );
 
   const refetchPersistedNets = useCallback(
@@ -279,13 +235,13 @@ export const EditorContextProvider = ({
 
     setPersistPending(true);
 
-    let persistedEntityId = entityId;
+    let persistedEntityId = selectedNetId;
 
-    if (entityId) {
+    if (selectedNetId) {
       await updateEntity({
         variables: {
           entityUpdate: {
-            entityId,
+            entityId: selectedNetId,
             propertyPatches: [
               {
                 op: "replace",
@@ -299,9 +255,9 @@ export const EditorContextProvider = ({
                   // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
                   // @todo fix this
                   value: {
-                    arcs,
-                    nodes: nodes.map(stripUnwantedProperties),
-                    tokenTypes,
+                    arcs: petriNet.arcs,
+                    nodes: petriNet.nodes.map(stripUnwantedProperties),
+                    tokenTypes: petriNet.tokenTypes,
                   } satisfies PetriNetDefinitionObject,
                 },
               },
@@ -331,9 +287,9 @@ export const EditorContextProvider = ({
                   dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                 },
                 value: {
-                  arcs,
-                  nodes: nodes.map(stripUnwantedProperties),
-                  tokenTypes,
+                  arcs: petriNet.arcs,
+                  nodes: petriNet.nodes.map(stripUnwantedProperties),
+                  tokenTypes: petriNet.tokenTypes,
                 } satisfies PetriNetDefinitionObject,
               },
               "https://hash.ai/@h/types/property-type/title/": {
@@ -366,7 +322,7 @@ export const EditorContextProvider = ({
      * There shouldn't be many places, so it doesn't really matter if we don't end up needing it.
      */
     const placeLabelsById: Record<string, string> = {};
-    for (const node of nodes) {
+    for (const node of petriNet.nodes) {
       if (node.data.type === "place") {
         placeLabelsById[node.id] = node.data.label;
       }
@@ -377,7 +333,7 @@ export const EditorContextProvider = ({
      * 1. Archive the previous sub-process, if there was one
      * 2. Create a new link to the new sub-process, if there is one
      */
-    for (const node of nodes) {
+    for (const node of petriNet.nodes) {
       if (node.data.type !== "transition") {
         continue;
       }
@@ -389,29 +345,36 @@ export const EditorContextProvider = ({
 
       const previousSubProcessReference = previousTransition?.data.subProcess;
 
-      const subProcessIdentityHasChanged =
-        previousSubProcessReference?.subProcessEntityId !==
-        node.data.subProcess?.subProcessEntityId;
+      const oldSubProcessId = previousSubProcessReference?.subProcessId;
+      const newSubProcessId = node.data.subProcess?.subProcessId;
 
+      const subProcessIdentityHasChanged = oldSubProcessId !== newSubProcessId;
+
+      const existingLinkEntityId = oldSubProcessId
+        ? persistedNet?.subProcessLinksByNodeIdAndSubProcessId[node.id]?.[
+            oldSubProcessId
+          ]?.linkEntityId
+        : null;
+
+      /**
+       * Archive the link to the previous sub-process, if it has changed.
+       */
       if (
         subProcessIdentityHasChanged &&
-        previousSubProcessReference?.linkEntityId
+        existingLinkEntityId &&
+        previousSubProcessReference
       ) {
-        /**
-         * Archive the link to the previous sub-process.
-         */
         await archiveEntity({
-          variables: { entityId: previousSubProcessReference.linkEntityId },
+          variables: { entityId: existingLinkEntityId },
         });
 
         const previousSubProcess = persistedNets.find(
-          (net) =>
-            net.entityId === previousSubProcessReference.subProcessEntityId,
+          (net) => net.entityId === previousSubProcessReference.subProcessId,
         );
 
         if (!previousSubProcess) {
           throw new Error(
-            `Sub-process ${previousSubProcessReference.subProcessEntityId} not found`,
+            `Sub-process ${previousSubProcessReference.subProcessId} not found`,
           );
         }
 
@@ -455,31 +418,29 @@ export const EditorContextProvider = ({
         }
       }
 
-      const { subProcessEntityId } = node.data.subProcess ?? {};
-
       const subProcessDefinition = persistedNets.find(
-        (net) => net.entityId === subProcessEntityId,
+        (net) => net.entityId === newSubProcessId,
       );
 
-      if (subProcessEntityId && !subProcessDefinition) {
-        throw new Error(`Sub-process ${subProcessEntityId} not found`);
+      if (newSubProcessId && !subProcessDefinition) {
+        throw new Error(`Sub-process ${newSubProcessId} not found`);
       }
 
+      /**
+       * Create the link from the sub-process to the parent process, if it has changed.
+       */
       if (
         subProcessIdentityHasChanged &&
-        subProcessEntityId &&
+        newSubProcessId &&
         node.data.subProcess
       ) {
-        /**
-         * Create the link from the sub-process to the parent process.
-         */
         await createEntity({
           variables: {
             entityTypeIds: [
               systemLinkEntityTypes.subProcessOf.linkEntityTypeId,
             ],
             linkData: {
-              leftEntityId: subProcessEntityId,
+              leftEntityId: newSubProcessId as EntityId,
               rightEntityId: persistedEntityId,
             },
             properties: {
@@ -524,7 +485,6 @@ export const EditorContextProvider = ({
        * If there is a linked sub-process, we need to check if the selected input or output places for the parent transition node have changed,
        * so that we can make sure they are represented in the sub-process.
        */
-
       const subProcessInputPlaceIdsChanged = !areSetsEquivalent(
         new Set<string>(node.data.subProcess.inputPlaceIds),
         new Set<string>(
@@ -540,11 +500,9 @@ export const EditorContextProvider = ({
       );
 
       if (subProcessInputPlaceIdsChanged || subProcessOutputPlaceIdsChanged) {
-        const existingLink = previousTransition?.data.subProcess?.linkEntityId;
-
-        if (existingLink) {
+        if (existingLinkEntityId) {
           /**
-           * We need to update the existing link entity to represent the new input and output places.
+           * If we already have a link, we need to update the existing link entity to represent the new input and output places.
            */
           const propertyPatches: PropertyPatchOperation[] = [];
 
@@ -581,13 +539,16 @@ export const EditorContextProvider = ({
           await updateEntity({
             variables: {
               entityUpdate: {
-                entityId: existingLink,
+                entityId: existingLinkEntityId,
                 propertyPatches,
               },
             },
           });
         }
 
+        /**
+         * Now we need to ensure that the input and output places in the parent process are represented in the sub-process.
+         */
         const inputPlaceLabelById: Record<string, string> = {};
         const outputPlaceLabelById: Record<string, string> = {};
 
@@ -654,22 +615,24 @@ export const EditorContextProvider = ({
     }
 
     await refetchPersistedNets({ updatedEntityId: persistedEntityId });
-    setEntityId(persistedEntityId);
+    setSelectedNetId(persistedEntityId);
     setUserEditable(true);
 
     setPersistPending(false);
   }, [
     activeWorkspaceWebId,
     archiveEntity,
-    arcs,
     createEntity,
-    entityId,
-    nodes,
     persistedNet?.definition.nodes,
+    persistedNet?.subProcessLinksByNodeIdAndSubProcessId,
     persistedNets,
+    petriNet.arcs,
+    petriNet.nodes,
+    petriNet.tokenTypes,
     refetchPersistedNets,
+    selectedNetId,
+    setSelectedNetId,
     title,
-    tokenTypes,
     updateEntity,
   ]);
 
@@ -681,88 +644,26 @@ export const EditorContextProvider = ({
     return () => loadPersistedNet(persistedNet);
   }, [persistedNet, loadPersistedNet]);
 
-  const value: EditorContextValue = useMemo(
+  return useMemo(
     () => ({
-      arcs,
       discardChanges,
-      entityId,
       isDirty,
-      nodes,
-      parentProcess,
+      loadPersistedNet,
       persistedNets,
       persistPending,
       persistToGraph,
-      refetchPersistedNets,
-      setArcs,
-      setEntityId,
-      setNodes,
-      setParentProcess,
-      setPetriNetDefinition,
-      setTitle,
-      setTokenTypes,
       setUserEditable,
-      switchToNet,
-      title,
-      tokenTypes,
       userEditable,
     }),
     [
-      arcs,
       discardChanges,
-      entityId,
       isDirty,
-      nodes,
-      parentProcess,
+      loadPersistedNet,
       persistPending,
       persistedNets,
       persistToGraph,
-      refetchPersistedNets,
-      setArcs,
-      setEntityId,
-      setNodes,
-      setParentProcess,
-      setPetriNetDefinition,
-      setTitle,
-      setTokenTypes,
       setUserEditable,
-      switchToNet,
-      title,
-      tokenTypes,
       userEditable,
     ],
   );
-
-  return (
-    <EditorContext.Provider value={value}>
-      {children}
-      {switchTargetPendingConfirmation && (
-        <AlertModal
-          callback={() => {
-            loadPersistedNet(switchTargetPendingConfirmation);
-          }}
-          calloutMessage="You have unsaved changes which will be discarded. Are you sure you want to switch to another net?"
-          confirmButtonText="Switch"
-          contentStyle={{
-            maxWidth: 450,
-          }}
-          header="Switch and discard changes?"
-          open
-          close={() => setSwitchTargetPendingConfirmation(null)}
-          type="warning"
-        />
-      )}
-    </EditorContext.Provider>
-  );
-};
-
-export const useEditorContext = () => {
-  const context = useContext(EditorContext);
-
-  if (!context) {
-    throw new Error(
-      "useEditorContext must be used within an EditorContextProvider",
-    );
-  }
-
-  return context;
 };

@@ -1,26 +1,25 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { Autocomplete, CaretDownSolidIcon } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
 import { useMemo, useRef } from "react";
 
 import { MenuItem } from "../../../shared/ui";
-import type { PersistedNet } from "./types";
+import type { MinimalNetMetadata } from "./process-editor/types";
 
-export const PersistedNetSelector = ({
+export const NetSelector = ({
   disabledOptions,
   onSelect,
   options,
   placeholder,
   value,
 }: {
-  disabledOptions?: EntityId[];
-  onSelect: (option: PersistedNet) => void;
-  options: PersistedNet[];
+  disabledOptions?: string[];
+  onSelect: (option: MinimalNetMetadata) => void;
+  options: MinimalNetMetadata[];
   placeholder?: string;
-  value: EntityId | null;
+  value: string | null;
 }) => {
   const selectedOption = useMemo(() => {
-    return options.find((option) => option.entityId === value);
+    return options.find((option) => option.netId === value);
   }, [options, value]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,7 +29,7 @@ export const PersistedNetSelector = ({
   }
 
   return (
-    <Autocomplete<PersistedNet | null, false, false, false>
+    <Autocomplete<MinimalNetMetadata | null, false, false, false>
       autoFocus={false}
       componentsProps={{
         paper: {
@@ -45,7 +44,7 @@ export const PersistedNetSelector = ({
       disableCloseOnSelect={false}
       disabled={options.length === 0}
       getOptionDisabled={(option) =>
-        !!option && !!disabledOptions?.includes(option.entityId)
+        !!option && !!disabledOptions?.includes(option.netId)
       }
       getOptionLabel={(option) => option?.title ?? ""}
       inputHeight={40}
@@ -65,7 +64,7 @@ export const PersistedNetSelector = ({
       }}
       inputRef={inputRef}
       isOptionEqualToValue={(option, selectedValue) =>
-        option?.entityId === selectedValue?.entityId
+        option?.netId === selectedValue?.netId
       }
       renderOption={(props, data) => (
         <MenuItem {...props}>{data?.title ?? ""}</MenuItem>

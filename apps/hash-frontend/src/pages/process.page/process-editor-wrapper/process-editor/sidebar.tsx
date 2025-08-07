@@ -2,7 +2,7 @@ import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
-import { Button } from "../../../shared/ui";
+import { Button } from "../../../../shared/ui";
 import { useEditorContext } from "./editor-context";
 import { placeStyling, transitionStyling } from "./styling";
 import { useLayoutGraph } from "./use-layout-graph";
@@ -18,9 +18,12 @@ export const Sidebar = () => {
     [],
   );
 
-  const { nodes, arcs, setNodes } = useEditorContext();
+  const { petriNetDefinition, setPetriNetDefinition } = useEditorContext();
 
-  const layoutGraph = useLayoutGraph({ setNodes });
+  const layoutGraph = useLayoutGraph({
+    setNodes: (nodes) =>
+      setPetriNetDefinition((petriNet) => ({ ...petriNet, nodes })),
+  });
 
   return (
     <Stack
@@ -75,7 +78,13 @@ export const Sidebar = () => {
       />
       <Stack alignItems="center" gap={2}>
         <Button
-          onClick={() => layoutGraph({ nodes, arcs, animationDuration: 200 })}
+          onClick={() =>
+            layoutGraph({
+              nodes: petriNetDefinition.nodes,
+              arcs: petriNetDefinition.arcs,
+              animationDuration: 200,
+            })
+          }
           size="xs"
           variant="tertiary"
           sx={{ display: "block", fontWeight: 400 }}

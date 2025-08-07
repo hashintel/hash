@@ -1,16 +1,16 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { Button } from "../../../shared/ui";
+import { Button } from "../../../../shared/ui";
+import { TokenTypeEditor } from "../token-types/token-type-editor";
 import { useEditorContext } from "./editor-context";
-import { TokenTypeEditor } from "./token-types/token-type-editor";
 
-export { defaultTokenTypes } from "./token-types/token-type-editor";
+export { defaultTokenTypes } from "../token-types/token-type-editor";
 
 export const TokenTypes = () => {
   const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);
 
-  const { tokenTypes } = useEditorContext();
+  const { petriNetDefinition } = useEditorContext();
 
   return (
     <>
@@ -29,7 +29,7 @@ export const TokenTypes = () => {
           boxShadow: 1,
         }}
       >
-        {tokenTypes.map((token) => (
+        {petriNetDefinition.tokenTypes.map((token) => (
           <Stack
             key={token.id}
             direction="row"

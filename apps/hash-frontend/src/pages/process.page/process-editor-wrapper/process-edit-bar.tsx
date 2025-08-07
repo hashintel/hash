@@ -1,3 +1,5 @@
+import type { EntityId } from "@blockprotocol/type-system";
+
 import { PencilSimpleLine } from "../../../shared/icons/svg";
 import {
   EditBarCollapse,
@@ -5,19 +7,23 @@ import {
   EditBarContents,
   useFreezeScrollWhileTransitioning,
 } from "../../shared/shared/edit-bar-contents";
-import { useEditorContext } from "./editor-context";
 
-export const ProcessEditBar = () => {
+export const ProcessEditBar = ({
+  discardChanges,
+  isDirty,
+  persistToGraph,
+  persistPending,
+  userEditable,
+  selectedNetId,
+}: {
+  discardChanges: (() => void) | null;
+  isDirty: boolean;
+  persistToGraph: () => void;
+  persistPending: boolean;
+  userEditable: boolean;
+  selectedNetId: EntityId | null;
+}) => {
   const ref = useFreezeScrollWhileTransitioning();
-
-  const {
-    discardChanges,
-    entityId,
-    isDirty,
-    persistPending,
-    persistToGraph,
-    userEditable,
-  } = useEditorContext();
 
   return (
     <EditBarCollapse in={isDirty && !persistPending} ref={ref}>
@@ -26,7 +32,7 @@ export const ProcessEditBar = () => {
           hideConfirm={false}
           hideDiscard={!discardChanges}
           icon={<PencilSimpleLine />}
-          title={entityId ? "Currently editing – " : "New process –"}
+          title={selectedNetId ? "Currently editing – " : "New process –"}
           label={
             userEditable
               ? "changes not yet saved to your web"
@@ -34,10 +40,10 @@ export const ProcessEditBar = () => {
           }
           discardButtonProps={{
             children: "Discard changes",
-            onClick: discardChanges ?? undefined,
+            onClick: isDirty && discardChanges ? discardChanges : undefined,
           }}
           confirmButtonProps={{
-            children: entityId ? "Update" : "Create",
+            children: selectedNetId ? "Update" : "Create",
             onClick: persistToGraph,
           }}
         />

@@ -1,4 +1,4 @@
-import type { ArcType, NodeType, TokenType } from "./types";
+import type { ArcType, NodeType, TokenType } from "./process-editor/types";
 
 export const exampleCPN = {
   title: "Drug Production",

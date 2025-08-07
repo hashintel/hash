@@ -1,4 +1,3 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import type { Edge, Node } from "reactflow";
 
 export type ArcData = {
@@ -21,9 +20,10 @@ export type PlaceNodeData = {
     id: string;
     type: "input" | "output";
   };
-  tokenCounts: TokenCounts;
   type: "place";
 };
+
+export type PlaceMarkingsById = Record<string, TokenCounts>;
 
 export type PlaceNodeType = Node<PlaceNodeData, "place">;
 
@@ -40,8 +40,7 @@ export type TransitionNodeData = {
   delay?: number;
   description?: string;
   subProcess?: {
-    linkEntityId?: EntityId;
-    subProcessEntityId: EntityId;
+    subProcessId: string;
     subProcessTitle: string;
     /**
      * The IDs of the input places for this transition which are represented in the subprocess (which should appear as starting places there).
@@ -83,10 +82,7 @@ export type TokenType = {
   color: string;
 };
 
-export type PersistedNet = {
-  entityId: EntityId;
+export type MinimalNetMetadata = {
+  netId: string;
   title: string;
-  definition: PetriNetDefinitionObject;
-  parentProcess: { entityId: EntityId; title: string } | null;
-  userEditable: boolean;
 };

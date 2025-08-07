@@ -28,10 +28,10 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type {
-  PersistedNet,
   PetriNetDefinitionObject,
   TransitionNodeData,
-} from "../types";
+} from "../process-editor/types";
+import type { PersistedNet } from "../use-process-save-and-load";
 
 export const getPersistedNetsFromSubgraph = (
   data: GetEntitySubgraphQuery,
@@ -41,6 +41,9 @@ export const getPersistedNetsFromSubgraph = (
   >(data.getEntitySubgraph.subgraph);
 
   const nets = getRoots(subgraph);
+
+  const subProcessLinksByNodeIdAndSubProcessId: PersistedNet["subProcessLinksByNodeIdAndSubProcessId"] =
+    {};
 
   return nets.map((net) => {
     const netTitle =
@@ -85,6 +88,16 @@ export const getPersistedNetsFromSubgraph = (
         continue;
       }
 
+      subProcessLinksByNodeIdAndSubProcessId[
+        subProcessOfLink.properties[
+          "https://hash.ai/@h/types/property-type/transition-id/"
+        ]
+      ] = {
+        [subProcess.entityId]: {
+          linkEntityId: subProcessOfLink.entityId,
+        },
+      };
+
       transitionIdToSubprocess.set(
         subProcessOfLink.properties[
           "https://hash.ai/@h/types/property-type/transition-id/"
@@ -94,8 +107,7 @@ export const getPersistedNetsFromSubgraph = (
             subProcess.properties[
               "https://hash.ai/@h/types/property-type/title/"
             ],
-          subProcessEntityId: subProcess.entityId,
-          linkEntityId: subProcessOfLink.entityId,
+          subProcessId: subProcess.entityId,
           inputPlaceIds:
             subProcessOfLink.properties[
               "https://hash.ai/@h/types/property-type/input-place-id/"
@@ -158,13 +170,14 @@ export const getPersistedNetsFromSubgraph = (
       definition: clonedDefinition,
       parentProcess: parentProcess
         ? {
-            entityId: parentProcess.entityId,
+            parentProcessId: parentProcess.entityId,
             title:
               parentProcess.properties[
                 "https://hash.ai/@h/types/property-type/title/"
               ],
           }
         : null,
+      subProcessLinksByNodeIdAndSubProcessId,
       userEditable,
     };
   });

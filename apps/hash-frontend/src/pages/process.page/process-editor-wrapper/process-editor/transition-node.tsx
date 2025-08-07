@@ -12,7 +12,7 @@ export const TransitionNode = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label, description, subProcess } = data;
 
-  const { switchToNet, persistedNets } = useEditorContext();
+  const { loadPetriNet } = useEditorContext();
 
   return (
     <div
@@ -36,15 +36,7 @@ export const TransitionNode = ({
               onClick={(event) => {
                 event.stopPropagation();
 
-                const subProcessPersistedNet = persistedNets.find(
-                  (net) => net.entityId === subProcess.subProcessEntityId,
-                );
-
-                if (subProcessPersistedNet) {
-                  switchToNet(subProcessPersistedNet);
-                } else {
-                  throw new Error("Sub process not available locally");
-                }
+                loadPetriNet(subProcess.subProcessId);
               }}
               sx={{
                 position: "absolute",

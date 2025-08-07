@@ -1,4 +1,3 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -17,10 +16,10 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
-import { Button, MenuItem } from "../../../shared/ui";
+import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
+import { Button, MenuItem } from "../../../../shared/ui";
+import { NetSelector } from "../net-selector";
 import { useEditorContext } from "./editor-context";
-import { PersistedNetSelector } from "./persisted-net-selector";
 import type {
   ArcType,
   PlaceNodeType,
@@ -136,10 +135,10 @@ export const TransitionEditor = ({
   outgoingEdges,
   onUpdateTransition,
 }: TransitionEditorProps) => {
-  const { arcs, nodes } = useEditorContext();
+  const { petriNetDefinition } = useEditorContext();
 
   const { transitionNode, allInputPlaces, allOutputPlaces } = useMemo(() => {
-    const node = nodes.find(
+    const node = petriNetDefinition.nodes.find(
       (option): option is TransitionNodeType =>
         option.data.type === "transition" && option.id === transitionId,
     );
@@ -151,9 +150,9 @@ export const TransitionEditor = ({
     const inputPlaces: PlaceNodeType[] = [];
     const outputPlaces: PlaceNodeType[] = [];
 
-    for (const arc of arcs) {
+    for (const arc of petriNetDefinition.arcs) {
       if (arc.source === transitionId) {
-        const outputPlace = nodes.find(
+        const outputPlace = petriNetDefinition.nodes.find(
           (option): option is PlaceNodeType =>
             option.type === "place" && option.id === arc.target,
         );
@@ -166,7 +165,7 @@ export const TransitionEditor = ({
       }
 
       if (arc.target === transitionId) {
-        const inputPlace = nodes.find(
+        const inputPlace = petriNetDefinition.nodes.find(
           (option): option is PlaceNodeType =>
             option.type === "place" && option.id === arc.source,
         );
@@ -184,7 +183,7 @@ export const TransitionEditor = ({
       allInputPlaces: inputPlaces,
       allOutputPlaces: outputPlaces,
     };
-  }, [arcs, nodes, transitionId]);
+  }, [petriNetDefinition.arcs, petriNetDefinition.nodes, transitionId]);
 
   const [localData, setEditedData] = useState<Omit<TransitionNodeData, "type">>(
     {
@@ -198,16 +197,16 @@ export const TransitionEditor = ({
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
 
-  const { entityId, persistedNets } = useEditorContext();
+  const { childProcessOptions } = useEditorContext();
 
   const updateSubProcess = useCallback(
     ({
-      subProcessEntityId,
+      subProcessId,
       subProcessTitle,
       inputPlaceIds,
       outputPlaceIds,
     }: {
-      subProcessEntityId: EntityId;
+      subProcessId: string;
       subProcessTitle: string;
       inputPlaceIds: string[];
       outputPlaceIds: string[];
@@ -215,7 +214,7 @@ export const TransitionEditor = ({
       setEditedData((prev) => ({
         ...prev,
         subProcess: {
-          subProcessEntityId,
+          subProcessId,
           subProcessTitle,
           inputPlaceIds,
           outputPlaceIds,
@@ -374,13 +373,7 @@ export const TransitionEditor = ({
     );
   }, [localData.conditions]);
 
-  const subProcessOptions = useMemo(() => {
-    return persistedNets.filter(
-      (net) => net.userEditable && ![entityId].includes(net.entityId),
-    );
-  }, [persistedNets, entityId]);
-
-  const subProcessOptionsAvailable = subProcessOptions.length > 0;
+  const subProcessOptionsAvailable = childProcessOptions.length > 0;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -420,7 +413,7 @@ export const TransitionEditor = ({
             />
           </Box>
 
-          <Box component="label">
+          {/* <Box component="label">
             <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
               Delay (hours)
             </Typography>
@@ -439,7 +432,7 @@ export const TransitionEditor = ({
               inputProps={{ min: 0, step: 0.5 }}
               sx={{ width: 80 }}
             />
-          </Box>
+          </Box> */}
 
           <Stack
             gap={1}
@@ -460,16 +453,16 @@ export const TransitionEditor = ({
                   Sub-process
                 </Typography>
 
-                <PersistedNetSelector
-                  options={subProcessOptions}
+                <NetSelector
+                  options={childProcessOptions}
                   placeholder="Select process to link"
-                  value={localData.subProcess?.subProcessEntityId ?? null}
+                  value={localData.subProcess?.subProcessId ?? null}
                   onSelect={(value) =>
                     updateSubProcess({
                       inputPlaceIds: allInputPlaces.map((place) => place.id),
                       outputPlaceIds: allOutputPlaces.map((place) => place.id),
                       ...localData.subProcess,
-                      subProcessEntityId: value.entityId,
+                      subProcessId: value.netId,
                       subProcessTitle: value.title,
                     })
                   }
@@ -534,8 +527,8 @@ export const TransitionEditor = ({
                                     outputPlaceIds:
                                       localData.subProcess?.outputPlaceIds ??
                                       [],
-                                    subProcessEntityId:
-                                      localData.subProcess!.subProcessEntityId,
+                                    subProcessId:
+                                      localData.subProcess!.subProcessId,
                                     subProcessTitle:
                                       localData.subProcess!.subProcessTitle,
                                   });
@@ -605,8 +598,8 @@ export const TransitionEditor = ({
                                     inputPlaceIds:
                                       localData.subProcess?.inputPlaceIds ?? [],
                                     outputPlaceIds: newOutputPlaceIds,
-                                    subProcessEntityId:
-                                      localData.subProcess!.subProcessEntityId,
+                                    subProcessId:
+                                      localData.subProcess!.subProcessId,
                                     subProcessTitle:
                                       localData.subProcess!.subProcessTitle,
                                   });

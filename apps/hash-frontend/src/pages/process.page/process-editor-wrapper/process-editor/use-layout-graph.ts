@@ -1,6 +1,6 @@
 import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import ELK from "elkjs/lib/elk.bundled.js";
-import { type Dispatch, type SetStateAction, useCallback } from "react";
+import { useCallback } from "react";
 import { useReactFlow } from "reactflow";
 
 import { nodeDimensions } from "./styling";
@@ -29,7 +29,7 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
 export const useLayoutGraph = ({
   setNodes,
 }: {
-  setNodes: Dispatch<SetStateAction<NodeType[]>>;
+  setNodes: (newNodes: NodeType[]) => void;
 }) => {
   const { fitView } = useReactFlow();
 

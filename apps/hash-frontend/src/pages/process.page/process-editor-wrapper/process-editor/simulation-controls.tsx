@@ -14,10 +14,10 @@ import {
 } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { StopSolidIcon } from "../../../shared/icons/stop-icon-solid";
-import { Button } from "../../../shared/ui/button";
-import { MenuItem } from "../../../shared/ui/menu-item";
-import { useSimulation } from "./simulation-context";
+import { StopSolidIcon } from "../../../../shared/icons/stop-icon-solid";
+import { Button } from "../../../../shared/ui/button";
+import { MenuItem } from "../../../../shared/ui/menu-item";
+import { useSimulationContext } from "./simulation-context";
 
 const SimulationControlButton = ({
   background,
@@ -84,7 +84,7 @@ export const SimulationControls = ({ onReset }: SimulationControlsProps) => {
     simulationSpeed,
     setSimulationSpeed,
     currentStep,
-  } = useSimulation();
+  } = useSimulationContext();
 
   return (
     <Box

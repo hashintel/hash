@@ -3,8 +3,8 @@ import { Box, Tooltip } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
+import { useSimulationContext } from "./simulation-context";
 import { handleStyling, nodeDimensions, placeStyling } from "./styling";
-import type { TokenCounts } from "./types";
 
 const tokenSize = 22;
 const halfTokenSize = tokenSize / 2;
@@ -21,12 +21,13 @@ const getTokenPosition = (index: number) => {
   };
 };
 
-export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
-  const tokenCounts: TokenCounts = data.tokenCounts || {};
+export const PlaceNode = ({ data, id, isConnectable }: NodeProps) => {
+  const { placeMarkingsById } = useSimulationContext();
+  const { petriNetDefinition } = useEditorContext();
 
-  const { tokenTypes } = useEditorContext();
+  const currentTokenCounts = placeMarkingsById[id] ?? {};
 
-  const nonZeroTokens = Object.entries(tokenCounts).filter(
+  const nonZeroTokens = Object.entries(currentTokenCounts).filter(
     ([_, count]) => count > 0,
   );
 
@@ -58,7 +59,10 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
         {data.label}
 
         {nonZeroTokens.map(([tokenTypeId, count], index) => {
-          const tokenType = tokenTypes.find((tt) => tt.id === tokenTypeId);
+          const tokenType = petriNetDefinition.tokenTypes.find(
+            (tt) => tt.id === tokenTypeId,
+          );
+
           const position = getTokenPosition(index);
 
           return (

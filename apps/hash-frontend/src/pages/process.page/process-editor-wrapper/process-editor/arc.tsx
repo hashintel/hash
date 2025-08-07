@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
-import { useSimulation } from "./simulation-context";
+import { useSimulationContext } from "./simulation-context";
 import { type TokenType } from "./types";
 
 type AnimatingToken = {
@@ -34,9 +34,9 @@ export const Arc = ({
     };
   };
 }) => {
-  const { tokenTypes } = useEditorContext();
+  const { petriNetDefinition } = useEditorContext();
 
-  const { simulationSpeed } = useSimulation();
+  const { simulationSpeed } = useSimulationContext();
 
   const [animatingTokens, setAnimatingTokens] = useState<AnimatingToken[]>([]);
   const [arcPath, labelX, labelY] = getBezierPath({
@@ -110,7 +110,7 @@ export const Arc = ({
         style={{ pointerEvents: "none" }}
       />
       {animatingTokens.map((token) => {
-        const tokenType = tokenTypes.find(
+        const tokenType = petriNetDefinition.tokenTypes.find(
           (tt: TokenType) => tt.id === token.tokenTypeId,
         );
         return (
@@ -152,7 +152,7 @@ export const Arc = ({
         {Object.entries(data?.tokenWeights ?? {})
           .filter(([_, weight]) => weight > 0)
           .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            const tokenType = tokenTypes.find(
+            const tokenType = petriNetDefinition.tokenTypes.find(
               (tt: TokenType) => tt.id === tokenTypeId,
             );
 

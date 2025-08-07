@@ -31,7 +31,7 @@ export const ArcEditor = ({
 
   const { getNodes, getEdges } = useReactFlow();
 
-  const { tokenTypes } = useEditorContext();
+  const { petriNetDefinition } = useEditorContext();
 
   const direction = useMemo(() => {
     const arc = getEdges().find((edge) => edge.id === arcId);
@@ -77,7 +77,7 @@ export const ArcEditor = ({
           {direction === "in" ? "Tokens Required" : "Tokens Produced"}
         </Typography>
         <Stack spacing={1}>
-          {tokenTypes.map((tokenType) => (
+          {petriNetDefinition.tokenTypes.map((tokenType) => (
             <Box
               key={tokenType.id}
               sx={{

@@ -2,10 +2,10 @@ import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import { useSimulation } from "./simulation-context";
+import { useSimulationContext } from "./simulation-context";
 
 export const LogPane = () => {
-  const { simulationLogs } = useSimulation();
+  const { simulationLogs } = useSimulationContext();
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
 
