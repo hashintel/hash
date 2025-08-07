@@ -1,9 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  buildDataTypeTreesForSelector,
-  DataTypeSelector,
-} from "@hashintel/design-system";
+import { DataTypeSelector } from "@hashintel/design-system";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { useMemo } from "react";
 
 import { useEntityEditor } from "../../../../entity-editor-context";

@@ -23,7 +23,7 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
 
           body {
             overflow-x: hidden !important;
-          }          
+          }
 
           body, p {
             font-size: var(--step-0);

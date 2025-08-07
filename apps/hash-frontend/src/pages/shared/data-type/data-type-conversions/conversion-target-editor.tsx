@@ -7,11 +7,9 @@ import {
   extractBaseUrl,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  buildDataTypeTreesForSelector,
-  DataTypeSelector,
-} from "@hashintel/design-system";
+import { DataTypeSelector } from "@hashintel/design-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";

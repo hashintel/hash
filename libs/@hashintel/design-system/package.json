@@ -41,11 +41,9 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
     "clsx": "1.2.1",
     "echarts": "5.6.0",
     "react-loading-skeleton": "3.5.0"

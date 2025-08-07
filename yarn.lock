@@ -7087,7 +7087,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
@@ -7095,7 +7094,6 @@ __metadata:
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@local/eslint": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"

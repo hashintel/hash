@@ -4,7 +4,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
-  buildDataTypeTreesForSelector,
   Button,
   Chip,
   DataTypeSelector,
@@ -12,6 +11,8 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
+// eslint-disable-next-line no-restricted-imports -- TODO needs fixing to use this package outside the repo
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing to use this package outside the repo
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Autocomplete, Paper, Typography } from "@mui/material";

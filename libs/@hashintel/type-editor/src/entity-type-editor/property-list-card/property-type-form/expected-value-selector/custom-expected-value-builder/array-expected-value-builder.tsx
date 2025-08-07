@@ -1,8 +1,7 @@
 import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
-import {
-  buildDataTypeTreesForSelector,
-  DataTypeSelector,
-} from "@hashintel/design-system";
+import { DataTypeSelector } from "@hashintel/design-system";
+// eslint-disable-next-line no-restricted-imports -- TODO remove this dependency if seeking to use package outside the repo
+import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 // eslint-disable-next-line no-restricted-imports -- TODO remove this dependency if seeking to use package outside the repo
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Collapse, Stack } from "@mui/material";

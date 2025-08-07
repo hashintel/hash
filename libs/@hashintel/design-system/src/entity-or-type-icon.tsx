@@ -1,7 +1,5 @@
-import type { Entity } from "@blockprotocol/type-system";
+import type { BaseUrl, Entity } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon, LinkTypeIcon } from "@hashintel/design-system";
-// eslint-disable-next-line no-restricted-imports -- TODO fix this to make package publishable again
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
 import type { ReactElement } from "react";
@@ -78,9 +76,9 @@ export const EntityOrTypeIcon = ({
    * Pages at least can have an emoji set for the 'icon' property, overriding the type's icon
    */
   const emojiIcon =
-    (entity?.properties[systemPropertyTypes.icon.propertyTypeBaseUrl] as
-      | string
-      | undefined) ?? icon;
+    (entity?.properties[
+      "https://hash.ai/@h/types/property-type/icon/" as BaseUrl
+    ] as string | undefined) ?? icon;
 
   return (
     <Typography

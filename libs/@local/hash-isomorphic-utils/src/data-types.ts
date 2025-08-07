@@ -1,18 +1,23 @@
 import type { JsonValue } from "@blockprotocol/core";
 import type {
+  BaseUrl,
   ClosedDataType,
   ConversionDefinition,
   ConversionExpression,
   ConversionValue,
   DataType,
   NumberConstraints,
+  OntologyTypeVersion,
   SingleValueConstraints,
   SingleValueSchema,
   StringConstraints,
   ValueLabel,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import {
+  componentsFromVersionedUrl,
+  mustHaveAtLeastOne,
+} from "@blockprotocol/type-system";
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 import Big from "big.js";
 
@@ -445,4 +450,209 @@ export const getPermittedDataTypes = <
   }
 
   return permittedDataTypes;
+};
+
+/**
+ * Should be synced with the DataTypeForSelector type in @hashintel/design-system
+ * We can't important it into this package because this is supposed to be isomorphic and having @hashintel/design-system as a dependency
+ * means we would need to include JSX in the tsconfig, which we would ideally avoid.
+ *
+ * @todo create a local 'shared frontend utils' package to avoid the need for duplication, and in that package import this type from @hashintel/design-system.
+ *       and move the functions relying on it to that package.
+ */
+type DataTypeForSelector = {
+  $id: VersionedUrl;
+  abstract: boolean;
+  baseUrl: BaseUrl;
+  children: DataTypeForSelector[];
+  description: string;
+  directParents: VersionedUrl[];
+  format?: StringConstraints["format"];
+  label: DataType["label"];
+  type: string;
+  title: string;
+  version: OntologyTypeVersion;
+};
+
+/**
+ * Build a tree rooted at the provided data type, with each node containing the information needed for the selector.
+ *
+ * Some callers will have the 'closed' data type (with all constraints resolved), others only the underlying schema,
+ * without having its parents' constraints merged in.
+ *
+ * We don't care about the closed schema for this purpose because the selector doesn't care about value constraints,
+ * but it's the structure that some callers may already have.
+ */
+const transformDataTypeForSelector = <
+  T extends DataType | ClosedDataTypeDefinition,
+>(
+  dataType: T,
+  directChildrenByDataTypeId: Record<VersionedUrl, T[]>,
+  allChildren: VersionedUrl[] = [],
+): {
+  allChildren: VersionedUrl[];
+  transformedDataType: DataTypeForSelector;
+} => {
+  const schema = isDataType(dataType) ? dataType : dataType.schema;
+  const { $id } = schema;
+
+  const children = directChildrenByDataTypeId[$id] ?? [];
+  const transformedChildren: DataTypeForSelector[] = [];
+
+  /**
+   * We need to track all descendants of the data type, so that {@link buildDataTypeTreesForSelector}
+   * can remove any types as roots of a tree where they appear lower down another tree.
+   */
+  allChildren.push(
+    ...children.map((child) =>
+      isDataType(child) ? child.$id : child.schema.$id,
+    ),
+  );
+
+  for (const child of children) {
+    const { transformedDataType } = transformDataTypeForSelector(
+      child,
+      directChildrenByDataTypeId,
+      allChildren,
+    );
+    transformedChildren.push(transformedDataType);
+  }
+
+  let format;
+  let type;
+
+  if (isDataType(dataType)) {
+    const firstSchema = "anyOf" in dataType ? dataType.anyOf[0] : dataType;
+    type = firstSchema.type;
+    format = "format" in firstSchema ? firstSchema.format : undefined;
+  } else {
+    const mergedSchema = getMergedDataTypeSchema(dataType.schema);
+
+    const firstSchema =
+      "anyOf" in mergedSchema ? mergedSchema.anyOf[0]! : mergedSchema;
+
+    type = firstSchema.type;
+    format = "format" in firstSchema ? firstSchema.format : undefined;
+  }
+
+  const { baseUrl, version } = componentsFromVersionedUrl($id);
+
+  const transformedDataType = {
+    $id,
+    baseUrl,
+    abstract: !!schema.abstract,
+    children: transformedChildren.sort((a, b) =>
+      a.title.localeCompare(b.title),
+    ),
+    description: schema.description,
+    directParents: isDataType(dataType)
+      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
+      : dataType.parents,
+    format,
+    label: schema.label,
+    title: schema.title,
+    type,
+    version,
+  };
+
+  return {
+    allChildren,
+    transformedDataType,
+  };
+};
+
+/**
+ * Build trees of data types that can be selected by the user, rooted at those data types
+ * among targetDataTypes which do not have any parents in targetDataTypes,
+ * i.e. rooted at the types which have no selectable parents.
+ *
+ * Data types may appear in multiple locations in the tree if they have multiple selectable parents.
+ * This will only happen if a user builds a type with multiple expected values,
+ * and one of the values is a descendant of another one.
+ *
+ * The data type pool must include all children of the targetDataTypes, which can be fetched from the API via one of:
+ * - fetching all data types:
+ *     e.g. in the context of the type editor, where all types are selectable)
+ * - making a query for an entityType with the 'resolvedWithDataTypeChildren' resolution method
+ *     e.g. when selecting a value valid for specific entity types, and having the API resolve the valid data types
+ */
+export const buildDataTypeTreesForSelector = <
+  T extends ClosedDataTypeDefinition | DataType,
+>({
+  targetDataTypes,
+  dataTypePoolById,
+}: {
+  /**
+   * The data types that the user is allowed to select
+   * – does not need to include children, but they should appear in the dataTypePool.
+   */
+  targetDataTypes: T[];
+  /**
+   * All data types that are available for building the trees from.
+   * This MUST include targetDataTypes and any children of targetDataTypes to allow them to be included in the
+   * resulting tree. It MAY include other data types which are not selectable (e.g. parents of targetDataTypes, or
+   * unrelated types). Unrelated types will not be included in the resulting trees.
+   */
+  dataTypePoolById: Record<VersionedUrl, T>;
+}): DataTypeForSelector[] => {
+  const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
+
+  /**
+   * First, we need to know the children of all data types. Data types store references to their parents, not children.
+   * The selectable types are either targets or children of targets.
+   */
+  for (const dataType of Object.values(dataTypePoolById)) {
+    const directParents = isDataType(dataType)
+      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
+      : dataType.parents;
+
+    for (const parent of directParents) {
+      directChildrenByDataTypeId[parent] ??= [];
+
+      const parentDataType = dataTypePoolById[parent];
+
+      if (parentDataType) {
+        /**
+         * If the parentDataType is not in the pool, it is not a selectable parent.
+         * The caller is responsible for ensuring that the pool contains all selectable data types,
+         * via one of the methods described in the function's JSDoc.
+         */
+        directChildrenByDataTypeId[parent].push(dataType);
+      }
+    }
+  }
+
+  const rootsById: Record<VersionedUrl, DataTypeForSelector> = {};
+
+  const dataTypesBelowRoots: VersionedUrl[] = [];
+
+  /**
+   * Build a tree for each target data type.
+   */
+  for (const dataType of targetDataTypes) {
+    const { allChildren, transformedDataType } = transformDataTypeForSelector(
+      dataType,
+      directChildrenByDataTypeId,
+    );
+
+    if (
+      /**
+       * There's no point adding abstract types with no children, because they cannot be selected.
+       */
+      !transformedDataType.abstract ||
+      transformedDataType.children.length > 0
+    ) {
+      rootsById[transformedDataType.$id] = transformedDataType;
+      dataTypesBelowRoots.push(...allChildren);
+    }
+  }
+
+  /**
+   * Finally, remove any trees rooted at a target data type which appears as the child of another target.
+   */
+  for (const dataTypeId of dataTypesBelowRoots) {
+    delete rootsById[dataTypeId];
+  }
+
+  return Object.values(rootsById);
 };
