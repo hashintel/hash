@@ -12,3 +12,8 @@ output "grafana_port_name" {
   description = "Port name for Service Connect"
   value       = local.grafana_port_name
 }
+
+output "grafana_dns" {
+  description = "Service Connect DNS name for Grafana metrics endpoint"
+  value       = local.grafana_dns
+}
