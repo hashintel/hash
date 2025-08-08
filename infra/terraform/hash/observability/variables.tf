@@ -58,3 +58,8 @@ variable "amazon_trust_ca_bundle" {
   type        = string
   description = "Amazon Trust Services CA Bundle for SSL verification"
 }
+
+variable "critical_alerts_topic_arn" {
+  type        = string
+  description = "ARN of the critical alerts SNS topic (from infrastructure level)"
+}
