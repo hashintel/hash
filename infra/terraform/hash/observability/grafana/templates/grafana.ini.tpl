@@ -37,3 +37,6 @@ provisioning = /etc/grafana/provisioning
 [analytics]
 reporting_enabled = false
 check_for_updates = false
+
+[metrics]
+enabled = true
