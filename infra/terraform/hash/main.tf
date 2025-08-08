@@ -139,6 +139,7 @@ module "observability" {
   grafana_secret_key        = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
   vpc_zone_id               = aws_route53_zone.vpc.zone_id
   amazon_trust_ca_bundle    = local.amazon_trust_ca_bundle
+  critical_alerts_topic_arn = module.critical_alerts.sns_topic_arn
 }
 
 
@@ -235,6 +236,14 @@ module "temporal_worker_integration_ecr" {
   source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "temporalworkerintegration"
+}
+
+module "critical_alerts" {
+  source = "../modules/sns_slack_alerts"
+
+  prefix            = local.prefix
+  severity          = "critical"
+  slack_webhook_url = sensitive(data.vault_kv_secret_v2.secrets.data["slack_aws_webhook"])
 }
 
 module "application" {
