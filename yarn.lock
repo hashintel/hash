@@ -7092,9 +7092,7 @@ __metadata:
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     clsx: "npm:1.2.1"
     echarts: "npm:5.6.0"
-    eslint: "npm:9.20.1"
     react-loading-skeleton: "npm:3.5.0"
-    typescript: "npm:5.7.3"
   peerDependencies:
     "@emotion/cache": 11.14.0
     "@emotion/react": 11.14.0
@@ -9072,6 +9070,7 @@ __metadata:
     envalid: "npm:7.3.1"
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
+    fix-esm-import-path: "npm:1.10.1"
     fs-extra: "npm:11.3.0"
     globby: "npm:11.1.0"
     ignore: "npm:7.0.5"

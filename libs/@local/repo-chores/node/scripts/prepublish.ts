@@ -38,6 +38,16 @@ const script = async () => {
   await fs.remove(path.resolve(packageInfo.path, "dist"));
 
   process.stdout.write(" Done\n");
+
+  process.stdout.write(
+    "Ensuring .js extensions present in local import statements...",
+  );
+  await execa("fix-esm-import-path", ["./src"], {
+    cwd: packageInfo.path,
+    stdout: "inherit",
+  });
+  process.stdout.write(" Done\n");
+
   process.stdout.write(`Building...`);
 
   // tsconfig.json is supposed to configured for local development and linting.
