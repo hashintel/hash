@@ -28,7 +28,7 @@ use self::error::{
     UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
 };
 use super::{
-    ContextBuilder, Effect, Policy, PolicyId,
+    ContextBuilder, Effect, Policy, PolicyId, ResolvedPolicy,
     action::ActionName,
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
     resource::{
@@ -254,7 +254,7 @@ pub trait PolicyStore {
         &self,
         authenticated_actor: AuthenticatedActor,
         params: ResolvePoliciesParams,
-    ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+    ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by its ID.
     ///
@@ -711,7 +711,7 @@ pub trait OldPolicyStore {
     fn get_policies(
         &self,
         actor_id: ActorId,
-    ) -> Result<impl Iterator<Item = &Policy>, Report<GetPoliciesError>>;
+    ) -> Result<impl Iterator<Item = &ResolvedPolicy>, Report<GetPoliciesError>>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -746,7 +746,7 @@ pub struct MemoryPolicyStore {
     actors: HashMap<ActorId, Actor>,
     role_ids: HashMap<(ActorGroupId, RoleName), RoleId>,
     roles: HashMap<RoleId, Role>,
-    policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
+    policies: HashMap<PrincipalIndex, HashMap<PolicyId, ResolvedPolicy>>,
 }
 
 #[expect(
@@ -953,10 +953,15 @@ impl OldPolicyStore for MemoryPolicyStore {
             .principal
             .as_ref()
             .map_or(PrincipalIndex::Unspecified, PrincipalIndex::from);
-        self.policies
-            .entry(principal)
-            .or_default()
-            .insert(policy.id, policy);
+        self.policies.entry(principal).or_default().insert(
+            policy.id,
+            ResolvedPolicy {
+                original_policy_id: policy.id,
+                effect: policy.effect,
+                actions: policy.actions,
+                resource: policy.resource,
+            },
+        );
 
         Ok(())
     }
@@ -964,7 +969,7 @@ impl OldPolicyStore for MemoryPolicyStore {
     fn get_policies(
         &self,
         actor_id: ActorId,
-    ) -> Result<impl Iterator<Item = &Policy>, Report<GetPoliciesError>> {
+    ) -> Result<impl Iterator<Item = &ResolvedPolicy>, Report<GetPoliciesError>> {
         let actor = self
             .actors
             .get(&actor_id)

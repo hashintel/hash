@@ -64,7 +64,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
     let artifacts_path = args.artifacts_path.unwrap_or_else(target_directory);
     let commit = args.commit.map_or_else(current_commit, Ok)?;
 
-    let benchmarks = Benchmark::gather(criterion_directory())
+    let mut benchmarks = Benchmark::gather(criterion_directory())
         .map(|benchmark| {
             let analysis =
                 BenchmarkAnalysis::from_benchmark(benchmark?, &args.baseline, &artifacts_path)
@@ -92,6 +92,26 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
             Ok(analysis)
         })
         .collect::<Result<Vec<_>, _>>()?;
+
+    // Sort benchmarks for consistent ordering
+    benchmarks.sort_by(|lhs, rhs| {
+        lhs.measurement
+            .info
+            .group_id
+            .cmp(&rhs.measurement.info.group_id)
+            .then_with(|| {
+                lhs.measurement
+                    .info
+                    .function_id
+                    .cmp(&rhs.measurement.info.function_id)
+            })
+            .then_with(|| {
+                lhs.measurement
+                    .info
+                    .value_str
+                    .cmp(&rhs.measurement.info.value_str)
+            })
+    });
 
     writeln!(output, "{}", BenchFormatter(&benchmarks, &commit))?;
 
