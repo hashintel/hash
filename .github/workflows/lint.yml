@@ -44,6 +44,9 @@ jobs:
 
   package:
     name: Package
+    permissions:
+      contents: read
+      security-events: write
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
