@@ -7,7 +7,7 @@
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/design-system"
   },
-  "license": "AGPL-3.0",
+  "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
   "exports": {
