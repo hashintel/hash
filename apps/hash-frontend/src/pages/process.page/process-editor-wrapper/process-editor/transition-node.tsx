@@ -10,7 +10,7 @@ export const TransitionNode = ({
   data,
   isConnectable,
 }: NodeProps<TransitionNodeData>) => {
-  const { label, description, subProcess } = data;
+  const { label, description, childNet } = data;
 
   const { loadPetriNet } = useEditorContext();
 
@@ -28,15 +28,13 @@ export const TransitionNode = ({
         style={handleStyling}
       />
       <Box sx={transitionStyling}>
-        {subProcess && (
-          <Tooltip
-            title={`Switch to sub process ${subProcess.subProcessTitle}`}
-          >
+        {childNet && (
+          <Tooltip title={`Switch to child net ${childNet.childNetTitle}`}>
             <IconButton
               onClick={(event) => {
                 event.stopPropagation();
 
-                loadPetriNet(subProcess.subProcessId);
+                loadPetriNet(childNet.childNetId);
               }}
               sx={{
                 position: "absolute",

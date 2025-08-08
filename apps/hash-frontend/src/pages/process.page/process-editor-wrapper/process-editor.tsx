@@ -25,7 +25,6 @@ import { Arc } from "./process-editor/arc";
 import { ArcEditor } from "./process-editor/arc-editor";
 import {
   EditorContextProvider,
-  type ParentProcess,
   useEditorContext,
 } from "./process-editor/editor-context";
 import { LogPane } from "./process-editor/log-pane";
@@ -47,12 +46,37 @@ import type {
   MinimalNetMetadata,
   NodeData,
   NodeType,
+  ParentNet,
   PetriNetDefinitionObject,
+  PlaceNodeData,
   PlaceNodeType,
   TokenCounts,
+  TokenType,
+  TransitionCondition,
+  TransitionNodeData,
+  TransitionNodeType,
 } from "./process-editor/types";
 
-const ProcessEditorContent = () => {
+export type {
+  ArcData,
+  ArcType,
+  MinimalNetMetadata,
+  NodeData,
+  NodeType,
+  ParentNet,
+  PetriNetDefinitionObject,
+  PlaceNodeData,
+  PlaceNodeType,
+  TokenCounts,
+  TokenType,
+  TransitionCondition,
+  TransitionNodeData,
+  TransitionNodeType,
+};
+
+export { NetSelector } from "./process-editor/net-selector";
+
+const PetriNetEditorContent = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
@@ -61,6 +85,11 @@ const ProcessEditorContent = () => {
   > | null>(null);
 
   const { petriNetDefinition, setPetriNetDefinition } = useEditorContext();
+
+  const [selectedPlacePosition, setSelectedPlacePosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
@@ -215,16 +244,19 @@ const ProcessEditorContent = () => {
   );
 
   const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
       if (selectedPlaceId && selectedPlaceId === node.id) {
         return;
       }
 
       setSelectedPlaceId(null);
+      setSelectedPlacePosition(null);
       setSelectedArc(null);
+      setSelectedTransition(null);
 
       if (node.type === "place") {
         setSelectedPlaceId(node.id);
+        setSelectedPlacePosition({ x: event.clientX, y: event.clientY });
       } else if (node.type === "transition") {
         setSelectedTransition(node.id);
       }
@@ -400,7 +432,10 @@ const ProcessEditorContent = () => {
   }, [petriNetDefinition.nodes, selectedPlaceId]);
 
   return (
-    <Stack direction="row" sx={{ width: "100%", height: "100%" }}>
+    <Stack
+      direction="row"
+      sx={{ width: "100%", height: "100%", userSelect: "none" }}
+    >
       <Sidebar />
 
       <Box
@@ -449,6 +484,7 @@ const ProcessEditorContent = () => {
 
         {selectedPlace && (
           <PlaceEditor
+            position={selectedPlacePosition ?? { x: 0, y: 0 }}
             selectedPlace={selectedPlace}
             tokenTypes={petriNetDefinition.tokenTypes}
             onClose={() => setSelectedPlaceId(null)}
@@ -496,9 +532,9 @@ const ProcessEditorContent = () => {
   );
 };
 
-export type ProcessEditorProps = {
-  childProcessOptions: MinimalNetMetadata[];
-  parentProcess: ParentProcess | null;
+export type PetriNetEditorProps = {
+  childNetOptions: MinimalNetMetadata[];
+  parentNet: ParentNet | null;
   petriNet: PetriNetDefinitionObject;
   setPetriNet: (petriNetDefinition: PetriNetDefinitionObject) => void;
   loadPetriNet: (petriNetId: string) => void;
@@ -506,25 +542,25 @@ export type ProcessEditorProps = {
 };
 
 export const ProcessEditor = ({
-  childProcessOptions,
-  parentProcess,
+  childNetOptions,
+  parentNet,
   petriNet,
   setPetriNet,
   loadPetriNet,
   readonly,
-}: ProcessEditorProps) => {
+}: PetriNetEditorProps) => {
   return (
     <ReactFlowProvider>
       <EditorContextProvider
-        childProcessOptions={childProcessOptions}
-        parentProcess={parentProcess}
+        childNetOptions={childNetOptions}
+        parentNet={parentNet}
         petriNet={petriNet}
         setPetriNet={setPetriNet}
         loadPetriNet={loadPetriNet}
         readonly={readonly}
       >
         <SimulationContextProvider>
-          <ProcessEditorContent />
+          <PetriNetEditorContent />
         </SimulationContextProvider>
       </EditorContextProvider>
     </ReactFlowProvider>

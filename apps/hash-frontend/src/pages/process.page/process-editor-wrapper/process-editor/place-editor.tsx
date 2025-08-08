@@ -2,7 +2,6 @@ import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 
 import { Button } from "../../../../shared/ui";
-import { nodeDimensions } from "./styling";
 import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
 
 export type PlaceEditorProps = {
@@ -11,16 +10,18 @@ export type PlaceEditorProps = {
   onClose: () => void;
   onUpdateInitialTokens: (nodeId: string, tokenCounts: TokenCounts) => void;
   onUpdateNodeLabel: (nodeId: string, label: string) => void;
+  position: { x: number; y: number };
 };
 
 export const PlaceEditor = ({
+  position,
   selectedPlace,
   tokenTypes,
   onClose,
   onUpdateInitialTokens,
   onUpdateNodeLabel,
 }: PlaceEditorProps) => {
-  const { data, id: placeId, position } = selectedPlace;
+  const { data, id: placeId } = selectedPlace;
   const { label: nodeName, initialTokenCounts } = data;
 
   const handleTokenCountChange = (tokenTypeId: string, value: string) => {
@@ -49,8 +50,8 @@ export const PlaceEditor = ({
   return (
     <Card
       sx={{
-        position: "absolute",
-        left: position.x + nodeDimensions.place.width,
+        position: "fixed",
+        left: position.x,
         top: position.y,
         zIndex: 1000,
         px: 2,

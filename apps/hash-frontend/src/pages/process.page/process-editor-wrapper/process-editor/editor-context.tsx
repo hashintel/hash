@@ -7,22 +7,20 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useReactFlow } from "reactflow";
 
-import type { MinimalNetMetadata, PetriNetDefinitionObject } from "./types";
-
-export type ParentProcess = {
-  parentProcessId: string;
-  title: string;
-};
+import type {
+  MinimalNetMetadata,
+  ParentNet,
+  PetriNetDefinitionObject,
+} from "./types";
 
 type EditorContextValue = {
-  childProcessOptions: MinimalNetMetadata[];
+  childNetOptions: MinimalNetMetadata[];
   loadPetriNet: (petriNetId: string) => void;
-  parentProcess: ParentProcess | null;
+  parentNet: ParentNet | null;
   petriNetDefinition: PetriNetDefinitionObject;
   readonly: boolean;
-  setParentProcess: Dispatch<SetStateAction<ParentProcess | null>>;
+  setParentNet: Dispatch<SetStateAction<ParentNet | null>>;
   setPetriNetDefinition: Dispatch<SetStateAction<PetriNetDefinitionObject>>;
 };
 
@@ -30,8 +28,8 @@ const EditorContext = createContext<EditorContextValue | undefined>(undefined);
 
 type EditorContextProviderProps = {
   children: React.ReactNode;
-  childProcessOptions: MinimalNetMetadata[];
-  parentProcess: ParentProcess | null;
+  childNetOptions: MinimalNetMetadata[];
+  parentNet: ParentNet | null;
   petriNet: PetriNetDefinitionObject;
   setPetriNet: (petriNetDefinition: PetriNetDefinitionObject) => void;
   loadPetriNet: (petriNetId: string) => void;
@@ -40,19 +38,16 @@ type EditorContextProviderProps = {
 
 export const EditorContextProvider = ({
   children,
-  childProcessOptions,
-  parentProcess: parentProcessFromProps,
+  childNetOptions,
+  parentNet: parentNetFromProps,
   petriNet,
   readonly,
   loadPetriNet,
   setPetriNet,
 }: EditorContextProviderProps) => {
-  const [parentProcess, setParentProcess] = useState<{
-    parentProcessId: string;
-    title: string;
-  } | null>(parentProcessFromProps);
-
-  const { fitView } = useReactFlow();
+  const [parentNet, setParentNet] = useState<ParentNet | null>(
+    parentNetFromProps,
+  );
 
   const setPetriNetDefinition: EditorContextValue["setPetriNetDefinition"] =
     useCallback(
@@ -62,31 +57,27 @@ export const EditorContextProvider = ({
         } else {
           setPetriNet(setStateFnOrData);
         }
-
-        setTimeout(() => {
-          fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
-        }, 100);
       },
-      [fitView, petriNet, setPetriNet],
+      [petriNet, setPetriNet],
     );
 
   const value: EditorContextValue = useMemo(
     () => ({
-      childProcessOptions,
+      childNetOptions,
       loadPetriNet,
-      parentProcess,
+      parentNet,
       petriNetDefinition: petriNet,
       readonly,
-      setParentProcess,
+      setParentNet,
       setPetriNetDefinition,
     }),
     [
-      childProcessOptions,
+      childNetOptions,
       loadPetriNet,
-      parentProcess,
+      parentNet,
       petriNet,
       readonly,
-      setParentProcess,
+      setParentNet,
       setPetriNetDefinition,
     ],
   );

@@ -3,6 +3,7 @@ import {
   ForwardStepSolidIcon,
   PlaySolidIcon,
   Select,
+  StopSolidIcon,
 } from "@hashintel/design-system";
 import {
   Box,
@@ -14,7 +15,6 @@ import {
 } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { StopSolidIcon } from "../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../shared/ui/button";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useSimulationContext } from "./simulation-context";

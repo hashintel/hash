@@ -11,7 +11,7 @@ import type {
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "./process-editor/types";
+} from "./process-editor";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent?.trim() ?? "";
@@ -167,13 +167,13 @@ const parsePnml = (
 };
 
 export const useLoadFromPnml = ({
-  setParentProcess,
+  setParentNet,
   setPetriNetDefinition,
   setSelectedNetId,
   setTitle,
   setUserEditable,
 }: {
-  setParentProcess: (parentProcess: null) => void;
+  setParentNet: (parentNet: null) => void;
   setPetriNetDefinition: (petriNet: PetriNetDefinitionObject) => void;
   setSelectedNetId: (selectedNetId: null) => void;
   setTitle: (title: string) => void;
@@ -190,12 +190,12 @@ export const useLoadFromPnml = ({
       });
 
       setSelectedNetId(null);
-      setParentProcess(null);
+      setParentNet(null);
       setTitle(title);
       setUserEditable(true);
     },
     [
-      setParentProcess,
+      setParentNet,
       setPetriNetDefinition,
       setSelectedNetId,
       setTitle,

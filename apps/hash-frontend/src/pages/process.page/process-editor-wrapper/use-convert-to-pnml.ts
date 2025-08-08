@@ -2,7 +2,7 @@ import type {
   PetriNetDefinitionObject,
   PlaceNodeData,
   TransitionNodeData,
-} from "./process-editor/types";
+} from "./process-editor";
 
 const escapeXml = (str: string) =>
   str

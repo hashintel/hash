@@ -5,6 +5,7 @@ import { Handle, type NodeProps, Position } from "reactflow";
 import { useEditorContext } from "./editor-context";
 import { useSimulationContext } from "./simulation-context";
 import { handleStyling, nodeDimensions, placeStyling } from "./styling";
+import type { PlaceNodeData } from "./types";
 
 const tokenSize = 22;
 const halfTokenSize = tokenSize / 2;
@@ -21,7 +22,11 @@ const getTokenPosition = (index: number) => {
   };
 };
 
-export const PlaceNode = ({ data, id, isConnectable }: NodeProps) => {
+export const PlaceNode = ({
+  data,
+  id,
+  isConnectable,
+}: NodeProps<PlaceNodeData>) => {
   const { placeMarkingsById } = useSimulationContext();
   const { petriNetDefinition } = useEditorContext();
 
@@ -31,12 +36,12 @@ export const PlaceNode = ({ data, id, isConnectable }: NodeProps) => {
     ([_, count]) => count > 0,
   );
 
-  const { parentProcessNode } = data;
+  const { parentNetNode } = data;
 
   return (
     <Box sx={{ position: "relative" }}>
-      {parentProcessNode && (
-        <Tooltip title="Place from parent process">
+      {parentNetNode && (
+        <Tooltip title="Place from parent net">
           <IconDiagramRegular
             sx={{
               fill: ({ palette }) => palette.gray[60],

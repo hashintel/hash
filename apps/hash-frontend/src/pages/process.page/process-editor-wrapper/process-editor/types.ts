@@ -12,11 +12,11 @@ export type PlaceNodeData = {
   label: string;
   initialTokenCounts?: TokenCounts;
   /**
-   * If the process is a subprocess, it represents the detail of a transition from the parent.
+   * If the net is a child net, it represents the detail of a transition from the parent.
    * It must contain at least one each of input and output places to that parent transition.
    * This field indicates if this place corresponds to an input or output place to the transition in the parent.
    */
-  parentProcessNode?: {
+  parentNetNode?: {
     id: string;
     type: "input" | "output";
   };
@@ -39,17 +39,17 @@ export type TransitionNodeData = {
   label: string;
   delay?: number;
   description?: string;
-  subProcess?: {
-    subProcessId: string;
-    subProcessTitle: string;
+  childNet?: {
+    childNetId: string;
+    childNetTitle: string;
     /**
-     * The IDs of the input places for this transition which are represented in the subprocess (which should appear as starting places there).
-     * There must be at least one, but not all input places to this transition (in the parent) must appear in the subprocess.
+     * The IDs of the input places for this transition which are represented in the childNet (which should appear as starting places there).
+     * There must be at least one, but not all input places to this transition (in the parent) must appear in the childNet.
      */
     inputPlaceIds: string[];
     /**
-     * The IDs of the output places for this transition which are represented in the subprocess (which should appear as ending places there).
-     * There must be at least one, but not all output places to this transition (in the parent) must appear in the subprocess.
+     * The IDs of the output places for this transition which are represented in the childNet (which should appear as ending places there).
+     * There must be at least one, but not all output places to this transition (in the parent) must appear in the childNet.
      */
     outputPlaceIds: string[];
   };
@@ -84,5 +84,10 @@ export type TokenType = {
 
 export type MinimalNetMetadata = {
   netId: string;
+  title: string;
+};
+
+export type ParentNet = {
+  parentNetId: string;
   title: string;
 };

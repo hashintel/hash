@@ -22,8 +22,8 @@ import {
 export const ProcessEditorWrapper = () => {
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
   const [title, setTitle] = useState<string>("Process");
-  const [parentProcess, setParentProcess] = useState<{
-    parentProcessId: EntityId;
+  const [parentNet, setParentNet] = useState<{
+    parentNetId: EntityId;
     title: string;
   } | null>(null);
 
@@ -46,10 +46,10 @@ export const ProcessEditorWrapper = () => {
     userEditable,
     setUserEditable,
   } = useProcessSaveAndLoad({
-    parentProcess,
+    parentNet,
     petriNet,
     selectedNetId,
-    setParentProcess,
+    setParentNet,
     setPetriNet,
     setSelectedNetId,
     setTitle,
@@ -64,10 +64,10 @@ export const ProcessEditorWrapper = () => {
     });
 
     setSelectedNetId(null);
-    setParentProcess(null);
+    setParentNet(null);
     setUserEditable(true);
     setTitle("Process");
-  }, [setParentProcess, setSelectedNetId, setUserEditable, setTitle]);
+  }, [setParentNet, setSelectedNetId, setUserEditable, setTitle]);
 
   const handleLoadExample = useCallback(() => {
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
@@ -76,7 +76,7 @@ export const ProcessEditorWrapper = () => {
           ...node,
           data: {
             ...node.data,
-            initialTokenCounts: { ...node.data.tokenCounts },
+            initialTokenCounts: { ...node.data.initialTokenCounts },
           },
         };
       }
@@ -120,7 +120,7 @@ export const ProcessEditorWrapper = () => {
   };
 
   const loadFromPnml = useLoadFromPnml({
-    setParentProcess,
+    setParentNet,
     setPetriNetDefinition: setPetriNet,
     setSelectedNetId,
     setTitle,
@@ -213,7 +213,7 @@ export const ProcessEditorWrapper = () => {
         selectedNetId={selectedNetId}
       />
       <TitleAndNetSelect
-        parentProcess={parentProcess}
+        parentNet={parentNet}
         persistedNets={persistedNets}
         selectedNetId={selectedNetId}
         setTitle={setTitle}
@@ -223,9 +223,9 @@ export const ProcessEditorWrapper = () => {
 
       <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
         <ProcessEditor
-          childProcessOptions={childProcessOptions}
+          childNetOptions={childProcessOptions}
           petriNet={petriNet}
-          parentProcess={parentProcess}
+          parentNet={parentNet}
           setPetriNet={setPetriNet}
           readonly={!userEditable}
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}

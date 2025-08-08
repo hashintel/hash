@@ -2,8 +2,8 @@ import { Autocomplete, CaretDownSolidIcon } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
 import { useMemo, useRef } from "react";
 
-import { MenuItem } from "../../../shared/ui";
-import type { MinimalNetMetadata } from "./process-editor/types";
+import { MenuItem } from "../../../../shared/ui";
+import type { MinimalNetMetadata } from "./types";
 
 export const NetSelector = ({
   disabledOptions,

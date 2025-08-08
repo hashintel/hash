@@ -4,26 +4,26 @@ import { EditableField } from "@hashintel/block-design-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 
-import { NetSelector } from "./net-selector";
+import { NetSelector } from "./process-editor";
 import type { PersistedNet } from "./use-process-save-and-load";
 
 export const TitleAndNetSelect = ({
-  parentProcess,
+  parentNet,
   persistedNets,
   selectedNetId,
   setTitle,
   switchToNet,
   title,
 }: {
-  parentProcess: { parentProcessId: EntityId; title: string } | null;
+  parentNet: { parentNetId: EntityId; title: string } | null;
   persistedNets: PersistedNet[];
   selectedNetId: EntityId | null;
   setTitle: (title: string) => void;
   switchToNet: (net: PersistedNet) => void;
   title: string;
 }) => {
-  const parentProcessPersistedNet = persistedNets.find(
-    (net) => net.entityId === parentProcess?.parentProcessId,
+  const parentNetPersistedNet = persistedNets.find(
+    (net) => net.entityId === parentNet?.parentNetId,
   );
 
   return (
@@ -38,12 +38,12 @@ export const TitleAndNetSelect = ({
       })}
     >
       <Stack direction="row" alignItems="center" gap={1}>
-        {parentProcessPersistedNet && (
+        {parentNetPersistedNet && (
           <>
             <Typography
               component="button"
               onClick={() => {
-                switchToNet(parentProcessPersistedNet);
+                switchToNet(parentNetPersistedNet);
               }}
               sx={({ palette, transitions }) => ({
                 background: "none",
@@ -59,7 +59,7 @@ export const TitleAndNetSelect = ({
                 },
               })}
             >
-              {parentProcessPersistedNet.title}
+              {parentNetPersistedNet.title}
             </Typography>
             <FontAwesomeIcon
               icon={faAngleRight}

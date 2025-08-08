@@ -1,4 +1,4 @@
-import type { ArcType, NodeType, TokenType } from "./process-editor/types";
+import type { ArcType, NodeType, TokenType } from "./process-editor";
 
 export const exampleCPN = {
   title: "Drug Production",
@@ -16,7 +16,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Plant A Supply",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 10,
           precursor_b: 0,
           drug: 0,
@@ -31,7 +31,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Plant B Supply",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 10,
           drug: 0,
@@ -46,7 +46,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Manufacturing Plant",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
           drug: 0,
@@ -61,7 +61,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "QA Queue",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
           drug: 0,
@@ -76,7 +76,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Disposal",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
           drug: 0,
@@ -91,7 +91,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Dispatch",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
           drug: 0,
@@ -106,7 +106,7 @@ export const exampleCPN = {
       data: {
         type: "place",
         label: "Hospital",
-        tokenCounts: {
+        initialTokenCounts: {
           precursor_a: 0,
           precursor_b: 0,
           drug: 0,

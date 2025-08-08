@@ -69,17 +69,17 @@ export const updateSubProcessDefinitionForParentPlaces = ({
 
     if (
       node.data.type === "place" &&
-      node.data.parentProcessNode &&
-      ((node.data.parentProcessNode.type === "input" &&
-        !inputPlaceIds.includes(node.data.parentProcessNode.id)) ||
-        (node.data.parentProcessNode.type === "output" &&
-          !outputPlaceIds.includes(node.data.parentProcessNode.id)))
+      node.data.parentNetNode &&
+      ((node.data.parentNetNode.type === "input" &&
+        !inputPlaceIds.includes(node.data.parentNetNode.id)) ||
+        (node.data.parentNetNode.type === "output" &&
+          !outputPlaceIds.includes(node.data.parentNetNode.id)))
     ) {
       /**
        * This is an input or output place node from the parent which is no longer relevant to the sub-process,
        * so we remove the link to the parent process node.
        */
-      const { parentProcessNode: _, ...restData } = node.data;
+      const { parentNetNode: _, ...restData } = node.data;
 
       newNodes.push({
         ...node,
@@ -91,14 +91,14 @@ export const updateSubProcessDefinitionForParentPlaces = ({
       continue;
     }
 
-    if (node.data.type === "place" && node.data.parentProcessNode) {
+    if (node.data.type === "place" && node.data.parentNetNode) {
       /**
        * Register the fact that we've seen a linked input or output place, so that it doesn't need adding as a new node.
        */
-      if (node.data.parentProcessNode.type === "input") {
-        inputPlaceIdsToAdd.delete(node.data.parentProcessNode.id);
+      if (node.data.parentNetNode.type === "input") {
+        inputPlaceIdsToAdd.delete(node.data.parentNetNode.id);
       } else {
-        outputPlaceIdsToAdd.delete(node.data.parentProcessNode.id);
+        outputPlaceIdsToAdd.delete(node.data.parentNetNode.id);
       }
     }
 
@@ -149,7 +149,7 @@ export const updateSubProcessDefinitionForParentPlaces = ({
       data: {
         label,
         type: "place",
-        parentProcessNode: {
+        parentNetNode: {
           id: inputPlaceId,
           type: "input",
         },
@@ -177,7 +177,7 @@ export const updateSubProcessDefinitionForParentPlaces = ({
       data: {
         label,
         type: "place",
-        parentProcessNode: {
+        parentNetNode: {
           id: outputPlaceId,
           type: "output",
         },

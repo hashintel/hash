@@ -1,4 +1,9 @@
-import { IconButton, Select, TextField } from "@hashintel/design-system";
+import {
+  IconButton,
+  Select,
+  TextField,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   Box,
@@ -16,10 +21,9 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../../shared/ui";
-import { NetSelector } from "../net-selector";
 import { useEditorContext } from "./editor-context";
+import { NetSelector } from "./net-selector";
 import type {
   ArcType,
   PlaceNodeType,
@@ -191,31 +195,31 @@ export const TransitionEditor = ({
       description: transitionNode.data.description ?? "",
       conditions: transitionNode.data.conditions ?? [],
       delay: transitionNode.data.delay,
-      subProcess: transitionNode.data.subProcess,
+      childNet: transitionNode.data.childNet,
     },
   );
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
 
-  const { childProcessOptions } = useEditorContext();
+  const { childNetOptions } = useEditorContext();
 
-  const updateSubProcess = useCallback(
+  const updateChildNet = useCallback(
     ({
-      subProcessId,
-      subProcessTitle,
+      childNetId,
+      childNetTitle,
       inputPlaceIds,
       outputPlaceIds,
     }: {
-      subProcessId: string;
-      subProcessTitle: string;
+      childNetId: string;
+      childNetTitle: string;
       inputPlaceIds: string[];
       outputPlaceIds: string[];
     }) => {
       setEditedData((prev) => ({
         ...prev,
-        subProcess: {
-          subProcessId,
-          subProcessTitle,
+        childNet: {
+          childNetId,
+          childNetTitle,
           inputPlaceIds,
           outputPlaceIds,
         },
@@ -373,7 +377,7 @@ export const TransitionEditor = ({
     );
   }, [localData.conditions]);
 
-  const subProcessOptionsAvailable = childProcessOptions.length > 0;
+  const childNetOptionsAvailable = childNetOptions.length > 0;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -440,37 +444,37 @@ export const TransitionEditor = ({
               border: ({ palette }) => `1px solid ${palette.gray[20]}`,
               borderRadius: 2,
               p: 2,
-              display: subProcessOptionsAvailable ? "block" : "none",
+              display: childNetOptionsAvailable ? "block" : "none",
             }}
           >
-            {subProcessOptionsAvailable && (
+            {childNetOptionsAvailable && (
               <Box component="label">
                 <Typography
                   component="div"
                   variant="smallCaps"
                   sx={{ mb: 0.5 }}
                 >
-                  Sub-process
+                  Child net
                 </Typography>
 
                 <NetSelector
-                  options={childProcessOptions}
-                  placeholder="Select process to link"
-                  value={localData.subProcess?.subProcessId ?? null}
+                  options={childNetOptions}
+                  placeholder="Select child net to link"
+                  value={localData.childNet?.childNetId ?? null}
                   onSelect={(value) =>
-                    updateSubProcess({
+                    updateChildNet({
                       inputPlaceIds: allInputPlaces.map((place) => place.id),
                       outputPlaceIds: allOutputPlaces.map((place) => place.id),
-                      ...localData.subProcess,
-                      subProcessId: value.netId,
-                      subProcessTitle: value.title,
+                      ...localData.childNet,
+                      childNetId: value.netId,
+                      childNetTitle: value.title,
                     })
                   }
                 />
               </Box>
             )}
 
-            {localData.subProcess && (
+            {localData.childNet && (
               <>
                 <Box sx={{ mt: 2.5 }}>
                   <Typography
@@ -487,11 +491,9 @@ export const TransitionEditor = ({
                   <Stack gap={1}>
                     {allInputPlaces.map((place) => {
                       const isInputPlaceChecked =
-                        !!localData.subProcess?.inputPlaceIds.includes(
-                          place.id,
-                        );
+                        !!localData.childNet?.inputPlaceIds.includes(place.id);
                       const onlyInputPlaceChecked =
-                        localData.subProcess?.inputPlaceIds.length === 1 &&
+                        localData.childNet?.inputPlaceIds.length === 1 &&
                         isInputPlaceChecked;
 
                       return (
@@ -500,7 +502,7 @@ export const TransitionEditor = ({
                           key={place.id}
                           title={
                             onlyInputPlaceChecked
-                              ? "At least one input place must be represented in the sub-process."
+                              ? "At least one input place must be represented in the child net."
                               : ""
                           }
                         >
@@ -514,23 +516,21 @@ export const TransitionEditor = ({
                                 onChange={(event) => {
                                   const isChecked = event.target.checked;
                                   const currentInputPlaceIds =
-                                    localData.subProcess?.inputPlaceIds ?? [];
+                                    localData.childNet?.inputPlaceIds ?? [];
                                   const newInputPlaceIds = isChecked
                                     ? [...currentInputPlaceIds, place.id]
                                     : currentInputPlaceIds.filter(
                                         (id) => id !== place.id,
                                       );
 
-                                  updateSubProcess({
-                                    ...localData.subProcess!,
+                                  updateChildNet({
+                                    ...localData.childNet!,
                                     inputPlaceIds: newInputPlaceIds,
                                     outputPlaceIds:
-                                      localData.subProcess?.outputPlaceIds ??
-                                      [],
-                                    subProcessId:
-                                      localData.subProcess!.subProcessId,
-                                    subProcessTitle:
-                                      localData.subProcess!.subProcessTitle,
+                                      localData.childNet?.outputPlaceIds ?? [],
+                                    childNetId: localData.childNet!.childNetId,
+                                    childNetTitle:
+                                      localData.childNet!.childNetTitle,
                                   });
                                 }}
                                 sx={{ mr: 0.8 }}
@@ -560,11 +560,9 @@ export const TransitionEditor = ({
                   <Stack gap={1}>
                     {allOutputPlaces.map((place) => {
                       const isOutputPlaceChecked =
-                        !!localData.subProcess?.outputPlaceIds.includes(
-                          place.id,
-                        );
+                        !!localData.childNet?.outputPlaceIds.includes(place.id);
                       const onlyOutputPlaceChecked =
-                        localData.subProcess?.outputPlaceIds.length === 1 &&
+                        localData.childNet?.outputPlaceIds.length === 1 &&
                         isOutputPlaceChecked;
 
                       return (
@@ -573,7 +571,7 @@ export const TransitionEditor = ({
                           key={place.id}
                           title={
                             onlyOutputPlaceChecked
-                              ? "At least one output place must be represented in the sub-process."
+                              ? "At least one output place must be represented in the child net."
                               : ""
                           }
                         >
@@ -586,22 +584,21 @@ export const TransitionEditor = ({
                                 onChange={(event) => {
                                   const isChecked = event.target.checked;
                                   const currentOutputPlaceIds =
-                                    localData.subProcess?.outputPlaceIds ?? [];
+                                    localData.childNet?.outputPlaceIds ?? [];
                                   const newOutputPlaceIds = isChecked
                                     ? [...currentOutputPlaceIds, place.id]
                                     : currentOutputPlaceIds.filter(
                                         (id) => id !== place.id,
                                       );
 
-                                  updateSubProcess({
-                                    ...localData.subProcess!,
+                                  updateChildNet({
+                                    ...localData.childNet!,
                                     inputPlaceIds:
-                                      localData.subProcess?.inputPlaceIds ?? [],
+                                      localData.childNet?.inputPlaceIds ?? [],
                                     outputPlaceIds: newOutputPlaceIds,
-                                    subProcessId:
-                                      localData.subProcess!.subProcessId,
-                                    subProcessTitle:
-                                      localData.subProcess!.subProcessTitle,
+                                    childNetId: localData.childNet!.childNetId,
+                                    childNetTitle:
+                                      localData.childNet!.childNetTitle,
                                   });
                                 }}
                                 sx={{ mr: 0.8 }}
@@ -620,7 +617,7 @@ export const TransitionEditor = ({
           </Stack>
 
           <Divider
-            sx={{ display: subProcessOptionsAvailable ? "none" : "block" }}
+            sx={{ display: childNetOptionsAvailable ? "none" : "block" }}
           />
 
           <Box>

@@ -42,7 +42,7 @@ export const getPersistedNetsFromSubgraph = (
 
   const nets = getRoots(subgraph);
 
-  const subProcessLinksByNodeIdAndSubProcessId: PersistedNet["subProcessLinksByNodeIdAndSubProcessId"] =
+  const childNetLinksByNodeIdAndChildNetId: PersistedNet["childNetLinksByNodeIdAndChildNetId"] =
     {};
 
   return nets.map((net) => {
@@ -77,7 +77,7 @@ export const getPersistedNetsFromSubgraph = (
 
     const transitionIdToSubprocess = new Map<
       string,
-      TransitionNodeData["subProcess"]
+      TransitionNodeData["childNet"]
     >();
 
     for (const incomingSubProcess of incomingSubProcesses) {
@@ -88,7 +88,7 @@ export const getPersistedNetsFromSubgraph = (
         continue;
       }
 
-      subProcessLinksByNodeIdAndSubProcessId[
+      childNetLinksByNodeIdAndChildNetId[
         subProcessOfLink.properties[
           "https://hash.ai/@h/types/property-type/transition-id/"
         ]
@@ -103,11 +103,11 @@ export const getPersistedNetsFromSubgraph = (
           "https://hash.ai/@h/types/property-type/transition-id/"
         ],
         {
-          subProcessTitle:
+          childNetTitle:
             subProcess.properties[
               "https://hash.ai/@h/types/property-type/title/"
             ],
-          subProcessId: subProcess.entityId,
+          childNetId: subProcess.entityId,
           inputPlaceIds:
             subProcessOfLink.properties[
               "https://hash.ai/@h/types/property-type/input-place-id/"
@@ -168,16 +168,16 @@ export const getPersistedNetsFromSubgraph = (
       entityId: net.entityId,
       title: netTitle,
       definition: clonedDefinition,
-      parentProcess: parentProcess
+      parentNet: parentProcess
         ? {
-            parentProcessId: parentProcess.entityId,
+            parentNetId: parentProcess.entityId,
             title:
               parentProcess.properties[
                 "https://hash.ai/@h/types/property-type/title/"
               ],
           }
         : null,
-      subProcessLinksByNodeIdAndSubProcessId,
+      childNetLinksByNodeIdAndChildNetId,
       userEditable,
     };
   });
