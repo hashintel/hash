@@ -12,6 +12,11 @@ data "aws_acm_certificate" "hash_wildcard_cert" {
 resource "aws_ecs_cluster" "observability" {
   name = var.prefix
 
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
   service_connect_defaults {
     namespace = aws_service_discovery_private_dns_namespace.observability.arn
   }
@@ -145,6 +150,10 @@ module "otel_collector" {
   loki_http_port                   = module.loki.http_port
   mimir_http_dns                   = module.mimir.http_dns
   mimir_http_port                  = module.mimir.http_port
+  grafana_dns                      = module.grafana.grafana_dns
+  grafana_port                     = module.grafana.grafana_port
+  tempo_api_dns                    = module.tempo.api_dns
+  tempo_api_port                   = module.tempo.api_port
 
   ssl_config = local.aws_ca_ssl_config
 }

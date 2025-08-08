@@ -20,6 +20,7 @@ resource "aws_s3_object" "otel_collector_config" {
   # Generate config from template with environment-specific parameters
   content = templatefile("${path.module}/templates/otel-collector.yaml.tpl", {
     environment          = local.otel_environment
+    prefix               = var.prefix
     batch_timeout        = "1s"
     batch_size           = 8192
     grpc_port_internal   = local.grpc_port_internal
@@ -27,12 +28,16 @@ resource "aws_s3_object" "otel_collector_config" {
     grpc_port_external   = local.grpc_port_external
     http_port_external   = local.http_port_external
     health_port          = local.health_port
+    tempo_api_dns        = var.tempo_api_dns
+    tempo_api_port       = var.tempo_api_port
     tempo_otlp_grpc_dns  = var.tempo_otlp_grpc_dns
     tempo_otlp_grpc_port = var.tempo_otlp_grpc_port
     loki_http_dns        = var.loki_http_dns
     loki_http_port       = var.loki_http_port
     mimir_http_dns       = var.mimir_http_dns
     mimir_http_port      = var.mimir_http_port
+    grafana_dns          = var.grafana_dns
+    grafana_port         = var.grafana_port
   })
 
   content_type = "application/x-yaml"

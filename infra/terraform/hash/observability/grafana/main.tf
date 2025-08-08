@@ -7,4 +7,5 @@ locals {
 
   grafana_port      = 3000
   grafana_port_name = "${local.service_name}-http"
+  grafana_dns       = "${local.grafana_port_name}.${var.service_discovery_namespace_name}"
 }

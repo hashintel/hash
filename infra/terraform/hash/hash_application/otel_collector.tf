@@ -20,6 +20,21 @@ locals {
           }
         }
       }
+      "prometheus/self" = {
+        config = {
+          scrape_configs = [
+            {
+              job_name        = "self-metrics"
+              scrape_interval = "5s"
+              static_configs = [
+                {
+                  targets = ["localhost:8888"]
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
     processors = {
       batch = {}
@@ -43,6 +58,26 @@ locals {
       }
     }
     service = {
+      telemetry = {
+        resource = {
+          "service.name" = "${local.prefix}-otel-cluster-agent"
+        }
+        metrics = {
+          level = "basic"
+          readers = [
+            {
+              pull = {
+                exporter = {
+                  prometheus = {
+                    host = "0.0.0.0"
+                    port = 8888
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
       pipelines = {
         traces = {
           receivers  = ["otlp"]
@@ -50,7 +85,7 @@ locals {
           exporters  = ["otlp"]
         }
         metrics = {
-          receivers  = ["otlp"]
+          receivers  = ["otlp", "prometheus/self"]
           processors = ["batch"]
           exporters  = ["otlp"]
         }

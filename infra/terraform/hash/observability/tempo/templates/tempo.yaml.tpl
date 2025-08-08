@@ -52,7 +52,7 @@ metrics_generator:
     path: /var/tempo/generator/traces
   processor:
     span_metrics:
-      dimensions: ["service.name", "http.method", "status_code"]
+      dimensions: ["service.name", "status_code"]
     service_graphs: {}
     local_blocks: {}
 
