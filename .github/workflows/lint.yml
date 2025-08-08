@@ -7,10 +7,6 @@ on:
       - main
   merge_group:
 
-permissions:
-  contents: read
-  security-events: write
-
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
@@ -48,6 +44,9 @@ jobs:
 
   package:
     name: Package
+    permissions:
+      contents: read
+      security-events: write
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
