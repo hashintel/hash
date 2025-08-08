@@ -53,7 +53,7 @@ const script = async () => {
       "--noEmit", "false",
       "--outDir", "dist",
       "--target", "es2020",
-      "--paths", "{}"
+      "--paths", "null"
     ],
     {
       cwd: packageInfo.path,
