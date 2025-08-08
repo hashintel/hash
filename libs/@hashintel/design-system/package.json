@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/design-system",
-  "version": "0.0.9-canary.0",
+  "version": "0.0.9-canary.1",
   "description": "HASH Design System",
   "repository": {
     "type": "git",
@@ -33,6 +33,16 @@
       ]
     }
   },
+  "files": [
+    "dist",
+    "assets.d.ts",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md",
+    "theme-override.d.ts"
+  ],
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
