@@ -31,7 +31,7 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "7.0.2",
     "@dnd-kit/utilities": "3.2.2",
-    "@hashintel/design-system": "0.0.8",
+    "@hashintel/design-system": "0.0.9-canary.0",
     "@mui/icons-material": "5.18.0",
     "@mui/material": "5.18.0",
     "immer": "9.0.21",
