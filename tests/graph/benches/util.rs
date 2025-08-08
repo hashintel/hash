@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::mem::ManuallyDrop;
 use std::{collections::HashMap, fs, path::Path};
 
