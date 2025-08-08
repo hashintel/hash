@@ -11,25 +11,25 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": "./src/components.ts",
-    "./constants": "./src/constants.ts",
-    "./palettes": "./src/palettes.ts",
-    "./theme": "./src/theme.ts"
+    ".": "./dist/components.js",
+    "./constants": "./dist/constants.js",
+    "./palettes": "./dist/palettes.js",
+    "./theme": "./dist/theme.js"
   },
-  "types": "./src/components.ts",
+  "types": "./dist/components.d.ts",
   "typesVersions": {
     "*": {
       ".": [
-        "./src/components.ts"
+        "./dist/components.d.ts"
       ],
       "constants": [
-        "./src/constants.ts"
+        "./dist/constants.d.ts"
       ],
       "palettes": [
-        "./src/palettes.ts"
+        "./dist/palettes.d.ts"
       ],
       "theme": [
-        "./src/theme.ts"
+        "./dist/theme.d.ts"
       ]
     }
   },
@@ -49,20 +49,7 @@
     "react-loading-skeleton": "3.5.0"
   },
   "devDependencies": {
-    "@emotion/cache": "11.14.0",
-    "@emotion/react": "11.14.0",
-    "@emotion/styled": "11.14.1",
-    "@local/eslint": "0.0.0-private",
-    "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.18.0",
-    "@mui/system": "5.18.0",
-    "@storybook/react": "7.6.20",
-    "@types/react": "19.1.9",
-    "@types/react-dom": "19.1.7",
     "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
     "typescript": "5.7.3"
   },
   "peerDependencies": {
