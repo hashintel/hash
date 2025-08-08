@@ -1507,9 +1507,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.41"
+version = "4.5.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be92d32e80243a54711e5d7ce823c35c41c9d929dc4ab58e1276f625841aadf9"
+checksum = "50fd97c9dc2399518aa331917ac6f274280ec5eb34e555dd291899745c48ec6f"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1517,9 +1517,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.41"
+version = "4.5.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707eab41e9622f9139419d573eca0900137718000c517d47da73045f54331c3d"
+checksum = "c35b5830294e1fa0462034af85cc95225a4cb07092c088c55bda3147cfcd8f65"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1530,9 +1530,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.55"
+version = "4.5.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5abde44486daf70c5be8b8f8f1b66c49f86236edf6fa2abadb4d961c4c6229a"
+checksum = "67e4efcbb5da11a92e8a609233aa1e8a7d91e38de0be865f016d14700d45a7fd"
 dependencies = [
  "clap",
 ]
@@ -4041,7 +4041,7 @@ dependencies = [
  "ipnet",
  "once_cell",
  "rand 0.9.2",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tinyvec",
  "tokio",
@@ -4267,7 +4267,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.0",
+ "socket2",
  "tokio",
  "tower-service",
  "tracing",
@@ -4655,7 +4655,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b58db92f96b720de98181bbbe63c831e87005ab460c1bf306eb2622b4707997f"
 dependencies = [
- "socket2 0.5.10",
+ "socket2",
  "widestring",
  "windows-sys 0.48.0",
  "winreg",
@@ -5140,7 +5140,7 @@ dependencies = [
  "libp2p-swarm",
  "rand 0.8.5",
  "smallvec 1.15.1",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tracing",
 ]
@@ -5218,7 +5218,7 @@ dependencies = [
  "rand 0.8.5",
  "ring",
  "rustls",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -5284,7 +5284,7 @@ dependencies = [
  "if-watch",
  "libc",
  "libp2p-core",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tracing",
 ]
@@ -7309,7 +7309,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -7346,7 +7346,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -8625,16 +8625,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "socket2"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
-dependencies = [
- "libc",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "specta"
 version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
@@ -9297,7 +9287,7 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "slab",
- "socket2 0.5.10",
+ "socket2",
  "tokio-macros",
  "windows-sys 0.52.0",
 ]
@@ -9333,7 +9323,7 @@ dependencies = [
  "postgres-protocol",
  "postgres-types",
  "rand 0.9.2",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tokio-util",
  "whoami",
@@ -9510,7 +9500,7 @@ dependencies = [
  "prost",
  "rustls-native-certs",
  "rustls-pemfile",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
