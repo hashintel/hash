@@ -11,7 +11,7 @@ import type {
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "./process-editor";
+} from "./petrinaut";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent?.trim() ?? "";

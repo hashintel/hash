@@ -1,4 +1,4 @@
-import type { ArcType, NodeType, TokenType } from "./process-editor";
+import type { ArcType, NodeType, TokenType } from "./petrinaut";
 
 export const exampleCPN = {
   title: "Drug Production",

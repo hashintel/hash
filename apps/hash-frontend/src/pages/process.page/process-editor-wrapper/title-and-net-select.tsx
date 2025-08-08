@@ -4,7 +4,7 @@ import { EditableField } from "@hashintel/block-design-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 
-import { NetSelector } from "./process-editor";
+import { NetSelector } from "./petrinaut";
 import type { PersistedNet } from "./use-process-save-and-load";
 
 export const TitleAndNetSelect = ({

@@ -41,7 +41,7 @@ import type {
   NodeType,
   PetriNetDefinitionObject,
   TransitionNodeType,
-} from "./process-editor";
+} from "./petrinaut";
 import { updateSubProcessDefinitionForParentPlaces } from "./use-process-save-and-load/update-sub-process-nodes";
 import {
   getPersistedNetsFromSubgraph,

@@ -21,25 +21,25 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
-import { Arc } from "./process-editor/arc";
-import { ArcEditor } from "./process-editor/arc-editor";
+import { Arc } from "./petrinaut/arc";
+import { ArcEditor } from "./petrinaut/arc-editor";
 import {
   EditorContextProvider,
   useEditorContext,
-} from "./process-editor/editor-context";
-import { LogPane } from "./process-editor/log-pane";
-import { PlaceEditor } from "./process-editor/place-editor";
-import { PlaceNode } from "./process-editor/place-node";
-import { Sidebar } from "./process-editor/sidebar";
+} from "./petrinaut/editor-context";
+import { LogPane } from "./petrinaut/log-pane";
+import { PlaceEditor } from "./petrinaut/place-editor";
+import { PlaceNode } from "./petrinaut/place-node";
+import { Sidebar } from "./petrinaut/sidebar";
 import {
   SimulationContextProvider,
   useSimulationContext,
-} from "./process-editor/simulation-context";
-import { SimulationControls } from "./process-editor/simulation-controls";
-import { nodeDimensions } from "./process-editor/styling";
-import { TokenTypes } from "./process-editor/token-types";
-import { TransitionEditor } from "./process-editor/transition-editor";
-import { TransitionNode } from "./process-editor/transition-node";
+} from "./petrinaut/simulation-context";
+import { SimulationControls } from "./petrinaut/simulation-controls";
+import { nodeDimensions } from "./petrinaut/styling";
+import { TokenTypes } from "./petrinaut/token-types";
+import { TransitionEditor } from "./petrinaut/transition-editor";
+import { TransitionNode } from "./petrinaut/transition-node";
 import type {
   ArcData,
   ArcType,
@@ -55,7 +55,7 @@ import type {
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
-} from "./process-editor/types";
+} from "./petrinaut/types";
 
 export type {
   ArcData,
@@ -74,9 +74,9 @@ export type {
   TransitionNodeType,
 };
 
-export { NetSelector } from "./process-editor/net-selector";
+export { NetSelector } from "./petrinaut/net-selector";
 
-const PetriNetEditorContent = () => {
+const PetrinautInner = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
@@ -532,7 +532,7 @@ const PetriNetEditorContent = () => {
   );
 };
 
-export type PetriNetEditorProps = {
+export type PetrinautProps = {
   childNetOptions: MinimalNetMetadata[];
   parentNet: ParentNet | null;
   petriNet: PetriNetDefinitionObject;
@@ -541,14 +541,14 @@ export type PetriNetEditorProps = {
   readonly: boolean;
 };
 
-export const ProcessEditor = ({
+export const Petrinaut = ({
   childNetOptions,
   parentNet,
   petriNet,
   setPetriNet,
   loadPetriNet,
   readonly,
-}: PetriNetEditorProps) => {
+}: PetrinautProps) => {
   return (
     <ReactFlowProvider>
       <EditorContextProvider
@@ -560,7 +560,7 @@ export const ProcessEditor = ({
         readonly={readonly}
       >
         <SimulationContextProvider>
-          <PetriNetEditorContent />
+          <PetrinautInner />
         </SimulationContextProvider>
       </EditorContextProvider>
     </ReactFlowProvider>

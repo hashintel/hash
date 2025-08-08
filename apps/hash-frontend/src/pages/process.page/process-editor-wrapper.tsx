@@ -7,10 +7,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button } from "../../shared/ui";
 import { exampleCPN } from "./process-editor-wrapper/examples";
+import { Petrinaut } from "./process-editor-wrapper/petrinaut";
+import { defaultTokenTypes } from "./process-editor-wrapper/petrinaut/token-types";
+import type { PetriNetDefinitionObject } from "./process-editor-wrapper/petrinaut/types";
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
-import { ProcessEditor } from "./process-editor-wrapper/process-editor";
-import { defaultTokenTypes } from "./process-editor-wrapper/process-editor/token-types";
-import type { PetriNetDefinitionObject } from "./process-editor-wrapper/process-editor/types";
 import { TitleAndNetSelect } from "./process-editor-wrapper/title-and-net-select";
 import { useConvertToPnml } from "./process-editor-wrapper/use-convert-to-pnml";
 import { useLoadFromPnml } from "./process-editor-wrapper/use-load-from-pnml";
@@ -222,7 +222,7 @@ export const ProcessEditorWrapper = () => {
       />
 
       <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
-        <ProcessEditor
+        <Petrinaut
           childNetOptions={childProcessOptions}
           petriNet={petriNet}
           parentNet={parentNet}

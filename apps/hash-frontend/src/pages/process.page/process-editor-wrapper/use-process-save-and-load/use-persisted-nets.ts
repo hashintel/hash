@@ -30,7 +30,7 @@ import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/en
 import type {
   PetriNetDefinitionObject,
   TransitionNodeData,
-} from "../process-editor/types";
+} from "../petrinaut/types";
 import type { PersistedNet } from "../use-process-save-and-load";
 
 export const getPersistedNetsFromSubgraph = (
