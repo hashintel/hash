@@ -170,6 +170,9 @@ jobs:
 
   build:
     name: Build
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-24.04
     needs: [setup]
     strategy:

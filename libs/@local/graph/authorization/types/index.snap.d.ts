@@ -13,6 +13,11 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
+export interface ResolvedPolicy {
+	effect: Effect;
+	actions: ActionName[];
+	resource: (ResourceConstraint | null);
+}
 export type ActionName = "createPolicy" | "createDataType" | "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewPolicy" | "viewDataType" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updatePolicy" | "updateDataType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archivePolicy" | "archiveDataType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "deletePolicy" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"

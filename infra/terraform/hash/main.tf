@@ -251,7 +251,7 @@ module "application" {
   cpu                          = 2048
   memory                       = 4096
   worker_cpu                   = 256
-  worker_memory                = 1024
+  worker_memory                = 2048
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
   graph_migration_env_vars = concat(var.hash_graph_env_vars, [
