@@ -1,21 +1,14 @@
-# ECS Task Definition and Service for Grafana
+# ECS Task Definition and Service for Grafana Alloy
 
-# SSM Parameters for Grafana secrets
-resource "aws_ssm_parameter" "grafana_env_vars" {
-  for_each = {
-    "GF_DATABASE_PASSWORD"   = var.grafana_database_password
-    "GF_SECURITY_SECRET_KEY" = var.grafana_secret_key
-  }
-
-  name      = "/${var.prefix}/grafana/${each.key}"
-  type      = "SecureString"
-  value     = sensitive(each.value)
-  overwrite = true
-  tags      = {}
+# Configuration hash for task definition versioning
+locals {
+  config_hash = sha256(jsonencode({
+    alloy_config = aws_s3_object.alloy_config.content
+  }))
 }
 
 # ECS Task Definition
-resource "aws_ecs_task_definition" "grafana" {
+resource "aws_ecs_task_definition" "alloy" {
   family                   = "${local.prefix}-${substr(local.config_hash, 0, 8)}"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
@@ -28,15 +21,15 @@ resource "aws_ecs_task_definition" "grafana" {
     # CA certificates setup (shared configuration)
     var.ssl_config.init_container,
 
-    # Grafana-specific config-downloader
+    # Config downloader
     {
       name  = "config-downloader"
       image = "amazon/aws-cli:latest"
 
       command = [
         "s3", "cp",
-        "s3://${var.config_bucket.id}/${local.service_name}/",
-        "/etc/grafana/",
+        "s3://${var.config_bucket.id}/alloy/",
+        "/etc/alloy/",
         "--recursive"
       ]
 
@@ -54,15 +47,17 @@ resource "aws_ecs_task_definition" "grafana" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "grafana-config-downloader"
+          "awslogs-stream-prefix" = "alloy-config-downloader"
         }
       }
     },
 
-    # Main Grafana container
+    # Main Grafana Alloy container
     {
-      name  = "grafana"
-      image = "grafana/grafana:12.1.0"
+      name  = "alloy"
+      image = "grafana/alloy:v1.10.1"
+
+      command = ["run", "/etc/alloy/config.alloy", "--server.http.listen-addr=0.0.0.0:5000"]
 
       dependsOn = [
         {
@@ -79,45 +74,29 @@ resource "aws_ecs_task_definition" "grafana" {
         {
           sourceVolume  = "config"
           containerPath = "/etc"
-          readOnly      = false
+          readOnly      = true
         },
         var.ssl_config.mount_point
       ]
 
-      environment = concat(
-        var.ssl_config.environment_vars,
-        [
-          {
-            name  = "AWS_REGION"
-            value = var.region
-          },
-          {
-            name  = "AWS_DEFAULT_REGION"
-            value = var.region
-          }
-        ]
-      )
-
-      secrets = [
-        for env_name, ssm_param in aws_ssm_parameter.grafana_env_vars :
-        { name = env_name, valueFrom = ssm_param.arn }
-      ]
+      environment = concat([
+        {
+          name  = "AWS_REGION"
+          value = var.region
+        },
+        {
+          name  = "AWS_DEFAULT_REGION"
+          value = var.region
+        }
+      ], var.ssl_config.environment_vars)
 
       portMappings = [
         {
-          name          = local.grafana_port_name
-          containerPort = local.grafana_port
+          name          = local.http_port_name
+          containerPort = local.http_port
           protocol      = "tcp"
         }
       ]
-
-      healthCheck = {
-        command     = ["CMD", "curl", "-f", "http://localhost:${local.grafana_port}/api/health"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 60
-      }
 
       readonlyRootFilesystem   = false
       allowPrivilegeEscalation = false
@@ -153,15 +132,15 @@ resource "aws_ecs_task_definition" "grafana" {
 
   tags = {
     Name    = "${local.prefix}-task-definition"
-    Purpose = "Grafana ECS task definition"
+    Purpose = "Grafana Alloy ECS task definition"
   }
 }
 
 # ECS Service
-resource "aws_ecs_service" "grafana" {
+resource "aws_ecs_service" "alloy" {
   name                   = local.service_name
   cluster                = var.cluster_arn
-  task_definition        = aws_ecs_task_definition.grafana.arn
+  task_definition        = aws_ecs_task_definition.alloy.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
@@ -169,7 +148,7 @@ resource "aws_ecs_service" "grafana" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.grafana.id]
+    security_groups  = [aws_security_group.alloy.id]
   }
 
   service_connect_configuration {
@@ -177,22 +156,16 @@ resource "aws_ecs_service" "grafana" {
     namespace = var.service_discovery_namespace_arn
 
     service {
-      port_name = local.grafana_port_name
+      port_name = local.http_port_name
 
       client_alias {
-        port = local.grafana_port
+        port = local.http_port
       }
     }
   }
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.grafana.arn
-    container_name   = "grafana"
-    container_port   = local.grafana_port
-  }
-
   tags = {
     Name    = local.service_name
-    Purpose = "Grafana observability dashboard"
+    Purpose = "Grafana Alloy CloudWatch metrics receiver"
   }
 }

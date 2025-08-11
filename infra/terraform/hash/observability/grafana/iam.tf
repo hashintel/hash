@@ -104,5 +104,4 @@ resource "aws_iam_role" "task_role" {
       ]
     })
   }
-
 }
