@@ -47,6 +47,11 @@ receivers:
           static_configs:
             - targets: ['${tempo_api_dns}:${tempo_api_port}']
           metrics_path: '/metrics'
+        - job_name: '${prefix}-alloy'
+          scrape_interval: 60s
+          static_configs:
+            - targets: ['${alloy_dns}:${alloy_port}']
+          metrics_path: '/metrics'
 
 processors:
   # Memory limiter to prevent OOM kills (512MB container - 50MB overhead = ~450MB limit)

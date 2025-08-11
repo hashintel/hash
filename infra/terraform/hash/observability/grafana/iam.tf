@@ -104,49 +104,4 @@ resource "aws_iam_role" "task_role" {
       ]
     })
   }
-
-  inline_policy {
-    name = "cloudwatch-access"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow"
-          Action = [
-            "cloudwatch:DescribeAlarmsForMetric",
-            "cloudwatch:DescribeAlarmHistory",
-            "cloudwatch:DescribeAlarms",
-            "cloudwatch:ListMetrics",
-            "cloudwatch:GetMetricData",
-            "cloudwatch:GetInsightRuleReport"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "logs:DescribeLogGroups",
-            "logs:DescribeLogStreams",
-            "logs:DescribeSubscriptionFilters",
-            "logs:DescribeMetricFilters",
-            "logs:DescribeQueries",
-            "logs:GetLogEvents",
-            "logs:FilterLogEvents",
-            "logs:StartQuery",
-            "logs:StopQuery",
-            "logs:GetQueryResults"
-          ]
-          Resource = "*"
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "tag:GetResources"
-          ]
-          Resource = "*"
-        }
-      ]
-    })
-  }
-
 }

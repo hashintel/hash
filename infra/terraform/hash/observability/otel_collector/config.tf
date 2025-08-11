@@ -38,6 +38,8 @@ resource "aws_s3_object" "otel_collector_config" {
     mimir_http_port      = var.mimir_http_port
     grafana_dns          = var.grafana_dns
     grafana_port         = var.grafana_port
+    alloy_dns            = var.alloy_dns
+    alloy_port           = var.alloy_port
   })
 
   content_type = "application/x-yaml"
