@@ -7,7 +7,6 @@ locals {
     tempo_datasource      = aws_s3_object.grafana_tempo_datasource.content
     loki_datasource       = aws_s3_object.grafana_loki_datasource.content
     mimi_datasource       = aws_s3_object.grafana_mimir_datasource.content
-    cloudwatch_datasource = aws_s3_object.grafana_cloudwatch_datasource.content
   }))
 }
 
@@ -77,21 +76,6 @@ resource "aws_s3_object" "grafana_mimir_datasource" {
 
   tags = {
     Purpose = "Grafana Mimir Datasource"
-    Service = "grafana"
-  }
-}
-
-# CloudWatch datasource provisioning
-resource "aws_s3_object" "grafana_cloudwatch_datasource" {
-  bucket = var.config_bucket.id
-  key    = "grafana/provisioning/datasources/cloudwatch.yaml"
-  content = templatefile("${path.module}/templates/provisioning/datasources/cloudwatch.yaml.tpl", {
-    aws_region = var.region
-  })
-  content_type = "application/x-yaml"
-
-  tags = {
-    Purpose = "Grafana CloudWatch Datasource"
     Service = "grafana"
   }
 }
