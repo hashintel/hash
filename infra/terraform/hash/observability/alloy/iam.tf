@@ -103,7 +103,7 @@ resource "aws_iam_role" "task_role" {
   }
 
   tags = {
-    Purpose = "Grafana Alloy ECS task role"  
+    Purpose = "Grafana Alloy ECS task role"
   }
 }
 

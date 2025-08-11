@@ -7,8 +7,8 @@ resource "aws_s3_object" "alloy_config" {
 
   # Grafana Alloy configuration
   content = templatefile("${path.module}/templates/alloy-config.alloy.tpl", {
-    region = var.region
-    mimir_http_dns = var.mimir_http_dns
+    region          = var.region
+    mimir_http_dns  = var.mimir_http_dns
     mimir_http_port = var.mimir_http_port
   })
 

@@ -3,10 +3,10 @@
 # Configuration hash for task definition versioning
 locals {
   config_hash = sha256(jsonencode({
-    grafana_config        = aws_s3_object.grafana_config.content
-    tempo_datasource      = aws_s3_object.grafana_tempo_datasource.content
-    loki_datasource       = aws_s3_object.grafana_loki_datasource.content
-    mimi_datasource       = aws_s3_object.grafana_mimir_datasource.content
+    grafana_config   = aws_s3_object.grafana_config.content
+    tempo_datasource = aws_s3_object.grafana_tempo_datasource.content
+    loki_datasource  = aws_s3_object.grafana_loki_datasource.content
+    mimi_datasource  = aws_s3_object.grafana_mimir_datasource.content
   }))
 }
 
