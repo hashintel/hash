@@ -744,7 +744,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     //          statement to ensure compatibility
     // TODO: Remove CTE to allow limit or cursor selection
     //   see https://linear.app/hash/issue/H-1442
-    #[instrument(level = "debug", skip_all)]
+    #[instrument(level = "info", skip_all)]
     fn compile_latest_ontology_version_filter<'f: 'q>(
         &mut self,
         path: &R::QueryPath<'f>,
@@ -825,7 +825,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    #[instrument(level = "info", skip(self, filter))]
     fn compile_special_filter<'f: 'q>(&mut self, filter: &'p Filter<'f, R>) -> Option<Condition>
     where
         R::QueryPath<'f>: PostgresQueryPath,
