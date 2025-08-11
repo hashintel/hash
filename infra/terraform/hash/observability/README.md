@@ -4,11 +4,20 @@ OpenTelemetry-based observability infrastructure providing traces, metrics, and 
 
 ## Architecture
 
-- **OpenTelemetry Collector**: Receives traces/metrics from applications
+- **OpenTelemetry Collector**: Gateway receiving traces/metrics from applications
+- **Grafana Alloy**: CloudWatch metrics exporter (AWS/ECS + ContainerInsights)
 - **Tempo**: Distributed tracing storage and querying
 - **Mimir**: Prometheus-compatible metrics storage
 - **Loki**: Log aggregation and querying
 - **Grafana**: Visualization and dashboards (behind CloudFlare Zero Trust)
+
+### Data Flow
+
+```
+App Clusters → OTEL Collector (Gateway) → Mimir/Loki/Tempo
+                      |
+CloudWatch   → Grafana Alloy
+```
 
 ## Services & Endpoints
 
@@ -18,6 +27,7 @@ All services are deployed on ECS cluster `h-prod-observability` with internal se
 - **Mimir**: `mimir-http.h-prod-observability:8080`
 - **Loki**: `loki-http.h-prod-observability:3100`
 - **OTel Collector**: `otel-collector.h-prod-observability:4317` (gRPC), `4318` (HTTP)
+- **Grafana Alloy**: `alloy-http.h-prod-observability:5000` (metrics endpoint)
 - **Grafana**: `grafana.h-prod-observability:3000` (also available via CloudFlare)
 
 ## Access Methods

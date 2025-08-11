@@ -14,7 +14,7 @@ resource "aws_ecs_cluster" "observability" {
 
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "enhanced"
   }
 
   service_connect_defaults {
@@ -154,6 +154,8 @@ module "otel_collector" {
   grafana_port                     = module.grafana.grafana_port
   tempo_api_dns                    = module.tempo.api_dns
   tempo_api_port                   = module.tempo.api_port
+  alloy_dns                        = module.alloy.http_port_dns
+  alloy_port                       = module.alloy.http_port
 
   ssl_config = local.aws_ca_ssl_config
 }
@@ -235,4 +237,22 @@ module "grafana" {
   critical_alerts_topic_arn         = var.critical_alerts_topic_arn
 
   ssl_config = local.full_ca_ssl_config
+}
+
+# Grafana Alloy service for CloudWatch metrics
+module "alloy" {
+  source                           = "./alloy"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+  mimir_http_dns                   = module.mimir.http_dns
+  mimir_http_port                  = module.mimir.http_port
+
+  ssl_config = local.aws_ca_ssl_config
 }

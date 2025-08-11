@@ -130,6 +130,15 @@ resource "aws_security_group" "otel_collector" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  # Allow outbound traffic to Grafana Alloy for metrics scraping
+  egress {
+    from_port   = var.alloy_port
+    to_port     = var.alloy_port
+    protocol    = "tcp"
+    description = "HTTP to Grafana Alloy for metrics scraping"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   tags = {
     Name    = "${local.prefix}-sg"
     Purpose = "OpenTelemetry Collector security group"

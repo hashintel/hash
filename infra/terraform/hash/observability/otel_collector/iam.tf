@@ -59,7 +59,7 @@ resource "aws_iam_role" "task_role" {
             "s3:GetObject"
           ]
           Resource = "${var.config_bucket.arn}/otelcol/*"
-        }
+        },
       ]
     })
   }
