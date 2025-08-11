@@ -11,7 +11,10 @@ if (otlpEndpoint) {
   const { registerOpenTelemetryTracing } = await import(
     "./graphql/opentelemetry.js"
   );
-  registerOpenTelemetryTracing(otlpEndpoint, "Node API");
+  registerOpenTelemetryTracing(
+    otlpEndpoint,
+    process.env.OTEL_SERVICE_NAME || "Node API",
+  );
 }
 
 const sentryDsn = process.env.NODE_API_SENTRY_DSN;

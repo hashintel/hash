@@ -61,6 +61,7 @@ locals {
         { name = "HASH_GRAPH_RPC_HOST", value = local.graph_rpc_container_port_dns },
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
+        { name = "OTEL_SERVICE_NAME", value = "Node Migrations" },
     ])
 
     secrets = [
@@ -120,6 +121,7 @@ locals {
         { name = "HASH_GRAPH_RPC_HOST", value = local.graph_rpc_container_port_dns },
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_OTLP_ENDPOINT", value = "http://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
+        { name = "OTEL_SERVICE_NAME", value = "Node API" },
     ])
 
     secrets = [
