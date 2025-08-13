@@ -8,10 +8,8 @@ import { isProdEnv } from "./lib/env-config";
 // Initialize OpenTelemetry BEFORE any app code
 const otlpEndpoint = process.env.HASH_OTLP_ENDPOINT;
 if (otlpEndpoint) {
-  const { registerOpenTelemetryTracing } = await import(
-    "./graphql/opentelemetry.js"
-  );
-  registerOpenTelemetryTracing(
+  const { registerOpenTelemetry } = await import("./graphql/opentelemetry.js");
+  registerOpenTelemetry(
     otlpEndpoint,
     process.env.OTEL_SERVICE_NAME || "Node API",
   );

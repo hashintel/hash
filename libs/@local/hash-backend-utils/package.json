@@ -38,6 +38,8 @@
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "2.13.0",
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/api-logs": "0.57.2",
     "@sentry/node": "9.44.0",
     "@smithy/protocol-http": "5.1.2",
     "@smithy/signature-v4": "5.1.2",
@@ -57,7 +59,8 @@
     "slonik": "24.2.0",
     "uuid": "11.1.0",
     "wait-on": "8.0.4",
-    "winston": "3.17.0"
+    "winston": "3.17.0",
+    "winston-transport": "4.9.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
