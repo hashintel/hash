@@ -9,7 +9,10 @@ import { isProdEnv } from "./lib/env-config";
 const otlpEndpoint = process.env.HASH_OTLP_ENDPOINT;
 if (otlpEndpoint) {
   const { registerOpenTelemetry } = await import("./graphql/opentelemetry.js");
-  registerOpenTelemetry(otlpEndpoint, "Node API");
+  registerOpenTelemetry(
+    otlpEndpoint,
+    process.env.OTEL_SERVICE_NAME || "Node API",
+  );
 }
 
 const sentryDsn = process.env.NODE_API_SENTRY_DSN;

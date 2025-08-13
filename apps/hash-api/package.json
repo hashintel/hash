@@ -16,10 +16,10 @@
     "lint:tsc": "tsc --noEmit",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx --import ./src/instrument.mjs ./src/index.ts",
     "start:healthcheck": "wait-on --timeout 600000 http://localhost:5001",
-    "start:migrate": "NODE_ENV=production tsx --import ./src/instrument.mjs ./src/ensure-system-graph-is-initialized.ts",
+    "start:migrate": "NODE_ENV=production OTEL_SERVICE_NAME=\"Node Migrations\" tsx --import ./src/instrument.mjs ./src/ensure-system-graph-is-initialized.ts",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:5001",
-    "start:test:migrate": "NODE_ENV=test tsx --import ./src/instrument.mjs ./src/ensure-system-graph-is-initialized.ts",
+    "start:test:migrate": "NODE_ENV=test OTEL_SERVICE_NAME=\"Node Migrations\" tsx --import ./src/instrument.mjs ./src/ensure-system-graph-is-initialized.ts",
     "test:unit": "vitest --run"
   },
   "dependencies": {
