@@ -219,7 +219,7 @@ quote                              = { version = "=1.0.40", default-features = f
 radix_trie                         = { version = "=0.2.1", default-features = false }
 rand                               = { version = "=0.9.2", default-features = false }
 rapidfuzz                          = { version = "=0.5.0", default-features = false }
-rayon                              = { version = "=1.10.0", default-features = false }
+rayon                              = { version = "=1.11.0", default-features = false }
 refinery                           = { version = "=0.8.16", default-features = false }
 regex                              = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest                            = { version = "=0.12.22", default-features = false, features = ["rustls-tls"] }
