@@ -201,27 +201,29 @@ module "mimir" {
 
 # Grafana service for distributed tracing visualization
 module "grafana" {
-  source                           = "./grafana"
-  prefix                           = var.prefix
-  cluster_arn                      = aws_ecs_cluster.observability.arn
-  vpc                              = var.vpc
-  subnets                          = var.subnets
-  config_bucket                    = aws_s3_bucket.configs
-  log_group_name                   = aws_cloudwatch_log_group.observability.name
-  region                           = var.region
-  root_url                         = cloudflare_record.cname_grafana_internal.hostname
-  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
-  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
-  grafana_database_host            = var.grafana_database_host
-  grafana_database_port            = var.grafana_database_port
-  grafana_database_password        = var.grafana_database_password
-  grafana_secret_key               = var.grafana_secret_key
-  tempo_api_dns                    = module.tempo.api_dns
-  tempo_api_port                   = module.tempo.api_port
-  loki_http_dns                    = module.loki.http_dns
-  loki_http_port                   = module.loki.http_port
-  mimir_http_dns                   = module.mimir.http_dns
-  mimir_http_port                  = module.mimir.http_port
+  source                            = "./grafana"
+  prefix                            = var.prefix
+  cluster_arn                       = aws_ecs_cluster.observability.arn
+  vpc                               = var.vpc
+  subnets                           = var.subnets
+  config_bucket                     = aws_s3_bucket.configs
+  log_group_name                    = aws_cloudwatch_log_group.observability.name
+  region                            = var.region
+  root_url                          = cloudflare_record.cname_grafana_internal.hostname
+  service_discovery_namespace_arn   = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name  = aws_service_discovery_private_dns_namespace.observability.name
+  grafana_database_host             = var.grafana_database_host
+  grafana_database_port             = var.grafana_database_port
+  grafana_database_password         = var.grafana_database_password
+  grafana_secret_key                = var.grafana_secret_key
+  tempo_api_dns                     = module.tempo.api_dns
+  tempo_api_port                    = module.tempo.api_port
+  loki_http_dns                     = module.loki.http_dns
+  loki_http_port                    = module.loki.http_port
+  mimir_http_dns                    = module.mimir.http_dns
+  mimir_http_port                   = module.mimir.http_port
+  external_load_balancer_arn_suffix = aws_lb.observability_external.arn_suffix
+  critical_alerts_topic_arn         = var.critical_alerts_topic_arn
 
   ssl_config = local.full_ca_ssl_config
 }
