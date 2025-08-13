@@ -37,8 +37,10 @@ graph TD
     25[<a href="../hash_temporal_client">hash-temporal-client</a>]
     26[<a href="../hash_graph_benches">hash-graph-benches</a>]
     27[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    28[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
     0 --> 10
     1 --> 9
+    1 -.-> 28
     2 -.-> 3
     4 --> 7
     4 --> 11
@@ -53,7 +55,7 @@ graph TD
     9 --> 2
     10 --> 4
     11 --> 8
-    12 --> 1
+    12 -.-> 28
     13 --> 8
     14 --> 17
     15 --> 2
@@ -74,3 +76,4 @@ graph TD
     25 --> 1
     26 -.-> 4
     27 -.-> 7
+    28 --> 1

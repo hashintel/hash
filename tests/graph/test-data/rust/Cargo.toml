@@ -10,4 +10,26 @@ authors.workspace = true
 workspace = true
 
 [dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+rand        = { workspace = true, features = ["std_rng", "std"], public = true }
+rand_distr  = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
+
+# Public third-party dependencies
+regex = { workspace = true, public = true }
+
+# Private workspace dependencies
+indexmap = { workspace = true, features = ["std"] }
+
+# Private third-party dependencies
+derive_more    = { workspace = true, features = ["display"] }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
+xxhash-rust    = { workspace = true, features = ["xxh3"] }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+rand              = { workspace = true, features = ["thread_rng"] }
+rayon             = { workspace = true }

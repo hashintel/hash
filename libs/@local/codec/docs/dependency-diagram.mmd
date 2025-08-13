@@ -40,8 +40,10 @@ graph TD
     28[<a href="../error_stack">error-stack</a>]
     29[<a href="../hash_graph_benches">hash-graph-benches</a>]
     30[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    31[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
     0 --> 10
     1 --> 9
+    1 -.-> 31
     2 -.-> 3
     2 --> 20
     4 --> 7
@@ -57,7 +59,7 @@ graph TD
     9 --> 2
     10 --> 4
     11 --> 8
-    12 --> 1
+    12 -.-> 31
     13 --> 8
     14 --> 17
     15 --> 2
@@ -81,3 +83,4 @@ graph TD
     27 --> 1
     29 -.-> 4
     30 -.-> 7
+    31 --> 1

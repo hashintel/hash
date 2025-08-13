@@ -81,3 +81,6 @@ extra-dependencies = [
 extra-dev-dependencies = [
     { name = "@local/tsconfig", version = "0.0.0-private" },
 ]
+ignore-dev-dependencies = [
+    "@rust/hash-graph-test-data",
+]
