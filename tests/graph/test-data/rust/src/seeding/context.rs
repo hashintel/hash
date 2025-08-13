@@ -261,10 +261,7 @@ mod tests {
             master_seed: 0xA11CE,
             shard_id: ShardId::new(7),
         };
-        let gid = GlobalId {
-            shard_id: ShardId::new(7),
-            local_id: LocalId(42),
-        };
+        let gid = ctx.global_id(LocalId::default());
         let scope = Scope::new(b"TEST");
 
         let mut r1 = ctx.rng(gid, scope);
@@ -281,10 +278,7 @@ mod tests {
             master_seed: 0xB0B,
             shard_id: ShardId::new(1),
         };
-        let gid = GlobalId {
-            shard_id: ShardId::new(1),
-            local_id: LocalId(0),
-        };
+        let gid = ctx.global_id(LocalId::default());
 
         let mut base = ctx.rng(gid, Scope::new(b"SCOP"));
         let mut diff_scope = ctx.rng(gid, Scope::new(b"OTHR"));
