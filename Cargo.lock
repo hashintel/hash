@@ -3179,7 +3179,7 @@ dependencies = [
  "multiaddr",
  "multistream-select",
  "pin-project-lite",
- "prometheus-client 0.23.1",
+ "prometheus-client 0.24.0",
  "scc",
  "serde",
  "simple-mermaid",
@@ -4041,7 +4041,7 @@ dependencies = [
  "ipnet",
  "once_cell",
  "rand 0.9.2",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tinyvec",
  "tokio",
@@ -4267,7 +4267,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.0",
+ "socket2",
  "tokio",
  "tower-service",
  "tracing",
@@ -4655,7 +4655,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b58db92f96b720de98181bbbe63c831e87005ab460c1bf306eb2622b4707997f"
 dependencies = [
- "socket2 0.5.10",
+ "socket2",
  "widestring",
  "windows-sys 0.48.0",
  "winreg",
@@ -5140,7 +5140,7 @@ dependencies = [
  "libp2p-swarm",
  "rand 0.8.5",
  "smallvec 1.15.1",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tracing",
 ]
@@ -5218,7 +5218,7 @@ dependencies = [
  "rand 0.8.5",
  "ring",
  "rustls",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -5284,7 +5284,7 @@ dependencies = [
  "if-watch",
  "libc",
  "libp2p-core",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tracing",
 ]
@@ -7091,19 +7091,19 @@ dependencies = [
  "dtoa",
  "itoa",
  "parking_lot",
- "prometheus-client-derive-encode",
+ "prometheus-client-derive-encode 0.4.2",
 ]
 
 [[package]]
 name = "prometheus-client"
-version = "0.23.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf41c1a7c32ed72abe5082fb19505b969095c12da9f5732a4bc9878757fd087c"
+checksum = "e4500adecd7af8e0e9f4dbce15cfee07ce913fbf6ad605cc468b83f2d531ee94"
 dependencies = [
  "dtoa",
  "itoa",
  "parking_lot",
- "prometheus-client-derive-encode",
+ "prometheus-client-derive-encode 0.5.0",
 ]
 
 [[package]]
@@ -7111,6 +7111,17 @@ name = "prometheus-client-derive-encode"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "440f724eba9f6996b75d63681b0a92b06947f1457076d503a4d2e2c8f56442b8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "prometheus-client-derive-encode"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9adf1691c04c0a5ff46ff8f262b58beb07b0dbb61f96f9f54f6cbd82106ed87f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7309,7 +7320,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash 2.1.1",
  "rustls",
- "socket2 0.5.10",
+ "socket2",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
@@ -7346,7 +7357,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -8625,16 +8636,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "socket2"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "233504af464074f9d066d7b5416c5f9b894a5862a6506e306f7b816cdd6f1807"
-dependencies = [
- "libc",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "specta"
 version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
@@ -9297,7 +9298,7 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "slab",
- "socket2 0.5.10",
+ "socket2",
  "tokio-macros",
  "windows-sys 0.52.0",
 ]
@@ -9333,7 +9334,7 @@ dependencies = [
  "postgres-protocol",
  "postgres-types",
  "rand 0.9.2",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tokio-util",
  "whoami",
@@ -9510,7 +9511,7 @@ dependencies = [
  "prost",
  "rustls-native-certs",
  "rustls-pemfile",
- "socket2 0.5.10",
+ "socket2",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
