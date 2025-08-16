@@ -4,10 +4,12 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
+    impl_trait_in_assoc_type,
     never_type,
 
     // Library Features
     unwrap_infallible,
+    assert_matches,
 )]
 
 extern crate alloc;

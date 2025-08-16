@@ -3643,6 +3643,7 @@ version = "0.0.0"
 dependencies = [
  "derive_more 2.0.1",
  "error-stack",
+ "hash-codec",
  "indexmap 2.10.0",
  "pretty_assertions",
  "rand 0.9.2",
