@@ -109,7 +109,7 @@ where
         fn generate(&mut self, context: &ProduceContext) -> Result<T, Self::Error> {
             Ok(self.distribution.sample(&mut context.rng(
                 context.global_id(self.local_id.take_and_advance()),
-                Scope::new(b"DIST"),
+                Scope::Domain,
             )))
         }
     }

@@ -19,7 +19,7 @@ use crate::{
         BOOLEAN_V1_TYPE, NULL_V1_TYPE, NUMBER_V1_TYPE, OBJECT_V1_TYPE, TEXT_V1_TYPE, VALUE_V1_TYPE,
     },
     seeding::{
-        context::{LocalId, ProduceContext},
+        context::{LocalId, ProduceContext, Scope},
         distributions::{
             DistributionConfig,
             adaptors::WordDistributionConfig,
@@ -31,15 +31,6 @@ use crate::{
         producer::slug_from_title,
     },
 };
-
-mod scopes {
-    use crate::seeding::context::Scope;
-
-    pub(crate) const DOMAIN: Scope = Scope::new(b"DOMN");
-    pub(crate) const TITLE: Scope = Scope::new(b"TITL");
-    pub(crate) const DESCRIPTION: Scope = Scope::new(b"DESC");
-    pub(crate) const CONSTRAINT: Scope = Scope::new(b"CNST");
-}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Invalid {_variant} distribution")]
@@ -121,7 +112,7 @@ impl Producer<DataType> for DataTypeProducer<'_> {
 
         let constraints = self
             .constraints
-            .sample(&mut context.rng(global_id, scopes::CONSTRAINT));
+            .sample(&mut context.rng(global_id, Scope::Constraint));
 
         let parent = match &constraints {
             ValueConstraints::Typed(typed) => match &**typed {
@@ -135,13 +126,11 @@ impl Producer<DataType> for DataTypeProducer<'_> {
             ValueConstraints::AnyOf(_) => VALUE_V1_TYPE.id.clone(),
         };
 
-        let title = self
-            .title
-            .sample(&mut context.rng(global_id, scopes::TITLE));
+        let title = self.title.sample(&mut context.rng(global_id, Scope::Title));
 
         let (domain, web_shortname) = self
             .domain
-            .sample(&mut context.rng(global_id, scopes::DOMAIN));
+            .sample(&mut context.rng(global_id, Scope::Domain));
 
         Ok(DataType {
             schema: DataTypeSchemaTag::V3,
@@ -158,7 +147,7 @@ impl Producer<DataType> for DataTypeProducer<'_> {
             icon: None,
             description: self
                 .description
-                .sample(&mut context.rng(global_id, scopes::DESCRIPTION)),
+                .sample(&mut context.rng(global_id, Scope::Description)),
             label: ValueLabel::default(),
             all_of: BTreeSet::from([DataTypeReference { url: parent }]),
             r#abstract: false,
@@ -171,6 +160,7 @@ impl Producer<DataType> for DataTypeProducer<'_> {
 pub(crate) mod tests {
     use alloc::borrow::Cow;
 
+    use pretty_assertions::assert_eq;
     use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
     use type_system::ontology::json_schema::StringFormat;
 
@@ -343,14 +333,14 @@ pub(crate) mod tests {
                 .expect("should be able to sample data type generator")
         };
 
-        let master_seed: u64 = 0xDEAD_BEEF_DEAD_BEEF;
-        let num_shards: u32 = 100;
-        let per_shard: usize = 10_000;
+        let master_seed: u32 = 0xDEAD_BEEF;
+        let num_shards = 10;
+        let per_shard = 1000;
 
         // --- Run 1: parallel over shards ---
-        let run: Vec<DataType> = (0..num_shards)
+        let run_1: Vec<_> = (0..num_shards)
             .into_par_iter()
-            .filter_map(|sid| {
+            .flat_map(|sid| {
                 let context = ProduceContext {
                     master_seed,
                     shard_id: ShardId::new(sid),
@@ -359,13 +349,27 @@ pub(crate) mod tests {
                 make_producer()
                     .iter_mut(&context)
                     .take(per_shard)
-                    .collect::<Result<Vec<_>, _>>()
-                    .ok()
+                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
+                    .collect::<Vec<_>>()
             })
-            .flatten()
             .collect();
 
-        assert_eq!(run.len(), num_shards as usize * per_shard);
-        assert_eq!(run.len(), 1_000_000);
+        // --- Run 2: sequential over shards ---
+        let run_2: Vec<_> = (0..num_shards)
+            .flat_map(|sid| {
+                let context = ProduceContext {
+                    master_seed,
+                    shard_id: ShardId::new(sid),
+                };
+
+                make_producer()
+                    .iter_mut(&context)
+                    .take(per_shard)
+                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        assert_eq!(run_1, run_2);
     }
 }

@@ -58,17 +58,17 @@ use xxhash_rust::xxh3::xxh3_64;
 /// Each shard produces a disjoint random stream for the same [`LocalId`] and [`Scope`], enabling
 /// parallel, reproducible generation across workers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ShardId(u32);
+pub struct ShardId(u16);
 
 impl ShardId {
     /// Create a new shard identifier.
     #[must_use]
-    pub const fn new(shard_id: u32) -> Self {
+    pub const fn new(shard_id: u16) -> Self {
         Self(shard_id)
     }
 }
 
-impl From<ShardId> for u32 {
+impl From<ShardId> for u16 {
     fn from(shard_id: ShardId) -> Self {
         shard_id.0
     }
@@ -137,7 +137,7 @@ impl fmt::UpperHex for GlobalId {
 #[derive(Debug)]
 pub struct ProduceContext {
     /// Global master seed for the whole run.
-    pub master_seed: u64,
+    pub master_seed: u32,
     /// Shard this context belongs to.
     pub shard_id: ShardId,
 }
@@ -148,18 +148,36 @@ pub struct ProduceContext {
 /// Use distinct scopes like `b"TITL"`, `b"DESC"`, `b"CNST"` to avoid accidental correlation across
 /// fields.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Scope(u32);
+#[repr(u8)]
+pub enum Scope {
+    Domain,
+    Title,
+    Description,
+    Constraint,
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum ScopeError {
+    InvalidScope,
+}
 
 impl Scope {
-    /// Construct a scope from a four-byte ASCII tag.
-    #[must_use]
-    #[expect(clippy::little_endian_bytes, reason = "We want to be deterministic")]
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "Easier construction through binary string literal"
-    )]
-    pub const fn new(scope: &[u8; 4]) -> Self {
-        Self(u32::from_le_bytes(*scope))
+    const fn from_u8(value: u8) -> Result<Self, ScopeError> {
+        match value {
+            0 => Ok(Scope::Domain),
+            1 => Ok(Scope::Title),
+            2 => Ok(Scope::Description),
+            3 => Ok(Scope::Constraint),
+            _ => Err(ScopeError::InvalidScope),
+        }
+    }
+}
+
+impl TryFrom<u8> for Scope {
+    type Error = ScopeError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        Self::from_u8(value)
     }
 }
 
@@ -196,11 +214,11 @@ impl ProduceContext {
     #[must_use]
     #[expect(clippy::little_endian_bytes, reason = "We want to be deterministic")]
     pub fn rng(&self, seed: GlobalId, scope: Scope) -> impl Rng {
-        let mut buf = [0_u8; 20];
-        buf[..8].copy_from_slice(&self.master_seed.to_le_bytes());
-        buf[8..12].copy_from_slice(&seed.shard_id.0.to_le_bytes());
-        buf[12..16].copy_from_slice(&seed.local_id.0.to_le_bytes());
-        buf[16..20].copy_from_slice(&scope.0.to_le_bytes());
+        let mut buf = [0_u8; 11];
+        buf[..4].copy_from_slice(&self.master_seed.to_le_bytes());
+        buf[4..6].copy_from_slice(&seed.shard_id.0.to_le_bytes());
+        buf[6..10].copy_from_slice(&seed.local_id.0.to_le_bytes());
+        buf[10] = scope as u8;
         KeyedRng {
             seed: xxh3_64(&buf),
             ctr: 0,
@@ -262,7 +280,7 @@ mod tests {
             shard_id: ShardId::new(7),
         };
         let gid = ctx.global_id(LocalId::default());
-        let scope = Scope::new(b"TEST");
+        let scope = Scope::Title;
 
         let mut r1 = ctx.rng(gid, scope);
         let mut r2 = ctx.rng(gid, scope);
@@ -280,21 +298,21 @@ mod tests {
         };
         let gid = ctx.global_id(LocalId::default());
 
-        let mut base = ctx.rng(gid, Scope::new(b"SCOP"));
-        let mut diff_scope = ctx.rng(gid, Scope::new(b"OTHR"));
+        let mut base = ctx.rng(gid, Scope::Title);
+        let mut diff_scope = ctx.rng(gid, Scope::Description);
         let mut diff_local = ctx.rng(
             GlobalId {
                 shard_id: ShardId::new(1),
                 local_id: LocalId(1),
             },
-            Scope::new(b"SCOP"),
+            Scope::Title,
         );
         let mut diff_shard = ctx.rng(
             GlobalId {
                 shard_id: ShardId::new(2),
                 local_id: LocalId(0),
             },
-            Scope::new(b"SCOP"),
+            Scope::Title,
         );
 
         let seq_base: [u64; 4] = core::array::from_fn(|_| base.random());
@@ -309,8 +327,8 @@ mod tests {
 
     #[test]
     fn multi_shard_parallel_is_deterministic() {
-        let master_seed: u64 = 0xDEAD_BEEF_DEAD_BEEF;
-        let num_shards: u32 = 8;
+        let master_seed: u32 = 0xDEAD_BEEF;
+        let num_shards: u16 = 8;
         let per_shard: usize = 25_000;
 
         // Helper, um pro Shard einen frischen Producer zu bekommen
@@ -321,7 +339,7 @@ mod tests {
         };
 
         // --- Run 1: parallel over shards ---
-        let run1: Vec<(u32, Vec<u32>)> = (0..num_shards)
+        let run1: Vec<(u16, Vec<u32>)> = (0..num_shards)
             .into_par_iter()
             .map(|sid| {
                 let context = ProduceContext {
@@ -341,7 +359,7 @@ mod tests {
             .collect();
 
         // --- Run 2: identical (Repro-Check) ---
-        let run2: Vec<(u32, Vec<u32>)> = (0..num_shards)
+        let run2: Vec<(u16, Vec<u32>)> = (0..num_shards)
             .into_par_iter()
             .map(|sid| {
                 let context = ProduceContext {
@@ -375,7 +393,7 @@ mod tests {
         }
 
         // --- Compare against serial reference run ---
-        let serial: Vec<(u32, Vec<u32>)> = (0..num_shards)
+        let serial: Vec<(u16, Vec<u32>)> = (0..num_shards)
             .map(|sid| {
                 let cx = ProduceContext {
                     master_seed,
