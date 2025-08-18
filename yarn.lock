@@ -4355,7 +4355,6 @@ __metadata:
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -13109,6 +13108,10 @@ __metadata:
 "@rust/hash-graph-test-data@npm:0.0.0-private, @rust/hash-graph-test-data@workspace:tests/graph/test-data/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-test-data@workspace:tests/graph/test-data/rust"
+  dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-codec": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
