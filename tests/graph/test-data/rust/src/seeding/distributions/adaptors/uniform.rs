@@ -19,7 +19,7 @@ where
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
         self.distribution
             .get(self.index.sample(rng))
-            .expect("`WeightedIndex` should return a valid index")
+            .expect("`Uniform` should return a valid index")
             .sample(rng)
     }
 }
