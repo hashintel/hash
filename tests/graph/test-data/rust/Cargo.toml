@@ -18,6 +18,7 @@ type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 regex = { workspace = true, public = true, features = ["std"] }
+uuid  = { workspace = true, public = true, features = ["v8"] }
 
 # Private workspace dependencies
 hash-codec = { workspace = true, features = ["serde"] }

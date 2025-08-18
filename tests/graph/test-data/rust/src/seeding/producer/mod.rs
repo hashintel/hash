@@ -7,24 +7,26 @@
 //! adapter via [`ProducerExt::iter_mut`].
 //!
 //! Design principles:
-//! - Deterministic: callers pass a [`ProduceContext`], which derives per-sample RNG streams from
-//!   the `master_seed`, [`ShardId`], [`LocalId`], and [`Scope`]. Identical inputs yield identical
-//!   sequences.
+//! - Deterministic: callers pass a [`ProduceContext`], which constructs a [`GlobalId`] per sample
+//!   from the [`RunId`], [`ShardId`], [`LocalId`], and [`Scope`]. The RNG is derived via
+//!   [`GlobalId::rng`]. Identical inputs yield identical sequences.
 //! - Separation of concerns: small, stateless distributions sample primitive values; producers
 //!   compose them into complete objects and ensure invariants.
 //! - Ergonomics: provide an iterator adapter for streaming generation in tests and benchmarks.
 //!
+//! [`GlobalId`]: crate::seeding::context::GlobalId
+//! [`RunId`]: crate::seeding::context::RunId
 //! [`ShardId`]: crate::seeding::context::ShardId
+//! [`Scope`]: crate::seeding::context::Scope
 
 use core::{iter, marker::PhantomData};
 
 use error_stack::IntoReport;
-use rand::distr::Distribution;
 
-use super::context::ProduceContext;
-use crate::seeding::context::{LocalId, Scope};
+use super::context::{ProduceContext, ProducerId};
 
 pub mod data_type;
+pub mod user;
 
 /// Stateful producer of complex values composed from one or more distributions.
 ///
@@ -37,6 +39,8 @@ pub mod data_type;
 /// `Result<T, E>` to report build errors (e.g., invalid URLs or schema issues).
 pub trait Producer<T> {
     type Error: IntoReport;
+
+    const ID: ProducerId;
 
     /// Produce the next value using the provided RNG.
     ///
@@ -91,35 +95,6 @@ where
 
 impl<P, T> iter::FusedIterator for ProducerIter<'_, '_, P, T> where P: Producer<T> + ?Sized {}
 
-pub fn for_distribution<T, D>(distribution: D) -> impl Producer<T, Error = !>
-where
-    D: Distribution<T>,
-{
-    struct DistributionProducer<D> {
-        distribution: D,
-        local_id: LocalId,
-    }
-
-    impl<T, D> Producer<T> for DistributionProducer<D>
-    where
-        D: Distribution<T>,
-    {
-        type Error = !;
-
-        fn generate(&mut self, context: &ProduceContext) -> Result<T, Self::Error> {
-            Ok(self.distribution.sample(&mut context.rng(
-                context.global_id(self.local_id.take_and_advance()),
-                Scope::Domain,
-            )))
-        }
-    }
-
-    DistributionProducer {
-        distribution,
-        local_id: LocalId::default(),
-    }
-}
-
 fn slug_from_title(title: &str) -> String {
     // Use iterator methods for better performance
     let mut output = String::with_capacity(title.len());
@@ -138,4 +113,62 @@ fn slug_from_title(title: &str) -> String {
     }
 
     output.trim_matches('-').to_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+    use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
+
+    use super::*;
+    use crate::seeding::context::{Provenance, RunId, ShardId};
+
+    pub(crate) fn assert_producer_is_deterministic<P, T>(make_producer: impl Fn() -> P + Sync)
+    where
+        P: Producer<T> + Sized,
+        T: serde::Serialize,
+    {
+        let run_id = RunId::new(rand::random());
+        let num_shards = 10;
+        let per_shard = 1000;
+
+        // --- Run 1: parallel over shards ---
+        let run_1: Vec<_> = (0..num_shards)
+            .into_par_iter()
+            .flat_map(|sid| {
+                let context = ProduceContext {
+                    run_id,
+                    shard_id: ShardId::new(sid),
+                    provenance: Provenance::Integration,
+                    producer: P::ID,
+                };
+
+                make_producer()
+                    .iter_mut(&context)
+                    .take(per_shard)
+                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        // --- Run 2: sequential over shards ---
+        let run_2: Vec<_> = (0..(num_shards))
+            .flat_map(|sid| {
+                let context = ProduceContext {
+                    run_id,
+                    shard_id: ShardId::new(sid),
+                    provenance: Provenance::Integration,
+                    producer: P::ID,
+                };
+
+                make_producer()
+                    .iter_mut(&context)
+                    .take(per_shard)
+                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        assert_eq!(run_1, run_2);
+    }
 }

@@ -1,16 +1,22 @@
 //! Deterministic seeding context and keyed RNG utilities.
 //!
 //! This module provides deterministic, shard-aware random number generation for seeding large
-//! datasets in a reproducible way. Streams are derived from a global `master_seed` and three
-//! dimensions:
+//! datasets in a reproducible way. Streams are derived from a [`GlobalId`], which is composed of
+//! the following fields:
 //!
+//! - [`RunId`]: identifies the end-to-end run, isolating RNG streams across runs
 //! - [`ShardId`]: coarse partitioning across parallel workers
 //! - [`LocalId`]: per-producer monotonically increasing counter
-//! - [`Scope`]: 4-byte domain key, e.g., `b"TITL"`, `b"DESC"`
+//! - [`Scope`]: generation domain (e.g. [`Scope::Title`], [`Scope::Description`],
+//!   [`Scope::Constraint`])
+//! - [`SubScope`]: optional fine-grained partitioning within a scope
+//! - [`Provenance`]: indicates the environment/source of generation
+//! - [`ProducerId`]: identifies the producing component
+//! - `retry`: small counter included in the id for deterministic retry semantics
 //!
-//! Combining these values yields a stable per-sample RNG via [`ProduceContext::rng`]. Use
-//! [`ProduceContext::global_id`] to construct a [`GlobalId`] from the current shard and a
-//! [`LocalId`].
+//! Together these fields define a unique per-sample id. Obtain a stable RNG via
+//! [`GlobalId::rng`]. Use [`ProduceContext::global_id`] to construct a [`GlobalId`] from the
+//! current context, a [`LocalId`], a [`Scope`], and a [`SubScope`].
 //!
 //! Local IDs
 //! - Create a new local counter with [`LocalId::default`].
@@ -29,29 +35,53 @@
 //!
 //! - The RNG used here is not cryptographically secure. It is designed for speed and determinism in
 //!   test/data-generation scenarios.
-//! - Formatting a [`GlobalId`] with hex (`{:x}`/`{:X}`) prints `shard_id-local_id` as two
-//!   eight-digit hex numbers separated by a dash.
+//! - To serialize a [`GlobalId`], use [`GlobalId::encode`], which produces a UUID v8. Use
+//!   [`GlobalId::decode`] to recover its components.
 //!
 //! # Examples
 //!
 //! ```rust
-//! use hash_graph_test_data::seeding::context::{LocalId, ProduceContext, Scope, ShardId};
+//! use hash_graph_test_data::seeding::context::{
+//!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, SubScope,
+//! };
 //! use rand::Rng as _;
 //!
 //! let context = ProduceContext {
-//!     master_seed: 0xDEAD_BEEF,
+//!     run_id: RunId::new(0xDEAD_BEEF),
 //!     shard_id: ShardId::new(0),
+//!     provenance: Provenance::Integration,
+//!     producer: ProducerId::Unknown,
 //! };
-//! let id = context.global_id(LocalId::default());
-//! let mut rng = context.rng(id, Scope::new(b"TITL"));
+//! let gid = context.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
+//! let mut rng = gid.rng();
 //! let value: u32 = rng.random();
 //! # let _ = value;
 //! ```
 
-use core::fmt;
+use core::{error::Error, fmt};
 
+use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use rand::{Rng, RngCore, rand_core::impls::fill_bytes_via_next};
+use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
+
+/// Identifies a run used to derive independent RNG streams.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct RunId(u32);
+
+impl RunId {
+    /// Create a new shard identifier.
+    #[must_use]
+    pub const fn new(run_id: u32) -> Self {
+        Self(run_id)
+    }
+}
+
+impl From<RunId> for u32 {
+    fn from(run_id: RunId) -> Self {
+        run_id.0
+    }
+}
 
 /// Identifies a shard (coarse partition) used to derive independent RNG streams.
 ///
@@ -71,6 +101,18 @@ impl ShardId {
 impl From<ShardId> for u16 {
     fn from(shard_id: ShardId) -> Self {
         shard_id.0
+    }
+}
+
+impl fmt::LowerHex for ShardId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:04x}", self.0)
+    }
+}
+
+impl fmt::UpperHex for ShardId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:04X}", self.0)
     }
 }
 
@@ -107,25 +149,224 @@ impl LocalId {
     }
 }
 
+impl fmt::LowerHex for LocalId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:08x}", self.0)
+    }
+}
+
+impl fmt::UpperHex for LocalId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:08X}", self.0)
+    }
+}
+
 /// Global sample identifier consisting of a [`ShardId`] and a [`LocalId`].
 ///
 /// When formatted with `{:x}`/`{:X}` it renders as `shard-local` in hexadecimal with eight digits
 /// per component, separated by a dash, for example: `abcd1234-deadbeef`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GlobalId {
-    shard_id: ShardId,
-    local_id: LocalId,
+    pub run_id: RunId,
+    pub shard_id: ShardId,
+    pub local_id: LocalId,
+    pub provenance: Provenance,
+    pub producer: ProducerId,
+    pub scope: Scope,
+    pub sub_scope: SubScope,
+    pub retry: u8,
 }
 
-impl fmt::LowerHex for GlobalId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{:08x}-{:08x}", self.shard_id.0, self.local_id.0)
+#[derive(Debug, derive_more::Display)]
+#[display("Invalid {_variant} in UUID")]
+pub enum ParseGlobalIdError {
+    #[display("scope ID")]
+    Scope,
+    #[display("sub-scope ID")]
+    SubScope,
+    #[display("producer ID")]
+    Producer,
+}
+
+impl Error for ParseGlobalIdError {}
+
+impl GlobalId {
+    /// Encodes this global id into a UUID v8.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use hash_graph_test_data::seeding::context::{GlobalId, RunId, ShardId, LocalId, Scope, Provenance, ProducerId, SubScope};
+    /// # use uuid::Uuid;
+    /// let gid = GlobalId {
+    ///     run_id: RunId::new(0xAAAA_AAAA),
+    ///     shard_id: ShardId::new(0xBBBB),
+    ///     local_id: LocalId::default(),
+    ///     provenance: Provenance::Integration,
+    ///     producer: ProducerId::User,
+    ///     scope: Scope::Title,
+    ///     sub_scope: SubScope::Unknown,
+    ///     retry: 0xCC,
+    /// };
+    /// let uuid = gid.encode();
+    ///
+    /// assert_eq!(uuid.to_string(), "aaaaaaaa-bbbb-80cc-8003-000000000000");
+    /// assert_eq!(GlobalId::decode(uuid)?, gid);
+    ///
+    /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())
+    /// ```
+    #[must_use]
+    #[expect(clippy::big_endian_bytes, reason = "We want to be deterministic")]
+    pub fn encode(self) -> Uuid {
+        // UUID v8 (128 bits, 16 bytes)
+        // Bytes (0-based, BE layout):
+        // +-------+-------+-------+-------+-------+-------+-------+-------+
+        // |   0   |   1   |   2   |   3   |   4   |   5   |   6   |   7   |
+        // |            run ID             |    shard ID   | V | L | retry |
+        // |                               |               | e | o |       |
+        // |                               |               | r | 4 |       |
+        // +-------+-------+-------+-------+-------+-------+-------+-------+
+        // |   8   |   9   |   10  |   11  |   12  |   13  |   14  |   15  |
+        // | V | L | scope |   sub_scope   |            local ID           |
+        // | a | o |       |               |                               |
+        // | r | 4 |       |               |                               |
+        // +-------+-------+-------+-------+-------+-------+-------+-------+
+        // Legend:
+        // - Bytes 0-3:   run_id(u32, BE)
+        // - Bytes 4-5:   shard_id(u16, BE)
+        // - Byte  6:     bits 7..4: Version (lib); bits 3..0: producer[31..28]
+        // - Byte  7:     retry
+        // - Byte  8:     bits 7..6: Variant (lib); bits 5..4: provenance; bits 3..0:
+        //   producer[27..24]
+        // - Bytes 9:     scope
+        // - Bytes 10-11: sub_scope
+        // - Bytes 12-15: local_id(u32, BE)
+
+        let mut bytes = [0; 16];
+
+        // Bytes 0–3: run_id (u32)
+        bytes[0..4].copy_from_slice(&self.run_id.0.to_be_bytes());
+
+        // Bytes 4–5: shard_id (u16)
+        bytes[4..6].copy_from_slice(&self.shard_id.0.to_be_bytes());
+
+        // Byte 6: high nibble = Version (uuid crate overrides), low nibble = producer hi4
+        bytes[6] |= self.producer as u8 >> 4;
+
+        // Byte 7: retry
+        bytes[7] = self.retry;
+
+        // Byte 8:
+        // high 2 bits = Variant (uuid crate overrides)
+        // bits 5..4 = provenance (2 Bit)
+        // low nibble = producer lo4
+        bytes[8] = (((self.provenance as u8) & 0b11) << 4) | (self.producer as u8 & 0x0F);
+
+        // Byte 9: scope
+        bytes[9] = self.scope as u8;
+
+        // Bytes 10–11: sub_scope (u16)
+        bytes[10..12].copy_from_slice(&(self.sub_scope as u16).to_be_bytes());
+
+        // Bytes 12–15: local_id (u32)
+        bytes[12..16].copy_from_slice(&self.local_id.0.to_be_bytes());
+
+        Uuid::new_v8(bytes)
+    }
+
+    /// Decodes a UUID v8 produced by [`encode`] back into its [`GlobalId`] components.
+    ///
+    /// See [`encode`] for the encoding format.
+    ///
+    /// [`encode`]: Self::encode
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the UUID contains invalid values.
+    #[expect(clippy::big_endian_bytes, reason = "We want to be deterministic")]
+    pub fn decode(uuid: Uuid) -> Result<Self, Report<[ParseGlobalIdError]>> {
+        let bytes = *uuid.as_bytes();
+
+        // run_id
+        let run_id = RunId(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]));
+
+        // shard_id
+        let shard_id = ShardId(u16::from_be_bytes([bytes[4], bytes[5]]));
+
+        // producer = hi4 | lo4
+        let hi4 = bytes[6] & 0x0F;
+        let lo4 = bytes[8] & 0x0F;
+        let producer =
+            ProducerId::from_u8((hi4 << 4) | lo4).change_context(ParseGlobalIdError::Producer);
+
+        // retry
+        let retry = bytes[7];
+
+        // provenance (bits 5..4)
+        let provenance = match (bytes[8] >> 4) & 0b11 {
+            0b00 => Provenance::Integration,
+            0b01 => Provenance::Benchmark,
+            0b10 => Provenance::Staging,
+            _ => Provenance::Unknown,
+        };
+
+        // scope
+        let scope = Scope::from_u8(bytes[9]).change_context(ParseGlobalIdError::Scope);
+
+        // sub_scope
+        let sub_scope = SubScope::from_u16(u16::from_be_bytes([bytes[10], bytes[11]]))
+            .change_context(ParseGlobalIdError::SubScope);
+
+        // local_id
+        let local_id = LocalId(u32::from_be_bytes([
+            bytes[12], bytes[13], bytes[14], bytes[15],
+        ]));
+
+        let (producer, scope, sub_scope) = (producer, scope, sub_scope).try_collect()?;
+
+        Ok(Self {
+            run_id,
+            shard_id,
+            local_id,
+            provenance,
+            producer,
+            scope,
+            sub_scope,
+            retry,
+        })
+    }
+
+    #[must_use]
+    pub fn rng(self) -> impl Rng {
+        KeyedRng {
+            seed: xxh3_64(self.encode().as_bytes()),
+            ctr: 0,
+        }
     }
 }
 
-impl fmt::UpperHex for GlobalId {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{:08X}-{:08X}", self.shard_id.0, self.local_id.0)
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum ProducerId {
+    User,
+    DataType,
+}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Invalid producer id: {producer_id}")]
+pub struct ParseProducerIdError {
+    producer_id: u8,
+}
+
+impl Error for ParseProducerIdError {}
+
+impl ProducerId {
+    const fn from_u8(value: u8) -> Result<Self, ParseProducerIdError> {
+        match value {
+            0 => Ok(Self::User),
+            1 => Ok(Self::DataType),
+            _ => Err(ParseProducerIdError { producer_id: value }),
+        }
     }
 }
 
@@ -136,92 +377,98 @@ impl fmt::UpperHex for GlobalId {
 /// obtain a stable RNG stream for that sample.
 #[derive(Debug)]
 pub struct ProduceContext {
-    /// Global master seed for the whole run.
-    pub master_seed: u32,
-    /// Shard this context belongs to.
+    pub run_id: RunId,
     pub shard_id: ShardId,
+    pub provenance: Provenance,
+    pub producer: ProducerId,
 }
 
-/// Four-byte domain key selecting a substream within a given [`GlobalId`]/[`ShardId`]/`master_seed`
-/// triple.
-///
-/// Use distinct scopes like `b"TITL"`, `b"DESC"`, `b"CNST"` to avoid accidental correlation across
-/// fields.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Scope {
+    Id,
+    Registration,
     Domain,
     Title,
     Description,
     Constraint,
+    Anonymous = 0xFF,
 }
 
 #[derive(Debug, derive_more::Display)]
-pub enum ScopeError {
-    InvalidScope,
+#[display("Invalid scope: {scope}")]
+pub struct ParseScopeError {
+    scope: u8,
 }
 
+impl Error for ParseScopeError {}
+
 impl Scope {
-    const fn from_u8(value: u8) -> Result<Self, ScopeError> {
+    const fn from_u8(value: u8) -> Result<Self, ParseScopeError> {
         match value {
-            0 => Ok(Scope::Domain),
-            1 => Ok(Scope::Title),
-            2 => Ok(Scope::Description),
-            3 => Ok(Scope::Constraint),
-            _ => Err(ScopeError::InvalidScope),
+            0 => Ok(Self::Id),
+            1 => Ok(Self::Registration),
+            2 => Ok(Self::Domain),
+            3 => Ok(Self::Title),
+            4 => Ok(Self::Description),
+            5 => Ok(Self::Constraint),
+            0xFF => Ok(Self::Anonymous),
+            _ => Err(ParseScopeError { scope: value }),
         }
     }
 }
 
-impl TryFrom<u8> for Scope {
-    type Error = ScopeError;
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u16)]
+pub enum SubScope {
+    Unknown,
+}
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        Self::from_u8(value)
+#[derive(Debug, derive_more::Display)]
+#[display("Invalid sub-scope: {sub_scope}")]
+pub struct ParseSubScopeError {
+    sub_scope: u16,
+}
+
+impl Error for ParseSubScopeError {}
+
+impl SubScope {
+    const fn from_u16(value: u16) -> Result<Self, ParseSubScopeError> {
+        match value {
+            0 => Ok(Self::Unknown),
+            _ => Err(ParseSubScopeError { sub_scope: value }),
+        }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum Provenance {
+    Integration = 0b00,
+    Benchmark = 0b01,
+    Staging = 0b10,
+    Unknown = 0b11,
 }
 
 impl ProduceContext {
-    /// Combine the current [`ShardId`] with a [`LocalId`] to form a [`GlobalId`].
+    /// Combine the current context with a [`LocalId`], [`Scope`], and [`SubScope`] to form a
+    /// [`GlobalId`].
     #[must_use]
-    pub const fn global_id(&self, local_id: LocalId) -> GlobalId {
+    pub const fn global_id(
+        &self,
+        local_id: LocalId,
+        scope: Scope,
+        sub_scope: SubScope,
+    ) -> GlobalId {
         GlobalId {
+            run_id: self.run_id,
             shard_id: self.shard_id,
             local_id,
-        }
-    }
-
-    /// Create a deterministic RNG for the given [`GlobalId`] and [`Scope`].
-    ///
-    /// The stream is fully determined by `master_seed`, `shard_id`, `local_id`, and `scope`.
-    /// Identical inputs produce identical random sequences. This RNG is not cryptographically
-    /// secure.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use hash_graph_test_data::seeding::context::{ProduceContext, ShardId, LocalId, Scope};
-    /// # use rand::Rng as _;
-    /// let ctx = ProduceContext {
-    ///     master_seed: 0xA11CE,
-    ///     shard_id: ShardId::new(1),
-    /// };
-    /// let id = ctx.global_id(LocalId::default());
-    /// let mut rng = ctx.rng(id, Scope::new(b"DEMO"));
-    /// let n: u32 = rng.random();
-    /// # let _ = n;
-    /// ```
-    #[must_use]
-    #[expect(clippy::little_endian_bytes, reason = "We want to be deterministic")]
-    pub fn rng(&self, seed: GlobalId, scope: Scope) -> impl Rng {
-        let mut buf = [0_u8; 11];
-        buf[..4].copy_from_slice(&self.master_seed.to_le_bytes());
-        buf[4..6].copy_from_slice(&seed.shard_id.0.to_le_bytes());
-        buf[6..10].copy_from_slice(&seed.local_id.0.to_le_bytes());
-        buf[10] = scope as u8;
-        KeyedRng {
-            seed: xxh3_64(&buf),
-            ctr: 0,
+            provenance: self.provenance,
+            producer: self.producer,
+            scope,
+            sub_scope,
+            retry: 0,
         }
     }
 }
@@ -257,11 +504,8 @@ mod tests {
     use core::array;
 
     use rand::Rng as _;
-    use rand_distr::Uniform;
-    use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
     use super::*;
-    use crate::seeding::producer::{self, ProducerExt as _};
 
     #[test]
     fn local_id_take_and_advance_increments() {
@@ -276,138 +520,42 @@ mod tests {
     #[test]
     fn rng_is_deterministic_for_same_inputs() {
         let ctx = ProduceContext {
-            master_seed: 0xA11CE,
+            run_id: RunId::new(0xA11CE),
             shard_id: ShardId::new(7),
+            provenance: Provenance::Integration,
+            producer: ProducerId::User,
         };
-        let gid = ctx.global_id(LocalId::default());
-        let scope = Scope::Title;
+        let gid = ctx.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
 
-        let mut r1 = ctx.rng(gid, scope);
-        let mut r2 = ctx.rng(gid, scope);
-
-        let val_a: [u64; 1_000] = array::from_fn(|_| r1.random());
-        let val_b: [u64; 1_000] = array::from_fn(|_| r2.random());
+        let val_a: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
+        let val_b: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
         assert_eq!(val_a, val_b);
     }
 
     #[test]
     fn rng_differs_when_scope_or_ids_change() {
         let ctx = ProduceContext {
-            master_seed: 0xB0B,
+            run_id: RunId::new(0xB0B),
             shard_id: ShardId::new(1),
+            provenance: Provenance::Integration,
+            producer: ProducerId::User,
         };
-        let gid = ctx.global_id(LocalId::default());
 
-        let mut base = ctx.rng(gid, Scope::Title);
-        let mut diff_scope = ctx.rng(gid, Scope::Description);
-        let mut diff_local = ctx.rng(
-            GlobalId {
-                shard_id: ShardId::new(1),
-                local_id: LocalId(1),
-            },
-            Scope::Title,
-        );
-        let mut diff_shard = ctx.rng(
-            GlobalId {
-                shard_id: ShardId::new(2),
-                local_id: LocalId(0),
-            },
-            Scope::Title,
-        );
+        let mut base = ctx
+            .global_id(LocalId::default(), Scope::Title, SubScope::Unknown)
+            .rng();
+        let mut diff_scope = ctx
+            .global_id(LocalId::default(), Scope::Description, SubScope::Unknown)
+            .rng();
+        let mut diff_local = ctx
+            .global_id(LocalId(1), Scope::Title, SubScope::Unknown)
+            .rng();
 
         let seq_base: [u64; 4] = core::array::from_fn(|_| base.random());
         let seq_scope: [u64; 4] = core::array::from_fn(|_| diff_scope.random());
         let seq_local: [u64; 4] = core::array::from_fn(|_| diff_local.random());
-        let seq_shard: [u64; 4] = core::array::from_fn(|_| diff_shard.random());
 
         assert_ne!(seq_base, seq_scope, "scope should affect RNG stream");
         assert_ne!(seq_base, seq_local, "local id should affect RNG stream");
-        assert_ne!(seq_base, seq_shard, "shard id should affect RNG stream");
-    }
-
-    #[test]
-    fn multi_shard_parallel_is_deterministic() {
-        let master_seed: u32 = 0xDEAD_BEEF;
-        let num_shards: u16 = 8;
-        let per_shard: usize = 25_000;
-
-        // Helper, um pro Shard einen frischen Producer zu bekommen
-        let make_producer = || {
-            producer::for_distribution(
-                Uniform::new(0, 100_000_000).expect("should be able to create producer"),
-            )
-        };
-
-        // --- Run 1: parallel over shards ---
-        let run1: Vec<(u16, Vec<u32>)> = (0..num_shards)
-            .into_par_iter()
-            .map(|sid| {
-                let context = ProduceContext {
-                    master_seed,
-                    shard_id: ShardId(sid),
-                };
-
-                (
-                    sid,
-                    make_producer()
-                        .iter_mut(&context)
-                        .take(per_shard)
-                        .collect::<Result<_, _>>()
-                        .into_ok(),
-                )
-            })
-            .collect();
-
-        // --- Run 2: identical (Repro-Check) ---
-        let run2: Vec<(u16, Vec<u32>)> = (0..num_shards)
-            .into_par_iter()
-            .map(|sid| {
-                let context = ProduceContext {
-                    master_seed,
-                    shard_id: ShardId(sid),
-                };
-
-                (
-                    sid,
-                    make_producer()
-                        .iter_mut(&context)
-                        .take(per_shard)
-                        .collect::<Result<_, _>>()
-                        .into_ok(),
-                )
-            })
-            .collect();
-
-        // --- Repro-Check: Same outputs per shard ---
-        for ((sid1, values1), (sid2, values2)) in run1.iter().zip(run2.iter()) {
-            assert_eq!(sid1, sid2, "shard order mismatch");
-            assert_eq!(
-                values1.len(),
-                values2.len(),
-                "len mismatch for shard {sid1}"
-            );
-            assert_eq!(
-                values1, values2,
-                "non-deterministic output for shard {sid1}"
-            );
-        }
-
-        // --- Compare against serial reference run ---
-        let serial: Vec<(u16, Vec<u32>)> = (0..num_shards)
-            .map(|sid| {
-                let cx = ProduceContext {
-                    master_seed,
-                    shard_id: ShardId(sid),
-                };
-                let values = make_producer()
-                    .iter_mut(&cx)
-                    .take(per_shard)
-                    .collect::<Result<_, _>>()
-                    .into_ok();
-                (sid, values)
-            })
-            .collect();
-
-        assert_eq!(run1, serial, "parallel vs serial mismatch");
     }
 }

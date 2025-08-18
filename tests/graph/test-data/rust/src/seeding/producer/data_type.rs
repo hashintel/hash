@@ -19,7 +19,7 @@ use crate::{
         BOOLEAN_V1_TYPE, NULL_V1_TYPE, NUMBER_V1_TYPE, OBJECT_V1_TYPE, TEXT_V1_TYPE, VALUE_V1_TYPE,
     },
     seeding::{
-        context::{LocalId, ProduceContext, Scope},
+        context::{LocalId, ProduceContext, ProducerId, Scope, SubScope},
         distributions::{
             DistributionConfig,
             adaptors::WordDistributionConfig,
@@ -107,12 +107,17 @@ pub struct DataTypeProducer<'c> {
 impl Producer<DataType> for DataTypeProducer<'_> {
     type Error = Report<ParseBaseUrlError>;
 
-    fn generate(&mut self, context: &ProduceContext) -> Result<DataType, Self::Error> {
-        let global_id = context.global_id(self.local_id.take_and_advance());
+    const ID: ProducerId = ProducerId::DataType;
 
-        let constraints = self
-            .constraints
-            .sample(&mut context.rng(global_id, Scope::Constraint));
+    fn generate(&mut self, context: &ProduceContext) -> Result<DataType, Self::Error> {
+        let local_id = self.local_id.take_and_advance();
+
+        let domain_gid = context.global_id(local_id, Scope::Domain, SubScope::Unknown);
+        let title_gid = context.global_id(local_id, Scope::Title, SubScope::Unknown);
+        let description_gid = context.global_id(local_id, Scope::Description, SubScope::Unknown);
+        let constraints_gid = context.global_id(local_id, Scope::Constraint, SubScope::Unknown);
+
+        let constraints = self.constraints.sample(&mut constraints_gid.rng());
 
         let parent = match &constraints {
             ValueConstraints::Typed(typed) => match &**typed {
@@ -126,18 +131,18 @@ impl Producer<DataType> for DataTypeProducer<'_> {
             ValueConstraints::AnyOf(_) => VALUE_V1_TYPE.id.clone(),
         };
 
-        let title = self.title.sample(&mut context.rng(global_id, Scope::Title));
+        let title = self.title.sample(&mut title_gid.rng());
 
-        let (domain, web_shortname) = self
-            .domain
-            .sample(&mut context.rng(global_id, Scope::Domain));
+        let (domain, web_shortname) = self.domain.sample(&mut domain_gid.rng());
 
         Ok(DataType {
             schema: DataTypeSchemaTag::V3,
             kind: DataTypeTag::DataType,
             id: VersionedUrl {
                 base_url: BaseUrl::new(format!(
-                    "{domain}/@{web_shortname}/types/data-type/{global_id:x}-{}/",
+                    "{domain}/@{web_shortname}/types/data-type/{:x}-{:x}-{}/",
+                    title_gid.shard_id,
+                    title_gid.local_id,
                     slug_from_title(&title)
                 ))?,
                 version: OntologyTypeVersion::new(1),
@@ -145,9 +150,7 @@ impl Producer<DataType> for DataTypeProducer<'_> {
             title,
             title_plural: None,
             icon: None,
-            description: self
-                .description
-                .sample(&mut context.rng(global_id, Scope::Description)),
+            description: self.description.sample(&mut description_gid.rng()),
             label: ValueLabel::default(),
             all_of: BTreeSet::from([DataTypeReference { url: parent }]),
             r#abstract: false,
@@ -160,13 +163,10 @@ impl Producer<DataType> for DataTypeProducer<'_> {
 pub(crate) mod tests {
     use alloc::borrow::Cow;
 
-    use pretty_assertions::assert_eq;
-    use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
     use type_system::ontology::json_schema::StringFormat;
 
     use super::*;
     use crate::seeding::{
-        context::ShardId,
         distributions::{
             adaptors::{
                 ConstDistributionConfig, ConstInlineDistributionConfig, DistributionWeight,
@@ -182,7 +182,7 @@ pub(crate) mod tests {
                 },
             },
         },
-        producer::ProducerExt as _,
+        producer::tests::assert_producer_is_deterministic,
     };
 
     #[expect(clippy::too_many_lines)]
@@ -332,44 +332,6 @@ pub(crate) mod tests {
                 .create_producer()
                 .expect("should be able to sample data type generator")
         };
-
-        let master_seed: u32 = 0xDEAD_BEEF;
-        let num_shards = 10;
-        let per_shard = 1000;
-
-        // --- Run 1: parallel over shards ---
-        let run_1: Vec<_> = (0..num_shards)
-            .into_par_iter()
-            .flat_map(|sid| {
-                let context = ProduceContext {
-                    master_seed,
-                    shard_id: ShardId::new(sid),
-                };
-
-                make_producer()
-                    .iter_mut(&context)
-                    .take(per_shard)
-                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-
-        // --- Run 2: sequential over shards ---
-        let run_2: Vec<_> = (0..num_shards)
-            .flat_map(|sid| {
-                let context = ProduceContext {
-                    master_seed,
-                    shard_id: ShardId::new(sid),
-                };
-
-                make_producer()
-                    .iter_mut(&context)
-                    .take(per_shard)
-                    .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-
-        assert_eq!(run_1, run_2);
+        assert_producer_is_deterministic(make_producer);
     }
 }

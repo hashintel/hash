@@ -3654,6 +3654,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "type-system",
+ "uuid",
  "xxhash-rust",
 ]
 
