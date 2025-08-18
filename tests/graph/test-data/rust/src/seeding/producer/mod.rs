@@ -14,9 +14,12 @@
 //!   compose them into complete objects and ensure invariants.
 //! - Ergonomics: provide an iterator adapter for streaming generation in tests and benchmarks.
 //!
+//! [`Distribution`]: rand::distr::Distribution
 //! [`GlobalId`]: crate::seeding::context::GlobalId
+//! [`GlobalId::rng`]: crate::seeding::context::GlobalId::rng
 //! [`RunId`]: crate::seeding::context::RunId
 //! [`ShardId`]: crate::seeding::context::ShardId
+//! [`LocalId`]: crate::seeding::context::LocalId
 //! [`Scope`]: crate::seeding::context::Scope
 
 use core::{iter, marker::PhantomData};
@@ -37,6 +40,8 @@ pub mod user;
 /// Do not implement [`Distribution`] for producers. That trait is stateless and returns plain
 /// values by reference (`&self`), while producers require `&mut self` and often need to return
 /// `Result<T, E>` to report build errors (e.g., invalid URLs or schema issues).
+///
+/// [`Distribution`]: rand::distr::Distribution
 pub trait Producer<T> {
     type Error: IntoReport;
 

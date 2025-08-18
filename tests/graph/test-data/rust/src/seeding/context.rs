@@ -7,8 +7,7 @@
 //! - [`RunId`]: identifies the end-to-end run, isolating RNG streams across runs
 //! - [`ShardId`]: coarse partitioning across parallel workers
 //! - [`LocalId`]: per-producer monotonically increasing counter
-//! - [`Scope`]: generation domain (e.g. [`Scope::Title`], [`Scope::Description`],
-//!   [`Scope::Constraint`])
+//! - [`Scope`]: generation domain
 //! - [`SubScope`]: optional fine-grained partitioning within a scope
 //! - [`Provenance`]: indicates the environment/source of generation
 //! - [`ProducerId`]: identifies the producing component
@@ -370,11 +369,6 @@ impl ProducerId {
     }
 }
 
-/// Deterministic seeding context holding the master seed and shard identifier.
-///
-/// Use [`ProduceContext::global_id`] to build a [`GlobalId`] from the current shard and a
-/// [`LocalId`], then feed it into [`ProduceContext::rng`] with a domain-specific [`Scope`] to
-/// obtain a stable RNG stream for that sample.
 #[derive(Debug)]
 pub struct ProduceContext {
     pub run_id: RunId,
