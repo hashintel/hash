@@ -28,13 +28,13 @@ use crate::seeding::distributions::DistributionConfig;
 /// [`StringConstraints`]: type_system::ontology::json_schema::StringConstraints
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StringConstraintsDistributionConfig<'c> {
+pub struct StringConstraintsDistributionConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_length: Option<MinLengthDistributionConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_length: Option<MaxLengthDistributionConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pattern: Option<PatternDistributionConfig<'c>>,
+    pub pattern: Option<PatternDistributionConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub format: Option<FormatDistributionConfig>,
 }
@@ -64,7 +64,7 @@ pub struct StringConstraintsDistribution {
     pub format: Option<FormatDistribution>,
 }
 
-impl DistributionConfig for StringConstraintsDistributionConfig<'_> {
+impl DistributionConfig for StringConstraintsDistributionConfig {
     type Distribution = StringConstraintsDistribution;
     type Error = Report<[StringConstraintsDistributionConfigError]>;
 

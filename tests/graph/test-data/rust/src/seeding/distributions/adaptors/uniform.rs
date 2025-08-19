@@ -48,7 +48,7 @@ where
     fn create_distribution(&self) -> Result<Self::Distribution, Self::Error> {
         Ok(UniformDistribution {
             index: Uniform::new(0, self.distributions.len())
-                .expect("`Uniform` should return a valid index"),
+                .change_context(UniformDistributionConfigError::Distribution)?,
             distribution: self
                 .distributions
                 .iter()

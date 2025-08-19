@@ -49,9 +49,9 @@
 //!     run_id: RunId::new(0xDEAD_BEEF),
 //!     shard_id: ShardId::new(0),
 //!     provenance: Provenance::Integration,
-//!     producer: ProducerId::Unknown,
+//!     producer: ProducerId::User,
 //! };
-//! let gid = context.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
+//! let gid = context.global_id(LocalId::default(), Scope::Schema, SubScope::Unknown);
 //! let mut rng = gid.rng();
 //! let value: u32 = rng.random();
 //! # let _ = value;
@@ -203,13 +203,13 @@ impl GlobalId {
     ///     local_id: LocalId::default(),
     ///     provenance: Provenance::Integration,
     ///     producer: ProducerId::User,
-    ///     scope: Scope::Title,
+    ///     scope: Scope::Schema,
     ///     sub_scope: SubScope::Unknown,
     ///     retry: 0xCC,
     /// };
     /// let uuid = gid.encode();
     ///
-    /// assert_eq!(uuid.to_string(), "aaaaaaaa-bbbb-80cc-8003-000000000000");
+    /// assert_eq!(uuid.to_string(), "aaaaaaaa-bbbb-80cc-8002-000000000000");
     /// assert_eq!(GlobalId::decode(uuid)?, gid);
     ///
     /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())
@@ -382,10 +382,12 @@ pub struct ProduceContext {
 pub enum Scope {
     Id,
     Registration,
-    Domain,
-    Title,
-    Description,
-    Constraint,
+    Schema,
+    Ownership,
+    Provenance,
+    Conversions,
+    Config,
+    Metadata,
     Anonymous = 0xFF,
 }
 
@@ -402,10 +404,12 @@ impl Scope {
         match value {
             0 => Ok(Self::Id),
             1 => Ok(Self::Registration),
-            2 => Ok(Self::Domain),
-            3 => Ok(Self::Title),
-            4 => Ok(Self::Description),
-            5 => Ok(Self::Constraint),
+            2 => Ok(Self::Schema),
+            3 => Ok(Self::Ownership),
+            4 => Ok(Self::Provenance),
+            5 => Ok(Self::Conversions),
+            6 => Ok(Self::Config),
+            7 => Ok(Self::Metadata),
             0xFF => Ok(Self::Anonymous),
             _ => Err(ParseScopeError { scope: value }),
         }
@@ -416,6 +420,16 @@ impl Scope {
 #[repr(u16)]
 pub enum SubScope {
     Unknown,
+    Domain,
+    Title,
+    Description,
+    Constraint,
+    Conflict,
+    Ownership,
+    WebType,
+    Index,
+    FetchedAt,
+    Provenance,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -430,6 +444,16 @@ impl SubScope {
     const fn from_u16(value: u16) -> Result<Self, ParseSubScopeError> {
         match value {
             0 => Ok(Self::Unknown),
+            1 => Ok(Self::Domain),
+            2 => Ok(Self::Title),
+            3 => Ok(Self::Description),
+            4 => Ok(Self::Constraint),
+            5 => Ok(Self::Conflict),
+            6 => Ok(Self::Ownership),
+            7 => Ok(Self::WebType),
+            8 => Ok(Self::Index),
+            9 => Ok(Self::FetchedAt),
+            10 => Ok(Self::Provenance),
             _ => Err(ParseSubScopeError { sub_scope: value }),
         }
     }
@@ -519,7 +543,7 @@ mod tests {
             provenance: Provenance::Integration,
             producer: ProducerId::User,
         };
-        let gid = ctx.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
+        let gid = ctx.global_id(LocalId::default(), Scope::Schema, SubScope::Title);
 
         let val_a: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
         let val_b: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
@@ -536,13 +560,13 @@ mod tests {
         };
 
         let mut base = ctx
-            .global_id(LocalId::default(), Scope::Title, SubScope::Unknown)
+            .global_id(LocalId::default(), Scope::Config, SubScope::Provenance)
             .rng();
         let mut diff_scope = ctx
-            .global_id(LocalId::default(), Scope::Description, SubScope::Unknown)
+            .global_id(LocalId::default(), Scope::Ownership, SubScope::Unknown)
             .rng();
         let mut diff_local = ctx
-            .global_id(LocalId(1), Scope::Title, SubScope::Unknown)
+            .global_id(LocalId(1), Scope::Registration, SubScope::Unknown)
             .rng();
 
         let seq_base: [u64; 4] = core::array::from_fn(|_| base.random());
