@@ -1335,9 +1335,9 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-core"
-version = "4.5.0"
+version = "4.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dda1924b69cc47f602d839782f3a9c5369f545897276c20fec9e2026562142e"
+checksum = "02b45be5c965ce63bec3d284fefe0e042342f4e77f149a1e7aafc045119df738"
 dependencies = [
  "educe 0.6.0",
  "either",
