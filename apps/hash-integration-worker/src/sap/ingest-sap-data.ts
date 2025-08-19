@@ -38,7 +38,7 @@ type PendingLinksBySourceEntityId = Record<EntityId, PendingLink[]>;
 
 type EntityIdsByTableAndJoinKeyValue = Record<string, Record<string, EntityId>>;
 
-const userWebId = "fb9993d6-dd12-4fab-a021-5a552084bbe4";
+const userWebId = "57e3b09c-1861-4d4e-bf02-9a05c53934b8";
 
 const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",

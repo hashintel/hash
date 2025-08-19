@@ -81,8 +81,8 @@ const propertyTypeFields = {
   },
   VBELN: {
     propertyType: {
-      title: "Delivery Number",
-      description: "Unique identifier for a sales document",
+      title: "Document Number",
+      description: "Unique identifier for a sales or delivery document",
       dataType: "text",
     },
   },
@@ -704,6 +704,180 @@ const propertyTypeFields = {
       dataType: "time",
     },
   },
+  KWMENG: {
+    propertyType: {
+      title: "Cumulative Order Quantity",
+      description:
+        "Total ordered quantity across schedule lines in sales units",
+      dataType: "number",
+      dataUnitReferenceField: "VRKME",
+    },
+  },
+  ZIEME: {
+    propertyType: {
+      title: "Target Quantity UoM",
+      description:
+        "Unit of measure for planned or target quantities in a schedule",
+      dataType: "text",
+    },
+  },
+  NETWR: {
+    propertyType: {
+      title: "Net Value",
+      description: "Net value of the sales order item in the document currency",
+      dataType: "number",
+      dataUnitReferenceField: "WAERS",
+    },
+  },
+  WAERS: {
+    propertyType: {
+      title: "Currency Key",
+      description: "Currency in which item pricing is recorded",
+      dataType: "text",
+    },
+  },
+  PSTYV: {
+    propertyType: {
+      title: "Item Category",
+      description:
+        "Defines the category/type of sales order item, determining behavior in SD",
+      dataType: "text",
+    },
+  },
+  ABGRU: {
+    propertyType: {
+      title: "Rejection Reason",
+      description: "Code indicating why a quotation or order item was rejected",
+      dataType: "text",
+    },
+  },
+  AUART: {
+    propertyType: {
+      title: "Sales Document Type",
+      description: "Code indicating the type/category of the sales document",
+      dataType: "text",
+    },
+  },
+  VKORG: {
+    propertyType: {
+      title: "Sales Organization",
+      description: "Organizational unit responsible for sales transactions",
+      dataType: "text",
+    },
+  },
+  VTWEG: {
+    propertyType: {
+      title: "Distribution Channel",
+      description: "Channel through which products are distributed",
+      dataType: "text",
+    },
+  },
+  SPART: {
+    propertyType: {
+      title: "Division",
+      description:
+        "Business division or product line within sales organization",
+      dataType: "text",
+    },
+  },
+  BSTNK: {
+    propertyType: {
+      title: "Customer PO Number",
+      description: "External reference (PO) number provided by the customer",
+      dataType: "text",
+    },
+  },
+  WAERK: {
+    propertyType: {
+      title: "Document Currency",
+      description: "Currency in which document values are recorded",
+      dataType: "text",
+    },
+  },
+  ETENR: {
+    propertyType: {
+      title: "Schedule Line Number",
+      description: "Unique number for each schedule line within the document",
+      dataType: "number",
+    },
+  },
+  EDATU: {
+    propertyType: {
+      title: "Schedule Line Date",
+      description:
+        "Date for this delivery schedule line — typically when the delivery is expected",
+      dataType: "date",
+    },
+  },
+  BMENG: {
+    propertyType: {
+      title: "Confirmed Quantity",
+      description:
+        "Quantity confirmed for delivery in sales units yet to be shipped",
+      dataType: "number",
+      dataUnitReferenceField: "VRKME",
+    },
+  },
+  WMENG: {
+    propertyType: {
+      title: "Order Quantity in Sales Units",
+      description: "Quantity originally ordered in sales units",
+      dataType: "number",
+      dataUnitReferenceField: "VRKME",
+    },
+  },
+  ETTYP: {
+    propertyType: {
+      title: "Schedule Line Category",
+      description:
+        "Category indicating type of schedule line (e.g., delivery, return, etc.)",
+      dataType: "text",
+    },
+  },
+  VBELV: {
+    propertyType: {
+      title: "Preceding Document Number",
+      description: "Previous SD document in the flow",
+      dataType: "text",
+    },
+  },
+  POSNV: {
+    propertyType: {
+      title: "Preceding Item Number",
+      description: "Item number in the preceding document",
+      dataType: "number",
+    },
+  },
+  POSNN: {
+    propertyType: {
+      title: "Subsequent Item Number",
+      description: "Item number in the subsequent document",
+      dataType: "number",
+    },
+  },
+  VBTYP_V: {
+    propertyType: {
+      title: "Preceding Document Type",
+      description:
+        "Category/type of preceding document (e.g., order, delivery)",
+      dataType: "text",
+    },
+  },
+  VBTYP_N: {
+    propertyType: {
+      title: "Subsequent Document Type",
+      description: "Category/type of subsequent document",
+      dataType: "text",
+    },
+  },
+  RFMNG: {
+    propertyType: {
+      title: "Referenced Quantity",
+      description: "Quantity referenced in the relationship, in base unit",
+      dataType: "number",
+      dataUnitReferenceField: "MEINS",
+    },
+  },
 } as const satisfies Record<string, SAPFieldMapping>;
 
 const linkTypeFields = {
@@ -717,7 +891,7 @@ const linkTypeFields = {
       linkTypeTitle: "Relates To Customer",
     },
   },
-  VBELN: {
+  VBELNtoLIKP: {
     link: {
       destinationTable: "LIKP",
       destinationField: "VBELN",
@@ -729,6 +903,13 @@ const linkTypeFields = {
       destinationTable: "MARA",
       destinationField: "MATNR",
       linkTypeTitle: "Relates To Material",
+    },
+  },
+  VBELNtoVBAK: {
+    link: {
+      destinationTable: "VBAK",
+      destinationField: "VBELN",
+      linkTypeTitle: "Belongs To Sales Order",
     },
   },
 } as const satisfies Record<string, SAPFieldMapping>;
@@ -815,7 +996,7 @@ export const lipsFields = {
   MANDT: propertyTypeFields.MANDT,
   ERDAT: propertyTypeFields.ERDAT,
   ERNAM: propertyTypeFields.ERNAM,
-  VBELN: linkTypeFields.VBELN,
+  VBELN: linkTypeFields.VBELNtoLIKP,
   MATNR: linkTypeFields.MATNR,
   POSNR: propertyTypeFields.POSNR,
   WERKS: propertyTypeFields.WERKS,
@@ -979,6 +1160,114 @@ export const mbewTableDefinition: SAPTable<keyof typeof mbewFields> = {
   joinKey: null,
 };
 
+const vbakFields = {
+  MANDT: propertyTypeFields.MANDT,
+  VBELN: propertyTypeFields.VBELN,
+  AUART: propertyTypeFields.AUART,
+  VKORG: propertyTypeFields.VKORG,
+  VTWEG: propertyTypeFields.VTWEG,
+  SPART: propertyTypeFields.SPART,
+  KUNNR: linkTypeFields.KUNNR,
+  BSTNK: propertyTypeFields.BSTNK,
+  ERDAT: propertyTypeFields.ERDAT,
+  ERZET: propertyTypeFields.ERZET,
+  ERNAM: propertyTypeFields.ERNAM,
+  WAERK: propertyTypeFields.WAERK,
+  NETWR: propertyTypeFields.NETWR,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Sales Document Header Data (VBAK)
+ */
+export const vbakTableDefinition: SAPTable<keyof typeof vbakFields> = {
+  tableKey: "VBAK",
+  tableTitle: "Sales Document Header Data",
+  tableDescription:
+    "Header information for sales orders, quotations, and other sales documents",
+  primaryKey: ["MANDT", "VBELN"],
+  fields: vbakFields,
+  joinKey: "VBELN",
+};
+
+const vbapFields = {
+  MANDT: propertyTypeFields.MANDT,
+  VBELN: linkTypeFields.VBELNtoVBAK,
+  POSNR: propertyTypeFields.POSNR,
+  MATNR: linkTypeFields.MATNR,
+  WERKS: propertyTypeFields.WERKS,
+  LGORT: propertyTypeFields.LGORT,
+  VRKME: propertyTypeFields.VRKME,
+  KWMENG: propertyTypeFields.KWMENG,
+  ZIEME: propertyTypeFields.ZIEME,
+  MEINS: propertyTypeFields.MEINS,
+  NETWR: propertyTypeFields.NETWR,
+  WAERS: propertyTypeFields.WAERS,
+  PSTYV: propertyTypeFields.PSTYV,
+  ABGRU: propertyTypeFields.ABGRU,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Sales Document Item Data (VBAP)
+ */
+export const vbapTableDefinition: SAPTable<keyof typeof vbapFields> = {
+  tableKey: "VBAP",
+  tableTitle: "Sales Document Item Data",
+  tableDescription: "Detailed line item data for sales orders and quotations",
+  primaryKey: ["MANDT", "VBELN", "POSNR"],
+  fields: vbapFields,
+  joinKey: null,
+};
+
+const vbepFields = {
+  MANDT: propertyTypeFields.MANDT,
+  VBELN: linkTypeFields.VBELNtoVBAK,
+  POSNR: propertyTypeFields.POSNR,
+  ETENR: propertyTypeFields.ETENR,
+  EDATU: propertyTypeFields.EDATU,
+  BMENG: propertyTypeFields.BMENG,
+  WMENG: propertyTypeFields.WMENG,
+  VRKME: propertyTypeFields.VRKME,
+  ETTYP: propertyTypeFields.ETTYP,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Sales Document Schedule Line Data (VBEP)
+ */
+export const vbepTableDefinition: SAPTable<keyof typeof vbepFields> = {
+  tableKey: "VBEP",
+  tableTitle: "Sales Document Schedule Line Data",
+  tableDescription:
+    "Schedule lines for delivery planning within sales order items",
+  primaryKey: ["MANDT", "VBELN", "POSNR", "ETENR"],
+  fields: vbepFields,
+  joinKey: null,
+};
+
+const vbfaFields = {
+  MANDT: propertyTypeFields.MANDT,
+  VBELV: propertyTypeFields.VBELV,
+  POSNV: propertyTypeFields.POSNV,
+  VBELN: propertyTypeFields.VBELN,
+  POSNN: propertyTypeFields.POSNN,
+  VBTYP_V: propertyTypeFields.VBTYP_V,
+  VBTYP_N: propertyTypeFields.VBTYP_N,
+  RFMNG: propertyTypeFields.RFMNG,
+  MEINS: propertyTypeFields.MEINS,
+} as const satisfies Record<string, SAPFieldMapping>;
+
+/**
+ * Sales Document Flow (VBFA)
+ */
+export const vbfaTableDefinition: SAPTable<keyof typeof vbfaFields> = {
+  tableKey: "VBFA",
+  tableTitle: "Sales Document Flow",
+  tableDescription:
+    "Tracks the flow and relationships between different sales documents in the SD process",
+  primaryKey: ["MANDT", "VBELV", "POSNV", "VBELN", "POSNN"],
+  fields: vbfaFields,
+  joinKey: null,
+};
+
 export const sapTableDefinitions = {
   kna1: kna1TableDefinition,
   likp: likpTableDefinition,
@@ -989,4 +1278,8 @@ export const sapTableDefinitions = {
   mard: mardTableDefinition,
   matdoc: matdocTableDefinition,
   mbew: mbewTableDefinition,
+  vbap: vbapTableDefinition,
+  vbak: vbakTableDefinition,
+  vbep: vbepTableDefinition,
+  vbfa: vbfaTableDefinition,
 } as const satisfies Record<string, SAPTable<string>>;
