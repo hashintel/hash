@@ -106,7 +106,7 @@ anstyle-yansi  = { version = "=2.0.3", default-features = false }
 approx         = { version = "=0.5.1", default-features = false }
 ariadne        = { version = "=0.5.1", default-features = false }
 async-scoped   = { version = "=0.9.0", default-features = false }
-async-trait    = { version = "=0.1.88", default-features = false }
+async-trait    = { version = "=0.1.89", default-features = false }
 aws-config     = { version = "=1.8.2" }
 aws-sdk-s3     = { version = "=1.98.0", default-features = false }
 aws-types      = { version = "=1.3.7", default-features = false }
