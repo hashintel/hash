@@ -19,7 +19,7 @@ pub enum UserError {
 impl Error for UserError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GenerateUsersStage {
     pub id: String,
     pub config_ref: String,
@@ -55,7 +55,7 @@ impl GenerateUsersStage {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistUsersStage {
     pub id: String,
     pub from: Vec<String>,
@@ -107,7 +107,6 @@ impl PersistUsersStage {
                 .await
                 .change_context(PersistUsersError::CreateUserActor)?;
         }
-
         drop(store);
 
         Ok(users.len())

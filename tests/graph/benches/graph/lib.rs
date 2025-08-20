@@ -26,18 +26,19 @@ use criterion_macro::criterion;
 #[criterion]
 fn bench_resolve_policies(_crit: &mut Criterion) {
     let rt = tokio::runtime::Runtime::new().expect("runtime");
-    // Run JSON scenario (users -> web-catalog -> data-types)
+    // Run JSON scenario (users -> web-catalog -> data-types -> property-types)
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("config")
         .join("scenarios")
-        .join("user_catalog_then_datatypes.json");
+        .join("full_ontology_seeding.json");
 
     #[expect(
         clippy::print_stderr,
+        clippy::use_debug,
         reason = "Bench output is printed to console intentionally"
     )]
     match rt.block_on(async move { scenario::run_scenario_file(&path).await }) {
         Ok(result) => eprintln!("Scenario passed: {:#}", serde_json::json!(result)),
-        Err(err) => eprintln!("Scenario failed: {err:#}"),
+        Err(err) => eprintln!("Scenario failed: {err:?}"),
     }
 }

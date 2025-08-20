@@ -112,9 +112,9 @@ impl PropertyTypeProducerConfig {
                 // For property types that only use Array/Object values, no data type catalog needed
                 // This would need special handling based on the values config, but for now we
                 // require it
-                return Err(Report::<[PropertyTypeProducerConfigError]>::from(
-                    Report::new(PropertyTypeProducerConfigError::Values),
-                ));
+                return Err(Report::new(PropertyTypeProducerConfigError::Values)
+                    .attach_printable("Property types require a data type catalog")
+                    .expand());
             }
         };
         let conflict_behavior = self
@@ -239,7 +239,10 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
 pub(crate) mod tests {
     use alloc::sync::Arc;
 
-    use type_system::provenance::{OriginProvenance, OriginType};
+    use type_system::{
+        ontology::data_type::schema::DataTypeReference,
+        provenance::{OriginProvenance, OriginType},
+    };
 
     use super::*;
     use crate::seeding::{
@@ -329,17 +332,28 @@ pub(crate) mod tests {
         let config = sample_property_type_producer_config();
         let catalog = create_test_web_catalog();
 
-        let data_type_catalog = InMemoryDataTypeCatalog::from_urls(&[
-            (
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-                1,
-            ),
-            (
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/".to_owned(),
-                1,
-            ),
+        let data_type_catalog = InMemoryDataTypeCatalog::new(vec![
+            DataTypeReference {
+                url: VersionedUrl {
+                    base_url: BaseUrl::new(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
+                    )
+                    .expect("valid URL"),
+                    version: OntologyTypeVersion::new(1),
+                },
+            },
+            DataTypeReference {
+                url: VersionedUrl {
+                    base_url: BaseUrl::new(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/"
+                            .to_owned(),
+                    )
+                    .expect("valid URL"),
+                    version: OntologyTypeVersion::new(1),
+                },
+            },
         ])
-        .expect("valid URLs");
+        .expect("should be able to create valid data type catalog");
 
         let deps = PropertyTypeProducerDeps {
             user_catalog: Some(&catalog),

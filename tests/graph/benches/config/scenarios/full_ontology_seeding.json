@@ -1,6 +1,6 @@
 {
   "runId": 1,
-  "numShards": 8,
+  "numShards": 16,
   "stages": [
     {
       "type": "reset-db",
@@ -18,11 +18,6 @@
       "count": 10
     },
     {
-      "type": "persist-users",
-      "id": "persist-users-basic",
-      "from": ["users"]
-    },
-    {
       "type": "web-catalog",
       "id": "webs",
       "from": ["users"],
@@ -38,15 +33,44 @@
     {
       "type": "generate-data-types",
       "id": "remote-datatypes",
-      "configRef": "data_types/remote_only",
+      "configRef": "data_types/basic",
       "inputs": { "userCatalog": "webs" },
       "count": 100
+    },
+    {
+      "type": "build-data-type-catalog",
+      "id": "data-type-catalog",
+      "input": "local-datatypes"
+    },
+    {
+      "type": "generate-property-types",
+      "id": "property-types",
+      "configRef": "property_types/basic",
+      "inputs": {
+        "userCatalog": "webs",
+        "dataTypeCatalog": "data-type-catalog"
+      },
+      "count": 1000
+    },
+
+    {
+      "type": "persist-users",
+      "id": "persist-users-basic",
+      "from": ["users"]
     },
     {
       "type": "persist-data-types",
       "id": "persist-local-datatypes",
       "inputs": {
         "dataTypes": ["local-datatypes", "remote-datatypes"],
+        "webToUser": ["users"]
+      }
+    },
+    {
+      "type": "persist-property-types",
+      "id": "persist-property-types",
+      "inputs": {
+        "propertyTypes": ["property-types"],
         "webToUser": ["users"]
       }
     }

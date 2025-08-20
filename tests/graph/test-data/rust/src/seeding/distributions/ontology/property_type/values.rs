@@ -20,8 +20,7 @@ use rand::{
     prelude::IndexedRandom as _,
 };
 use type_system::ontology::{
-    BaseUrl, VersionedUrl, data_type::schema::DataTypeReference, id::OntologyTypeVersion,
-    property_type::schema::PropertyValues,
+    data_type::schema::DataTypeReference, property_type::schema::PropertyValues,
 };
 
 use crate::seeding::distributions::adaptors::DistributionWeight;
@@ -103,29 +102,15 @@ pub struct InMemoryDataTypeCatalog {
 
 impl InMemoryDataTypeCatalog {
     /// Create a new catalog from a collection of data type references.
-    #[must_use]
-    pub const fn new(data_types: Vec<DataTypeReference>) -> Self {
-        Self { data_types }
-    }
-
-    /// Create a new catalog from a slice of tuples containing (`base_url`, version).
     ///
     /// # Errors
     ///
-    /// Returns an error if any of the base URLs cannot be parsed.
-    pub fn from_urls(
-        urls: &[(String, u32)],
-    ) -> Result<Self, type_system::ontology::id::ParseBaseUrlError> {
-        // TODO: Optimize string allocation - consider using &str or pre-parsed BaseUrls
-        let mut data_types = Vec::with_capacity(urls.len());
-        for (base_url, version) in urls {
-            data_types.push(DataTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(base_url.clone())?,
-                    version: OntologyTypeVersion::new(*version),
-                },
-            });
+    /// Returns an error if the catalog is empty.
+    pub fn new(data_types: Vec<DataTypeReference>) -> Result<Self, PropertyValuesBindingError> {
+        if data_types.is_empty() {
+            return Err(PropertyValuesBindingError::EmptyCatalog);
         }
+
         Ok(Self { data_types })
     }
 }
@@ -386,7 +371,8 @@ mod tests {
             value: PropertyValueTypeConfig::Value,
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let distribution = config.bind(&catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
@@ -414,7 +400,8 @@ mod tests {
             }],
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let distribution = config.bind(&catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
@@ -427,7 +414,8 @@ mod tests {
             types: vec![PropertyValueTypeConfig::Value],
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let distribution = config.bind(&catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
@@ -436,12 +424,24 @@ mod tests {
 
     #[test]
     fn empty_catalog_error() {
+        // Create a mock empty catalog for testing by binding against a config that requires one
+        #[derive(Debug)]
+        struct EmptyTestCatalog;
+        impl DataTypeCatalog for EmptyTestCatalog {
+            fn data_type_references(&self) -> &[DataTypeReference] {
+                &[]
+            }
+
+            fn sample_data_type<R: Rng + ?Sized>(&self, _rng: &mut R) -> &DataTypeReference {
+                panic!("Empty catalog cannot sample data types")
+            }
+        }
+        let empty_catalog = EmptyTestCatalog;
+
         let config = PropertyValuesDistributionConfig::Const {
             value: PropertyValueTypeConfig::Value,
         };
-
-        let catalog = InMemoryDataTypeCatalog::new(vec![]);
-        let result = config.bind(&catalog);
+        let result = config.bind(&empty_catalog);
 
         let _: Report<_> = result.expect_err("should error");
     }
@@ -452,7 +452,8 @@ mod tests {
             value: PropertyValueTypeConfig::Array,
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let result = config.bind(&catalog);
 
         let _: Report<_> = result.expect_err("should error");
@@ -464,7 +465,8 @@ mod tests {
             value: PropertyValueTypeConfig::Object,
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let result = config.bind(&catalog);
 
         let _: Report<_> = result.expect_err("should error");
@@ -513,7 +515,8 @@ mod tests {
             value: PropertyValueTypeConfig::Value,
         };
 
-        let catalog = InMemoryDataTypeCatalog::new(test_data_types());
+        let catalog =
+            InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
         let distribution = config.bind(&catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();

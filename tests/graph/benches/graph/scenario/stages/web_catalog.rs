@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::Report;
-use hash_graph_test_data::seeding::producer::data_type::InMemoryWebCatalog;
+use hash_graph_test_data::seeding::producer::ontology::InMemoryWebCatalog;
 
 use crate::scenario::runner::Runner;
 
@@ -15,7 +15,7 @@ pub enum WebCatalogError {
 impl Error for WebCatalogError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WebCatalogStage {
     pub id: String,
     pub from: Vec<String>,

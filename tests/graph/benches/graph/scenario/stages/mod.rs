@@ -4,6 +4,9 @@ use error_stack::{Report, ResultExt as _};
 
 use self::{
     data_type::{GenerateDataTypesStage, PersistDataTypesStage},
+    property_type::{
+        BuildDataTypeCatalogStage, GeneratePropertyTypesStage, PersistPropertyTypesStage,
+    },
     reset_db::ResetDbStage,
     user::{GenerateUsersStage, PersistUsersStage},
     web_catalog::WebCatalogStage,
@@ -11,6 +14,7 @@ use self::{
 use super::runner::Runner;
 
 pub mod data_type;
+pub mod property_type;
 pub mod reset_db;
 pub mod user;
 pub mod web_catalog;
@@ -30,6 +34,9 @@ pub enum Stage {
     WebCatalog(WebCatalogStage),
     GenerateDataTypes(GenerateDataTypesStage),
     PersistDataTypes(PersistDataTypesStage),
+    BuildDataTypeCatalog(BuildDataTypeCatalogStage),
+    GeneratePropertyTypes(GeneratePropertyTypesStage),
+    PersistPropertyTypes(PersistPropertyTypesStage),
 }
 
 impl Stage {
@@ -41,6 +48,11 @@ impl Stage {
             Self::WebCatalog(stage) => stage.execute(runner).change_context(StageError),
             Self::GenerateDataTypes(stage) => stage.execute(runner).change_context(StageError),
             Self::PersistDataTypes(stage) => stage.execute(runner).await.change_context(StageError),
+            Self::BuildDataTypeCatalog(stage) => stage.execute(runner).change_context(StageError),
+            Self::GeneratePropertyTypes(stage) => stage.execute(runner).change_context(StageError),
+            Self::PersistPropertyTypes(stage) => {
+                stage.execute(runner).await.change_context(StageError)
+            }
         }
     }
 }

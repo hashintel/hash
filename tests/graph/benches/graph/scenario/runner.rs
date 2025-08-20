@@ -12,10 +12,12 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     data_type::CreateDataTypeParams, migration::StoreMigration as _, pool::StorePool as _,
+    property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
-    producer::{Producer, ProducerExt as _, data_type::InMemoryWebCatalog, user::UserCreation},
+    distributions::ontology::property_type::values::InMemoryDataTypeCatalog,
+    producer::{Producer, ProducerExt as _, ontology::InMemoryWebCatalog, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
@@ -78,6 +80,9 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::WebCatalog(stage) => stage.id.clone(),
                         Stage::GenerateDataTypes(stage) => stage.id.clone(),
                         Stage::PersistDataTypes(stage) => stage.id.clone(),
+                        Stage::BuildDataTypeCatalog(stage) => stage.id.clone(),
+                        Stage::GeneratePropertyTypes(stage) => stage.id.clone(),
+                        Stage::PersistPropertyTypes(stage) => stage.id.clone(),
                     },
                     produced,
                     duration_ms: start.elapsed().as_millis(),
@@ -105,6 +110,8 @@ pub struct Resources {
     pub users: HashMap<String, Vec<UserCreation>>,
     pub user_catalogs: HashMap<String, InMemoryWebCatalog>,
     pub data_types: HashMap<String, Vec<CreateDataTypeParams>>,
+    pub data_type_catalogs: HashMap<String, InMemoryDataTypeCatalog>,
+    pub property_types: HashMap<String, Vec<CreatePropertyTypeParams>>,
 }
 
 pub struct Runner {
@@ -201,6 +208,7 @@ impl Runner {
             .seed_system_policies()
             .await
             .change_context(ScenarioError::Db)?;
+        drop(store);
 
         let allowed = std::env::var("HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN")
             .ok()
@@ -218,7 +226,7 @@ impl Runner {
             (type_fetcher_host, type_fetcher_port),
             DomainValidator::new(allowed),
         ));
-        drop(store);
+
         Ok(())
     }
 
