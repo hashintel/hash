@@ -258,7 +258,7 @@ test-fuzz                          = { version = "=7.2.1", default-features = fa
 test-log                           = { version = "=0.2.18", default-features = false }
 test-strategy                      = { version = "=0.4.3", default-features = false }
 text-size                          = { version = "=1.1.1", default-features = false }
-thiserror                          = { version = "=2.0.12", default-features = false }
+thiserror                          = { version = "=2.0.16", default-features = false }
 time                               = { version = "=0.3.41", default-features = false }
 tokio                              = { version = "=1.46.1", default-features = false }
 tokio-postgres                     = { version = "=0.7.13", default-features = false }
