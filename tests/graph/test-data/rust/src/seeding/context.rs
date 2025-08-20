@@ -42,7 +42,7 @@
 //!
 //! ```rust
 //! use hash_graph_test_data::seeding::context::{
-//!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, SubScope,
+//!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, StageId, SubScope,
 //! };
 //! use rand::Rng as _;
 //!
