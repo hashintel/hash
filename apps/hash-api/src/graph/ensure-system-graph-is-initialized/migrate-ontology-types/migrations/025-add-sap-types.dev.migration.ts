@@ -334,7 +334,7 @@ const migrate: MigrationFunction = async ({
         description: "Sequential item number within the delivery",
         possibleValues: [
           {
-            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
           },
         ],
       },
@@ -1545,6 +1545,444 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const kwmengPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Cumulative Order Quantity",
+        description:
+          "Total ordered quantity across schedule lines in sales units",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const ziemePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Target Quantity UoM",
+        description:
+          "Unit of measure for planned or target quantities in a schedule",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const netwrPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Net Value",
+        description:
+          "Net value of the sales order item in the document currency",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const waersPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Currency Key",
+        description: "Currency in which item pricing is recorded",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const pstyvPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Item Category",
+        description: "Defines the category/type of a sales order item",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const abgruPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Rejection Reason",
+        description:
+          "Code indicating why a quotation or order item was rejected",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const auartPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Sales Document Type",
+        description: "Code indicating the type/category of a sales document",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const vkorgPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Sales Organization",
+        description: "Organizational unit responsible for sales transactions",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const vtwegPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Distribution Channel",
+        description: "Channel through which products are distributed",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const spartPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Division",
+        description:
+          "Business division or product line within sales organization",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const bstnkPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Customer PO Number",
+        description:
+          "External reference (Purchase Order) number provided by the customer",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const waerkPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Document Currency",
+        description: "Currency in which document values are recorded",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const etenrPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Schedule Line Number",
+        description: "Unique number for each schedule line within a document",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const edatuPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Schedule Line Date",
+        description:
+          "Date for a delivery schedule line — typically when the delivery is expected",
+        possibleValues: [
+          {
+            dataTypeId: systemDataTypes.date.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const bmengPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Confirmed Quantity",
+        description: "Quantity confirmed for delivery in sales units",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const wmengPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Order Quantity in Sales Units",
+        description: "Quantity originally ordered in sales units",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const ettypPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Schedule Line Category",
+        description:
+          "Category indicating type of schedule line (e.g., delivery, return, etc.)",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const vbelnVPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Preceding Document Number",
+        description: "Previous document in the flow",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const posnvPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Preceding Item",
+        description: "Item number in the preceding document",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const posnnPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Subsequent Item Number",
+        description: "Item number in the subsequent document",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const vbtypVPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Preceding Document Type",
+        description:
+          "Category/type of preceding document (e.g., order, delivery)",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const vbtypNPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Subsequent Document Type",
+        description: "Category/type of subsequent document",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const rfmngPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Referenced Quantity",
+        description: "Quantity referenced in the relationship, in base unit",
+        possibleValues: [
+          {
+            dataTypeId: blockProtocolDataTypes.number.dataTypeId,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  const belongsToSalesOrderLinkType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+        title: "Belongs To Sales Order",
+        description: "A sales order that something belongs to",
+        properties: [],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
   const relatesToCustomerLinkType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -2085,6 +2523,213 @@ const migrate: MigrationFunction = async ({
             destinationEntityTypes: [materialMasterDataEntityType.schema.$id],
           },
         ],
+      },
+      migrationState,
+      webShortname: "sap",
+    },
+  );
+
+  // Create vbak entity type (Sales Document Header Data)
+  const _salesDocumentHeaderDataEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        title: "Sales Document Header Data",
+        description:
+          "Header information for sales orders, quotations, and other sales documents",
+        // unique key is MANDT + VBELN within a client... labelProperty does not yet support compound labels
+        labelProperty: vbelnPropertyType.metadata.recordId.baseUrl,
+        properties: [
+          {
+            propertyType: mandtPropertyType.schema.$id,
+          },
+          {
+            propertyType: vbelnPropertyType.schema.$id,
+          },
+          {
+            propertyType: auartPropertyType.schema.$id,
+          },
+          {
+            propertyType: vkorgPropertyType.schema.$id,
+          },
+          {
+            propertyType: vtwegPropertyType.schema.$id,
+          },
+          {
+            propertyType: spartPropertyType.schema.$id,
+          },
+          {
+            propertyType: bstnkPropertyType.schema.$id,
+          },
+          {
+            propertyType: erdatPropertyType.schema.$id,
+          },
+          {
+            propertyType: erzetPropertyType.schema.$id,
+          },
+          {
+            propertyType: ernamPropertyType.schema.$id,
+          },
+          {
+            propertyType: waerkPropertyType.schema.$id,
+          },
+          {
+            propertyType: netwrPropertyType.schema.$id,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: relatesToCustomerLinkType.schema.$id,
+            destinationEntityTypes: [masterCustomerDataEntityType.schema.$id],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    });
+
+  // Create vbap entity type (Sales Document Item Data)
+  const _salesDocumentItemDataEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        title: "Sales Document Item Data",
+        description: "Detailed line item data for sales orders and quotations",
+        // unique key is MANDT + VBELN + POSNR within a client... labelProperty does not yet support compound labels
+        properties: [
+          {
+            propertyType: mandtPropertyType.schema.$id,
+          },
+          {
+            propertyType: posnrPropertyType.schema.$id,
+          },
+          {
+            propertyType: werksPropertyType.schema.$id,
+          },
+          {
+            propertyType: lgortPropertyType.schema.$id,
+          },
+          {
+            propertyType: vrkmePropertyType.schema.$id,
+          },
+          {
+            propertyType: kwmengPropertyType.schema.$id,
+          },
+          {
+            propertyType: ziemePropertyType.schema.$id,
+          },
+          {
+            propertyType: meinsPropertyType.schema.$id,
+          },
+          {
+            propertyType: netwrPropertyType.schema.$id,
+          },
+          {
+            propertyType: waersPropertyType.schema.$id,
+          },
+          {
+            propertyType: pstyvPropertyType.schema.$id,
+          },
+          {
+            propertyType: abgruPropertyType.schema.$id,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: belongsToSalesOrderLinkType.schema.$id,
+            destinationEntityTypes: [
+              _salesDocumentHeaderDataEntityType.schema.$id,
+            ],
+          },
+          {
+            linkEntityType: relatesToMaterialLinkType.schema.$id,
+            destinationEntityTypes: [materialMasterDataEntityType.schema.$id],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    });
+
+  // Create vbep entity type (Sales Document Schedule Line Data)
+  const _salesDocumentScheduleLineDataEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        title: "Sales Document Schedule Line Data",
+        description:
+          "Schedule lines for delivery planning within sales order items",
+        // unique key is MANDT + VBELN + POSNR + ETENR within a client... labelProperty does not yet support compound labels
+        properties: [
+          {
+            propertyType: mandtPropertyType.schema.$id,
+          },
+          {
+            propertyType: etenrPropertyType.schema.$id,
+          },
+          {
+            propertyType: edatuPropertyType.schema.$id,
+          },
+          {
+            propertyType: bmengPropertyType.schema.$id,
+          },
+          {
+            propertyType: wmengPropertyType.schema.$id,
+          },
+          {
+            propertyType: vrkmePropertyType.schema.$id,
+          },
+          {
+            propertyType: ettypPropertyType.schema.$id,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: belongsToSalesOrderLinkType.schema.$id,
+            destinationEntityTypes: [
+              _salesDocumentHeaderDataEntityType.schema.$id,
+            ],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "sap",
+    });
+
+  // Create vbfa entity type (Sales Document Flow)
+  const _salesDocumentFlowEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Sales Document Flow",
+        description:
+          "Tracks the flow and relationships between different sales documents in the SD process",
+        // unique key is MANDT + VBELV + POSNV + VBELN + POSNN within a client... labelProperty does not yet support compound labels
+        properties: [
+          {
+            propertyType: mandtPropertyType.schema.$id,
+          },
+          {
+            propertyType: vbelnVPropertyType.schema.$id,
+          },
+          {
+            propertyType: posnvPropertyType.schema.$id,
+          },
+          {
+            propertyType: posnnPropertyType.schema.$id,
+          },
+          {
+            propertyType: vbtypVPropertyType.schema.$id,
+          },
+          {
+            propertyType: vbtypNPropertyType.schema.$id,
+          },
+          {
+            propertyType: rfmngPropertyType.schema.$id,
+          },
+          {
+            propertyType: meinsPropertyType.schema.$id,
+          },
+        ],
+        outgoingLinks: [],
       },
       migrationState,
       webShortname: "sap",

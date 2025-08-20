@@ -81,7 +81,7 @@ const propertyTypeFields = {
   },
   VBELN: {
     propertyType: {
-      title: "Document Number",
+      title: "Delivery Number",
       description: "Unique identifier for a sales or delivery document",
       dataType: "text",
     },
@@ -180,7 +180,7 @@ const propertyTypeFields = {
     propertyType: {
       title: "Item Number",
       description: "Sequential item number within the delivery",
-      dataType: "number", // actually stored as a string in SAP
+      dataType: "text", // leading 000s in SAP
     },
     // actually a link to VBUP table, not in dummy data
   },
@@ -797,8 +797,8 @@ const propertyTypeFields = {
   ETENR: {
     propertyType: {
       title: "Schedule Line Number",
-      description: "Unique number for each schedule line within the document",
-      dataType: "number",
+      description: "Unique number for each schedule line within a document",
+      dataType: "text", // leading 000s in SAP
     },
   },
   EDATU: {
@@ -1278,8 +1278,8 @@ export const sapTableDefinitions = {
   mard: mardTableDefinition,
   matdoc: matdocTableDefinition,
   mbew: mbewTableDefinition,
-  vbap: vbapTableDefinition,
+  vbab: vbapTableDefinition,
   vbak: vbakTableDefinition,
-  vbep: vbepTableDefinition,
-  vbfa: vbfaTableDefinition,
+  // vbep: vbepTableDefinition,
+  // vbfa: vbfaTableDefinition,
 } as const satisfies Record<string, SAPTable<string>>;
