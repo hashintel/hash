@@ -201,7 +201,7 @@ export const TransitionEditor = ({
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
 
-  const { childNetOptions } = useEditorContext();
+  const { existingNets } = useEditorContext();
 
   const updateChildNet = useCallback(
     ({
@@ -377,7 +377,7 @@ export const TransitionEditor = ({
     );
   }, [localData.conditions]);
 
-  const childNetOptionsAvailable = childNetOptions.length > 0;
+  const existingNetsAvailable = existingNets.length > 0;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -444,10 +444,10 @@ export const TransitionEditor = ({
               border: ({ palette }) => `1px solid ${palette.gray[20]}`,
               borderRadius: 2,
               p: 2,
-              display: childNetOptionsAvailable ? "block" : "none",
+              display: existingNetsAvailable ? "block" : "none",
             }}
           >
-            {childNetOptionsAvailable && (
+            {existingNetsAvailable && (
               <Box component="label">
                 <Typography
                   component="div"
@@ -458,7 +458,7 @@ export const TransitionEditor = ({
                 </Typography>
 
                 <NetSelector
-                  options={childNetOptions}
+                  options={existingNets}
                   placeholder="Select child net to link"
                   value={localData.childNet?.childNetId ?? null}
                   onSelect={(value) =>
@@ -616,9 +616,7 @@ export const TransitionEditor = ({
             )}
           </Stack>
 
-          <Divider
-            sx={{ display: childNetOptionsAvailable ? "none" : "block" }}
-          />
+          <Divider sx={{ display: existingNetsAvailable ? "none" : "block" }} />
 
           <Box>
             <Box component="label">

@@ -15,70 +15,96 @@ import type {
 } from "./types";
 
 type EditorContextValue = {
-  childNetOptions: MinimalNetMetadata[];
+  createNewNet: (params: {
+    petriNetDefinition: PetriNetDefinitionObject;
+    title: string;
+  }) => void;
+  existingNets: MinimalNetMetadata[];
   loadPetriNet: (petriNetId: string) => void;
   parentNet: ParentNet | null;
+  petriNetId: string | null;
   petriNetDefinition: PetriNetDefinitionObject;
   readonly: boolean;
   setParentNet: Dispatch<SetStateAction<ParentNet | null>>;
   setPetriNetDefinition: Dispatch<SetStateAction<PetriNetDefinitionObject>>;
+  setTitle: (title: string) => void;
+  title: string;
 };
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);
 
 type EditorContextProviderProps = {
   children: React.ReactNode;
-  childNetOptions: MinimalNetMetadata[];
+  createNewNet: (params: {
+    petriNetDefinition: PetriNetDefinitionObject;
+    title: string;
+  }) => void;
+  existingNets: MinimalNetMetadata[];
   parentNet: ParentNet | null;
-  petriNet: PetriNetDefinitionObject;
-  setPetriNet: (petriNetDefinition: PetriNetDefinitionObject) => void;
+  petriNetId: string | null;
+  petriNetDefinition: PetriNetDefinitionObject;
+  setPetriNetDefinition: (petriNetDefinition: PetriNetDefinitionObject) => void;
   loadPetriNet: (petriNetId: string) => void;
   readonly: boolean;
+  setTitle: (title: string) => void;
+  title: string;
 };
 
 export const EditorContextProvider = ({
   children,
-  childNetOptions,
+  createNewNet,
+  existingNets,
   parentNet: parentNetFromProps,
-  petriNet,
+  petriNetId,
+  petriNetDefinition,
   readonly,
   loadPetriNet,
-  setPetriNet,
+  setPetriNetDefinition,
+  setTitle,
+  title,
 }: EditorContextProviderProps) => {
   const [parentNet, setParentNet] = useState<ParentNet | null>(
     parentNetFromProps,
   );
 
-  const setPetriNetDefinition: EditorContextValue["setPetriNetDefinition"] =
+  const setDefinition: EditorContextValue["setPetriNetDefinition"] =
     useCallback(
       (setStateFnOrData) => {
         if (typeof setStateFnOrData === "function") {
-          setPetriNet(setStateFnOrData(petriNet));
+          setPetriNetDefinition(setStateFnOrData(petriNetDefinition));
         } else {
-          setPetriNet(setStateFnOrData);
+          setPetriNetDefinition(setStateFnOrData);
         }
       },
-      [petriNet, setPetriNet],
+      [petriNetDefinition, setPetriNetDefinition],
     );
 
   const value: EditorContextValue = useMemo(
     () => ({
-      childNetOptions,
+      createNewNet,
+      existingNets,
       loadPetriNet,
       parentNet,
-      petriNetDefinition: petriNet,
+      petriNetId,
+      petriNetDefinition,
       readonly,
       setParentNet,
-      setPetriNetDefinition,
+      setPetriNetDefinition: setDefinition,
+      setTitle,
+      title,
     }),
     [
-      childNetOptions,
+      createNewNet,
+      existingNets,
       loadPetriNet,
       parentNet,
-      petriNet,
+      petriNetId,
+      petriNetDefinition,
       readonly,
       setParentNet,
-      setPetriNetDefinition,
+      setDefinition,
+      setTitle,
+      title,
     ],
   );
 

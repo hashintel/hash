@@ -3,17 +3,12 @@ import "reactflow/dist/style.css";
 import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import { Button } from "../../shared/ui";
-import { exampleCPN } from "./process-editor-wrapper/examples";
 import { Petrinaut } from "./process-editor-wrapper/petrinaut";
 import { defaultTokenTypes } from "./process-editor-wrapper/petrinaut/token-types";
 import type { PetriNetDefinitionObject } from "./process-editor-wrapper/petrinaut/types";
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
-import { TitleAndNetSelect } from "./process-editor-wrapper/title-and-net-select";
-import { useConvertToPnml } from "./process-editor-wrapper/use-convert-to-pnml";
-import { useLoadFromPnml } from "./process-editor-wrapper/use-load-from-pnml";
 import {
   type PersistedNet,
   useProcessSaveAndLoad,
@@ -27,11 +22,12 @@ export const ProcessEditorWrapper = () => {
     title: string;
   } | null>(null);
 
-  const [petriNet, setPetriNet] = useState<PetriNetDefinitionObject>({
-    arcs: [],
-    nodes: [],
-    tokenTypes: defaultTokenTypes,
-  });
+  const [petriNetDefinition, setPetriNetDefinition] =
+    useState<PetriNetDefinitionObject>({
+      arcs: [],
+      nodes: [],
+      tokenTypes: defaultTokenTypes,
+    });
 
   const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
     useState<PersistedNet | null>(null);
@@ -47,120 +43,31 @@ export const ProcessEditorWrapper = () => {
     setUserEditable,
   } = useProcessSaveAndLoad({
     parentNet,
-    petriNet,
+    petriNet: petriNetDefinition,
     selectedNetId,
     setParentNet,
-    setPetriNet,
+    setPetriNet: setPetriNetDefinition,
     setSelectedNetId,
     setTitle,
     title,
   });
 
-  const handleResetAll = useCallback(() => {
-    setPetriNet({
-      arcs: [],
-      nodes: [],
-      tokenTypes: defaultTokenTypes,
-    });
+  const createNewNet = useCallback(
+    ({
+      petriNetDefinition: newPetriNetDefinition,
+      title: newTitle,
+    }: {
+      petriNetDefinition: PetriNetDefinitionObject;
+      title: string;
+    }) => {
+      setPetriNetDefinition(newPetriNetDefinition);
 
-    setSelectedNetId(null);
-    setParentNet(null);
-    setUserEditable(true);
-    setTitle("Process");
-  }, [setParentNet, setSelectedNetId, setUserEditable, setTitle]);
-
-  const handleLoadExample = useCallback(() => {
-    const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
-      if (node.data.type === "place") {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            initialTokenCounts: { ...node.data.initialTokenCounts },
-          },
-        };
-      }
-      return node;
-    });
-
-    setPetriNet({
-      arcs: exampleCPN.arcs,
-      nodes: nodesWithInitialCounts,
-      tokenTypes: exampleCPN.tokenTypes,
-    });
-
-    setUserEditable(false);
-    setTitle(exampleCPN.title);
-    setSelectedNetId(null);
-  }, [setUserEditable, setTitle, setSelectedNetId]);
-
-  const convertToPnml = useConvertToPnml({
-    petriNet,
-    title,
-  });
-
-  const handleExport = () => {
-    const pnml = convertToPnml();
-
-    const blob = new Blob([pnml], { type: "application/xml" });
-
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "process.pnml";
-
-    document.body.appendChild(a);
-    a.click();
-
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 0);
-  };
-
-  const loadFromPnml = useLoadFromPnml({
-    setParentNet,
-    setPetriNetDefinition: setPetriNet,
-    setSelectedNetId,
-    setTitle,
-    setUserEditable,
-  });
-
-  const handleLoadFromPnml = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) {
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (readerEvent) => {
-        const contents = readerEvent.target?.result;
-        if (typeof contents === "string") {
-          loadFromPnml(contents);
-        }
-      };
-      reader.readAsText(file);
+      setSelectedNetId(null);
+      setParentNet(null);
+      setUserEditable(true);
+      setTitle(newTitle);
     },
-    [loadFromPnml],
-  );
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const switchToNet = useCallback(
-    (net: PersistedNet) => {
-      if (isDirty) {
-        setSwitchTargetPendingConfirmation(net);
-      } else {
-        loadPersistedNet(net);
-      }
-    },
-    [isDirty, loadPersistedNet],
+    [setParentNet, setSelectedNetId, setUserEditable, setTitle],
   );
 
   const loadNetFromId = useCallback(
@@ -171,9 +78,13 @@ export const ProcessEditorWrapper = () => {
         throw new Error(`Net ${netId} not found`);
       }
 
-      loadPersistedNet(foundNet);
+      if (isDirty) {
+        setSwitchTargetPendingConfirmation(foundNet);
+      } else {
+        loadPersistedNet(foundNet);
+      }
     },
-    [loadPersistedNet, persistedNets],
+    [isDirty, loadPersistedNet, persistedNets],
   );
 
   const childProcessOptions = useMemo(() => {
@@ -212,50 +123,20 @@ export const ProcessEditorWrapper = () => {
         userEditable={userEditable}
         selectedNetId={selectedNetId}
       />
-      <TitleAndNetSelect
-        parentNet={parentNet}
-        persistedNets={persistedNets}
-        selectedNetId={selectedNetId}
-        setTitle={setTitle}
-        switchToNet={switchToNet}
-        title={title}
-      />
 
-      <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
+      <Box sx={{ height: "100%" }}>
         <Petrinaut
-          childNetOptions={childProcessOptions}
-          petriNet={petriNet}
-          parentNet={parentNet}
-          setPetriNet={setPetriNet}
-          readonly={!userEditable}
+          createNewNet={createNewNet}
+          existingNets={childProcessOptions}
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}
+          parentNet={parentNet}
+          petriNetDefinition={petriNetDefinition}
+          petriNetId={selectedNetId}
+          readonly={!userEditable}
+          setPetriNetDefinition={setPetriNetDefinition}
+          setTitle={setTitle}
+          title={title}
         />
-
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-        >
-          <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-            Load Example
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleLoadFromPnml}
-            accept=".pnml,.xml"
-            style={{ display: "none" }}
-          />
-          <Button onClick={handleImportClick} size="xs" variant="tertiary">
-            Import
-          </Button>
-          <Button onClick={handleExport} size="xs" variant="tertiary">
-            Export
-          </Button>
-          <Button onClick={handleResetAll} size="xs" variant="danger">
-            New
-          </Button>
-        </Stack>
       </Box>
     </Stack>
   );

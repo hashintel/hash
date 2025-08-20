@@ -2,7 +2,7 @@ import type {
   PetriNetDefinitionObject,
   PlaceNodeData,
   TransitionNodeData,
-} from "./petrinaut";
+} from "./types";
 
 const escapeXml = (str: string) =>
   str
@@ -14,6 +14,8 @@ const escapeXml = (str: string) =>
 
 /**
  * Convert the current process to an ISO-15909-2-conformant HLPN PNML document.
+ *
+ * @todo the proper format is to be agreed, this current version is wrong.
  */
 export const useConvertToPnml = ({
   petriNet,

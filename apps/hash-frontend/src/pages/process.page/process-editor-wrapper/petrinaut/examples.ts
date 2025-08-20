@@ -1,4 +1,4 @@
-import type { ArcType, NodeType, TokenType } from "./petrinaut";
+import type { ArcType, NodeType, TokenType } from "./types";
 
 export const exampleCPN = {
   title: "Drug Production",
@@ -172,7 +172,7 @@ export const exampleCPN = {
         delay: 3,
       },
     },
-  ] satisfies NodeType[],
+  ] as const satisfies NodeType[],
   arcs: [
     {
       id: "place_0-transition_0",

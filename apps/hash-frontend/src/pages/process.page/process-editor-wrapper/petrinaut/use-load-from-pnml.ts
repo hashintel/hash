@@ -11,7 +11,7 @@ import type {
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "./petrinaut";
+} from "../petrinaut";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent?.trim() ?? "";
@@ -35,8 +35,9 @@ const readMultiset = (multiset: Element | null): TokenCounts => {
 };
 
 /**
- * Parse a PNML document that follows the HASH “HLPN + toolspecific” dialect
- * back into React-Flow nodes, edges and token-type tables.
+ * Parse a PNML document that follows the HASH “HLPN + toolspecific” dialect back into a {@link PetriNetDefinitionObject}.
+ *
+ * @todo this dialect is wrong and needs updating once we have agreed on the format.
  */
 const parsePnml = (
   xml: string,
@@ -167,40 +168,27 @@ const parsePnml = (
 };
 
 export const useLoadFromPnml = ({
-  setParentNet,
-  setPetriNetDefinition,
-  setSelectedNetId,
-  setTitle,
-  setUserEditable,
+  createNewNet,
 }: {
-  setParentNet: (parentNet: null) => void;
-  setPetriNetDefinition: (petriNet: PetriNetDefinitionObject) => void;
-  setSelectedNetId: (selectedNetId: null) => void;
-  setTitle: (title: string) => void;
-  setUserEditable: (userEditable: boolean) => void;
+  createNewNet: (params: {
+    petriNetDefinition: PetriNetDefinitionObject;
+    title: string;
+  }) => void;
 }) => {
   const load = useCallback(
     (xml: string) => {
       const { nodes, arcs, tokenTypes, title } = parsePnml(xml);
 
-      setPetriNetDefinition({
-        arcs,
-        nodes,
-        tokenTypes,
+      createNewNet({
+        petriNetDefinition: {
+          arcs,
+          nodes,
+          tokenTypes,
+        },
+        title,
       });
-
-      setSelectedNetId(null);
-      setParentNet(null);
-      setTitle(title);
-      setUserEditable(true);
     },
-    [
-      setParentNet,
-      setPetriNetDefinition,
-      setSelectedNetId,
-      setTitle,
-      setUserEditable,
-    ],
+    [createNewNet],
   );
 
   return load;

@@ -1,30 +1,14 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { EditableField } from "@hashintel/block-design-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 
-import { NetSelector } from "./petrinaut";
-import type { PersistedNet } from "./use-process-save-and-load";
+import { useEditorContext } from "./editor-context";
+import { NetSelector } from "./net-selector";
 
-export const TitleAndNetSelect = ({
-  parentNet,
-  persistedNets,
-  selectedNetId,
-  setTitle,
-  switchToNet,
-  title,
-}: {
-  parentNet: { parentNetId: EntityId; title: string } | null;
-  persistedNets: PersistedNet[];
-  selectedNetId: EntityId | null;
-  setTitle: (title: string) => void;
-  switchToNet: (net: PersistedNet) => void;
-  title: string;
-}) => {
-  const parentNetPersistedNet = persistedNets.find(
-    (net) => net.entityId === parentNet?.parentNetId,
-  );
+export const TitleAndNetSelect = () => {
+  const { existingNets, loadPetriNet, parentNet, petriNetId, setTitle, title } =
+    useEditorContext();
 
   return (
     <Stack
@@ -38,12 +22,12 @@ export const TitleAndNetSelect = ({
       })}
     >
       <Stack direction="row" alignItems="center" gap={1}>
-        {parentNetPersistedNet && (
+        {parentNet && (
           <>
             <Typography
               component="button"
               onClick={() => {
-                switchToNet(parentNetPersistedNet);
+                loadPetriNet(parentNet.parentNetId);
               }}
               sx={({ palette, transitions }) => ({
                 background: "none",
@@ -59,7 +43,7 @@ export const TitleAndNetSelect = ({
                 },
               })}
             >
-              {parentNetPersistedNet.title}
+              {parentNet.title}
             </Typography>
             <FontAwesomeIcon
               icon={faAngleRight}
@@ -80,24 +64,16 @@ export const TitleAndNetSelect = ({
       </Stack>
 
       <NetSelector
-        disabledOptions={selectedNetId ? [selectedNetId] : undefined}
-        key={selectedNetId}
+        disabledOptions={petriNetId ? [petriNetId] : undefined}
+        key={petriNetId}
         onSelect={(net) => {
-          const foundNet = persistedNets.find(
-            (netOption) => net.netId === netOption.entityId,
-          );
-
-          if (!foundNet) {
-            throw new Error(`Net ${net.netId} not found`);
-          }
-
-          switchToNet(foundNet);
+          loadPetriNet(net.netId);
         }}
-        options={persistedNets.map((net) => ({
-          netId: net.entityId,
+        options={existingNets.map((net) => ({
+          netId: net.netId,
           title: net.title,
         }))}
-        value={selectedNetId}
+        value={petriNetId}
       />
     </Stack>
   );
