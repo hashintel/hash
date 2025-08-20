@@ -390,6 +390,7 @@ impl GlobalId {
 pub enum ProducerId {
     User,
     DataType,
+    PropertyType,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -405,6 +406,7 @@ impl ProducerId {
         match value {
             0 => Ok(Self::User),
             1 => Ok(Self::DataType),
+            2 => Ok(Self::PropertyType),
             _ => Err(ParseProducerIdError { producer_id: value }),
         }
     }

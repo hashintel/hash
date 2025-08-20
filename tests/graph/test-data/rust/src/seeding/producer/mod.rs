@@ -29,6 +29,8 @@ use error_stack::IntoReport;
 use super::context::{ProduceContext, ProducerId};
 
 pub mod data_type;
+pub mod ontology;
+pub mod property_type;
 pub mod user;
 
 /// Stateful producer of complex values composed from one or more distributions.
