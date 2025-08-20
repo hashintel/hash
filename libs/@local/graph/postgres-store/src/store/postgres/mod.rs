@@ -3356,7 +3356,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .attach(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
-            .create_user(None)
+            .create_user(params.user_id)
             .await
             .change_context(AccountInsertionError)?;
 

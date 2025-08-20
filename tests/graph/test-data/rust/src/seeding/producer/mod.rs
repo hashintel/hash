@@ -126,7 +126,7 @@ mod tests {
     use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
     use super::*;
-    use crate::seeding::context::{Provenance, RunId, ShardId};
+    use crate::seeding::context::{Provenance, RunId, ShardId, StageId};
 
     pub(crate) fn assert_producer_is_deterministic<P, T>(make_producer: impl Fn() -> P + Sync)
     where
@@ -143,6 +143,7 @@ mod tests {
             .flat_map(|sid| {
                 let context = ProduceContext {
                     run_id,
+                    stage_id: StageId::new(0),
                     shard_id: ShardId::new(sid),
                     provenance: Provenance::Integration,
                     producer: P::ID,
@@ -161,6 +162,7 @@ mod tests {
             .flat_map(|sid| {
                 let context = ProduceContext {
                     run_id,
+                    stage_id: StageId::new(0),
                     shard_id: ShardId::new(sid),
                     provenance: Provenance::Integration,
                     producer: P::ID,
