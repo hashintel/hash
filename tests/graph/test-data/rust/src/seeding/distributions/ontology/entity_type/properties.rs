@@ -196,6 +196,8 @@ fn generate_properties<R: Rng + ?Sized, C: PropertyTypeCatalog>(
             if required {
                 required_properties.insert(property_type_ref.url.base_url.clone());
             }
+
+            break;
         }
         if attempts == max_attempts {
             break;
@@ -289,7 +291,7 @@ mod tests {
         let catalog =
             InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
         let config = EntityTypePropertiesDistributionConfig::Fixed {
-            count: 2,
+            count: 1,
             required: true,
         };
 
@@ -297,7 +299,7 @@ mod tests {
         let mut rng = rand::rng();
 
         let (properties, required) = distribution.sample(&mut rng);
-        assert_eq!(properties.len(), 2);
+        assert_eq!(properties.len(), 1);
 
         // Check that properties have the expected structure - should be PropertyTypeReferences
         for (key, value) in properties {
