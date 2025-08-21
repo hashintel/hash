@@ -272,10 +272,9 @@ impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
 
 #[derive(Clone, derive_more::Debug)]
 struct LocalUniform<'a, C: WebCatalog> {
-	#[debug(skip)]
+    #[debug(skip)]
     catalog: &'a C,
 }
-
 
 impl<C: WebCatalog> LocalUniform<'_, C> {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {

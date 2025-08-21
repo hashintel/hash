@@ -27,7 +27,7 @@ hash-codec = { workspace = true, features = ["serde"] }
 indexmap   = { workspace = true, features = ["std"] }
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["display"] }
+derive_more    = { workspace = true, features = ["debug", "display"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
