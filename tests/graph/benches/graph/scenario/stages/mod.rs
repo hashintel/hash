@@ -4,7 +4,8 @@ use error_stack::{Report, ResultExt as _};
 
 use self::{
     data_type::{GenerateDataTypesStage, PersistDataTypesStage},
-    user::GenerateUsersStage,
+    reset_db::ResetDbStage,
+    user::{GenerateUsersStage, PersistUsersStage},
     web_catalog::WebCatalogStage,
 };
 use super::runner::Runner;
@@ -23,9 +24,9 @@ impl Error for StageError {}
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Stage {
-    ResetDb(super::stages::reset_db::ResetDbStage),
+    ResetDb(ResetDbStage),
     GenerateUsers(GenerateUsersStage),
-    PersistUsers(super::stages::user::PersistUsersStage),
+    PersistUsers(PersistUsersStage),
     WebCatalog(WebCatalogStage),
     GenerateDataTypes(GenerateDataTypesStage),
     PersistDataTypes(PersistDataTypesStage),
