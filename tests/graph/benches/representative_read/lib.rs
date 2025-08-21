@@ -45,7 +45,7 @@ mod seed;
 
 use core::str::FromStr as _;
 
-use criterion::{BenchmarkId, Criterion, SamplingMode};
+use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_store::subgraph::edges::{
     EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
@@ -108,9 +108,6 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
     let _samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
-
-    group.sample_size(10);
-    group.sampling_mode(SamplingMode::Flat);
 
     let graph_resolve_depths = [
         GraphResolveDepths::default(),

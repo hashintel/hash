@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::{
-    ContextBuilder, Policy, PolicyId,
+    ContextBuilder, Policy, PolicyId, ResolvedPolicy,
     principal::actor::AuthenticatedActor,
     resource::{DataTypeResource, EntityResource, EntityTypeResource, PropertyTypeResource},
     store::{
@@ -301,7 +301,7 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         params: ResolvePoliciesParams<'_>,
-    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+    ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>> {
         self.store
             .resolve_policies_for_actor(authenticated_actor, params)
             .await

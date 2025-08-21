@@ -84,7 +84,19 @@ resource "aws_ecs_task_definition" "grafana" {
         var.ssl_config.mount_point
       ]
 
-      environment = var.ssl_config.environment_vars
+      environment = concat(
+        var.ssl_config.environment_vars,
+        [
+          {
+            name  = "AWS_REGION"
+            value = var.region
+          },
+          {
+            name  = "AWS_DEFAULT_REGION"
+            value = var.region
+          }
+        ]
+      )
 
       secrets = [
         for env_name, ssm_param in aws_ssm_parameter.grafana_env_vars :

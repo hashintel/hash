@@ -361,13 +361,16 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@mailchimp/mailchimp_marketing": "npm:3.0.80"
     "@opentelemetry/api": "npm:1.9.0"
+    "@opentelemetry/api-logs": "npm:0.57.2"
     "@opentelemetry/core": "npm:1.30.1"
+    "@opentelemetry/exporter-logs-otlp-grpc": "npm:0.57.2"
     "@opentelemetry/exporter-trace-otlp-grpc": "npm:0.57.2"
     "@opentelemetry/instrumentation": "npm:0.57.2"
     "@opentelemetry/instrumentation-express": "npm:0.47.1"
     "@opentelemetry/instrumentation-graphql": "npm:0.47.1"
     "@opentelemetry/instrumentation-http": "npm:0.57.2"
     "@opentelemetry/resources": "npm:1.30.1"
+    "@opentelemetry/sdk-logs": "npm:0.57.2"
     "@opentelemetry/sdk-trace-base": "npm:1.30.1"
     "@opentelemetry/sdk-trace-node": "npm:1.30.1"
     "@ory/client": "npm:1.1.41"
@@ -470,7 +473,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
     "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@hashintel/query-editor": "npm:0.0.3"
     "@hashintel/type-editor": "npm:0.0.25"
     "@lit-labs/react": "npm:1.2.1"
@@ -678,7 +681,7 @@ __metadata:
     "@babel/preset-env": "npm:7.28.0"
     "@babel/preset-typescript": "npm:7.27.1"
     "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@storybook/addon-essentials": "npm:7.6.20"
@@ -766,7 +769,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@hashintel/block-design-system": "npm:0.0.2"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
@@ -4352,7 +4355,6 @@ __metadata:
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -7056,7 +7058,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.1"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -7083,7 +7085,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/design-system@npm:0.0.8, @hashintel/design-system@workspace:libs/@hashintel/design-system":
+"@hashintel/design-system@npm:0.0.9-canary.1, @hashintel/design-system@workspace:libs/@hashintel/design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
@@ -7109,11 +7111,11 @@ __metadata:
     react-loading-skeleton: "npm:3.5.0"
     typescript: "npm:5.7.3"
   peerDependencies:
-    "@emotion/cache": 11.14.0
-    "@emotion/react": 11.14.0
-    "@emotion/styled": 11.14.1
-    "@mui/material": 5.18.0
-    "@mui/system": 5.18.0
+    "@emotion/cache": ^11.14.0
+    "@emotion/react": ^11.14.0
+    "@emotion/styled": ^11.14.0
+    "@mui/material": ^5.18.0
+    "@mui/system": ^5.18.0
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown
@@ -7127,7 +7129,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
@@ -7155,7 +7157,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
-    "@hashintel/design-system": "npm:0.0.8"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
@@ -8934,6 +8936,8 @@ __metadata:
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@opensearch-project/opensearch": "npm:2.13.0"
+    "@opentelemetry/api": "npm:1.9.0"
+    "@opentelemetry/api-logs": "npm:0.57.2"
     "@sentry/node": "npm:9.44.0"
     "@smithy/protocol-http": "npm:5.1.2"
     "@smithy/signature-v4": "npm:5.1.2"
@@ -8963,6 +8967,7 @@ __metadata:
     vitest: "npm:3.2.4"
     wait-on: "npm:8.0.4"
     winston: "npm:3.17.0"
+    winston-transport: "npm:4.9.0"
   languageName: unknown
   linkType: soft
 
@@ -9085,6 +9090,7 @@ __metadata:
     envalid: "npm:7.3.1"
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
+    fix-esm-import-path: "npm:1.10.1"
     fs-extra: "npm:11.3.0"
     globby: "npm:11.1.0"
     ignore: "npm:7.0.5"
@@ -13102,6 +13108,10 @@ __metadata:
 "@rust/hash-graph-test-data@npm:0.0.0-private, @rust/hash-graph-test-data@workspace:tests/graph/test-data/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-test-data@workspace:tests/graph/test-data/rust"
+  dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-codec": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -45361,7 +45371,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"winston-transport@npm:^4.9.0":
+"winston-transport@npm:4.9.0, winston-transport@npm:^4.9.0":
   version: 4.9.0
   resolution: "winston-transport@npm:4.9.0"
   dependencies:

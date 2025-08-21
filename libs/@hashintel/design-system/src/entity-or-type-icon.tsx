@@ -1,8 +1,10 @@
 import type { BaseUrl, Entity } from "@blockprotocol/type-system";
-import { AsteriskRegularIcon, LinkTypeIcon } from "@hashintel/design-system";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
 import type { ReactElement } from "react";
+
+import { AsteriskRegularIcon } from "./icon-asterisk-regular";
+import { LinkTypeIcon } from "./ontology-icons";
 
 export const EntityOrTypeIcon = ({
   entity,

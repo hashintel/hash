@@ -139,6 +139,7 @@ module "observability" {
   grafana_secret_key        = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
   vpc_zone_id               = aws_route53_zone.vpc.zone_id
   amazon_trust_ca_bundle    = local.amazon_trust_ca_bundle
+  critical_alerts_topic_arn = module.critical_alerts.sns_topic_arn
 }
 
 
@@ -237,6 +238,14 @@ module "temporal_worker_integration_ecr" {
   ecr_name = "temporalworkerintegration"
 }
 
+module "critical_alerts" {
+  source = "../modules/sns_slack_alerts"
+
+  prefix            = local.prefix
+  severity          = "critical"
+  slack_webhook_url = sensitive(data.vault_kv_secret_v2.secrets.data["slack_aws_webhook"])
+}
+
 module "application" {
   depends_on                   = [module.networking, module.postgres]
   providers                    = { cloudflare = cloudflare }
@@ -251,7 +260,7 @@ module "application" {
   cpu                          = 2048
   memory                       = 4096
   worker_cpu                   = 256
-  worker_memory                = 1024
+  worker_memory                = 2048
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
   graph_migration_env_vars = concat(var.hash_graph_env_vars, [

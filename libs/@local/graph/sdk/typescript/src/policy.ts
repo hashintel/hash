@@ -5,6 +5,7 @@ import type {
   PolicyFilter,
   PolicyId,
   PolicyUpdateOperation,
+  ResolvedPolicy,
   ResolvePoliciesParams,
 } from "@rust/hash-graph-authorization/types";
 
@@ -77,10 +78,10 @@ export const resolvePoliciesForActor = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
   params: ResolvePoliciesParams,
-): Promise<Policy[]> =>
+): Promise<ResolvedPolicy[]> =>
   graphAPI
     .resolvePoliciesForActor(authentication.actorId, params)
-    .then(({ data: policies }) => policies as Policy[]);
+    .then(({ data: policies }) => policies as ResolvedPolicy[]);
 
 /**
  * Updates the policy specified by its ID.

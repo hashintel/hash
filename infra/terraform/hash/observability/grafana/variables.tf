@@ -101,3 +101,13 @@ variable "mimir_http_port" {
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
 }
+
+variable "external_load_balancer_arn_suffix" {
+  type        = string
+  description = "ARN suffix of the external ALB for CloudWatch metrics"
+}
+
+variable "critical_alerts_topic_arn" {
+  type        = string
+  description = "ARN of the critical alerts SNS topic"
+}
