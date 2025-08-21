@@ -23,6 +23,10 @@ use crate::config;
 pub enum PropertyTypeError {
     #[display("Missing property type config: {name}")]
     MissingConfig { name: String },
+    #[display("Unknown user catalog: {name}")]
+    UnknownUserCatalog { name: String },
+    #[display("Unknown data type catalog: {name}")]
+    UnknownDataTypeCatalog { name: String },
     #[display("Failed to create property type producer")]
     CreateProducer,
     #[display("Failed to persist property types to the database")]
@@ -70,29 +74,33 @@ impl GeneratePropertyTypesStage {
             })?;
 
         // Use a single pre-merged user catalog if provided
-        let user_catalog_owned: Option<InMemoryWebCatalog> = self
+        let user_catalog = self
             .inputs
             .user_catalog
             .as_ref()
-            .and_then(|key| runner.resources.user_catalogs.get(key))
-            .cloned();
+            .map(|key| {
+                runner.resources.user_catalogs.get(key).ok_or_else(|| {
+                    Report::new(PropertyTypeError::UnknownUserCatalog { name: key.clone() })
+                })
+            })
+            .transpose()?;
 
         // Get data type catalog reference
-        let data_type_catalog_owned: Option<InMemoryDataTypeCatalog> = self
+        let data_type_catalog = self
             .inputs
             .data_type_catalog
             .as_ref()
-            .and_then(|key| runner.resources.data_type_catalogs.get(key))
-            .cloned();
+            .map(|key| {
+                runner.resources.data_type_catalogs.get(key).ok_or_else(|| {
+                    Report::new(PropertyTypeError::UnknownDataTypeCatalog { name: key.clone() })
+                })
+            })
+            .transpose()?;
 
-        let deps = PropertyTypeProducerDeps::<
-            InMemoryWebCatalog,
-            InMemoryWebCatalog,
-            InMemoryDataTypeCatalog,
-        > {
-            user_catalog: user_catalog_owned.as_ref(),
-            org_catalog: None,
-            data_type_catalog: data_type_catalog_owned.as_ref(),
+        let deps = PropertyTypeProducerDeps {
+            user_catalog,
+            org_catalog: None::<&InMemoryWebCatalog>,
+            data_type_catalog,
         };
 
         let stage_id = self
@@ -103,7 +111,7 @@ impl GeneratePropertyTypesStage {
         // TODO: implement streaming to avoid loading all property types into memory at once for
         //       large counts
         let params: Vec<_> = runner
-            .run_producer(|| cfg.create_producer(&deps), self.count, stage_id)
+            .run_producer(|| cfg.create_producer(deps), self.count, stage_id)
             .change_context(PropertyTypeError::CreateProducer)?
             .collect();
 

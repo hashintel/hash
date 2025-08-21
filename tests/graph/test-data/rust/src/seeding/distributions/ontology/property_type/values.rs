@@ -91,6 +91,8 @@ pub trait DataTypeCatalog {
     /// # Panics
     ///
     /// May panic if the catalog is empty. Callers should check [`is_empty`] first.
+    ///
+    /// [`is_emtpy`]: Self::is_empty
     fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference;
 }
 
