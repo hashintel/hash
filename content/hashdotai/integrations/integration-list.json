@@ -348,5 +348,85 @@
     "availability": "Considered",
     "audience": ["Enterprise", "Startup"],
     "category": ["Project Management"]
+  },
+  {
+    "name": "Databricks",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_databricks.svg",
+    "productUrl": "https://www.databricks.com/product/data-intelligence-platform",
+    "summaryHtml": "Full access to lakehouse and data intelligence",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/databricks",
+    "availability": "Available",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Snowflake",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_snowflake.svg",
+    "productUrl": "https://www.snowflake.com/en/product/platform/",
+    "summaryHtml": "Full access to data cloud assets",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/snowflake",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "BigQuery",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_bigquery.svg",
+    "productUrl": "https://cloud.google.com/bigquery",
+    "summaryHtml": "Full access to data warehouse",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/bigquery",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Amazon Redshift",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_redshift.svg",
+    "productUrl": "https://aws.amazon.com/redshift/",
+    "summaryHtml": "Full access to cloud data warehouse",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/redshift",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Cloudflare R2",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_cloudflare.svg",
+    "productUrl": "https://www.cloudflare.com/developer-platform/products/r2/",
+    "summaryHtml": "Full access to object storage and data",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/cloudflare-r2",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Cloudflare D1",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_cloudflare.svg",
+    "productUrl": "https://www.cloudflare.com/developer-platform/products/d1/",
+    "summaryHtml": "Full access to Cloudflare SQL databases",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/cloudflare-d1",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Azure Data Lake Storage",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_azure.svg",
+    "productUrl": "https://azure.microsoft.com/en-us/products/storage/data-lake-storage",
+    "summaryHtml": "Full access to secure data lake",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/azure-data-lake-storage",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
+  },
+  {
+    "name": "Postgres",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_postgres.svg",
+    "productUrl": "https://www.postgresql.org/",
+    "summaryHtml": "Full access to PostgreSQL object-relational databases",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/postgres",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Data"]
   }
 ]
