@@ -1,6 +1,7 @@
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
+use hash_graph_store::account::CreateUserActorParams;
 use rand::distr::Distribution as _;
 use type_system::{self, principal::actor::UserId};
 
@@ -23,6 +24,7 @@ pub enum UserProducerConfigError {
 impl Error for UserProducerConfigError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UserProducerConfig {
     pub registration_complete: BooleanDistributionConfig,
 }
@@ -57,6 +59,16 @@ pub struct UserCreation {
     pub id: UserId,
     pub shortname: String,
     pub registration_complete: bool,
+}
+
+impl From<UserCreation> for CreateUserActorParams {
+    fn from(user: UserCreation) -> Self {
+        Self {
+            user_id: Some(user.id.into()),
+            shortname: Some(user.shortname),
+            registration_complete: user.registration_complete,
+        }
+    }
 }
 
 impl Producer<UserCreation> for UserProducer {

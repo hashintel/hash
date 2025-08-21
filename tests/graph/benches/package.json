@@ -4,11 +4,11 @@
   "private": true,
   "license": "AGPL-3",
   "scripts": {
-    "bench:integration": "cargo bench --bench read-scaling --bench representative-read --bench policy",
+    "bench:integration": "cargo bench --bench graph --bench read-scaling --bench representative-read --bench policy",
     "bench:integration:manual": "cargo bench --bench manual-queries",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:integration": "cargo test --bench read-scaling --bench representative-read --bench policy",
+    "test:integration": "cargo test --bench graph --bench read-scaling --bench representative-read --bench policy",
     "test:integration:manual": "cargo test --bench manual-queries"
   },
   "devDependencies": {
@@ -20,6 +20,7 @@
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-test-data": "0.0.0-private",
+    "@rust/hash-graph-type-fetcher": "0.0.0-private",
     "@rust/hash-repo-chores": "0.0.0-private"
   }
 }

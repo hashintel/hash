@@ -1,0 +1,54 @@
+{
+  "runId": 1,
+  "numShards": 8,
+  "stages": [
+    {
+      "type": "reset-db",
+      "id": "reset",
+      "principals": true,
+      "dataTypes": true,
+      "propertyTypes": true,
+      "entityTypes": true,
+      "entities": true
+    },
+    {
+      "type": "generate-users",
+      "id": "users",
+      "configRef": "users/basic",
+      "count": 10
+    },
+    {
+      "type": "persist-users",
+      "id": "persist-users-basic",
+      "from": ["users"]
+    },
+    {
+      "type": "web-catalog",
+      "id": "webs",
+      "from": ["users"],
+      "domain": "https://localhost:3000"
+    },
+    {
+      "type": "generate-data-types",
+      "id": "local-datatypes",
+      "configRef": "data_types/basic",
+      "inputs": { "userCatalog": "webs" },
+      "count": 100
+    },
+    {
+      "type": "generate-data-types",
+      "id": "remote-datatypes",
+      "configRef": "data_types/remote_only",
+      "inputs": { "userCatalog": "webs" },
+      "count": 100
+    },
+    {
+      "type": "persist-data-types",
+      "id": "persist-local-datatypes",
+      "inputs": {
+        "dataTypes": ["local-datatypes", "remote-datatypes"],
+        "webToUser": ["users"]
+      }
+    }
+  ]
+}

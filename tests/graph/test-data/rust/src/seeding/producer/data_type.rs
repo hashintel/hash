@@ -1076,6 +1076,7 @@ pub(crate) mod tests {
             .expect("should build user producer");
         let ctx = crate::seeding::context::ProduceContext {
             run_id: crate::seeding::context::RunId::new(1),
+            stage_id: crate::seeding::context::StageId::new(0),
             shard_id: crate::seeding::context::ShardId::new(0),
             provenance: crate::seeding::context::Provenance::Integration,
             producer: UserProducer::ID,

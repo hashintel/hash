@@ -1,0 +1,12 @@
+{
+  "runId": 1,
+  "numShards": 16,
+  "stages": [
+    {
+      "type": "generate-data-types",
+      "id": "remote-only-data-types",
+      "configRef": "data_types/remote_only",
+      "count": 100
+    }
+  ]
+}
