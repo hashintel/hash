@@ -281,7 +281,6 @@ impl<C: WebCatalog> core::fmt::Debug for LocalUniform<'_, C> {
     }
 }
 
-// Shard chooser removed; flat global catalog is used
 
 impl<C: WebCatalog> LocalUniform<'_, C> {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
