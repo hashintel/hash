@@ -112,7 +112,7 @@ impl GeneratePropertyTypesStage {
         //       large counts
         //   see https://linear.app/hash/issue/H-5222/stream-generated-types-into-the-persister-directly
         let params: Vec<_> = runner
-            .run_producer(|| cfg.create_producer(&deps), self.count, stage_id)
+            .run_producer(|| cfg.create_producer(deps), self.count, stage_id)
             .change_context(PropertyTypeError::CreateProducer)?
             .collect();
 
