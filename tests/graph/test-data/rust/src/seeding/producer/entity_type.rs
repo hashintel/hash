@@ -160,7 +160,7 @@ pub struct EntityTypeProducerDeps<U: WebCatalog, O: WebCatalog, P: PropertyTypeC
     pub property_type_catalog: P,
 }
 
-/// Producer for generating [`EntityTypes`] with configurable properties.
+/// Producer for generating [`EntityType`]s with configurable properties.
 #[derive(Debug)]
 pub struct EntityTypeProducer<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> {
     local_id: LocalId,
@@ -254,18 +254,24 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
 
 /// Trait for catalogs that provide [`PropertyType`] references for [`EntityType`] generation.
 ///
-/// This trait enables [`EntityTypes`] to reference existing [`PropertyTypes`] when defining their
+/// This trait enables [`EntityType`]s to reference existing [`PropertyType`]s when defining their
 /// property structures. Implementations should provide efficient access to [`PropertyType`]
 /// references for random sampling during generation.
+///
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
 pub trait PropertyTypeCatalog {
     /// Returns all available [`PropertyType`] references in this catalog.
     ///
-    /// The returned slice should contain all [`PropertyTypes`] that can be referenced when
-    /// generating [`EntityType`] properties. Empty catalogs will result in [`EntityTypes`] with
+    /// The returned slice should contain all [`PropertyType`]s that can be referenced when
+    /// generating [`EntityType`] properties. Empty catalogs will result in [`EntityType`]s with
     /// no properties.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     fn property_type_references(&self) -> &[PropertyTypeReference];
 
     /// Sample a random [`PropertyType`] reference from this catalog.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// # Panics
     ///
@@ -279,7 +285,9 @@ pub trait PropertyTypeCatalog {
             .expect("catalog should not be empty")
     }
 
-    /// Returns true if this catalog contains no `PropertyType` references.
+    /// Returns true if this catalog contains no [`PropertyType`] references.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     fn is_empty(&self) -> bool {
         self.property_type_references().is_empty()
     }

@@ -1,12 +1,15 @@
 //! Distributions for generating [`EntityType`] properties structures.
 //!
 //! This module provides configurable distributions for generating properties maps for
-//! [`EntityTypes`]. Properties are key-value mappings where keys are property names and values
-//! reference [`PropertyTypes`].
+//! [`EntityType`]s. Properties are key-value mappings where keys are property names and values
+//! reference [`PropertyType`]s.
 //!
 //! The core design uses a two-phase approach:
 //! 1. **Configuration Phase**: JSON-serializable config objects define the structure
 //! 2. **Binding Phase**: Configs are bound to [`PropertyType`] catalogs to create distributions
+//!
+//! [`PropertyType`]: type_system::ontology::property_type::PropertyType
+//! [`EntityType`]: type_system::ontology::entity_type::EntityType
 
 use core::error::Error;
 use std::collections::{HashMap, HashSet};
@@ -50,6 +53,8 @@ impl Error for EntityTypePropertiesBindingError {}
 
 impl EntityTypePropertiesDistributionConfig {
     /// Bind this configuration to a [`PropertyType`] catalog to create a distribution.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// # Errors
     ///
@@ -106,6 +111,8 @@ impl EntityTypePropertiesDistributionConfig {
 }
 
 /// A distribution bound to a specific [`PropertyType`] catalog for generating properties.
+///
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
 #[derive(Debug)]
 pub enum BoundEntityTypePropertiesDistribution<C: PropertyTypeCatalog> {
     Fixed {
@@ -200,7 +207,9 @@ pub struct EmptyPropertyTypeCatalogError;
 impl Error for EmptyPropertyTypeCatalogError {}
 
 impl InMemoryPropertyTypeCatalog {
-    /// Create a new [`PropertyType`] catalog from a collection of [`PropertyType`] references.
+    /// Create a new [`PropertyTypeCatalog`] from a collection of [`PropertyTypeReference`]s.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// # Errors
     ///
