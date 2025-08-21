@@ -111,7 +111,7 @@ impl GeneratePropertyTypesStage {
         // TODO: implement streaming to avoid loading all property types into memory at once for
         //       large counts
         let params: Vec<_> = runner
-            .run_producer(|| cfg.create_producer(deps), self.count, stage_id)
+            .run_producer(|| cfg.create_producer(&deps), self.count, stage_id)
             .change_context(PropertyTypeError::CreateProducer)?
             .collect();
 
