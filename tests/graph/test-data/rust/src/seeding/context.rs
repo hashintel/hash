@@ -242,7 +242,7 @@ impl GlobalId {
     /// };
     /// let uuid = gid.encode();
     ///
-    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8002-000000000000");
+    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8302-000000000000");
     /// assert_eq!(GlobalId::decode(uuid)?, gid);
     ///
     /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())

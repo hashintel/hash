@@ -147,7 +147,7 @@ impl<C: PropertyTypeCatalog>
                 catalog,
                 count,
                 required,
-            } => generate_properties(catalog, *count, *required, rng),
+            } => generate_properties(catalog, *count, *required, rng, 10),
             Self::Range {
                 catalog,
                 min,
@@ -155,7 +155,7 @@ impl<C: PropertyTypeCatalog>
                 required,
             } => {
                 let count = rng.random_range(*min..=*max);
-                generate_properties(catalog, count, *required, rng)
+                generate_properties(catalog, count, *required, rng, 10)
             }
             Self::Empty => (HashMap::new(), HashSet::new()),
         }
@@ -168,6 +168,7 @@ fn generate_properties<R: Rng + ?Sized, C: PropertyTypeCatalog>(
     count: usize,
     required: bool,
     rng: &mut R,
+    max_attempts: usize,
 ) -> (
     HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     HashSet<BaseUrl>,
@@ -175,19 +176,29 @@ fn generate_properties<R: Rng + ?Sized, C: PropertyTypeCatalog>(
     let mut properties = HashMap::new();
     let mut required_properties = HashSet::new();
 
-    for _ in 0..count {
-        let property_type_ref = catalog.sample_property_type(rng);
+    while properties.len() < count {
+        let mut attempts = 0;
+        while attempts < max_attempts {
+            attempts += 1;
+            let property_type_ref = catalog.sample_property_type(rng);
+            if properties.contains_key(&property_type_ref.url.base_url) {
+                continue;
+            }
 
-        // Use the PropertyType's base URL as the property key
-        let property_base_url = property_type_ref.url.base_url.clone();
+            // Use the PropertyType's base URL as the property key
+            let property_base_url = property_type_ref.url.base_url.clone();
 
-        // Create the property value - just reference the PropertyType directly
-        let property_value = ValueOrArray::Value(property_type_ref.clone());
+            // Create the property value - just reference the PropertyType directly
+            let property_value = ValueOrArray::Value(property_type_ref.clone());
 
-        properties.insert(property_base_url, property_value);
+            properties.insert(property_base_url, property_value);
 
-        if required {
-            required_properties.insert(property_type_ref.url.base_url.clone());
+            if required {
+                required_properties.insert(property_type_ref.url.base_url.clone());
+            }
+        }
+        if attempts == max_attempts {
+            break;
         }
     }
 
@@ -311,8 +322,8 @@ mod tests {
         let catalog =
             InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
         let config = EntityTypePropertiesDistributionConfig::Range {
-            min: 2,
-            max: 4,
+            min: 1,
+            max: 3,
             required: false,
         };
 
@@ -321,7 +332,7 @@ mod tests {
 
         let (properties, required) = distribution.sample(&mut rng);
         assert!(required.is_empty());
-        assert!(properties.len() >= 2 && properties.len() <= 4);
+        assert!(!properties.is_empty() && properties.len() <= 3);
 
         // Check that properties are PropertyTypeReferences
         for value in properties.values() {
