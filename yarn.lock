@@ -474,6 +474,7 @@ __metadata:
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
     "@hashintel/block-design-system": "npm:0.0.2"
     "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/petrinaut": "npm:0.0.1"
     "@hashintel/query-editor": "npm:0.0.3"
     "@hashintel/type-editor": "npm:0.0.25"
     "@lit-labs/react": "npm:1.2.1"
@@ -7116,6 +7117,30 @@ __metadata:
     "@emotion/styled": ^11.14.0
     "@mui/material": ^5.18.0
     "@mui/system": ^5.18.0
+    react: ^19.0.0
+    react-dom: ^19.0.0
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/petrinaut@npm:0.0.1, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
+  dependencies:
+    "@emotion/react": "npm:11.14.0"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
+    "@hashintel/block-design-system": "npm:0.0.2"
+    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@local/eslint": "npm:0.0.0-private"
+    "@mui/material": "npm:5.18.0"
+    "@mui/system": "npm:5.18.0"
+    elkjs: "npm:0.10.0"
+    eslint: "npm:9.20.1"
+    react: "npm:19.1.1"
+    react-dom: "npm:19.1.1"
+    reactflow: "npm:11.11.4"
+    typescript: "npm:5.7.3"
+    uuid: "npm:11.1.0"
+  peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown

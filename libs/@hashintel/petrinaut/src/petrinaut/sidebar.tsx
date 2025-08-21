@@ -1,8 +1,7 @@
-import { Box, Stack } from "@mui/material";
+import { Box, Button, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
-import { Button } from "../../../../shared/ui";
 import { useEditorContext } from "./editor-context";
 import { placeStyling, transitionStyling } from "./styling";
 import { useLayoutGraph } from "./use-layout-graph";

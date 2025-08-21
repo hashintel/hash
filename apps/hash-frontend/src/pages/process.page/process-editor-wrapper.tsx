@@ -1,13 +1,10 @@
-import "reactflow/dist/style.css";
-
 import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
+import type { PetriNetDefinitionObject } from "@hashintel/petrinaut";
+import { defaultTokenTypes, Petrinaut } from "@hashintel/petrinaut";
 import { Box, Stack } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { Petrinaut } from "./process-editor-wrapper/petrinaut";
-import { defaultTokenTypes } from "./process-editor-wrapper/petrinaut/token-types";
-import type { PetriNetDefinitionObject } from "./process-editor-wrapper/petrinaut/types";
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
 import {
   type PersistedNet,

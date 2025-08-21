@@ -1,6 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import {
   Box,
+  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -9,7 +10,6 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { Button } from "../../../../../shared/ui";
 import { useEditorContext } from "../editor-context";
 import type { TokenType } from "../types";
 

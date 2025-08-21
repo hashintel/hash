@@ -1,6 +1,5 @@
 import "reactflow/dist/style.css";
 
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Box, Button, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +27,7 @@ import {
   useEditorContext,
 } from "./petrinaut/editor-context";
 import { exampleCPN } from "./petrinaut/examples";
+import { generateUuid } from "./petrinaut/generate-uuid";
 import { LogPane } from "./petrinaut/log-pane";
 import { PlaceEditor } from "./petrinaut/place-editor";
 import { PlaceNode } from "./petrinaut/place-node";
@@ -77,6 +77,10 @@ export type {
   TransitionNodeData,
   TransitionNodeType,
 };
+
+export { nodeDimensions };
+
+export { defaultTokenTypes };
 
 export { NetSelector } from "./petrinaut/net-selector";
 
@@ -502,14 +506,18 @@ const PetrinautInner = () => {
   }, [petriNetDefinition.nodes, selectedPlaceId]);
 
   return (
-    <Box sx={{ height: "100%" }}>
+    <Stack sx={{ height: "100%" }}>
       <TitleAndNetSelect />
 
       <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
         <Sidebar />
 
         <Box
-          sx={{ width: "100%", height: "100%", position: "relative" }}
+          sx={{
+            width: "100%",
+            position: "relative",
+            flexGrow: 1,
+          }}
           ref={canvasContainer}
         >
           <Stack
@@ -638,7 +646,7 @@ const PetrinautInner = () => {
           </Stack>
         </Box>
       </Stack>
-    </Box>
+    </Stack>
   );
 };
 
@@ -675,10 +683,6 @@ export type PetrinautProps = {
    */
   loadPetriNet: (petriNetId: string) => void;
   /**
-   * Whether the net is read-only.
-   */
-  readonly: boolean;
-  /**
    * Set the title of the net which is currently loaded.
    */
   setTitle: (title: string) => void;
@@ -696,7 +700,6 @@ export const Petrinaut = ({
   petriNetDefinition,
   setPetriNetDefinition,
   loadPetriNet,
-  readonly,
   setTitle,
   title,
 }: PetrinautProps) => {
@@ -710,7 +713,8 @@ export const Petrinaut = ({
         petriNetDefinition={petriNetDefinition}
         setPetriNetDefinition={setPetriNetDefinition}
         loadPetriNet={loadPetriNet}
-        readonly={readonly}
+        // @todo add readonly prop and turn off editing everything when true
+        readonly={false}
         setTitle={setTitle}
         title={title}
       >

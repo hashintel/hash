@@ -1,7 +1,6 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { Button } from "../../../../shared/ui";
 import { useEditorContext } from "./editor-context";
 import { TokenTypeEditor } from "./token-types/token-type-editor";
 

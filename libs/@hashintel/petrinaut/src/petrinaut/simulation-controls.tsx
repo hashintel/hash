@@ -7,7 +7,9 @@ import {
 } from "@hashintel/design-system";
 import {
   Box,
+  Button,
   FormControl,
+  MenuItem,
   Stack,
   type SvgIconProps,
   Tooltip,
@@ -15,8 +17,6 @@ import {
 } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { Button } from "../../../../shared/ui/button";
-import { MenuItem } from "../../../../shared/ui/menu-item";
 import { useSimulationContext } from "./simulation-context";
 
 const SimulationControlButton = ({

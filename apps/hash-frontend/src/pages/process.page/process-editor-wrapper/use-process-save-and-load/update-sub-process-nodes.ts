@@ -1,7 +1,7 @@
+import type { NodeType } from "@hashintel/petrinaut";
+import { nodeDimensions } from "@hashintel/petrinaut";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import { nodeDimensions } from "../petrinaut/styling";
-import type { NodeType } from "../petrinaut/types";
 import type { PersistedNet } from "../use-process-save-and-load";
 
 /**

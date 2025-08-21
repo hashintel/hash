@@ -1,8 +1,8 @@
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
+import { generateUuid } from "./generate-uuid";
 import { useSimulationContext } from "./simulation-context";
 import { type TokenType } from "./types";
 

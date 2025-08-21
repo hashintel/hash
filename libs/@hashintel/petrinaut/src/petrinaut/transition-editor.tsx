@@ -4,15 +4,16 @@ import {
   TextField,
   XMarkRegularIcon,
 } from "@hashintel/design-system";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   Box,
+  Button,
   Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   Divider,
   FormControlLabel,
+  MenuItem,
   Slider,
   Stack,
   Switch,
@@ -21,8 +22,8 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { Button, MenuItem } from "../../../../shared/ui";
 import { useEditorContext } from "./editor-context";
+import { generateUuid } from "./generate-uuid";
 import { NetSelector } from "./net-selector";
 import type {
   ArcType,
@@ -114,7 +115,7 @@ const distributeEvenlyWithRemainder = (count: number): number[] => {
 
   return Array(count)
     .fill(targetProbability)
-    .map((prob, idx) => (idx === 0 ? prob + remainder : prob));
+    .map((prob: number, idx) => (idx === 0 ? prob + remainder : prob));
 };
 
 type TransitionEditorProps = {
