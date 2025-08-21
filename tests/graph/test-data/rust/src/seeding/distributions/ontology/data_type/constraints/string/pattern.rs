@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
@@ -26,11 +26,11 @@ pub struct PatternDistribution {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RegexDistributionConfig<'s> {
-    pub value: Cow<'s, str>,
+pub struct RegexDistributionConfig {
+    pub value: Arc<str>,
 }
 
-impl DistributionConfig for RegexDistributionConfig<'_> {
+impl DistributionConfig for RegexDistributionConfig {
     type Distribution = ConstDistribution<Regex>;
     type Error = Report<regex::Error>;
 
@@ -41,11 +41,11 @@ impl DistributionConfig for RegexDistributionConfig<'_> {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
-pub struct RegexInlineDistributionConfig<'s> {
-    pub value: Cow<'s, str>,
+pub struct RegexInlineDistributionConfig {
+    pub value: Arc<str>,
 }
 
-impl DistributionConfig for RegexInlineDistributionConfig<'_> {
+impl DistributionConfig for RegexInlineDistributionConfig {
     type Distribution = ConstDistribution<Regex>;
     type Error = Report<regex::Error>;
 
@@ -56,12 +56,10 @@ impl DistributionConfig for RegexInlineDistributionConfig<'_> {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
-pub enum PatternDistributionConfig<'s> {
-    Const(OptionalDistributionConfig<RegexDistributionConfig<'s>>),
-    Weighted(OptionalDistributionConfig<WeightedDistributionConfig<RegexDistributionConfig<'s>>>),
-    Uniform(
-        OptionalDistributionConfig<UniformDistributionConfig<RegexInlineDistributionConfig<'s>>>,
-    ),
+pub enum PatternDistributionConfig {
+    Const(OptionalDistributionConfig<RegexDistributionConfig>),
+    Weighted(OptionalDistributionConfig<WeightedDistributionConfig<RegexDistributionConfig>>),
+    Uniform(OptionalDistributionConfig<UniformDistributionConfig<RegexInlineDistributionConfig>>),
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -70,7 +68,7 @@ pub struct PatternDistributionConfigError;
 
 impl Error for PatternDistributionConfigError {}
 
-impl DistributionConfig for PatternDistributionConfig<'_> {
+impl DistributionConfig for PatternDistributionConfig {
     type Distribution = PatternDistribution;
     type Error = Report<PatternDistributionConfigError>;
 

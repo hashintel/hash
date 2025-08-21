@@ -47,8 +47,9 @@ where
 
     fn create_distribution(&self) -> Result<Self::Distribution, Self::Error> {
         Ok(UniformDistribution {
-            index: Uniform::new(0, self.distributions.len())
-                .expect("`Uniform` should return a valid index"),
+            index: Uniform::new(0, self.distributions.len()).unwrap_or_else(|error| {
+                unreachable!("`Uniform` should have a valid range: {error}")
+            }),
             distribution: self
                 .distributions
                 .iter()

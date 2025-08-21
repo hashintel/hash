@@ -48,11 +48,11 @@ impl Distribution<ValueConstraints> for SimpleValueConstraintsDistribution {
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
-pub enum SimpleValueConstraintsDistributionConfig<'c> {
+pub enum SimpleValueConstraintsDistributionConfig {
     Null,
     Boolean,
     Number,
-    String(StringConstraintsDistributionConfig<'c>),
+    String(StringConstraintsDistributionConfig),
     Array,
     Object,
 }
@@ -66,7 +66,7 @@ pub enum SimpleValueConstraintsDistributionConfigError {
 
 impl Error for SimpleValueConstraintsDistributionConfigError {}
 
-impl DistributionConfig for SimpleValueConstraintsDistributionConfig<'_> {
+impl DistributionConfig for SimpleValueConstraintsDistributionConfig {
     type Distribution = SimpleValueConstraintsDistribution;
     type Error = Report<SimpleValueConstraintsDistributionConfigError>;
 
@@ -105,10 +105,10 @@ impl Distribution<ValueConstraints> for ValueConstraintsDistribution {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type")]
-pub enum ValueConstraintsDistributionConfig<'c> {
+pub enum ValueConstraintsDistributionConfig {
     Const(ConstDistributionConfig<ValueConstraints>),
-    Weighted(WeightedDistributionConfig<SimpleValueConstraintsDistributionConfig<'c>>),
-    Uniform(UniformDistributionConfig<SimpleValueConstraintsDistributionConfig<'c>>),
+    Weighted(WeightedDistributionConfig<SimpleValueConstraintsDistributionConfig>),
+    Uniform(UniformDistributionConfig<SimpleValueConstraintsDistributionConfig>),
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -117,7 +117,7 @@ pub struct ValueConstraintsDistributionConfigError;
 
 impl Error for ValueConstraintsDistributionConfigError {}
 
-impl DistributionConfig for ValueConstraintsDistributionConfig<'_> {
+impl DistributionConfig for ValueConstraintsDistributionConfig {
     type Distribution = ValueConstraintsDistribution;
     type Error = Report<ValueConstraintsDistributionConfigError>;
 

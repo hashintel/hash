@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
@@ -14,23 +14,23 @@ use crate::seeding::distributions::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-enum InnerShortnameDistribution<'s> {
-    Const(ConstDistribution<Cow<'s, str>>),
-    Weighted(WeightedDistribution<ConstDistribution<Cow<'s, str>>>),
-    Uniform(UniformDistribution<ConstDistribution<Cow<'s, str>>>),
+enum InnerShortnameDistribution {
+    Const(ConstDistribution<Arc<str>>),
+    Weighted(WeightedDistribution<ConstDistribution<Arc<str>>>),
+    Uniform(UniformDistribution<ConstDistribution<Arc<str>>>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ShortnameDistribution<'s> {
-    distribution: InnerShortnameDistribution<'s>,
+pub struct ShortnameDistribution {
+    distribution: InnerShortnameDistribution,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
-pub enum ShortnameDistributionConfig<'s> {
-    Const(ConstDistributionConfig<Cow<'s, str>>),
-    Weighted(WeightedDistributionConfig<ConstDistributionConfig<Cow<'s, str>>>),
-    Uniform(UniformDistributionConfig<ConstInlineDistributionConfig<Cow<'s, str>>>),
+pub enum ShortnameDistributionConfig {
+    Const(ConstDistributionConfig<Arc<str>>),
+    Weighted(WeightedDistributionConfig<ConstDistributionConfig<Arc<str>>>),
+    Uniform(UniformDistributionConfig<ConstInlineDistributionConfig<Arc<str>>>),
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -39,8 +39,8 @@ pub struct ShortnameDistributionConfigError;
 
 impl Error for ShortnameDistributionConfigError {}
 
-impl<'s> DistributionConfig for ShortnameDistributionConfig<'s> {
-    type Distribution = ShortnameDistribution<'s>;
+impl DistributionConfig for ShortnameDistributionConfig {
+    type Distribution = ShortnameDistribution;
     type Error = Report<ShortnameDistributionConfigError>;
 
     fn create_distribution(&self) -> Result<Self::Distribution, Self::Error> {
@@ -66,8 +66,8 @@ impl<'s> DistributionConfig for ShortnameDistributionConfig<'s> {
     }
 }
 
-impl<'s> Distribution<Cow<'s, str>> for ShortnameDistribution<'s> {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Cow<'s, str> {
+impl Distribution<Arc<str>> for ShortnameDistribution {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Arc<str> {
         match &self.distribution {
             InnerShortnameDistribution::Const(distribution) => distribution.sample(rng),
             InnerShortnameDistribution::Weighted(distribution) => distribution.sample(rng),
@@ -78,8 +78,6 @@ impl<'s> Distribution<Cow<'s, str>> for ShortnameDistribution<'s> {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
-
     use serde::Deserialize as _;
     use serde_json::json;
 
@@ -129,18 +127,6 @@ mod tests {
             "distributions": ["alice", "bob"],
         }))?
         .create_distribution()?;
-
-        Ok(())
-    }
-
-    #[test]
-    fn borrowed_shortname() -> Result<(), Box<dyn Error>> {
-        let distr = ShortnameDistributionConfig::Const(ConstDistributionConfig {
-            value: Cow::Borrowed("alice"),
-        })
-        .create_distribution()?;
-
-        assert_matches!(distr.sample(&mut rand::rng()), Cow::Borrowed(_));
 
         Ok(())
     }

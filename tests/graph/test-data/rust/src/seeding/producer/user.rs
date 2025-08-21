@@ -28,7 +28,7 @@ pub struct UserProducerConfig {
 }
 
 impl UserProducerConfig {
-    /// Create a data type producer from the configuration.
+    /// Create a user producer from the configuration.
     ///
     /// # Errors
     ///
