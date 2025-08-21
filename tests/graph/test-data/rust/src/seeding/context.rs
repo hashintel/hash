@@ -229,7 +229,6 @@ impl GlobalId {
     ///
     /// ```rust
     /// # use hash_graph_test_data::seeding::context::{GlobalId, RunId, ShardId, StageId, LocalId, Scope, Provenance, ProducerId, SubScope};
-    /// # use uuid::Uuid;
     /// let gid = GlobalId {
     ///     run_id: RunId::new(0xAAAA),
     ///     stage_id: StageId::new(0xBBBB),
