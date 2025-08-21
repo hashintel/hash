@@ -270,15 +270,10 @@ impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, derive_more::Debug)]
 struct LocalUniform<'a, C: WebCatalog> {
+	#[debug(skip)]
     catalog: &'a C,
-}
-
-impl<C: WebCatalog> core::fmt::Debug for LocalUniform<'_, C> {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("LocalUniform").finish()
-    }
 }
 
 
