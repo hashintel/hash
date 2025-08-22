@@ -6,7 +6,7 @@ use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{data_type::DataTypeStore as _, pool::StorePool as _};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    producer::data_type::{InMemoryWebCatalog, ProducerDeps},
+    producer::{data_type::DataTypeProducerDeps, ontology::InMemoryWebCatalog},
 };
 
 use super::Runner;
@@ -29,14 +29,14 @@ pub enum DataTypeError {
 impl Error for DataTypeError {}
 
 #[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DataTypeInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GenerateDataTypesStage {
     pub id: String,
     pub config_ref: String,
@@ -65,7 +65,7 @@ impl GenerateDataTypesStage {
             .as_ref()
             .and_then(|key| runner.resources.user_catalogs.get(key))
             .cloned();
-        let deps = ProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
             user_catalog: user_catalog_owned.as_ref(),
             org_catalog: None,
         };
@@ -89,14 +89,14 @@ impl GenerateDataTypesStage {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistDataTypesInputs {
     pub data_types: Vec<String>,
     pub web_to_user: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistDataTypesStage {
     pub id: String,
     pub inputs: PersistDataTypesInputs,
@@ -181,7 +181,6 @@ impl PersistDataTypesStage {
                 .change_context(DataTypeError::Persist)?
                 .len();
         }
-
         drop(store);
 
         Ok(total_created)

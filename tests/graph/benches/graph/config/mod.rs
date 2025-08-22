@@ -9,7 +9,8 @@ use std::{
 
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use hash_graph_test_data::seeding::producer::{
-    data_type::DataTypeProducerConfig, user::UserProducerConfig,
+    data_type::DataTypeProducerConfig, property_type::PropertyTypeProducerConfig,
+    user::UserProducerConfig,
 };
 use serde::de::DeserializeOwned;
 
@@ -18,6 +19,9 @@ pub static USER_PRODUCER_CONFIGS: LazyLock<HashMap<String, UserProducerConfig>> 
 
 pub static DATA_TYPE_PRODUCER_CONFIGS: LazyLock<HashMap<String, DataTypeProducerConfig>> =
     LazyLock::new(|| load_configs_map("data_types"));
+
+pub static PROPERTY_TYPE_PRODUCER_CONFIGS: LazyLock<HashMap<String, PropertyTypeProducerConfig>> =
+    LazyLock::new(|| load_configs_map("property_types"));
 
 #[derive(Debug, derive_more::Display)]
 pub enum LoadConfigError {
