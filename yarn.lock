@@ -454,6 +454,7 @@ __metadata:
   resolution: "@apps/hash-frontend@workspace:apps/hash-frontend"
   dependencies:
     "@apollo/client": "npm:3.10.5"
+    "@automerge/react": "npm:2.2.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/hook": "npm:0.1.3"
@@ -929,6 +930,104 @@ __metadata:
   version: 2.10.3
   resolution: "@astrojs/compiler@npm:2.10.3"
   checksum: 10c0/35e7a6e9d197924a3203afd3bd7bff39c8d4271516816c30173cca872302312c3748eefc5a5832523f49b98743115628a1b96922d7d96588a8d96e110a106b88
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo-network-broadcastchannel@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo-network-broadcastchannel@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge-repo": "npm:2.2.0"
+  checksum: 10c0/858274b2559aacca09dc3557e265b9da9161feae78d635659e62a22162ccef0775c475ffedafde9bb709ddd99a28c587cad8dfea6cd5c2b57a35584c832334c0
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo-network-messagechannel@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo-network-messagechannel@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge-repo": "npm:2.2.0"
+    debug: "npm:^4.3.4"
+    eventemitter3: "npm:^5.0.1"
+  checksum: 10c0/1e62b3c2e8d7f5731b3cc64e4f0462ccb065a9d7811ace2c465b86b371a94c64b8090350f455f4dbae14af70ab903b43f608e662b6e4862517d31899cb87b12b
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo-network-websocket@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo-network-websocket@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge-repo": "npm:2.2.0"
+    cbor-x: "npm:^1.3.0"
+    debug: "npm:^4.3.4"
+    eventemitter3: "npm:^5.0.1"
+    isomorphic-ws: "npm:^5.0.0"
+    ws: "npm:^8.7.0"
+  checksum: 10c0/02fbafd77cc114a0d8822255fdb1bb28b9e650b16504b8c2d3f5a27325e4facf4abf624c556094a6cab8d000448d8fa1d4d3383e97037e1edcb962c5ab2e5ad5
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo-react-hooks@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo-react-hooks@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge": "npm:2.2.8 - 3"
+    "@automerge/automerge-repo": "npm:2.2.0"
+    eventemitter3: "npm:^5.0.1"
+    react-usestateref: "npm:^1.0.8"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  checksum: 10c0/10434b8f0c5dc56b8d788b570c385fe52b10099d5b4c4c556d4df63bdd1dd8c0b283025640d96063bf9e10e5041b777ce3646067ab341ec3a4bc95cd1bf7e100
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo-storage-indexeddb@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo-storage-indexeddb@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge-repo": "npm:2.2.0"
+  checksum: 10c0/ff921a67d0475b5b74dc2770995daaae7ca621ebdbd478db6f8d1b224ffab11572e02d7a9ae134bac542e1445902df2568a3ddd2ac832984659f53cc4f6a1b32
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge-repo@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/automerge-repo@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge": "npm:2.2.8 - 3"
+    bs58check: "npm:^3.0.1"
+    cbor-x: "npm:^1.3.0"
+    debug: "npm:^4.3.4"
+    eventemitter3: "npm:^5.0.1"
+    fast-sha256: "npm:^1.3.0"
+    uuid: "npm:^9.0.0"
+    xstate: "npm:^5.9.1"
+  checksum: 10c0/77e343d5d421831b081ab9fe9e0d0219a47e3121be043e4c1303d3e9548a9b6d880a08706af8d74c2781e607f0b194fd71f2e30546da26c923a34a9bb6948f8a
+  languageName: node
+  linkType: hard
+
+"@automerge/automerge@npm:2.2.8 - 3":
+  version: 3.1.1
+  resolution: "@automerge/automerge@npm:3.1.1"
+  checksum: 10c0/1731cc7f29f16109705dfc8d7ea777702c454a3554e471a2d6fc5b45413ed59f6f0fada7c57ab8a9921144360f067f8bebecb4911f9193e1242c095cdbbf5335
+  languageName: node
+  linkType: hard
+
+"@automerge/react@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@automerge/react@npm:2.2.0"
+  dependencies:
+    "@automerge/automerge-repo": "npm:2.2.0"
+    "@automerge/automerge-repo-network-broadcastchannel": "npm:2.2.0"
+    "@automerge/automerge-repo-network-messagechannel": "npm:2.2.0"
+    "@automerge/automerge-repo-network-websocket": "npm:2.2.0"
+    "@automerge/automerge-repo-react-hooks": "npm:2.2.0"
+    "@automerge/automerge-repo-storage-indexeddb": "npm:2.2.0"
+    react: "npm:^18.0.0"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+  checksum: 10c0/8020807c0889c500a56cc10396eac453d34aa835887d8142eb4b747410c77375a7b1ee6a1fa6bc8773fe0b130eb58a768d45412b3f527d9d014cc1cc4ec1cbf1
   languageName: node
   linkType: hard
 
@@ -4391,6 +4490,48 @@ __metadata:
     vitest: "npm:3.2.4"
   languageName: unknown
   linkType: soft
+
+"@cbor-extract/cbor-extract-darwin-arm64@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-darwin-arm64@npm:2.2.0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@cbor-extract/cbor-extract-darwin-x64@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-darwin-x64@npm:2.2.0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@cbor-extract/cbor-extract-linux-arm64@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-linux-arm64@npm:2.2.0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@cbor-extract/cbor-extract-linux-arm@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-linux-arm@npm:2.2.0"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@cbor-extract/cbor-extract-linux-x64@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-linux-x64@npm:2.2.0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@cbor-extract/cbor-extract-win32-x64@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@cbor-extract/cbor-extract-win32-x64@npm:2.2.0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
 
 "@chainsafe/as-chacha20poly1305@npm:^0.1.0":
   version: 0.1.0
@@ -9749,7 +9890,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:1.8.0, @noble/hashes@npm:^1.3.1, @noble/hashes@npm:^1.8.0":
+"@noble/hashes@npm:1.8.0, @noble/hashes@npm:^1.2.0, @noble/hashes@npm:^1.3.1, @noble/hashes@npm:^1.8.0":
   version: 1.8.0
   resolution: "@noble/hashes@npm:1.8.0"
   checksum: 10c0/06a0b52c81a6fa7f04d67762e08b2c476a00285858150caeaaff4037356dd5e119f45b2a530f638b77a5eeca013168ec1b655db41bae3236cb2e9d511484fc77
@@ -21405,6 +21546,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"base-x@npm:^4.0.0":
+  version: 4.0.1
+  resolution: "base-x@npm:4.0.1"
+  checksum: 10c0/26a5a24105b27d94f21fa0640d5345620d758ab5d9269cf11828c502094d4f2fc5e84f3bfee63e9af29e83e0d3c97129264f1ac9653620b9bdab3f81d6aca881
+  languageName: node
+  linkType: hard
+
 "base16@npm:^1.0.0":
   version: 1.0.0
   resolution: "base16@npm:1.0.0"
@@ -21727,6 +21875,25 @@ __metadata:
   bin:
     browserslist: cli.js
   checksum: 10c0/acba5f0bdbd5e72dafae1e6ec79235b7bad305ed104e082ed07c34c38c7cb8ea1bc0f6be1496958c40482e40166084458fc3aee15111f15faa79212ad9081b2a
+  languageName: node
+  linkType: hard
+
+"bs58@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "bs58@npm:5.0.0"
+  dependencies:
+    base-x: "npm:^4.0.0"
+  checksum: 10c0/0d1b05630b11db48039421b5975cb2636ae0a42c62f770eec257b2e5c7d94cb5f015f440785f3ec50870a6e9b1132b35bd0a17c7223655b22229f24b2a3491d1
+  languageName: node
+  linkType: hard
+
+"bs58check@npm:^3.0.1":
+  version: 3.0.1
+  resolution: "bs58check@npm:3.0.1"
+  dependencies:
+    "@noble/hashes": "npm:^1.2.0"
+    bs58: "npm:^5.0.0"
+  checksum: 10c0/a01f62351d17cea5f6607f75f6b4b79d3473d018c52f1dfa6f449751062bb079ebfd556ea81c453de657102ab8c5a6b78620161f21ae05f0e5a43543e0447700
   languageName: node
   linkType: hard
 
@@ -22133,6 +22300,49 @@ __metadata:
   version: 0.12.0
   resolution: "caseless@npm:0.12.0"
   checksum: 10c0/ccf64bcb6c0232cdc5b7bd91ddd06e23a4b541f138336d4725233ac538041fb2f29c2e86c3c4a7a61ef990b665348db23a047060b9414c3a6603e9fa61ad4626
+  languageName: node
+  linkType: hard
+
+"cbor-extract@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "cbor-extract@npm:2.2.0"
+  dependencies:
+    "@cbor-extract/cbor-extract-darwin-arm64": "npm:2.2.0"
+    "@cbor-extract/cbor-extract-darwin-x64": "npm:2.2.0"
+    "@cbor-extract/cbor-extract-linux-arm": "npm:2.2.0"
+    "@cbor-extract/cbor-extract-linux-arm64": "npm:2.2.0"
+    "@cbor-extract/cbor-extract-linux-x64": "npm:2.2.0"
+    "@cbor-extract/cbor-extract-win32-x64": "npm:2.2.0"
+    node-gyp: "npm:latest"
+    node-gyp-build-optional-packages: "npm:5.1.1"
+  dependenciesMeta:
+    "@cbor-extract/cbor-extract-darwin-arm64":
+      optional: true
+    "@cbor-extract/cbor-extract-darwin-x64":
+      optional: true
+    "@cbor-extract/cbor-extract-linux-arm":
+      optional: true
+    "@cbor-extract/cbor-extract-linux-arm64":
+      optional: true
+    "@cbor-extract/cbor-extract-linux-x64":
+      optional: true
+    "@cbor-extract/cbor-extract-win32-x64":
+      optional: true
+  bin:
+    download-cbor-prebuilds: bin/download-prebuilds.js
+  checksum: 10c0/c36dec273f2114fcfe3b544d03d8bfddd2d537d114b9f94ba52a9366a8b852ea9725850e3d29ceda5df6894faeb37026e3bf2cb0d2bb4429f0a699fcfdfa1b8b
+  languageName: node
+  linkType: hard
+
+"cbor-x@npm:^1.3.0":
+  version: 1.6.0
+  resolution: "cbor-x@npm:1.6.0"
+  dependencies:
+    cbor-extract: "npm:^2.2.0"
+  dependenciesMeta:
+    cbor-extract:
+      optional: true
+  checksum: 10c0/c6ab391e935a60c8a768080806f2c9aee01b2b124de68997e3e4cb700753757286860186094a92f510b595d7f8c77b3023d9125a05247afcbfea08cae45a0615
   languageName: node
   linkType: hard
 
@@ -27183,6 +27393,13 @@ __metadata:
   version: 2.1.1
   resolution: "fast-safe-stringify@npm:2.1.1"
   checksum: 10c0/d90ec1c963394919828872f21edaa3ad6f1dddd288d2bd4e977027afff09f5db40f94e39536d4646f7e01761d704d72d51dce5af1b93717f3489ef808f5f4e4d
+  languageName: node
+  linkType: hard
+
+"fast-sha256@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "fast-sha256@npm:1.3.0"
+  checksum: 10c0/87f9e4baa7639576cf60a2b6235c9f436e1a1c52323abbd8a705b5bea8355500acf176f2aed0c14f2ecd6d6007e26151461bab2f27b8953bcca8d9d6b76a86e4
   languageName: node
   linkType: hard
 
@@ -35380,6 +35597,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-gyp-build-optional-packages@npm:5.1.1":
+  version: 5.1.1
+  resolution: "node-gyp-build-optional-packages@npm:5.1.1"
+  dependencies:
+    detect-libc: "npm:^2.0.1"
+  bin:
+    node-gyp-build-optional-packages: bin.js
+    node-gyp-build-optional-packages-optional: optional.js
+    node-gyp-build-optional-packages-test: build-test.js
+  checksum: 10c0/f9fad2061c48fb0fc90831cd11d6a7670d731d22a5b00c7d3441b43b4003543299ff64ff2729afe2cefd7d14928e560d469336e5bb00f613932ec2cd56b3665b
+  languageName: node
+  linkType: hard
+
 "node-gyp-build-optional-packages@npm:5.2.2":
   version: 5.2.2
   resolution: "node-gyp-build-optional-packages@npm:5.2.2"
@@ -38925,6 +39155,15 @@ __metadata:
     react: ">= 15.0.0"
     react-dom: ">= 15.0.0"
   checksum: 10c0/bb8c114d9b3c81c4babe4b88ebb8b31c1e0fd7ffb39e5dce12ad20728717d3f9ba2e190e987790dc1ee95f869a909e03fd6551f1e548254e947b841c9c5ee619
+  languageName: node
+  linkType: hard
+
+"react-usestateref@npm:^1.0.8":
+  version: 1.0.9
+  resolution: "react-usestateref@npm:1.0.9"
+  peerDependencies:
+    react: ">16.0.0"
+  checksum: 10c0/3d05cbac1ce7329d5515a8c887e2b6478e732adc43ecdcfe9e23027c2c856f9101cf02503882232a0e96c157edc0fad01b29924204d93255319ac25e17d8b974
   languageName: node
   linkType: hard
 
@@ -45567,7 +45806,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.18.3, ws@npm:^8.12.0, ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.2.3":
+"ws@npm:8.18.3, ws@npm:^8.12.0, ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.2.3, ws@npm:^8.7.0":
   version: 8.18.3
   resolution: "ws@npm:8.18.3"
   peerDependencies:
@@ -45700,6 +45939,13 @@ __metadata:
   bin:
     xss: bin/xss
   checksum: 10c0/9b31bee62a208f78e2b7bc8154e3ee87d980f4661dc4ab850ce6f4de7bc50eb152f0bdc13fa759ff8ab6d9bfdf8c0d79cf9f6f86249872b92181912309bccd08
+  languageName: node
+  linkType: hard
+
+"xstate@npm:^5.9.1":
+  version: 5.20.2
+  resolution: "xstate@npm:5.20.2"
+  checksum: 10c0/c1a875296fed9698a23e7a5adde777ae542a0c6d49248e19ccb7bb31f353945df0b874e270340c37a176850aad029a64b10ba396f72e69a585d282aae2febc25
   languageName: node
   linkType: hard
 

@@ -150,6 +150,7 @@ export default withSentryConfig(
       typescript: { ignoreBuildErrors: true },
 
       transpilePackages: [
+        "@automerge/automerge",
         "@blockprotocol/service",
         "@blockprotocol/core",
         "@blockprotocol/graph",
@@ -192,6 +193,8 @@ export default withSentryConfig(
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.experiments.asyncWebAssembly = true;
+        webpackConfig.experiments.layers = true;
+
         if (!isServer) {
           // eslint-disable-next-line no-param-reassign
           webpackConfig.output.publicPath = `/_next/`;
