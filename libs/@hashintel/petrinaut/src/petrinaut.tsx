@@ -1,18 +1,16 @@
 import "reactflow/dist/style.css";
 
 import { Box, Button, Stack } from "@mui/material";
-import type { DragEvent } from "react";
+import type { Dispatch, DragEvent, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Connection,
-  EdgeChange,
   Node,
+  NodeAddChange,
   NodeChange,
   ReactFlowInstance,
 } from "reactflow";
 import ReactFlow, {
-  applyEdgeChanges,
-  applyNodeChanges,
   Background,
   ConnectionLineType,
   ReactFlowProvider,
@@ -33,10 +31,7 @@ import { LogPane } from "./petrinaut/log-pane";
 import { PlaceEditor } from "./petrinaut/place-editor";
 import { PlaceNode } from "./petrinaut/place-node";
 import { Sidebar } from "./petrinaut/sidebar";
-import {
-  SimulationContextProvider,
-  useSimulationContext,
-} from "./petrinaut/simulation-context";
+import { SimulationContextProvider } from "./petrinaut/simulation-context";
 import { SimulationControls } from "./petrinaut/simulation-controls";
 import { nodeDimensions } from "./petrinaut/styling";
 import { TitleAndNetSelect } from "./petrinaut/title-and-net-select";
@@ -85,6 +80,119 @@ export { defaultTokenTypes };
 
 export { NetSelector } from "./petrinaut/net-selector";
 
+type DraggingStateByNodeId = Record<
+  string,
+  { dragging: boolean; position: { x: number; y: number } }
+>;
+
+/**
+ * A variant of reactflow's applyChange which mutates the petri net definition instead of creating a new node or edge array.
+ *
+ * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
+ */
+const applyNodeChanges = ({
+  changes,
+  draggingStateByNodeId,
+  mutatePetriNetDefinition,
+  setDraggingStateByNodeId,
+}: {
+  changes: NodeChange[];
+  draggingStateByNodeId: DraggingStateByNodeId;
+  mutatePetriNetDefinition: MutatePetriNetDefinition;
+  setDraggingStateByNodeId: Dispatch<SetStateAction<DraggingStateByNodeId>>;
+}) => {
+  const changesByNodeId: Record<string, NodeChange[]> = {};
+  const addChanges: NodeAddChange[] = [];
+
+  for (const change of changes) {
+    if (change.type === "add") {
+      // We add nodes in onDrop, we won't handle these kind of changes
+      continue;
+    } else if (
+      // unclear what reset is supposed to do, it's not handled in reactflow's applyChange implementation
+      change.type === "reset" ||
+      // We handle selection in separate state ourselves
+      change.type === "select" ||
+      // We don't allow resizing at the moment
+      change.type === "dimensions"
+    ) {
+      continue;
+    } else if (change.type === "position") {
+      if (change.dragging) {
+        setDraggingStateByNodeId((existing) => ({
+          ...existing,
+          [change.id]: {
+            dragging: true,
+            position: change.position ?? { x: 0, y: 0 },
+          },
+        }));
+      } else {
+        const lastPosition = draggingStateByNodeId[change.id]?.position;
+
+        if (!lastPosition) {
+          // we've had a dragging: false with no preceding dragging: true, so the node has not been dragged anywhere.
+          continue;
+        }
+
+        /**
+         * When dragging stops, we receive a change event with 'dragging: false' but no position.
+         * We use the last position we received to report the change to the consumer.
+         */
+        changesByNodeId[change.id] ??= [];
+        changesByNodeId[change.id]!.push({
+          type: "position",
+          id: change.id,
+          position: lastPosition,
+        });
+
+        setDraggingStateByNodeId((existing) => ({
+          ...existing,
+          [change.id]: {
+            dragging: false,
+            position: lastPosition,
+          },
+        }));
+      }
+    }
+  }
+
+  if (addChanges.length === 0 && Object.keys(changesByNodeId).length === 0) {
+    return;
+  }
+
+  mutatePetriNetDefinition((existingNet) => {
+    for (const node of existingNet.nodes) {
+      const changesForNode: NodeChange[] = changesByNodeId[node.id] ?? [];
+
+      for (const change of changesForNode) {
+        if (change.type === "position") {
+          if (change.position) {
+            if (node.position.x !== change.position.x) {
+              node.position.x = change.position.x;
+            }
+            if (node.position.y !== change.position.y) {
+              node.position.y = change.position.y;
+            }
+          }
+
+          if (change.positionAbsolute) {
+            if (node.positionAbsolute?.x !== change.positionAbsolute.x) {
+              node.positionAbsolute ??= { x: 0, y: 0 };
+              node.positionAbsolute.x = change.positionAbsolute.x;
+            }
+            if (node.positionAbsolute.y !== change.positionAbsolute.y) {
+              node.positionAbsolute ??= { x: 0, y: 0 };
+              node.positionAbsolute.y = change.positionAbsolute.y;
+            }
+          }
+        }
+      }
+    }
+
+    existingNet.nodes.push(...addChanges.map((change) => change.item));
+  });
+};
+
 const PetrinautInner = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
@@ -110,6 +218,18 @@ const PetrinautInner = () => {
     (ArcType & { position: { x: number; y: number } }) | null
   >(null);
 
+  /**
+   * While a node is being dragged, we don't want to keep reporting position changes to the consumer,
+   * but we need to track the fact it's being dragged and where it is currently for reactflow to use.
+   * This state tracks that information.
+   */
+  const [draggingStateByNodeId, setDraggingStateByNodeId] =
+    useState<DraggingStateByNodeId>({});
+
+  useEffect(() => {
+    setDraggingStateByNodeId({});
+  }, [petriNetDefinition.nodes]);
+
   const nodeTypes = useMemo(
     () => ({
       place: PlaceNode,
@@ -133,71 +253,25 @@ const PetrinautInner = () => {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const changesToReportToConsumer: NodeChange[] = [];
-
-      /**
-       * Some properties are not permanent features of the net, but rather temporary flags while users are interacting with it.
-       * We don't want to send them to consumers, so we filter them out here.
-       */
-      for (const change of changes) {
-        switch (change.type) {
-          case "select":
-            // do nothing, we're already tracking selected nodge state locally
-            break;
-          case "position":
-            // delete the dragging boolean, reactflow is managing it internally anyway
-            delete change.dragging;
-            changesToReportToConsumer.push(change);
-
-            break;
-          default:
-            changesToReportToConsumer.push(change);
-        }
-      }
-
-      /**
-       * @todo translate remaining NodeChange types into a mutation of the petri net definition, rather than relying on applyNodeChanges.
-       */
-      mutatePetriNetDefinition((existingNet) => {
-        // eslint-disable-next-line no-param-reassign
-        existingNet.nodes = applyNodeChanges(
-          changesToReportToConsumer,
-          existingNet.nodes,
-        );
+      applyNodeChanges({
+        changes,
+        draggingStateByNodeId,
+        mutatePetriNetDefinition,
+        setDraggingStateByNodeId,
       });
     },
-    [mutatePetriNetDefinition],
+    [draggingStateByNodeId, mutatePetriNetDefinition, setDraggingStateByNodeId],
   );
 
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      const changesToReportToConsumer: EdgeChange[] = [];
-
-      /**
-       * As in onNodesChange, filter out changes we don't want to report to consumers.
-       */
-      for (const change of changes) {
-        switch (change.type) {
-          case "select":
-            // do nothing, we're already tracking selected edge state locally
-            break;
-          default:
-            changesToReportToConsumer.push(change);
-        }
-      }
-      /**
-       * @todo translate remaining EdgeChanges into a mutation of the petri net definition, rather than relying on applyEdgeChanges.
-       */
-      mutatePetriNetDefinition((existingNet) => {
-        // eslint-disable-next-line no-param-reassign
-        existingNet.arcs = applyEdgeChanges(
-          changesToReportToConsumer,
-          existingNet.arcs,
-        );
-      });
-    },
-    [mutatePetriNetDefinition],
-  );
+  const onEdgesChange = useCallback(() => {
+    /**
+     * There are no edge changes we need to process at the moment:
+     * - We add arcs in onConnect, we won't don't process 'add'
+     * - We don't allow removing arcs at the moment
+     * - We handle selection in separate state when an edge is clicked
+     * - Unclear what 'reset' is supposed to do
+     */
+  }, []);
 
   const isValidConnection = useCallback(
     (connection: Connection) => {
@@ -393,64 +467,42 @@ const PetrinautInner = () => {
     setSelectedArc(null);
   }, []);
 
-  const { resetSimulation } = useSimulationContext();
-
-  const handleReset = useCallback(() => {
-    mutatePetriNetDefinition((existingNet) => {
-      const newNodes = existingNet.nodes.map((node) => {
-        if (node.data.type === "place") {
-          const initialCounts = node.data.initialTokenCounts ?? {};
-
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              tokenCounts: { ...initialCounts },
-            },
-          };
-        } else if (node.type === "transition") {
-          return node;
-        }
-        return node;
-      });
-
-      return {
-        ...existingNet,
-        nodes: newNodes,
-      };
-    });
-
-    resetSimulation();
-  }, [mutatePetriNetDefinition, resetSimulation]);
-
   const handleUpdateTransition = useCallback(
     (
       transitionId: string,
-      transitionData: {
-        label: string;
-        processTimes?: { [tokenTypeId: string]: number };
-        description?: string;
-        priority?: number;
-      },
+      transitionData: Omit<TransitionNodeData, "type">,
     ) => {
       mutatePetriNetDefinition((existingNet) => {
-        const newNodes = existingNet.nodes.map((node) => {
-          if (node.id === transitionId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                ...transitionData,
-              },
-            };
-          }
-          return node;
-        });
+        const transitionNode = existingNet.nodes.find(
+          (node): node is TransitionNodeType =>
+            node.id === transitionId && node.type === "transition",
+        );
 
-        return {
-          ...existingNet,
-          nodes: newNodes,
-        };
+        if (!transitionNode) {
+          throw new Error(`Transition node with id ${transitionId} not found`);
+        }
+
+        if (transitionData.label !== transitionNode.data.label) {
+          transitionNode.data.label = transitionData.label;
+        }
+
+        if (transitionData.description !== transitionNode.data.description) {
+          transitionNode.data.description = transitionData.description;
+        }
+
+        if (transitionData.delay !== transitionNode.data.delay) {
+          transitionNode.data.delay = transitionData.delay;
+        }
+
+        if (transitionData.childNet !== transitionNode.data.childNet) {
+          // @todo check equality of nested fields
+          transitionNode.data.childNet = transitionData.childNet;
+        }
+
+        if (transitionData.conditions !== transitionNode.data.conditions) {
+          // @todo check equality of nested fields
+          transitionNode.data.conditions = transitionData.conditions;
+        }
       });
     },
     [mutatePetriNetDefinition],
@@ -538,7 +590,20 @@ const PetrinautInner = () => {
     return place;
   }, [petriNetDefinition.nodes, selectedPlaceId]);
 
-  console.log(petriNetDefinition.nodes, petriNetDefinition.arcs);
+  const nodesForReactFlow = useMemo(() => {
+    return petriNetDefinition.nodes.map((node) => {
+      const draggingState = draggingStateByNodeId[node.id];
+
+      return {
+        ...node,
+        // Fold in dragging state (the consumer isn't aware of it, as it's a transient property)
+        dragging: draggingState?.dragging ?? false,
+        position: draggingState?.dragging
+          ? draggingState.position
+          : node.position,
+      };
+    });
+  }, [petriNetDefinition.nodes, draggingStateByNodeId]);
 
   return (
     <Stack sx={{ height: "100%" }}>
@@ -569,7 +634,7 @@ const PetrinautInner = () => {
             }}
           >
             <TokenTypes />
-            <SimulationControls onReset={handleReset} />
+            <SimulationControls />
           </Stack>
 
           {selectedTransition && (
@@ -617,7 +682,7 @@ const PetrinautInner = () => {
           )}
 
           <ReactFlow
-            nodes={petriNetDefinition.nodes}
+            nodes={nodesForReactFlow}
             edges={petriNetDefinition.arcs}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}

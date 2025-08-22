@@ -75,21 +75,25 @@ export const SimulationContextProvider = ({
 
   const { petriNetDefinition } = useEditorContext();
 
+  const resetMarkings = useCallback(() => {
+    setPlaceMarkingsById(
+      petriNetDefinition.nodes.reduce((acc, node) => {
+        if (node.data.type === "place") {
+          acc[node.id] = node.data.initialTokenCounts ?? {};
+        }
+        return acc;
+      }, {} as PlaceMarkingsById),
+    );
+  }, [petriNetDefinition.nodes]);
+
   const resetSimulation = useCallback(() => {
     setIsSimulating(false);
     setSimulationLogs([]);
     setCurrentStep(0);
-  }, []);
+    resetMarkings();
+  }, [resetMarkings]);
 
   useEffect(() => {
-    const placeMarkings = petriNetDefinition.nodes.reduce((acc, node) => {
-      if (node.data.type === "place") {
-        acc[node.id] = node.data.initialTokenCounts ?? {};
-      }
-      return acc;
-    }, {} as PlaceMarkingsById);
-
-    setPlaceMarkingsById(placeMarkings);
     resetSimulation();
   }, [petriNetDefinition.nodes, resetSimulation]);
 

@@ -72,15 +72,12 @@ const SimulationControlButton = ({
   );
 };
 
-export type SimulationControlsProps = {
-  onReset: () => void;
-};
-
-export const SimulationControls = ({ onReset }: SimulationControlsProps) => {
+export const SimulationControls = () => {
   const {
     isSimulating,
     setIsSimulating,
     fireNextStep,
+    resetSimulation,
     simulationSpeed,
     setSimulationSpeed,
     currentStep,
@@ -128,7 +125,7 @@ export const SimulationControls = ({ onReset }: SimulationControlsProps) => {
           background="red"
           disabled={false}
           Icon={ArrowsRotateRegularIcon}
-          onClick={onReset}
+          onClick={resetSimulation}
           tooltip="Reset simulation"
         />
       </Stack>

@@ -1,3 +1,4 @@
+import { nodeDimensions } from "./styling";
 import type { ArcType, NodeType, TokenType } from "./types";
 
 export const exampleCPN = {
@@ -13,6 +14,7 @@ export const exampleCPN = {
       id: "place_0",
       type: "place",
       position: { x: 20, y: 120 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Plant A Supply",
@@ -28,6 +30,7 @@ export const exampleCPN = {
       id: "place_1",
       type: "place",
       position: { x: 20, y: 600 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Plant B Supply",
@@ -43,6 +46,7 @@ export const exampleCPN = {
       id: "place_2",
       type: "place",
       position: { x: 300, y: 300 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Manufacturing Plant",
@@ -58,6 +62,7 @@ export const exampleCPN = {
       id: "place_3",
       type: "place",
       position: { x: 700, y: 350 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "QA Queue",
@@ -73,6 +78,7 @@ export const exampleCPN = {
       id: "place_4",
       type: "place",
       position: { x: 1100, y: 600 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Disposal",
@@ -88,6 +94,7 @@ export const exampleCPN = {
       id: "place_5",
       type: "place",
       position: { x: 1000, y: 200 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Dispatch",
@@ -103,6 +110,7 @@ export const exampleCPN = {
       id: "place_6",
       type: "place",
       position: { x: 1300, y: 380 },
+      ...nodeDimensions.place,
       data: {
         type: "place",
         label: "Hospital",
@@ -118,6 +126,7 @@ export const exampleCPN = {
       id: "transition_0",
       type: "transition",
       position: { x: 100, y: 400 },
+      ...nodeDimensions.transition,
       data: {
         type: "transition",
         label: "Deliver to Plant",
@@ -129,6 +138,7 @@ export const exampleCPN = {
       id: "transition_1",
       type: "transition",
       position: { x: 490, y: 350 },
+      ...nodeDimensions.transition,
       data: {
         type: "transition",
         label: "Manufacture",
@@ -140,6 +150,7 @@ export const exampleCPN = {
       id: "transition_2",
       type: "transition",
       position: { x: 870, y: 400 },
+      ...nodeDimensions.transition,
       data: {
         type: "transition",
         label: "Quality Check",
@@ -165,6 +176,7 @@ export const exampleCPN = {
       id: "transition_3",
       type: "transition",
       position: { x: 1150, y: 280 },
+      ...nodeDimensions.transition,
       data: {
         type: "transition",
         label: "Ship",
