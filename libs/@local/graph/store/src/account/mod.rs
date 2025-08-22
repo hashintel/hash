@@ -6,6 +6,7 @@ use type_system::principal::{
     actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
     actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
 };
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 #[error("Could not insert account")]
@@ -15,6 +16,8 @@ pub struct AccountInsertionError;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateUserActorParams {
+    #[serde(skip)]
+    pub user_id: Option<Uuid>,
     pub shortname: Option<String>,
     pub registration_complete: bool,
 }

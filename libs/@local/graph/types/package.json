@@ -14,8 +14,5 @@
     "@rust/error-stack": "0.5.0",
     "@rust/hash-codec": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private"
-  },
-  "devDependencies": {
-    "@rust/hash-graph-test-data": "0.0.0-private"
   }
 }

@@ -278,7 +278,7 @@ fn graph_to_mermaid(
             let path = format!("../{}", metadata.name().replace('-', "_"));
             let _ = writeln!(
                 mermaid,
-                "    {index}[<a href=\"{path}\">{}</a>]",
+                "    {index}[<a href=\"{path}/index.html\">{}</a>]",
                 metadata.name()
             );
         } else {

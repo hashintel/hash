@@ -21,15 +21,19 @@ hash-graph-postgres-store      = { workspace = true }
 hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
+hash-graph-type-fetcher        = { workspace = true }
 hash-repo-chores               = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies
 criterion          = { workspace = true, features = ["async_tokio", "html_reports"] }
 criterion-macro    = { workspace = true }
+derive_more        = { workspace = true, features = ["display"] }
 either             = { workspace = true }
 itertools          = { workspace = true }
 rand               = { workspace = true, features = ["thread_rng"] }
+rayon              = { workspace = true }
+regex              = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 serde_json         = { workspace = true }
 tokio              = { workspace = true, features = ["macros"] }
@@ -54,6 +58,10 @@ path = "representative_read/lib.rs"
 [[bench]]
 name = "manual-queries"
 path = "manual_queries/lib.rs"
+
+[[bench]]
+name = "graph"
+path = "graph/lib.rs"
 
 [[bench]]
 name = "policy"

@@ -13027,6 +13027,7 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
+    "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
     "@rust/hash-repo-chores": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -13137,6 +13138,7 @@ __metadata:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
+    "@rust/hash-graph-store": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -13192,7 +13194,6 @@ __metadata:
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    "@rust/hash-graph-test-data": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 

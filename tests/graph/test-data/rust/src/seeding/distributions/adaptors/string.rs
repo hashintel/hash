@@ -1,6 +1,6 @@
 use core::error::Error;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use rand::{
     Rng,
     distr::{Alphabetic, Distribution},
@@ -30,7 +30,7 @@ pub struct WordDistributionConfig {
 }
 
 #[derive(Debug, derive_more::Display)]
-#[display("Invalid {_variant} in word  distribution")]
+#[display("Invalid {_variant} in word distribution")]
 pub enum InvalidWordDistributionConfig {
     #[display("length")]
     Length,
@@ -45,7 +45,7 @@ impl DistributionConfig for WordDistributionConfig {
     fn create_distribution(&self) -> Result<Self::Distribution, Self::Error> {
         Ok(WordDistribution {
             length: Uniform::new_inclusive(self.length.0, self.length.1)
-                .expect("`Uniform` should return a valid index"),
+                .change_context(InvalidWordDistributionConfig::Length)?,
             alphabet: Alphabetic,
         })
     }

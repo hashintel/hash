@@ -5,6 +5,7 @@
 //! the following fields:
 //!
 //! - [`RunId`]: identifies the end-to-end run, isolating RNG streams across runs
+//! - [`StageId`]: identifies the scenario stage within a run
 //! - [`ShardId`]: coarse partitioning across parallel workers
 //! - [`LocalId`]: per-producer monotonically increasing counter
 //! - [`Scope`]: generation domain
@@ -41,17 +42,18 @@
 //!
 //! ```rust
 //! use hash_graph_test_data::seeding::context::{
-//!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, SubScope,
+//!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, StageId, SubScope,
 //! };
 //! use rand::Rng as _;
 //!
 //! let context = ProduceContext {
-//!     run_id: RunId::new(0xDEAD_BEEF),
+//!     run_id: RunId::new(0xDEAD),
+//!     stage_id: StageId::new(0xBEEF),
 //!     shard_id: ShardId::new(0),
 //!     provenance: Provenance::Integration,
-//!     producer: ProducerId::Unknown,
+//!     producer: ProducerId::User,
 //! };
-//! let gid = context.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
+//! let gid = context.global_id(LocalId::default(), Scope::Schema, SubScope::Unknown);
 //! let mut rng = gid.rng();
 //! let value: u32 = rng.random();
 //! # let _ = value;
@@ -66,17 +68,17 @@ use xxhash_rust::xxh3::xxh3_64;
 
 /// Identifies a run used to derive independent RNG streams.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct RunId(u32);
+pub struct RunId(u16);
 
 impl RunId {
     /// Create a new shard identifier.
     #[must_use]
-    pub const fn new(run_id: u32) -> Self {
+    pub const fn new(run_id: u16) -> Self {
         Self(run_id)
     }
 }
 
-impl From<RunId> for u32 {
+impl From<RunId> for u16 {
     fn from(run_id: RunId) -> Self {
         run_id.0
     }
@@ -110,6 +112,36 @@ impl fmt::LowerHex for ShardId {
 }
 
 impl fmt::UpperHex for ShardId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:04X}", self.0)
+    }
+}
+
+/// Identifies a stage within a scenario run.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct StageId(u16);
+
+impl StageId {
+    /// Create a new stage identifier.
+    #[must_use]
+    pub const fn new(stage_id: u16) -> Self {
+        Self(stage_id)
+    }
+
+    /// Derive a stable `StageId` from a stage name.
+    #[must_use]
+    pub fn from_name(name: &str) -> Self {
+        Self((xxh3_64(name.as_bytes()) & 0xFFFF) as u16)
+    }
+}
+
+impl fmt::LowerHex for StageId {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:04x}", self.0)
+    }
+}
+
+impl fmt::UpperHex for StageId {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "{:04X}", self.0)
     }
@@ -167,6 +199,7 @@ impl fmt::UpperHex for LocalId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GlobalId {
     pub run_id: RunId,
+    pub stage_id: StageId,
     pub shard_id: ShardId,
     pub local_id: LocalId,
     pub provenance: Provenance,
@@ -195,21 +228,21 @@ impl GlobalId {
     /// # Example
     ///
     /// ```rust
-    /// # use hash_graph_test_data::seeding::context::{GlobalId, RunId, ShardId, LocalId, Scope, Provenance, ProducerId, SubScope};
-    /// # use uuid::Uuid;
+    /// # use hash_graph_test_data::seeding::context::{GlobalId, RunId, ShardId, StageId, LocalId, Scope, Provenance, ProducerId, SubScope};
     /// let gid = GlobalId {
-    ///     run_id: RunId::new(0xAAAA_AAAA),
-    ///     shard_id: ShardId::new(0xBBBB),
+    ///     run_id: RunId::new(0xAAAA),
+    ///     stage_id: StageId::new(0xBBBB),
+    ///     shard_id: ShardId::new(0xCCCC),
     ///     local_id: LocalId::default(),
     ///     provenance: Provenance::Integration,
     ///     producer: ProducerId::User,
-    ///     scope: Scope::Title,
+    ///     scope: Scope::Schema,
     ///     sub_scope: SubScope::Unknown,
     ///     retry: 0xCC,
     /// };
     /// let uuid = gid.encode();
     ///
-    /// assert_eq!(uuid.to_string(), "aaaaaaaa-bbbb-80cc-8003-000000000000");
+    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8002-000000000000");
     /// assert_eq!(GlobalId::decode(uuid)?, gid);
     ///
     /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())
@@ -221,9 +254,9 @@ impl GlobalId {
         // Bytes (0-based, BE layout):
         // +-------+-------+-------+-------+-------+-------+-------+-------+
         // |   0   |   1   |   2   |   3   |   4   |   5   |   6   |   7   |
-        // |            run ID             |    shard ID   | V | L | retry |
-        // |                               |               | e | o |       |
-        // |                               |               | r | 4 |       |
+        // |  run ID (u16) | stage (u16)   |    shard ID   | V | L | retry |
+        // |               |               |               | e | o |       |
+        // |               |               |               | r | 4 |       |
         // +-------+-------+-------+-------+-------+-------+-------+-------+
         // |   8   |   9   |   10  |   11  |   12  |   13  |   14  |   15  |
         // | V | L | scope |   sub_scope   |            local ID           |
@@ -231,7 +264,8 @@ impl GlobalId {
         // | r | 4 |       |               |                               |
         // +-------+-------+-------+-------+-------+-------+-------+-------+
         // Legend:
-        // - Bytes 0-3:   run_id(u32, BE)
+        // - Bytes 0-1:   run_id(u16, BE)
+        // - Bytes 2-3:   stage_id(u16, BE)
         // - Bytes 4-5:   shard_id(u16, BE)
         // - Byte  6:     bits 7..4: Version (lib); bits 3..0: producer[31..28]
         // - Byte  7:     retry
@@ -243,8 +277,11 @@ impl GlobalId {
 
         let mut bytes = [0; 16];
 
-        // Bytes 0–3: run_id (u32)
-        bytes[0..4].copy_from_slice(&self.run_id.0.to_be_bytes());
+        // Bytes 0–1: run_id (u16)
+        bytes[0..2].copy_from_slice(&self.run_id.0.to_be_bytes());
+
+        // Bytes 2–3: stage_id (u16)
+        bytes[2..4].copy_from_slice(&self.stage_id.0.to_be_bytes());
 
         // Bytes 4–5: shard_id (u16)
         bytes[4..6].copy_from_slice(&self.shard_id.0.to_be_bytes());
@@ -287,7 +324,10 @@ impl GlobalId {
         let bytes = *uuid.as_bytes();
 
         // run_id
-        let run_id = RunId(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]));
+        let run_id = RunId(u16::from_be_bytes([bytes[0], bytes[1]]));
+
+        // stage_id
+        let stage_id = StageId(u16::from_be_bytes([bytes[2], bytes[3]]));
 
         // shard_id
         let shard_id = ShardId(u16::from_be_bytes([bytes[4], bytes[5]]));
@@ -325,6 +365,7 @@ impl GlobalId {
 
         Ok(Self {
             run_id,
+            stage_id,
             shard_id,
             local_id,
             provenance,
@@ -372,6 +413,7 @@ impl ProducerId {
 #[derive(Debug)]
 pub struct ProduceContext {
     pub run_id: RunId,
+    pub stage_id: StageId,
     pub shard_id: ShardId,
     pub provenance: Provenance,
     pub producer: ProducerId,
@@ -382,10 +424,12 @@ pub struct ProduceContext {
 pub enum Scope {
     Id,
     Registration,
-    Domain,
-    Title,
-    Description,
-    Constraint,
+    Schema,
+    Ownership,
+    Provenance,
+    Conversions,
+    Config,
+    Metadata,
     Anonymous = 0xFF,
 }
 
@@ -402,10 +446,12 @@ impl Scope {
         match value {
             0 => Ok(Self::Id),
             1 => Ok(Self::Registration),
-            2 => Ok(Self::Domain),
-            3 => Ok(Self::Title),
-            4 => Ok(Self::Description),
-            5 => Ok(Self::Constraint),
+            2 => Ok(Self::Schema),
+            3 => Ok(Self::Ownership),
+            4 => Ok(Self::Provenance),
+            5 => Ok(Self::Conversions),
+            6 => Ok(Self::Config),
+            7 => Ok(Self::Metadata),
             0xFF => Ok(Self::Anonymous),
             _ => Err(ParseScopeError { scope: value }),
         }
@@ -416,6 +462,16 @@ impl Scope {
 #[repr(u16)]
 pub enum SubScope {
     Unknown,
+    Domain,
+    Title,
+    Description,
+    Constraint,
+    Conflict,
+    Ownership,
+    WebType,
+    Index,
+    FetchedAt,
+    Provenance,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -430,6 +486,16 @@ impl SubScope {
     const fn from_u16(value: u16) -> Result<Self, ParseSubScopeError> {
         match value {
             0 => Ok(Self::Unknown),
+            1 => Ok(Self::Domain),
+            2 => Ok(Self::Title),
+            3 => Ok(Self::Description),
+            4 => Ok(Self::Constraint),
+            5 => Ok(Self::Conflict),
+            6 => Ok(Self::Ownership),
+            7 => Ok(Self::WebType),
+            8 => Ok(Self::Index),
+            9 => Ok(Self::FetchedAt),
+            10 => Ok(Self::Provenance),
             _ => Err(ParseSubScopeError { sub_scope: value }),
         }
     }
@@ -456,6 +522,7 @@ impl ProduceContext {
     ) -> GlobalId {
         GlobalId {
             run_id: self.run_id,
+            stage_id: self.stage_id,
             shard_id: self.shard_id,
             local_id,
             provenance: self.provenance,
@@ -514,12 +581,13 @@ mod tests {
     #[test]
     fn rng_is_deterministic_for_same_inputs() {
         let ctx = ProduceContext {
-            run_id: RunId::new(0xA11CE),
+            run_id: RunId::new(0xA11C),
+            stage_id: StageId::new(0xE000),
             shard_id: ShardId::new(7),
             provenance: Provenance::Integration,
             producer: ProducerId::User,
         };
-        let gid = ctx.global_id(LocalId::default(), Scope::Title, SubScope::Unknown);
+        let gid = ctx.global_id(LocalId::default(), Scope::Schema, SubScope::Title);
 
         let val_a: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
         let val_b: [u64; 1_000] = array::from_fn(|_| gid.rng().random());
@@ -529,20 +597,21 @@ mod tests {
     #[test]
     fn rng_differs_when_scope_or_ids_change() {
         let ctx = ProduceContext {
-            run_id: RunId::new(0xB0B),
+            run_id: RunId::new(0xB0B0),
+            stage_id: StageId::new(0x0001),
             shard_id: ShardId::new(1),
             provenance: Provenance::Integration,
             producer: ProducerId::User,
         };
 
         let mut base = ctx
-            .global_id(LocalId::default(), Scope::Title, SubScope::Unknown)
+            .global_id(LocalId::default(), Scope::Config, SubScope::Provenance)
             .rng();
         let mut diff_scope = ctx
-            .global_id(LocalId::default(), Scope::Description, SubScope::Unknown)
+            .global_id(LocalId::default(), Scope::Ownership, SubScope::Unknown)
             .rng();
         let mut diff_local = ctx
-            .global_id(LocalId(1), Scope::Title, SubScope::Unknown)
+            .global_id(LocalId(1), Scope::Registration, SubScope::Unknown)
             .rng();
 
         let seq_base: [u64; 4] = core::array::from_fn(|_| base.random());

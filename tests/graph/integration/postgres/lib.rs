@@ -189,6 +189,7 @@ impl DatabaseTestWrapper {
             .create_user_actor(
                 system_account_id.into(),
                 CreateUserActorParams {
+                    user_id: None,
                     shortname: Some("bench-user".to_owned()),
                     registration_complete: true,
                 },
