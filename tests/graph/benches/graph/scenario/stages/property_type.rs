@@ -110,6 +110,7 @@ impl GeneratePropertyTypesStage {
         // Generate all params first to avoid borrow conflicts
         // TODO: implement streaming to avoid loading all property types into memory at once for
         //       large counts
+        //   see https://linear.app/hash/issue/H-5222/stream-generated-types-into-the-persister-directly
         let params: Vec<_> = runner
             .run_producer(|| cfg.create_producer(&deps), self.count, stage_id)
             .change_context(PropertyTypeError::CreateProducer)?

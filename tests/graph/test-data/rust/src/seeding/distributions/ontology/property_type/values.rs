@@ -320,11 +320,11 @@ impl<C: DataTypeCatalog> Distribution<PropertyValues> for BoundPropertyValuesDis
             }
             #[expect(clippy::todo)]
             BoundPropertyValueType::Array => {
-                todo!("Array PropertyValues not yet implemented")
+                todo!("https://linear.app/hash/issue/H-5223/support-array-and-object-property-type-generation")
             }
             #[expect(clippy::todo)]
             BoundPropertyValueType::Object => {
-                todo!("Object PropertyValues not yet implemented")
+                todo!("https://linear.app/hash/issue/H-5223/support-array-and-object-property-type-generation")
             }
         }
     }
