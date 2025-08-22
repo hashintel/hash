@@ -23,7 +23,7 @@ type TokenTypeEditorProps = {
 };
 
 export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
-  const { petriNetDefinition, setPetriNetDefinition } = useEditorContext();
+  const { petriNetDefinition, mutatePetriNetDefinition } = useEditorContext();
 
   const [localTokenTypes, setLocalTokenTypes] = useState<TokenType[]>(
     petriNetDefinition.tokenTypes,
@@ -67,7 +67,7 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
   };
 
   const handleSave = () => {
-    setPetriNetDefinition((existingNet) => ({
+    mutatePetriNetDefinition((existingNet) => ({
       ...existingNet,
       tokenTypes: localTokenTypes,
     }));

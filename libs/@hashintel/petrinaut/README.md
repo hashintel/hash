@@ -9,7 +9,7 @@ This package may be consumed under the terms of its [LICENSE](LICENSE.md).
 
 It currently depends on a specific MUI theme and any consuming application should wrap it as follows:
 
-```ts
+```tsx
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
@@ -21,11 +21,14 @@ const App = () => {
   return (
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
-        <Petrinaut [props] />
+        <Petrinaut {...props} />
       </ThemeProvider>
     </CacheProvider>
   )
 }
+```
+
+### Notes
 
 ## Publishing
 

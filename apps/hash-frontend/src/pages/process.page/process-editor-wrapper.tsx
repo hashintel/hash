@@ -3,6 +3,7 @@ import { AlertModal } from "@hashintel/design-system";
 import type { PetriNetDefinitionObject } from "@hashintel/petrinaut";
 import { defaultTokenTypes, Petrinaut } from "@hashintel/petrinaut";
 import { Box, Stack } from "@mui/material";
+import produce from "immer";
 import { useCallback, useMemo, useState } from "react";
 
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
@@ -25,6 +26,21 @@ export const ProcessEditorWrapper = () => {
       nodes: [],
       tokenTypes: defaultTokenTypes,
     });
+
+  const mutatePetriNetDefinition = useCallback(
+    (
+      mutationFn: (petriNetDefinition: PetriNetDefinitionObject) => undefined,
+    ) => {
+      setPetriNetDefinition((netDefinition) => {
+        const updatedNetDefinition = produce(netDefinition, (draft) => {
+          mutationFn(draft);
+        });
+
+        return updatedNetDefinition;
+      });
+    },
+    [setPetriNetDefinition],
+  );
 
   const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
     useState<PersistedNet | null>(null);
@@ -129,8 +145,7 @@ export const ProcessEditorWrapper = () => {
           parentNet={parentNet}
           petriNetDefinition={petriNetDefinition}
           petriNetId={selectedNetId}
-          readonly={!userEditable}
-          setPetriNetDefinition={setPetriNetDefinition}
+          mutatePetriNetDefinition={mutatePetriNetDefinition}
           setTitle={setTitle}
           title={title}
         />

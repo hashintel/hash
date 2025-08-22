@@ -14,6 +14,10 @@ import type {
   PetriNetDefinitionObject,
 } from "./types";
 
+export type MutatePetriNetDefinition = (
+  mutationFn: (petriNetDefinition: PetriNetDefinitionObject) => undefined,
+) => void;
+
 type EditorContextValue = {
   createNewNet: (params: {
     petriNetDefinition: PetriNetDefinitionObject;
@@ -26,7 +30,7 @@ type EditorContextValue = {
   petriNetDefinition: PetriNetDefinitionObject;
   readonly: boolean;
   setParentNet: Dispatch<SetStateAction<ParentNet | null>>;
-  setPetriNetDefinition: Dispatch<SetStateAction<PetriNetDefinitionObject>>;
+  mutatePetriNetDefinition: MutatePetriNetDefinition;
   setTitle: (title: string) => void;
   title: string;
 };
@@ -43,7 +47,7 @@ type EditorContextProviderProps = {
   parentNet: ParentNet | null;
   petriNetId: string | null;
   petriNetDefinition: PetriNetDefinitionObject;
-  setPetriNetDefinition: (petriNetDefinition: PetriNetDefinitionObject) => void;
+  mutatePetriNetDefinition: MutatePetriNetDefinition;
   loadPetriNet: (petriNetId: string) => void;
   readonly: boolean;
   setTitle: (title: string) => void;
@@ -59,25 +63,13 @@ export const EditorContextProvider = ({
   petriNetDefinition,
   readonly,
   loadPetriNet,
-  setPetriNetDefinition,
+  mutatePetriNetDefinition,
   setTitle,
   title,
 }: EditorContextProviderProps) => {
   const [parentNet, setParentNet] = useState<ParentNet | null>(
     parentNetFromProps,
   );
-
-  const setDefinition: EditorContextValue["setPetriNetDefinition"] =
-    useCallback(
-      (setStateFnOrData) => {
-        if (typeof setStateFnOrData === "function") {
-          setPetriNetDefinition(setStateFnOrData(petriNetDefinition));
-        } else {
-          setPetriNetDefinition(setStateFnOrData);
-        }
-      },
-      [petriNetDefinition, setPetriNetDefinition],
-    );
 
   const value: EditorContextValue = useMemo(
     () => ({
@@ -89,7 +81,7 @@ export const EditorContextProvider = ({
       petriNetDefinition,
       readonly,
       setParentNet,
-      setPetriNetDefinition: setDefinition,
+      mutatePetriNetDefinition,
       setTitle,
       title,
     }),
@@ -97,12 +89,12 @@ export const EditorContextProvider = ({
       createNewNet,
       existingNets,
       loadPetriNet,
+      mutatePetriNetDefinition,
       parentNet,
       petriNetId,
       petriNetDefinition,
       readonly,
       setParentNet,
-      setDefinition,
       setTitle,
       title,
     ],

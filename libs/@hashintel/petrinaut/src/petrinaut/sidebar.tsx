@@ -17,11 +17,11 @@ export const Sidebar = () => {
     [],
   );
 
-  const { petriNetDefinition, setPetriNetDefinition } = useEditorContext();
+  const { petriNetDefinition, mutatePetriNetDefinition } = useEditorContext();
 
   const layoutGraph = useLayoutGraph({
     setNodes: (nodes) =>
-      setPetriNetDefinition((petriNet) => ({ ...petriNet, nodes })),
+      mutatePetriNetDefinition((petriNet) => ({ ...petriNet, nodes })),
   });
 
   return (

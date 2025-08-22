@@ -25,7 +25,10 @@ export type PlaceNodeData = {
 
 export type PlaceMarkingsById = Record<string, TokenCounts>;
 
-export type PlaceNodeType = Node<PlaceNodeData, "place">;
+export type PlaceNodeType = Omit<
+  Node<PlaceNodeData, "place">,
+  "selected" | "dragging"
+>;
 
 export type TransitionCondition = {
   id: string;
@@ -60,13 +63,16 @@ export type TransitionNodeData = {
   type: "transition";
 };
 
+export type TransitionNodeType = Omit<
+  Node<TransitionNodeData, "transition">,
+  "selected" | "dragging"
+>;
+
 export type PetriNetDefinitionObject = {
   arcs: ArcType[];
   nodes: NodeType[];
   tokenTypes: TokenType[];
 };
-
-export type TransitionNodeType = Node<TransitionNodeData, "transition">;
 
 export type NodeData = PlaceNodeData | TransitionNodeData;
 

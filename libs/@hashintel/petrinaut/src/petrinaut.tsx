@@ -11,7 +11,6 @@ import type {
   ReactFlowInstance,
 } from "reactflow";
 import ReactFlow, {
-  addEdge,
   applyEdgeChanges,
   applyNodeChanges,
   Background,
@@ -22,8 +21,10 @@ import ReactFlow, {
 
 import { Arc } from "./petrinaut/arc";
 import { ArcEditor } from "./petrinaut/arc-editor";
+import { createArc } from "./petrinaut/create-arc";
 import {
   EditorContextProvider,
+  type MutatePetriNetDefinition,
   useEditorContext,
 } from "./petrinaut/editor-context";
 import { exampleCPN } from "./petrinaut/examples";
@@ -92,7 +93,7 @@ const PetrinautInner = () => {
     ArcData
   > | null>(null);
 
-  const { createNewNet, petriNetDefinition, setPetriNetDefinition, title } =
+  const { createNewNet, petriNetDefinition, mutatePetriNetDefinition, title } =
     useEditorContext();
 
   const [selectedPlacePosition, setSelectedPlacePosition] = useState<{
@@ -132,22 +133,70 @@ const PetrinautInner = () => {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setPetriNetDefinition((existingNet) => ({
-        ...existingNet,
-        nodes: applyNodeChanges(changes, existingNet.nodes),
-      }));
+      const changesToReportToConsumer: NodeChange[] = [];
+
+      /**
+       * Some properties are not permanent features of the net, but rather temporary flags while users are interacting with it.
+       * We don't want to send them to consumers, so we filter them out here.
+       */
+      for (const change of changes) {
+        switch (change.type) {
+          case "select":
+            // do nothing, we're already tracking selected nodge state locally
+            break;
+          case "position":
+            // delete the dragging boolean, reactflow is managing it internally anyway
+            delete change.dragging;
+            changesToReportToConsumer.push(change);
+
+            break;
+          default:
+            changesToReportToConsumer.push(change);
+        }
+      }
+
+      /**
+       * @todo translate remaining NodeChange types into a mutation of the petri net definition, rather than relying on applyNodeChanges.
+       */
+      mutatePetriNetDefinition((existingNet) => {
+        // eslint-disable-next-line no-param-reassign
+        existingNet.nodes = applyNodeChanges(
+          changesToReportToConsumer,
+          existingNet.nodes,
+        );
+      });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      setPetriNetDefinition((existingNet) => ({
-        ...existingNet,
-        arcs: applyEdgeChanges(changes, existingNet.arcs),
-      }));
+      const changesToReportToConsumer: EdgeChange[] = [];
+
+      /**
+       * As in onNodesChange, filter out changes we don't want to report to consumers.
+       */
+      for (const change of changes) {
+        switch (change.type) {
+          case "select":
+            // do nothing, we're already tracking selected edge state locally
+            break;
+          default:
+            changesToReportToConsumer.push(change);
+        }
+      }
+      /**
+       * @todo translate remaining EdgeChanges into a mutation of the petri net definition, rather than relying on applyEdgeChanges.
+       */
+      mutatePetriNetDefinition((existingNet) => {
+        // eslint-disable-next-line no-param-reassign
+        existingNet.arcs = applyEdgeChanges(
+          changesToReportToConsumer,
+          existingNet.arcs,
+        );
+      });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const isValidConnection = useCallback(
@@ -172,9 +221,9 @@ const PetrinautInner = () => {
   const onConnect = useCallback(
     (connection: Connection) => {
       if (isValidConnection(connection)) {
-        const newEdge: ArcType = {
+        const newArc: ArcType = {
           ...connection,
-          id: `${connection.source}-${connection.target}`,
+          id: `arc__${connection.source}-${connection.target}`,
           source: connection.source ?? "",
           target: connection.target ?? "",
           type: "default",
@@ -183,13 +232,24 @@ const PetrinautInner = () => {
           },
           interactionWidth: 8,
         };
-        setPetriNetDefinition((existingNet) => ({
-          ...existingNet,
-          arcs: addEdge(newEdge, existingNet.arcs),
-        }));
+
+        const addedArc = createArc(newArc, petriNetDefinition.arcs);
+
+        if (!addedArc) {
+          return;
+        }
+
+        mutatePetriNetDefinition((existingNet) => {
+          existingNet.arcs.push(addedArc);
+        });
       }
     },
-    [isValidConnection, petriNetDefinition.tokenTypes, setPetriNetDefinition],
+    [
+      petriNetDefinition.arcs,
+      isValidConnection,
+      petriNetDefinition.tokenTypes,
+      mutatePetriNetDefinition,
+    ],
   );
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
@@ -223,7 +283,7 @@ const PetrinautInner = () => {
       });
 
       const newNode: NodeType = {
-        id: `${nodeType}_${generateUuid()}`,
+        id: `${nodeType}__${generateUuid()}`,
         type: nodeType,
         position,
         ...nodeDimensions[nodeType],
@@ -239,16 +299,15 @@ const PetrinautInner = () => {
         },
       };
 
-      setPetriNetDefinition((existingNet) => ({
-        ...existingNet,
-        nodes: existingNet.nodes.concat(newNode),
-      }));
+      mutatePetriNetDefinition((existingNet) => {
+        existingNet.nodes.push(newNode);
+      });
     },
     [
       reactFlowInstance,
       petriNetDefinition.nodes,
       petriNetDefinition.tokenTypes,
-      setPetriNetDefinition,
+      mutatePetriNetDefinition,
     ],
   );
 
@@ -275,53 +334,30 @@ const PetrinautInner = () => {
 
   const handleUpdateInitialTokens = useCallback(
     (nodeId: string, initialTokenCounts: TokenCounts) => {
-      setPetriNetDefinition((existingNet) => {
-        const newNodes = existingNet.nodes.map((node) => {
-          if (node.id === nodeId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                initialTokenCounts,
-                tokenTypes: existingNet.tokenTypes,
-              },
-            };
+      mutatePetriNetDefinition((existingNet) => {
+        for (const node of existingNet.nodes) {
+          if (node.id === nodeId && node.data.type === "place") {
+            node.data.initialTokenCounts = initialTokenCounts;
+            return;
           }
-          return node;
-        });
-
-        return {
-          ...existingNet,
-          nodes: newNodes,
-        };
+        }
       });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const handleUpdateNodeLabel = useCallback(
     (nodeId: string, label: string) => {
-      setPetriNetDefinition((existingNet) => {
-        const newNodes = existingNet.nodes.map((node) => {
+      mutatePetriNetDefinition((existingNet) => {
+        for (const node of existingNet.nodes) {
           if (node.id === nodeId) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                label,
-              },
-            };
+            node.data.label = label;
+            return;
           }
-          return node;
-        });
-
-        return {
-          ...existingNet,
-          nodes: newNodes,
-        };
+        }
       });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
@@ -338,20 +374,17 @@ const PetrinautInner = () => {
       edgeId: string,
       tokenWeights: { [tokenTypeId: string]: number | undefined },
     ) => {
-      setPetriNetDefinition((existingNet) => {
-        const newArcs = existingNet.arcs.map((arc) =>
-          arc.id === edgeId
-            ? { ...arc, data: { ...arc.data, tokenWeights } }
-            : arc,
-        );
-
-        return {
-          ...existingNet,
-          arcs: newArcs,
-        };
+      mutatePetriNetDefinition((existingNet) => {
+        for (const arc of existingNet.arcs) {
+          if (arc.id === edgeId) {
+            arc.data ??= { tokenWeights: {} };
+            arc.data.tokenWeights = tokenWeights;
+            return;
+          }
+        }
       });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const handlePaneClick = useCallback(() => {
@@ -363,7 +396,7 @@ const PetrinautInner = () => {
   const { resetSimulation } = useSimulationContext();
 
   const handleReset = useCallback(() => {
-    setPetriNetDefinition((existingNet) => {
+    mutatePetriNetDefinition((existingNet) => {
       const newNodes = existingNet.nodes.map((node) => {
         if (node.data.type === "place") {
           const initialCounts = node.data.initialTokenCounts ?? {};
@@ -388,7 +421,7 @@ const PetrinautInner = () => {
     });
 
     resetSimulation();
-  }, [setPetriNetDefinition, resetSimulation]);
+  }, [mutatePetriNetDefinition, resetSimulation]);
 
   const handleUpdateTransition = useCallback(
     (
@@ -400,7 +433,7 @@ const PetrinautInner = () => {
         priority?: number;
       },
     ) => {
-      setPetriNetDefinition((existingNet) => {
+      mutatePetriNetDefinition((existingNet) => {
         const newNodes = existingNet.nodes.map((node) => {
           if (node.id === transitionId) {
             return {
@@ -420,7 +453,7 @@ const PetrinautInner = () => {
         };
       });
     },
-    [setPetriNetDefinition],
+    [mutatePetriNetDefinition],
   );
 
   const handleLoadExample = useCallback(() => {
@@ -504,6 +537,8 @@ const PetrinautInner = () => {
 
     return place;
   }, [petriNetDefinition.nodes, selectedPlaceId]);
+
+  console.log(petriNetDefinition.nodes, petriNetDefinition.arcs);
 
   return (
     <Stack sx={{ height: "100%" }}>
@@ -675,9 +710,24 @@ export type PetrinautProps = {
    */
   petriNetDefinition: PetriNetDefinitionObject;
   /**
-   * Set the definition of the net which is currently loaded.
+   * Update the definition of the net which is currently loaded, by mutation.
+   *
+   * Should not return anything – the consumer of Petrinaut must pass mutationFn into an appropriate helper
+   * which does something with the mutated object, e.g. `immer`'s `produce` or `@automerge/react`'s `changeDoc`.
+   *
+   * @example
+   *   mutatePetriNetDefinition((petriNetDefinition) => {
+   *     petriNetDefinition.nodes.push({
+   *       id: "new-node",
+   *       type: "place",
+   *       position: { x: 0, y: 0 },
+   *     });
+   *   });
+   *
+   * @see https://immerjs.github.io/immer
+   * @see https://automerge.org
    */
-  setPetriNetDefinition: (petriNetDefinition: PetriNetDefinitionObject) => void;
+  mutatePetriNetDefinition: MutatePetriNetDefinition;
   /**
    * Load a new net by id.
    */
@@ -698,7 +748,7 @@ export const Petrinaut = ({
   parentNet,
   petriNetId,
   petriNetDefinition,
-  setPetriNetDefinition,
+  mutatePetriNetDefinition,
   loadPetriNet,
   setTitle,
   title,
@@ -711,7 +761,7 @@ export const Petrinaut = ({
         parentNet={parentNet}
         petriNetId={petriNetId}
         petriNetDefinition={petriNetDefinition}
-        setPetriNetDefinition={setPetriNetDefinition}
+        mutatePetriNetDefinition={mutatePetriNetDefinition}
         loadPetriNet={loadPetriNet}
         // @todo add readonly prop and turn off editing everything when true
         readonly={false}
