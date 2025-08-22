@@ -224,6 +224,9 @@ jobs:
           HASH_GRAPH_LOG_FILE_LEVEL: info
           HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
         run: |
+          # Optimistically compile background tasks.
+          turbo run compile:release --env-mode=loose
+          mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
@@ -285,6 +288,9 @@ jobs:
           HASH_GRAPH_LOG_FILE_LEVEL: info
           HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
         run: |
+          # Optimistically compile background tasks.
+          turbo run compile:release --env-mode=loose
+          mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
