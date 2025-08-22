@@ -75,6 +75,7 @@ pub struct SchemaSection {
     pub description: WordDistributionConfig,
     pub properties: EntityTypePropertiesDistributionConfig,
     // TODO: Add links support (recursive EntityType references - complex implementation)
+    //   see https://linear.app/hash/issue/H-5224/support-link-creation-in-entity-types-in-generated-entity-types
     // pub links: EntityTypeLinksDistributionConfig,
 }
 
