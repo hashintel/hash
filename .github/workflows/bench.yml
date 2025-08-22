@@ -215,9 +215,30 @@ jobs:
         if: github.event_name == 'pull_request'
         run: yarn external-services:test up --wait
 
+      - name: Start background tasks
+        id: base-background-tasks
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+
+          turbo run start:healthcheck --env-mode=loose
+
       - name: Run base benches
         if: github.event_name == 'pull_request'
         run: turbo run bench:integration --filter "${{ matrix.name }}"
+
+      - name: Show background tasks logs
+        if: always()
+        run: |
+          kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
+          cat var/logs/base-background-task.log
 
       - name: Tear down external services
         if: github.event_name == 'pull_request'
@@ -255,8 +276,29 @@ jobs:
       - name: Launch external services
         run: yarn external-services:test up --wait
 
+      - name: Start background tasks
+        id: head-background-tasks
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+
+          turbo run start:healthcheck --env-mode=loose
+
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"
+
+      - name: Show background tasks logs
+        if: always()
+        run: |
+          kill -15 ${{ steps.head-background-tasks.outputs.pid }} || true
+          cat var/logs/head-background-task.log
 
       - name: Analyze benchmarks
         if: github.event_name == 'pull_request'
@@ -297,6 +339,14 @@ jobs:
       - name: Show container logs
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+
+      - name: Upload background tasks logs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: success() || failure()
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
+          path: |
+            var/logs
 
   passed:
     name: Benches passed
