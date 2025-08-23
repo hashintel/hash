@@ -57,10 +57,11 @@ impl<'e> NumberValueDistribution<'e> {
         };
 
         let (lo, hi, inclusive) = match (min, max) {
-            (Some((min, true)), Some((max, inclusive))) => (min + 0.0001, max, inclusive),
+            (Some((min, true)), Some((max, inclusive))) => (min.next_up(), max, inclusive),
             (Some((min, false)), Some((max, inclusive))) => (min, max, inclusive),
             (None, Some((max, inclusive))) => (max - (max * 0.01).abs(), max, inclusive),
-            (Some((min, inclusive)), None) => (min + 0.0001, min + (min * 100.).abs(), inclusive),
+            (Some((min, true)), None) => (min.next_up(), min + (min * 100.).abs(), true),
+            (Some((min, false)), None) => (min, min + (min * 100.).abs(), false),
             (None, None) => (-1000., 1000., true),
         };
 
