@@ -6,7 +6,7 @@ use hash_graph_authorization::policies::store::{
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
-use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_graph_test_data::{entity, entity_type, property_type};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
@@ -23,19 +23,19 @@ use type_system::{
 
 use crate::util::{StoreWrapper, seed};
 
-// SEE: This is quite temporary at the moment. We'll want a lot more variation, a greater
-//  quantity of types, increased number of versions, etc.
-//  See https://linear.app/hash/issue/H-1628
+// TODO: Make this more representative. We'll want a lot more variation, a greater quantity of
+//       types, increased number of versions, etc.
+//   see https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
-const SEED_DATA_TYPES: [&str; 7] = [
-    data_type::VALUE_V1,
-    data_type::BOOLEAN_V1,
-    data_type::LIST_V1,
-    data_type::NULL_V1,
-    data_type::NUMBER_V1,
-    data_type::OBJECT_V1,
-    data_type::TEXT_V1,
+const SEED_DATA_TYPES: [&str; 0] = [
+    // data_type::VALUE_V1,
+    // data_type::BOOLEAN_V1,
+    // data_type::LIST_V1,
+    // data_type::NULL_V1,
+    // data_type::NUMBER_V1,
+    // data_type::OBJECT_V1,
+    // data_type::TEXT_V1,
 ];
 
 const SEED_PROPERTY_TYPES: [&str; 21] = [
