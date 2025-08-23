@@ -66,8 +66,6 @@ use rand::{Rng, RngCore, rand_core::impls::fill_bytes_via_next};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
-use super::producer::Producer;
-
 /// Identifies a run used to derive independent RNG streams.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct RunId(u16);
@@ -443,6 +441,11 @@ pub enum Scope {
     Conversions,
     Config,
     Metadata,
+    Boolean,
+    Number,
+    String,
+    Array,
+    Object,
     Anonymous = 0xFF,
 }
 
@@ -465,6 +468,11 @@ impl Scope {
             5 => Ok(Self::Conversions),
             6 => Ok(Self::Config),
             7 => Ok(Self::Metadata),
+            8 => Ok(Self::Boolean),
+            9 => Ok(Self::Number),
+            10 => Ok(Self::String),
+            11 => Ok(Self::Array),
+            12 => Ok(Self::Object),
             0xFF => Ok(Self::Anonymous),
             _ => Err(ParseScopeError { scope: value }),
         }

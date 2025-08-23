@@ -32,6 +32,7 @@ pub mod data_type;
 pub mod ontology;
 pub mod property_type;
 pub mod user;
+pub mod value;
 
 /// Stateful producer of complex values composed from one or more distributions.
 ///
@@ -60,7 +61,7 @@ pub trait Producer<T> {
 }
 
 pub trait ProducerExt<T>: Producer<T> {
-    fn iter_mut<'c>(&mut self, context: ProduceContext) -> ProducerIter<'_, Self, T>
+    fn iter_mut(&mut self, context: ProduceContext) -> ProducerIter<'_, Self, T>
     where
         Self: Sized;
 }
