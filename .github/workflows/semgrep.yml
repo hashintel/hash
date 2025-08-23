@@ -18,6 +18,10 @@ jobs:
   semgrep:
     name: Scan
 
+    permissions:
+      contents: read
+      security-events: write
+
     # Change this in the event of future self-hosting of Action runner:
     runs-on: ubuntu-latest
 
