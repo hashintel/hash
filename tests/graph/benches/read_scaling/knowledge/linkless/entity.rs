@@ -40,7 +40,6 @@ const DB_NAME: &str = "entity_scale";
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-#[expect(clippy::too_many_lines)]
 async fn seed_db(
     account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper,
