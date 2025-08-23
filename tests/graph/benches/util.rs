@@ -7,18 +7,20 @@ use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
         AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings, error::BaseUrlAlreadyExists,
+        PostgresStorePool, PostgresStoreSettings,
     },
 };
 use hash_graph_store::{
-    data_type::{CreateDataTypeParams, DataTypeStore as _, UpdateDataTypesParams},
-    entity_type::{CreateEntityTypeParams, EntityTypeStore as _, UpdateEntityTypesParams},
+    data_type::{CreateDataTypeParams, DataTypeStore as _},
+    entity_type::{CreateEntityTypeParams, EntityTypeStore as _},
     migration::StoreMigration as _,
     pool::StorePool,
-    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _, UpdatePropertyTypesParams},
+    property_type::{CreatePropertyTypeParams, PropertyTypeStore as _},
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
+use regex::Regex;
+use time::OffsetDateTime;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing::Instrument as _;
@@ -313,145 +315,108 @@ pub async fn seed<D, P, E, C>(
     E: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
     C: AsClient,
 {
-    for data_type_str in data_types {
-        let data_type: DataType =
-            serde_json::from_str(data_type_str).expect("could not parse data type");
+    let domain_regex = Regex::new(
+        &std::env::var("HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN")
+            .expect("HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN must be set"),
+    )
+    .expect("HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN must be a valid regex");
 
-        match store
-            .create_data_type(
-                account_id,
-                CreateDataTypeParams {
-                    schema: data_type.clone(),
-                    ownership: OntologyOwnership::Local {
+    store
+        .create_data_types(
+            account_id,
+            data_types.into_iter().map(|data_type_str| {
+                let schema: DataType =
+                    serde_json::from_str(data_type_str).expect("could not parse data type");
+
+                let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
+                    OntologyOwnership::Local {
                         web_id: WebId::new(account_id),
-                    },
-                    conflict_behavior: ConflictBehavior::Fail,
+                    }
+                } else {
+                    OntologyOwnership::Remote {
+                        fetched_at: OffsetDateTime::now_utc(),
+                    }
+                };
+
+                CreateDataTypeParams {
+                    schema,
+                    ownership,
+                    conflict_behavior: ConflictBehavior::Skip,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
                     conversions: HashMap::new(),
-                },
-            )
-            .await
-        {
-            Ok(_) => {}
-            Err(report) => {
-                if report.contains::<BaseUrlAlreadyExists>() {
-                    store
-                        .update_data_type(
-                            account_id,
-                            UpdateDataTypesParams {
-                                schema: data_type,
-                                provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::User,
-                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
-                                    sources: Vec::new(),
-                                },
-                                conversions: HashMap::new(),
-                            },
-                        )
-                        .await
-                        .expect("failed to update data type");
-                } else {
-                    panic!("failed to create data type: {report:?}");
                 }
-            }
-        }
-    }
+            }),
+        )
+        .await
+        .expect("should be able to create data types");
 
-    for property_type_str in property_types {
-        let property_type: PropertyType =
-            serde_json::from_str(property_type_str).expect("could not parse property type");
+    store
+        .create_property_types(
+            account_id,
+            property_types.into_iter().map(|property_type_str| {
+                let schema: PropertyType =
+                    serde_json::from_str(property_type_str).expect("could not parse property type");
 
-        match store
-            .create_property_type(
-                account_id,
+                let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
+                    OntologyOwnership::Local {
+                        web_id: WebId::new(account_id),
+                    }
+                } else {
+                    OntologyOwnership::Remote {
+                        fetched_at: OffsetDateTime::now_utc(),
+                    }
+                };
+
                 CreatePropertyTypeParams {
-                    schema: property_type.clone(),
-                    ownership: OntologyOwnership::Local {
-                        web_id: WebId::new(account_id),
-                    },
-                    conflict_behavior: ConflictBehavior::Fail,
+                    schema,
+                    ownership,
+                    conflict_behavior: ConflictBehavior::Skip,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
-                },
-            )
-            .await
-        {
-            Ok(_) => {}
-            Err(report) => {
-                if report.contains::<BaseUrlAlreadyExists>() {
-                    store
-                        .update_property_type(
-                            account_id,
-                            UpdatePropertyTypesParams {
-                                schema: property_type,
-                                provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::User,
-                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
-                                    sources: Vec::new(),
-                                },
-                            },
-                        )
-                        .await
-                        .expect("failed to update property type");
-                } else {
-                    panic!("failed to create property type: {report:?}");
                 }
-            }
-        }
-    }
+            }),
+        )
+        .await
+        .expect("should be able to create property types");
 
-    for entity_type_str in entity_types {
-        let entity_type: EntityType =
-            serde_json::from_str(entity_type_str).expect("could not parse entity type");
+    store
+        .create_entity_types(
+            account_id,
+            entity_types.into_iter().map(|entity_type_str| {
+                let schema: EntityType =
+                    serde_json::from_str(entity_type_str).expect("could not parse entity type");
 
-        match store
-            .create_entity_type(
-                account_id,
+                let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
+                    OntologyOwnership::Local {
+                        web_id: WebId::new(account_id),
+                    }
+                } else {
+                    OntologyOwnership::Remote {
+                        fetched_at: OffsetDateTime::now_utc(),
+                    }
+                };
+
                 CreateEntityTypeParams {
-                    schema: entity_type.clone(),
-                    ownership: OntologyOwnership::Local {
-                        web_id: WebId::new(account_id),
-                    },
-                    conflict_behavior: ConflictBehavior::Fail,
+                    schema,
+                    ownership,
+                    conflict_behavior: ConflictBehavior::Skip,
                     provenance: ProvidedOntologyEditionProvenance {
                         actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
                         sources: Vec::new(),
                     },
-                },
-            )
-            .await
-        {
-            Ok(_) => {}
-            Err(report) => {
-                if report.contains::<BaseUrlAlreadyExists>() {
-                    store
-                        .update_entity_type(
-                            account_id,
-                            UpdateEntityTypesParams {
-                                schema: entity_type,
-                                provenance: ProvidedOntologyEditionProvenance {
-                                    actor_type: ActorType::User,
-                                    origin: OriginProvenance::from_empty_type(OriginType::Api),
-                                    sources: Vec::new(),
-                                },
-                            },
-                        )
-                        .await
-                        .expect("failed to update entity type");
-                } else {
-                    panic!("failed to create entity type: {report:?}");
                 }
-            }
-        }
-    }
+            }),
+        )
+        .await
+        .expect("should be able to create entity types");
 }
 
 pub fn setup(

@@ -36,6 +36,7 @@ rayon              = { workspace = true }
 regex              = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 serde_json         = { workspace = true }
+time               = { workspace = true }
 tokio              = { workspace = true, features = ["macros"] }
 tokio-postgres     = { workspace = true, default-features = false }
 tracing            = { workspace = true }

@@ -14,7 +14,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_test_data::{entity, entity_type, property_type};
+use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
 use type_system::{
@@ -40,6 +40,7 @@ const DB_NAME: &str = "entity_scale";
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
+#[expect(clippy::too_many_lines)]
 async fn seed_db(
     account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper,
@@ -85,7 +86,11 @@ async fn seed_db(
     seed(
         &mut transaction,
         account_id,
-        [],
+        [
+            data_type::VALUE_V1,
+            data_type::TEXT_V1,
+            data_type::NUMBER_V1,
+        ],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
