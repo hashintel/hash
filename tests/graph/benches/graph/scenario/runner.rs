@@ -266,7 +266,7 @@ impl Runner {
 
                 make_producer()
                     .change_context(ScenarioError::CreateProducer)?
-                    .iter_mut(&context)
+                    .iter_mut(context)
                     .take(take_n)
                     .map(|result| result.change_context(ScenarioError::Generate))
                     .collect::<Result<Vec<T>, Report<ScenarioError>>>()

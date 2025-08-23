@@ -66,6 +66,8 @@ use rand::{Rng, RngCore, rand_core::impls::fill_bytes_via_next};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
+use super::producer::Producer;
+
 /// Identifies a run used to derive independent RNG streams.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct RunId(u16);
@@ -391,6 +393,7 @@ pub enum ProducerId {
     User,
     DataType,
     PropertyType,
+    Value,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -407,18 +410,26 @@ impl ProducerId {
             0 => Ok(Self::User),
             1 => Ok(Self::DataType),
             2 => Ok(Self::PropertyType),
+            3 => Ok(Self::Value),
             _ => Err(ParseProducerIdError { producer_id: value }),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct ProduceContext {
     pub run_id: RunId,
     pub stage_id: StageId,
     pub shard_id: ShardId,
     pub provenance: Provenance,
     pub producer: ProducerId,
+}
+
+impl ProduceContext {
+    #[must_use]
+    pub const fn for_producer(self, producer: ProducerId) -> Self {
+        Self { producer, ..self }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -516,12 +527,7 @@ impl ProduceContext {
     /// Combine the current context with a [`LocalId`], [`Scope`], and [`SubScope`] to form a
     /// [`GlobalId`].
     #[must_use]
-    pub const fn global_id(
-        &self,
-        local_id: LocalId,
-        scope: Scope,
-        sub_scope: SubScope,
-    ) -> GlobalId {
+    pub const fn global_id(self, local_id: LocalId, scope: Scope, sub_scope: SubScope) -> GlobalId {
         GlobalId {
             run_id: self.run_id,
             stage_id: self.stage_id,
