@@ -28,6 +28,11 @@ pub enum StringValueDistribution<'e> {
 
 impl<'e> StringValueDistribution<'e> {
     #[expect(clippy::todo, reason = "Incomplete implementation")]
+    #[expect(
+        clippy::integer_division,
+        clippy::integer_division_remainder_used,
+        reason = "We need to fill missing ranges and precision is not important here"
+    )]
     fn from_constraints(
         constraints: &StringConstraints,
     ) -> Result<Self, Report<StringValueDistributionError>> {
@@ -41,8 +46,8 @@ impl<'e> StringValueDistribution<'e> {
 
         let (min, max) = match (constraints.min_length, constraints.max_length) {
             (Some(min), Some(max)) => (min, max),
-            (Some(min), None) => (min, min << 2),
-            (None, Some(max)) => (max >> 2, max),
+            (Some(min), None) => (min, min * 4),
+            (None, Some(max)) => (max / 4, max),
             (None, None) => (4, 16),
         };
 
@@ -99,7 +104,7 @@ impl Distribution<String> for StringValueDistribution<'_> {
             Self::Enum { choices } => {
                 let choice = choices
                     .choose(rng)
-                    .unwrap_or_else(|| unreachable!("Choices somehow became empty"));
+                    .expect("Enum should always have at least one choice");
                 choice.clone()
             }
         }
