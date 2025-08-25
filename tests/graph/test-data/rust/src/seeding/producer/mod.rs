@@ -32,7 +32,6 @@ pub mod data_type;
 pub mod ontology;
 pub mod property_type;
 pub mod user;
-pub mod value;
 
 /// Stateful producer of complex values composed from one or more distributions.
 ///
