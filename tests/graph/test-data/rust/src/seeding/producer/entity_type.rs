@@ -180,10 +180,7 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
 
     const ID: ProducerId = ProducerId::EntityType;
 
-    fn generate(
-        &mut self,
-        context: &ProduceContext,
-    ) -> Result<CreateEntityTypeParams, Self::Error> {
+    fn generate(&mut self, context: ProduceContext) -> Result<CreateEntityTypeParams, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
         let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
@@ -453,7 +450,7 @@ mod tests {
         };
 
         let entity_type = producer
-            .generate(&context)
+            .generate(context)
             .expect("should generate entity type");
 
         // Verify generated entity type structure

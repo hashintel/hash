@@ -2,6 +2,7 @@ use error_stack::IntoReport;
 
 pub mod adaptors;
 pub mod ontology;
+pub mod value;
 
 pub trait DistributionConfig {
     type Error: IntoReport;

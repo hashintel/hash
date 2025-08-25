@@ -174,7 +174,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
 
     fn generate(
         &mut self,
-        context: &ProduceContext,
+        context: ProduceContext,
     ) -> Result<CreatePropertyTypeParams, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
@@ -375,7 +375,7 @@ pub(crate) mod tests {
         };
 
         let property_type = producer
-            .generate(&context)
+            .generate(context)
             .expect("should generate property type");
         assert!(!property_type.schema.title.is_empty());
         assert!(!property_type.schema.description.is_empty());
