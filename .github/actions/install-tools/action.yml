@@ -33,35 +33,4 @@ runs:
 
     - name: "Install Rust"
       if: ${{ inputs.rust == true || inputs.rust == 'true' }}
-      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-      with:
-        timeout_minutes: 15
-        max_attempts: 3
-        retry_wait_seconds: 10
-        command: |
-          COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"
-          TOOLCHAIN_CHANNEL="$(yq '.toolchain.channel' rust-toolchain.toml)"
-
-          rustup toolchain install "$TOOLCHAIN_CHANNEL"
-
-          # Install components and verify each one
-          for component in $COMPONENTS; do
-            echo "Installing component: $component"
-            rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
-            
-            # Map component names for verification (rustup uses different names)
-            verify_name="$component"
-            case "$component" in
-              "llvm-tools-preview") verify_name="llvm-tools" ;;
-              "rustc-codegen-cranelift-preview") verify_name="rustc-codegen-cranelift" ;;
-            esac
-            
-            # Verify the component was actually installed
-            if ! rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$verify_name"; then
-              echo "ERROR: Component $component failed to install properly"
-              exit 1
-            fi
-            echo "Component $component installed successfully"
-          done
-
-          echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
+      uses: actions-rust-lang/setup-rust-toolchain@ab6845274e2ff01cd4462007e1a9d9df1ab49f42 # v1.14.0
