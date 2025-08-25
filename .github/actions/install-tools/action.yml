@@ -33,4 +33,92 @@ runs:
 
     - name: "Install Rust"
       if: ${{ inputs.rust == true || inputs.rust == 'true' }}
-      uses: actions-rust-lang/setup-rust-toolchain@ab6845274e2ff01cd4462007e1a9d9df1ab49f42 # v1.14.0
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 20
+        max_attempts: 3
+        retry_wait_seconds: 60
+        command: |
+          COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"
+          TOOLCHAIN_CHANNEL="$(yq '.toolchain.channel' rust-toolchain.toml)"
+
+          # Update rustup first to get latest network handling fixes
+          echo "Updating rustup to latest version..."
+          rustup self update || echo "rustup self update failed, continuing with existing version"
+
+          # Mirror servers to try in order
+          MIRRORS=(
+            "https://static.rust-lang.org"
+            "https://mirrors.tuna.tsinghua.edu.cn/rustup"
+            "https://mirrors.ustc.edu.cn/rust-static"
+          )
+
+          # Function to try toolchain installation with different mirrors
+          install_toolchain() {
+            local mirror=$1
+            echo "Trying toolchain installation with mirror: $mirror"
+            export RUSTUP_DIST_SERVER="$mirror"
+            rustup toolchain install "$TOOLCHAIN_CHANNEL"
+          }
+
+          # Function to try component installation with different mirrors
+          install_component() {
+            local component=$1
+            local mirror=$2
+            echo "Trying component $component with mirror: $mirror"
+            export RUSTUP_DIST_SERVER="$mirror"
+            rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
+          }
+
+          # Try toolchain installation with different mirrors
+          TOOLCHAIN_INSTALLED=false
+          for mirror in "${MIRRORS[@]}"; do
+            if install_toolchain "$mirror"; then
+              echo "Toolchain installed successfully with $mirror"
+              TOOLCHAIN_INSTALLED=true
+              break
+            else
+              echo "Toolchain installation failed with $mirror, trying next..."
+              sleep 30
+            fi
+          done
+
+          if [ "$TOOLCHAIN_INSTALLED" = false ]; then
+            echo "ERROR: Toolchain installation failed with all mirrors"
+            exit 1
+          fi
+
+          # Install each component with mirror fallback
+          for component in $COMPONENTS; do
+            echo "Installing component: $component"
+            COMPONENT_INSTALLED=false
+
+            for mirror in "${MIRRORS[@]}"; do
+              if install_component "$component" "$mirror"; then
+                # Verify component was installed
+                verify_name="$component"
+                case "$component" in
+                  "llvm-tools-preview") verify_name="llvm-tools" ;;
+                  "rustc-codegen-cranelift-preview") verify_name="rustc-codegen-cranelift" ;;
+                esac
+
+                if rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$verify_name"; then
+                  echo "Component $component installed successfully with $mirror"
+                  COMPONENT_INSTALLED=true
+                  break
+                else
+                  echo "Component $component reported success but not found in installed list"
+                fi
+              else
+                echo "Component $component installation failed with $mirror, trying next..."
+                sleep 10
+              fi
+            done
+
+            if [ "$COMPONENT_INSTALLED" = false ]; then
+              echo "ERROR: Component $component failed to install with all mirrors"
+              exit 1
+            fi
+          done
+
+          echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
