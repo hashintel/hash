@@ -21,7 +21,7 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@napi-rs/cli": "2.18.4",
+    "@napi-rs/cli": "3.1.5",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
