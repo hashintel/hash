@@ -44,8 +44,17 @@ runs:
 
           rustup toolchain install "$TOOLCHAIN_CHANNEL"
 
+          # Install components and verify each one
           for component in $COMPONENTS; do
+            echo "Installing component: $component"
             rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
+            
+            # Verify the component was actually installed
+            if ! rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$component"; then
+              echo "ERROR: Component $component failed to install properly"
+              exit 1
+            fi
+            echo "Component $component installed successfully"
           done
 
           echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
