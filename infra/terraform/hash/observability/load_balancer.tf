@@ -91,8 +91,8 @@ resource "aws_security_group" "alb_external" {
     to_port          = 443
     protocol         = "tcp"
     description      = "HTTPS from internet for Grafana and external telemetry"
-    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks)
-    ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks)
+    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidrs)
+    ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidrs)
   }
 
   # Allow outbound to Grafana containers
@@ -159,11 +159,12 @@ resource "aws_lb_listener" "external_https" {
   }
 }
 
-resource "cloudflare_record" "cname_grafana_internal" {
-  zone_id = data.cloudflare_zone.hash_ai.id
+resource "cloudflare_dns_record" "cname_grafana_internal" {
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
   name    = "grafana.internal"
   type    = "CNAME"
   content = aws_lb.observability_external.dns_name
+  ttl     = 1
   proxied = true
   tags    = ["terraform"]
 }
@@ -180,7 +181,7 @@ resource "aws_lb_listener_rule" "grafana_routing" {
 
   condition {
     host_header {
-      values = [cloudflare_record.cname_grafana_internal.hostname]
+      values = ["${cloudflare_dns_record.cname_grafana_internal.name}.hash.ai"]
     }
   }
 
@@ -189,11 +190,12 @@ resource "aws_lb_listener_rule" "grafana_routing" {
   }
 }
 
-resource "cloudflare_record" "cname_telemetry" {
-  zone_id = data.cloudflare_zone.hash_ai.id
+resource "cloudflare_dns_record" "cname_telemetry" {
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
   name    = "telemetry"
   type    = "CNAME"
   content = aws_lb.observability_external.dns_name
+  ttl     = 1
   proxied = true
   tags    = ["terraform"]
 }
@@ -209,7 +211,7 @@ resource "aws_lb_listener_rule" "telemetry_external_http_routing" {
 
   condition {
     host_header {
-      values = [cloudflare_record.cname_telemetry.hostname]
+      values = ["${cloudflare_dns_record.cname_telemetry.name}.hash.ai"]
     }
   }
 
@@ -236,7 +238,7 @@ resource "aws_lb_listener_rule" "telemetry_external_grpc_routing" {
 
   condition {
     host_header {
-      values = [cloudflare_record.cname_telemetry.hostname]
+      values = ["${cloudflare_dns_record.cname_telemetry.name}.hash.ai"]
     }
   }
 
