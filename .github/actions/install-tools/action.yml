@@ -49,8 +49,15 @@ runs:
             echo "Installing component: $component"
             rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
             
+            # Map component names for verification (rustup uses different names)
+            verify_name="$component"
+            case "$component" in
+              "llvm-tools-preview") verify_name="llvm-tools" ;;
+              "rustc-codegen-cranelift-preview") verify_name="rustc-codegen-cranelift" ;;
+            esac
+            
             # Verify the component was actually installed
-            if ! rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$component"; then
+            if ! rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$verify_name"; then
               echo "ERROR: Component $component failed to install properly"
               exit 1
             fi
