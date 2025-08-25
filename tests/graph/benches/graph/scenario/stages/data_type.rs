@@ -59,15 +59,16 @@ impl GenerateDataTypesStage {
             })?;
 
         // Use a single pre-merged user catalog if provided
-        let user_catalog_owned: Option<InMemoryWebCatalog> = self
+        let user_catalog = self
             .inputs
             .user_catalog
             .as_ref()
             .and_then(|key| runner.resources.user_catalogs.get(key))
             .cloned();
-        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
-            user_catalog: user_catalog_owned.as_ref(),
-            org_catalog: None,
+
+        let deps = DataTypeProducerDeps {
+            user_catalog: user_catalog.as_ref(),
+            org_catalog: None::<&InMemoryWebCatalog>,
         };
 
         let stage_id = self
@@ -78,7 +79,7 @@ impl GenerateDataTypesStage {
         // TODO: implement streaming to avoid loading all data types into memory at once for large
         //       counts
         let params: Vec<_> = runner
-            .run_producer(|| cfg.create_producer(&deps), self.count, stage_id)
+            .run_producer(|| cfg.create_producer(deps), self.count, stage_id)
             .change_context(DataTypeError::CreateProducer)?
             .collect();
 

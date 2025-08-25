@@ -3,16 +3,17 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PrincipalStore as _;
-use hash_graph_store::{pool::StorePool as _, property_type::PropertyTypeStore as _};
+use hash_graph_store::{entity_type::EntityTypeStore as _, pool::StorePool as _};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    distributions::ontology::property_type::values::{
-        DataTypeCatalog as _, InMemoryDataTypeCatalog,
+    distributions::ontology::entity_type::properties::InMemoryPropertyTypeCatalog,
+    producer::{
+        entity_type::{EntityTypeProducerDeps, PropertyTypeCatalog as _},
+        ontology::InMemoryWebCatalog,
     },
-    producer::{ontology::InMemoryWebCatalog, property_type::PropertyTypeProducerDeps},
 };
 use type_system::{
-    ontology::{data_type::schema::DataTypeReference, provenance::OntologyOwnership},
+    ontology::{property_type::schema::PropertyTypeReference, provenance::OntologyOwnership},
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
@@ -20,146 +21,139 @@ use super::Runner;
 use crate::config;
 
 #[derive(Debug, derive_more::Display)]
-pub enum PropertyTypeError {
-    #[display("Missing property type config: {name}")]
+pub enum EntityTypeError {
+    #[display("Missing entity type config: {name}")]
     MissingConfig { name: String },
     #[display("Unknown user catalog: {name}")]
     UnknownUserCatalog { name: String },
-    #[display("Unknown data type catalog: {name}")]
-    UnknownDataTypeCatalog { name: String },
-    #[display("Failed to create property type producer")]
+    #[display("Unknown property type catalog: {name}")]
+    UnknownPropertyTypeCatalog { name: String },
+    #[display("Failed to create entity type producer")]
     CreateProducer,
-    #[display("Failed to persist property types to the database")]
+    #[display("Failed to persist entity types to the database")]
     Persist,
     #[display("Missing owner for web: {web_id}")]
-    MissingOwner {
-        web_id: type_system::principal::actor_group::WebId,
-    },
-    #[display("Empty data type catalog - cannot generate property types")]
-    EmptyDataTypeCatalog,
+    MissingOwner { web_id: WebId },
+    #[display("Empty property type catalog - cannot generate entity types")]
+    EmptyPropertyTypeCatalog,
 }
 
-impl Error for PropertyTypeError {}
+impl Error for EntityTypeError {}
 
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PropertyTypeInputs {
+pub struct EntityTypeInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
     #[serde(default)]
-    pub data_type_catalog: Option<String>,
+    pub property_type_catalog: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GeneratePropertyTypesStage {
+pub struct GenerateEntityTypesStage {
     pub id: String,
     pub config_ref: String,
-    #[serde(default)]
-    pub inputs: PropertyTypeInputs,
+    pub inputs: EntityTypeInputs,
     pub count: usize,
     #[serde(default)]
     pub stage_id: Option<u16>,
 }
 
-impl GeneratePropertyTypesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
+impl GenerateEntityTypesStage {
+    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
         let id = &self.id;
-        let cfg = config::PROPERTY_TYPE_PRODUCER_CONFIGS
+        let cfg = config::ENTITY_TYPE_PRODUCER_CONFIGS
             .get(&self.config_ref)
             .ok_or_else(|| {
-                Report::new(PropertyTypeError::MissingConfig {
+                Report::new(EntityTypeError::MissingConfig {
                     name: self.config_ref.clone(),
                 })
             })?;
 
-        // Use a single pre-merged user catalog if provided
         let user_catalog = self
             .inputs
             .user_catalog
             .as_ref()
             .map(|key| {
                 runner.resources.user_catalogs.get(key).ok_or_else(|| {
-                    Report::new(PropertyTypeError::UnknownUserCatalog { name: key.clone() })
+                    Report::new(EntityTypeError::UnknownUserCatalog { name: key.clone() })
                 })
             })
             .transpose()?;
 
-        // Get data type catalog reference
-        let data_type_catalog = self
-            .inputs
-            .data_type_catalog
-            .as_ref()
-            .map(|key| {
-                runner.resources.data_type_catalogs.get(key).ok_or_else(|| {
-                    Report::new(PropertyTypeError::UnknownDataTypeCatalog { name: key.clone() })
+        // Get property type catalog reference
+        let property_type_catalog = runner
+            .resources
+            .property_type_catalogs
+            .get(&self.inputs.property_type_catalog)
+            .ok_or_else(|| {
+                Report::new(EntityTypeError::UnknownPropertyTypeCatalog {
+                    name: self.inputs.property_type_catalog.clone(),
                 })
-            })
-            .transpose()?;
+            })?;
 
-        let deps = PropertyTypeProducerDeps {
+        let deps = EntityTypeProducerDeps {
             user_catalog,
             org_catalog: None::<&InMemoryWebCatalog>,
-            data_type_catalog,
+            property_type_catalog,
         };
 
         let stage_id = self
             .stage_id
             .map_or_else(|| StageId::from_name(&self.id), StageId::new);
 
-        // Generate all params first to avoid borrow conflicts
-        // TODO: implement streaming to avoid loading all property types into memory at once for
+        // TODO: implement streaming to avoid loading all entity types into memory at once for
         //       large counts
-        //   see https://linear.app/hash/issue/H-5222/stream-generated-types-into-the-persister-directly
         let params: Vec<_> = runner
             .run_producer(|| cfg.create_producer(deps), self.count, stage_id)
-            .change_context(PropertyTypeError::CreateProducer)?
+            .change_context(EntityTypeError::CreateProducer)?
             .collect();
 
         let len = params.len();
-        runner.resources.property_types.insert(id.clone(), params);
+        runner.resources.entity_types.insert(id.clone(), params);
         Ok(len)
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PersistPropertyTypesInputs {
-    pub property_types: Vec<String>,
+pub struct PersistEntityTypesInputs {
+    pub entity_types: Vec<String>,
     pub web_to_user: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PersistPropertyTypesStage {
+pub struct PersistEntityTypesStage {
     pub id: String,
-    pub inputs: PersistPropertyTypesInputs,
+    pub inputs: PersistEntityTypesInputs,
 }
 
-impl PersistPropertyTypesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
+impl PersistEntityTypesStage {
+    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
         let pool = runner
             .ensure_db()
             .await
-            .change_context(PropertyTypeError::Persist)?;
+            .change_context(EntityTypeError::Persist)?;
 
         let mut store = pool
             .acquire(None)
             .await
-            .change_context(PropertyTypeError::Persist)?;
+            .change_context(EntityTypeError::Persist)?;
 
-        let mut all_property_types = Vec::new();
-        for property_type_key in &self.inputs.property_types {
-            let property_types = runner
+        let mut all_entity_types = Vec::new();
+        for entity_type_key in &self.inputs.entity_types {
+            let entity_types = runner
                 .resources
-                .property_types
-                .get(property_type_key)
+                .entity_types
+                .get(entity_type_key)
                 .ok_or_else(|| {
-                    Report::new(PropertyTypeError::MissingConfig {
-                        name: property_type_key.clone(),
+                    Report::new(EntityTypeError::MissingConfig {
+                        name: entity_type_key.clone(),
                     })
                 })?;
-            all_property_types.extend_from_slice(property_types);
+            all_entity_types.extend_from_slice(entity_types);
         }
 
         // Get web-to-user mapping for permissions
@@ -172,8 +166,8 @@ impl PersistPropertyTypesStage {
             }
         }
 
-        // Check if we have any property types to persist
-        if all_property_types.is_empty() {
+        // Check if we have any entity types to persist
+        if all_entity_types.is_empty() {
             return Ok(0);
         }
 
@@ -181,13 +175,13 @@ impl PersistPropertyTypesStage {
         let machine_id = store
             .get_or_create_system_machine("h")
             .await
-            .change_context(PropertyTypeError::Persist)?;
+            .change_context(EntityTypeError::Persist)?;
 
         // Partition by ownership
         let mut local_by_web: HashMap<WebId, Vec<_>> = HashMap::new();
         let mut remote_params = Vec::new();
 
-        for params in all_property_types {
+        for params in all_entity_types {
             match params.ownership {
                 OntologyOwnership::Local { web_id } => {
                     local_by_web.entry(web_id).or_default().push(params);
@@ -203,20 +197,20 @@ impl PersistPropertyTypesStage {
         for (web_id, group) in local_by_web {
             let actor_id = *web_to_user_map
                 .get(&web_id)
-                .ok_or_else(|| Report::new(PropertyTypeError::MissingOwner { web_id }))?;
+                .ok_or_else(|| Report::new(EntityTypeError::MissingOwner { web_id }))?;
             total_created += store
-                .create_property_types(actor_id, group)
+                .create_entity_types(actor_id, group)
                 .await
-                .change_context(PropertyTypeError::Persist)?
+                .change_context(EntityTypeError::Persist)?
                 .len();
         }
 
         // Persist remotes as system machine
         if !remote_params.is_empty() {
             total_created += store
-                .create_property_types(machine_id.into(), remote_params)
+                .create_entity_types(machine_id.into(), remote_params)
                 .await
-                .change_context(PropertyTypeError::Persist)?
+                .change_context(EntityTypeError::Persist)?
                 .len();
         }
         drop(store);
@@ -227,43 +221,43 @@ impl PersistPropertyTypesStage {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BuildDataTypeCatalogStage {
+pub struct BuildPropertyTypeCatalogStage {
     pub id: String,
     pub input: String,
 }
 
-impl BuildDataTypeCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
-        let data_types = runner
+impl BuildPropertyTypeCatalogStage {
+    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
+        let property_types = runner
             .resources
-            .data_types
+            .property_types
             .get(&self.input)
             .ok_or_else(|| {
-                Report::new(PropertyTypeError::MissingConfig {
+                Report::new(EntityTypeError::MissingConfig {
                     name: self.input.clone(),
                 })
             })?;
 
-        // Check for empty data types before creating catalog
-        if data_types.is_empty() {
-            return Err(Report::new(PropertyTypeError::EmptyDataTypeCatalog));
+        // Check for empty property types before creating catalog
+        if property_types.is_empty() {
+            return Err(Report::new(EntityTypeError::EmptyPropertyTypeCatalog));
         }
 
-        let catalog = InMemoryDataTypeCatalog::new(
-            data_types
+        let catalog = InMemoryPropertyTypeCatalog::new(
+            property_types
                 .iter()
-                .map(|params| DataTypeReference {
+                .map(|params| PropertyTypeReference {
                     url: params.schema.id.clone(),
                 })
                 .collect::<Vec<_>>(),
         )
-        .change_context(PropertyTypeError::EmptyDataTypeCatalog)?;
+        .change_context(EntityTypeError::EmptyPropertyTypeCatalog)?;
 
-        let len = catalog.data_type_references().len();
+        let len = catalog.property_type_references().len();
 
         runner
             .resources
-            .data_type_catalogs
+            .property_type_catalogs
             .insert(self.id.clone(), catalog);
 
         Ok(len)

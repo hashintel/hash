@@ -96,6 +96,23 @@ pub trait DataTypeCatalog {
     fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference;
 }
 
+impl<C> DataTypeCatalog for &C
+where
+    C: DataTypeCatalog,
+{
+    fn data_type_references(&self) -> &[DataTypeReference] {
+        (*self).data_type_references()
+    }
+
+    fn is_empty(&self) -> bool {
+        (*self).is_empty()
+    }
+
+    fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+        (*self).sample_data_type(rng)
+    }
+}
+
 /// Simple in-memory implementation of [`DataTypeCatalog`].
 #[derive(Debug, Clone)]
 pub struct InMemoryDataTypeCatalog {
@@ -135,22 +152,22 @@ impl DataTypeCatalog for InMemoryDataTypeCatalog {
 /// This is the result of calling [`PropertyValuesDistributionConfig::bind`] and can
 /// be used to sample actual [`PropertyValues`].
 #[derive(Debug)]
-pub enum BoundPropertyValuesDistribution<'a, C: DataTypeCatalog> {
+pub enum BoundPropertyValuesDistribution<C: DataTypeCatalog> {
     /// Weighted selection between bound property value types.
     Weighted {
         index: WeightedIndex<u32>,
         types: Vec<BoundPropertyValueType>,
-        catalog: &'a C,
+        catalog: C,
     },
     /// Uniform selection between bound property value types.
     Uniform {
         types: Vec<BoundPropertyValueType>,
-        catalog: &'a C,
+        catalog: C,
     },
     /// Always return the same bound property value type.
     Const {
         value_type: BoundPropertyValueType,
-        catalog: &'a C,
+        catalog: C,
     },
 }
 
@@ -207,10 +224,10 @@ impl PropertyValuesDistributionConfig {
     /// - No property value types are configured
     /// - Invalid weights are provided for weighted distributions
     /// - Array or Object types are configured (not yet implemented)
-    pub fn bind<'a, C: DataTypeCatalog>(
+    pub fn bind<C: DataTypeCatalog>(
         &self,
-        catalog: &'a C,
-    ) -> Result<BoundPropertyValuesDistribution<'a, C>, Report<[PropertyValuesBindingError]>> {
+        catalog: C,
+    ) -> Result<BoundPropertyValuesDistribution<C>, Report<[PropertyValuesBindingError]>> {
         match self {
             Self::Weighted { weights } => {
                 if weights.is_empty() {
@@ -222,7 +239,7 @@ impl PropertyValuesDistributionConfig {
                 let (weight_values, bound_types): (Vec<_>, Vec<_>) = weights
                     .iter()
                     .map(|weight| {
-                        bind_property_value_type_config(&weight.distribution, catalog)
+                        bind_property_value_type_config(&weight.distribution, &catalog)
                             .map(|bound| (weight.weight, bound))
                     })
                     .try_collect_reports()?;
@@ -248,7 +265,7 @@ impl PropertyValuesDistributionConfig {
 
                 let bound_types = types
                     .iter()
-                    .map(|config| bind_property_value_type_config(config, catalog))
+                    .map(|config| bind_property_value_type_config(config, &catalog))
                     .try_collect_reports()?;
 
                 Ok(BoundPropertyValuesDistribution::Uniform {
@@ -257,7 +274,7 @@ impl PropertyValuesDistributionConfig {
                 })
             }
             Self::Const { value } => {
-                let bound_type = bind_property_value_type_config(value, catalog)?;
+                let bound_type = bind_property_value_type_config(value, &catalog)?;
 
                 Ok(BoundPropertyValuesDistribution::Const {
                     value_type: bound_type,
@@ -293,7 +310,7 @@ fn bind_property_value_type_config<C: DataTypeCatalog>(
     }
 }
 
-impl<C: DataTypeCatalog> Distribution<PropertyValues> for BoundPropertyValuesDistribution<'_, C> {
+impl<C: DataTypeCatalog> Distribution<PropertyValues> for BoundPropertyValuesDistribution<C> {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PropertyValues {
         let bound_type = match self {
             Self::Weighted { index, types, .. } => {
@@ -375,7 +392,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config.bind(catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
         let sample = distribution.sample(&mut rng);
@@ -404,7 +421,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config.bind(catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
         let _sample = distribution.sample(&mut rng); // Should not panic
@@ -418,7 +435,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config.bind(catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
         let _sample = distribution.sample(&mut rng); // Should not panic
@@ -443,7 +460,7 @@ mod tests {
         let config = PropertyValuesDistributionConfig::Const {
             value: PropertyValueTypeConfig::Value,
         };
-        let result = config.bind(&empty_catalog);
+        let result = config.bind(empty_catalog);
 
         let _: Report<_> = result.expect_err("should error");
     }
@@ -456,7 +473,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let result = config.bind(&catalog);
+        let result = config.bind(catalog);
 
         let _: Report<_> = result.expect_err("should error");
     }
@@ -469,7 +486,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let result = config.bind(&catalog);
+        let result = config.bind(catalog);
 
         let _: Report<_> = result.expect_err("should error");
     }
@@ -519,7 +536,7 @@ mod tests {
 
         let catalog =
             InMemoryDataTypeCatalog::new(test_data_types()).expect("should create catalog");
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config.bind(catalog).expect("should bind successfully");
 
         let mut rng = rand::rng();
 

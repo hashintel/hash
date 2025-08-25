@@ -11,12 +11,15 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    data_type::CreateDataTypeParams, migration::StoreMigration as _, pool::StorePool as _,
-    property_type::CreatePropertyTypeParams,
+    data_type::CreateDataTypeParams, entity_type::CreateEntityTypeParams,
+    migration::StoreMigration as _, pool::StorePool as _, property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
-    distributions::ontology::property_type::values::InMemoryDataTypeCatalog,
+    distributions::ontology::{
+        entity_type::properties::InMemoryPropertyTypeCatalog,
+        property_type::values::InMemoryDataTypeCatalog,
+    },
     producer::{Producer, ProducerExt as _, ontology::InMemoryWebCatalog, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
@@ -83,6 +86,9 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::BuildDataTypeCatalog(stage) => stage.id.clone(),
                         Stage::GeneratePropertyTypes(stage) => stage.id.clone(),
                         Stage::PersistPropertyTypes(stage) => stage.id.clone(),
+                        Stage::BuildPropertyTypeCatalog(stage) => stage.id.clone(),
+                        Stage::GenerateEntityTypes(stage) => stage.id.clone(),
+                        Stage::PersistEntityTypes(stage) => stage.id.clone(),
                     },
                     produced,
                     duration_ms: start.elapsed().as_millis(),
@@ -112,6 +118,8 @@ pub struct Resources {
     pub data_types: HashMap<String, Vec<CreateDataTypeParams>>,
     pub data_type_catalogs: HashMap<String, InMemoryDataTypeCatalog>,
     pub property_types: HashMap<String, Vec<CreatePropertyTypeParams>>,
+    pub property_type_catalogs: HashMap<String, InMemoryPropertyTypeCatalog>,
+    pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
 }
 
 pub struct Runner {

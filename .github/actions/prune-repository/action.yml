@@ -32,6 +32,12 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-postgres-queries"; then
             SCOPES="$SCOPES @local/repo-chores"
           fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-type-fetcher"; then
+            SCOPES="$SCOPES @apps/hash-graph"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-test-server"; then
+            SCOPES="$SCOPES @apps/hash-graph"
+          fi
         done <<< "${{ inputs.scope }}"
 
         # Deduplicate scopes

@@ -235,14 +235,14 @@ impl GlobalId {
     ///     shard_id: ShardId::new(0xCCCC),
     ///     local_id: LocalId::default(),
     ///     provenance: Provenance::Integration,
-    ///     producer: ProducerId::User,
+    ///     producer: ProducerId::EntityType,
     ///     scope: Scope::Schema,
     ///     sub_scope: SubScope::Unknown,
     ///     retry: 0xCC,
     /// };
     /// let uuid = gid.encode();
     ///
-    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8002-000000000000");
+    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8302-000000000000");
     /// assert_eq!(GlobalId::decode(uuid)?, gid);
     ///
     /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())
@@ -391,6 +391,7 @@ pub enum ProducerId {
     User,
     DataType,
     PropertyType,
+    EntityType,
     Value,
 }
 
@@ -408,7 +409,8 @@ impl ProducerId {
             0 => Ok(Self::User),
             1 => Ok(Self::DataType),
             2 => Ok(Self::PropertyType),
-            3 => Ok(Self::Value),
+            3 => Ok(Self::EntityType),
+            4 => Ok(Self::Value),
             _ => Err(ParseProducerIdError { producer_id: value }),
         }
     }
@@ -486,7 +488,9 @@ pub enum SubScope {
     Domain,
     Title,
     Description,
-    Constraint,
+    ValueConstraint,
+    PropertyValue,
+    Property,
     Conflict,
     Ownership,
     WebType,
@@ -510,13 +514,15 @@ impl SubScope {
             1 => Ok(Self::Domain),
             2 => Ok(Self::Title),
             3 => Ok(Self::Description),
-            4 => Ok(Self::Constraint),
-            5 => Ok(Self::Conflict),
-            6 => Ok(Self::Ownership),
-            7 => Ok(Self::WebType),
-            8 => Ok(Self::Index),
-            9 => Ok(Self::FetchedAt),
-            10 => Ok(Self::Provenance),
+            4 => Ok(Self::ValueConstraint),
+            5 => Ok(Self::PropertyValue),
+            6 => Ok(Self::Property),
+            7 => Ok(Self::Conflict),
+            8 => Ok(Self::Ownership),
+            9 => Ok(Self::WebType),
+            10 => Ok(Self::Index),
+            11 => Ok(Self::FetchedAt),
+            12 => Ok(Self::Provenance),
             _ => Err(ParseSubScopeError { sub_scope: value }),
         }
     }

@@ -17,7 +17,7 @@ pub use self::domain::{
 };
 
 /// Trait for catalogs of web identities used for domain and ownership resolution.
-pub trait WebCatalog: Sync + Send {
+pub trait WebCatalog {
     fn len(&self) -> usize;
 
     fn is_empty(&self) -> bool {
@@ -25,6 +25,19 @@ pub trait WebCatalog: Sync + Send {
     }
 
     fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)>;
+}
+
+impl<C> WebCatalog for &C
+where
+    C: WebCatalog,
+{
+    fn len(&self) -> usize {
+        (*self).len()
+    }
+
+    fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)> {
+        (*self).get_entry(index)
+    }
 }
 
 /// Simple in-memory implementation of [`WebCatalog`].

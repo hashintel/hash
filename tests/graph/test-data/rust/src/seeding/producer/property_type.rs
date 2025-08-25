@@ -82,11 +82,10 @@ impl PropertyTypeProducerConfig {
     /// # Errors
     ///
     /// Returns an error if the producer cannot be created.
-    pub fn create_producer<'deps, U: WebCatalog, O: WebCatalog, D: DataTypeCatalog>(
+    pub fn create_producer<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog>(
         &self,
-        deps: &PropertyTypeProducerDeps<'deps, U, O, D>,
-    ) -> Result<PropertyTypeProducer<'deps, U, O, D>, Report<[PropertyTypeProducerConfigError]>>
-    {
+        deps: PropertyTypeProducerDeps<U, O, D>,
+    ) -> Result<PropertyTypeProducer<U, O, D>, Report<[PropertyTypeProducerConfigError]>> {
         let domain = self
             .schema
             .domain
@@ -148,25 +147,26 @@ use crate::seeding::distributions::ontology::property_type::values::{
 
 /// Dependencies for property type producers that need web catalogs and data type catalogs.
 #[expect(clippy::struct_field_names)]
-pub struct PropertyTypeProducerDeps<'c, U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> {
-    pub user_catalog: Option<&'c U>,
-    pub org_catalog: Option<&'c O>,
-    pub data_type_catalog: Option<&'c D>,
+#[derive(Debug, Copy, Clone)]
+pub struct PropertyTypeProducerDeps<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> {
+    pub user_catalog: Option<U>,
+    pub org_catalog: Option<O>,
+    pub data_type_catalog: Option<D>,
 }
 
 #[derive(Debug)]
-pub struct PropertyTypeProducer<'c, U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> {
+pub struct PropertyTypeProducer<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> {
     local_id: LocalId,
-    domain: BoundDomainSampler<'c, U, O>,
+    domain: BoundDomainSampler<U, O>,
     title: <WordDistributionConfig as DistributionConfig>::Distribution,
     description: <WordDistributionConfig as DistributionConfig>::Distribution,
-    values: BoundPropertyValuesDistribution<'c, D>,
+    values: BoundPropertyValuesDistribution<D>,
     conflict_behavior: ConstDistribution<ConflictBehavior>,
     provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
 }
 
 impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTypeParams>
-    for PropertyTypeProducer<'_, U, O, D>
+    for PropertyTypeProducer<U, O, D>
 {
     type Error = Report<ParseBaseUrlError>;
 
@@ -181,7 +181,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
         let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
         let title_gid = context.global_id(local_id, Scope::Schema, SubScope::Title);
         let description_gid = context.global_id(local_id, Scope::Schema, SubScope::Description);
-        let values_gid = context.global_id(local_id, Scope::Schema, SubScope::Constraint);
+        let values_gid = context.global_id(local_id, Scope::Schema, SubScope::PropertyValue);
 
         let values = self.values.sample(&mut values_gid.rng());
         let title = self.title.sample(&mut title_gid.rng());
@@ -356,13 +356,13 @@ pub(crate) mod tests {
         .expect("should be able to create valid data type catalog");
 
         let deps = PropertyTypeProducerDeps {
-            user_catalog: Some(&catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
-            data_type_catalog: Some(&data_type_catalog),
+            user_catalog: Some(catalog),
+            org_catalog: None::<InMemoryWebCatalog>,
+            data_type_catalog: Some(data_type_catalog),
         };
 
         let mut producer = config
-            .create_producer(&deps)
+            .create_producer(deps)
             .expect("should be able to create property type generator");
 
         // Test basic generation functionality
