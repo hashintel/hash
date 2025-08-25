@@ -11,7 +11,6 @@
     never_type,
 
     // Library Features
-    array_chunks,
     iter_intersperse,
     try_trait_v2,
 )]

@@ -220,7 +220,7 @@ impl<C> ReportSink<C> {
     /// Attempts to execute a fallible operation and collect any errors.
     ///
     /// This method takes a [`Result`] and returns an [`Option`]:
-    /// - If the [`Result`] is [`Ok`], it returns [`Some(T)`] with the successful value.
+    /// - If the [`Result`] is [`Ok`], it returns <code>[Some]\(T)</code> with the successful value.
     /// - If the [`Result`] is [`Err`], it captures the error in the sink and returns [`None`].
     ///
     /// This is useful for concisely handling operations that may fail, allowing you to
