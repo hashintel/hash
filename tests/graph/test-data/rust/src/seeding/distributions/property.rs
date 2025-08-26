@@ -1,19 +1,43 @@
 use alloc::borrow::Cow;
 use core::error::Error;
 
-use error_stack::{Report, TryReportIteratorExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use rand::{Rng, seq::IndexedRandom as _};
-use rand_distr::Distribution;
+use rand_distr::{Bernoulli, Distribution};
 use type_system::{
-    knowledge::Property,
+    knowledge::{Property, property::PropertyObject},
     ontology::{
         VersionedUrl,
         data_type::schema::DataTypeReference,
-        property_type::{PropertyType, schema::PropertyValues},
+        entity_type::{ClosedEntityType, schema::EntityConstraints},
+        property_type::{
+            PropertyType,
+            schema::{PropertyTypeReference, PropertyValues, ValueOrArray},
+        },
     },
 };
 
 use super::value::ValueDistributionRegistry;
+
+struct PropertyObjectPropertyDistribution<'a> {
+    probability: Bernoulli,
+    property_type: Cow<'a, PropertyTypeReference>,
+}
+
+impl<'a> PropertyObjectPropertyDistribution<'a> {
+    fn new(property_type: Cow<'a, PropertyTypeReference>, required: bool) -> Self {
+        Self {
+            probability: Bernoulli::new(if required { 1.0 } else { 0.5 }).unwrap_or_else(|error| {
+                unreachable!("Bernoulli distribution should always be able to be created: {error}")
+            }),
+            property_type,
+        }
+    }
+}
+
+pub struct PropertyObjectDistribution<'a> {
+    properties: Vec<PropertyObjectPropertyDistribution<'a>>,
+}
 
 enum InnerPropertyDistribution<'c> {
     Value(Cow<'c, DataTypeReference>),
@@ -71,16 +95,9 @@ pub struct BoundPropertyDistribution<'p, V> {
 }
 
 impl<'p> PropertyDistribution<'p> {
-    /// Create a new `PropertyDistribution` from a `PropertyType`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the `PropertyType` is empty.
-    pub fn new(
-        property_type: impl Into<Cow<'p, PropertyType>>,
+    fn new(
+        property_type: Cow<'p, PropertyType>,
     ) -> Result<Self, Report<[PropertyDistributionCreationError]>> {
-        let property_type = property_type.into();
-
         if property_type.one_of.is_empty() {
             return Err(Report::new(PropertyDistributionCreationError::EmptyOneOf).expand());
         }
@@ -106,6 +123,22 @@ impl<'p> PropertyDistribution<'p> {
             distribution: self,
             values,
         }
+    }
+}
+
+impl TryFrom<PropertyType> for PropertyDistribution<'_> {
+    type Error = Report<[PropertyDistributionCreationError]>;
+
+    fn try_from(property_type: PropertyType) -> Result<Self, Self::Error> {
+        Self::new(Cow::Owned(property_type))
+    }
+}
+
+impl<'p> TryFrom<&'p PropertyType> for PropertyDistribution<'p> {
+    type Error = Report<[PropertyDistributionCreationError]>;
+
+    fn try_from(property_type: &'p PropertyType) -> Result<Self, Self::Error> {
+        Self::new(Cow::Borrowed(property_type))
     }
 }
 
@@ -151,4 +184,114 @@ pub trait PropertyDistributionRegistry {
         &self,
         url: &VersionedUrl,
     ) -> Option<BoundPropertyDistribution<'_, Self::ValueDistributionRegistry>>;
+}
+
+pub struct BoundPropertyObjectDistribution<'a, P> {
+    distribution: PropertyObjectDistribution<'a>,
+    properties: P,
+}
+
+impl<'p> PropertyObjectDistribution<'p> {
+    #[expect(clippy::todo, reason = "Incomplete implementation")]
+    fn from_constraints(constraints: EntityConstraints) -> Self {
+        let properties = constraints.properties.into_iter().map(|(base_url, property_type_ref)| {
+            match property_type_ref {
+                ValueOrArray::Value(property_type_reference) => {
+                    PropertyObjectPropertyDistribution::new(Cow::Owned(property_type_reference), constraints.required.contains(&base_url))
+                }
+                ValueOrArray::Array(_) => todo!("https://linear.app/hash/issue/H-5256/support-arrays-in-entity-and-entity-type-generation"),
+            }
+        }).collect();
+
+        Self { properties }
+    }
+
+    #[expect(clippy::todo, reason = "Incomplete implementation")]
+    fn from_constraints_ref(constraints: &'p EntityConstraints) -> Self {
+        let properties = constraints.properties.iter().map(|(base_url, property_type_ref)| {
+            match property_type_ref {
+                ValueOrArray::Value(property_type_reference) => {
+                    PropertyObjectPropertyDistribution::new(Cow::Borrowed(property_type_reference), constraints.required.contains(base_url))
+                }
+                ValueOrArray::Array(_) => todo!("https://linear.app/hash/issue/H-5256/support-arrays-in-entity-and-entity-type-generation"),
+            }
+        }).collect();
+
+        Self { properties }
+    }
+
+    pub const fn bind<P>(self, properties: P) -> BoundPropertyObjectDistribution<'p, P> {
+        BoundPropertyObjectDistribution {
+            distribution: self,
+            properties,
+        }
+    }
+}
+
+impl From<ClosedEntityType> for PropertyObjectDistribution<'_> {
+    fn from(entity_type: ClosedEntityType) -> Self {
+        Self::from_constraints(entity_type.constraints)
+    }
+}
+
+impl<'p> From<&'p ClosedEntityType> for PropertyObjectDistribution<'p> {
+    fn from(entity_type: &'p ClosedEntityType) -> Self {
+        Self::from_constraints_ref(&entity_type.constraints)
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum EntityDistributionError {
+    #[display("Missing property distribution `{}`", _0.url)]
+    MissingPropertyDistribution(PropertyTypeReference),
+    #[display("Property generation failed")]
+    PropertyGenerationFailed,
+}
+
+impl Error for EntityDistributionError {}
+
+impl<P> Distribution<Result<PropertyObject, Report<[EntityDistributionError]>>>
+    for BoundPropertyObjectDistribution<'_, P>
+where
+    P: PropertyDistributionRegistry,
+{
+    fn sample<R: Rng + ?Sized>(
+        &self,
+        rng: &mut R,
+    ) -> Result<PropertyObject, Report<[EntityDistributionError]>> {
+        Ok(PropertyObject::new(
+            self.distribution
+                .properties
+                .iter()
+                .filter_map(|property_distribution| {
+                    if !property_distribution.probability.sample(rng) {
+                        return None;
+                    }
+
+                    let Some(bound_property_distribution) = self
+                        .properties
+                        .get_distribution(&property_distribution.property_type.url)
+                    else {
+                        return Some(Err(Report::new(
+                            EntityDistributionError::MissingPropertyDistribution(
+                                property_distribution.property_type.clone().into_owned(),
+                            ),
+                        )));
+                    };
+
+                    Some(
+                        bound_property_distribution
+                            .sample(rng)
+                            .map(|property| {
+                                (
+                                    property_distribution.property_type.url.base_url.clone(),
+                                    property,
+                                )
+                            })
+                            .change_context(EntityDistributionError::PropertyGenerationFailed),
+                    )
+                })
+                .try_collect_reports()?,
+        ))
+    }
 }
