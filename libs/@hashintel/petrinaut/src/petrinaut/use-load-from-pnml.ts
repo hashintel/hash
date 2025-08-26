@@ -11,7 +11,7 @@ import type {
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "../petrinaut";
+} from "./types";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent?.trim() ?? "";
