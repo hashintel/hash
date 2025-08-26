@@ -29,7 +29,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.16.7",
     "@blockprotocol/graph": "0.4.0-canary.1",
     "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@hashintel/block-design-system": "0.0.2",
+    "@hashintel/block-design-system": "0.0.3",
     "@hashintel/design-system": "0.0.9-canary.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
