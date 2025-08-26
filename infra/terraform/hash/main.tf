@@ -246,6 +246,19 @@ module "critical_alerts" {
   slack_webhook_url = sensitive(data.vault_kv_secret_v2.secrets.data["slack_aws_webhook"])
 }
 
+
+# API too slow in v5. We currently store it in vault to bypass it.
+# Technically, it is not sensitive, but we keep it in vault as the easiest way to bypass the API.
+# data "cloudflare_accounts" "main" {}
+
+module "rust_mirror" {
+  source                = "./rust_mirror"
+  cloudflare_account_id = sensitive(data.vault_kv_secret_v2.secrets.data["cloudflare_account_id"])
+  cloudflare_zone_id    = data.cloudflare_zones.hash_dev.result[0].id
+  prefix                = local.prefix
+  env                   = local.env
+}
+
 module "application" {
   depends_on                   = [module.networking, module.postgres]
   providers                    = { cloudflare = cloudflare }

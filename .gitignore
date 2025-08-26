@@ -91,6 +91,7 @@ CLAUDE.local.md
 **/build
 **/target
 **/pkg
+**/.wrangler
 
 # vscode config
 **/.vscode/settings.json

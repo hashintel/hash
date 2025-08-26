@@ -1,0 +1,8 @@
+compatibility_date = "2025-08-15"
+main               = "worker.js"
+name               = "h-hash-prod-usea1-rust-mirror-sync"
+
+[[r2_buckets]]
+binding             = "RUST_MIRROR_BUCKET"
+bucket_name         = "h-hash-prod-usea1-rust-mirror"
+preview_bucket_name = "h-hash-prod-usea1-rust-mirror-dev"

@@ -1,0 +1,25 @@
+[package]
+name              = "rust-mirror-worker"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Workspace dependencies
+
+# Third party dependencies
+console_error_panic_hook = { version = "0.1.7" }
+# toml.workspace           = true
+worker        = { version = "0.6.1" }
+worker-macros = { version = "0.6.1" }
+
+[lints]
+workspace = true
+
+[package.metadata.release]
+release = false

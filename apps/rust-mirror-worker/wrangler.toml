@@ -1,0 +1,11 @@
+compatibility_date = "2025-08-25"
+main               = "build/worker/shim.mjs"
+name               = "rust-mirror-worker"
+
+[[r2_buckets]]
+binding             = "RUST_MIRROR_BUCKET"
+bucket_name         = "h-hash-prod-usea1-rust-mirror"
+preview_bucket_name = "h-hash-prod-usea1-rust-mirror-dev"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"

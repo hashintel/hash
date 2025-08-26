@@ -2,6 +2,10 @@ data "cloudflare_zone" "hash_ai" {
   name = "hash.ai"
 }
 
+data "cloudflare_zones" "hash_dev" {
+  name = "hash.dev"
+}
+
 # Download Amazon Trust Services CA certificates dynamically
 # For AWS Certificate Manager certificate verification
 data "http" "amazon_root_ca_1" {
