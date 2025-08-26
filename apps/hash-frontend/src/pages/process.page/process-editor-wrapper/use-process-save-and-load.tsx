@@ -4,6 +4,10 @@ import type {
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@blockprotocol/type-system";
+import type {
+  PetriNetDefinitionObject,
+  TransitionNodeType,
+} from "@hashintel/petrinaut";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
@@ -37,22 +41,11 @@ import {
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
-import type {
-  NodeType,
-  PetriNetDefinitionObject,
-  TransitionNodeType,
-} from "./petrinaut";
 import { updateSubProcessDefinitionForParentPlaces } from "./use-process-save-and-load/update-sub-process-nodes";
 import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
 } from "./use-process-save-and-load/use-persisted-nets";
-
-const stripUnwantedProperties = (node: NodeType) => {
-  const { selected: _, dragging: __, ...rest } = node;
-
-  return rest;
-};
 
 const areSetsEquivalent = (a: Set<string>, b: Set<string>) => {
   if (a.size !== b.size) {
@@ -171,7 +164,7 @@ export const useProcessSaveAndLoad = ({
     }
 
     if (
-      JSON.stringify(petriNet.nodes.map(stripUnwantedProperties)) !==
+      JSON.stringify(petriNet.nodes) !==
       JSON.stringify(persistedNet.definition.nodes)
     ) {
       return true;
@@ -247,7 +240,7 @@ export const useProcessSaveAndLoad = ({
                   // @todo fix this
                   value: {
                     arcs: petriNet.arcs,
-                    nodes: petriNet.nodes.map(stripUnwantedProperties),
+                    nodes: petriNet.nodes,
                     tokenTypes: petriNet.tokenTypes,
                   } satisfies PetriNetDefinitionObject,
                 },
@@ -279,7 +272,7 @@ export const useProcessSaveAndLoad = ({
                 },
                 value: {
                   arcs: petriNet.arcs,
-                  nodes: petriNet.nodes.map(stripUnwantedProperties),
+                  nodes: petriNet.nodes,
                   tokenTypes: petriNet.tokenTypes,
                 } satisfies PetriNetDefinitionObject,
               },

@@ -66,7 +66,9 @@ export const NetSelector = ({
         option?.netId === selectedValue?.netId
       }
       renderOption={(props, data) => (
-        <MenuItem {...props}>{data?.title ?? ""}</MenuItem>
+        <MenuItem {...props} key={data?.netId}>
+          {data?.title ?? ""}
+        </MenuItem>
       )}
       ListboxProps={{
         sx: {

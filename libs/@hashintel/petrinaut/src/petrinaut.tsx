@@ -367,7 +367,6 @@ const PetrinautInner = () => {
             ? {
                 type: "place",
                 tokenCounts: {},
-                tokenTypes: petriNetDefinition.tokenTypes,
               }
             : { type: "transition" }),
         },
@@ -377,12 +376,7 @@ const PetrinautInner = () => {
         existingNet.nodes.push(newNode);
       });
     },
-    [
-      reactFlowInstance,
-      petriNetDefinition.nodes,
-      petriNetDefinition.tokenTypes,
-      mutatePetriNetDefinition,
-    ],
+    [reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
   );
 
   const onNodeClick = useCallback(
