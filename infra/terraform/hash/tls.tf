@@ -1,4 +1,4 @@
-data "cloudflare_zone" "hash_ai" {
+data "cloudflare_zones" "hash_ai" {
   name = "hash.ai"
 }
 
@@ -36,16 +36,18 @@ locals {
 }
 
 # CAA Record to allow AWS Certificate Manager to issue certificates
-resource "cloudflare_record" "caa_hash_ai" {
-  zone_id = data.cloudflare_zone.hash_ai.id
+resource "cloudflare_dns_record" "caa_hash_ai" {
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
   name    = "hash.ai"
   type    = "CAA"
 
-  data {
-    flags = 0
+  data = {
+    flags = "0"
     tag   = "issue"
     value = "amazon.com"
   }
+
+  ttl     = 1
 
   tags = ["terraform"]
 }

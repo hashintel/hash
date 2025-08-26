@@ -220,7 +220,7 @@ module "grafana" {
   config_bucket                     = aws_s3_bucket.configs
   log_group_name                    = aws_cloudwatch_log_group.observability.name
   region                            = var.region
-  root_url                          = cloudflare_record.cname_grafana_internal.hostname
+  root_url                          = "https://${cloudflare_dns_record.cname_grafana_internal.name}.hash.ai"
   service_discovery_namespace_arn   = aws_service_discovery_private_dns_namespace.observability.arn
   service_discovery_namespace_name  = aws_service_discovery_private_dns_namespace.observability.name
   grafana_database_host             = var.grafana_database_host

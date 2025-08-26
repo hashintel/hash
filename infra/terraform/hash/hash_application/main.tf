@@ -70,7 +70,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
   }
 }
@@ -137,8 +137,8 @@ resource "aws_security_group" "alb_sg" {
     to_port          = 443
     protocol         = "TCP"
     description      = "Allow incoming traffic via Cloudflare IP ranges"
-    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks)
-    ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks)
+    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidrs)
+    ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidrs)
   }
 
   ingress {
