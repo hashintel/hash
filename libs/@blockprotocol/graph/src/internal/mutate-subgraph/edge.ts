@@ -10,7 +10,6 @@ import {
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import isEqual from "lodash.isequal";
 
 import { unionOfIntervals } from "../../stdlib.js";
@@ -29,6 +28,7 @@ import {
   isEntityTypeVertex,
   isPropertyTypeVertex,
 } from "../../types/subgraph.js";
+import { typedEntries } from "../../util/typed-entries.js";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

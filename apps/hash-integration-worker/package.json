@@ -20,7 +20,7 @@
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.1",
+    "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@linear/sdk": "6.0.0",
     "@local/advanced-types": "0.0.0-private",
