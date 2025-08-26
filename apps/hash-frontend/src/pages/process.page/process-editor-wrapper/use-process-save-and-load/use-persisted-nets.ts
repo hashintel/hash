@@ -6,6 +6,10 @@ import {
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { Entity, LinkEntity } from "@blockprotocol/type-system";
+import type {
+  PetriNetDefinitionObject,
+  TransitionNodeData,
+} from "@hashintel/petrinaut";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,10 +31,6 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import type {
-  PetriNetDefinitionObject,
-  TransitionNodeData,
-} from "../petrinaut/types";
 import type { PersistedNet } from "../use-process-save-and-load";
 
 export const getPersistedNetsFromSubgraph = (

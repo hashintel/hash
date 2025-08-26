@@ -45,7 +45,7 @@
     "@anthropic-ai/bedrock-sdk": "0.11.2",
     "@anthropic-ai/sdk": "0.32.1",
     "@apps/hash-graph": "0.0.0-private",
-    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@blockprotocol/graph": "0.4.0-canary.1",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@google-cloud/storage": "7.16.0",
     "@google-cloud/vertexai": "1.10.0",
