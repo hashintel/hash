@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
