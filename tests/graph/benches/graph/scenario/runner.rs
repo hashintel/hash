@@ -16,11 +16,7 @@ use hash_graph_store::{
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
-    distributions::ontology::{
-        entity_type::properties::InMemoryPropertyTypeCatalog,
-        property_type::values::InMemoryDataTypeCatalog,
-    },
-    producer::{Producer, ProducerExt as _, ontology::InMemoryWebCatalog, user::UserCreation},
+    producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
@@ -28,7 +24,10 @@ use regex::Regex;
 use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
-use super::stages::{Stage, StageError};
+use super::stages::{
+    Stage, StageError, data_type::InMemoryDataTypeCatalog, entity_type::InMemoryEntityTypeCatalog,
+    property_type::InMemoryPropertyTypeCatalog, web_catalog::InMemoryWebCatalog,
+};
 
 type InnerPool = hash_graph_postgres_store::store::PostgresStorePool;
 type Pool = FetchingPool<InnerPool, (String, u16)>;
@@ -89,6 +88,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::BuildPropertyTypeCatalog(stage) => stage.id.clone(),
                         Stage::GenerateEntityTypes(stage) => stage.id.clone(),
                         Stage::PersistEntityTypes(stage) => stage.id.clone(),
+                        Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
                     },
                     produced,
                     duration_ms: start.elapsed().as_millis(),
@@ -120,6 +120,7 @@ pub struct Resources {
     pub property_types: HashMap<String, Vec<CreatePropertyTypeParams>>,
     pub property_type_catalogs: HashMap<String, InMemoryPropertyTypeCatalog>,
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
+    pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
 }
 
 pub struct Runner {

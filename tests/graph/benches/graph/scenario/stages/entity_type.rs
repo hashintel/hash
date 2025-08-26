@@ -6,19 +6,58 @@ use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{entity_type::EntityTypeStore as _, pool::StorePool as _};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    distributions::ontology::entity_type::properties::InMemoryPropertyTypeCatalog,
-    producer::{
-        entity_type::{EntityTypeProducerDeps, PropertyTypeCatalog as _},
-        ontology::InMemoryWebCatalog,
-    },
+    producer::entity_type::{EntityTypeCatalog, EntityTypeProducerDeps},
 };
+use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
-    ontology::{property_type::schema::PropertyTypeReference, provenance::OntologyOwnership},
+    ontology::{entity_type::schema::EntityTypeReference, provenance::OntologyOwnership},
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use super::Runner;
+use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
+
+#[derive(Debug, derive_more::Display)]
+pub enum CatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for CatalogError {}
+
+/// Simple in-memory implementation of [`EntityTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryEntityTypeCatalog {
+    entity_types: Vec<EntityTypeReference>,
+}
+
+impl InMemoryEntityTypeCatalog {
+    /// Create a new catalog from a collection of entity type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(entity_types: Vec<EntityTypeReference>) -> Result<Self, CatalogError> {
+        if entity_types.is_empty() {
+            return Err(CatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { entity_types })
+    }
+}
+
+impl EntityTypeCatalog for InMemoryEntityTypeCatalog {
+    fn entity_type_references(&self) -> &[EntityTypeReference] {
+        &self.entity_types
+    }
+
+    fn sample_entity_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &EntityTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.entity_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
+    }
+}
 
 #[derive(Debug, derive_more::Display)]
 pub enum EntityTypeError {
@@ -34,8 +73,8 @@ pub enum EntityTypeError {
     Persist,
     #[display("Missing owner for web: {web_id}")]
     MissingOwner { web_id: WebId },
-    #[display("Empty property type catalog - cannot generate entity types")]
-    EmptyPropertyTypeCatalog,
+    #[display("Failed to create entity type catalog")]
+    CreateCatalog,
 }
 
 impl Error for EntityTypeError {}
@@ -132,16 +171,6 @@ pub struct PersistEntityTypesStage {
 
 impl PersistEntityTypesStage {
     pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
-        let pool = runner
-            .ensure_db()
-            .await
-            .change_context(EntityTypeError::Persist)?;
-
-        let mut store = pool
-            .acquire(None)
-            .await
-            .change_context(EntityTypeError::Persist)?;
-
         let mut all_entity_types = Vec::new();
         for entity_type_key in &self.inputs.entity_types {
             let entity_types = runner
@@ -155,6 +184,16 @@ impl PersistEntityTypesStage {
                 })?;
             all_entity_types.extend_from_slice(entity_types);
         }
+
+        let pool = runner
+            .ensure_db()
+            .await
+            .change_context(EntityTypeError::Persist)?;
+
+        let mut store = pool
+            .acquire(None)
+            .await
+            .change_context(EntityTypeError::Persist)?;
 
         // Get web-to-user mapping for permissions
         let mut web_to_user_map: HashMap<WebId, ActorEntityUuid> = HashMap::new();
@@ -221,16 +260,16 @@ impl PersistEntityTypesStage {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BuildPropertyTypeCatalogStage {
+pub struct BuildEntityTypeCatalogStage {
     pub id: String,
     pub input: String,
 }
 
-impl BuildPropertyTypeCatalogStage {
+impl BuildEntityTypeCatalogStage {
     pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
-        let property_types = runner
+        let entity_types = runner
             .resources
-            .property_types
+            .entity_types
             .get(&self.input)
             .ok_or_else(|| {
                 Report::new(EntityTypeError::MissingConfig {
@@ -238,26 +277,21 @@ impl BuildPropertyTypeCatalogStage {
                 })
             })?;
 
-        // Check for empty property types before creating catalog
-        if property_types.is_empty() {
-            return Err(Report::new(EntityTypeError::EmptyPropertyTypeCatalog));
-        }
-
-        let catalog = InMemoryPropertyTypeCatalog::new(
-            property_types
+        let catalog = InMemoryEntityTypeCatalog::new(
+            entity_types
                 .iter()
-                .map(|params| PropertyTypeReference {
+                .map(|params| EntityTypeReference {
                     url: params.schema.id.clone(),
                 })
                 .collect::<Vec<_>>(),
         )
-        .change_context(EntityTypeError::EmptyPropertyTypeCatalog)?;
+        .change_context(EntityTypeError::CreateCatalog)?;
 
-        let len = catalog.property_type_references().len();
+        let len = catalog.entity_type_references().len();
 
         runner
             .resources
-            .property_type_catalogs
+            .entity_type_catalogs
             .insert(self.id.clone(), catalog);
 
         Ok(len)

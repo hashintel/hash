@@ -6,11 +6,55 @@ use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{data_type::DataTypeStore as _, pool::StorePool as _};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    producer::{data_type::DataTypeProducerDeps, ontology::InMemoryWebCatalog},
+    producer::data_type::{DataTypeCatalog, DataTypeProducerDeps},
 };
+use rand::{Rng, seq::IndexedRandom as _};
+use type_system::ontology::data_type::schema::DataTypeReference;
 
-use super::Runner;
+use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
+
+#[derive(Debug, derive_more::Display)]
+pub enum CatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for CatalogError {}
+
+/// Simple in-memory implementation of [`DataTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryDataTypeCatalog {
+    data_types: Vec<DataTypeReference>,
+}
+
+impl InMemoryDataTypeCatalog {
+    /// Create a new catalog from a collection of data type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(data_types: Vec<DataTypeReference>) -> Result<Self, CatalogError> {
+        if data_types.is_empty() {
+            return Err(CatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { data_types })
+    }
+}
+
+impl DataTypeCatalog for InMemoryDataTypeCatalog {
+    fn data_type_references(&self) -> &[DataTypeReference] {
+        &self.data_types
+    }
+
+    fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.data_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
+    }
+}
 
 #[derive(Debug, derive_more::Display)]
 pub enum DataTypeError {
@@ -24,6 +68,8 @@ pub enum DataTypeError {
     MissingOwner {
         web_id: type_system::principal::actor_group::WebId,
     },
+    #[display("Failed to create data type catalog")]
+    CreateCatalog,
 }
 
 impl Error for DataTypeError {}
@@ -105,12 +151,18 @@ pub struct PersistDataTypesStage {
 
 impl PersistDataTypesStage {
     pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<DataTypeError>> {
-        // Merge data types from multiple sources (consume from resources)
-        let mut all_params = Vec::new();
-        for key in &self.inputs.data_types {
-            if let Some(vals) = runner.resources.data_types.remove(key) {
-                all_params.extend(vals);
-            }
+        let mut all_data_types = Vec::new();
+        for data_type_key in &self.inputs.data_types {
+            let data_types = runner
+                .resources
+                .data_types
+                .get(data_type_key)
+                .ok_or_else(|| {
+                    Report::new(DataTypeError::MissingConfig {
+                        name: data_type_key.clone(),
+                    })
+                })?;
+            all_data_types.extend_from_slice(data_types);
         }
 
         // Ensure DB and acquire fetching store
@@ -119,7 +171,7 @@ impl PersistDataTypesStage {
             .await
             .change_context(DataTypeError::Persist)?;
         let mut store = pool
-            .acquire_owned(None)
+            .acquire(None)
             .await
             .change_context(DataTypeError::Persist)?;
 
@@ -150,7 +202,7 @@ impl PersistDataTypesStage {
         let mut local_by_web: HashMap<type_system::principal::actor_group::WebId, Vec<_>> =
             HashMap::new();
         let mut remote_params = Vec::new();
-        for param in all_params {
+        for param in all_data_types {
             match param.ownership {
                 type_system::ontology::provenance::OntologyOwnership::Local { web_id } => {
                     local_by_web.entry(web_id).or_default().push(param);
@@ -185,5 +237,45 @@ impl PersistDataTypesStage {
         drop(store);
 
         Ok(total_created)
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildDataTypeCatalogStage {
+    pub id: String,
+    pub input: String,
+}
+
+impl BuildDataTypeCatalogStage {
+    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<DataTypeError>> {
+        let data_types = runner
+            .resources
+            .data_types
+            .get(&self.input)
+            .ok_or_else(|| {
+                Report::new(DataTypeError::MissingConfig {
+                    name: self.input.clone(),
+                })
+            })?;
+
+        let catalog = InMemoryDataTypeCatalog::new(
+            data_types
+                .iter()
+                .map(|params| DataTypeReference {
+                    url: params.schema.id.clone(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .change_context(DataTypeError::CreateCatalog)?;
+
+        let len = catalog.data_type_references().len();
+
+        runner
+            .resources
+            .data_type_catalogs
+            .insert(self.id.clone(), catalog);
+
+        Ok(len)
     }
 }

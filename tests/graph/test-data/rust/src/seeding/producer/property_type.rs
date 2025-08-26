@@ -2,16 +2,17 @@ use core::error::Error;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{property_type::CreatePropertyTypeParams, query::ConflictBehavior};
-use rand::distr::Distribution as _;
+use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::ontology::{
     BaseUrl, VersionedUrl,
     id::{OntologyTypeVersion, ParseBaseUrlError},
-    property_type::PropertyType,
+    property_type::{PropertyType, schema::PropertyTypeReference},
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
 use super::{
     Producer,
+    data_type::DataTypeCatalog,
     ontology::{BoundDomainSampler, DomainPolicy, SampledDomain, WebCatalog},
 };
 use crate::seeding::{
@@ -141,9 +142,7 @@ impl PropertyTypeProducerConfig {
     }
 }
 
-use crate::seeding::distributions::ontology::property_type::values::{
-    BoundPropertyValuesDistribution, DataTypeCatalog,
-};
+use crate::seeding::distributions::ontology::property_type::values::BoundPropertyValuesDistribution;
 
 /// Dependencies for property type producers that need web catalogs and data type catalogs.
 #[expect(clippy::struct_field_names)]
@@ -235,14 +234,50 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
     }
 }
 
+/// Catalogs that provide [`PropertyTypeReference`]s.
+///
+/// This trait enables [`PropertyType`]s or [`EntityType`]s to reference existing [`PropertyType`]s
+/// when defining their structures. Implementations should provide efficient access to
+/// [`PropertyTypeReference`]s for random sampling during generation.
+///
+/// [`EntityType`]: type_system::ontology::entity_type::EntityType
+pub trait PropertyTypeCatalog {
+    /// Returns all available [`PropertyType`] references in this catalog.
+    ///
+    /// The returned slice should contain all [`PropertyType`]s that can be referenced when
+    /// generating [`PropertyType`]s or [`EntityType`]s.
+    ///
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    fn property_type_references(&self) -> &[PropertyTypeReference];
+
+    /// Sample a random [`PropertyType`] reference from this catalog.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the catalog is empty.
+    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+        self.property_type_references()
+            .choose(rng)
+            .expect("catalog should not be empty")
+    }
+}
+
+impl<C> PropertyTypeCatalog for &C
+where
+    C: PropertyTypeCatalog,
+{
+    fn property_type_references(&self) -> &[PropertyTypeReference] {
+        (*self).property_type_references()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use alloc::sync::Arc;
+    use core::fmt::Debug;
 
-    use type_system::{
-        ontology::data_type::schema::DataTypeReference,
-        provenance::{OriginProvenance, OriginType},
-    };
+    use rand::Rng;
+    use type_system::provenance::{OriginProvenance, OriginType};
 
     use super::*;
     use crate::seeding::{
@@ -252,30 +287,19 @@ pub(crate) mod tests {
             ontology::{
                 ShortnameDistributionConfig, WeightedDomainListDistributionConfig,
                 property_type::values::{
-                    InMemoryDataTypeCatalog, PropertyValueTypeConfig,
-                    PropertyValuesDistributionConfig,
+                    PropertyValueTypeConfig, PropertyValuesDistributionConfig,
                 },
             },
         },
-        producer::ontology::{
-            InMemoryWebCatalog, IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig,
+        producer::{
+            ProducerExt as _,
+            data_type::tests::create_test_data_type_catalog,
+            ontology::{
+                IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig, tests::EmptyTestCatalog,
+            },
+            user::tests::create_test_user_web_catalog,
         },
     };
-
-    fn create_test_web_catalog() -> InMemoryWebCatalog {
-        InMemoryWebCatalog::from_tuples(vec![
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("hash"),
-                type_system::principal::actor_group::WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("alice"),
-                type_system::principal::actor_group::WebId::new(uuid::Uuid::new_v4()),
-            ),
-        ])
-    }
 
     pub(crate) fn sample_property_type_producer_config() -> PropertyTypeProducerConfig {
         PropertyTypeProducerConfig {
@@ -327,38 +351,59 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn create_test_property_type_catalog() -> impl PropertyTypeCatalog + Debug {
+        #[derive(Debug)]
+        struct TestCatalog(Vec<PropertyTypeReference>);
+
+        impl PropertyTypeCatalog for TestCatalog {
+            fn property_type_references(&self) -> &[PropertyTypeReference] {
+                &self.0
+            }
+
+            fn sample_property_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+                // Uniform selection from available data types using SliceRandom::choose
+                self.0.choose(rng).expect("catalog should not be empty")
+            }
+        }
+
+        let mut producer = sample_property_type_producer_config()
+            .create_producer(PropertyTypeProducerDeps {
+                user_catalog: Some(create_test_user_web_catalog()),
+                org_catalog: None::<EmptyTestCatalog>,
+                data_type_catalog: Some(create_test_data_type_catalog()),
+            })
+            .expect("should be able to sample property type generator");
+
+        let property_types = producer
+            .iter_mut(ProduceContext {
+                run_id: RunId::new(0),
+                stage_id: StageId::new(0),
+                shard_id: ShardId::new(0),
+                provenance: Provenance::Integration,
+                producer: ProducerId::PropertyType,
+            })
+            .take(100)
+            .collect::<Result<Vec<_>, _>>()
+            .expect("should be able to generate property types");
+
+        TestCatalog(
+            property_types
+                .into_iter()
+                .map(|property_type| PropertyTypeReference {
+                    url: property_type.schema.id,
+                })
+                .collect(),
+        )
+    }
+
     #[test]
     fn basic_property_type_producer_creation() {
         let config = sample_property_type_producer_config();
-        let catalog = create_test_web_catalog();
-
-        let data_type_catalog = InMemoryDataTypeCatalog::new(vec![
-            DataTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
-                    )
-                    .expect("valid URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-            DataTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/"
-                            .to_owned(),
-                    )
-                    .expect("valid URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-        ])
-        .expect("should be able to create valid data type catalog");
 
         let deps = PropertyTypeProducerDeps {
-            user_catalog: Some(catalog),
-            org_catalog: None::<InMemoryWebCatalog>,
-            data_type_catalog: Some(data_type_catalog),
+            user_catalog: Some(create_test_user_web_catalog()),
+            org_catalog: None::<EmptyTestCatalog>,
+            data_type_catalog: Some(create_test_data_type_catalog()),
         };
 
         let mut producer = config

@@ -3,25 +3,24 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{entity_type::CreateEntityTypeParams, query::ConflictBehavior};
-use rand::{distr::Distribution as _, seq::IndexedRandom as _};
+use rand::{distr::Distribution as _, prelude::IndexedRandom as _};
 use type_system::ontology::{
     BaseUrl, VersionedUrl,
     entity_type::{
         EntityType,
         schema::{
-            EntityConstraints, EntityTypeKindTag, EntityTypeReference, EntityTypeSchemaTag,
-            InverseEntityTypeMetadata,
+            EntityConstraints, EntityTypeKindTag, EntityTypeSchemaTag, InverseEntityTypeMetadata,
         },
     },
     id::{OntologyTypeVersion, ParseBaseUrlError},
     json_schema::ObjectTypeTag,
+    property_type::schema::PropertyTypeReference,
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
 use super::{
     Producer,
     ontology::{BoundDomainSampler, DomainPolicy, SampledDomain, WebCatalog},
-    property_type::PropertyTypeCatalog,
 };
 use crate::seeding::{
     context::{LocalId, ProduceContext, ProducerId, Scope, SubScope},
@@ -251,144 +250,60 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
     }
 }
 
-/// Catalogs that provide [`EntityTypeReference`]s.
+/// Trait for catalogs that provide [`PropertyType`] references for [`EntityType`] generation.
 ///
-/// This trait enables [`EntityType`]s to reference existing [`EntityType`]s
-/// when defining their structures. Implementations should provide efficient access to
-/// [`EntityTypeReference`]s for random sampling during generation.
-pub trait EntityTypeCatalog {
-    /// Returns all available [`EntityType`] references in this catalog.
+/// This trait enables [`EntityType`]s to reference existing [`PropertyType`]s when defining their
+/// property structures. Implementations should provide efficient access to [`PropertyType`]
+/// references for random sampling during generation.
+///
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+pub trait PropertyTypeCatalog {
+    /// Returns all available [`PropertyType`] references in this catalog.
     ///
-    /// The returned slice should contain all [`EntityType`]s that can be referenced when
-    /// generating [`EntityType`]s.
-    fn entity_type_references(&self) -> &[EntityTypeReference];
+    /// The returned slice should contain all [`PropertyType`]s that can be referenced when
+    /// generating [`EntityType`] properties. Empty catalogs will result in [`EntityType`]s with
+    /// no properties.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    fn property_type_references(&self) -> &[PropertyTypeReference];
 
-    /// Sample a random [`EntityType`] reference from this catalog.
+    /// Sample a random [`PropertyType`] reference from this catalog.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
     ///
     /// # Panics
     ///
-    /// Panics if the catalog is empty.
-    fn sample_entity_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &EntityTypeReference {
-        self.entity_type_references()
+    /// Panics if the catalog is empty. Callers should check [`is_empty()`] first or ensure the
+    /// catalog is properly populated before sampling.
+    ///
+    /// [`is_empty()`]: Self::is_empty
+    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+        self.property_type_references()
             .choose(rng)
             .expect("catalog should not be empty")
     }
+
+    /// Returns true if this catalog contains no [`PropertyType`] references.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    fn is_empty(&self) -> bool {
+        self.property_type_references().is_empty()
+    }
 }
 
-impl<C> EntityTypeCatalog for &C
+impl<C> PropertyTypeCatalog for &C
 where
-    C: EntityTypeCatalog,
+    C: PropertyTypeCatalog,
 {
-    fn entity_type_references(&self) -> &[EntityTypeReference] {
-        (*self).entity_type_references()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::sync::Arc;
-
-    use hash_graph_store::query::ConflictBehavior;
-    use type_system::provenance::{OriginProvenance, OriginType};
-
-    use super::*;
-    use crate::seeding::{
-        context::{Provenance, RunId, ShardId, StageId},
-        distributions::{
-            adaptors::ConstDistributionConfig,
-            ontology::{
-                ShortnameDistributionConfig, WeightedDomainListDistributionConfig,
-                entity_type::properties::EntityTypePropertiesDistributionConfig,
-            },
-        },
-        producer::{
-            ontology::{
-                IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig, tests::EmptyTestCatalog,
-            },
-            property_type::tests::create_test_property_type_catalog,
-            user::tests::create_test_user_web_catalog,
-        },
-    };
-
-    pub(crate) fn sample_entity_type_producer_config() -> EntityTypeProducerConfig {
-        EntityTypeProducerConfig {
-            schema: SchemaSection {
-                domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
-                        domain: crate::seeding::distributions::ontology::DomainDistributionConfig::Weighted {
-                            distribution: vec![
-                                WeightedDomainListDistributionConfig {
-                                    name: Arc::from("https://hash.ai"),
-                                    weight: 40,
-                                    shortnames: ShortnameDistributionConfig::Const(
-                                        ConstDistributionConfig {
-                                            value: Arc::from("hash"),
-                                        },
-                                    ),
-                                },
-                            ],
-                        },
-                        weight: Some(1),
-                        fetched_at: time::OffsetDateTime::now_utc(),
-                    }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
-                        weight: Some(1),
-                        web_type_weights: None,
-                    }),
-                },
-                title: WordDistributionConfig { length: (4, 8) },
-                description: WordDistributionConfig { length: (40, 50) },
-                properties: EntityTypePropertiesDistributionConfig::Fixed {
-                    count: 2,
-                    required: true,
-                },
-            },
-            metadata: MetadataSection {
-                provenance: ConstDistributionConfig {
-                    value: ProvidedOntologyEditionProvenance {
-                        sources: Vec::new(),
-                        actor_type: type_system::principal::actor::ActorType::Machine,
-                        origin: OriginProvenance::from_empty_type(OriginType::Api),
-                    },
-                },
-            },
-            config: ConfigSection {
-                conflict_behavior: ConstDistributionConfig {
-                    value: ConflictBehavior::Fail,
-                },
-            },
-        }
+    fn property_type_references(&self) -> &[PropertyTypeReference] {
+        (*self).property_type_references()
     }
 
-    #[test]
-    fn basic_entity_type_producer_creation() {
-        let mut producer = sample_entity_type_producer_config()
-            .create_producer(EntityTypeProducerDeps {
-                user_catalog: Some(create_test_user_web_catalog()),
-                org_catalog: None::<EmptyTestCatalog>,
-                property_type_catalog: create_test_property_type_catalog(),
-            })
-            .expect("should be able to create entity type producer");
+    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+        (*self).sample_property_type(rng)
+    }
 
-        // Test basic generation functionality
-        let context = ProduceContext {
-            run_id: RunId::new(1),
-            stage_id: StageId::new(0),
-            shard_id: ShardId::new(0),
-            provenance: Provenance::Integration,
-            producer: ProducerId::EntityType,
-        };
-
-        let entity_type = producer
-            .generate(context)
-            .expect("should generate entity type");
-
-        // Verify generated entity type structure
-        assert!(!entity_type.schema.title.is_empty());
-        assert!(!entity_type.schema.description.is_empty());
-        assert_eq!(entity_type.schema.constraints.properties.len(), 2);
-        assert_eq!(entity_type.schema.constraints.required.len(), 2);
-        assert!(entity_type.schema.constraints.links.is_empty());
+    fn is_empty(&self) -> bool {
+        (*self).is_empty()
     }
 }

@@ -6,18 +6,58 @@ use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{pool::StorePool as _, property_type::PropertyTypeStore as _};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    distributions::ontology::property_type::values::{
-        DataTypeCatalog as _, InMemoryDataTypeCatalog,
-    },
-    producer::{ontology::InMemoryWebCatalog, property_type::PropertyTypeProducerDeps},
+    producer::property_type::{PropertyTypeCatalog, PropertyTypeProducerDeps},
 };
+use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
-    ontology::{data_type::schema::DataTypeReference, provenance::OntologyOwnership},
+    ontology::{property_type::schema::PropertyTypeReference, provenance::OntologyOwnership},
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use super::Runner;
+use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
+
+#[derive(Debug, derive_more::Display)]
+pub enum CatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for CatalogError {}
+
+/// Simple in-memory implementation of [`DataTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryPropertyTypeCatalog {
+    property_types: Vec<PropertyTypeReference>,
+}
+
+impl InMemoryPropertyTypeCatalog {
+    /// Create a new catalog from a collection of property type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(property_types: Vec<PropertyTypeReference>) -> Result<Self, CatalogError> {
+        if property_types.is_empty() {
+            return Err(CatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { property_types })
+    }
+}
+
+impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
+    fn property_type_references(&self) -> &[PropertyTypeReference] {
+        &self.property_types
+    }
+
+    fn sample_property_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.property_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
+    }
+}
 
 #[derive(Debug, derive_more::Display)]
 pub enum PropertyTypeError {
@@ -35,8 +75,8 @@ pub enum PropertyTypeError {
     MissingOwner {
         web_id: type_system::principal::actor_group::WebId,
     },
-    #[display("Empty data type catalog - cannot generate property types")]
-    EmptyDataTypeCatalog,
+    #[display("Failed to create property type catalog")]
+    CreateCatalog,
 }
 
 impl Error for PropertyTypeError {}
@@ -138,16 +178,6 @@ pub struct PersistPropertyTypesStage {
 
 impl PersistPropertyTypesStage {
     pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
-        let pool = runner
-            .ensure_db()
-            .await
-            .change_context(PropertyTypeError::Persist)?;
-
-        let mut store = pool
-            .acquire(None)
-            .await
-            .change_context(PropertyTypeError::Persist)?;
-
         let mut all_property_types = Vec::new();
         for property_type_key in &self.inputs.property_types {
             let property_types = runner
@@ -161,6 +191,16 @@ impl PersistPropertyTypesStage {
                 })?;
             all_property_types.extend_from_slice(property_types);
         }
+
+        let pool = runner
+            .ensure_db()
+            .await
+            .change_context(PropertyTypeError::Persist)?;
+
+        let mut store = pool
+            .acquire(None)
+            .await
+            .change_context(PropertyTypeError::Persist)?;
 
         // Get web-to-user mapping for permissions
         let mut web_to_user_map: HashMap<WebId, ActorEntityUuid> = HashMap::new();
@@ -227,16 +267,16 @@ impl PersistPropertyTypesStage {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BuildDataTypeCatalogStage {
+pub struct BuildPropertyTypeCatalogStage {
     pub id: String,
     pub input: String,
 }
 
-impl BuildDataTypeCatalogStage {
+impl BuildPropertyTypeCatalogStage {
     pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
-        let data_types = runner
+        let property_types = runner
             .resources
-            .data_types
+            .property_types
             .get(&self.input)
             .ok_or_else(|| {
                 Report::new(PropertyTypeError::MissingConfig {
@@ -244,26 +284,21 @@ impl BuildDataTypeCatalogStage {
                 })
             })?;
 
-        // Check for empty data types before creating catalog
-        if data_types.is_empty() {
-            return Err(Report::new(PropertyTypeError::EmptyDataTypeCatalog));
-        }
-
-        let catalog = InMemoryDataTypeCatalog::new(
-            data_types
+        let catalog = InMemoryPropertyTypeCatalog::new(
+            property_types
                 .iter()
-                .map(|params| DataTypeReference {
+                .map(|params| PropertyTypeReference {
                     url: params.schema.id.clone(),
                 })
                 .collect::<Vec<_>>(),
         )
-        .change_context(PropertyTypeError::EmptyDataTypeCatalog)?;
+        .change_context(PropertyTypeError::CreateCatalog)?;
 
-        let len = catalog.data_type_references().len();
+        let len = catalog.property_type_references().len();
 
         runner
             .resources
-            .data_type_catalogs
+            .property_type_catalogs
             .insert(self.id.clone(), catalog);
 
         Ok(len)

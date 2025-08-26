@@ -72,6 +72,12 @@
       "count": 50
     },
     {
+      "type": "build-entity-type-catalog",
+      "id": "entity-type-catalog",
+      "input": "entity-types"
+    },
+
+    {
       "type": "persist-users",
       "id": "persist-users-basic",
       "from": ["users"]

@@ -3,12 +3,10 @@ use core::error::Error;
 use error_stack::{Report, ResultExt as _};
 
 use self::{
-    data_type::{GenerateDataTypesStage, PersistDataTypesStage},
-    entity_type::{
-        BuildPropertyTypeCatalogStage, GenerateEntityTypesStage, PersistEntityTypesStage,
-    },
+    data_type::{BuildDataTypeCatalogStage, GenerateDataTypesStage, PersistDataTypesStage},
+    entity_type::{BuildEntityTypeCatalogStage, GenerateEntityTypesStage, PersistEntityTypesStage},
     property_type::{
-        BuildDataTypeCatalogStage, GeneratePropertyTypesStage, PersistPropertyTypesStage,
+        BuildPropertyTypeCatalogStage, GeneratePropertyTypesStage, PersistPropertyTypesStage,
     },
     reset_db::ResetDbStage,
     user::{GenerateUsersStage, PersistUsersStage},
@@ -44,6 +42,7 @@ pub enum Stage {
     BuildPropertyTypeCatalog(BuildPropertyTypeCatalogStage),
     GenerateEntityTypes(GenerateEntityTypesStage),
     PersistEntityTypes(PersistEntityTypesStage),
+    BuildEntityTypeCatalog(BuildEntityTypeCatalogStage),
 }
 
 impl Stage {
@@ -67,6 +66,7 @@ impl Stage {
             Self::PersistEntityTypes(stage) => {
                 stage.execute(runner).await.change_context(StageError)
             }
+            Self::BuildEntityTypeCatalog(stage) => stage.execute(runner).change_context(StageError),
         }
     }
 }
