@@ -30,7 +30,7 @@
       "inputs": {
         "userCatalog": "webs"
       },
-      "count": 10
+      "count": 50
     },
     {
       "type": "generate-data-types",
@@ -54,7 +54,7 @@
         "userCatalog": "webs",
         "dataTypeCatalog": "data-type-catalog"
       },
-      "count": 10
+      "count": 50
     },
     {
       "type": "build-property-type-catalog",
@@ -69,7 +69,7 @@
         "userCatalog": "webs",
         "propertyTypeCatalog": "property-type-catalog"
       },
-      "count": 50
+      "count": 100
     },
     {
       "type": "build-entity-type-catalog",
@@ -104,6 +104,13 @@
       "inputs": {
         "entityTypes": ["entity-types"],
         "webToUser": ["users"]
+      }
+    },
+    {
+      "type": "build-entity-object-registry",
+      "id": "entity-object-registry",
+      "inputs": {
+        "entityTypes": ["entity-type-catalog"]
       }
     }
   ]

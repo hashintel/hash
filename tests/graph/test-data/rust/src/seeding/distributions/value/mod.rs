@@ -1,6 +1,7 @@
 mod number;
 mod string;
 
+use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
@@ -11,8 +12,7 @@ pub use string::{StringValueDistribution, StringValueDistributionError};
 use type_system::{
     knowledge::PropertyValue,
     ontology::{
-        VersionedUrl,
-        data_type::ClosedDataType,
+        data_type::{ClosedDataType, schema::DataTypeReference},
         json_schema::{SingleValueConstraints, ValueConstraints},
     },
 };
@@ -28,6 +28,7 @@ pub enum ValueDistributionCreationError {
 
 impl Error for ValueDistributionCreationError {}
 
+#[derive(Debug)]
 enum InnerValueDistribution<'c> {
     Null,
     Boolean(Bernoulli),
@@ -101,6 +102,7 @@ impl<'c> TryFrom<&'c ValueConstraints> for InnerValueDistribution<'c> {
     }
 }
 
+#[derive(Debug)]
 pub struct ValueDistribution<'e> {
     value: InnerValueDistribution<'e>,
 }
@@ -158,6 +160,15 @@ impl Distribution<PropertyValue> for ValueDistribution<'_> {
     }
 }
 
-pub trait ValueDistributionRegistry: Sync + Send {
-    fn get_distribution(&self, url: &VersionedUrl) -> Option<ValueDistribution<'_>>;
+pub trait ValueDistributionRegistry {
+    fn get_distribution(&self, url: &DataTypeReference) -> Option<&ValueDistribution<'_>>;
+}
+
+impl<T> ValueDistributionRegistry for Arc<T>
+where
+    T: ValueDistributionRegistry,
+{
+    fn get_distribution(&self, url: &DataTypeReference) -> Option<&ValueDistribution<'_>> {
+        (**self).get_distribution(url)
+    }
 }

@@ -15,48 +15,6 @@ use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
 
 #[derive(Debug, derive_more::Display)]
-pub enum CatalogError {
-    #[display("Empty data type catalog")]
-    EmptyCatalog,
-}
-
-impl Error for CatalogError {}
-
-/// Simple in-memory implementation of [`DataTypeCatalog`].
-#[derive(Debug, Clone)]
-pub struct InMemoryDataTypeCatalog {
-    data_types: Vec<DataTypeReference>,
-}
-
-impl InMemoryDataTypeCatalog {
-    /// Create a new catalog from a collection of data type references.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the catalog is empty.
-    pub fn new(data_types: Vec<DataTypeReference>) -> Result<Self, CatalogError> {
-        if data_types.is_empty() {
-            return Err(CatalogError::EmptyCatalog);
-        }
-
-        Ok(Self { data_types })
-    }
-}
-
-impl DataTypeCatalog for InMemoryDataTypeCatalog {
-    fn data_type_references(&self) -> &[DataTypeReference] {
-        &self.data_types
-    }
-
-    fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
-        // Uniform selection from available data types using SliceRandom::choose
-        self.data_types
-            .choose(rng)
-            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
-    }
-}
-
-#[derive(Debug, derive_more::Display)]
 pub enum DataTypeError {
     #[display("Missing data type config: {name}")]
     MissingConfig { name: String },
@@ -237,6 +195,48 @@ impl PersistDataTypesStage {
         drop(store);
 
         Ok(total_created)
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum DataTypeCatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for DataTypeCatalogError {}
+
+/// Simple in-memory implementation of [`DataTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryDataTypeCatalog {
+    data_types: Vec<DataTypeReference>,
+}
+
+impl InMemoryDataTypeCatalog {
+    /// Create a new catalog from a collection of data type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(data_types: Vec<DataTypeReference>) -> Result<Self, DataTypeCatalogError> {
+        if data_types.is_empty() {
+            return Err(DataTypeCatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { data_types })
+    }
+}
+
+impl DataTypeCatalog for InMemoryDataTypeCatalog {
+    fn data_type_references(&self) -> &[DataTypeReference] {
+        &self.data_types
+    }
+
+    fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.data_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
     }
 }
 

@@ -4,7 +4,10 @@ use error_stack::{Report, ResultExt as _};
 
 use self::{
     data_type::{BuildDataTypeCatalogStage, GenerateDataTypesStage, PersistDataTypesStage},
-    entity_type::{BuildEntityTypeCatalogStage, GenerateEntityTypesStage, PersistEntityTypesStage},
+    entity_type::{
+        BuildEntityTypeCatalogStage, BuildEntityTypeRegistryStage, GenerateEntityTypesStage,
+        PersistEntityTypesStage,
+    },
     property_type::{
         BuildPropertyTypeCatalogStage, GeneratePropertyTypesStage, PersistPropertyTypesStage,
     },
@@ -43,6 +46,7 @@ pub enum Stage {
     GenerateEntityTypes(GenerateEntityTypesStage),
     PersistEntityTypes(PersistEntityTypesStage),
     BuildEntityTypeCatalog(BuildEntityTypeCatalogStage),
+    BuildEntityObjectRegistry(BuildEntityTypeRegistryStage),
 }
 
 impl Stage {
@@ -67,6 +71,9 @@ impl Stage {
                 stage.execute(runner).await.change_context(StageError)
             }
             Self::BuildEntityTypeCatalog(stage) => stage.execute(runner).change_context(StageError),
+            Self::BuildEntityObjectRegistry(stage) => {
+                stage.execute(runner).await.change_context(StageError)
+            }
         }
     }
 }

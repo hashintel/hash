@@ -19,6 +19,7 @@ pub enum NumberValueDistributionError {
 
 impl Error for NumberValueDistributionError {}
 
+#[derive(Debug)]
 pub enum NumberValueDistribution<'e> {
     Constraints { value: Uniform<f64> },
     Enum { choices: Cow<'e, [Real]> },

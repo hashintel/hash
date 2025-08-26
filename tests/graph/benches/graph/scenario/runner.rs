@@ -25,8 +25,11 @@ use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::stages::{
-    Stage, StageError, data_type::InMemoryDataTypeCatalog, entity_type::InMemoryEntityTypeCatalog,
-    property_type::InMemoryPropertyTypeCatalog, web_catalog::InMemoryWebCatalog,
+    Stage, StageError,
+    data_type::InMemoryDataTypeCatalog,
+    entity_type::{InMemoryEntityObjectRegistry, InMemoryEntityTypeCatalog},
+    property_type::InMemoryPropertyTypeCatalog,
+    web_catalog::InMemoryWebCatalog,
 };
 
 type InnerPool = hash_graph_postgres_store::store::PostgresStorePool;
@@ -38,6 +41,8 @@ pub enum ScenarioError {
     Io,
     #[display("Failed to parse scenario file")]
     Parse,
+    #[display("Failed to run scenario")]
+    Run,
     #[display("Failed to create data type producer")]
     CreateProducer,
     #[display("Generation failed")]
@@ -63,7 +68,7 @@ pub async fn run_scenario_file(path: &Path) -> Result<ScenarioResult, Report<Sce
         serde_json::from_reader(reader).change_context(ScenarioError::Parse)?;
     run_scenario(&scenario)
         .await
-        .change_context(ScenarioError::Parse)
+        .change_context(ScenarioError::Run)
 }
 
 pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<StageError>> {
@@ -89,6 +94,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::GenerateEntityTypes(stage) => stage.id.clone(),
                         Stage::PersistEntityTypes(stage) => stage.id.clone(),
                         Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
+                        Stage::BuildEntityObjectRegistry(stage) => stage.id.clone(),
                     },
                     produced,
                     duration_ms: start.elapsed().as_millis(),
@@ -121,6 +127,7 @@ pub struct Resources {
     pub property_type_catalogs: HashMap<String, InMemoryPropertyTypeCatalog>,
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
     pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
+    pub entity_object_catalogs: HashMap<String, InMemoryEntityObjectRegistry>,
 }
 
 pub struct Runner {

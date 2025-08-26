@@ -18,48 +18,6 @@ use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
 
 #[derive(Debug, derive_more::Display)]
-pub enum CatalogError {
-    #[display("Empty data type catalog")]
-    EmptyCatalog,
-}
-
-impl Error for CatalogError {}
-
-/// Simple in-memory implementation of [`DataTypeCatalog`].
-#[derive(Debug, Clone)]
-pub struct InMemoryPropertyTypeCatalog {
-    property_types: Vec<PropertyTypeReference>,
-}
-
-impl InMemoryPropertyTypeCatalog {
-    /// Create a new catalog from a collection of property type references.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the catalog is empty.
-    pub fn new(property_types: Vec<PropertyTypeReference>) -> Result<Self, CatalogError> {
-        if property_types.is_empty() {
-            return Err(CatalogError::EmptyCatalog);
-        }
-
-        Ok(Self { property_types })
-    }
-}
-
-impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
-    fn property_type_references(&self) -> &[PropertyTypeReference] {
-        &self.property_types
-    }
-
-    fn sample_property_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        // Uniform selection from available data types using SliceRandom::choose
-        self.property_types
-            .choose(rng)
-            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
-    }
-}
-
-#[derive(Debug, derive_more::Display)]
 pub enum PropertyTypeError {
     #[display("Missing property type config: {name}")]
     MissingConfig { name: String },
@@ -262,6 +220,50 @@ impl PersistPropertyTypesStage {
         drop(store);
 
         Ok(total_created)
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum PropertyTypeCatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for PropertyTypeCatalogError {}
+
+/// Simple in-memory implementation of [`DataTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryPropertyTypeCatalog {
+    property_types: Vec<PropertyTypeReference>,
+}
+
+impl InMemoryPropertyTypeCatalog {
+    /// Create a new catalog from a collection of property type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(
+        property_types: Vec<PropertyTypeReference>,
+    ) -> Result<Self, PropertyTypeCatalogError> {
+        if property_types.is_empty() {
+            return Err(PropertyTypeCatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { property_types })
+    }
+}
+
+impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
+    fn property_type_references(&self) -> &[PropertyTypeReference] {
+        &self.property_types
+    }
+
+    fn sample_property_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.property_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
     }
 }
 

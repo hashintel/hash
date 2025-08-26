@@ -1,4 +1,4 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, sync::Arc};
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
@@ -7,9 +7,11 @@ use rand_distr::{Bernoulli, Distribution};
 use type_system::{
     knowledge::{Property, property::PropertyObject},
     ontology::{
-        VersionedUrl,
         data_type::schema::DataTypeReference,
-        entity_type::{ClosedEntityType, schema::EntityConstraints},
+        entity_type::{
+            ClosedEntityType,
+            schema::{EntityConstraints, EntityTypeReference},
+        },
         property_type::{
             PropertyType,
             schema::{PropertyTypeReference, PropertyValues, ValueOrArray},
@@ -18,7 +20,7 @@ use type_system::{
 };
 
 use super::value::ValueDistributionRegistry;
-
+#[derive(Debug)]
 struct PropertyObjectPropertyDistribution<'a> {
     probability: Bernoulli,
     property_type: Cow<'a, PropertyTypeReference>,
@@ -35,10 +37,12 @@ impl<'a> PropertyObjectPropertyDistribution<'a> {
     }
 }
 
+#[derive(Debug)]
 pub struct PropertyObjectDistribution<'a> {
     properties: Vec<PropertyObjectPropertyDistribution<'a>>,
 }
 
+#[derive(Debug)]
 enum InnerPropertyDistribution<'c> {
     Value(Cow<'c, DataTypeReference>),
 }
@@ -85,12 +89,15 @@ impl<'c> TryFrom<&'c PropertyValues> for InnerPropertyDistribution<'c> {
     }
 }
 
+#[derive(Debug)]
 pub struct PropertyDistribution<'p> {
     property: Vec<InnerPropertyDistribution<'p>>,
 }
 
+#[derive(derive_more::Debug)]
 pub struct BoundPropertyDistribution<'p, V> {
     distribution: PropertyDistribution<'p>,
+    #[debug(skip)]
     values: V,
 }
 
@@ -165,12 +172,11 @@ where
 
         match property {
             InnerPropertyDistribution::Value(value) => {
-                let value_distribution =
-                    self.values.get_distribution(&value.url).ok_or_else(|| {
-                        Report::new(PropertyDistributionError::MissingValueDistribution(
-                            value.clone().into_owned(),
-                        ))
-                    })?;
+                let value_distribution = self.values.get_distribution(value).ok_or_else(|| {
+                    Report::new(PropertyDistributionError::MissingValueDistribution(
+                        value.clone().into_owned(),
+                    ))
+                })?;
                 Ok(Property::Value(value_distribution.sample(rng)))
             }
         }
@@ -182,12 +188,51 @@ pub trait PropertyDistributionRegistry {
 
     fn get_distribution(
         &self,
-        url: &VersionedUrl,
-    ) -> Option<BoundPropertyDistribution<'_, Self::ValueDistributionRegistry>>;
+        url: &PropertyTypeReference,
+    ) -> Option<&BoundPropertyDistribution<'_, Self::ValueDistributionRegistry>>;
 }
 
+impl<T> PropertyDistributionRegistry for Arc<T>
+where
+    T: PropertyDistributionRegistry,
+{
+    type ValueDistributionRegistry = T::ValueDistributionRegistry;
+
+    fn get_distribution(
+        &self,
+        url: &PropertyTypeReference,
+    ) -> Option<&BoundPropertyDistribution<'_, Self::ValueDistributionRegistry>> {
+        (**self).get_distribution(url)
+    }
+}
+
+pub trait EntityObjectDistributionRegistry {
+    type PropertyDistributionRegistry: PropertyDistributionRegistry;
+
+    fn get_distribution(
+        &self,
+        url: &EntityTypeReference,
+    ) -> Option<&BoundPropertyObjectDistribution<'_, Self::PropertyDistributionRegistry>>;
+}
+
+impl<T> EntityObjectDistributionRegistry for Arc<T>
+where
+    T: EntityObjectDistributionRegistry,
+{
+    type PropertyDistributionRegistry = T::PropertyDistributionRegistry;
+
+    fn get_distribution(
+        &self,
+        url: &EntityTypeReference,
+    ) -> Option<&BoundPropertyObjectDistribution<'_, Self::PropertyDistributionRegistry>> {
+        (**self).get_distribution(url)
+    }
+}
+
+#[derive(derive_more::Debug)]
 pub struct BoundPropertyObjectDistribution<'a, P> {
     distribution: PropertyObjectDistribution<'a>,
+    #[debug(skip)]
     properties: P,
 }
 
@@ -270,7 +315,7 @@ where
 
                     let Some(bound_property_distribution) = self
                         .properties
-                        .get_distribution(&property_distribution.property_type.url)
+                        .get_distribution(&property_distribution.property_type)
                     else {
                         return Some(Err(Report::new(
                             EntityDistributionError::MissingPropertyDistribution(
