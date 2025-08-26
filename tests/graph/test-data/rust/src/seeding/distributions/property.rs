@@ -7,6 +7,7 @@ use rand_distr::Distribution;
 use type_system::{
     knowledge::Property,
     ontology::{
+        VersionedUrl,
         data_type::schema::DataTypeReference,
         property_type::{PropertyType, schema::PropertyValues},
     },
@@ -141,4 +142,13 @@ where
             }
         }
     }
+}
+
+pub trait PropertyDistributionRegistry {
+    type ValueDistributionRegistry: ValueDistributionRegistry;
+
+    fn get_distribution(
+        &self,
+        url: &VersionedUrl,
+    ) -> Option<BoundPropertyDistribution<'_, Self::ValueDistributionRegistry>>;
 }

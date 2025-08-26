@@ -1,6 +1,7 @@
 use error_stack::IntoReport;
 
 pub mod adaptors;
+pub mod entity;
 pub mod ontology;
 pub mod property;
 pub mod value;
