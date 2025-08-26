@@ -405,6 +405,7 @@ const PetrinautInner = () => {
       mutatePetriNetDefinition((existingNet) => {
         for (const node of existingNet.nodes) {
           if (node.id === nodeId && node.data.type === "place") {
+            // @todo don't overwrite the whole object, update what has changed only
             node.data.initialTokenCounts = initialTokenCounts;
             return;
           }
@@ -445,6 +446,7 @@ const PetrinautInner = () => {
       mutatePetriNetDefinition((existingNet) => {
         for (const arc of existingNet.arcs) {
           if (arc.id === edgeId) {
+            // @todo don't overwrite the whole object, update what has changed only
             arc.data ??= { tokenWeights: {} };
             arc.data.tokenWeights = tokenWeights;
             return;

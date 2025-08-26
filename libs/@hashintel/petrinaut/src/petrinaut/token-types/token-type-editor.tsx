@@ -66,11 +66,16 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
     );
   };
 
+  /**
+   * @todo use more granular mutations of the token types
+   *       possibly just get rid of the local state and 'save' button and mutate on every change
+   */
   const handleSave = () => {
-    mutatePetriNetDefinition((existingNet) => ({
-      ...existingNet,
-      tokenTypes: localTokenTypes,
-    }));
+    mutatePetriNetDefinition((existingNet) => {
+      // eslint-disable-next-line no-param-reassign
+      existingNet.tokenTypes = localTokenTypes;
+    });
+
     onClose();
   };
 

@@ -3,6 +3,7 @@ import ELK from "elkjs/lib/elk.bundled.js";
 import { useCallback } from "react";
 import { useReactFlow } from "reactflow";
 
+import { useEditorContext } from "./editor-context";
 import { nodeDimensions } from "./styling";
 import type { ArcType, NodeType } from "./types";
 
@@ -26,12 +27,10 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
   },right=${graphPadding},bottom=${graphPadding}]`,
 };
 
-export const useLayoutGraph = ({
-  setNodes,
-}: {
-  setNodes: (newNodes: NodeType[]) => void;
-}) => {
+export const useLayoutGraph = () => {
   const { fitView } = useReactFlow();
+
+  const { mutatePetriNetDefinition } = useEditorContext();
 
   const layoutGraph = useCallback(
     ({
@@ -68,27 +67,50 @@ export const useLayoutGraph = ({
         layoutOptions: elkLayoutOptions,
       };
 
-      void elk.layout(graph).then((elements) => {
-        const newNodes: NodeType[] = [];
+      void elk.layout(graph).then((updatedElements) => {
+        mutatePetriNetDefinition((petriNet) => {
+          const nodesById = petriNet.nodes.reduce(
+            (acc, node) => {
+              acc[node.id] = node;
+              return acc;
+            },
+            {} as Record<string, NodeType>,
+          );
 
-        /**
-         * ELK inserts the calculated position as a root 'x' and 'y', but reactflow wants these in a position object
-         */
-        for (const { x, y, ...rest } of elements.children as (NodeType & {
-          x: number;
-          y: number;
-        })[]) {
-          newNodes.push({ ...rest, position: { x, y } });
-        }
+          /**
+           * ELK inserts the calculated position as a root 'x' and 'y'.
+           */
+          for (const { x, y, id } of updatedElements.children ?? []) {
+            const node = nodesById[id];
 
-        setNodes(newNodes);
+            if (!node) {
+              continue;
+            }
 
-        window.requestAnimationFrame(() =>
-          fitView({ duration: animationDuration, padding: 0.03, maxZoom: 1 }),
+            if (x && node.position.x !== x) {
+              node.position.x = x;
+            }
+
+            if (y && node.position.y !== y) {
+              node.position.y = y;
+            }
+          }
+        });
+
+        setTimeout(
+          () =>
+            window.requestAnimationFrame(() =>
+              fitView({
+                duration: animationDuration,
+                padding: 0.03,
+                maxZoom: 1,
+              }),
+            ),
+          300,
         );
       });
     },
-    [setNodes, fitView],
+    [mutatePetriNetDefinition, fitView],
   );
 
   return layoutGraph;
