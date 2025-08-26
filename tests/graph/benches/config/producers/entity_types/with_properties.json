@@ -1,0 +1,63 @@
+{
+  "schema": {
+    "domain": {
+      "local": {
+        "index": {
+          "sampling": "uniform"
+        }
+      },
+      "remote": {
+        "domain": {
+          "type": "weighted",
+          "distribution": [
+            {
+              "name": "https://blockprotocol.org",
+              "weight": 60,
+              "shortnames": {
+                "type": "const",
+                "value": "blockprotocol"
+              }
+            },
+            {
+              "name": "https://hash.ai",
+              "weight": 40,
+              "shortnames": {
+                "type": "const",
+                "value": "hash"
+              }
+            }
+          ]
+        },
+        "fetchedAt": "2000-01-01T00:00:00Z"
+      }
+    },
+    "title": {
+      "length": [6, 12]
+    },
+    "description": {
+      "length": [20, 80]
+    },
+    "properties": {
+      "type": "range",
+      "min": 1,
+      "max": 5,
+      "required": false
+    }
+  },
+  "metadata": {
+    "provenance": {
+      "value": {
+        "sources": [],
+        "actorType": "machine",
+        "origin": {
+          "type": "api"
+        }
+      }
+    }
+  },
+  "config": {
+    "conflict_behavior": {
+      "value": "Fail"
+    }
+  }
+}

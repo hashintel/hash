@@ -77,17 +77,17 @@ impl Error for DomainBindingError {}
 
 /// Domain sampler types after binding to catalogs.
 #[derive(Debug)]
-pub enum BoundDomainSampler<'a, U: WebCatalog, O: WebCatalog> {
+pub enum BoundDomainSampler<U: WebCatalog, O: WebCatalog> {
     Remote {
         domain: DomainDistribution,
         fetched_at: OffsetDateTime,
     },
-    Local(LocalChoiceSampler<'a, U, O>),
+    Local(LocalChoiceSampler<U, O>),
     Mixed {
         chooser: WeightedIndex<u32>,
         remote: DomainDistribution,
         fetched_at: OffsetDateTime,
-        local: LocalChoiceSampler<'a, U, O>,
+        local: LocalChoiceSampler<U, O>,
     },
 }
 
@@ -106,10 +106,10 @@ pub enum SampledDomain {
     },
 }
 
-impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
+impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<U, O> {
     pub fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> SampledDomain {
         match self {
-            BoundDomainSampler::Remote { domain, fetched_at } => {
+            Self::Remote { domain, fetched_at } => {
                 let (domain, shortname) = domain.sample(rng);
                 SampledDomain::Remote {
                     domain,
@@ -117,7 +117,7 @@ impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
                     fetched_at: *fetched_at,
                 }
             }
-            BoundDomainSampler::Local(local) => {
+            Self::Local(local) => {
                 let (domain, shortname, web_id) = local.sample(rng);
                 SampledDomain::Local {
                     domain,
@@ -125,7 +125,7 @@ impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
                     web_id,
                 }
             }
-            BoundDomainSampler::Mixed {
+            Self::Mixed {
                 chooser,
                 remote,
                 fetched_at,
@@ -152,12 +152,12 @@ impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
 }
 
 #[derive(Clone, derive_more::Debug)]
-struct LocalUniform<'a, C: WebCatalog> {
+struct LocalUniform<C: WebCatalog> {
     #[debug(skip)]
-    catalog: &'a C,
+    catalog: C,
 }
 
-impl<C: WebCatalog> LocalUniform<'_, C> {
+impl<C: WebCatalog> LocalUniform<C> {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
         let count = self.catalog.len();
         let index = rand::Rng::random_range(rng, 0..count);
@@ -170,28 +170,28 @@ impl<C: WebCatalog> LocalUniform<'_, C> {
 }
 
 #[derive(Clone)]
-pub struct LocalChoiceSampler<'a, U: WebCatalog, O: WebCatalog> {
-    inner: LocalChoiceSamplerInner<'a, U, O>,
+pub struct LocalChoiceSampler<U: WebCatalog, O: WebCatalog> {
+    inner: LocalChoiceSamplerInner<U, O>,
 }
 
 #[derive(Clone)]
-enum LocalChoiceSamplerInner<'a, U: WebCatalog, O: WebCatalog> {
-    User(LocalUniform<'a, U>),
-    Org(LocalUniform<'a, O>),
+enum LocalChoiceSamplerInner<U: WebCatalog, O: WebCatalog> {
+    User(LocalUniform<U>),
+    Org(LocalUniform<O>),
     Mixed {
         chooser: WeightedIndex<u32>,
-        user: LocalUniform<'a, U>,
-        org: LocalUniform<'a, O>,
+        user: LocalUniform<U>,
+        org: LocalUniform<O>,
     },
 }
 
-impl<U: WebCatalog, O: WebCatalog> core::fmt::Debug for LocalChoiceSampler<'_, U, O> {
+impl<U: WebCatalog, O: WebCatalog> core::fmt::Debug for LocalChoiceSampler<U, O> {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         fmt.debug_struct("LocalChoiceSampler").finish()
     }
 }
 
-impl<U: WebCatalog, O: WebCatalog> LocalChoiceSampler<'_, U, O> {
+impl<U: WebCatalog, O: WebCatalog> LocalChoiceSampler<U, O> {
     pub(super) fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
         match &self.inner {
             LocalChoiceSamplerInner::User(user_sampler) => user_sampler.sample(rng),
@@ -218,11 +218,11 @@ impl DomainPolicy {
     /// - [`DomainBindingError::EmptyCatalog`] if all provided catalogs are empty
     /// - [`DomainBindingError::InvalidWeights`] if weight configuration is invalid
     /// - [`DomainBindingError::Remote`] if remote domain configuration is invalid
-    pub fn bind<'deps, U: WebCatalog, O: WebCatalog>(
+    pub fn bind<U: WebCatalog, O: WebCatalog>(
         &self,
-        user_catalog: Option<&'deps U>,
-        org_catalog: Option<&'deps O>,
-    ) -> Result<BoundDomainSampler<'deps, U, O>, Report<DomainBindingError>> {
+        user_catalog: Option<U>,
+        org_catalog: Option<O>,
+    ) -> Result<BoundDomainSampler<U, O>, Report<DomainBindingError>> {
         match (&self.remote, &self.local) {
             (None, None) => Err(Report::new(DomainBindingError::NoSource)),
             (Some(remote), None) => {
@@ -281,11 +281,11 @@ fn bind_remote(
     Ok((domain, remote.fetched_at))
 }
 
-fn bind_local<'deps, U: WebCatalog, O: WebCatalog>(
-    user_catalog: Option<&'deps U>,
-    org_catalog: Option<&'deps O>,
+fn bind_local<U: WebCatalog, O: WebCatalog>(
+    user_catalog: Option<U>,
+    org_catalog: Option<O>,
     local: &LocalSourceConfig,
-) -> Result<LocalChoiceSampler<'deps, U, O>, Report<DomainBindingError>> {
+) -> Result<LocalChoiceSampler<U, O>, Report<DomainBindingError>> {
     let (user_sampler, org_sampler) = match local.index {
         IndexSamplerConfig::Uniform => (
             user_catalog.map(|catalog| LocalUniform { catalog }),

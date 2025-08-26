@@ -36,9 +36,10 @@ use crate::{
 };
 
 /// Dependencies for data type producers that need web catalogs for domain resolution.
-pub struct DataTypeProducerDeps<'c, U: WebCatalog, O: WebCatalog> {
-    pub user_catalog: Option<&'c U>,
-    pub org_catalog: Option<&'c O>,
+#[derive(Debug, Copy, Clone)]
+pub struct DataTypeProducerDeps<U: WebCatalog, O: WebCatalog> {
+    pub user_catalog: Option<U>,
+    pub org_catalog: Option<O>,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -93,10 +94,10 @@ impl DataTypeProducerConfig {
     /// # Errors
     ///
     /// Returns an error if the producer cannot be created.
-    pub fn create_producer<'deps, U: WebCatalog, O: WebCatalog>(
+    pub fn create_producer<U: WebCatalog, O: WebCatalog>(
         &self,
-        deps: &DataTypeProducerDeps<'deps, U, O>,
-    ) -> Result<DataTypeProducer<'deps, U, O>, Report<[DataTypeProducerConfigError]>> {
+        deps: DataTypeProducerDeps<U, O>,
+    ) -> Result<DataTypeProducer<U, O>, Report<[DataTypeProducerConfigError]>> {
         let domain = self
             .schema
             .domain
@@ -150,9 +151,9 @@ impl DataTypeProducerConfig {
 }
 
 #[derive(Debug)]
-pub struct DataTypeProducer<'c, U: WebCatalog, O: WebCatalog> {
+pub struct DataTypeProducer<U: WebCatalog, O: WebCatalog> {
     local_id: LocalId,
-    domain: BoundDomainSampler<'c, U, O>,
+    domain: BoundDomainSampler<U, O>,
     title: <WordDistributionConfig as DistributionConfig>::Distribution,
     description: <WordDistributionConfig as DistributionConfig>::Distribution,
     constraints: <ValueConstraintsDistributionConfig as DistributionConfig>::Distribution,
@@ -160,7 +161,7 @@ pub struct DataTypeProducer<'c, U: WebCatalog, O: WebCatalog> {
     provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
 }
 
-impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypeProducer<'_, U, O> {
+impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypeProducer<U, O> {
     type Error = Report<ParseBaseUrlError>;
 
     const ID: ProducerId = ProducerId::DataType;
@@ -171,7 +172,7 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
         let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
         let title_gid = context.global_id(local_id, Scope::Schema, SubScope::Title);
         let description_gid = context.global_id(local_id, Scope::Schema, SubScope::Description);
-        let constraints_gid = context.global_id(local_id, Scope::Schema, SubScope::Constraint);
+        let constraints_gid = context.global_id(local_id, Scope::Schema, SubScope::ValueConstraint);
 
         let constraints = self.constraints.sample(&mut constraints_gid.rng());
 
@@ -489,14 +490,13 @@ pub(crate) mod tests {
     fn deterministic_constraints_producer() {
         let config = sample_data_type_producer_config();
         let catalog = create_test_web_catalog();
-        let deps: DataTypeProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> =
-            DataTypeProducerDeps {
-                user_catalog: Some(&catalog),
-                org_catalog: None,
-            };
+        let deps = DataTypeProducerDeps {
+            user_catalog: Some(&catalog),
+            org_catalog: None::<&InMemoryWebCatalog>,
+        };
         let make_producer = || {
             config
-                .create_producer(&deps)
+                .create_producer(deps)
                 .expect("should be able to sample data type generator")
         };
         assert_producer_is_deterministic(make_producer);
@@ -532,13 +532,13 @@ pub(crate) mod tests {
         }))
         .expect("should parse remote-only domain policy");
 
-        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
-            user_catalog: None,
-            org_catalog: None,
+        let deps = DataTypeProducerDeps {
+            user_catalog: None::<&InMemoryWebCatalog>,
+            org_catalog: None::<&InMemoryWebCatalog>,
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with remote-only domain policy")
         };
 
@@ -560,13 +560,13 @@ pub(crate) mod tests {
         .expect("should parse local-only domain policy");
 
         let catalog = create_test_web_catalog();
-        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None,
+            org_catalog: None::<&InMemoryWebCatalog>,
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with local-only domain policy")
         };
 
@@ -602,13 +602,13 @@ pub(crate) mod tests {
         .expect("should parse mixed domain policy");
 
         let catalog = create_test_web_catalog();
-        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
             org_catalog: Some(&catalog),
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with mixed domain policy")
         };
 
@@ -637,12 +637,12 @@ pub(crate) mod tests {
         .expect("should parse config");
 
         let catalog = create_test_web_catalog();
-        let deps = DataTypeProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None,
+            org_catalog: None::<&InMemoryWebCatalog>,
         };
         cfg_ok
-            .create_producer(&deps)
+            .create_producer(deps)
             .expect("should bind defaults 1:1");
 
         // Error when only one side specifies weight
@@ -664,7 +664,7 @@ pub(crate) mod tests {
         .expect("should parse config");
 
         let _: Report<_> = cfg_err
-            .create_producer(&deps)
+            .create_producer(deps)
             .expect_err("should error on one-sided weight");
     }
 
@@ -688,7 +688,7 @@ pub(crate) mod tests {
                 org_catalog: None,
             };
 
-        let result = cfg.create_producer(&deps);
+        let result = cfg.create_producer(deps);
         assert!(
             result.is_err(),
             "should error without catalog for local config"
@@ -710,13 +710,12 @@ pub(crate) mod tests {
         .expect("should parse config");
 
         let empty_catalog = InMemoryWebCatalog::from_tuples(Vec::new());
-        let deps: DataTypeProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> =
-            DataTypeProducerDeps {
-                user_catalog: Some(&empty_catalog),
-                org_catalog: None,
-            };
+        let deps = DataTypeProducerDeps {
+            user_catalog: Some(&empty_catalog),
+            org_catalog: None::<&InMemoryWebCatalog>,
+        };
 
-        let result = cfg.create_producer(&deps);
+        let result = cfg.create_producer(deps);
         assert!(result.is_err(), "should error with empty local catalog");
     }
 
@@ -753,12 +752,11 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let deps: DataTypeProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> =
-            DataTypeProducerDeps {
-                user_catalog: Some(&user_catalog),
-                org_catalog: None,
-            };
-        let make_producer = || cfg.create_producer(&deps).expect("should build data type");
+        let deps = DataTypeProducerDeps {
+            user_catalog: Some(&user_catalog),
+            org_catalog: None::<&InMemoryWebCatalog>,
+        };
+        let make_producer = || cfg.create_producer(deps).expect("should build data type");
 
         assert_producer_is_deterministic(make_producer);
     }
