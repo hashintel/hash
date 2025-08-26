@@ -11,37 +11,37 @@ note: while trying to match meta-variable `$err:expr`
    |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:25:5
-   |
-25 |     bail!()
-   |     ^^^^^^^ missing tokens in macro arguments
-   |
+ --> tests/ui/missing_args.rs:25:5
+  |
+ 25 |     bail!()
+    |     ^^^^^^^ missing tokens in macro arguments
+    |
 note: while trying to match meta-variable `$err:expr`
-  --> src/macros.rs
-   |
-   |     ($err:expr) => {{
-   |      ^^^^^^^^^
+   --> src/macros.rs
+    |
+    |     ($err:expr) => {{
+    |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:29:13
-   |
-29 |     let _ = ensure!();
-   |             ^^^^^^^^^ missing tokens in macro arguments
-   |
+ --> tests/ui/missing_args.rs:29:13
+  |
+ 29 |     let _ = ensure!();
+    |             ^^^^^^^^^ missing tokens in macro arguments
+    |
 note: while trying to match meta-variable `$cond:expr`
-  --> src/macros.rs
-   |
-   |     ($cond:expr, $err:expr $(,)?) => {{
-   |      ^^^^^^^^^^
+   --> src/macros.rs
+    |
+    |     ($cond:expr, $err:expr $(,)?) => {{
+    |      ^^^^^^^^^^
 
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:35:25
-   |
-35 |     let _ = ensure!(true);
-   |                         ^ missing tokens in macro arguments
-   |
+ --> tests/ui/missing_args.rs:35:25
+  |
+ 35 |     let _ = ensure!(true);
+    |                         ^ missing tokens in macro arguments
+    |
 note: while trying to match `,`
-  --> src/macros.rs
-   |
-   |     ($cond:expr, $err:expr $(,)?) => {{
-   |                ^
+   --> src/macros.rs
+    |
+    |     ($cond:expr, $err:expr $(,)?) => {{
+    |                ^
