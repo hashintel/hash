@@ -71,3 +71,8 @@ path = "policy/lib.rs"
 [package.metadata.cargo-shear]
 # Cargo shear does not detect these dependencies
 ignored = ["tokio-postgres", "tracing-subscriber", "hash-repo-chores", "tracing-flame", "tracing"]
+
+[package.metadata.sync.turborepo]
+extra-dev-dependencies = [
+    { name = "@apps/hash-graph", version = "0.0.0-private" },
+]
