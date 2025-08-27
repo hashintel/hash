@@ -112,7 +112,8 @@ type Brand<Base, Kind extends string> = Base extends BrandedBase<
   infer NestedKind
 >
   ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
-  : BrandedBase<Base, { [_ in Kind]: true }>;`,
+  : BrandedBase<Base, { [_ in Kind]: true }>;
+  `,
     );
 };
 
@@ -142,7 +143,9 @@ const main = () => {
     );
     const targetTypeSystemPath = path.join(typeSystemRsDir, "type-system.d.ts");
 
-    fs.copyFileSync(sourceTypeSystemPath, targetTypeSystemPath);
+    const typeSystemContent = fs.readFileSync(sourceTypeSystemPath, "utf8");
+    const vendoredTypeSystemContent = vendorInUtilityTypes(typeSystemContent);
+    fs.writeFileSync(targetTypeSystemPath, vendoredTypeSystemContent, "utf8");
 
     // 3. Copy @index.snap.d.ts to src/native/type-system-rs/types.d.ts
     const sourceTypesPath = path.join(
@@ -154,9 +157,9 @@ const main = () => {
     );
     const targetTypesPath = path.join(typeSystemRsDir, "types.d.ts");
 
-    const content = fs.readFileSync(sourceTypesPath, "utf8");
-    const vendoredContent = vendorInUtilityTypes(content);
-    fs.writeFileSync(targetTypesPath, vendoredContent, "utf8");
+    const typesContent = fs.readFileSync(sourceTypesPath, "utf8");
+    const vendoredTypesContent = vendorInUtilityTypes(typesContent);
+    fs.writeFileSync(targetTypesPath, vendoredTypesContent, "utf8");
 
     // 4. Update import references in src/native
     updateImportReferences(path.join(packageRoot, "src", "native"), {
