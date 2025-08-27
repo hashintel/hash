@@ -76,7 +76,7 @@ impl Producer<UserCreation> for UserProducer {
 
     const ID: ProducerId = ProducerId::User;
 
-    fn generate(&mut self, context: &ProduceContext) -> Result<UserCreation, Self::Error> {
+    fn generate(&mut self, context: ProduceContext) -> Result<UserCreation, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
         let id_gid = context.global_id(local_id, Scope::Id, SubScope::Unknown);

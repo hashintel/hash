@@ -268,7 +268,6 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    #[expect(clippy::iter_on_empty_collections)]
     pub fn search_by_name(
         &self,
         name: Symbol<'heap>,

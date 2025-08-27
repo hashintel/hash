@@ -166,7 +166,7 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
 
     const ID: ProducerId = ProducerId::DataType;
 
-    fn generate(&mut self, context: &ProduceContext) -> Result<CreateDataTypeParams, Self::Error> {
+    fn generate(&mut self, context: ProduceContext) -> Result<CreateDataTypeParams, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
         let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
@@ -734,7 +734,7 @@ pub(crate) mod tests {
             producer: UserProducer::ID,
         };
         let users: Vec<UserCreation> =
-            iter::repeat_with(|| user_prod.generate(&ctx).expect("should generate user"))
+            iter::repeat_with(|| user_prod.generate(ctx).expect("should generate user"))
                 .take(10)
                 .collect();
 
