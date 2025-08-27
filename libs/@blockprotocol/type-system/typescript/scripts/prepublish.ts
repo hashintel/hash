@@ -135,15 +135,15 @@ const main = () => {
 
     // 4. Update import references in src/native
     updateImportReferences(path.join(packageRoot, "src", "native"), {
-      "@blockprotocol/type-system-rs": "./type-system-rs/type-system.d.ts",
+      '"@blockprotocol/type-system-rs"': '"./type-system-rs/type-system.d.ts"',
       "@blockprotocol/type-system-rs/types": "./type-system-rs/types.d.ts",
     });
 
     // 5. Update import references in src (but not subfolders)
     console.log("Updating import references in src...");
     updateImportReferences(path.join(packageRoot, "src"), {
-      "@blockprotocol/type-system-rs":
-        "./native/type-system-rs/type-system.d.ts",
+      '"@blockprotocol/type-system-rs"':
+        '"./native/type-system-rs/type-system.d.ts"',
       "@blockprotocol/type-system-rs/types":
         "./native/type-system-rs/types.d.ts",
     });
