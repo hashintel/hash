@@ -62,7 +62,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
+    "prepublishOnly": "tsx scripts/prepublish.ts && yarn build",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
@@ -84,6 +84,7 @@
     "@types/react": "19.1.9",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
+    "tsx": "4.20.3",
     "typescript": "5.7.3"
   },
   "peerDependencies": {
