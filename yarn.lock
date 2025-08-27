@@ -474,7 +474,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
     "@hashintel/block-design-system": "npm:0.0.4"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@hashintel/petrinaut": "npm:0.0.3"
     "@hashintel/query-editor": "npm:0.0.3"
     "@hashintel/type-editor": "npm:0.0.25"
@@ -683,7 +683,7 @@ __metadata:
     "@babel/preset-env": "npm:7.28.0"
     "@babel/preset-typescript": "npm:7.27.1"
     "@hashintel/block-design-system": "npm:0.0.4"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@storybook/addon-essentials": "npm:7.6.20"
@@ -771,7 +771,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@hashintel/block-design-system": "npm:0.0.4"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
@@ -7189,7 +7189,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.1"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
@@ -7215,7 +7215,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/design-system@npm:0.0.9-canary.1, @hashintel/design-system@workspace:libs/@hashintel/design-system":
+"@hashintel/design-system@npm:0.0.9-canary.2, @hashintel/design-system@workspace:libs/@hashintel/design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
@@ -7258,7 +7258,7 @@ __metadata:
     "@emotion/react": "npm:11.14.0"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/block-design-system": "npm:0.0.4"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
@@ -7283,7 +7283,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
@@ -7311,7 +7311,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
-    "@hashintel/design-system": "npm:0.0.9-canary.1"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
