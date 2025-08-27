@@ -32,7 +32,7 @@ const script = async () => {
 
   if (
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-    ("main" in packageJson && !packageJson.main.startsWith("dist/")) ||
+    ("main" in packageJson && !packageJson.main.includes("dist/")) ||
     ("exports" in packageJson &&
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Object.values(packageJson.exports as Record<string, string>).some(
