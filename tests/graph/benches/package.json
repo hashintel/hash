@@ -12,7 +12,6 @@
     "test:integration:manual": "cargo test --bench manual-queries"
   },
   "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/error-stack": "0.5.0",
     "@rust/hash-graph-api": "0.0.0-private",

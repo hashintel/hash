@@ -12994,7 +12994,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-benches@workspace:tests/graph/benches"
   dependencies:
-    "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-graph-api": "npm:0.0.0-private"
@@ -13021,6 +13020,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-integration@workspace:tests/graph/integration"
   dependencies:
+    "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
