@@ -248,7 +248,7 @@ jobs:
       #   run: turbo run bench:integration --filter "${{ matrix.name }}"
 
       # - name: Show background tasks logs
-      #   if: always()
+      #   if: always() && github.event_name == 'pull_request'
       #   run: |
       #     kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
       #     cat var/logs/base-background-task.log
@@ -264,11 +264,11 @@ jobs:
       #     clean: false
       #     ref: ${{ github.event.pull_request.head.sha }}
 
-      # - name: Checkout
-      #   if: github.event_name != 'pull_request'
-      #   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      #   with:
-      #     ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout
+        #   if: github.event_name != 'pull_request'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install tools
         uses: ./.github/actions/install-tools
