@@ -10,8 +10,8 @@ use type_system::principal::actor_group::WebId;
 pub mod domain;
 
 pub use self::domain::{
-    BoundDomainSampler, DomainBindingError, DomainPolicy, IndexSamplerConfig, LocalSourceConfig,
-    LocalWebTypeWeights, RemoteSourceConfig, SampledDomain,
+    BoundDomainSampler, DomainBindingError, DomainPolicy, IndexSamplerConfig, LocalWebTypeWeights,
+    SampledDomain, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
 };
 
 /// Trait for catalogs of web identities used for domain and ownership resolution.

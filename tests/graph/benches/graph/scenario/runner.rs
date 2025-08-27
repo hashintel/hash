@@ -11,8 +11,9 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    data_type::CreateDataTypeParams, entity_type::CreateEntityTypeParams,
-    migration::StoreMigration as _, pool::StorePool as _, property_type::CreatePropertyTypeParams,
+    data_type::CreateDataTypeParams, entity::CreateEntityParams,
+    entity_type::CreateEntityTypeParams, migration::StoreMigration as _, pool::StorePool as _,
+    property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
@@ -95,6 +96,8 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::PersistEntityTypes(stage) => stage.id.clone(),
                         Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
                         Stage::BuildEntityObjectRegistry(stage) => stage.id.clone(),
+                        Stage::GenerateEntities(stage) => stage.id.clone(),
+                        Stage::PersistEntities(stage) => stage.id.clone(),
                     },
                     produced,
                     duration_ms: start.elapsed().as_millis(),
@@ -128,6 +131,7 @@ pub struct Resources {
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
     pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
     pub entity_object_catalogs: HashMap<String, InMemoryEntityObjectRegistry>,
+    pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
 pub struct Runner {

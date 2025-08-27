@@ -112,6 +112,25 @@
       "inputs": {
         "entityTypes": ["entity-type-catalog"]
       }
+    },
+    {
+      "type": "generate-entities",
+      "id": "entities",
+      "configRef": "entities/basic",
+      "inputs": {
+        "userCatalog": "webs",
+        "entityTypeCatalog": "entity-type-catalog",
+        "entityObjectRegistry": "entity-object-registry"
+      },
+      "count": 1000000
+    },
+    {
+      "type": "persist-entities",
+      "id": "persist-entities",
+      "inputs": {
+        "entities": ["entities"],
+        "webToUser": ["users"]
+      }
     }
   ]
 }

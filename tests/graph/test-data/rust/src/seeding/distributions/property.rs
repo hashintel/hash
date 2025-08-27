@@ -215,6 +215,20 @@ pub trait EntityObjectDistributionRegistry {
     ) -> Option<&BoundPropertyObjectDistribution<'_, Self::PropertyDistributionRegistry>>;
 }
 
+impl<T> EntityObjectDistributionRegistry for &T
+where
+    T: EntityObjectDistributionRegistry,
+{
+    type PropertyDistributionRegistry = T::PropertyDistributionRegistry;
+
+    fn get_distribution(
+        &self,
+        url: &EntityTypeReference,
+    ) -> Option<&BoundPropertyObjectDistribution<'_, Self::PropertyDistributionRegistry>> {
+        (*self).get_distribution(url)
+    }
+}
+
 impl<T> EntityObjectDistributionRegistry for Arc<T>
 where
     T: EntityObjectDistributionRegistry,

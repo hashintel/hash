@@ -315,7 +315,8 @@ pub(crate) mod tests {
         producer::{
             ProducerExt as _,
             ontology::{
-                IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig, tests::EmptyTestCatalog,
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
             },
             tests::assert_producer_is_deterministic,
             user::tests::create_test_user_web_catalog,
@@ -330,7 +331,7 @@ pub(crate) mod tests {
         DataTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -391,10 +392,12 @@ pub(crate) mod tests {
                         weight: Some(1),
                         fetched_at: OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },

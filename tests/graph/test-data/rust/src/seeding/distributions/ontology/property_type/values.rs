@@ -55,6 +55,8 @@ pub enum PropertyValueTypeConfig {
     ///
     /// This will be resolved to an actual [`DataTypeReference`] during the binding phase
     /// based on the available data types in the catalog.
+    ///
+    /// [`DataTypeReference`]: type_system::ontology::data_type::schema::DataTypeReference
     Value,
 
     /// An array of property values.

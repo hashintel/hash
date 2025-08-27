@@ -389,10 +389,15 @@ impl GlobalId {
 #[repr(u8)]
 pub enum ProducerId {
     User,
+    Machine,
+    Ai,
+    Web,
+    Team,
+    Policy,
     DataType,
     PropertyType,
     EntityType,
-    Value,
+    Entity,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -407,10 +412,15 @@ impl ProducerId {
     const fn from_u8(value: u8) -> Result<Self, ParseProducerIdError> {
         match value {
             0 => Ok(Self::User),
-            1 => Ok(Self::DataType),
-            2 => Ok(Self::PropertyType),
-            3 => Ok(Self::EntityType),
-            4 => Ok(Self::Value),
+            1 => Ok(Self::Machine),
+            2 => Ok(Self::Ai),
+            3 => Ok(Self::Web),
+            4 => Ok(Self::Team),
+            5 => Ok(Self::Policy),
+            6 => Ok(Self::DataType),
+            7 => Ok(Self::PropertyType),
+            8 => Ok(Self::EntityType),
+            9 => Ok(Self::Entity),
             _ => Err(ParseProducerIdError { producer_id: value }),
         }
     }
@@ -486,6 +496,7 @@ impl Scope {
 pub enum SubScope {
     Unknown,
     Domain,
+    Web,
     Title,
     Description,
     ValueConstraint,
@@ -497,6 +508,7 @@ pub enum SubScope {
     Index,
     FetchedAt,
     Provenance,
+    Type,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -512,17 +524,19 @@ impl SubScope {
         match value {
             0 => Ok(Self::Unknown),
             1 => Ok(Self::Domain),
-            2 => Ok(Self::Title),
-            3 => Ok(Self::Description),
-            4 => Ok(Self::ValueConstraint),
-            5 => Ok(Self::PropertyValue),
-            6 => Ok(Self::Property),
-            7 => Ok(Self::Conflict),
-            8 => Ok(Self::Ownership),
-            9 => Ok(Self::WebType),
-            10 => Ok(Self::Index),
-            11 => Ok(Self::FetchedAt),
-            12 => Ok(Self::Provenance),
+            2 => Ok(Self::Web),
+            3 => Ok(Self::Title),
+            4 => Ok(Self::Description),
+            5 => Ok(Self::ValueConstraint),
+            6 => Ok(Self::PropertyValue),
+            7 => Ok(Self::Property),
+            8 => Ok(Self::Conflict),
+            9 => Ok(Self::Ownership),
+            10 => Ok(Self::WebType),
+            11 => Ok(Self::Index),
+            12 => Ok(Self::FetchedAt),
+            13 => Ok(Self::Provenance),
+            14 => Ok(Self::Type),
             _ => Err(ParseSubScopeError { sub_scope: value }),
         }
     }

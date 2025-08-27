@@ -211,13 +211,14 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
             kind: EntityTypeKindTag::EntityType,
             r#type: ObjectTypeTag::Object,
             id: VersionedUrl {
-                base_url: {
-                    let slug = slug_from_title(&title);
-                    BaseUrl::new(format!("https://{domain}/@{web_shortname}/{slug}/"))
-                        .attach_printable_lazy(|| {
-                            format!("Failed to create URL for entity type: {title}")
-                        })?
-                },
+                base_url: BaseUrl::new(format!(
+                    "{}/@{}/types/entity-type/{:x}-{:x}-{}/",
+                    &*domain,
+                    &*web_shortname,
+                    title_gid.shard_id,
+                    title_gid.local_id,
+                    slug_from_title(&title)
+                ))?,
                 version: OntologyTypeVersion::new(1),
             },
             title,
@@ -303,7 +304,8 @@ mod tests {
         },
         producer::{
             ontology::{
-                IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig, tests::EmptyTestCatalog,
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
             },
             property_type::tests::create_test_property_type_catalog,
             user::tests::create_test_user_web_catalog,
@@ -314,7 +316,7 @@ mod tests {
         EntityTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: crate::seeding::distributions::ontology::DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -331,10 +333,12 @@ mod tests {
                         weight: Some(1),
                         fetched_at: time::OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },

@@ -1,309 +1,172 @@
 use core::error::Error;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
-use hash_graph_store::{entity_type::CreateEntityTypeParams, query::ConflictBehavior};
-use rand::{distr::Distribution as _, prelude::IndexedRandom as _};
-use type_system::ontology::{
-    BaseUrl, VersionedUrl,
-    entity_type::{
-        EntityType,
-        schema::{
-            EntityConstraints, EntityTypeKindTag, EntityTypeSchemaTag, InverseEntityTypeMetadata,
-        },
+use hash_graph_store::entity::CreateEntityParams;
+use rand::distr::Distribution as _;
+use type_system::{
+    self,
+    knowledge::{
+        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        property::PropertyObjectWithMetadata,
     },
-    id::{OntologyTypeVersion, ParseBaseUrlError},
-    json_schema::ObjectTypeTag,
-    property_type::schema::PropertyTypeReference,
-    provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
 use super::{
     Producer,
-    ontology::{BoundDomainSampler, DomainPolicy, SampledDomain, WebCatalog},
+    entity_type::EntityTypeCatalog,
+    ontology::{
+        WebCatalog,
+        domain::{LocalChoiceSampler, LocalSourceConfig},
+    },
 };
 use crate::seeding::{
     context::{LocalId, ProduceContext, ProducerId, Scope, SubScope},
     distributions::{
-        DistributionConfig,
-        adaptors::{ConstDistribution, ConstDistributionConfig, WordDistributionConfig},
-        ontology::entity_type::properties::{
-            BoundEntityTypePropertiesDistribution, EntityTypePropertiesDistributionConfig,
-        },
+        DistributionConfig as _,
+        adaptors::{ConstDistribution, ConstDistributionConfig},
+        property::EntityObjectDistributionRegistry,
     },
-    producer::slug_from_title,
 };
 
 #[derive(Debug, derive_more::Display)]
 #[display("Invalid {_variant} distribution")]
-pub enum EntityTypeProducerConfigError {
-    #[display("domain")]
-    Domain,
-
-    #[display("title")]
-    Title,
-
-    #[display("description")]
-    Description,
-
-    #[display("properties")]
-    Properties,
-
-    #[display("conflict behavior")]
-    ConflictBehavior,
+pub enum EntityProducerConfigError {
+    #[display("web")]
+    Web,
 
     #[display("provenance")]
     Provenance,
-
-    #[display("fetched at")]
-    FetchedAt,
 }
 
-impl Error for EntityTypeProducerConfigError {}
+impl Error for EntityProducerConfigError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct EntityTypeProducerConfig {
-    pub schema: SchemaSection,
+pub struct EntityProducerConfig {
     pub metadata: MetadataSection,
-    pub config: ConfigSection,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SchemaSection {
-    pub domain: DomainPolicy,
-    pub title: WordDistributionConfig,
-    pub description: WordDistributionConfig,
-    pub properties: EntityTypePropertiesDistributionConfig,
-    // TODO: Add links support (recursive EntityType references - complex implementation)
-    //   see https://linear.app/hash/issue/H-5224/support-link-creation-in-entity-types-in-generated-entity-types
-    // pub links: EntityTypeLinksDistributionConfig,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MetadataSection {
-    pub provenance: ConstDistributionConfig<ProvidedOntologyEditionProvenance>,
+    pub web: LocalSourceConfig,
+    pub provenance: ConstDistributionConfig<ProvidedEntityEditionProvenance>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ConfigSection {
-    pub conflict_behavior: ConstDistributionConfig<ConflictBehavior>,
-}
-
-impl EntityTypeProducerConfig {
+impl EntityProducerConfig {
     /// Create an entity type producer from the configuration.
     ///
     /// # Errors
     ///
     /// Returns an error if the producer cannot be created.
-    pub fn create_producer<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog>(
+    pub fn create_producer<
+        U: WebCatalog,
+        O: WebCatalog,
+        E: EntityTypeCatalog,
+        D: EntityObjectDistributionRegistry,
+    >(
         &self,
-        deps: EntityTypeProducerDeps<U, O, P>,
-    ) -> Result<EntityTypeProducer<U, O, P>, Report<[EntityTypeProducerConfigError]>> {
-        let domain = self
-            .schema
-            .domain
+        deps: EntityProducerDeps<U, O, E, D>,
+    ) -> Result<EntityProducer<U, O, E, D>, Report<[EntityProducerConfigError]>> {
+        let web = self
+            .metadata
+            .web
             .bind(deps.user_catalog, deps.org_catalog)
-            .change_context(EntityTypeProducerConfigError::Domain);
-        let title = self
-            .schema
-            .title
-            .create_distribution()
-            .change_context(EntityTypeProducerConfigError::Title);
-        let description = self
-            .schema
-            .description
-            .create_distribution()
-            .change_context(EntityTypeProducerConfigError::Description);
-        let properties = self
-            .schema
-            .properties
-            .bind(deps.property_type_catalog)
-            .change_context(EntityTypeProducerConfigError::Properties);
-        let conflict_behavior = self
-            .config
-            .conflict_behavior
-            .create_distribution()
-            .change_context(EntityTypeProducerConfigError::ConflictBehavior);
+            .change_context(EntityProducerConfigError::Web);
         let provenance = self
             .metadata
             .provenance
             .create_distribution()
-            .change_context(EntityTypeProducerConfigError::Provenance);
+            .change_context(EntityProducerConfigError::Provenance);
 
-        let (domain, title, description, properties, conflict_behavior, provenance) = (
-            domain,
-            title,
-            description,
-            properties,
-            conflict_behavior,
-            provenance,
-        )
-            .try_collect()?;
+        let (web, provenance) = (web, provenance).try_collect()?;
 
-        Ok(EntityTypeProducer {
+        Ok(EntityProducer {
             local_id: LocalId::default(),
-            domain,
-            title,
-            description,
-            properties,
-            conflict_behavior,
+            web,
+            entity_type: deps.entity_type_catalog,
+            object: deps.entity_object_registry,
             provenance,
         })
     }
 }
 
-/// Dependencies required to create an [`EntityType`] producer.
+/// Dependencies required to create an [`EntityProducer`].
 #[derive(Debug, Copy, Clone)]
-#[expect(clippy::struct_field_names)]
-pub struct EntityTypeProducerDeps<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> {
+pub struct EntityProducerDeps<
+    U: WebCatalog,
+    O: WebCatalog,
+    E: EntityTypeCatalog,
+    D: EntityObjectDistributionRegistry,
+> {
     pub user_catalog: Option<U>,
     pub org_catalog: Option<O>,
-    pub property_type_catalog: P,
+    pub entity_type_catalog: E,
+    pub entity_object_registry: D,
 }
 
-/// Producer for generating [`EntityType`]s with configurable properties.
 #[derive(Debug)]
-pub struct EntityTypeProducer<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> {
+pub struct EntityProducer<
+    U: WebCatalog,
+    O: WebCatalog,
+    E: EntityTypeCatalog,
+    D: EntityObjectDistributionRegistry,
+> {
     local_id: LocalId,
-    domain: BoundDomainSampler<U, O>,
-    title: <WordDistributionConfig as DistributionConfig>::Distribution,
-    description: <WordDistributionConfig as DistributionConfig>::Distribution,
-    properties: BoundEntityTypePropertiesDistribution<P>,
-    conflict_behavior: ConstDistribution<ConflictBehavior>,
-    provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
+    web: LocalChoiceSampler<U, O>,
+    entity_type: E,
+    object: D,
+    provenance: ConstDistribution<ProvidedEntityEditionProvenance>,
 }
 
-impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntityTypeParams>
-    for EntityTypeProducer<U, O, P>
+#[derive(Debug, derive_more::Display)]
+pub enum EntityProducerError {
+    #[display("Missing object distribution")]
+    MissingObjectDistribution,
+    #[display("Could not sample entity object distribution")]
+    Object,
+}
+
+impl Error for EntityProducerError {}
+
+impl<U: WebCatalog, O: WebCatalog, E: EntityTypeCatalog, D: EntityObjectDistributionRegistry>
+    Producer<CreateEntityParams> for EntityProducer<U, O, E, D>
 {
-    type Error = Report<ParseBaseUrlError>;
+    type Error = Report<EntityProducerError>;
 
-    const ID: ProducerId = ProducerId::EntityType;
+    const ID: ProducerId = ProducerId::Entity;
 
-    fn generate(&mut self, context: ProduceContext) -> Result<CreateEntityTypeParams, Self::Error> {
+    fn generate(&mut self, context: ProduceContext) -> Result<CreateEntityParams, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
-        let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
-        let title_gid = context.global_id(local_id, Scope::Schema, SubScope::Title);
-        let description_gid = context.global_id(local_id, Scope::Schema, SubScope::Description);
-        let properties_gid = context.global_id(local_id, Scope::Schema, SubScope::Property);
+        let entity_gid = context.global_id(local_id, Scope::Id, SubScope::Unknown);
+        let object_gid = context.global_id(local_id, Scope::Object, SubScope::Property);
+        let web_gid = context.global_id(local_id, Scope::Metadata, SubScope::Web);
+        let type_gid = context.global_id(local_id, Scope::Metadata, SubScope::Type);
+        let provenance_gid = context.global_id(local_id, Scope::Metadata, SubScope::Provenance);
 
-        let (properties, required) = self.properties.sample(&mut properties_gid.rng());
-        let title = self.title.sample(&mut title_gid.rng());
-        let description = self.description.sample(&mut description_gid.rng());
+        let (_, _, web) = self.web.sample(&mut web_gid.rng());
+        let entity_type_url = self.entity_type.sample_entity_type(&mut type_gid.rng());
+        let entity_object_distribution = self
+            .object
+            .get_distribution(entity_type_url)
+            .ok_or(EntityProducerError::MissingObjectDistribution)?;
 
-        let (domain, web_shortname, ownership) = match self.domain.sample(&mut domain_gid.rng()) {
-            SampledDomain::Remote {
-                domain,
-                shortname,
-                fetched_at,
-            } => (domain, shortname, OntologyOwnership::Remote { fetched_at }),
-            SampledDomain::Local {
-                domain,
-                shortname,
-                web_id,
-            } => (domain, shortname, OntologyOwnership::Local { web_id }),
-        };
+        let properties = entity_object_distribution
+            .sample(&mut object_gid.rng())
+            .change_context(EntityProducerError::Object)?;
 
-        let entity_type = EntityType {
-            schema: EntityTypeSchemaTag::V3,
-            kind: EntityTypeKindTag::EntityType,
-            r#type: ObjectTypeTag::Object,
-            id: VersionedUrl {
-                base_url: {
-                    let slug = slug_from_title(&title);
-                    BaseUrl::new(format!("https://{domain}/@{web_shortname}/{slug}/"))
-                        .attach_printable_lazy(|| {
-                            format!("Failed to create URL for entity type: {title}")
-                        })?
-                },
-                version: OntologyTypeVersion::new(1),
-            },
-            title,
-            title_plural: None,
-            description,
-            inverse: InverseEntityTypeMetadata::default(),
-            constraints: EntityConstraints {
-                properties,
-                required,
-                links: HashMap::new(), // TODO: Add links support later
-            },
-            all_of: HashSet::new(),
-            label_property: None,
-            icon: None,
-        };
-
-        Ok(CreateEntityTypeParams {
-            schema: entity_type,
-            ownership,
-            conflict_behavior: self.conflict_behavior.sample(
-                &mut context
-                    .global_id(local_id, Scope::Config, SubScope::Conflict)
-                    .rng(),
-            ),
-            provenance: self.provenance.sample(
-                &mut context
-                    .global_id(local_id, Scope::Provenance, SubScope::Provenance)
-                    .rng(),
-            ),
+        Ok(CreateEntityParams {
+            web_id: web,
+            entity_uuid: Some(EntityUuid::new(entity_gid.encode())),
+            decision_time: None,
+            entity_type_ids: HashSet::from([entity_type_url.url.clone()]),
+            properties: PropertyObjectWithMetadata::from_parts(properties, None)
+                .change_context(EntityProducerError::Object)?,
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: self.provenance.sample(&mut provenance_gid.rng()),
         })
-    }
-}
-
-/// Trait for catalogs that provide [`PropertyType`] references for [`EntityType`] generation.
-///
-/// This trait enables [`EntityType`]s to reference existing [`PropertyType`]s when defining their
-/// property structures. Implementations should provide efficient access to [`PropertyType`]
-/// references for random sampling during generation.
-///
-/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-pub trait PropertyTypeCatalog {
-    /// Returns all available [`PropertyType`] references in this catalog.
-    ///
-    /// The returned slice should contain all [`PropertyType`]s that can be referenced when
-    /// generating [`EntityType`] properties. Empty catalogs will result in [`EntityType`]s with
-    /// no properties.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    fn property_type_references(&self) -> &[PropertyTypeReference];
-
-    /// Sample a random [`PropertyType`] reference from this catalog.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    ///
-    /// # Panics
-    ///
-    /// Panics if the catalog is empty. Callers should check [`is_empty()`] first or ensure the
-    /// catalog is properly populated before sampling.
-    ///
-    /// [`is_empty()`]: Self::is_empty
-    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        self.property_type_references()
-            .choose(rng)
-            .expect("catalog should not be empty")
-    }
-
-    /// Returns true if this catalog contains no [`PropertyType`] references.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    fn is_empty(&self) -> bool {
-        self.property_type_references().is_empty()
-    }
-}
-
-impl<C> PropertyTypeCatalog for &C
-where
-    C: PropertyTypeCatalog,
-{
-    fn property_type_references(&self) -> &[PropertyTypeReference] {
-        (*self).property_type_references()
-    }
-
-    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        (*self).sample_property_type(rng)
-    }
-
-    fn is_empty(&self) -> bool {
-        (*self).is_empty()
     }
 }

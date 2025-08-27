@@ -200,16 +200,14 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
 
         let schema = PropertyType {
             id: VersionedUrl {
-                base_url: {
-                    let slug = slug_from_title(&title);
-                    let url_string = format!(
-                        "{}/@{}/types/property-type/{:x}-{:x}-{}/",
-                        &*domain, &*web_shortname, title_gid.shard_id, title_gid.local_id, slug
-                    );
-                    BaseUrl::new(url_string).attach_printable_lazy(|| {
-                        format!("Failed to create URL for property type: {title}")
-                    })?
-                },
+                base_url: BaseUrl::new(format!(
+                    "{}/@{}/types/property-type/{:x}-{:x}-{}/",
+                    &*domain,
+                    &*web_shortname,
+                    title_gid.shard_id,
+                    title_gid.local_id,
+                    slug_from_title(&title)
+                ))?,
                 version: OntologyTypeVersion::new(1),
             },
             title,
@@ -295,7 +293,8 @@ pub(crate) mod tests {
             ProducerExt as _,
             data_type::tests::create_test_data_type_catalog,
             ontology::{
-                IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig, tests::EmptyTestCatalog,
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
             },
             user::tests::create_test_user_web_catalog,
         },
@@ -305,7 +304,7 @@ pub(crate) mod tests {
         PropertyTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: crate::seeding::distributions::ontology::DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -322,10 +321,12 @@ pub(crate) mod tests {
                         weight: Some(1),
                         fetched_at: time::OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },
