@@ -473,9 +473,9 @@ __metadata:
     "@graphql-codegen/fragment-matcher": "npm:3.3.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
-    "@hashintel/block-design-system": "npm:0.0.4"
+    "@hashintel/block-design-system": "npm:0.0.5"
     "@hashintel/design-system": "npm:0.0.9-canary.2"
-    "@hashintel/petrinaut": "npm:0.0.3"
+    "@hashintel/petrinaut": "npm:0.0.4"
     "@hashintel/query-editor": "npm:0.0.3"
     "@hashintel/type-editor": "npm:0.0.25"
     "@lit-labs/react": "npm:1.2.1"
@@ -682,7 +682,7 @@ __metadata:
   dependencies:
     "@babel/preset-env": "npm:7.28.0"
     "@babel/preset-typescript": "npm:7.27.1"
-    "@hashintel/block-design-system": "npm:0.0.4"
+    "@hashintel/block-design-system": "npm:0.0.5"
     "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -770,7 +770,7 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
-    "@hashintel/block-design-system": "npm:0.0.4"
+    "@hashintel/block-design-system": "npm:0.0.5"
     "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -7181,7 +7181,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hashintel/block-design-system@npm:0.0.4, @hashintel/block-design-system@workspace:libs/@hashintel/block-design-system":
+"@hashintel/block-design-system@npm:0.0.5, @hashintel/block-design-system@workspace:libs/@hashintel/block-design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/block-design-system@workspace:libs/@hashintel/block-design-system"
   dependencies:
@@ -7251,13 +7251,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut@npm:0.0.3, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
+"@hashintel/petrinaut@npm:0.0.4, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
     "@emotion/react": "npm:11.14.0"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
-    "@hashintel/block-design-system": "npm:0.0.4"
+    "@hashintel/block-design-system": "npm:0.0.5"
     "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@mui/material": "npm:5.18.0"
