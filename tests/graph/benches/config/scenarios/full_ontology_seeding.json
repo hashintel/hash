@@ -69,14 +69,13 @@
         "userCatalog": "webs",
         "propertyTypeCatalog": "property-type-catalog"
       },
-      "count": 10
+      "count": 100
     },
     {
       "type": "build-entity-type-catalog",
       "id": "entity-type-catalog",
       "input": ["entity-types"]
     },
-
     {
       "type": "persist-users",
       "id": "persist-users-basic",
@@ -122,7 +121,7 @@
         "entityTypeCatalog": "entity-type-catalog",
         "entityObjectRegistry": "entity-object-registry"
       },
-      "count": 10000
+      "count": 100000
     },
     {
       "type": "persist-entities",
