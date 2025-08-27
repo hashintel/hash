@@ -22,6 +22,7 @@ use hash_graph_test_data::seeding::{
 use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
+use serde_json::Value as JsonValue;
 use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
@@ -79,7 +80,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
             let mut out = Vec::with_capacity(scenario.stages.len());
             for stage in &scenario.stages {
                 let start = Instant::now();
-                let produced = stage.execute(&mut runner).await?;
+                let value = stage.execute(&mut runner).await?;
                 out.push(StepMetrics {
                     id: match stage {
                         Stage::ResetDb(stage) => stage.id.clone(),
@@ -99,7 +100,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::GenerateEntities(stage) => stage.id.clone(),
                         Stage::PersistEntities(stage) => stage.id.clone(),
                     },
-                    produced,
+                    value,
                     duration_ms: start.elapsed().as_millis(),
                 });
             }
@@ -111,7 +112,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
 #[derive(Debug, serde::Serialize)]
 pub struct StepMetrics {
     pub id: String,
-    pub produced: usize,
+    pub value: JsonValue,
     pub duration_ms: u128,
 }
 

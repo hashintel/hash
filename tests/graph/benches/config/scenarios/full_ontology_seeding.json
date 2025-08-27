@@ -44,7 +44,7 @@
     {
       "type": "build-data-type-catalog",
       "id": "data-type-catalog",
-      "input": "local-datatypes"
+      "input": ["local-datatypes", "remote-datatypes"]
     },
     {
       "type": "generate-property-types",
@@ -59,7 +59,7 @@
     {
       "type": "build-property-type-catalog",
       "id": "property-type-catalog",
-      "input": "property-types"
+      "input": ["property-types"]
     },
     {
       "type": "generate-entity-types",
@@ -74,7 +74,7 @@
     {
       "type": "build-entity-type-catalog",
       "id": "entity-type-catalog",
-      "input": "entity-types"
+      "input": ["entity-types"]
     },
 
     {

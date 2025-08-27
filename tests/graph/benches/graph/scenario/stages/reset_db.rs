@@ -49,19 +49,34 @@ pub enum ResetDbError {
 
 impl Error for ResetDbError {}
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "This holds flags operation")]
+pub struct ResetDbResult {
+    pub deleted_entities: bool,
+    pub deleted_entity_types: bool,
+    pub deleted_property_types: bool,
+    pub deleted_data_types: bool,
+    pub deleted_principals: bool,
+}
+
 impl ResetDbStage {
     #[expect(
         clippy::significant_drop_tightening,
         reason = "We intentionally scope connection and store for clarity; merging acquire+store \
                   would borrow a temporary and trigger E0716"
     )]
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<ResetDbError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<ResetDbResult, Report<ResetDbError>> {
         let pool = runner
             .ensure_db()
             .await
             .change_context(ResetDbError::EnsureDb)?;
 
-        let mut deleted = 0_usize;
+        let mut reset_db_result = ResetDbResult::default();
+
         {
             let mut conn = pool
                 .acquire(None)
@@ -74,35 +89,35 @@ impl ResetDbStage {
                     .delete_entities()
                     .await
                     .change_context(ResetDbError::DeleteEntities)?;
-                deleted += 1;
+                reset_db_result.deleted_entities = true;
             }
             if self.entity_types {
                 store
                     .delete_entity_types()
                     .await
                     .change_context(ResetDbError::DeleteEntityTypes)?;
-                deleted += 1;
+                reset_db_result.deleted_entity_types = true;
             }
             if self.property_types {
                 store
                     .delete_property_types()
                     .await
                     .change_context(ResetDbError::DeletePropertyTypes)?;
-                deleted += 1;
+                reset_db_result.deleted_property_types = true;
             }
             if self.data_types {
                 store
                     .delete_data_types()
                     .await
                     .change_context(ResetDbError::DeleteDataTypes)?;
-                deleted += 1;
+                reset_db_result.deleted_data_types = true;
             }
             if self.principals {
                 store
                     .delete_principals(ActorEntityUuid::new(uuid::Uuid::nil()))
                     .await
                     .change_context(ResetDbError::DeletePrincipals)?;
-                deleted += 1;
+                reset_db_result.deleted_principals = true;
             }
 
             store
@@ -111,6 +126,6 @@ impl ResetDbStage {
                 .change_context(ResetDbError::SeedPolicies)?;
         }
 
-        Ok(deleted)
+        Ok(reset_db_result)
     }
 }

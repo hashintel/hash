@@ -60,8 +60,17 @@ pub struct GeneratePropertyTypesStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GeneratePropertyTypesResult {
+    pub created_property_types: usize,
+}
+
 impl GeneratePropertyTypesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<GeneratePropertyTypesResult, Report<PropertyTypeError>> {
         let id = &self.id;
         let cfg = config::PROPERTY_TYPE_PRODUCER_CONFIGS
             .get(&self.config_ref)
@@ -116,7 +125,9 @@ impl GeneratePropertyTypesStage {
 
         let len = params.len();
         runner.resources.property_types.insert(id.clone(), params);
-        Ok(len)
+        Ok(GeneratePropertyTypesResult {
+            created_property_types: len,
+        })
     }
 }
 
@@ -134,8 +145,20 @@ pub struct PersistPropertyTypesStage {
     pub inputs: PersistPropertyTypesInputs,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistPropertyTypesResult {
+    pub persisted_property_types: usize,
+    pub local_webs: usize,
+    pub local_property_types: usize,
+    pub remote_property_types: usize,
+}
+
 impl PersistPropertyTypesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistPropertyTypesResult, Report<PropertyTypeError>> {
         let mut all_property_types = Vec::new();
         for property_type_key in &self.inputs.property_types {
             let property_types = runner
@@ -172,7 +195,7 @@ impl PersistPropertyTypesStage {
 
         // Check if we have any property types to persist
         if all_property_types.is_empty() {
-            return Ok(0);
+            return Ok(PersistPropertyTypesResult::default());
         }
 
         // System machine for remote types
@@ -195,6 +218,9 @@ impl PersistPropertyTypesStage {
                 }
             }
         }
+
+        let local_webs = local_by_web.len();
+        let remote_property_types = remote_params.len();
 
         // Persist locals per web, as user
         let mut total_created = 0_usize;
@@ -219,7 +245,12 @@ impl PersistPropertyTypesStage {
         }
         drop(store);
 
-        Ok(total_created)
+        Ok(PersistPropertyTypesResult {
+            persisted_property_types: total_created,
+            local_webs,
+            local_property_types: total_created - remote_property_types,
+            remote_property_types,
+        })
     }
 }
 
@@ -271,30 +302,34 @@ impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildPropertyTypeCatalogStage {
     pub id: String,
-    pub input: String,
+    pub input: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildPropertyTypeCatalogResult {
+    pub collected_property_types: usize,
 }
 
 impl BuildPropertyTypeCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PropertyTypeError>> {
-        let property_types = runner
-            .resources
-            .property_types
-            .get(&self.input)
-            .ok_or_else(|| {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<BuildPropertyTypeCatalogResult, Report<PropertyTypeError>> {
+        let mut property_type_ids = Vec::new();
+        for input in &self.input {
+            let property_types = runner.resources.property_types.get(input).ok_or_else(|| {
                 Report::new(PropertyTypeError::MissingConfig {
-                    name: self.input.clone(),
+                    name: input.clone(),
                 })
             })?;
+            property_type_ids.extend(property_types.iter().map(|params| PropertyTypeReference {
+                url: params.schema.id.clone(),
+            }));
+        }
 
-        let catalog = InMemoryPropertyTypeCatalog::new(
-            property_types
-                .iter()
-                .map(|params| PropertyTypeReference {
-                    url: params.schema.id.clone(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .change_context(PropertyTypeError::CreateCatalog)?;
+        let catalog = InMemoryPropertyTypeCatalog::new(property_type_ids)
+            .change_context(PropertyTypeError::CreateCatalog)?;
 
         let len = catalog.property_type_references().len();
 
@@ -303,6 +338,8 @@ impl BuildPropertyTypeCatalogStage {
             .property_type_catalogs
             .insert(self.id.clone(), catalog);
 
-        Ok(len)
+        Ok(BuildPropertyTypeCatalogResult {
+            collected_property_types: len,
+        })
     }
 }

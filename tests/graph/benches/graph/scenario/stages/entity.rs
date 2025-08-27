@@ -48,8 +48,17 @@ pub struct GenerateEntitiesStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GenerateEntitiesResult {
+    pub created_entities: usize,
+}
+
 impl GenerateEntitiesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<GenerateEntitiesResult, Report<EntityError>> {
         let id = &self.id;
         let cfg = config::ENTITY_PRODUCER_CONFIGS
             .get(&self.config_ref)
@@ -109,7 +118,9 @@ impl GenerateEntitiesStage {
 
         let len = params.len();
         runner.resources.entities.insert(id.clone(), params);
-        Ok(len)
+        Ok(GenerateEntitiesResult {
+            created_entities: len,
+        })
     }
 }
 
@@ -127,20 +138,31 @@ pub struct PersistEntitiesStage {
     pub inputs: PersistEntitiesInputs,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistEntitiesResult {
+    pub persisted_entities: usize,
+    pub local_webs: usize,
+}
+
 impl PersistEntitiesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistEntitiesResult, Report<EntityError>> {
         let mut all_entities: HashMap<WebId, Vec<_>> = HashMap::new();
         for entity_key in &self.inputs.entities {
-            let entities = runner.resources.entities.get(entity_key).ok_or_else(|| {
-                Report::new(EntityError::MissingConfig {
-                    name: entity_key.clone(),
-                })
-            })?;
+            let entities = runner
+                .resources
+                .entities
+                .remove(entity_key)
+                .ok_or_else(|| {
+                    Report::new(EntityError::MissingConfig {
+                        name: entity_key.clone(),
+                    })
+                })?;
             for entity in entities {
-                all_entities
-                    .entry(entity.web_id)
-                    .or_default()
-                    .push(entity.clone());
+                all_entities.entry(entity.web_id).or_default().push(entity);
             }
         }
 
@@ -166,7 +188,7 @@ impl PersistEntitiesStage {
 
         // Check if we have any entity types to persist
         if all_entities.is_empty() {
-            return Ok(0);
+            return Ok(PersistEntitiesResult::default());
         }
 
         // Persist locals per web, as user
@@ -184,6 +206,9 @@ impl PersistEntitiesStage {
 
         drop(store);
 
-        Ok(total_created)
+        Ok(PersistEntitiesResult {
+            persisted_entities: total_created,
+            local_webs: web_to_user_map.len(),
+        })
     }
 }

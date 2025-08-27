@@ -51,8 +51,17 @@ pub struct GenerateDataTypesStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GenerateDataTypesResult {
+    pub created_data_types: usize,
+}
+
 impl GenerateDataTypesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<DataTypeError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<GenerateDataTypesResult, Report<DataTypeError>> {
         let id = &self.id;
         let cfg = config::DATA_TYPE_PRODUCER_CONFIGS
             .get(&self.config_ref)
@@ -89,7 +98,9 @@ impl GenerateDataTypesStage {
 
         let len = params.len();
         runner.resources.data_types.insert(id.clone(), params);
-        Ok(len)
+        Ok(GenerateDataTypesResult {
+            created_data_types: len,
+        })
     }
 }
 
@@ -100,6 +111,15 @@ pub struct PersistDataTypesInputs {
     pub web_to_user: Vec<String>,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistDataTypesResult {
+    pub persisted_data_types: usize,
+    pub local_webs: usize,
+    pub local_data_types: usize,
+    pub remote_data_types: usize,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistDataTypesStage {
@@ -108,7 +128,10 @@ pub struct PersistDataTypesStage {
 }
 
 impl PersistDataTypesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<DataTypeError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistDataTypesResult, Report<DataTypeError>> {
         let mut all_data_types = Vec::new();
         for data_type_key in &self.inputs.data_types {
             let data_types = runner
@@ -171,6 +194,9 @@ impl PersistDataTypesStage {
             }
         }
 
+        let local_webs = local_by_web.len();
+        let remote_data_types = remote_params.len();
+
         // Persist locals per web, as user
         let mut total_created = 0_usize;
         for (web_id, group) in local_by_web {
@@ -194,7 +220,12 @@ impl PersistDataTypesStage {
         }
         drop(store);
 
-        Ok(total_created)
+        Ok(PersistDataTypesResult {
+            persisted_data_types: total_created,
+            local_webs,
+            local_data_types: total_created - remote_data_types,
+            remote_data_types,
+        })
     }
 }
 
@@ -244,30 +275,34 @@ impl DataTypeCatalog for InMemoryDataTypeCatalog {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildDataTypeCatalogStage {
     pub id: String,
-    pub input: String,
+    pub input: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildDataTypeCatalogResult {
+    pub collected_data_types: usize,
 }
 
 impl BuildDataTypeCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<DataTypeError>> {
-        let data_types = runner
-            .resources
-            .data_types
-            .get(&self.input)
-            .ok_or_else(|| {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<BuildDataTypeCatalogResult, Report<DataTypeError>> {
+        let mut data_type_ids = Vec::new();
+        for input in &self.input {
+            let data_types = runner.resources.data_types.get(input).ok_or_else(|| {
                 Report::new(DataTypeError::MissingConfig {
-                    name: self.input.clone(),
+                    name: input.clone(),
                 })
             })?;
+            data_type_ids.extend(data_types.iter().map(|params| DataTypeReference {
+                url: params.schema.id.clone(),
+            }));
+        }
 
-        let catalog = InMemoryDataTypeCatalog::new(
-            data_types
-                .iter()
-                .map(|params| DataTypeReference {
-                    url: params.schema.id.clone(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .change_context(DataTypeError::CreateCatalog)?;
+        let catalog = InMemoryDataTypeCatalog::new(data_type_ids)
+            .change_context(DataTypeError::CreateCatalog)?;
 
         let len = catalog.data_type_references().len();
 
@@ -276,6 +311,8 @@ impl BuildDataTypeCatalogStage {
             .data_type_catalogs
             .insert(self.id.clone(), catalog);
 
-        Ok(len)
+        Ok(BuildDataTypeCatalogResult {
+            collected_data_types: len,
+        })
     }
 }

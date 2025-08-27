@@ -59,8 +59,17 @@ pub struct WebCatalogStage {
     pub domain: String,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WebCatalogResult {
+    pub collected_webs: usize,
+}
+
 impl WebCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<WebCatalogError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<WebCatalogResult, Report<WebCatalogError>> {
         let mut all_users = Vec::new();
         for key in &self.from {
             let users =
@@ -82,6 +91,8 @@ impl WebCatalogStage {
             .resources
             .user_catalogs
             .insert(self.id.clone(), catalog);
-        Ok(len)
+        Ok(WebCatalogResult {
+            collected_webs: len,
+        })
     }
 }

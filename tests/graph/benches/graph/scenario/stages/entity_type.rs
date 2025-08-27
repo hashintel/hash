@@ -76,8 +76,17 @@ pub struct GenerateEntityTypesStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GenerateEntityTypesResult {
+    pub created_entity_types: usize,
+}
+
 impl GenerateEntityTypesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<GenerateEntityTypesResult, Report<EntityTypeError>> {
         let id = &self.id;
         let cfg = config::ENTITY_TYPE_PRODUCER_CONFIGS
             .get(&self.config_ref)
@@ -128,7 +137,9 @@ impl GenerateEntityTypesStage {
 
         let len = params.len();
         runner.resources.entity_types.insert(id.clone(), params);
-        Ok(len)
+        Ok(GenerateEntityTypesResult {
+            created_entity_types: len,
+        })
     }
 }
 
@@ -146,8 +157,20 @@ pub struct PersistEntityTypesStage {
     pub inputs: PersistEntityTypesInputs,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistEntityTypesResult {
+    pub persisted_entity_types: usize,
+    pub local_webs: usize,
+    pub local_entity_types: usize,
+    pub remote_entity_types: usize,
+}
+
 impl PersistEntityTypesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistEntityTypesResult, Report<EntityTypeError>> {
         let mut all_entity_types = Vec::new();
         for entity_type_key in &self.inputs.entity_types {
             let entity_types = runner
@@ -184,7 +207,7 @@ impl PersistEntityTypesStage {
 
         // Check if we have any entity types to persist
         if all_entity_types.is_empty() {
-            return Ok(0);
+            return Ok(PersistEntityTypesResult::default());
         }
 
         // System machine for remote types
@@ -207,6 +230,9 @@ impl PersistEntityTypesStage {
                 }
             }
         }
+
+        let local_webs = local_by_web.len();
+        let remote_entity_types = remote_params.len();
 
         // Persist locals per web, as user
         let mut total_created = 0_usize;
@@ -231,7 +257,12 @@ impl PersistEntityTypesStage {
         }
         drop(store);
 
-        Ok(total_created)
+        Ok(PersistEntityTypesResult {
+            persisted_entity_types: total_created,
+            local_webs,
+            local_entity_types: total_created - remote_entity_types,
+            remote_entity_types,
+        })
     }
 }
 
@@ -280,30 +311,34 @@ impl EntityTypeCatalog for InMemoryEntityTypeCatalog {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildEntityTypeCatalogStage {
     pub id: String,
-    pub input: String,
+    pub input: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildEntityTypeCatalogResult {
+    pub collected_entity_types: usize,
 }
 
 impl BuildEntityTypeCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
-        let entity_types = runner
-            .resources
-            .entity_types
-            .get(&self.input)
-            .ok_or_else(|| {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<BuildEntityTypeCatalogResult, Report<EntityTypeError>> {
+        let mut entity_type_ids = Vec::new();
+        for input in &self.input {
+            let entity_types = runner.resources.entity_types.get(input).ok_or_else(|| {
                 Report::new(EntityTypeError::MissingConfig {
-                    name: self.input.clone(),
+                    name: input.clone(),
                 })
             })?;
+            entity_type_ids.extend(entity_types.iter().map(|params| EntityTypeReference {
+                url: params.schema.id.clone(),
+            }));
+        }
 
-        let catalog = InMemoryEntityTypeCatalog::new(
-            entity_types
-                .iter()
-                .map(|params| EntityTypeReference {
-                    url: params.schema.id.clone(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .change_context(EntityTypeError::CreateCatalog)?;
+        let catalog = InMemoryEntityTypeCatalog::new(entity_type_ids)
+            .change_context(EntityTypeError::CreateCatalog)?;
 
         let len = catalog.entity_type_references().len();
 
@@ -312,7 +347,9 @@ impl BuildEntityTypeCatalogStage {
             .entity_type_catalogs
             .insert(self.id.clone(), catalog);
 
-        Ok(len)
+        Ok(BuildEntityTypeCatalogResult {
+            collected_entity_types: len,
+        })
     }
 }
 
@@ -392,11 +429,21 @@ pub struct BuildEntityTypeRegistryStage {
     pub inputs: BuildEntityTypeRegistryInputs,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_field_names)]
+pub struct BuildEntityTypeRegistryResult {
+    pub collected_data_types: usize,
+    pub collected_property_types: usize,
+    pub collected_entity_types: usize,
+}
+
 impl BuildEntityTypeRegistryStage {
+    #[expect(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         runner: &mut Runner,
-    ) -> Result<usize, Report<[BuildEntityTypeRegistryError]>> {
+    ) -> Result<BuildEntityTypeRegistryResult, Report<[BuildEntityTypeRegistryError]>> {
         let mut all_entity_types = Vec::new();
         for entity_type_key in &self.inputs.entity_types {
             all_entity_types.extend(
@@ -452,6 +499,9 @@ impl BuildEntityTypeRegistryStage {
             .map(|definitions| (definitions.data_types, definitions.property_types))
             .unwrap_or_default();
 
+        let data_types_len = data_types.len();
+        let property_types_len = property_types.len();
+
         let value_registry = Arc::new(InMemoryValueRegistry {
             values: data_types
                 .into_iter()
@@ -504,6 +554,10 @@ impl BuildEntityTypeRegistryStage {
             .entity_object_catalogs
             .insert(self.id.clone(), entity_object_registry);
 
-        Ok(len)
+        Ok(BuildEntityTypeRegistryResult {
+            collected_data_types: data_types_len,
+            collected_property_types: property_types_len,
+            collected_entity_types: len,
+        })
     }
 }

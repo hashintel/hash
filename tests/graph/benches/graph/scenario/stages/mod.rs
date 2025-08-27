@@ -1,6 +1,7 @@
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
+use serde_json::{Value as JsonValue, json};
 
 use self::{
     data_type::{BuildDataTypeCatalogStage, GenerateDataTypesStage, PersistDataTypesStage},
@@ -54,32 +55,79 @@ pub enum Stage {
 }
 
 impl Stage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<StageError>> {
+    pub async fn execute(&self, runner: &mut Runner) -> Result<JsonValue, Report<StageError>> {
         match self {
-            Self::ResetDb(stage) => stage.execute(runner).await.change_context(StageError),
-            Self::GenerateUsers(stage) => stage.execute(runner).change_context(StageError),
-            Self::PersistUsers(stage) => stage.execute(runner).await.change_context(StageError),
-            Self::WebCatalog(stage) => stage.execute(runner).change_context(StageError),
-            Self::GenerateDataTypes(stage) => stage.execute(runner).change_context(StageError),
-            Self::PersistDataTypes(stage) => stage.execute(runner).await.change_context(StageError),
-            Self::BuildDataTypeCatalog(stage) => stage.execute(runner).change_context(StageError),
-            Self::GeneratePropertyTypes(stage) => stage.execute(runner).change_context(StageError),
-            Self::PersistPropertyTypes(stage) => {
-                stage.execute(runner).await.change_context(StageError)
-            }
-            Self::BuildPropertyTypeCatalog(stage) => {
-                stage.execute(runner).change_context(StageError)
-            }
-            Self::GenerateEntityTypes(stage) => stage.execute(runner).change_context(StageError),
-            Self::PersistEntityTypes(stage) => {
-                stage.execute(runner).await.change_context(StageError)
-            }
-            Self::BuildEntityTypeCatalog(stage) => stage.execute(runner).change_context(StageError),
-            Self::BuildEntityObjectRegistry(stage) => {
-                stage.execute(runner).await.change_context(StageError)
-            }
-            Self::GenerateEntities(stage) => stage.execute(runner).change_context(StageError),
-            Self::PersistEntities(stage) => stage.execute(runner).await.change_context(StageError),
+            Self::ResetDb(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::GenerateUsers(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::PersistUsers(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::WebCatalog(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::GenerateDataTypes(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::PersistDataTypes(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::BuildDataTypeCatalog(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::GeneratePropertyTypes(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::PersistPropertyTypes(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::BuildPropertyTypeCatalog(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::GenerateEntityTypes(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::PersistEntityTypes(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::BuildEntityTypeCatalog(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::BuildEntityObjectRegistry(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::GenerateEntities(stage) => stage
+                .execute(runner)
+                .map(|result| json!(result))
+                .change_context(StageError),
+            Self::PersistEntities(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
         }
     }
 }
