@@ -46,6 +46,7 @@ const script = async () => {
 
   process.stdout.write("Resetting directory contents...");
 
+  // Restore files to their original state
   await execa(
     "git",
     [
@@ -61,6 +62,12 @@ const script = async () => {
       reject: false,
     },
   );
+
+  // Delete new files
+  await execa("git", ["clean", "-fdx", "--", packageInfo.path], {
+    cwd: monorepoRootDirPath,
+    reject: false,
+  });
 
   process.stdout.write(" Done\n");
 };
