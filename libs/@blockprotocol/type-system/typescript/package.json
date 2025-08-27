@@ -46,7 +46,8 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "yarn build",
+    "prepublishOnly": "tsx scripts/prepublish.ts && yarn build",
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "test:unit": "vitest --run"
   },
   "dependencies": {
@@ -67,6 +68,7 @@
     "rimraf": "6.0.1",
     "rollup": "4.46.2",
     "tslib": "2.8.1",
+    "tsx": "4.20.3",
     "typescript": "5.7.3",
     "vite-plugin-wasm-pack": "0.1.12",
     "vitest": "3.2.4"

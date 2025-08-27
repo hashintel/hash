@@ -50,7 +50,7 @@ const script = async () => {
 
   process.stdout.write(`Building...`);
 
-  // tsconfig.json is supposed to configured for local development and linting.
+  // tsconfig.json is supposed to be configured for local development and linting.
   // We need to override some options to generate a build that is ready for publishing.
   await execa(
     "tsc",
