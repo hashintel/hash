@@ -34,7 +34,7 @@
     "@blockprotocol/graph": "0.3.4",
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch",
     "@hashintel/block-design-system": "0.0.4",
-    "@hashintel/design-system": "0.0.9-canary.1",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@mui/material": "5.18.0",
     "clsx": "1.2.1",
