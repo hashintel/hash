@@ -18,7 +18,6 @@
   "exports": {
     ".": "./dist/es/main.js",
     "./slim": "./dist/es-slim/main-slim.js",
-    "./package.json": "./package.json",
     "./wasm": "./dist/wasm/type-system.wasm"
   },
   "main": "./dist/es/main.js",
