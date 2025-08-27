@@ -31,7 +31,6 @@ const getFilesOnly = (directoryPath: string) => {
 const updateImportReferences = (
   directoryPath: string,
   importMappings: Record<string, string>,
-  addSrcPrefix = false,
 ) => {
   const files = getFilesOnly(directoryPath);
 
@@ -39,19 +38,10 @@ const updateImportReferences = (
     let content = fs.readFileSync(file, "utf8");
 
     for (const [oldImport, newImport] of Object.entries(importMappings)) {
-      const regex = new RegExp(
-        `from\\s+['"]${oldImport.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"]`,
-        "g",
-      );
-
-      if (regex.test(content)) {
-        let replacement = newImport;
-        if (addSrcPrefix) {
-          replacement = `./src${newImport}`;
-        }
-        content = content.replace(regex, `from '${replacement}'`);
-      }
+      content = content.replaceAll(oldImport, newImport);
     }
+
+    fs.writeFileSync(file, content, "utf8");
   }
 };
 
@@ -70,6 +60,35 @@ const updatePackageJson = () => {
     packageJsonPath,
     `${JSON.stringify(packageJson, null, 2)}\n`,
   );
+};
+
+const oldUtilityTypeStatement = `// This file was generated from \`libs/@blockprotocol/type-system/rust/tests/codegen.rs\`
+
+import type { Real } from "@rust/hash-codec/types";
+import type { Brand } from "@local/advanced-types/brand";`;
+
+const newUtilityTypeStatement = `type Real = number;
+type BrandedBase<Base, Kind extends Record<string, unknown>> = Base & {
+  // The property prefixes are chosen such that they shouldn't appear in intellisense.
+
+  /** The type of the value space that is branded */
+  readonly "#base": Base;
+  /** The unique name for the branded type */
+  readonly "#kind": Kind;
+};
+
+/**
+ * The type-branding type to support nominal (name based) types
+ */
+type Brand<Base, Kind extends string> = Base extends BrandedBase<
+  infer NestedBase,
+  infer NestedKind
+>
+  ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
+  : BrandedBase<Base, { [_ in Kind]: true }>;`;
+
+const vendorInUtilityTypes = (content: string) => {
+  return content.replace(oldUtilityTypeStatement, newUtilityTypeStatement);
 };
 
 const main = () => {
@@ -110,7 +129,9 @@ const main = () => {
     );
     const targetTypesPath = path.join(typeSystemRsDir, "types.d.ts");
 
-    fs.copyFileSync(sourceTypesPath, targetTypesPath);
+    const content = fs.readFileSync(sourceTypesPath, "utf8");
+    const vendoredContent = vendorInUtilityTypes(content);
+    fs.writeFileSync(targetTypesPath, vendoredContent, "utf8");
 
     // 4. Update import references in src/native
     updateImportReferences(path.join(packageRoot, "src", "native"), {
@@ -120,16 +141,12 @@ const main = () => {
 
     // 5. Update import references in src (but not subfolders)
     console.log("Updating import references in src...");
-    updateImportReferences(
-      path.join(packageRoot, "src"),
-      {
-        "@blockprotocol/type-system-rs":
-          "./native/type-system-rs/type-system.d.ts",
-        "@blockprotocol/type-system-rs/types":
-          "./native/type-system-rs/types.d.ts",
-      },
-      true,
-    );
+    updateImportReferences(path.join(packageRoot, "src"), {
+      "@blockprotocol/type-system-rs":
+        "./native/type-system-rs/type-system.d.ts",
+      "@blockprotocol/type-system-rs/types":
+        "./native/type-system-rs/types.d.ts",
+    });
 
     // 6. Update package.json
     updatePackageJson();
