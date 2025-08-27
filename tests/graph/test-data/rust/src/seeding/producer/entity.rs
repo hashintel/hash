@@ -6,10 +6,7 @@ use hash_graph_store::entity::CreateEntityParams;
 use rand::distr::Distribution as _;
 use type_system::{
     self,
-    knowledge::{
-        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::PropertyObjectWithMetadata,
-    },
+    knowledge::entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
 };
 
 use super::{
@@ -160,8 +157,7 @@ impl<U: WebCatalog, O: WebCatalog, E: EntityTypeCatalog, D: EntityObjectDistribu
             entity_uuid: Some(EntityUuid::new(entity_gid.encode())),
             decision_time: None,
             entity_type_ids: HashSet::from([entity_type_url.url.clone()]),
-            properties: PropertyObjectWithMetadata::from_parts(properties, None)
-                .change_context(EntityProducerError::Object)?,
+            properties,
             confidence: None,
             link_data: None,
             draft: false,

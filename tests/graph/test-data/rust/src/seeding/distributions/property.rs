@@ -5,7 +5,9 @@ use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use rand::{Rng, seq::IndexedRandom as _};
 use rand_distr::{Bernoulli, Distribution};
 use type_system::{
-    knowledge::{Property, property::PropertyObject},
+    knowledge::property::{
+        PropertyObjectWithMetadata, PropertyWithMetadata, metadata::ObjectMetadata,
+    },
     ontology::{
         data_type::schema::DataTypeReference,
         entity_type::{
@@ -157,7 +159,7 @@ pub enum PropertyDistributionError {
 
 impl Error for PropertyDistributionError {}
 
-impl<V> Distribution<Result<Property, Report<PropertyDistributionError>>>
+impl<V> Distribution<Result<PropertyWithMetadata, Report<PropertyDistributionError>>>
     for BoundPropertyDistribution<'_, V>
 where
     V: ValueDistributionRegistry,
@@ -165,7 +167,7 @@ where
     fn sample<R: Rng + ?Sized>(
         &self,
         rng: &mut R,
-    ) -> Result<Property, Report<PropertyDistributionError>> {
+    ) -> Result<PropertyWithMetadata, Report<PropertyDistributionError>> {
         let property = self.distribution.property.choose(rng).unwrap_or_else(|| {
             unreachable!("`PropertyDistribution` should always have at least one property")
         });
@@ -177,7 +179,8 @@ where
                         value.clone().into_owned(),
                     ))
                 })?;
-                Ok(Property::Value(value_distribution.sample(rng)))
+
+                Ok(PropertyWithMetadata::Value(value_distribution.sample(rng)))
             }
         }
     }
@@ -309,7 +312,7 @@ pub enum EntityDistributionError {
 
 impl Error for EntityDistributionError {}
 
-impl<P> Distribution<Result<PropertyObject, Report<[EntityDistributionError]>>>
+impl<P> Distribution<Result<PropertyObjectWithMetadata, Report<[EntityDistributionError]>>>
     for BoundPropertyObjectDistribution<'_, P>
 where
     P: PropertyDistributionRegistry,
@@ -317,9 +320,10 @@ where
     fn sample<R: Rng + ?Sized>(
         &self,
         rng: &mut R,
-    ) -> Result<PropertyObject, Report<[EntityDistributionError]>> {
-        Ok(PropertyObject::new(
-            self.distribution
+    ) -> Result<PropertyObjectWithMetadata, Report<[EntityDistributionError]>> {
+        Ok(PropertyObjectWithMetadata {
+            value: self
+                .distribution
                 .properties
                 .iter()
                 .filter_map(|property_distribution| {
@@ -351,6 +355,7 @@ where
                     )
                 })
                 .try_collect_reports()?,
-        ))
+            metadata: ObjectMetadata::default(),
+        })
     }
 }

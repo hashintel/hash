@@ -1,7 +1,7 @@
 mod number;
 mod string;
 
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
@@ -10,8 +10,9 @@ use rand::Rng;
 use rand_distr::{Bernoulli, Distribution};
 pub use string::{StringValueDistribution, StringValueDistributionError};
 use type_system::{
-    knowledge::PropertyValue,
+    knowledge::{PropertyValue, property::PropertyValueWithMetadata, value::ValueMetadata},
     ontology::{
+        VersionedUrl,
         data_type::{ClosedDataType, schema::DataTypeReference},
         json_schema::{SingleValueConstraints, ValueConstraints},
     },
@@ -105,6 +106,7 @@ impl<'c> TryFrom<&'c ValueConstraints> for InnerValueDistribution<'c> {
 #[derive(Debug)]
 pub struct ValueDistribution<'e> {
     value: InnerValueDistribution<'e>,
+    data_type_url: Cow<'e, VersionedUrl>,
 }
 
 impl TryFrom<ClosedDataType> for ValueDistribution<'_> {
@@ -126,6 +128,7 @@ impl TryFrom<ClosedDataType> for ValueDistribution<'_> {
 
         Ok(ValueDistribution {
             value: InnerValueDistribution::try_from(constraints)?,
+            data_type_url: Cow::Owned(data_type.id),
         })
     }
 }
@@ -141,6 +144,7 @@ impl<'c> TryFrom<&'c ClosedDataType> for ValueDistribution<'c> {
             ),
             [constraints] => Ok(ValueDistribution {
                 value: InnerValueDistribution::try_from(constraints)?,
+                data_type_url: Cow::Borrowed(&data_type.id),
             }),
             [..] => {
                 todo!("https://linear.app/hash/issue/H-5244/support-value-seeding-for-complex-data-types")
@@ -149,13 +153,21 @@ impl<'c> TryFrom<&'c ClosedDataType> for ValueDistribution<'c> {
     }
 }
 
-impl Distribution<PropertyValue> for ValueDistribution<'_> {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PropertyValue {
-        match &self.value {
+impl Distribution<PropertyValueWithMetadata> for ValueDistribution<'_> {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PropertyValueWithMetadata {
+        let value = match &self.value {
             InnerValueDistribution::Null => PropertyValue::Null,
             InnerValueDistribution::Boolean(boolean) => PropertyValue::Bool(boolean.sample(rng)),
             InnerValueDistribution::Number(number) => PropertyValue::Number(number.sample(rng)),
             InnerValueDistribution::String(string) => PropertyValue::String(string.sample(rng)),
+        };
+
+        PropertyValueWithMetadata {
+            value,
+            metadata: ValueMetadata {
+                data_type_id: Some(self.data_type_url.clone().into_owned()),
+                ..ValueMetadata::default()
+            },
         }
     }
 }
