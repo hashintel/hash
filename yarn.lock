@@ -269,7 +269,7 @@ __metadata:
     "@anthropic-ai/sdk": "npm:0.32.1"
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@google-cloud/storage": "npm:7.16.0"
     "@google-cloud/vertexai": "npm:1.10.0"
     "@local/advanced-types": "npm:0.0.0-private"
@@ -343,7 +343,7 @@ __metadata:
     "@aws-sdk/s3-request-presigner": "npm:3.858.0"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@graphql-codegen/introspection": "npm:2.2.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
@@ -459,7 +459,7 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/hook": "npm:0.1.3"
     "@blockprotocol/service": "npm:0.1.4"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@dnd-kit/core": "npm:6.3.1"
     "@dnd-kit/sortable": "npm:7.0.2"
     "@dnd-kit/utilities": "npm:3.2.2"
@@ -616,7 +616,7 @@ __metadata:
   resolution: "@apps/hash-integration-worker@workspace:apps/hash-integration-worker"
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@linear/sdk": "npm:6.0.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -768,7 +768,7 @@ __metadata:
     "@babel/preset-react": "npm:7.27.1"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@hashintel/block-design-system": "npm:0.0.4"
     "@hashintel/design-system": "npm:0.0.9-canary.1"
@@ -4390,7 +4390,7 @@ __metadata:
   dependencies:
     "@apidevtools/json-schema-ref-parser": "npm:11.9.3"
     "@blockprotocol/core": "npm:0.1.4"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
@@ -4453,7 +4453,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/type-system@npm:0.1.2-canary.0, @blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript":
+"@blockprotocol/type-system@npm:0.1.2-canary.1, @blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript":
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript"
   dependencies:
@@ -7185,7 +7185,7 @@ __metadata:
   resolution: "@hashintel/block-design-system@workspace:libs/@hashintel/block-design-system"
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.1"
     "@hashintel/design-system": "npm:0.0.9-canary.1"
@@ -7218,7 +7218,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
   dependencies:
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
     "@emotion/styled": "npm:11.14.1"
@@ -7279,7 +7279,7 @@ __metadata:
   resolution: "@hashintel/query-editor@workspace:libs/@hashintel/query-editor"
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "npm:0.0.9-canary.1"
@@ -7307,7 +7307,7 @@ __metadata:
   resolution: "@hashintel/type-editor@workspace:libs/@hashintel/type-editor"
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@hashintel/design-system": "npm:0.0.9-canary.1"
@@ -9078,7 +9078,7 @@ __metadata:
     "@aws-sdk/s3-request-presigner": "npm:3.858.0"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@linear/sdk": "npm:6.0.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -9144,7 +9144,7 @@ __metadata:
   resolution: "@local/hash-graph-sdk@workspace:libs/@local/graph/sdk/typescript"
   dependencies:
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/harpc-client": "npm:0.0.0-private"
@@ -9168,7 +9168,7 @@ __metadata:
     "@apollo/client": "npm:3.10.5"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@graphql-codegen/fragment-matcher": "npm:3.3.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
@@ -17140,7 +17140,7 @@ __metadata:
     "@apps/hash-graph": "npm:0.0.0-private"
     "@apps/hash-integration-worker": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@graphql-codegen/introspection": "npm:2.2.3"
     "@graphql-codegen/typescript": "npm:2.8.8"
@@ -17173,7 +17173,7 @@ __metadata:
   resolution: "@tests/hash-backend-load@workspace:tests/hash-backend-load"
   dependencies:
     "@apps/hash-api": "npm:0.0.0-private"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
@@ -17210,7 +17210,7 @@ __metadata:
     "@apps/hash-search-loader": "npm:0.0.0-private"
     "@apps/plugin-browser": "npm:0.0.9"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
+    "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@graphql-codegen/cli": "npm:^5.0.3"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
