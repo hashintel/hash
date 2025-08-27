@@ -46,7 +46,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["start:migrate"]
+      "dependsOn": ["compile:release"]
     },
     "start:test:migrate": {
       "cache": false,
