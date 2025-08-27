@@ -3,6 +3,9 @@ import { createBase } from "@local/eslint/deprecated";
 export default [
   ...createBase(import.meta.dirname),
   {
+    ignores: ["scripts/prepublish.ts"],
+  },
+  {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "no-restricted-imports": [

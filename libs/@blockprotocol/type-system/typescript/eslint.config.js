@@ -4,6 +4,8 @@ export default [
   ...createBase(import.meta.dirname),
   {
     ignores: ["rollup.config.js"],
+  },
+  {
     rules: {
       "no-restricted-imports": [
         "error",
