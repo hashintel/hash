@@ -10,7 +10,7 @@
     "url": "git@github.com:hashintel/hash.git",
     "directory": "libs/@hashintel/block-design-system"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
