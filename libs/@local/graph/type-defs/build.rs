@@ -36,7 +36,26 @@ fn main() {
     println!("cargo:rerun-if-changed={}", codegen_package_path.display());
     println!("cargo:rerun-if-changed={}", type_defs_path.display());
 
-    if !std::process::Command::new("yarn")
+    // Try to find yarn in common locations
+    let yarn_paths = [
+        "/Users/ghost/.local/share/mise/installs/yarn/4.9.4/bin/yarn",
+        "/Users/ghost/.local/share/mise/installs/yarn/4.9.2/bin/yarn",
+        "/usr/local/bin/yarn",
+        "/opt/homebrew/bin/yarn",
+        "yarn", // fallback to PATH
+    ];
+
+    let mut yarn_cmd = None;
+    for yarn_path in &yarn_paths {
+        if std::path::Path::new(yarn_path).exists() || *yarn_path == "yarn" {
+            yarn_cmd = Some(yarn_path);
+            break;
+        }
+    }
+
+    let yarn_cmd = yarn_cmd.expect("Could not find yarn executable");
+
+    if !std::process::Command::new(yarn_cmd)
         .args([
             "tsx",
             &codegen_script_path.to_string_lossy(),
@@ -57,6 +76,14 @@ fn main() {
             // &out_dir,
         ])
         .current_dir(crate_dir)
+        .env(
+            "PATH",
+            format!(
+                "/Users/ghost/.local/share/mise/installs/node/22.17.1/bin:/Users/ghost/.local/\
+                 share/mise/installs/yarn/4.9.4/bin:{}",
+                std::env::var("PATH").unwrap_or_default()
+            ),
+        )
         .status()
         .expect("Failed to run codegen")
         .success()

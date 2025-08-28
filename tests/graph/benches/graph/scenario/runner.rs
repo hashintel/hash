@@ -1,6 +1,7 @@
 extern crate alloc;
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path, time::Instant};
 
+use criterion::{BatchSize, Criterion};
 use error_stack::{IntoReport, Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PolicyStore as _;
 use hash_graph_postgres_store::{
@@ -20,10 +21,13 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
+use libtest_mimic::Measurement;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use serde_json::Value as JsonValue;
+use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
+use tracing::Instrument;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::stages::{
@@ -57,56 +61,106 @@ impl core::error::Error for ScenarioError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BenchStage {
+    pub name: String,
+    pub steps: Vec<Stage>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Scenario {
     pub run_id: u16,
     pub num_shards: u16,
-    pub stages: Vec<Stage>,
+    pub setup: Vec<Stage>,
+    pub benches: Vec<BenchStage>,
 }
 
-pub async fn run_scenario_file(path: &Path) -> Result<ScenarioResult, Report<ScenarioError>> {
+#[tracing::instrument(skip_all)]
+pub async fn run_scenario_file(
+    path: &Path,
+    test_mode: bool,
+) -> Result<Option<Measurement>, Report<ScenarioError>> {
     let file = File::open(path).change_context(ScenarioError::Io)?;
     let reader = BufReader::new(file);
     let scenario: Scenario =
         serde_json::from_reader(reader).change_context(ScenarioError::Parse)?;
-    run_scenario(&scenario)
+
+    let name = path
+        .file_stem()
+        .unwrap_or_else(|| path.as_os_str())
+        .to_string_lossy();
+
+    run_scenario(&scenario, name, test_mode)
         .await
         .change_context(ScenarioError::Run)
 }
 
-pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<StageError>> {
+#[tracing::instrument(skip_all)]
+pub async fn run_scenario(
+    scenario: &Scenario,
+    name: impl Into<String>,
+    test_mode: bool,
+) -> Result<Option<Measurement>, Report<StageError>> {
+    let name = name.into();
+    let _span = tracing::span!(tracing::Level::INFO, "Scenario", name).entered();
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
-    Ok(ScenarioResult {
-        steps: {
-            let mut out = Vec::with_capacity(scenario.stages.len());
-            for stage in &scenario.stages {
-                let start = Instant::now();
-                let value = stage.execute(&mut runner).await?;
-                out.push(StepMetrics {
-                    id: match stage {
-                        Stage::ResetDb(stage) => stage.id.clone(),
-                        Stage::GenerateUsers(stage) => stage.id.clone(),
-                        Stage::PersistUsers(stage) => stage.id.clone(),
-                        Stage::WebCatalog(stage) => stage.id.clone(),
-                        Stage::GenerateDataTypes(stage) => stage.id.clone(),
-                        Stage::PersistDataTypes(stage) => stage.id.clone(),
-                        Stage::BuildDataTypeCatalog(stage) => stage.id.clone(),
-                        Stage::GeneratePropertyTypes(stage) => stage.id.clone(),
-                        Stage::PersistPropertyTypes(stage) => stage.id.clone(),
-                        Stage::BuildPropertyTypeCatalog(stage) => stage.id.clone(),
-                        Stage::GenerateEntityTypes(stage) => stage.id.clone(),
-                        Stage::PersistEntityTypes(stage) => stage.id.clone(),
-                        Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
-                        Stage::BuildEntityObjectRegistry(stage) => stage.id.clone(),
-                        Stage::GenerateEntities(stage) => stage.id.clone(),
-                        Stage::PersistEntities(stage) => stage.id.clone(),
-                    },
-                    value,
-                    duration_ms: start.elapsed().as_millis(),
-                });
+
+    let mut steps = Vec::with_capacity(scenario.setup.len());
+    for stage in &scenario.setup {
+        let start = Instant::now();
+        let value = stage
+            .execute(&mut runner)
+            .instrument(tracing::span!(
+                tracing::Level::INFO,
+                "Step",
+                id = stage.id()
+            ))
+            .await?;
+        let step_result = StepMetrics {
+            id: stage.id().to_owned(),
+            value,
+            duration_ms: start.elapsed().as_millis(),
+        };
+
+        eprintln!("Step {}: {:#}", step_result.id, step_result.value);
+
+        steps.push(step_result);
+    }
+
+    for bench in &scenario.benches {
+        let _span = tracing::span!(tracing::Level::INFO, "Bench", name = bench.name).entered();
+
+        let runs = if test_mode { 1 } else { 1000 };
+
+        let mut k = 0_u128;
+        let mut mean = 0.0_f64;
+        let mut m2 = 0.0_f64;
+
+        for run in 0..runs {
+            let start = Instant::now();
+            for step in &bench.steps {
+                step.execute(&mut runner)
+                    .instrument(tracing::span!(tracing::Level::INFO, "Step", id = step.id()))
+                    .await
+                    .expect("step failed");
             }
-            out
-        },
-    })
+
+            k += 1;
+            let delta = start.elapsed().as_nanos() as f64 - mean;
+            mean += delta / (k as f64);
+            m2 += delta * (delta - mean);
+        }
+
+        let var = if k > 1 { m2 / ((k - 1) as f64) } else { 0.0 };
+        let stddev = var.sqrt();
+
+        return Ok(Some(Measurement {
+            avg: mean as u64,
+            variance: stddev as u64,
+        }));
+    }
+
+    Ok(None)
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -121,7 +175,7 @@ pub struct ScenarioResult {
     pub steps: Vec<StepMetrics>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Resources {
     pub users: HashMap<String, Vec<UserCreation>>,
     pub user_catalogs: HashMap<String, InMemoryWebCatalog>,
@@ -135,6 +189,7 @@ pub struct Resources {
     pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Runner {
     run_id: RunId,
     num_shards: u16,

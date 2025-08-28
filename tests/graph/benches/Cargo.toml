@@ -23,6 +23,7 @@ hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
 hash-graph-type-fetcher        = { workspace = true }
 hash-repo-chores               = { workspace = true }
+hash-telemetry                 = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies
@@ -31,13 +32,14 @@ criterion-macro    = { workspace = true }
 derive_more        = { workspace = true, features = ["display"] }
 either             = { workspace = true }
 itertools          = { workspace = true }
+libtest-mimic      = { workspace = true }
 rand               = { workspace = true, features = ["thread_rng"] }
 rayon              = { workspace = true }
 regex              = { workspace = true }
 serde              = { workspace = true, features = ["derive"] }
 serde_json         = { workspace = true }
 time               = { workspace = true }
-tokio              = { workspace = true, features = ["macros"] }
+tokio              = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tokio-postgres     = { workspace = true, default-features = false }
 tracing            = { workspace = true }
 tracing-flame      = { workspace = true }
@@ -61,8 +63,9 @@ name = "manual-queries"
 path = "manual_queries/lib.rs"
 
 [[bench]]
-name = "graph"
-path = "graph/lib.rs"
+name    = "graph"
+path    = "graph/lib.rs"
+harness = false
 
 [[bench]]
 name = "policy"

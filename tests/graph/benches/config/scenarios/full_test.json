@@ -1,7 +1,7 @@
 {
   "runId": 1,
   "numShards": 16,
-  "stages": [
+  "setup": [
     {
       "type": "reset-db",
       "id": "reset",
@@ -30,7 +30,7 @@
       "inputs": {
         "userCatalog": "webs"
       },
-      "count": 50
+      "count": 2
     },
     {
       "type": "generate-data-types",
@@ -39,7 +39,7 @@
       "inputs": {
         "userCatalog": "webs"
       },
-      "count": 10
+      "count": 5
     },
     {
       "type": "build-data-type-catalog",
@@ -54,7 +54,7 @@
         "userCatalog": "webs",
         "dataTypeCatalog": "data-type-catalog"
       },
-      "count": 50
+      "count": 5
     },
     {
       "type": "build-property-type-catalog",
@@ -69,7 +69,7 @@
         "userCatalog": "webs",
         "propertyTypeCatalog": "property-type-catalog"
       },
-      "count": 100
+      "count": 10
     },
     {
       "type": "build-entity-type-catalog",
@@ -130,6 +130,18 @@
         "entities": ["entities"],
         "webToUser": ["users"]
       }
+    }
+  ],
+  "benches": [
+    {
+      "name": "query_single",
+      "steps": [
+        {
+          "type": "query-entities",
+          "id": "query-entities",
+          "inputs": {}
+        }
+      ]
     }
   ]
 }

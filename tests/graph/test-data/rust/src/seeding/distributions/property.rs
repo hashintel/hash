@@ -22,7 +22,7 @@ use type_system::{
 };
 
 use super::value::ValueDistributionRegistry;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct PropertyObjectPropertyDistribution<'a> {
     probability: Bernoulli,
     property_type: Cow<'a, PropertyTypeReference>,
@@ -39,7 +39,7 @@ impl<'a> PropertyObjectPropertyDistribution<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PropertyObjectDistribution<'a> {
     properties: Vec<PropertyObjectPropertyDistribution<'a>>,
 }
@@ -246,7 +246,7 @@ where
     }
 }
 
-#[derive(derive_more::Debug)]
+#[derive(derive_more::Debug, Clone)]
 pub struct BoundPropertyObjectDistribution<'a, P> {
     distribution: PropertyObjectDistribution<'a>,
     #[debug(skip)]

@@ -383,7 +383,7 @@ impl PropertyDistributionRegistry for InMemoryPropertyRegistry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InMemoryEntityObjectRegistry {
     entities: HashMap<
         EntityTypeReference,

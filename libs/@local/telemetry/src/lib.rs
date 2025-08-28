@@ -59,22 +59,32 @@ pub struct TracingGuard<F> {
 
 impl<F> Drop for TracingGuard<F> {
     fn drop(&mut self) {
-        if let Some(provider) = self.otlp_metrics_provider.take()
-            && let Err(error) = provider.shutdown()
-        {
-            tracing::warn!("Failed to shutdown OpenTelemetry metrics: {error}");
+        // Force flush all pending spans before shutdown
+        if let Some(provider) = self.otlp_traces_provider.take() {
+            if let Err(error) = provider.force_flush() {
+                tracing::warn!("Failed to flush OpenTelemetry traces: {error}");
+            }
+            if let Err(error) = provider.shutdown() {
+                tracing::warn!("Failed to shutdown OpenTelemetry traces: {error}");
+            }
         }
 
-        if let Some(provider) = self.otlp_logs_provider.take()
-            && let Err(error) = provider.shutdown()
-        {
-            tracing::warn!("Failed to shutdown OpenTelemetry logs: {error}");
+        if let Some(provider) = self.otlp_logs_provider.take() {
+            if let Err(error) = provider.force_flush() {
+                tracing::warn!("Failed to flush OpenTelemetry logs: {error}");
+            }
+            if let Err(error) = provider.shutdown() {
+                tracing::warn!("Failed to shutdown OpenTelemetry logs: {error}");
+            }
         }
 
-        if let Some(provider) = self.otlp_traces_provider.take()
-            && let Err(error) = provider.shutdown()
-        {
-            tracing::warn!("Failed to shutdown OpenTelemetry traces: {error}");
+        if let Some(provider) = self.otlp_metrics_provider.take() {
+            if let Err(error) = provider.force_flush() {
+                tracing::warn!("Failed to flush OpenTelemetry metrics: {error}");
+            }
+            if let Err(error) = provider.shutdown() {
+                tracing::warn!("Failed to shutdown OpenTelemetry metrics: {error}");
+            }
         }
     }
 }

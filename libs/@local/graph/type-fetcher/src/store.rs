@@ -103,13 +103,14 @@ pub trait TypeFetcher {
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Report<InsertionError>>> + Send;
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TypeFetcherConnectionInfo<A> {
     address: A,
     config: tarpc::client::Config,
     domain_validator: DomainValidator,
 }
 
+#[derive(Debug, Clone)]
 pub struct FetchingPool<P, A> {
     pool: P,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
