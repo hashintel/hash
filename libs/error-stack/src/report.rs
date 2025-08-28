@@ -39,7 +39,7 @@ use crate::{
 ///
 /// Please see the examples below for more information.
 ///
-/// [`Display`]: fmt::Display
+/// [`Display`]: core::fmt::Display
 /// [`error_stack::fmt`]: crate::fmt
 ///
 /// ## Multiple Errors
