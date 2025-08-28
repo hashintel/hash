@@ -17,7 +17,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 ### Breaking Changes
 
-- Rename `attach[_lazy]` to `attach_opaque[_lazy]` and `attach_printable[_lazy]` to `attach[_lazy]`.
+- Rename `attach[_lazy]` to `attach_opaque[_lazy]` and `attach_printable[_lazy]` to `attach[_lazy]`. ([#7753](https://github.com/hashintel/hash/pull/7753))
 - Set the MSRV to 1.83 ([#5333](https://github.com/hashintel/hash/pull/5333))
 - `Extend` is no longer implemented by `Report<C>`, instead it is implemented on `Report<[C]>`, either use `From` or `Report::expand` to convert between `Report<C>` into `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `extend_one` has been renamed to `push` and is only implemented on `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
@@ -25,7 +25,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 ### Deprecations
 
-- `attach_printable[_lazy]`: User `attach[_lazy]` instead
+- `attach_printable[_lazy]`: User `attach[_lazy]` instead ([#7753](https://github.com/hashintel/hash/pull/7753))
 - `Context`: Use `core::error::Error` instead ([#5533](https://github.com/hashintel/hash/pull/5533))
 - `Result<T, C>`: Use `core::result::Result<T, Report<C>>` instead ([#5533](https://github.com/hashintel/hash/pull/5533))
 - `report!`, use `IntoReport::into_report` instead. ([#6738](https://github.com/hashintel/hash/pull/6738))
