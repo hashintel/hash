@@ -9,8 +9,8 @@ export {
   mustHaveAtLeastOne,
 } from "./common.js";
 export * from "./native.js";
-export type * from "@blockprotocol/type-system-rs";
-export type * from "@blockprotocol/type-system-rs/types";
+export * from "@blockprotocol/type-system-rs";
+export * from "@blockprotocol/type-system-rs/types";
 
 /**
  * This explicit re-export is necessary as we're overwriting EntityMetadata from @blockprotocol/type-system-rs,
