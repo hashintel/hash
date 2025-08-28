@@ -177,7 +177,7 @@
 //! Module/crate boundaries are not the only places where information can be embedded within the
 //! [`Report`] however. Additional information can be attached within the current context, whether
 //! this be a string, or any thread-safe object. These attachments are added by using
-//! [`Report::attach()`] and [`Report::attach_printable()`]:
+//! [`Report::attach_opaque()`] and [`Report::attach()`]:
 //!
 //! ```rust
 //! # // we only test the snapshot on nightly, therefore report is unused (so is render)
@@ -201,8 +201,8 @@
 //!
 //!     let content = fs::read_to_string(path)
 //!         .change_context(ParseConfigError::new())
-//!         .attach(Suggestion("use a file you can read next time!"))
-//!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
+//!         .attach_opaque(Suggestion("use a file you can read next time!"))
+//!         .attach_lazy(|| format!("could not read file {path:?}"))?;
 //!
 //!     Ok(content)
 //! }
@@ -525,6 +525,7 @@ pub use self::result::Result;
 pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
+    context::{Attachment, OpaqueAttachment},
     frame::{AttachmentKind, Frame, FrameKind},
     report::{IntoReport, Report},
 };

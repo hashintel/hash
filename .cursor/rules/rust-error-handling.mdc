@@ -19,7 +19,7 @@ alwaysApply: false
 
 - Use `change_context()` to map error types consistently
 - Ensure that errors include sufficient context for debugging
-- Add `attach_printable()` or `attach_printable_lazy()` to include relevant debug information
+- Add `attach()` or `attach_lazy()` to include relevant debug information
 - When reporting errors to users, provide actionable guidance where possible
 
 ## Error Definition

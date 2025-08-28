@@ -514,7 +514,7 @@ where
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
-        .attach_printable("Could not check if ontology type exists")
+        .attach("Could not check if ontology type exists")
     }
 
     #[tracing::instrument(level = "info", skip(self, ontology_type))]
@@ -564,7 +564,7 @@ where
         let fetcher = self
             .fetcher_client()
             .await
-            .attach_printable_lazy(|| {
+            .attach_lazy(|| {
                 queue
                     .iter()
                     .map(ToString::to_string)
@@ -911,7 +911,7 @@ where
             record_id.base_url == reference.base_url && record_id.version == reference.version
         })
         .ok_or_else(|| {
-            Report::new(InsertionError).attach_printable(format!(
+            Report::new(InsertionError).attach(format!(
                 "external type was not fetched: {}",
                 reference.url()
             ))
@@ -1127,7 +1127,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1187,7 +1187,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1278,7 +1278,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1340,7 +1340,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1420,7 +1420,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1501,7 +1501,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_lazy(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)

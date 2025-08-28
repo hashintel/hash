@@ -112,7 +112,7 @@ impl PropertyTypeProducerConfig {
                 // This would need special handling based on the values config, but for now we
                 // require it
                 return Err(Report::new(PropertyTypeProducerConfigError::Values)
-                    .attach_printable("Property types require a data type catalog")
+                    .attach("Property types require a data type catalog")
                     .expand());
             }
         };
@@ -207,7 +207,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
                         "{}/@{}/types/property-type/{:x}-{:x}-{}/",
                         &*domain, &*web_shortname, title_gid.shard_id, title_gid.local_id, slug
                     );
-                    BaseUrl::new(url_string).attach_printable_lazy(|| {
+                    BaseUrl::new(url_string).attach_lazy(|| {
                         format!("Failed to create URL for property type: {title}")
                     })?
                 },

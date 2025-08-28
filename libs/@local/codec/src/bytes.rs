@@ -88,7 +88,7 @@ impl<T: Serialize + Send + Sync + 'static> Encoder<T> for JsonLinesEncoder<T> {
         let mut writer = dst.writer();
         serde_json::to_writer(&mut writer, &item)
             .map_err(io::Error::from)
-            .attach(item)?;
+            .attach_opaque(item)?;
         writeln!(writer)?;
         Ok(())
     }
@@ -204,8 +204,8 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
-                    .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
-                    .attach_printable_lazy(|| line.clone())
+                    .attach_lazy(|| format!("line in input: {}", self.current_line))
+                    .attach_lazy(|| line.clone())
             })
             .transpose()
     }
@@ -228,8 +228,8 @@ impl<T: DeserializeOwned> Decoder for JsonLinesDecoder<T> {
             .map(|line| {
                 serde_json::from_str(&line)
                     .map_err(io::Error::from)
-                    .attach_printable_lazy(|| format!("line in input: {}", self.current_line))
-                    .attach_printable_lazy(|| line.clone())
+                    .attach_lazy(|| format!("line in input: {}", self.current_line))
+                    .attach_lazy(|| line.clone())
             })
             .transpose()
     }

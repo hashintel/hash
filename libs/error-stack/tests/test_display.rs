@@ -7,11 +7,11 @@ use common::*;
 #[test]
 fn normal() {
     let report = create_report()
-        .attach_printable(PrintableA(0))
-        .attach(AttachmentA)
+        .attach(PrintableA(0))
+        .attach_opaque(AttachmentA)
         .change_context(ContextA(0))
-        .attach_printable(PrintableB(0))
-        .attach(AttachmentB)
+        .attach(PrintableB(0))
+        .attach_opaque(AttachmentB)
         .change_context(ContextB(0));
 
     assert_eq!(report.to_string(), "context B");
@@ -20,11 +20,11 @@ fn normal() {
 #[test]
 fn extended() {
     let report = create_report()
-        .attach_printable(PrintableA(0))
-        .attach(AttachmentA)
+        .attach(PrintableA(0))
+        .attach_opaque(AttachmentA)
         .change_context(ContextA(0))
-        .attach_printable(PrintableB(0))
-        .attach(AttachmentB)
+        .attach(PrintableB(0))
+        .attach_opaque(AttachmentB)
         .change_context(ContextB(0));
 
     assert_eq!(format!("{report:#}"), "context B: context A: root error");

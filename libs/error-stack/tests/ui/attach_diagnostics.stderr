@@ -1,0 +1,23 @@
+error[E0277]: To attach this type to a `Report` it must implement `fmt::Display` and `fmt::Debug`
+ --> tests/ui/attach_diagnostics.rs:20:43
+  |
+ 20 |     let _ = Report::new(RootError).attach(NotDisplay);
+    |                                    ------ ^^^^^^^^^^ unsatisfied trait bound
+    |                                    |
+    |                                    required by a bound introduced by this call
+    |
+help: the trait `std::fmt::Display` is not implemented for `NotDisplay`
+   --> tests/ui/attach_diagnostics.rs:17:1
+    |
+ 17 | struct NotDisplay;
+    | ^^^^^^^^^^^^^^^^^
+    = note: If you want to attach a type that is not printable, use `attach_opaque` instead
+    = note: required for `NotDisplay` to implement `error_stack::Attachment`
+note: required by a bound in `error_stack::Report::<C>::attach`
+   --> src/report.rs
+    |
+    |     pub fn attach<A>(mut self, attachment: A) -> Self
+    |            ------ required by a bound in this associated function
+    |     where
+    |         A: Attachment,
+    |            ^^^^^^^^^^ required by this bound in `Report::<C>::attach`

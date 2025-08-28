@@ -26,7 +26,7 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, Report<ParseEx
         .map(|value| {
             value
                 .parse::<u64>()
-                .attach_printable_lazy(|| format!("{value:?} could not be parsed as experiment"))
+                .attach_lazy(|| format!("{value:?} could not be parsed as experiment"))
         })
         .map(|value| value.map(|ok| (ok, 2 * ok)))
         .fold(Ok(vec![]), |accum, value| match (accum, value) {
@@ -72,11 +72,11 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("experiment {exp_id} has no valid description"))
+                    .attach(format!("experiment {exp_id} has no valid description"))
             })?;
 
             let experiments = parse_experiment(description)
-                .attach_printable(format!("experiment {exp_id} could not be parsed"))
+                .attach(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
             let experiments = experiments
@@ -103,7 +103,7 @@ fn start_experiments(
                 }
             },
         )
-        .attach_printable("unable to set up experiments")?;
+        .attach("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }

@@ -69,9 +69,7 @@ fn load_json_configs<T: DeserializeOwned>(
             let reader = BufReader::new(file);
             let cfg = serde_json::from_reader(reader)
                 .change_context(LoadConfigError::Parse)
-                .attach_printable_lazy(|| {
-                    format!("Failed to parse config file: `{}`", path.display())
-                })?;
+                .attach_lazy(|| format!("Failed to parse config file: `{}`", path.display()))?;
             let key = format!("{subdir}/{stem}");
             Ok(Some((key, cfg)))
         })

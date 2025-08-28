@@ -13,7 +13,7 @@
 
 use core::error::Error;
 
-use error_stack::{Report, TryReportIteratorExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use rand::{
     Rng,
     distr::{Distribution, weighted::WeightedIndex},
@@ -244,11 +244,8 @@ impl PropertyValuesDistributionConfig {
                     })
                     .try_collect_reports()?;
 
-                let index = WeightedIndex::new(weight_values).map_err(|error| {
-                    let single_error =
-                        Report::new(PropertyValuesBindingError::InvalidWeights).attach(error);
-                    Report::<[PropertyValuesBindingError]>::from(single_error)
-                })?;
+                let index = WeightedIndex::new(weight_values)
+                    .change_context(PropertyValuesBindingError::InvalidWeights)?;
 
                 Ok(BoundPropertyValuesDistribution::Weighted {
                     index,

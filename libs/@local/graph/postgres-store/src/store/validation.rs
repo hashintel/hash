@@ -87,9 +87,9 @@ where
         match access {
             Access::Granted(value) => Some(Ok(value)),
             Access::Denied => Some(Err(
-                Report::new(QueryError).attach(StatusCode::PermissionDenied)
+                Report::new(QueryError).attach_opaque(StatusCode::PermissionDenied)
             )),
-            Access::Malformed => Some(Err(Report::new(QueryError).attach_printable(format!(
+            Access::Malformed => Some(Err(Report::new(QueryError).attach(format!(
                 "The entry in the cache for key {key:?} is malformed. This means that a previous \
                  fetch involving this key failed."
             )))),
@@ -362,7 +362,7 @@ where
             ))
             .await
             .change_context(QueryError)
-            .attach_printable_lazy(|| {
+            .attach_lazy(|| {
                 format!(
                     "Found none or more than one conversions between `{}` and `{}`",
                     source.url, target.url
@@ -422,7 +422,7 @@ where
 
         ensure!(
             schemas.len() <= 1,
-            Report::new(QueryError).attach_printable(format!(
+            Report::new(QueryError).attach(format!(
                 "Expected exactly one property type to be returned from the query but {} were \
                  returned",
                 schemas.len(),
@@ -430,7 +430,7 @@ where
         );
 
         schemas.pop().ok_or_else(|| {
-            Report::new(QueryError).attach_printable(
+            Report::new(QueryError).attach(
                 "Expected exactly one property type to be returned from the query but none were \
                  returned",
             )
@@ -515,7 +515,7 @@ where
 
         ensure!(
             schemas.len() <= 1,
-            Report::new(QueryError).attach_printable(format!(
+            Report::new(QueryError).attach(format!(
                 "Expected exactly one closed schema to be returned from the query but {} were \
                  returned",
                 schemas.len(),
@@ -523,7 +523,7 @@ where
         );
 
         schemas.pop().ok_or_else(|| {
-            Report::new(QueryError).attach_printable(
+            Report::new(QueryError).attach(
                 "Expected exactly one closed schema to be returned from the query but none was \
                  returned",
             )

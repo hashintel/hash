@@ -151,7 +151,7 @@ pub(crate) mod tests {
         for<'de> T: Serialize + Deserialize<'de>,
     {
         let deserialized: T = serde_json::from_value(value.clone())
-            .attach_printable_lazy(|| value.clone())
+            .attach_lazy(|| value.clone())
             .expect("failed to deserialize");
         let re_serialized = serde_json::to_value(deserialized).expect("failed to serialize");
 

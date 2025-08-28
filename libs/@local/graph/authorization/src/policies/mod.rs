@@ -336,7 +336,7 @@ impl Policy {
                 text,
             )
             .change_context(InvalidPolicy::Syntax)
-            .attach_printable_lazy(|| text.to_owned())?,
+            .attach_lazy(|| text.to_owned())?,
         )
     }
 

@@ -175,11 +175,11 @@ where
 
         self.insert_external_ontology_type(actor_id, reference)
             .await
-            .attach_printable("Could not insert external type")
-            .attach_printable_lazy(|| reference.url().clone())
+            .attach("Could not insert external type")
+            .attach_lazy(|| reference.url().clone())
             .map_err(|report| {
                 if report.contains::<VersionedUrlAlreadyExists>() {
-                    report_to_response(report.attach(hash_status::StatusCode::AlreadyExists))
+                    report_to_response(report.attach_opaque(hash_status::StatusCode::AlreadyExists))
                 } else {
                     report_to_response(report)
                 }
@@ -258,17 +258,17 @@ impl QueryLogger {
             .value
             .take()
             .ok_or(QueryLoggingError)
-            .attach_printable("no query was captured")?;
+            .attach("no query was captured")?;
         query
             .as_object_mut()
             .ok_or(QueryLoggingError)
-            .attach_printable("serialized value is not an object")?
+            .attach("serialized value is not an object")?
             .insert(
                 "elapsed".to_owned(),
                 JsonValue::Number(
                     JsonNumber::from_u128(self.created_at.elapsed().as_millis())
                         .ok_or(QueryLoggingError)
-                        .attach_printable("Could not convert milliseconds to JSON")?,
+                        .attach("Could not convert milliseconds to JSON")?,
                 ),
             );
 
@@ -455,15 +455,15 @@ impl OpenApiDocumentation {
     pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
         let openapi = Self::openapi();
         let path = path.as_ref();
-        fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
+        fs::create_dir_all(path).attach_lazy(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
 
         {
             let mut writer = io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
-                    .attach_printable("could not write openapi.json")
-                    .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
+                    .attach("could not write openapi.json")
+                    .attach_lazy(|| openapi_json_path.display().to_string())?,
             );
             serde_json::to_writer_pretty(&mut writer, &openapi).map_err(io::Error::from)?;
             // Add a newline to the end of the file because many IDEs and tools expect or
@@ -478,16 +478,16 @@ impl OpenApiDocumentation {
 
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
-            .attach_printable("could not create directory")
-            .attach_printable_lazy(|| model_path_dir.display().to_string())?;
+            .attach("could not create directory")
+            .attach_lazy(|| model_path_dir.display().to_string())?;
 
         for file in STATIC_SCHEMAS.files() {
             let model_path_source = model_def_path.join(file.path());
             let model_path_target = model_path_dir.join(file.path());
             fs::copy(&model_path_source, &model_path_target)
-                .attach_printable("could not copy file")
-                .attach_printable_lazy(|| model_path_source.display().to_string())
-                .attach_printable_lazy(|| model_path_target.display().to_string())?;
+                .attach("could not copy file")
+                .attach_lazy(|| model_path_source.display().to_string())
+                .attach_lazy(|| model_path_target.display().to_string())?;
         }
 
         Ok(())

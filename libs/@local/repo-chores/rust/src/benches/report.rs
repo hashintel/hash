@@ -165,7 +165,7 @@ where
         serde_json::from_reader(BufReader::new(
             File::open(path).change_context(AnalyzeError::ReadInput)?,
         ))
-        .attach_printable_lazy(|| path.display().to_string())
+        .attach_lazy(|| path.display().to_string())
         .change_context(AnalyzeError::ParseInput)?,
     ))
 }

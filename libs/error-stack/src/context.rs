@@ -121,3 +121,17 @@ impl<C: Error + Send + Sync + 'static> Context for C {
         self.source()
     }
 }
+
+/// A trait for types that can be attached to a [`Report`] without being displayed.
+pub trait OpaqueAttachment: Send + Sync + 'static {}
+
+impl<T: Send + Sync + 'static> OpaqueAttachment for T {}
+
+/// A trait for types that can be attached to a [`Report`] and displayed.
+#[diagnostic::on_unimplemented(
+    message = "To attach this type to a `Report` it must implement `fmt::Display` and `fmt::Debug`",
+    note = "If you want to attach a type that is not printable, use `attach_opaque` instead"
+)]
+pub trait Attachment: OpaqueAttachment + fmt::Display + fmt::Debug {}
+
+impl<T: OpaqueAttachment + fmt::Display + fmt::Debug> Attachment for T {}

@@ -34,8 +34,8 @@ fn parse_config(path: impl AsRef<Path>) -> Result<Config, Report<ParseConfigErro
 
     let content = fs::read_to_string(path)
         .change_context(ParseConfigError::new())
-        .attach(Suggestion("use a file you can read next time!"))
-        .attach_printable_lazy(|| format!("could not read file {}", path.display()))?;
+        .attach_opaque(Suggestion("use a file you can read next time!"))
+        .attach_lazy(|| format!("could not read file {}", path.display()))?;
 
     Ok(content)
 }

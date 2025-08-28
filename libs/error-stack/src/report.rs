@@ -1,7 +1,7 @@
 #![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
+use core::{error::Error, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -13,15 +13,15 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    Context, Frame,
+    Attachment, Context, Frame, OpaqueAttachment,
     context::SourceContext,
     iter::{Frames, FramesMut},
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
 ///
-/// Attachments can be added by using [`attach()`]. The [`Frame`] stack can be iterated by using
-/// [`frames()`].
+/// Attachments can be added by using [`attach_opaque()`]. The [`Frame`] stack can be iterated by
+/// using [`frames()`].
 ///
 /// When creating a `Report` by using [`new()`], the passed [`Context`] is used to set the _current
 /// context_ on the `Report`. To provide a new one, use [`change_context()`].
@@ -69,7 +69,7 @@ use crate::{
 ///
 /// [`provide`]: core::error::Error::provide
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`attach()`]: Self::attach
+/// [`attach_opaque()`]: Self::attach
 /// [`extend_one()`]: Self::extend_one
 /// [`new()`]: Self::new
 /// [`frames()`]: Self::frames
@@ -92,7 +92,7 @@ use crate::{
 /// # fn fake_main() -> Result<String, error_stack::Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"))?;
+///     .attach_lazy(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -216,7 +216,7 @@ use crate::{
 /// # fn main() -> Result<(), Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .attach_printable_lazy(|| format!("failed to read config file {config_path:?}"));
+///     .attach_lazy(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
@@ -328,19 +328,19 @@ impl<C> Report<C> {
         };
 
         if let Some(location) = location {
-            report = report.attach(*location);
+            report = report.attach_opaque(*location);
         }
 
         #[cfg(feature = "backtrace")]
         if let Some(backtrace) =
             backtrace.filter(|bt| matches!(bt.status(), BacktraceStatus::Captured))
         {
-            report = report.attach(backtrace);
+            report = report.attach_opaque(backtrace);
         }
 
         #[cfg(feature = "spantrace")]
         if let Some(span_trace) = span_trace.filter(|st| st.status() == SpanTraceStatus::CAPTURED) {
-            report = report.attach(span_trace);
+            report = report.attach_opaque(span_trace);
         }
 
         report
@@ -494,39 +494,15 @@ impl<C: ?Sized> Report<C> {
         &self.frames
     }
 
-    /// Adds additional information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
-    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
-    ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
-    /// it becomes possible to merge these two methods.
-    ///
-    /// [`Display`]: core::fmt::Display
-    /// [`Debug`]: core::fmt::Debug
-    /// [`attach_printable()`]: Self::attach_printable
-    #[track_caller]
-    pub fn attach<A>(mut self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-        self
-    }
-
     /// Adds additional (printable) information to the [`Frame`] stack.
     ///
-    /// This behaves like [`attach()`] but the display implementation will be called when
+    /// This behaves like [`attach_opaque()`] but the display implementation will be called when
     /// printing the [`Report`].
     ///
-    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized it becomes possible to merge these two methods.
+    /// **Note:** [`attach_opaque()`] will be deprecated when specialization is stabilized and
+    /// it becomes possible to merge these two methods.
     ///
-    /// [`attach()`]: Self::attach
+    /// [`attach_opaque()`]: Self::attach
     ///
     /// ## Example
     ///
@@ -556,9 +532,9 @@ impl<C: ?Sized> Report<C> {
     /// assert_eq!(suggestion.0, "better use a file which exists next time!");
     /// ```
     #[track_caller]
-    pub fn attach_printable<A>(mut self, attachment: A) -> Self
+    pub fn attach<A>(mut self, attachment: A) -> Self
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Attachment,
     {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
         self.frames.push(Frame::from_printable_attachment(
@@ -566,6 +542,40 @@ impl<C: ?Sized> Report<C> {
             old_frames.into_boxed_slice(),
         ));
         self
+    }
+
+    /// Adds additional information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach()`] but will not be shown when printing the [`Report`].
+    /// To benefit from seeing attachments in normal error outputs, use [`attach()`]
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized it becomes possible to merge these two methods.
+    ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
+    /// [`attach()`]: Self::attach
+    #[track_caller]
+    pub fn attach_opaque<A>(mut self, attachment: A) -> Self
+    where
+        A: OpaqueAttachment,
+    {
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_attachment(
+            attachment,
+            old_frames.into_boxed_slice(),
+        ));
+        self
+    }
+
+    #[track_caller]
+    #[deprecated(note = "Use `attach` instead", since = "0.6.0")]
+    #[inline]
+    pub fn attach_printable<A>(self, attachment: A) -> Self
+    where
+        A: Attachment,
+    {
+        self.attach(attachment)
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -730,7 +740,7 @@ impl<C> Report<[C]> {
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
     ///     # #[cfg(any(miri, not(feature = "std")))]
-    ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
+    ///     # return Err(error_stack::report!(IoError).attach("Not supported"));
     ///     # #[cfg(all(not(miri), feature = "std"))]
     ///     std::fs::read_to_string(path.as_ref())
     ///         .change_context(IoError)
@@ -776,7 +786,7 @@ impl<C> Report<[C]> {
     /// # #[allow(unused_variables)]
     /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
     ///     # #[cfg(any(miri, not(feature = "std")))]
-    ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
+    ///     # return Err(error_stack::report!(IoError).attach("Not supported"));
     ///     # #[cfg(all(not(miri), feature = "std"))]
     ///     std::fs::read_to_string(path.as_ref())
     ///         .change_context(IoError)

@@ -96,10 +96,10 @@
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach_printable(ErrorCode(404))
-//!     .attach(Suggestion("try to be connected to the internet."))
-//!     .attach(Suggestion("try better next time!"))
-//!     .attach(Warning("unable to fetch resource"));
+//!     .attach(ErrorCode(404))
+//!     .attach_opaque(Suggestion("try to be connected to the internet."))
+//!     .attach_opaque(Suggestion("try better next time!"))
+//!     .attach_opaque(Warning("unable to fetch resource"));
 //!
 //! # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
 //! # fn render(value: String) -> String {

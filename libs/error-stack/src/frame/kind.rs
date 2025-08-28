@@ -12,23 +12,23 @@ pub enum FrameKind<'f> {
     /// [`Report::new()`]: crate::Report::new
     /// [`change_context()`]: crate::Report::change_context
     Context(&'f dyn Context),
-    /// Frame was created through [`attach()`] or [`attach_printable()`].
+    /// Frame was created through [`attach_opaque()`] or [`attach()`].
     ///
-    /// [`attach()`]: crate::Report::attach
-    /// [`attach_printable()`]: crate::Report::attach_printable
+    /// [`attach_opaque()`]: crate::Report::attach
+    /// [`attach()`]: crate::Report::attach_printable
     Attachment(AttachmentKind<'f>),
 }
 
 /// Classification of an attachment which is determined by the method it was created in.
 #[non_exhaustive]
 pub enum AttachmentKind<'f> {
-    /// A generic attachment created through [`attach()`].
+    /// A generic attachment created through [`attach_opaque()`].
     ///
-    /// [`attach()`]: crate::Report::attach
+    /// [`attach_opaque()`]: crate::Report::attach
     Opaque(&'f (dyn Send + Sync + 'static)),
-    /// A printable attachment created through [`attach_printable()`].
+    /// A printable attachment created through [`attach()`].
     ///
-    /// [`attach_printable()`]: crate::Report::attach_printable
+    /// [`attach()`]: crate::Report::attach_printable
     Printable(&'f dyn Printable),
 }
 

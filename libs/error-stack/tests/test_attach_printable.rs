@@ -33,12 +33,12 @@ fn test_kinds<E>(report: &Report<E>) {
 }
 
 #[test]
-fn attach() {
+fn attach_opaque() {
     let report = create_report()
-        .attach_printable(PrintableA(0))
-        .attach_printable(PrintableB(0))
-        .attach_printable(ContextA(0))
-        .attach_printable(ContextB(0));
+        .attach(PrintableA(0))
+        .attach(PrintableB(0))
+        .attach(ContextA(0))
+        .attach(ContextB(0));
 
     test_messages(&report);
     test_kinds(&report);
@@ -47,10 +47,10 @@ fn attach() {
 #[test]
 fn attach_result() {
     let error = create_error()
-        .attach_printable(PrintableA(0))
-        .attach_printable_lazy(|| PrintableB(0))
-        .attach_printable(ContextA(0))
-        .attach_printable_lazy(|| ContextB(0));
+        .attach(PrintableA(0))
+        .attach_lazy(|| PrintableB(0))
+        .attach(ContextA(0))
+        .attach_lazy(|| ContextB(0));
 
     let report = error.expect_err("Not an error");
     test_messages(&report);
@@ -60,10 +60,10 @@ fn attach_result() {
 #[test]
 fn attach_future() {
     let future = create_future()
-        .attach_printable(PrintableA(0))
-        .attach_printable_lazy(|| PrintableB(0))
-        .attach_printable(ContextA(0))
-        .attach_printable_lazy(|| ContextB(0));
+        .attach(PrintableA(0))
+        .attach_lazy(|| PrintableB(0))
+        .attach(ContextA(0))
+        .attach_lazy(|| ContextB(0));
 
     let error = futures::executor::block_on(future);
 

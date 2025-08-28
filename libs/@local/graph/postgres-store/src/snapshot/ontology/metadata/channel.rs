@@ -45,16 +45,16 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll id sender")?;
+            .attach("could not poll id sender")?;
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll temporal metadata sender")?;
+            .attach("could not poll temporal metadata sender")?;
         ready!(self.owned_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll owned metadata sender")?;
+            .attach("could not poll owned metadata sender")?;
         ready!(self.external_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll external metadata sender")?;
+            .attach("could not poll external metadata sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -71,7 +71,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                         web_id,
                     })
                     .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send owned metadata")?;
+                    .attach("could not send owned metadata")?;
             }
             OntologyOwnership::Remote { fetched_at } => {
                 self.external_metadata
@@ -80,7 +80,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                         fetched_at,
                     })
                     .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send external metadata")?;
+                    .attach("could not send external metadata")?;
             }
         }
 
@@ -91,7 +91,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                 version: metadata.record_id.version,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send id")?;
+            .attach("could not send id")?;
 
         self.temporal_metadata
             .start_send(OntologyTemporalMetadataRow {
@@ -100,7 +100,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
                 provenance: metadata.provenance.edition,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send temporal metadata")?;
+            .attach("could not send temporal metadata")?;
 
         Ok(())
     }
@@ -108,16 +108,16 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush id sender")?;
+            .attach("could not flush id sender")?;
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush temporal metadata sender")?;
+            .attach("could not flush temporal metadata sender")?;
         ready!(self.owned_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush owned metadata sender")?;
+            .attach("could not flush owned metadata sender")?;
         ready!(self.external_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush external metadata sender")?;
+            .attach("could not flush external metadata sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -125,16 +125,16 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close id sender")?;
+            .attach("could not close id sender")?;
         ready!(self.temporal_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close temporal metadata sender")?;
+            .attach("could not close temporal metadata sender")?;
         ready!(self.owned_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close owned metadata sender")?;
+            .attach("could not close owned metadata sender")?;
         ready!(self.external_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close external metadata sender")?;
+            .attach("could not close external metadata sender")?;
 
         Poll::Ready(Ok(()))
     }

@@ -194,11 +194,13 @@ impl Trial {
 
         tracing::debug!("running trial");
 
-        let result = self.run_impl(context).attach_lazy(|| TrialDescription {
-            package: package.name().to_owned(),
-            namespace: self.namespace.clone(),
-            name: self.annotations.directive.name.clone(),
-        });
+        let result = self
+            .run_impl(context)
+            .attach_opaque_lazy(|| TrialDescription {
+                package: package.name().to_owned(),
+                namespace: self.namespace.clone(),
+                name: self.annotations.directive.name.clone(),
+            });
 
         if result.is_ok() {
             tracing::info!("trial passed");
