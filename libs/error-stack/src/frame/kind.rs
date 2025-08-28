@@ -12,7 +12,7 @@ pub enum FrameKind<'f> {
     /// [`Report::new()`]: crate::Report::new
     /// [`change_context()`]: crate::Report::change_context
     Context(&'f dyn Context),
-    /// Frame was created through [`attach_opaque()`] or [`attach()`].
+    /// Frame was created through [`attach()`] or [`attach_opaque()`].
     ///
     /// [`attach()`]: crate::Report::attach
     /// [`attach_opaque()`]: crate::Report::attach_opaque
@@ -24,11 +24,11 @@ pub enum FrameKind<'f> {
 pub enum AttachmentKind<'f> {
     /// A generic attachment created through [`attach_opaque()`].
     ///
-    /// [`attach()`]: crate::Report::attach
+    /// [`attach_opaque()`]: crate::Report::attach_opaque
     Opaque(&'f (dyn Send + Sync + 'static)),
     /// A printable attachment created through [`attach()`].
     ///
-    /// [`attach_opaque()`]: crate::Report::attach_opaque
+    /// [`attach()`]: crate::Report::attach
     Printable(&'f dyn Printable),
 }
 
