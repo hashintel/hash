@@ -92,7 +92,7 @@ use crate::{
 /// # fn fake_main() -> Result<String, error_stack::Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .attach_lazy(|| format!("failed to read config file {config_path:?}"))?;
+///     .attach_with(|| format!("failed to read config file {config_path:?}"))?;
 ///
 /// # const _: &str = stringify! {
 /// ...
@@ -216,7 +216,7 @@ use crate::{
 /// # fn main() -> Result<(), Report<std::io::Error>> {
 /// let config_path = "./path/to/config.file";
 /// let content = std::fs::read_to_string(config_path)
-///     .attach_lazy(|| format!("failed to read config file {config_path:?}"));
+///     .attach_with(|| format!("failed to read config file {config_path:?}"));
 ///
 /// let content = match content {
 ///     Err(err) => {
@@ -569,7 +569,11 @@ impl<C: ?Sized> Report<C> {
     }
 
     #[track_caller]
-    #[deprecated(note = "Use `attach` instead", since = "0.6.0")]
+    #[deprecated(
+        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
+                `attach_printable` was renamed to `attach`",
+        since = "0.6.0"
+    )]
     #[inline]
     pub fn attach_printable<A>(self, attachment: A) -> Self
     where

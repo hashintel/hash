@@ -14,11 +14,11 @@ fn main() -> Result<(), Report<io::Error>> {
         if path.is_file() {
             fs::remove_file(&path)
                 .attach("could not remove old OpenAPI file")
-                .attach_lazy(|| path.display().to_string())?;
+                .attach_with(|| path.display().to_string())?;
         } else {
             fs::remove_dir_all(&path)
                 .attach("could not remove old OpenAPI file")
-                .attach_lazy(|| path.display().to_string())?;
+                .attach_with(|| path.display().to_string())?;
         }
     }
     OpenApiDocumentation::write_openapi(openapi_path).attach("could not write OpenAPI spec")?;

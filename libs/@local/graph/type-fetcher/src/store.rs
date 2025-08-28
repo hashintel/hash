@@ -564,7 +564,7 @@ where
         let fetcher = self
             .fetcher_client()
             .await
-            .attach_lazy(|| {
+            .attach_with(|| {
                 queue
                     .iter()
                     .map(ToString::to_string)
@@ -1127,7 +1127,7 @@ where
             &requested_types,
         )
         .await
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1187,7 +1187,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1278,7 +1278,7 @@ where
             &requested_types,
         )
         .await
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1340,7 +1340,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1420,7 +1420,7 @@ where
             &requested_types,
         )
         .await
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1501,7 +1501,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)

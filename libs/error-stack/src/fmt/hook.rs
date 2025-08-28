@@ -420,7 +420,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-/// [`.attach_opaque()`]: crate::Report::attach
+/// [`.attach_opaque()`]: crate::Report::attach_opaque
 #[expect(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the

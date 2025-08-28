@@ -176,7 +176,7 @@ where
         self.insert_external_ontology_type(actor_id, reference)
             .await
             .attach("Could not insert external type")
-            .attach_lazy(|| reference.url().clone())
+            .attach_with(|| reference.url().clone())
             .map_err(|report| {
                 if report.contains::<VersionedUrlAlreadyExists>() {
                     report_to_response(report.attach_opaque(hash_status::StatusCode::AlreadyExists))
@@ -455,7 +455,7 @@ impl OpenApiDocumentation {
     pub fn write_openapi(path: impl AsRef<std::path::Path>) -> Result<(), Report<io::Error>> {
         let openapi = Self::openapi();
         let path = path.as_ref();
-        fs::create_dir_all(path).attach_lazy(|| path.display().to_string())?;
+        fs::create_dir_all(path).attach_with(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
 
@@ -463,7 +463,7 @@ impl OpenApiDocumentation {
             let mut writer = io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
                     .attach("could not write openapi.json")
-                    .attach_lazy(|| openapi_json_path.display().to_string())?,
+                    .attach_with(|| openapi_json_path.display().to_string())?,
             );
             serde_json::to_writer_pretty(&mut writer, &openapi).map_err(io::Error::from)?;
             // Add a newline to the end of the file because many IDEs and tools expect or
@@ -479,15 +479,15 @@ impl OpenApiDocumentation {
         let model_path_dir = path.join("models");
         fs::create_dir_all(&model_path_dir)
             .attach("could not create directory")
-            .attach_lazy(|| model_path_dir.display().to_string())?;
+            .attach_with(|| model_path_dir.display().to_string())?;
 
         for file in STATIC_SCHEMAS.files() {
             let model_path_source = model_def_path.join(file.path());
             let model_path_target = model_path_dir.join(file.path());
             fs::copy(&model_path_source, &model_path_target)
                 .attach("could not copy file")
-                .attach_lazy(|| model_path_source.display().to_string())
-                .attach_lazy(|| model_path_target.display().to_string())?;
+                .attach_with(|| model_path_source.display().to_string())
+                .attach_with(|| model_path_target.display().to_string())?;
         }
 
         Ok(())

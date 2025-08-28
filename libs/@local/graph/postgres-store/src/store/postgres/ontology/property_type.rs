@@ -542,13 +542,13 @@ where
                 .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
                 .change_context(InsertionError)
-                .attach_lazy(|| {
+                .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
                         &property_type.schema.id
                     )
                 })
-                .attach_opaque_lazy(|| property_type.schema.clone())?;
+                .attach_opaque_with(|| property_type.schema.clone())?;
         }
 
         transaction.commit().await.change_context(InsertionError)?;
@@ -856,13 +856,13 @@ where
                 .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
                 .change_context(UpdateError)
-                .attach_lazy(|| {
+                .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
                         &property_type.schema.id
                     )
                 })
-                .attach_opaque_lazy(|| property_type.schema.clone())?;
+                .attach_opaque_with(|| property_type.schema.clone())?;
         }
 
         transaction.commit().await.change_context(UpdateError)?;

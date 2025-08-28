@@ -207,7 +207,7 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
                         "{}/@{}/types/property-type/{:x}-{:x}-{}/",
                         &*domain, &*web_shortname, title_gid.shard_id, title_gid.local_id, slug
                     );
-                    BaseUrl::new(url_string).attach_lazy(|| {
+                    BaseUrl::new(url_string).attach_with(|| {
                         format!("Failed to create URL for property type: {title}")
                     })?
                 },

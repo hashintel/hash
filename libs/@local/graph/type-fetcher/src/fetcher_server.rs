@@ -42,7 +42,7 @@ impl FetchServer {
             if let DirEntry::File(file) = entry {
                 let ontology_type = serde_json::from_slice(file.contents())
                     .map_err(io::Error::from)
-                    .attach_lazy(|| file.path().display().to_string())?;
+                    .attach_with(|| file.path().display().to_string())?;
                 let id = match &ontology_type {
                     FetchedOntologyType::DataType(data_type) => data_type.id.clone(),
                     FetchedOntologyType::PropertyType(property_type) => property_type.id.clone(),

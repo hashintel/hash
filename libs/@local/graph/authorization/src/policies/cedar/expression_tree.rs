@@ -123,7 +123,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => Err(Report::new(ParseExpressionError::Unexpected)),
         }
-        .attach_lazy(|| expr.clone())
+        .attach_with(|| expr.clone())
     }
 
     fn not(self) -> Self {
@@ -281,7 +281,7 @@ impl PolicyExpressionTree {
     ) -> Result<Self, Report<ParseBinaryExpressionError>> {
         Self::expect_resource_variable(lhs)
             .change_context(ParseBinaryExpressionError::Left)
-            .attach_lazy(|| Arc::clone(lhs))?;
+            .attach_with(|| Arc::clone(lhs))?;
 
         match rhs.expr_kind() {
             ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) => WebId::from_euid(euid)
@@ -333,7 +333,7 @@ impl PolicyExpressionTree {
                 let ((), attr_type) = (Self::expect_resource_variable(expr), attr_type)
                     .try_collect()
                     .change_context(ParseBinaryExpressionError::Left)
-                    .attach_lazy(|| Arc::clone(lhs))?;
+                    .attach_with(|| Arc::clone(lhs))?;
                 attr_type
             }
             ast::ExprKind::Var(ast::Var::Resource) => AttributeType::Resource,
@@ -391,7 +391,7 @@ impl PolicyExpressionTree {
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
-        .attach_lazy(|| Arc::clone(rhs))
+        .attach_with(|| Arc::clone(rhs))
     }
 
     fn from_contains(
@@ -418,7 +418,7 @@ impl PolicyExpressionTree {
                 let ((), attr_type) = (Self::expect_resource_variable(expr), attr_type)
                     .try_collect()
                     .change_context(ParseBinaryExpressionError::Left)
-                    .attach_lazy(|| Arc::clone(lhs))?;
+                    .attach_with(|| Arc::clone(lhs))?;
                 attr_type
             }
             ast::ExprKind::Lit(_)
@@ -459,6 +459,6 @@ impl PolicyExpressionTree {
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
-        .attach_lazy(|| Arc::clone(rhs))
+        .attach_with(|| Arc::clone(rhs))
     }
 }

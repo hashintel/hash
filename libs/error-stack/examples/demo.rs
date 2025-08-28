@@ -26,7 +26,7 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, Report<ParseEx
         .map(|value| {
             value
                 .parse::<u64>()
-                .attach_lazy(|| format!("{value:?} could not be parsed as experiment"))
+                .attach_with(|| format!("{value:?} could not be parsed as experiment"))
         })
         .map(|value| value.map(|ok| (ok, 2 * ok)))
         .fold(Ok(vec![]), |accum, value| match (accum, value) {

@@ -66,12 +66,25 @@ pub trait ResultExt {
     ///
     /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more
     /// information.
-    fn attach_lazy<A, F>(
+    fn attach_with<A, F>(
         self,
         attachment: F,
     ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
         A: Attachment,
+        F: FnOnce() -> A;
+
+    #[deprecated(
+        note = "Use `attach_opaque_with` instead. `attach_lazy` was renamed to \
+                `attach_opaque_with` and `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
+    fn attach_lazy<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
+    where
+        A: OpaqueAttachment,
         F: FnOnce() -> A;
 
     /// Adds a new attachment to the [`Report`] inside the [`Result`].
@@ -87,7 +100,7 @@ pub trait ResultExt {
     /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
-    fn attach_opaque_lazy<A, F>(
+    fn attach_opaque_with<A, F>(
         self,
         attachment: F,
     ) -> core::result::Result<Self::Ok, Report<Self::Context>>
@@ -95,7 +108,11 @@ pub trait ResultExt {
         A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    #[deprecated(note = "Use `attach` instead", since = "0.6.0")]
+    #[deprecated(
+        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
+                `attach_printable` was renamed to `attach`",
+        since = "0.6.0"
+    )]
     fn attach_printable<A>(
         self,
         attachment: A,
@@ -103,7 +120,11 @@ pub trait ResultExt {
     where
         A: Attachment;
 
-    #[deprecated(note = "Use `attach_lazy` instead", since = "0.6.0")]
+    #[deprecated(
+        note = "Use `attach_with` instead. `attach_lazy` was renamed to `attach_opaque_with` and \
+                `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
@@ -147,7 +168,7 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
+    fn attach_with<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
     where
         A: Attachment,
         F: FnOnce() -> A,
@@ -155,6 +176,18 @@ where
         match self {
             Ok(value) => Ok(value),
             Err(error) => Err(error.into_report().attach(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
+    where
+        A: OpaqueAttachment,
+        F: FnOnce() -> A,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(error.into_report().attach_opaque(attachment())),
         }
     }
 
@@ -170,7 +203,7 @@ where
     }
 
     #[track_caller]
-    fn attach_opaque_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
+    fn attach_opaque_with<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
     where
         A: OpaqueAttachment,
         F: FnOnce() -> A,

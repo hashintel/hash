@@ -362,7 +362,7 @@ where
             ))
             .await
             .change_context(QueryError)
-            .attach_lazy(|| {
+            .attach_with(|| {
                 format!(
                     "Found none or more than one conversions between `{}` and `{}`",
                     source.url, target.url

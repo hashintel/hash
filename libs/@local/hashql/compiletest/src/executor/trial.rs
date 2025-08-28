@@ -196,7 +196,7 @@ impl Trial {
 
         let result = self
             .run_impl(context)
-            .attach_opaque_lazy(|| TrialDescription {
+            .attach_opaque_with(|| TrialDescription {
                 package: package.name().to_owned(),
                 namespace: self.namespace.clone(),
                 name: self.annotations.directive.name.clone(),

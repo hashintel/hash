@@ -67,7 +67,7 @@ fn attach_result() {
         .change_context(ContextA(0))
         .attach_opaque(AttachmentA)
         .change_context_lazy(|| ContextB(0))
-        .attach_opaque_lazy(|| AttachmentB);
+        .attach_opaque_with(|| AttachmentB);
 
     let report = error.expect_err("Not an error");
     test_messages(&report);
@@ -80,7 +80,7 @@ fn attach_future() {
         .change_context(ContextA(0))
         .attach_opaque(AttachmentA)
         .change_context_lazy(|| ContextB(0))
-        .attach_opaque_lazy(|| AttachmentB);
+        .attach_opaque_with(|| AttachmentB);
 
     let error = futures::executor::block_on(future);
 

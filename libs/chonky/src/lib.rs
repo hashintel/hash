@@ -50,7 +50,7 @@ pub fn link_pdfium() -> Result<Pdfium, Report<ChonkyError>> {
         let lib_path = Path::new(lib_path.as_ref())
             .canonicalize()
             .change_context(ChonkyError::Pdfium)
-            .attach_lazy(|| format!("could not canonicalize path `{lib_path}`"))?;
+            .attach_with(|| format!("could not canonicalize path `{lib_path}`"))?;
         Ok(Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(&lib_path))
                 .change_context(ChonkyError::Pdfium)?,

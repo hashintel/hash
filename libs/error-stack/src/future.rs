@@ -7,7 +7,6 @@
 //! [`poll`]: Future::poll
 
 use core::{
-    fmt::{Debug, Display},
     future::Future,
     pin::Pin,
     task::{Context as TaskContext, Poll},
@@ -101,28 +100,28 @@ macro_rules! implement_lazy_future_adaptor {
 implement_future_adaptor!(
     FutureWithAttachment,
     attach,
-    Display + Debug + Send + Sync + 'static,
+    Attachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyAttachment,
-    attach_lazy,
-    Display + Debug + Send + Sync + 'static,
+    attach_with,
+    Attachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_future_adaptor!(
     FutureWithOpaqueAttachment,
     attach_opaque,
-    Send + Sync + 'static,
+    OpaqueAttachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyOpaqueAttachment,
-    attach_opaque_lazy,
-    Send + Sync + 'static,
+    attach_opaque_with,
+    OpaqueAttachment,
     Result<<Fut::Output as ResultExt>::Ok, Report<<Fut::Output as ResultExt>::Context>>
 );
 
@@ -168,9 +167,20 @@ pub trait FutureExt: Future + Sized {
     /// [`Report::attach`]: crate::Report::attach
     /// [`poll`]: Future::poll
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    fn attach_with<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
         A: Attachment,
+        F: FnOnce() -> A;
+
+    #[deprecated(
+        note = "Use `attach_opaque_with` instead. `attach_lazy` was renamed to \
+                `attach_opaque_with` and `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
+    #[track_caller]
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
+    where
+        A: OpaqueAttachment,
         F: FnOnce() -> A;
 
     /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
@@ -195,13 +205,17 @@ pub trait FutureExt: Future + Sized {
     /// [`Report::attach_opaque`]: crate::Report::attach_opaque
     /// [`poll`]: Future::poll
     #[track_caller]
-    fn attach_opaque_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
+    fn attach_opaque_with<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
     where
         A: OpaqueAttachment,
         F: FnOnce() -> A;
 
     #[track_caller]
-    #[deprecated(note = "Use `attach` instead", since = "0.6.0")]
+    #[deprecated(
+        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
+                `attach_printable` was renamed to `attach`",
+        since = "0.6.0"
+    )]
     #[inline]
     fn attach_printable<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
     where
@@ -211,14 +225,18 @@ pub trait FutureExt: Future + Sized {
     }
 
     #[track_caller]
-    #[deprecated(note = "Use `attach` instead", since = "0.6.0")]
+    #[deprecated(
+        note = "Use `attach_with` instead. `attach_lazy` was renamed to `attach_opaque_with` and \
+                `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
     #[inline]
     fn attach_printable_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
         A: Attachment,
         F: FnOnce() -> A,
     {
-        self.attach_lazy(attachment)
+        self.attach_with(attachment)
     }
 
     /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
@@ -265,12 +283,24 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
+    fn attach_with<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
     where
         A: Attachment,
         F: FnOnce() -> A,
     {
         FutureWithLazyAttachment {
+            future: self,
+            inner: Some(attachment),
+        }
+    }
+
+    #[track_caller]
+    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
+    where
+        A: OpaqueAttachment,
+        F: FnOnce() -> A,
+    {
+        FutureWithLazyOpaqueAttachment {
             future: self,
             inner: Some(attachment),
         }
@@ -287,7 +317,7 @@ where
     }
 
     #[track_caller]
-    fn attach_opaque_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
+    fn attach_opaque_with<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
     where
         A: OpaqueAttachment,
         F: FnOnce() -> A,

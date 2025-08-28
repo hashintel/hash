@@ -119,7 +119,7 @@ impl ValidateOntologyType<DataType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "data-type" {
-            return Err(DomainValidationError).attach_lazy(|| {
+            return Err(DomainValidationError).attach_with(|| {
                 format!("Data Type base URL had the incorrect ontology kind slug: {kind}")
             });
         }
@@ -146,7 +146,7 @@ impl ValidateOntologyType<PropertyType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "property-type" {
-            return Err(DomainValidationError).attach_lazy(|| {
+            return Err(DomainValidationError).attach_with(|| {
                 format!("Property Type base URL had the incorrect ontology kind slug: {kind}")
             });
         }
@@ -173,7 +173,7 @@ impl ValidateOntologyType<EntityType> for DomainValidator {
             kind,
         } = self.extract_shortname_and_kind(base_url.as_str())?;
         if kind != "entity-type" {
-            return Err(DomainValidationError).attach_lazy(|| {
+            return Err(DomainValidationError).attach_with(|| {
                 format!("Entity Type base URL had the incorrect ontology kind slug: {kind}")
             });
         }

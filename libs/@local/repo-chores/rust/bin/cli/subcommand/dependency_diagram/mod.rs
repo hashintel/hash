@@ -124,7 +124,7 @@ fn output_diagram(
 
     fs::File::create(output_path)
         .change_context(DependencyDiagramError::FileWrite)
-        .attach_lazy(|| output_path.display().to_string())?
+        .attach_with(|| output_path.display().to_string())?
         .write_all(diagram.as_bytes())
         .change_context(DependencyDiagramError::FileWrite)?;
 

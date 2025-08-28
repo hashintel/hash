@@ -48,9 +48,9 @@ fn attach_opaque() {
 fn attach_result() {
     let error = create_error()
         .attach(PrintableA(0))
-        .attach_lazy(|| PrintableB(0))
+        .attach_with(|| PrintableB(0))
         .attach(ContextA(0))
-        .attach_lazy(|| ContextB(0));
+        .attach_with(|| ContextB(0));
 
     let report = error.expect_err("Not an error");
     test_messages(&report);
@@ -61,9 +61,9 @@ fn attach_result() {
 fn attach_future() {
     let future = create_future()
         .attach(PrintableA(0))
-        .attach_lazy(|| PrintableB(0))
+        .attach_with(|| PrintableB(0))
         .attach(ContextA(0))
-        .attach_lazy(|| ContextB(0));
+        .attach_with(|| ContextB(0));
 
     let error = futures::executor::block_on(future);
 
