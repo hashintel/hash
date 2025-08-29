@@ -14,7 +14,7 @@ runs:
 
   steps:
     - name: Run `mise install` with `ci` environment
-      uses: jdx/mise-action@bfb9fa0b029db830a8c570757cee683df207a6c5 # v2.4.0
+      uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
       with:
         install_args: --env ci --jobs 1
       env:
