@@ -3,8 +3,46 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
 description: Non-numeric index
 expression: "[abc]"
 info:
-  kind: Err
+  kind: Ok
 ---
-[abc]
- ^
-invalid index
+IndexByExpr(
+    Expr {
+        id: NodeId(
+            4294967040,
+        ),
+        span: SpanId(
+            3,
+        ),
+        kind: Path(
+            Path {
+                id: NodeId(
+                    4294967040,
+                ),
+                span: SpanId(
+                    3,
+                ),
+                rooted: false,
+                segments: [
+                    PathSegment {
+                        id: NodeId(
+                            4294967040,
+                        ),
+                        span: SpanId(
+                            2,
+                        ),
+                        name: Ident {
+                            span: SpanId(
+                                1,
+                            ),
+                            value: Symbol(
+                                "abc",
+                            ),
+                            kind: Lexical,
+                        },
+                        arguments: [],
+                    },
+                ],
+            },
+        ),
+    },
+)

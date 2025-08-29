@@ -20,7 +20,8 @@ use super::{combinator::ws, context::Input, ident::parse_ident, path::parse_path
 
 #[derive(Debug)]
 enum Access<'heap> {
-    Index(LiteralExpr<'heap>),
+    IndexByLiteral(LiteralExpr<'heap>),
+    IndexByExpr(Expr<'heap>),
     Field(Ident<'heap>),
 }
 
@@ -64,18 +65,21 @@ where
     // super limited version that only allows literal access instead of arbitrary expressions
     delimited(
         ws("["),
-        digit1.with_span().map(|(digit, range)| {
-            let span = context.span(range);
+        alt((
+            digit1.with_span().map(|(digit, range)| {
+                let span = context.span(range);
 
-            Access::Index(LiteralExpr {
-                id: NodeId::PLACEHOLDER,
-                span,
-                kind: LiteralKind::Integer(IntegerLiteral {
-                    value: context.heap.intern_symbol(digit),
-                }),
-                r#type: None,
-            })
-        }),
+                Access::IndexByLiteral(LiteralExpr {
+                    id: NodeId::PLACEHOLDER,
+                    span,
+                    kind: LiteralKind::Integer(IntegerLiteral {
+                        value: context.heap.intern_symbol(digit),
+                    }),
+                    r#type: None,
+                })
+            }),
+            parse_expr_path.map(Access::IndexByExpr),
+        )),
         ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']')))),
     )
     .context(StrContext::Label("index"))
@@ -123,7 +127,7 @@ where
                 let span = context.span(range.clone());
 
                 let kind = match access {
-                    Access::Index(literal) => ExprKind::Index(IndexExpr {
+                    Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
                         id: NodeId::PLACEHOLDER,
                         span,
                         value: context.heap.boxed(expr),
@@ -132,6 +136,12 @@ where
                             span: literal.span,
                             kind: ExprKind::Literal(literal),
                         }),
+                    }),
+                    Access::IndexByExpr(index) => ExprKind::Index(IndexExpr {
+                        id: NodeId::PLACEHOLDER,
+                        span,
+                        value: context.heap.boxed(expr),
+                        index: context.heap.boxed(index),
                     }),
                     Access::Field(ident) => ExprKind::Field(FieldExpr {
                         id: NodeId::PLACEHOLDER,
@@ -222,6 +232,14 @@ mod tests {
         // Index access
         single_index_access("foo[0]") => "Single index access",
         chained_index_access("foo[0][1]") => "Chained index access",
+
+        // Index access with identifier
+        index_access_with_ident("foo[bar]") => "Index access with identifier",
+        index_access_with_ident_chained("foo[bar][baz]") => "Chained index access with identifier",
+
+        // Index access mixed
+        index_access_mixed("foo[bar][0]") => "Mixed index access",
+        index_access_field_access("foo[bar.0]") => "Field then index access",
 
         // Mixed access
         mixed_access_1("foo.bar[0]") => "Field then index access",
