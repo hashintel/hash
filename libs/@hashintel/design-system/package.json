@@ -14,7 +14,8 @@
     ".": "./src/components.ts",
     "./constants": "./src/constants.ts",
     "./palettes": "./src/palettes.ts",
-    "./theme": "./src/theme.ts"
+    "./theme": "./src/theme.ts",
+    "./theme-override": "./theme-override.d.ts"
   },
   "types": "./src/components.ts",
   "typesVersions": {
@@ -30,6 +31,9 @@
       ],
       "theme": [
         "./src/theme.ts"
+      ],
+      "theme-override": [
+        "./theme-override.d.ts"
       ]
     }
   },
