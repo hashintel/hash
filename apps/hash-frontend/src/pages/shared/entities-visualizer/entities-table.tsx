@@ -706,10 +706,11 @@ export const EntitiesTable: FunctionComponent<
     () => [
       {
         columnKey: "web",
-        filterItems: webs.map(({ shortname, webId, count }) => ({
+        filterItems: webs.map(({ shortname, webId, count: _count }) => ({
           id: webId,
           label: shortname,
-          count,
+          // @todo H-3841 –- rethink filtering
+          // count,
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
@@ -719,10 +720,11 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "entityTypes",
         filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count, title, version }) => ({
+          ({ entityTypeId, count: _count, title, version }) => ({
             id: entityTypeId,
             label: title,
-            count,
+            // @todo H-3841 –- rethink filtering
+            // count,
             labelSuffix: version ? `v${version.toString()}` : undefined,
           }),
         ),
