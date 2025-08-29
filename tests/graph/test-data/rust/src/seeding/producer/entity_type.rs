@@ -213,9 +213,7 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
                 base_url: {
                     let slug = slug_from_title(&title);
                     BaseUrl::new(format!("https://{domain}/@{web_shortname}/{slug}/"))
-                        .attach_printable_lazy(|| {
-                            format!("Failed to create URL for entity type: {title}")
-                        })?
+                        .attach_with(|| format!("Failed to create URL for entity type: {title}"))?
                 },
                 version: OntologyTypeVersion::new(1),
             },

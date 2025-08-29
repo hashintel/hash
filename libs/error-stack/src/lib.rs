@@ -177,7 +177,7 @@
 //! Module/crate boundaries are not the only places where information can be embedded within the
 //! [`Report`] however. Additional information can be attached within the current context, whether
 //! this be a string, or any thread-safe object. These attachments are added by using
-//! [`Report::attach()`] and [`Report::attach_printable()`]:
+//! [`Report::attach_opaque()`] and [`Report::attach()`]:
 //!
 //! ```rust
 //! # // we only test the snapshot on nightly, therefore report is unused (so is render)
@@ -201,8 +201,8 @@
 //!
 //!     let content = fs::read_to_string(path)
 //!         .change_context(ParseConfigError::new())
-//!         .attach(Suggestion("use a file you can read next time!"))
-//!         .attach_printable_lazy(|| format!("could not read file {path:?}"))?;
+//!         .attach_opaque(Suggestion("use a file you can read next time!"))
+//!         .attach_with(|| format!("could not read file {path:?}"))?;
 //!
 //!     Ok(content)
 //! }
@@ -231,7 +231,7 @@
 //! ```
 //!
 //! As seen above, there are ways on attaching more information to the [`Report`]: [`attach`] and
-//! [`attach_printable`]. These two functions behave similar, but the latter has a more restrictive
+//! [`attach_opaque`]. These two functions behave similar, but the former has a more restrictive
 //! bound on the attachment: [`Display`] and [`Debug`]. Depending on the function used, printing the
 //! [`Report`] will also use the [`Display`] and [`Debug`] traits to describe the attachment.
 //!
@@ -243,10 +243,10 @@
 //!
 //! The `Suggestion` which was added via [`attach`] is not shown directly and only increases the
 //! counter of opaque attachments for the containing [`Error`]. The message which was passed to
-//! [`attach_printable`], however, is displayed in full. To be able to show attachments that have
+//! [`attach_opaque`], however, is displayed in full. To be able to show attachments that have
 //! been added via [`attach`], one must make use of [hooks](#debug-and-display-hooks) instead.
 //!
-//! [`attach_printable`]: Report::attach_printable
+//! [`attach_opaque`]: Report::attach_opaque
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //!
@@ -525,6 +525,7 @@ pub use self::result::Result;
 pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
+    context::{Attachment, OpaqueAttachment},
     frame::{AttachmentKind, Frame, FrameKind},
     report::{IntoReport, Report},
 };

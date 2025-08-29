@@ -18,8 +18,8 @@ impl core::fmt::Display for CustomError {
 
 fn main() -> ExitCode {
     let report = Report::new(CustomError)
-        .attach(ExitCode::from(100))
-        .attach_printable("this error has an exit code of 100!");
+        .attach_opaque(ExitCode::from(100))
+        .attach("this error has an exit code of 100!");
 
     report.report()
 }

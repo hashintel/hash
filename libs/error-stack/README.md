@@ -40,7 +40,7 @@ impl Error for ParseExperimentError {}
 fn parse_experiment(description: &str) -> Result<(u64, u64), Report<ParseExperimentError>> {
     let value = description
         .parse::<u64>()
-        .attach_printable_lazy(|| format!("{description:?} could not be parsed as experiment"))
+        .attach_with(|| format!("{description:?} could not be parsed as experiment"))
         .change_context(ParseExperimentError)?;
 
     Ok((value, 2 * value))
@@ -66,17 +66,17 @@ fn start_experiments(
         .map(|exp_id| {
             let description = experiment_descriptions.get(*exp_id).ok_or_else(|| {
                 Report::new(ExperimentError)
-                    .attach_printable(format!("experiment {exp_id} has no valid description"))
+                    .attach(format!("experiment {exp_id} has no valid description"))
             })?;
 
             let experiment = parse_experiment(description)
-                .attach_printable(format!("experiment {exp_id} could not be parsed"))
+                .attach(format!("experiment {exp_id} could not be parsed"))
                 .change_context(ExperimentError)?;
 
             Ok(move || experiment.0 * experiment.1)
         })
         .collect::<Result<Vec<_>, Report<ExperimentError>>>()
-        .attach_printable("unable to set up experiments")?;
+        .attach("unable to set up experiments")?;
 
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
@@ -125,7 +125,7 @@ backtrace no. 1
              at ./src/report.rs:272:9
    7: error_stack::context::&lt;impl core::convert::From&lt;C&lt; for error_stack::report::Report&lt;C&gt;&gt;::from
              at ./src/context.rs:83:9
-   8: &lt;core::result::Result&lt;T,C&lt; as error_stack::result::ResultExt&lt;::attach_printable_lazy
+   8: &lt;core::result::Result&lt;T,C&lt; as error_stack::result::ResultExt&lt;::attach_with
              at ./src/result.rs:158:31
    9: demo::parse_experiment
              at demo.rs:17:17
