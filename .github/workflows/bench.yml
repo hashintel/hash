@@ -25,7 +25,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 2
 
@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -99,14 +99,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -181,7 +181,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -259,14 +259,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -405,7 +405,7 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
