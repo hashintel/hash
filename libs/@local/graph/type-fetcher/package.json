@@ -8,7 +8,7 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "start": "../../../../target/release/hash-graph type-fetcher",
-    "start:healthcheck": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 600 --logging-console-level=warn",
+    "start:healthcheck": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 1200 --logging-console-level=warn",
     "start:test": "../../../../target/debug/hash-graph type-fetcher",
     "start:test:healthcheck": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300 --logging-console-level=warn"
   },

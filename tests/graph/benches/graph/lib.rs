@@ -34,11 +34,10 @@ fn bench_resolve_policies(_crit: &mut Criterion) {
 
     #[expect(
         clippy::print_stderr,
-        clippy::use_debug,
         reason = "Bench output is printed to console intentionally"
     )]
     match rt.block_on(async move { scenario::run_scenario_file(&path).await }) {
         Ok(result) => eprintln!("Scenario passed: {:#}", serde_json::json!(result)),
-        Err(err) => eprintln!("Scenario failed: {err:?}"),
+        Err(err) => panic!("Scenario failed: {err:?}"),
     }
 }
