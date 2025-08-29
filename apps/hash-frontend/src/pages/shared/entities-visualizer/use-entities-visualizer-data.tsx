@@ -13,6 +13,7 @@ import { useMemo } from "react";
 
 import type { GetEntitySubgraphQuery } from "../../../graphql/api-types.gen";
 import { useEntityTypeEntities } from "../../../shared/use-entity-type-entities";
+import type { VisualizerView } from "../visualizer-views";
 
 export type EntitiesVisualizerData = Partial<
   Pick<
@@ -50,6 +51,7 @@ export const useEntitiesVisualizerData = (params: {
   limit?: number;
   webIds?: WebId[];
   sort?: EntityQuerySortingRecord;
+  view: VisualizerView;
 }): EntitiesVisualizerData => {
   const {
     conversions,
@@ -60,6 +62,7 @@ export const useEntitiesVisualizerData = (params: {
     limit,
     webIds: webIdsParam,
     sort,
+    view,
   } = params;
 
   const {
@@ -85,10 +88,24 @@ export const useEntitiesVisualizerData = (params: {
     includeArchived,
     limit,
     webIds: webIdsParam,
-    graphResolveDepths: {
-      hasLeftEntity: { outgoing: 1, incoming: 1 },
-      hasRightEntity: { outgoing: 1, incoming: 1 },
-    },
+    graphResolveDepths:
+      view === "Graph"
+        ? {
+            /**
+             * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
+             * We skip asking the graph to resolve them.
+             * This does mean that links to entities outside the users' webs are not reflected in the graph view,
+             * unless they have clicked to include entities from other webs.
+             */
+            hasLeftEntity: { outgoing: 0, incoming: 0 },
+            hasRightEntity: { outgoing: 0, incoming: 0 },
+          }
+        : /**
+           * The table view only needs outgoing: 1 for each, in order to be able to display the source and target of links.
+           */ {
+            hasLeftEntity: { outgoing: 1, incoming: 0 },
+            hasRightEntity: { outgoing: 1, incoming: 0 },
+          },
     sort,
   });
 

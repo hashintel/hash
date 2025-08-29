@@ -288,10 +288,10 @@ export const EntitiesVisualizer: FunctionComponent<{
      * Translate into archived filter in query
      */
     includeArchived: !!filterState.includeArchived,
-    /** @todo H-3255 enable pagination when performance improvements in place */
-    // limit: view === "Graph" ? undefined : limit,
+    limit: view === "Graph" ? undefined : limit,
     webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
+    view,
   });
 
   const [dataLoading, setDataLoading] = useState(entitiesData.loading);
@@ -479,7 +479,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight =
     maxHeight ??
     `min(600px, calc(100vh - (${
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
+      // The magic number accounts for the page header and the pagination controls
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 290 + tableHeaderHeight
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(

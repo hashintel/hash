@@ -18,12 +18,12 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-// import {
-//   ArrowRightRegularIcon,
-//   IconButton,
-//   LoadingSpinner,
-//   Select,
-// } from "@hashintel/design-system";
+import {
+  ArrowRightRegularIcon,
+  IconButton,
+  LoadingSpinner,
+  Select,
+} from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -55,6 +55,7 @@ import type {
 import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
+import { MenuItem } from "../../../shared/ui/menu-item";
 // import { MenuItem } from "../../../shared/ui/menu-item";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
@@ -162,14 +163,14 @@ export const EntitiesTable: FunctionComponent<
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
-  limit: _limit,
+  limit,
   loading: entityDataLoading,
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
-  goToNextPage: _goToNextPage,
+  goToNextPage,
   readonly,
-  setLimit: _setLimit,
+  setLimit,
   selectedRows,
   setActiveConversions,
   setLoading,
@@ -893,9 +894,7 @@ export const EntitiesTable: FunctionComponent<
         sort={sort}
         setSort={setSortWithConversion}
       />
-      {/* @todo H-3255 Enable pagination when performance improvements are implemented */}
 
-      {/*
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Stack
           direction="row"
@@ -921,7 +920,6 @@ export const EntitiesTable: FunctionComponent<
           <ArrowRightRegularIcon />
         </IconButton>
       </Stack>
-      */}
     </Stack>
   );
 };
