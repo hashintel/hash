@@ -50,7 +50,7 @@ export const ArcEditor = ({
   }, [tokenWeights]);
 
   const handleWeightChange = (tokenTypeId: string, value: string) => {
-    const parsedValue = parseInt(value, 10);
+    const parsedValue = Number.parseInt(value, 10);
     const newWeight = Math.max(0, parsedValue || 0);
 
     const newWeights = {

@@ -1,12 +1,11 @@
 import "reactflow/dist/style.css";
 
 import { Box, Button, Stack } from "@mui/material";
-import type { Dispatch, DragEvent, SetStateAction } from "react";
+import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Connection,
   Node,
-  NodeAddChange,
   NodeChange,
   ReactFlowInstance,
 } from "reactflow";
@@ -17,6 +16,7 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
+import { applyNodeChanges } from "./petrinaut/apply-node-changes";
 import { Arc } from "./petrinaut/arc";
 import { ArcEditor } from "./petrinaut/arc-editor";
 import { createArc } from "./petrinaut/create-arc";
@@ -85,115 +85,9 @@ type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-/**
- * A variant of reactflow's applyChange which mutates the petri net definition instead of creating a new node or edge array.
- *
- * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
- */
-const applyNodeChanges = ({
-  changes,
-  draggingStateByNodeId,
-  mutatePetriNetDefinition,
-  setDraggingStateByNodeId,
-}: {
-  changes: NodeChange[];
-  draggingStateByNodeId: DraggingStateByNodeId;
-  mutatePetriNetDefinition: MutatePetriNetDefinition;
-  setDraggingStateByNodeId: Dispatch<SetStateAction<DraggingStateByNodeId>>;
-}) => {
-  const changesByNodeId: Record<string, NodeChange[]> = {};
-  const addChanges: NodeAddChange[] = [];
-
-  for (const change of changes) {
-    if (change.type === "add") {
-      // We add nodes in onDrop, we won't handle these kind of changes
-      continue;
-    } else if (
-      // unclear what reset is supposed to do, it's not handled in reactflow's applyChange implementation
-      change.type === "reset" ||
-      // We handle selection in separate state ourselves
-      change.type === "select" ||
-      // We don't allow resizing at the moment
-      change.type === "dimensions"
-    ) {
-      continue;
-    } else if (change.type === "position") {
-      if (change.dragging) {
-        setDraggingStateByNodeId((existing) => ({
-          ...existing,
-          [change.id]: {
-            dragging: true,
-            position: change.position ?? { x: 0, y: 0 },
-          },
-        }));
-      } else {
-        const lastPosition = draggingStateByNodeId[change.id]?.position;
-
-        if (!lastPosition) {
-          // we've had a dragging: false with no preceding dragging: true, so the node has not been dragged anywhere.
-          continue;
-        }
-
-        /**
-         * When dragging stops, we receive a change event with 'dragging: false' but no position.
-         * We use the last position we received to report the change to the consumer.
-         */
-        changesByNodeId[change.id] ??= [];
-        changesByNodeId[change.id]!.push({
-          type: "position",
-          id: change.id,
-          position: lastPosition,
-        });
-
-        setDraggingStateByNodeId((existing) => ({
-          ...existing,
-          [change.id]: {
-            dragging: false,
-            position: lastPosition,
-          },
-        }));
-      }
-    }
-  }
-
-  if (addChanges.length === 0 && Object.keys(changesByNodeId).length === 0) {
-    return;
-  }
-
-  mutatePetriNetDefinition((existingNet) => {
-    for (const node of existingNet.nodes) {
-      const changesForNode: NodeChange[] = changesByNodeId[node.id] ?? [];
-
-      for (const change of changesForNode) {
-        if (change.type === "position") {
-          if (change.position) {
-            if (node.position.x !== change.position.x) {
-              node.position.x = change.position.x;
-            }
-            if (node.position.y !== change.position.y) {
-              node.position.y = change.position.y;
-            }
-          }
-
-          if (change.positionAbsolute) {
-            if (node.positionAbsolute?.x !== change.positionAbsolute.x) {
-              node.positionAbsolute ??= { x: 0, y: 0 };
-              node.positionAbsolute.x = change.positionAbsolute.x;
-            }
-            if (node.positionAbsolute.y !== change.positionAbsolute.y) {
-              node.positionAbsolute ??= { x: 0, y: 0 };
-              node.positionAbsolute.y = change.positionAbsolute.y;
-            }
-          }
-        }
-      }
-    }
-
-    existingNet.nodes.push(...addChanges.map((change) => change.item));
-  });
-};
-
-const PetrinautInner = () => {
+const PetrinautInner = ({
+  hideNetManagementControls,
+}: { hideNetManagementControls: boolean }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
@@ -260,7 +154,7 @@ const PetrinautInner = () => {
         setDraggingStateByNodeId,
       });
     },
-    [draggingStateByNodeId, mutatePetriNetDefinition, setDraggingStateByNodeId],
+    [draggingStateByNodeId, mutatePetriNetDefinition],
   );
 
   const onEdgesChange = useCallback(() => {
@@ -603,7 +497,7 @@ const PetrinautInner = () => {
 
   return (
     <Stack sx={{ height: "100%" }}>
-      <TitleAndNetSelect />
+      {!hideNetManagementControls && <TitleAndNetSelect />}
 
       <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
         <Sidebar />
@@ -702,44 +596,46 @@ const PetrinautInner = () => {
 
           <LogPane />
 
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-          >
-            <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-              Load Example
-            </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleLoadFromPnml}
-              accept=".pnml,.xml"
-              style={{ display: "none" }}
-            />
-            <Button onClick={handleImportClick} size="xs" variant="tertiary">
-              Import
-            </Button>
-            <Button onClick={handleExport} size="xs" variant="tertiary">
-              Export
-            </Button>
-            <Button
-              onClick={() =>
-                createNewNet({
-                  petriNetDefinition: {
-                    arcs: [],
-                    nodes: [],
-                    tokenTypes: defaultTokenTypes,
-                  },
-                  title: "Process",
-                })
-              }
-              size="xs"
-              variant="danger"
+          {!hideNetManagementControls && (
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
             >
-              New
-            </Button>
-          </Stack>
+              <Button onClick={handleLoadExample} size="xs" variant="tertiary">
+                Load Example
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleLoadFromPnml}
+                accept=".pnml,.xml"
+                style={{ display: "none" }}
+              />
+              <Button onClick={handleImportClick} size="xs" variant="tertiary">
+                Import
+              </Button>
+              <Button onClick={handleExport} size="xs" variant="tertiary">
+                Export
+              </Button>
+              <Button
+                onClick={() =>
+                  createNewNet({
+                    petriNetDefinition: {
+                      arcs: [],
+                      nodes: [],
+                      tokenTypes: defaultTokenTypes,
+                    },
+                    title: "Process",
+                  })
+                }
+                size="xs"
+                variant="danger"
+              >
+                New
+              </Button>
+            </Stack>
+          )}
         </Box>
       </Stack>
     </Stack>
@@ -758,6 +654,10 @@ export type PetrinautProps = {
     petriNetDefinition: PetriNetDefinitionObject;
     title: string;
   }) => void;
+  /**
+   * Whether to hide controls relating to net loading, creation and title setting.
+   */
+  hideNetManagementControls: boolean;
   /**
    * Minimal metadata on the net which this net is a child of, if any.
    */
@@ -806,6 +706,7 @@ export type PetrinautProps = {
 export const Petrinaut = ({
   createNewNet,
   existingNets,
+  hideNetManagementControls,
   parentNet,
   petriNetId,
   petriNetDefinition,
@@ -830,7 +731,9 @@ export const Petrinaut = ({
         title={title}
       >
         <SimulationContextProvider>
-          <PetrinautInner />
+          <PetrinautInner
+            hideNetManagementControls={hideNetManagementControls}
+          />
         </SimulationContextProvider>
       </EditorContextProvider>
     </ReactFlowProvider>

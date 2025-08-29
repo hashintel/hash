@@ -184,7 +184,7 @@ export const exampleCPN = {
         delay: 3,
       },
     },
-  ] as const satisfies NodeType[],
+  ] satisfies NodeType[],
   arcs: [
     {
       id: "place_0-transition_0",

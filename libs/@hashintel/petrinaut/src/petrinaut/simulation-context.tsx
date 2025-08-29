@@ -316,8 +316,6 @@ export const SimulationContextProvider = ({
       isSimulating,
       placeMarkingsById,
       resetSimulation,
-      setIsSimulating,
-      setSimulationSpeed,
       simulationLogs,
       simulationSpeed,
     ],
