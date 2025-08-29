@@ -167,9 +167,8 @@ fn parse_labelled_argument<'heap>(
         return Err(labeled_arguments_length_mismatch(
             state.insert_range(range),
             labeled_arguments
-                .get(1..)
-                .into_iter()
-                .flatten()
+                .iter()
+                .skip(1)
                 .map(|argument| argument.span),
             labeled_arguments.len(),
         )
