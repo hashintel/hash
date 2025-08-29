@@ -223,7 +223,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [limit, setLimit] = useState<number>(10);
   const [cursor, setCursor] = useState<EntityQueryCursor>();
   const [activeConversionsWithoutTitle, setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
@@ -288,7 +287,7 @@ export const EntitiesVisualizer: FunctionComponent<{
      * Translate into archived filter in query
      */
     includeArchived: !!filterState.includeArchived,
-    limit: view === "Graph" ? undefined : limit,
+    limit: view === "Graph" ? undefined : 500,
     webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
     view,
@@ -597,19 +596,23 @@ export const EntitiesVisualizer: FunctionComponent<{
           handleEntityClick={handleEntityClick}
           hasSomeLinks={hasSomeLinks}
           hideColumns={hideColumns}
-          limit={limit}
+          isPaginating={!!cursor}
           loading={dataLoading}
           loadingComponent={loadingComponent}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={tableHeight}
-          goToNextPage={nextCursor ? nextPage : undefined}
+          loadMoreRows={nextCursor ? nextPage : undefined}
           readonly={readonly}
+          remainingRows={
+            (filterState.includeGlobal
+              ? (totalCount ?? 0)
+              : (internalEntitiesCount ?? 0)) - (entities?.length ?? 0)
+          }
           setActiveConversions={setActiveConversions}
           setLoading={setChildDoingWork}
           setSelectedEntityType={handleEntityTypeClick}
           setSelectedRows={setSelectedTableRows}
           selectedRows={selectedTableRows}
-          setLimit={setLimit}
           showSearch={showTableSearch}
           setShowSearch={setShowTableSearch}
           sort={sort}

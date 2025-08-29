@@ -18,16 +18,11 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import {
-  ArrowRightRegularIcon,
-  IconButton,
-  LoadingSpinner,
-  Select,
-} from "@hashintel/design-system";
+import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, Stack, useTheme } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
   Dispatch,
@@ -55,8 +50,7 @@ import type {
 import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { tableContentSx } from "../../../shared/table-content";
 import type { FilterState } from "../../../shared/table-header";
-import { MenuItem } from "../../../shared/ui/menu-item";
-// import { MenuItem } from "../../../shared/ui/menu-item";
+import { Button } from "../../../shared/ui/button";
 import { isAiMachineActor } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import type { ChipCellProps } from "../chip-cell";
@@ -93,6 +87,7 @@ const emptyTableData: EntitiesTableData = {
     targets: [],
     webs: [],
   },
+  visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
 export const EntitiesTable: FunctionComponent<
@@ -122,20 +117,20 @@ export const EntitiesTable: FunctionComponent<
     hasSomeLinks: boolean;
     hidePropertiesColumns?: boolean;
     hideColumns?: (keyof EntitiesTableRow)[];
-    limit: number;
+    isPaginating: boolean;
     loading: boolean;
     loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
-    goToNextPage?: () => void;
+    loadMoreRows?: () => void;
     readonly?: boolean;
+    remainingRows: number;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
       SetStateAction<{
         [columnBaseUrl: BaseUrl]: VersionedUrl;
       } | null>
     >;
-    setLimit: (limit: number) => void;
     setLoading: (loading: boolean) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
@@ -163,14 +158,14 @@ export const EntitiesTable: FunctionComponent<
   handleEntityClick,
   hideColumns,
   hidePropertiesColumns = false,
-  limit,
+  isPaginating,
   loading: entityDataLoading,
   loadingComponent,
   isViewingOnlyPages,
   maxHeight,
-  goToNextPage,
+  loadMoreRows,
   readonly,
-  setLimit,
+  remainingRows,
   selectedRows,
   setActiveConversions,
   setLoading,
@@ -199,6 +194,7 @@ export const EntitiesTable: FunctionComponent<
     entities,
     hasSomeLinks,
     hideColumns,
+    isPaginating,
     hideArchivedColumn: !filterState.includeArchived,
     hidePropertiesColumns,
     subgraph,
@@ -212,7 +208,7 @@ export const EntitiesTable: FunctionComponent<
       return Array.from(
         new Set(
           Object.values(visibleDataTypesByPropertyBaseUrl).flatMap((types) =>
-            types.map((type) => type.schema.$id),
+            [...types].map((type) => type.schema.$id),
           ),
         ),
       );
@@ -255,7 +251,7 @@ export const EntitiesTable: FunctionComponent<
        *
        * A conversion target which isn't present for one of the dataTypeIds cannot be included.
        */
-      for (const [propertyBaseUrl, dataTypes] of typedEntries(
+      for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
         visibleDataTypesByPropertyBaseUrl,
       )) {
         const targetsByTargetTypeId: Record<
@@ -897,30 +893,43 @@ export const EntitiesTable: FunctionComponent<
         setSort={setSortWithConversion}
       />
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="flex-start"
-          gap={2}
-        >
-          <Select
-            value={limit.toString()}
-            onChange={(event) => setLimit(parseInt(event.target.value, 10))}
-            sx={{ width: 100 }}
-          >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-            <MenuItem value={100}>100</MenuItem>
-            <MenuItem value={500}>500</MenuItem>
-          </Select>
-          {(entityDataLoading || tableDataCalculating) && (
-            <LoadingSpinner size={28} color={theme.palette.blue[60]} />
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        mt={1}
+      >
+        <Box>
+          {entities !== undefined && (
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{ color: theme.palette.gray[60] }}
+            >
+              Viewing <strong>{entities.length}</strong> of{" "}
+              <strong>{remainingRows}</strong> entities
+            </Typography>
           )}
-        </Stack>
-        <IconButton onClick={goToNextPage} disabled={!goToNextPage}>
-          <ArrowRightRegularIcon />
-        </IconButton>
+        </Box>
+        <Button
+          onClick={loadMoreRows}
+          disabled={!loadMoreRows}
+          size="small"
+          sx={{ width: 160 }}
+        >
+          {entityDataLoading || tableDataCalculating ? (
+            <>
+              <Box component="span" mr={1}>
+                Loading...
+              </Box>
+              <LoadingSpinner size={16} color={theme.palette.blue[60]} />
+            </>
+          ) : (
+            <>
+              Load more
+              <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
+            </>
+          )}
+        </Button>
       </Stack>
     </Stack>
   );

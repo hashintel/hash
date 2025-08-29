@@ -29,6 +29,7 @@ import type {
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
   GenerateEntitiesTableDataResultMessage,
+  VisibleDataTypeIdsByPropertyBaseUrl,
   WorkerDataReturn,
 } from "../types";
 import { isGenerateEntitiesTableDataRequestMessage } from "../types";
@@ -130,6 +131,8 @@ const generateTableData = (
       label: string;
     };
   } = {};
+
+  const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
 
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
 
@@ -339,6 +342,28 @@ const generateTableData = (
       noTarget += 1;
     }
 
+    for (const [baseUrl, { metadata }] of typedEntries(
+      entity.propertiesMetadata.value,
+    )) {
+      if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
+        dataTypesByProperty[baseUrl] ??= new Set();
+
+        const dataType = definitions.dataTypes[metadata.dataTypeId];
+
+        if (!dataType) {
+          throw new Error(
+            `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
+          );
+        }
+
+        /**
+         * As there is only one instance of each DataType in the subgraph, it'll be the same object in memory,
+         * and the Set equality check will work.
+         */
+        dataTypesByProperty[baseUrl].add(dataType);
+      }
+    }
+
     const web = `@${entityNamespace}`;
 
     rows.push({
@@ -438,6 +463,7 @@ const generateTableData = (
   return {
     columns,
     rows,
+    visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
     filterData: {
       noSourceCount: noSource,
       noTargetCount: noTarget,

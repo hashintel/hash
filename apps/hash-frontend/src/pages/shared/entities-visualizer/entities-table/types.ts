@@ -14,6 +14,7 @@ import type {
   SerializedSubgraph,
 } from "@local/hash-graph-sdk/entity";
 import type {
+  ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
@@ -142,10 +143,16 @@ export type EntitiesTableFilterData = {
   webs: WebTableFilterData[];
 };
 
+export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
+  BaseUrl,
+  Set<ClosedDataTypeDefinition>
+>;
+
 export type EntitiesTableData = {
   columns: EntitiesTableColumn[];
   filterData: EntitiesTableFilterData;
   rows: EntitiesTableRow[];
+  visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
 
 export type GenerateEntitiesTableDataRequestMessage = {
@@ -161,7 +168,10 @@ export const isGenerateEntitiesTableDataRequestMessage = (
   (message as Record<string, unknown>).type ===
     ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"]);
 
-export type WorkerDataReturn = Pick<EntitiesTableData, "rows" | "columns"> & {
+export type WorkerDataReturn = Pick<
+  EntitiesTableData,
+  "rows" | "columns" | "visibleDataTypeIdsByPropertyBaseUrl"
+> & {
   filterData: Omit<
     EntitiesTableFilterData,
     "createdByActors" | "entityTypeFilters" | "lastEditedByActors" | "webs"
