@@ -784,14 +784,6 @@ where
 
         let id = self.env.types.intern_provisioned(variable.id, partial).id;
 
-        if let Err(span) = is_contractive(self.env, kind) {
-            self.diagnostics.push(non_contractive_recursive_type(
-                variable.r#type.span,
-                span,
-                variable.name,
-            ));
-        }
-
         TypeDef {
             id,
             arguments: self.env.intern_generic_argument_references(&arguments),

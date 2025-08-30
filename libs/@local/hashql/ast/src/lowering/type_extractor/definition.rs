@@ -16,9 +16,10 @@ use hashql_core::{
 };
 
 use super::{
+    contractive::is_contractive,
     error::{
         TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
-        duplicate_type_alias,
+        duplicate_type_alias, non_contractive_recursive_type,
     },
     translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
 };
@@ -236,6 +237,20 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
 
         self.diagnostics.extend(unit.diagnostics);
         self.diagnostics.extend(diagnostics);
+
+        // check if all variables are contractive (this needs to happen *after* to ensure that
+        // references are resolved)
+        for local in locals.iter() {
+            let partial = self.environment.types.index_partial(local.value.id);
+
+            if let Err(span) = is_contractive(self.environment, partial.kind) {
+                self.diagnostics.push(non_contractive_recursive_type(
+                    partial.span,
+                    span,
+                    local.name,
+                ));
+            }
+        }
 
         let diagnostics = locals.finish(self.environment);
         self.diagnostics.extend(
