@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
@@ -310,6 +308,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
+    error::Error,
     fmt::{self, Debug, Display, Formatter},
     iter::once,
     mem,
@@ -325,7 +324,7 @@ pub(crate) use hook::{Format, Hooks, install_builtin_hooks};
 use location::LocationAttachment;
 
 use crate::{
-    AttachmentKind, Context, Frame, FrameKind, Report,
+    AttachmentKind, Frame, FrameKind, Report,
     fmt::{
         color::{Color, DisplayStyle, Style},
         config::Config,
@@ -777,7 +776,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
+fn debug_context(context: &(dyn Error + Send + Sync + 'static), mode: ColorMode) -> Lines {
     context
         .to_string()
         .lines()
