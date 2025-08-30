@@ -199,7 +199,7 @@ pub trait FutureExt: Future + Sized {
         A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
+    /// Changes the [`Error`] context of the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
@@ -212,8 +212,8 @@ pub trait FutureExt: Future + Sized {
     where
         C: Error + Send + Sync + 'static;
 
-    /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
-    /// [`Future`].
+    /// Lazily changes the [`Error`] context of the [`Report`] inside the [`Result`] when
+    /// [`poll`]ing the [`Future`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     ///
