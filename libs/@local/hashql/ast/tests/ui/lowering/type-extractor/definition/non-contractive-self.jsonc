@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Union of itself should fail
+["type",
+  "A",
+  ["|", "A", "A"],
+  //~^ ERROR Type `A` cannot reference itself directly
+  "_"
+]
