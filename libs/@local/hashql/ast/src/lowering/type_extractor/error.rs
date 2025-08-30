@@ -84,6 +84,11 @@ const UNUSED_GENERIC_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Generic parameter not used in type definition",
 };
 
+const NON_CONTRACTIVE_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "non-contractive-type",
+    name: "Non-contractive recursive type",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
@@ -98,6 +103,7 @@ pub enum TypeExtractorDiagnosticCategory {
     DuplicateStructField,
     GenericConstraintNotAllowed,
     UnusedGenericParameter,
+    NonContractiveType,
     TypeCheck(TypeCheckDiagnosticCategory),
 }
 
@@ -124,6 +130,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
             Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
             Self::UnusedGenericParameter => Some(&UNUSED_GENERIC_PARAMETER),
+            Self::NonContractiveType => Some(&NON_CONTRACTIVE_TYPE),
             Self::TypeCheck(category) => Some(category),
         }
     }
@@ -701,6 +708,50 @@ pub(crate) fn unused_generic_parameter(
          parameters can make code harder to understand and may indicate a design oversight or \
          incomplete implementation. They are unconstrained variables, and therefore considered \
          erroneous.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a non-contractive recursive type.
+///
+/// This diagnostic is generated when a recursive type definition violates the contractive
+/// constraint, which could lead to non-termination during type checking. A recursive type
+/// is contractive if every recursive reference is protected by at least one type constructor.
+pub(crate) fn non_contractive_recursive_type(
+    type_span: SpanId,
+    recursive_ref_span: SpanId,
+    type_name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::NonContractiveType,
+        Severity::Error,
+    );
+
+    diagnostic.labels.extend([
+        Label::new(
+            recursive_ref_span,
+            format!("Recursive reference to `{type_name}` is not contractive"),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(type_span, "... in this type definition")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    ]);
+
+    diagnostic.add_help(Help::new(format!(
+        "Wrap the recursive reference to `{type_name}` in a type constructor like a struct, \
+         tuple, or union with non-recursive alternatives. For example: `Some<{type_name}> | None` \
+         or `{{ value: {type_name} }}`"
+    )));
+
+    diagnostic.add_note(Note::new(
+        "Recursive types must be 'contractive' to ensure type checking terminates. This means \
+         every recursive reference must be protected by at least one type constructor (struct, \
+         tuple, etc.). Direct self-references like `type T = T` or `type T = T | U` where all \
+         variants are recursive are not allowed as they could cause infinite loops during type \
+         checking.",
     ));
 
     diagnostic
