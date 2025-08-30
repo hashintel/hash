@@ -16,9 +16,10 @@ use hashql_core::{
 };
 
 use super::{
+    contractive::is_contractive,
     error::{
         TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
-        duplicate_type_alias,
+        duplicate_type_alias, non_contractive_recursive_type,
     },
     translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
 };
@@ -117,6 +118,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: expr.name,
                     r#type: &expr.value,
                     identity: Identity::Structural,
                     arguments,
@@ -136,6 +138,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: expr.name,
                     r#type: &expr.value,
                     identity: Identity::Nominal(
                         self.environment
@@ -202,7 +205,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     fn translate(&mut self) -> TypeLocals<'heap> {
-        let (variables, constraints, diagnostics) = self.setup_locals();
+        let (variables, constraints, mut diagnostics) = self.setup_locals();
 
         let mut unit = TranslationUnit {
             env: self.environment,
@@ -230,6 +233,21 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 name,
                 value: unit.variable(variable, &constraints),
             });
+        }
+
+        // check if all variables are contractive (this needs to happen *after* to ensure that
+        // references are resolved)
+        for local in locals.iter() {
+            let variable = &variables[&local.name];
+            let partial = self.environment.types.index_partial(local.value.id);
+
+            if let Err(span) = is_contractive(self.environment, partial.kind) {
+                diagnostics.push(non_contractive_recursive_type(
+                    variable.name.span,
+                    span,
+                    local.name,
+                ));
+            }
         }
 
         self.diagnostics.extend(unit.diagnostics);
