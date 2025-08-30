@@ -1,9 +1,9 @@
 [special-form-expander::field-literal-type-annotation] Error: Field literal with type annotation
-   ╭─[ <unknown>:3:71 ]
+   ╭─[ <unknown>:6:30 ]
    │
- 3 │ ["::kernel::special_form::access", "tuple", {"#literal": 0, "#type": "Integer"}]
-   │                                                                       ───┬───  
-   │                                                                          ╰───── Remove this type annotation
+ 6 │   { "#literal": 0, "#type": "Integer" }
+   │                              ───┬───  
+   │                                 ╰───── Remove this type annotation
    │ 
    │ Help: Field access using numeric literals cannot have type annotations. The literal represents the field index directly and doesn't need a separate type.
    │ 
