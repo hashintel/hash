@@ -3,24 +3,25 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{entity_type::CreateEntityTypeParams, query::ConflictBehavior};
-use rand::{distr::Distribution as _, prelude::IndexedRandom as _};
+use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::ontology::{
     BaseUrl, VersionedUrl,
     entity_type::{
         EntityType,
         schema::{
-            EntityConstraints, EntityTypeKindTag, EntityTypeSchemaTag, InverseEntityTypeMetadata,
+            EntityConstraints, EntityTypeKindTag, EntityTypeReference, EntityTypeSchemaTag,
+            InverseEntityTypeMetadata,
         },
     },
     id::{OntologyTypeVersion, ParseBaseUrlError},
     json_schema::ObjectTypeTag,
-    property_type::schema::PropertyTypeReference,
     provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
 use super::{
     Producer,
     ontology::{BoundDomainSampler, DomainPolicy, SampledDomain, WebCatalog},
+    property_type::PropertyTypeCatalog,
 };
 use crate::seeding::{
     context::{LocalId, ProduceContext, ProducerId, Scope, SubScope},
@@ -210,11 +211,14 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
             kind: EntityTypeKindTag::EntityType,
             r#type: ObjectTypeTag::Object,
             id: VersionedUrl {
-                base_url: {
-                    let slug = slug_from_title(&title);
-                    BaseUrl::new(format!("https://{domain}/@{web_shortname}/{slug}/"))
-                        .attach_with(|| format!("Failed to create URL for entity type: {title}"))?
-                },
+                base_url: BaseUrl::new(format!(
+                    "{}/@{}/types/entity-type/{:x}-{:x}-{}/",
+                    &*domain,
+                    &*web_shortname,
+                    title_gid.shard_id,
+                    title_gid.local_id,
+                    slug_from_title(&title)
+                ))?,
                 version: OntologyTypeVersion::new(1),
             },
             title,
@@ -248,61 +252,36 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
     }
 }
 
-/// Trait for catalogs that provide [`PropertyType`] references for [`EntityType`] generation.
+/// Catalogs that provide [`EntityTypeReference`]s.
 ///
-/// This trait enables [`EntityType`]s to reference existing [`PropertyType`]s when defining their
-/// property structures. Implementations should provide efficient access to [`PropertyType`]
-/// references for random sampling during generation.
-///
-/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-pub trait PropertyTypeCatalog {
-    /// Returns all available [`PropertyType`] references in this catalog.
+/// This trait enables [`EntityType`]s to reference existing [`EntityType`]s
+/// when defining their structures. Implementations should provide efficient access to
+/// [`EntityTypeReference`]s for random sampling during generation.
+pub trait EntityTypeCatalog {
+    /// Returns all available [`EntityType`] references in this catalog.
     ///
-    /// The returned slice should contain all [`PropertyType`]s that can be referenced when
-    /// generating [`EntityType`] properties. Empty catalogs will result in [`EntityType`]s with
-    /// no properties.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    fn property_type_references(&self) -> &[PropertyTypeReference];
+    /// The returned slice should contain all [`EntityType`]s that can be referenced when
+    /// generating [`EntityType`]s.
+    fn entity_type_references(&self) -> &[EntityTypeReference];
 
-    /// Sample a random [`PropertyType`] reference from this catalog.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    /// Sample a random [`EntityType`] reference from this catalog.
     ///
     /// # Panics
     ///
-    /// Panics if the catalog is empty. Callers should check [`is_empty()`] first or ensure the
-    /// catalog is properly populated before sampling.
-    ///
-    /// [`is_empty()`]: Self::is_empty
-    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        self.property_type_references()
+    /// Panics if the catalog is empty.
+    fn sample_entity_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &EntityTypeReference {
+        self.entity_type_references()
             .choose(rng)
             .expect("catalog should not be empty")
     }
-
-    /// Returns true if this catalog contains no [`PropertyType`] references.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    fn is_empty(&self) -> bool {
-        self.property_type_references().is_empty()
-    }
 }
 
-impl<C> PropertyTypeCatalog for &C
+impl<C> EntityTypeCatalog for &C
 where
-    C: PropertyTypeCatalog,
+    C: EntityTypeCatalog,
 {
-    fn property_type_references(&self) -> &[PropertyTypeReference] {
-        (*self).property_type_references()
-    }
-
-    fn sample_property_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        (*self).sample_property_type(rng)
-    }
-
-    fn is_empty(&self) -> bool {
-        (*self).is_empty()
+    fn entity_type_references(&self) -> &[EntityTypeReference] {
+        (*self).entity_type_references()
     }
 }
 
@@ -311,14 +290,7 @@ mod tests {
     use alloc::sync::Arc;
 
     use hash_graph_store::query::ConflictBehavior;
-    use type_system::{
-        ontology::{
-            BaseUrl, VersionedUrl,
-            id::OntologyTypeVersion,
-            property_type::schema::{PropertyTypeReference, ValueOrArray},
-        },
-        provenance::{OriginProvenance, OriginType},
-    };
+    use type_system::provenance::{OriginProvenance, OriginType};
 
     use super::*;
     use crate::seeding::{
@@ -327,55 +299,24 @@ mod tests {
             adaptors::ConstDistributionConfig,
             ontology::{
                 ShortnameDistributionConfig, WeightedDomainListDistributionConfig,
-                entity_type::properties::{
-                    EntityTypePropertiesDistributionConfig, InMemoryPropertyTypeCatalog,
-                },
+                entity_type::properties::EntityTypePropertiesDistributionConfig,
             },
         },
-        producer::ontology::{
-            InMemoryWebCatalog, IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig,
+        producer::{
+            ontology::{
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
+            },
+            property_type::tests::create_test_property_type_catalog,
+            user::tests::create_test_user_web_catalog,
         },
     };
-
-    fn create_test_web_catalog() -> InMemoryWebCatalog {
-        InMemoryWebCatalog::from_tuples(vec![(
-            Arc::<str>::from("https://hash.ai"),
-            Arc::<str>::from("hash"),
-            type_system::principal::actor_group::WebId::new(uuid::Uuid::new_v4()),
-        )])
-    }
-
-    fn create_test_property_type_catalog() -> InMemoryPropertyTypeCatalog {
-        InMemoryPropertyTypeCatalog::new(vec![
-            PropertyTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-                            .to_owned(),
-                    )
-                    .expect("Should create valid base URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-            PropertyTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/description/"
-                            .to_owned(),
-                    )
-                    .expect("Should create valid base URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-        ])
-        .expect("should create valid property type catalog")
-    }
 
     pub(crate) fn sample_entity_type_producer_config() -> EntityTypeProducerConfig {
         EntityTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: crate::seeding::distributions::ontology::DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -392,10 +333,12 @@ mod tests {
                         weight: Some(1),
                         fetched_at: time::OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },
@@ -424,18 +367,12 @@ mod tests {
 
     #[test]
     fn basic_entity_type_producer_creation() {
-        let config = sample_entity_type_producer_config();
-        let user_catalog = create_test_web_catalog();
-        let property_type_catalog = create_test_property_type_catalog();
-
-        let deps = EntityTypeProducerDeps {
-            user_catalog: Some(&user_catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
-            property_type_catalog: &property_type_catalog,
-        };
-
-        let mut producer = config
-            .create_producer(deps)
+        let mut producer = sample_entity_type_producer_config()
+            .create_producer(EntityTypeProducerDeps {
+                user_catalog: Some(create_test_user_web_catalog()),
+                org_catalog: None::<EmptyTestCatalog>,
+                property_type_catalog: create_test_property_type_catalog(),
+            })
             .expect("should be able to create entity type producer");
 
         // Test basic generation functionality
@@ -457,15 +394,5 @@ mod tests {
         assert_eq!(entity_type.schema.constraints.properties.len(), 2);
         assert_eq!(entity_type.schema.constraints.required.len(), 2);
         assert!(entity_type.schema.constraints.links.is_empty());
-
-        // Verify properties reference actual PropertyTypes from catalog
-        for property_ref in entity_type.schema.constraints.properties.values() {
-            match property_ref {
-                ValueOrArray::Value(prop) => {
-                    assert!(prop.url.base_url.as_str().contains("blockprotocol.org"));
-                }
-                ValueOrArray::Array(_) => panic!("Expected single PropertyType reference"),
-            }
-        }
     }
 }

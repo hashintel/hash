@@ -11,24 +11,28 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    data_type::CreateDataTypeParams, entity_type::CreateEntityTypeParams,
-    migration::StoreMigration as _, pool::StorePool as _, property_type::CreatePropertyTypeParams,
+    data_type::CreateDataTypeParams, entity::CreateEntityParams,
+    entity_type::CreateEntityTypeParams, migration::StoreMigration as _, pool::StorePool as _,
+    property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
-    distributions::ontology::{
-        entity_type::properties::InMemoryPropertyTypeCatalog,
-        property_type::values::InMemoryDataTypeCatalog,
-    },
-    producer::{Producer, ProducerExt as _, ontology::InMemoryWebCatalog, user::UserCreation},
+    producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
+use serde_json::Value as JsonValue;
 use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
-use super::stages::{Stage, StageError};
+use super::stages::{
+    Stage, StageError,
+    data_type::InMemoryDataTypeCatalog,
+    entity_type::{InMemoryEntityObjectRegistry, InMemoryEntityTypeCatalog},
+    property_type::InMemoryPropertyTypeCatalog,
+    web_catalog::InMemoryWebCatalog,
+};
 
 type InnerPool = hash_graph_postgres_store::store::PostgresStorePool;
 type Pool = FetchingPool<InnerPool, (String, u16)>;
@@ -39,6 +43,8 @@ pub enum ScenarioError {
     Io,
     #[display("Failed to parse scenario file")]
     Parse,
+    #[display("Failed to run scenario")]
+    Run,
     #[display("Failed to create data type producer")]
     CreateProducer,
     #[display("Generation failed")]
@@ -64,7 +70,7 @@ pub async fn run_scenario_file(path: &Path) -> Result<ScenarioResult, Report<Sce
         serde_json::from_reader(reader).change_context(ScenarioError::Parse)?;
     run_scenario(&scenario)
         .await
-        .change_context(ScenarioError::Parse)
+        .change_context(ScenarioError::Run)
 }
 
 pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<StageError>> {
@@ -74,7 +80,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
             let mut out = Vec::with_capacity(scenario.stages.len());
             for stage in &scenario.stages {
                 let start = Instant::now();
-                let produced = stage.execute(&mut runner).await?;
+                let value = stage.execute(&mut runner).await?;
                 out.push(StepMetrics {
                     id: match stage {
                         Stage::ResetDb(stage) => stage.id.clone(),
@@ -89,8 +95,12 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
                         Stage::BuildPropertyTypeCatalog(stage) => stage.id.clone(),
                         Stage::GenerateEntityTypes(stage) => stage.id.clone(),
                         Stage::PersistEntityTypes(stage) => stage.id.clone(),
+                        Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
+                        Stage::BuildEntityObjectRegistry(stage) => stage.id.clone(),
+                        Stage::GenerateEntities(stage) => stage.id.clone(),
+                        Stage::PersistEntities(stage) => stage.id.clone(),
                     },
-                    produced,
+                    value,
                     duration_ms: start.elapsed().as_millis(),
                 });
             }
@@ -102,7 +112,7 @@ pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<
 #[derive(Debug, serde::Serialize)]
 pub struct StepMetrics {
     pub id: String,
-    pub produced: usize,
+    pub value: JsonValue,
     pub duration_ms: u128,
 }
 
@@ -120,6 +130,9 @@ pub struct Resources {
     pub property_types: HashMap<String, Vec<CreatePropertyTypeParams>>,
     pub property_type_catalogs: HashMap<String, InMemoryPropertyTypeCatalog>,
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
+    pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
+    pub entity_object_catalogs: HashMap<String, InMemoryEntityObjectRegistry>,
+    pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
 pub struct Runner {
