@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "`report!` is deprecated")]
-
 use core::{error::Error, fmt};
 
 use error_stack::{Report, bail, ensure, report};

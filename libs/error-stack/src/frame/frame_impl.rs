@@ -1,11 +1,9 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::error::Request;
 use core::{any::Any, error::Error, fmt};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind};
+use crate::{AttachmentKind, Frame, FrameKind};
 
 /// Internal representation of a [`Frame`].
 pub(super) trait FrameImpl: Send + Sync + 'static {
@@ -43,7 +41,7 @@ struct ContextFrame<C> {
     context: C,
 }
 
-impl<C: Context> FrameImpl for ContextFrame<C> {
+impl<C: Error + Send + Sync + 'static> FrameImpl for ContextFrame<C> {
     fn kind(&self) -> FrameKind<'_> {
         FrameKind::Context(&self.context)
     }
@@ -58,7 +56,7 @@ impl<C: Context> FrameImpl for ContextFrame<C> {
 
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Context::provide(&self.context, request);
+        Error::provide(&self.context, request);
     }
 }
 
@@ -128,7 +126,7 @@ impl fmt::Display for AnyhowContext {
 }
 
 #[cfg(feature = "anyhow")]
-impl Context for AnyhowContext {
+impl Error for AnyhowContext {
     #[cfg(all(nightly, feature = "std"))]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
@@ -153,7 +151,7 @@ impl FrameImpl for AnyhowContext {
     #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Context::provide(self, request);
+        Error::provide(self, request);
     }
 }
 
@@ -175,7 +173,7 @@ impl fmt::Display for EyreContext {
 }
 
 #[cfg(feature = "eyre")]
-impl Context for EyreContext {
+impl Error for EyreContext {
     #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
@@ -200,7 +198,7 @@ impl FrameImpl for EyreContext {
     #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        Context::provide(self, request);
+        Error::provide(self, request);
     }
 }
 
@@ -208,7 +206,7 @@ impl Frame {
     /// Creates a frame from a [`Context`].
     pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
         Self {
             frame: Box::new(ContextFrame { context }),

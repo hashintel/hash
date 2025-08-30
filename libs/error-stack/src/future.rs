@@ -1,4 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 //! Extension for convenient usage of [`Report`]s returned by [`Future`] s.
 //!
 //! Extends [`Future`] with the same methods as [`ResultExt`] but calls the methods on [`poll`]ing.
@@ -7,12 +6,13 @@
 //! [`poll`]: Future::poll
 
 use core::{
+    error::Error,
     future::Future,
     pin::Pin,
     task::{Context as TaskContext, Poll},
 };
 
-use crate::{Attachment, Context, OpaqueAttachment, Report, ResultExt};
+use crate::{Attachment, OpaqueAttachment, Report, ResultExt};
 
 macro_rules! implement_future_adaptor {
     ($future:ident, $method:ident, $bound:ident $(+ $bounds:ident)* $(+ $lifetime:lifetime)*, $output:ty) => {
@@ -128,14 +128,14 @@ implement_lazy_future_adaptor!(
 implement_future_adaptor!(
     FutureWithContext,
     change_context,
-    Context,
+    Error + Send + Sync + 'static,
     Result<<Fut::Output as ResultExt>::Ok, Report<T>>
 );
 
 implement_lazy_future_adaptor!(
     FutureWithLazyContext,
     change_context_lazy,
-    Context,
+    Error + Send + Sync + 'static,
     Result<<Fut::Output as ResultExt>::Ok, Report<T>>
 );
 
@@ -172,17 +172,6 @@ pub trait FutureExt: Future + Sized {
         A: Attachment,
         F: FnOnce() -> A;
 
-    #[deprecated(
-        note = "Use `attach_opaque_with` instead. `attach_lazy` was renamed to \
-                `attach_opaque_with` and `attach_printable_lazy` was renamed to `attach_with`",
-        since = "0.6.0"
-    )]
-    #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
-    where
-        A: OpaqueAttachment,
-        F: FnOnce() -> A;
-
     /// Adds a new attachment to the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
@@ -210,35 +199,6 @@ pub trait FutureExt: Future + Sized {
         A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    #[track_caller]
-    #[deprecated(
-        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
-                `attach_printable` was renamed to `attach`",
-        since = "0.6.0"
-    )]
-    #[inline]
-    fn attach_printable<A>(self, attachment: A) -> FutureWithAttachment<Self, A>
-    where
-        A: Attachment,
-    {
-        self.attach(attachment)
-    }
-
-    #[track_caller]
-    #[deprecated(
-        note = "Use `attach_with` instead. `attach_lazy` was renamed to `attach_opaque_with` and \
-                `attach_printable_lazy` was renamed to `attach_with`",
-        since = "0.6.0"
-    )]
-    #[inline]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> FutureWithLazyAttachment<Self, F>
-    where
-        A: Attachment,
-        F: FnOnce() -> A,
-    {
-        self.attach_with(attachment)
-    }
-
     /// Changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
     ///
@@ -250,7 +210,7 @@ pub trait FutureExt: Future + Sized {
     #[track_caller]
     fn change_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
-        C: Context;
+        C: Error + Send + Sync + 'static;
 
     /// Lazily changes the [`Context`] of the [`Report`] inside the [`Result`] when [`poll`]ing the
     /// [`Future`].
@@ -263,7 +223,7 @@ pub trait FutureExt: Future + Sized {
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C;
 }
 
@@ -294,18 +254,6 @@ where
         }
     }
 
-    #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> FutureWithLazyOpaqueAttachment<Self, F>
-    where
-        A: OpaqueAttachment,
-        F: FnOnce() -> A,
-    {
-        FutureWithLazyOpaqueAttachment {
-            future: self,
-            inner: Some(attachment),
-        }
-    }
-
     fn attach_opaque<A>(self, attachment: A) -> FutureWithOpaqueAttachment<Self, A>
     where
         A: OpaqueAttachment,
@@ -331,7 +279,7 @@ where
     #[track_caller]
     fn change_context<C>(self, context: C) -> FutureWithContext<Self, C>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
         FutureWithContext {
             future: self,
@@ -342,7 +290,7 @@ where
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> FutureWithLazyContext<Self, F>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
         FutureWithLazyContext {

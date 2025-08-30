@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
@@ -13,7 +11,7 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    Attachment, Context, Frame, OpaqueAttachment,
+    Attachment, Frame, OpaqueAttachment,
     context::SourceContext,
     iter::{Frames, FramesMut},
 };
@@ -267,9 +265,9 @@ impl<C> Report<C> {
     #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
     pub fn new(context: C) -> Self
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
-        if let Some(mut current_source) = context.__source() {
+        if let Some(mut current_source) = context.source() {
             // The sources needs to be applied in reversed order, so we buffer them in a vector
             let mut sources = vec![SourceContext::from_error(current_source)];
             while let Some(source) = current_source.source() {
@@ -568,20 +566,6 @@ impl<C: ?Sized> Report<C> {
         self
     }
 
-    #[track_caller]
-    #[deprecated(
-        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
-                `attach_printable` was renamed to `attach`",
-        since = "0.6.0"
-    )]
-    #[inline]
-    pub fn attach_printable<A>(self, attachment: A) -> Self
-    where
-        A: Attachment,
-    {
-        self.attach(attachment)
-    }
-
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
     /// `Report`.
     ///
@@ -589,7 +573,7 @@ impl<C: ?Sized> Report<C> {
     #[track_caller]
     pub fn change_context<T>(mut self, context: T) -> Report<T>
     where
-        T: Context,
+        T: Error + Send + Sync + 'static,
     {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
         let context_frame = vec![Frame::from_context(context, old_frames.into_boxed_slice())];
