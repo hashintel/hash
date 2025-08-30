@@ -95,23 +95,6 @@ mod wasm {
         // https://github.com/rustwasm/console_error_panic_hook#readme
         console_error_panic_hook::set_once();
     }
-
-    /// Represents either success (Ok) or failure (Err).
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-    #[serde(tag = "type", content = "inner")]
-    pub enum Result<T, E> {
-        Ok(T),
-        Err(E),
-    }
-
-    impl<T, E> From<std::result::Result<T, E>> for Result<T, E> {
-        fn from(result: std::result::Result<T, E>) -> Self {
-            match result {
-                Ok(val) => Self::Ok(val),
-                Err(err) => Self::Err(err),
-            }
-        }
-    }
 }
 
 #[cfg(test)]
