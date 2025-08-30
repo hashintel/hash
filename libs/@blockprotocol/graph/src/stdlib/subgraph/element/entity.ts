@@ -5,11 +5,6 @@ import type {
   TemporalInterval,
   Timestamp,
 } from "@blockprotocol/type-system";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
 
 import type { EntityRevisionId } from "../../../types/entity.js";
 import type {
@@ -20,6 +15,11 @@ import type {
 } from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../../../util.js";
+import {
+  typedEntries,
+  typedKeys,
+  typedValues,
+} from "../../../util/typed-entries.js";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
