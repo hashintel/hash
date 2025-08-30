@@ -32,7 +32,7 @@ pub(crate) struct Args {
     ///
     /// Supports glob patterns like "*-test*" to filter which crates are excluded.
     /// When multiple patterns are provided, crates matching any pattern are excluded.
-    #[arg(short, long, default_value = "clorinde")]
+    #[arg(short, long)]
     exclude: Vec<String>,
 
     /// The root crate to highlight with a thicker border (if any)

@@ -15,8 +15,6 @@ members = [
     "libs/@local/graph/authorization",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
-    "libs/@local/graph/postgres-queries",
-    "libs/@local/graph/postgres-queries/clorinde",
     "libs/@local/graph/postgres-store",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
@@ -73,7 +71,6 @@ hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
-hash-graph-postgres-queries.path    = "libs/@local/graph/postgres-queries"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
