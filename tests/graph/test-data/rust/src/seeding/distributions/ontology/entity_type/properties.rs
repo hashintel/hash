@@ -21,7 +21,7 @@ use type_system::ontology::{
     property_type::schema::{PropertyTypeReference, ValueOrArray},
 };
 
-use crate::seeding::producer::entity_type::PropertyTypeCatalog;
+use crate::seeding::producer::property_type::PropertyTypeCatalog;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
@@ -69,7 +69,7 @@ impl EntityTypePropertiesDistributionConfig {
                 if *count == 0 {
                     return Ok(BoundEntityTypePropertiesDistribution::Empty);
                 }
-                if catalog.is_empty() {
+                if catalog.property_type_references().is_empty() {
                     return Err(Report::new(
                         EntityTypePropertiesBindingError::EmptyPropertyTypeCatalog,
                     )
@@ -85,7 +85,7 @@ impl EntityTypePropertiesDistributionConfig {
                 if *min == 0 && *max == 0 {
                     return Ok(BoundEntityTypePropertiesDistribution::Empty);
                 }
-                if catalog.is_empty() {
+                if catalog.property_type_references().is_empty() {
                     return Err(Report::new(
                         EntityTypePropertiesBindingError::EmptyPropertyTypeCatalog,
                     )
@@ -207,159 +207,54 @@ fn generate_properties<R: Rng + ?Sized, C: PropertyTypeCatalog>(
     (properties, required_properties)
 }
 
-/// In-memory implementation of [`PropertyTypeCatalog`] for testing and benchmarking.
-#[derive(Debug, Clone)]
-pub struct InMemoryPropertyTypeCatalog {
-    property_types: Vec<PropertyTypeReference>,
-}
-
-#[derive(Debug, derive_more::Display)]
-#[display("Empty PropertyType collection")]
-pub struct EmptyPropertyTypeCatalogError;
-
-impl Error for EmptyPropertyTypeCatalogError {}
-
-impl InMemoryPropertyTypeCatalog {
-    /// Create a new [`PropertyTypeCatalog`] from a collection of [`PropertyTypeReference`]s.
-    ///
-    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the collection is empty, as empty catalogs cannot be used
-    /// for sampling.
-    pub fn new(
-        property_types: Vec<PropertyTypeReference>,
-    ) -> Result<Self, Report<[EmptyPropertyTypeCatalogError]>> {
-        if property_types.is_empty() {
-            return Err(Report::new(EmptyPropertyTypeCatalogError).expand());
-        }
-
-        Ok(Self { property_types })
-    }
-}
-
-impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
-    fn property_type_references(&self) -> &[PropertyTypeReference] {
-        &self.property_types
-    }
-}
-
 #[cfg(test)]
-mod tests {
-    use type_system::ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion};
+pub(crate) mod tests {
 
     use super::*;
-
-    fn test_property_types() -> Vec<PropertyTypeReference> {
-        vec![
-            PropertyTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-                            .to_owned(),
-                    )
-                    .expect("should parse a base URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-            PropertyTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/description/"
-                            .to_owned(),
-                    )
-                    .expect("should parse a base URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-            PropertyTypeReference {
-                url: VersionedUrl {
-                    base_url: BaseUrl::new(
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/age/"
-                            .to_owned(),
-                    )
-                    .expect("should parse a base URL"),
-                    version: OntologyTypeVersion::new(1),
-                },
-            },
-        ]
-    }
+    use crate::seeding::producer::property_type::tests::create_test_property_type_catalog;
 
     #[test]
     fn fixed_properties_generation() {
-        let catalog =
-            InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
         let config = EntityTypePropertiesDistributionConfig::Fixed {
             count: 1,
             required: true,
         };
 
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config
+            .bind(create_test_property_type_catalog())
+            .expect("should bind successfully");
         let mut rng = rand::rng();
 
         let (properties, required) = distribution.sample(&mut rng);
         assert_eq!(properties.len(), 1);
-
-        // Check that properties have the expected structure - should be PropertyTypeReferences
-        for (key, value) in properties {
-            match value {
-                ValueOrArray::Value(property_ref) => {
-                    assert!(
-                        property_ref
-                            .url
-                            .base_url
-                            .as_str()
-                            .contains("blockprotocol.org")
-                    );
-                }
-                ValueOrArray::Array(_) => panic!("Expected single value, not array"),
-            }
-            assert!(required.contains(&key));
-        }
+        assert_eq!(required.len(), 1);
     }
 
     #[test]
     fn range_properties_generation() {
-        let catalog =
-            InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
         let config = EntityTypePropertiesDistributionConfig::Range {
             min: 1,
             max: 3,
             required: false,
         };
 
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config
+            .bind(create_test_property_type_catalog())
+            .expect("should bind successfully");
         let mut rng = rand::rng();
 
         let (properties, required) = distribution.sample(&mut rng);
         assert!(required.is_empty());
         assert!(!properties.is_empty() && properties.len() <= 3);
-
-        // Check that properties are PropertyTypeReferences
-        for value in properties.values() {
-            match value {
-                ValueOrArray::Value(property_ref) => {
-                    assert!(
-                        property_ref
-                            .url
-                            .base_url
-                            .as_str()
-                            .contains("blockprotocol.org")
-                    );
-                }
-                ValueOrArray::Array(_) => panic!("Expected single value, not array"),
-            }
-        }
     }
 
     #[test]
     fn empty_properties_generation() {
         let config = EntityTypePropertiesDistributionConfig::Empty;
-        let catalog =
-            InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
 
-        let distribution = config.bind(&catalog).expect("should bind successfully");
+        let distribution = config
+            .bind(create_test_property_type_catalog())
+            .expect("should bind successfully");
         let mut rng = rand::rng();
 
         let (properties, required) = distribution.sample(&mut rng);
@@ -398,15 +293,13 @@ mod tests {
 
     #[test]
     fn invalid_range_error() {
-        let catalog =
-            InMemoryPropertyTypeCatalog::new(test_property_types()).expect("should create catalog");
         let config = EntityTypePropertiesDistributionConfig::Range {
             min: 5,
             max: 2,
             required: true,
         };
 
-        let result = config.bind(&catalog);
+        let result = config.bind(create_test_property_type_catalog());
         let _: Report<_> = result.expect_err("should error on invalid range");
     }
 }

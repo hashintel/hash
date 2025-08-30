@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{data_type::CreateDataTypeParams, query::ConflictBehavior};
-use rand::distr::Distribution as _;
+use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::ontology::{
     BaseUrl, VersionedUrl,
     data_type::{
@@ -244,20 +244,58 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
     }
 }
 
+/// Catalogs that provide [`DataTypeReference`]s.
+///
+/// This trait enables [`DataType`]s or [`PropertyType`]s to reference existing [`DataType`]s when
+/// defining their structures. Implementations should provide efficient access to
+/// [`DataTypeReference`]s for random sampling during generation.
+///
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+pub trait DataTypeCatalog {
+    /// Returns all available [`DataTypeReference`]s in this catalog.
+    ///
+    /// The returned slice should contain all [`DataType`]s that can be referenced when
+    /// generating [`DataType`]s or [`PropertyType`]s.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    fn data_type_references(&self) -> &[DataTypeReference];
+
+    /// Sample a random [`DataType`] reference from this catalog.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the catalog is empty.
+    fn sample_data_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+        self.data_type_references()
+            .choose(rng)
+            .expect("catalog should not be empty")
+    }
+}
+
+impl<C> DataTypeCatalog for &C
+where
+    C: DataTypeCatalog,
+{
+    fn data_type_references(&self) -> &[DataTypeReference] {
+        (*self).data_type_references()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use alloc::sync::Arc;
-    use core::iter;
+    use core::fmt::Debug;
 
+    use rand::Rng;
     use time::OffsetDateTime;
     use type_system::{
         ontology::json_schema::StringFormat,
-        principal::actor_group::WebId,
         provenance::{OriginProvenance, OriginType},
     };
 
     use super::*;
     use crate::seeding::{
+        context::{Provenance, RunId, ShardId, StageId},
         distributions::{
             adaptors::{
                 ConstDistributionConfig, ConstInlineDistributionConfig, DistributionWeight,
@@ -275,43 +313,15 @@ pub(crate) mod tests {
             },
         },
         producer::{
+            ProducerExt as _,
             ontology::{
-                InMemoryWebCatalog, IndexSamplerConfig, LocalSourceConfig, RemoteSourceConfig,
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
             },
             tests::assert_producer_is_deterministic,
-            user::{UserCreation, UserProducer, tests::sample_user_producer_config},
+            user::tests::create_test_user_web_catalog,
         },
     };
-
-    fn create_test_web_catalog() -> InMemoryWebCatalog {
-        InMemoryWebCatalog::from_tuples(vec![
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("hash"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("alice"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("blockprotocol"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("hash"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("alice"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-        ])
-    }
 
     #[expect(
         clippy::too_many_lines,
@@ -321,7 +331,7 @@ pub(crate) mod tests {
         DataTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -382,10 +392,12 @@ pub(crate) mod tests {
                         weight: Some(1),
                         fetched_at: OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },
@@ -486,13 +498,57 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn create_test_data_type_catalog() -> impl DataTypeCatalog + Debug {
+        #[derive(Debug)]
+        struct TestCatalog(Vec<DataTypeReference>);
+
+        impl DataTypeCatalog for TestCatalog {
+            fn data_type_references(&self) -> &[DataTypeReference] {
+                &self.0
+            }
+
+            fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+                // Uniform selection from available data types using SliceRandom::choose
+                self.0.choose(rng).expect("catalog should not be empty")
+            }
+        }
+
+        let mut producer = sample_data_type_producer_config()
+            .create_producer(DataTypeProducerDeps {
+                user_catalog: Some(create_test_user_web_catalog()),
+                org_catalog: None::<EmptyTestCatalog>,
+            })
+            .expect("should be able to sample data type generator");
+
+        let data_types = producer
+            .iter_mut(ProduceContext {
+                run_id: RunId::new(0),
+                stage_id: StageId::new(0),
+                shard_id: ShardId::new(0),
+                provenance: Provenance::Integration,
+                producer: ProducerId::DataType,
+            })
+            .take(100)
+            .collect::<Result<Vec<_>, _>>()
+            .expect("should be able to generate data types");
+
+        TestCatalog(
+            data_types
+                .into_iter()
+                .map(|data_type| DataTypeReference {
+                    url: data_type.schema.id,
+                })
+                .collect(),
+        )
+    }
+
     #[test]
     fn deterministic_constraints_producer() {
         let config = sample_data_type_producer_config();
-        let catalog = create_test_web_catalog();
+        let catalog = create_test_user_web_catalog();
         let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
+            org_catalog: None::<EmptyTestCatalog>,
         };
         let make_producer = || {
             config
@@ -533,8 +589,8 @@ pub(crate) mod tests {
         .expect("should parse remote-only domain policy");
 
         let deps = DataTypeProducerDeps {
-            user_catalog: None::<&InMemoryWebCatalog>,
-            org_catalog: None::<&InMemoryWebCatalog>,
+            user_catalog: None::<EmptyTestCatalog>,
+            org_catalog: None::<EmptyTestCatalog>,
         };
 
         let make_producer = || {
@@ -559,10 +615,10 @@ pub(crate) mod tests {
         }))
         .expect("should parse local-only domain policy");
 
-        let catalog = create_test_web_catalog();
+        let catalog = create_test_user_web_catalog();
         let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
+            org_catalog: None::<EmptyTestCatalog>,
         };
 
         let make_producer = || {
@@ -601,7 +657,7 @@ pub(crate) mod tests {
         }))
         .expect("should parse mixed domain policy");
 
-        let catalog = create_test_web_catalog();
+        let catalog = create_test_user_web_catalog();
         let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
             org_catalog: Some(&catalog),
@@ -636,10 +692,10 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let catalog = create_test_web_catalog();
+        let catalog = create_test_user_web_catalog();
         let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
+            org_catalog: None::<&EmptyTestCatalog>,
         };
         cfg_ok
             .create_producer(deps)
@@ -682,11 +738,10 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let deps: DataTypeProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> =
-            DataTypeProducerDeps {
-                user_catalog: None,
-                org_catalog: None,
-            };
+        let deps: DataTypeProducerDeps<EmptyTestCatalog, EmptyTestCatalog> = DataTypeProducerDeps {
+            user_catalog: None,
+            org_catalog: None,
+        };
 
         let result = cfg.create_producer(deps);
         assert!(
@@ -709,10 +764,17 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let empty_catalog = InMemoryWebCatalog::from_tuples(Vec::new());
         let deps = DataTypeProducerDeps {
-            user_catalog: Some(&empty_catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
+            user_catalog: Some(EmptyTestCatalog),
+            org_catalog: None::<EmptyTestCatalog>,
+        };
+
+        let result = cfg.create_producer(deps);
+        assert!(result.is_err(), "should error with empty local catalog");
+
+        let deps = DataTypeProducerDeps {
+            user_catalog: None::<EmptyTestCatalog>,
+            org_catalog: Some(EmptyTestCatalog),
         };
 
         let result = cfg.create_producer(deps);
@@ -721,25 +783,7 @@ pub(crate) mod tests {
 
     #[test]
     fn datatype_from_user_catalog() {
-        // Prepare a small user catalog via UserProducer
-        let user_cfg = sample_user_producer_config();
-        let mut user_prod = user_cfg
-            .create_producer()
-            .expect("should build user producer");
-        let ctx = crate::seeding::context::ProduceContext {
-            run_id: crate::seeding::context::RunId::new(1),
-            stage_id: crate::seeding::context::StageId::new(0),
-            shard_id: crate::seeding::context::ShardId::new(0),
-            provenance: crate::seeding::context::Provenance::Integration,
-            producer: UserProducer::ID,
-        };
-        let users: Vec<UserCreation> =
-            iter::repeat_with(|| user_prod.generate(ctx).expect("should generate user"))
-                .take(10)
-                .collect();
-
-        let domain = Arc::<str>::from("https://example.org");
-        let user_catalog = InMemoryWebCatalog::from_users(&users, &domain);
+        let user_catalog = create_test_user_web_catalog();
 
         // Build datatype producer using local-only with this catalog
         let cfg = DataTypeProducerConfig::deserialize(serde_json::json!({
@@ -754,7 +798,7 @@ pub(crate) mod tests {
 
         let deps = DataTypeProducerDeps {
             user_catalog: Some(&user_catalog),
-            org_catalog: None::<&InMemoryWebCatalog>,
+            org_catalog: None::<EmptyTestCatalog>,
         };
         let make_producer = || cfg.create_producer(deps).expect("should build data type");
 

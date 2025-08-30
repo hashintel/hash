@@ -16,6 +16,7 @@ pub enum StringValueDistributionError {
 
 impl Error for StringValueDistributionError {}
 
+#[derive(Debug)]
 pub enum StringValueDistribution<'e> {
     Constraints {
         length: Uniform<usize>,

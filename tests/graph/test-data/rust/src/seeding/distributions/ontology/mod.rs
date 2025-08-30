@@ -11,8 +11,7 @@ pub use self::{
         WeightedDomainListDistributionConfig,
     },
     property_type::{
-        BoundPropertyValuesDistribution, DataTypeCatalog, PropertyValueTypeConfig,
-        PropertyValuesDistributionConfig,
+        BoundPropertyValuesDistribution, PropertyValueTypeConfig, PropertyValuesDistributionConfig,
     },
     shortname::{
         ShortnameDistribution, ShortnameDistributionConfig, ShortnameDistributionConfigError,

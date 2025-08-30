@@ -28,8 +28,14 @@ pub struct GenerateUsersStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GenerateUsersResult {
+    pub created_users: usize,
+}
+
 impl GenerateUsersStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<UserError>> {
+    pub fn execute(&self, runner: &mut Runner) -> Result<GenerateUsersResult, Report<UserError>> {
         let cfg = config::USER_PRODUCER_CONFIGS
             .get(&self.config_ref)
             .ok_or_else(|| {
@@ -50,7 +56,7 @@ impl GenerateUsersStage {
         let len = params.len();
         runner.resources.users.insert(self.id.clone(), params);
 
-        Ok(len)
+        Ok(GenerateUsersResult { created_users: len })
     }
 }
 
@@ -77,8 +83,17 @@ pub enum PersistUsersError {
 
 impl Error for PersistUsersError {}
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistUsersResult {
+    pub persisted_users: usize,
+}
+
 impl PersistUsersStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<PersistUsersError>> {
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistUsersResult, Report<PersistUsersError>> {
         // Concatenate users from multiple sources; no dedupe, idempotency via DB check
         let mut users = Vec::new();
         for key in &self.from {
@@ -109,6 +124,8 @@ impl PersistUsersStage {
         }
         drop(store);
 
-        Ok(users.len())
+        Ok(PersistUsersResult {
+            persisted_users: users.len(),
+        })
     }
 }

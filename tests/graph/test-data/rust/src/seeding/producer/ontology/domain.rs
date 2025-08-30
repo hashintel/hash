@@ -7,7 +7,8 @@ use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
-use rand::distr::{Distribution as _, weighted::WeightedIndex};
+use rand::distr::weighted::WeightedIndex;
+use rand_distr::Distribution;
 use time::OffsetDateTime;
 use type_system::principal::actor_group::WebId;
 
@@ -19,14 +20,14 @@ use crate::seeding::distributions::ontology::{DomainDistribution, DomainDistribu
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DomainPolicy {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remote: Option<RemoteSourceConfig>,
+    pub remote: Option<WeightedRemoteSourceConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub local: Option<LocalSourceConfig>,
+    pub local: Option<WeightedLocalSourceConfig>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RemoteSourceConfig {
+pub struct WeightedRemoteSourceConfig {
     pub domain: DomainDistributionConfig,
     #[serde(with = "hash_codec::serde::time")]
     pub fetched_at: OffsetDateTime,
@@ -40,6 +41,13 @@ pub struct LocalSourceConfig {
     pub index: IndexSamplerConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub web_type_weights: Option<LocalWebTypeWeights>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WeightedLocalSourceConfig {
+    #[serde(flatten)]
+    pub source: LocalSourceConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub weight: Option<u32>,
 }
@@ -106,8 +114,8 @@ pub enum SampledDomain {
     },
 }
 
-impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<U, O> {
-    pub fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> SampledDomain {
+impl<U: WebCatalog, O: WebCatalog> Distribution<SampledDomain> for BoundDomainSampler<U, O> {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> SampledDomain {
         match self {
             Self::Remote { domain, fetched_at } => {
                 let (domain, shortname) = domain.sample(rng);
@@ -169,8 +177,9 @@ impl<C: WebCatalog> LocalUniform<C> {
     }
 }
 
-#[derive(Clone)]
+#[derive(derive_more::Debug, Clone)]
 pub struct LocalChoiceSampler<U: WebCatalog, O: WebCatalog> {
+    #[debug(skip)]
     inner: LocalChoiceSamplerInner<U, O>,
 }
 
@@ -185,14 +194,10 @@ enum LocalChoiceSamplerInner<U: WebCatalog, O: WebCatalog> {
     },
 }
 
-impl<U: WebCatalog, O: WebCatalog> core::fmt::Debug for LocalChoiceSampler<U, O> {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("LocalChoiceSampler").finish()
-    }
-}
-
-impl<U: WebCatalog, O: WebCatalog> LocalChoiceSampler<U, O> {
-    pub(super) fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
+impl<U: WebCatalog, O: WebCatalog> Distribution<(Arc<str>, Arc<str>, WebId)>
+    for LocalChoiceSampler<U, O>
+{
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
         match &self.inner {
             LocalChoiceSamplerInner::User(user_sampler) => user_sampler.sample(rng),
             LocalChoiceSamplerInner::Org(org_sampler) => org_sampler.sample(rng),
@@ -200,6 +205,74 @@ impl<U: WebCatalog, O: WebCatalog> LocalChoiceSampler<U, O> {
                 0 => user.sample(rng),
                 _ => org.sample(rng),
             },
+        }
+    }
+}
+
+impl LocalSourceConfig {
+    /// Bind the local source config to specific catalogs to create a local choice sampler.
+    ///
+    /// # Errors
+    ///
+    /// - [`DomainBindingError::EmptyCatalog`] if all provided catalogs are empty
+    /// - [`DomainBindingError::InvalidWeights`] if weight configuration is invalid
+    /// - [`DomainBindingError::MissingCatalog`] if local source is configured but no catalogs
+    ///   provided
+    pub fn bind<U: WebCatalog, O: WebCatalog>(
+        &self,
+        user_catalog: Option<U>,
+        org_catalog: Option<O>,
+    ) -> Result<LocalChoiceSampler<U, O>, Report<DomainBindingError>> {
+        let (user_sampler, org_sampler) = match self.index {
+            IndexSamplerConfig::Uniform => (
+                user_catalog.map(|catalog| LocalUniform { catalog }),
+                org_catalog.map(|catalog| LocalUniform { catalog }),
+            ),
+        };
+
+        match (user_sampler, org_sampler) {
+            (Some(user), None) => {
+                if user.catalog.is_empty() {
+                    return Err(Report::new(DomainBindingError::EmptyCatalog));
+                }
+                Ok(LocalChoiceSampler {
+                    inner: LocalChoiceSamplerInner::User(user),
+                })
+            }
+            (None, Some(org)) => {
+                if org.catalog.is_empty() {
+                    return Err(Report::new(DomainBindingError::EmptyCatalog));
+                }
+                Ok(LocalChoiceSampler {
+                    inner: LocalChoiceSamplerInner::Org(org),
+                })
+            }
+            (Some(user), Some(org)) => {
+                if user.catalog.is_empty() && org.catalog.is_empty() {
+                    return Err(Report::new(DomainBindingError::EmptyCatalog));
+                }
+                if user.catalog.is_empty() {
+                    return Ok(LocalChoiceSampler {
+                        inner: LocalChoiceSamplerInner::Org(org),
+                    });
+                }
+                if org.catalog.is_empty() {
+                    return Ok(LocalChoiceSampler {
+                        inner: LocalChoiceSamplerInner::User(user),
+                    });
+                }
+                let weights = self
+                    .web_type_weights
+                    .as_ref()
+                    .map_or([1, 1], |weights| [weights.user, weights.org]);
+
+                let chooser = WeightedIndex::new(weights)
+                    .change_context(DomainBindingError::InvalidWeights)?;
+                Ok(LocalChoiceSampler {
+                    inner: LocalChoiceSamplerInner::Mixed { chooser, user, org },
+                })
+            }
+            _ => Err(Report::new(DomainBindingError::MissingCatalog)),
         }
     }
 }
@@ -230,7 +303,7 @@ impl DomainPolicy {
                 Ok(BoundDomainSampler::Remote { domain, fetched_at })
             }
             (None, Some(local)) => {
-                let local_sampler = bind_local(user_catalog, org_catalog, local)?;
+                let local_sampler = local.source.bind(user_catalog, org_catalog)?;
                 Ok(BoundDomainSampler::Local(local_sampler))
             }
             (Some(remote), Some(local)) => {
@@ -248,12 +321,12 @@ impl DomainPolicy {
                     return Ok(BoundDomainSampler::Remote { domain, fetched_at });
                 }
                 if remote_weight == 0 {
-                    let local_sampler = bind_local(user_catalog, org_catalog, local)?;
+                    let local_sampler = local.source.bind(user_catalog, org_catalog)?;
                     return Ok(BoundDomainSampler::Local(local_sampler));
                 }
 
                 let (remote_domain, fetched_at) = bind_remote(remote)?;
-                let local_sampler = bind_local(user_catalog, org_catalog, local)?;
+                let local_sampler = local.source.bind(user_catalog, org_catalog)?;
 
                 #[expect(
                     clippy::tuple_array_conversions,
@@ -274,67 +347,9 @@ impl DomainPolicy {
 }
 
 fn bind_remote(
-    remote: &RemoteSourceConfig,
+    remote: &WeightedRemoteSourceConfig,
 ) -> Result<(DomainDistribution, OffsetDateTime), Report<DomainBindingError>> {
     let domain =
         DomainDistribution::new(&remote.domain).change_context(DomainBindingError::Remote)?;
     Ok((domain, remote.fetched_at))
-}
-
-fn bind_local<U: WebCatalog, O: WebCatalog>(
-    user_catalog: Option<U>,
-    org_catalog: Option<O>,
-    local: &LocalSourceConfig,
-) -> Result<LocalChoiceSampler<U, O>, Report<DomainBindingError>> {
-    let (user_sampler, org_sampler) = match local.index {
-        IndexSamplerConfig::Uniform => (
-            user_catalog.map(|catalog| LocalUniform { catalog }),
-            org_catalog.map(|catalog| LocalUniform { catalog }),
-        ),
-    };
-
-    match (user_sampler, org_sampler) {
-        (Some(user), None) => {
-            if user.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::User(user),
-            })
-        }
-        (None, Some(org)) => {
-            if org.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::Org(org),
-            })
-        }
-        (Some(user), Some(org)) => {
-            if user.catalog.is_empty() && org.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            if user.catalog.is_empty() {
-                return Ok(LocalChoiceSampler {
-                    inner: LocalChoiceSamplerInner::Org(org),
-                });
-            }
-            if org.catalog.is_empty() {
-                return Ok(LocalChoiceSampler {
-                    inner: LocalChoiceSamplerInner::User(user),
-                });
-            }
-            let weights = local
-                .web_type_weights
-                .as_ref()
-                .map_or([1, 1], |weights| [weights.user, weights.org]);
-
-            let chooser =
-                WeightedIndex::new(weights).change_context(DomainBindingError::InvalidWeights)?;
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::Mixed { chooser, user, org },
-            })
-        }
-        _ => Err(Report::new(DomainBindingError::MissingCatalog)),
-    }
 }

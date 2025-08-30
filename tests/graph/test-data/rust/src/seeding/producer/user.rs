@@ -98,9 +98,18 @@ impl Producer<UserCreation> for UserProducer {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use alloc::sync::Arc;
+    use core::fmt::Debug;
+
+    use type_system::principal::actor_group::WebId;
 
     use super::*;
-    use crate::seeding::producer::tests::assert_producer_is_deterministic;
+    use crate::seeding::{
+        context::{Provenance, RunId, ShardId, StageId},
+        producer::{
+            ProducerExt as _, ontology::WebCatalog, tests::assert_producer_is_deterministic,
+        },
+    };
 
     pub(crate) fn sample_user_producer_config() -> UserProducerConfig {
         UserProducerConfig {
@@ -109,6 +118,43 @@ pub(crate) mod tests {
                 denominator: 10,
             },
         }
+    }
+
+    pub(crate) fn create_test_user_web_catalog() -> impl WebCatalog + Debug {
+        #[derive(Debug)]
+        struct TestCatalog(Arc<str>, Vec<(Arc<str>, WebId)>);
+
+        impl WebCatalog for TestCatalog {
+            fn len(&self) -> usize {
+                self.1.len()
+            }
+
+            fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)> {
+                self.1
+                    .get(index)
+                    .cloned()
+                    .map(|(shortname, web_id)| (Arc::clone(&self.0), shortname, web_id))
+            }
+        }
+
+        let users = sample_user_producer_config()
+            .create_producer()
+            .expect("should build user producer")
+            .iter_mut(ProduceContext {
+                run_id: RunId::new(1),
+                stage_id: StageId::new(0),
+                shard_id: ShardId::new(0),
+                provenance: Provenance::Integration,
+                producer: ProducerId::User,
+            })
+            .take(100)
+            .map(|result| {
+                result.map(|user| (Arc::<str>::from(user.shortname), WebId::from(user.id)))
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .expect("should generate users");
+
+        TestCatalog(Arc::<str>::from("https://example.org"), users)
     }
 
     #[test]
