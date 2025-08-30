@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Field literal with type annotation should error
+[
+  "::kernel::special_form::access",
+  "tuple",
+  { "#literal": 0, "#type": "Integer" }
+  //~^ ERROR Remove this type annotation
+]
