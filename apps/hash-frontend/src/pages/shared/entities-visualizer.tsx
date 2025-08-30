@@ -223,7 +223,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [limit, setLimit] = useState<number>(10);
   const [cursor, setCursor] = useState<EntityQueryCursor>();
   const [activeConversionsWithoutTitle, setActiveConversions] = useState<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
@@ -288,10 +287,10 @@ export const EntitiesVisualizer: FunctionComponent<{
      * Translate into archived filter in query
      */
     includeArchived: !!filterState.includeArchived,
-    /** @todo H-3255 enable pagination when performance improvements in place */
-    // limit: view === "Graph" ? undefined : limit,
+    limit: view === "Graph" ? undefined : 500,
     webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
+    view,
   });
 
   const [dataLoading, setDataLoading] = useState(entitiesData.loading);
@@ -479,7 +478,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight =
     maxHeight ??
     `min(600px, calc(100vh - (${
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
+      // The magic number accounts for the page header and the pagination controls
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 290 + tableHeaderHeight
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(
@@ -596,19 +596,23 @@ export const EntitiesVisualizer: FunctionComponent<{
           handleEntityClick={handleEntityClick}
           hasSomeLinks={hasSomeLinks}
           hideColumns={hideColumns}
-          limit={limit}
+          isPaginating={!!cursor}
           loading={dataLoading}
           loadingComponent={loadingComponent}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={tableHeight}
-          goToNextPage={nextCursor ? nextPage : undefined}
+          loadMoreRows={nextCursor ? nextPage : undefined}
           readonly={readonly}
+          remainingRows={
+            (filterState.includeGlobal
+              ? (totalCount ?? 0)
+              : (internalEntitiesCount ?? 0)) - (entities?.length ?? 0)
+          }
           setActiveConversions={setActiveConversions}
           setLoading={setChildDoingWork}
           setSelectedEntityType={handleEntityTypeClick}
           setSelectedRows={setSelectedTableRows}
           selectedRows={selectedTableRows}
-          setLimit={setLimit}
           showSearch={showTableSearch}
           setShowSearch={setShowTableSearch}
           sort={sort}

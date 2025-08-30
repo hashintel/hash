@@ -1,6 +1,5 @@
 import type {
   ActorEntityUuid,
-  BaseUrl,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
@@ -10,10 +9,7 @@ import {
   isBaseUrl,
 } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type {
-  ClosedDataTypeDefinition,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-sdk/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -21,12 +17,15 @@ import { gridHeaderBaseFont } from "../../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../../shared/use-actors";
 import { useActors } from "../../../../shared/use-actors";
+import { useMemoCompare } from "../../../../shared/use-memo-compare";
 import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 import type {
+  EntitiesTableColumn,
   EntitiesTableData,
   EntitiesTableFilterData,
   EntitiesTableRow,
   GenerateEntitiesTableDataRequestMessage,
+  VisibleDataTypeIdsByPropertyBaseUrl,
 } from "./types";
 import { isGenerateEntitiesTableDataResultMessage } from "./types";
 
@@ -60,12 +59,10 @@ export const useEntitiesTable = (
     hideColumns?: (keyof EntitiesTableRow)[];
     hideArchivedColumn?: boolean;
     hidePropertiesColumns: boolean;
+    isPaginating: boolean;
   },
 ): {
-  visibleDataTypesByPropertyBaseUrl: Record<
-    BaseUrl,
-    ClosedDataTypeDefinition[]
-  >;
+  visibleDataTypesByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
   loading: boolean;
   tableData: EntitiesTableData | null;
 } => {
@@ -80,6 +77,7 @@ export const useEntitiesTable = (
     hideColumns,
     hideArchivedColumn = false,
     hidePropertiesColumns,
+    isPaginating,
     typeIds,
     typeTitles,
     webIds,
@@ -100,69 +98,42 @@ export const useEntitiesTable = (
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
-  const {
-    entityTypesWithMultipleVersionsPresent,
-    visibleDataTypeIdsByPropertyBaseUrl,
-  } = useMemo<{
-    visibleDataTypeIdsByPropertyBaseUrl: Record<
-      BaseUrl,
-      Set<ClosedDataTypeDefinition>
-    >;
-    entityTypesWithMultipleVersionsPresent: VersionedUrl[];
-  }>(() => {
-    if (!entities || !definitions) {
-      return {
-        entityTypesWithMultipleVersionsPresent: [],
-        visibleDataTypeIdsByPropertyBaseUrl: {},
-      };
-    }
+  const [
+    cumulativeEntityTypesWithMultipleVersionsPresent,
+    setCumulativeEntityTypesWithMultipleVersionsPresent,
+  ] = useState<Set<VersionedUrl>>(new Set());
 
-    const dataTypesByProperty: {
-      [propertyBaseUrl: BaseUrl]: Set<ClosedDataTypeDefinition>;
-    } = {};
+  /**
+   * We'll combine this with the table data when sending a request to the worker.
+   */
+  const thisPageEntityTypesWithMultipleVersionsPresent = useMemoCompare(
+    () => {
+      if (!entities || !definitions) {
+        return new Set<VersionedUrl>();
+      }
 
-    const typesWithMultipleVersions: VersionedUrl[] = [];
-    const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
+      const typesWithMultipleVersions = new Set<VersionedUrl>();
+      const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
 
-    for (const entity of entities) {
-      for (const [baseUrl, { metadata }] of typedEntries(
-        entity.propertiesMetadata.value,
-      )) {
-        if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
-          dataTypesByProperty[baseUrl] ??= new Set();
-
-          const dataType = definitions.dataTypes[metadata.dataTypeId];
-
-          if (!dataType) {
-            throw new Error(
-              `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
-            );
+      for (const entity of entities) {
+        for (const entityTypeId of entity.metadata.entityTypeIds) {
+          const baseUrl = extractBaseUrl(entityTypeId);
+          if (firstSeenTypeByBaseUrl[baseUrl]) {
+            typesWithMultipleVersions.add(entityTypeId);
+            typesWithMultipleVersions.add(firstSeenTypeByBaseUrl[baseUrl]);
+          } else {
+            firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
           }
-
-          /**
-           * As there is only one instance of each DataType in the subgraph, it'll be the same object in memory,
-           * and the Set equality check will work.
-           */
-          dataTypesByProperty[baseUrl].add(dataType);
         }
       }
 
-      for (const entityTypeId of entity.metadata.entityTypeIds) {
-        const baseUrl = extractBaseUrl(entityTypeId);
-        if (firstSeenTypeByBaseUrl[baseUrl]) {
-          typesWithMultipleVersions.push(entityTypeId);
-          typesWithMultipleVersions.push(firstSeenTypeByBaseUrl[baseUrl]);
-        } else {
-          firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
-        }
-      }
-    }
-
-    return {
-      visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
-      entityTypesWithMultipleVersionsPresent: typesWithMultipleVersions,
-    };
-  }, [definitions, entities]);
+      return typesWithMultipleVersions;
+    },
+    [definitions, entities],
+    (newSet, oldSet) => {
+      return newSet.size === oldSet.size && newSet.isSubsetOf(oldSet);
+    },
+  );
 
   const editorActorIds = useMemo(() => {
     const editorIds = new Set<ActorEntityUuid>([
@@ -256,7 +227,12 @@ export const useEntitiesTable = (
           count,
           entityTypeId,
           title,
-          version: entityTypesWithMultipleVersionsPresent.includes(entityTypeId)
+          version: [
+            ...thisPageEntityTypesWithMultipleVersionsPresent,
+            ...(isPaginating
+              ? cumulativeEntityTypesWithMultipleVersionsPresent
+              : []),
+          ].includes(entityTypeId)
             ? extractVersion(entityTypeId)
             : undefined,
         });
@@ -281,8 +257,10 @@ export const useEntitiesTable = (
     }, [
       actorsByAccountId,
       createdByIds,
+      cumulativeEntityTypesWithMultipleVersionsPresent,
       editionCreatedByIds,
-      entityTypesWithMultipleVersionsPresent,
+      isPaginating,
+      thisPageEntityTypesWithMultipleVersionsPresent,
       typeIds,
       typeTitles,
       webIds,
@@ -305,29 +283,102 @@ export const useEntitiesTable = (
         }
 
         if (done) {
-          setTableData({
-            ...result,
-            columns: result.columns.map((column) => {
-              if (isBaseUrl(column.id)) {
-                /**
-                 * The web worker can't measure text for us (no DOM) so we need to do it here.
-                 * We add extra to account for potential header buttons and padding.
-                 */
-                return {
-                  ...column,
-                  width: getTextWidth(column.title) + 105,
-                };
+          if (isPaginating) {
+            setCumulativeEntityTypesWithMultipleVersionsPresent((prev) => {
+              return prev.union(thisPageEntityTypesWithMultipleVersionsPresent);
+            });
+          } else {
+            setCumulativeEntityTypesWithMultipleVersionsPresent(
+              thisPageEntityTypesWithMultipleVersionsPresent,
+            );
+          }
+
+          setTableData((currentTableData) => {
+            /**
+             * When paginating, we need to combine the following with previous results:
+             * 1. Visible data types
+             * 2. Entity types with multiple versions present
+             * 3. The table data itself
+             */
+
+            if (isPaginating && currentTableData) {
+              const combinedVisibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl =
+                result.visibleDataTypeIdsByPropertyBaseUrl;
+              for (const [baseUrl, dataTypeIds] of typedEntries(
+                currentTableData.visibleDataTypeIdsByPropertyBaseUrl,
+              )) {
+                combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl] ??=
+                  new Set();
+                combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl] =
+                  combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl].union(
+                    dataTypeIds,
+                  );
               }
-              return column;
-            }),
-            filterData: {
-              ...result.filterData,
-              createdByActors,
-              entityTypeFilters,
-              lastEditedByActors,
-              webs,
-            },
-            rows: accumulatedDataRef.current.rows,
+
+              const addedColumnIds: Set<string> = new Set();
+              const combinedColumns: EntitiesTableColumn[] = [];
+              for (const column of [
+                ...currentTableData.columns,
+                ...result.columns,
+              ]) {
+                if (addedColumnIds.has(column.id)) {
+                  continue;
+                }
+
+                addedColumnIds.add(column.id);
+
+                const columnWithWidth = isBaseUrl(column.id)
+                  ? {
+                      ...column,
+                      width: getTextWidth(column.title) + 105,
+                    }
+                  : column;
+
+                combinedColumns.push(columnWithWidth);
+              }
+
+              return {
+                rows: [
+                  ...currentTableData.rows,
+                  ...accumulatedDataRef.current.rows,
+                ],
+                columns: combinedColumns,
+                visibleDataTypeIdsByPropertyBaseUrl:
+                  combinedVisibleDataTypeIdsByPropertyBaseUrl,
+                filterData: {
+                  ...result.filterData,
+                  createdByActors,
+                  entityTypeFilters,
+                  lastEditedByActors,
+                  webs,
+                },
+              };
+            }
+
+            return {
+              ...result,
+              columns: result.columns.map((column) => {
+                if (isBaseUrl(column.id)) {
+                  /**
+                   * The web worker can't measure text for us (no DOM) so we need to do it here.
+                   * We add extra to account for potential header buttons and padding.
+                   */
+                  return {
+                    ...column,
+                    width: getTextWidth(column.title) + 105,
+                  };
+                }
+                return column;
+              }),
+              filterData: {
+                ...result.filterData,
+                createdByActors,
+                entityTypeFilters,
+                lastEditedByActors,
+                webs,
+              },
+              rows: accumulatedDataRef.current.rows,
+            };
           });
           setWaitingTableData(false);
 
@@ -335,10 +386,19 @@ export const useEntitiesTable = (
         }
       }
     };
-  }, [createdByActors, entityTypeFilters, lastEditedByActors, webs, worker]);
+  }, [
+    createdByActors,
+    entityTypeFilters,
+    isPaginating,
+    lastEditedByActors,
+    thisPageEntityTypesWithMultipleVersionsPresent,
+    webs,
+    worker,
+  ]);
 
   useEffect(() => {
     if (entities && subgraph && definitions && !actorsLoading) {
+      console.log("Triggered!!!");
       const serializedSubgraph = serializeSubgraph(subgraph);
 
       if (!worker) {
@@ -354,7 +414,13 @@ export const useEntitiesTable = (
           closedMultiEntityTypesRootMap,
           definitions,
           entities: entities.map((entity) => entity.toJSON()),
-          entityTypesWithMultipleVersionsPresent,
+          entityTypesWithMultipleVersionsPresent: isPaginating
+            ? [
+                ...thisPageEntityTypesWithMultipleVersionsPresent.union(
+                  cumulativeEntityTypesWithMultipleVersionsPresent,
+                ),
+              ]
+            : [...thisPageEntityTypesWithMultipleVersionsPresent],
           subgraph: serializedSubgraph,
           hasSomeLinks,
           hideColumns,
@@ -368,24 +434,23 @@ export const useEntitiesTable = (
     actorsByAccountId,
     actorsLoading,
     closedMultiEntityTypesRootMap,
+    cumulativeEntityTypesWithMultipleVersionsPresent,
     definitions,
     entities,
-    entityTypesWithMultipleVersionsPresent,
+    isPaginating,
     hasSomeLinks,
     hideColumns,
     hideArchivedColumn,
     hidePropertiesColumns,
     subgraph,
+    thisPageEntityTypesWithMultipleVersionsPresent,
     webNameByWebId,
     worker,
   ]);
 
   return {
-    visibleDataTypesByPropertyBaseUrl: Object.fromEntries(
-      Object.entries(visibleDataTypeIdsByPropertyBaseUrl).map(
-        ([baseUrl, dataTypeIds]) => [baseUrl, Array.from(dataTypeIds)],
-      ),
-    ),
+    visibleDataTypesByPropertyBaseUrl:
+      tableData?.visibleDataTypeIdsByPropertyBaseUrl ?? {},
     tableData,
     loading: waitingTableData || actorsLoading,
   };

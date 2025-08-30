@@ -1,7 +1,10 @@
 import { useRef } from "react";
 
 /**
- * A version of useMemo which returns the previous value if the new value is the same according to the provided comparison function.
+ * A version of useMemo which returns the previous value (same identity) if the new value is the same according to the provided comparison function.
+ *
+ * A mechanism to avoid changing the identity of values which are otherwise equal.
+ *
  * @param factory a function which returns the value to memoize.
  * @param dependencies The dependencies of the function – if any of these are not strictly equal, the factory function is re-run.
  * @param isReturnUnchanged
@@ -24,6 +27,7 @@ export const useMemoCompare = <Return, Dependencies extends unknown[]>(
     dependencies.some((dep, i) => dep !== previousDependenciesRef.current[i])
   ) {
     shouldComputeReturn = true;
+    console.log("Recomputing because a dependency changed");
   }
 
   if (shouldComputeReturn) {

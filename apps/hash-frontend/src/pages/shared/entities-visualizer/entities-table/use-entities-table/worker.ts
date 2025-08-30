@@ -18,7 +18,6 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { format } from "date-fns";
@@ -30,6 +29,7 @@ import type {
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
   GenerateEntitiesTableDataResultMessage,
+  VisibleDataTypeIdsByPropertyBaseUrl,
   WorkerDataReturn,
 } from "../types";
 import { isGenerateEntitiesTableDataRequestMessage } from "../types";
@@ -87,15 +87,14 @@ const staticColumnDefinitionsByKey: Record<
 
 let activeRequestId: string | null;
 
-const isCancelled = async (requestId: string) => {
-  await sleep(0);
+const isCancelled = (requestId: string) => {
   return activeRequestId !== requestId;
 };
 
-const generateTableData = async (
+const generateTableData = (
   params: GenerateEntitiesTableDataParams,
   requestId: string,
-): Promise<WorkerDataReturn | "cancelled"> => {
+): WorkerDataReturn | "cancelled" => {
   const {
     actorsByAccountId,
     closedMultiEntityTypesRootMap,
@@ -109,7 +108,7 @@ const generateTableData = async (
     webNameByWebId,
   } = params;
 
-  if (await isCancelled(requestId)) {
+  if (isCancelled(requestId)) {
     return "cancelled";
   }
 
@@ -133,13 +132,16 @@ const generateTableData = async (
     };
   } = {};
 
+  const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
+
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
 
   const entityTypeTitlesSharedAcrossAllEntities = new Set<string>();
 
   const rows: EntitiesTableRow[] = [];
+
   for (const [index, serializedEntity] of entities.entries()) {
-    if (await isCancelled(requestId)) {
+    if (isCancelled(requestId)) {
       return "cancelled";
     }
 
@@ -340,6 +342,28 @@ const generateTableData = async (
       noTarget += 1;
     }
 
+    for (const [baseUrl, { metadata }] of typedEntries(
+      entity.propertiesMetadata.value,
+    )) {
+      if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
+        dataTypesByProperty[baseUrl] ??= new Set();
+
+        const dataType = definitions.dataTypes[metadata.dataTypeId];
+
+        if (!dataType) {
+          throw new Error(
+            `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
+          );
+        }
+
+        /**
+         * As there is only one instance of each DataType in the subgraph, it'll be the same object in memory,
+         * and the Set equality check will work.
+         */
+        dataTypesByProperty[baseUrl].add(dataType);
+      }
+    }
+
     const web = `@${entityNamespace}`;
 
     rows.push({
@@ -432,9 +456,14 @@ const generateTableData = async (
     );
   }
 
+  if (isCancelled(requestId)) {
+    return "cancelled";
+  }
+
   return {
     columns,
     rows,
+    visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
     filterData: {
       noSourceCount: noSource,
       noTargetCount: noTarget,
@@ -445,14 +474,14 @@ const generateTableData = async (
 };
 
 // eslint-disable-next-line no-restricted-globals
-self.onmessage = async ({ data }) => {
+self.onmessage = ({ data }) => {
   if (isGenerateEntitiesTableDataRequestMessage(data)) {
     const params = data.params;
 
     const requestId = generateUuid();
     activeRequestId = requestId;
 
-    const result = await generateTableData(params, requestId);
+    const result = generateTableData(params, requestId);
 
     if (result !== "cancelled") {
       /**
