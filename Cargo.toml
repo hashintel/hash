@@ -278,7 +278,7 @@ tracing-error                      = { version = "=0.2.1", default-features = fa
 tracing-flame                      = { version = "=0.2.0", default-features = false }
 tracing-indicatif                  = { version = "=0.3.11", default-features = false }
 tracing-opentelemetry              = { version = "=0.31.0", default-features = false }
-tracing-subscriber                 = { version = "=0.3.19", default-features = false }
+tracing-subscriber                 = { version = "=0.3.20", default-features = false }
 trait-variant                      = { version = "=0.1.2", default-features = false }
 trybuild                           = { version = "=1.0.106", default-features = false }
 tsify-next                         = { version = "=0.5.6", default-features = false }
