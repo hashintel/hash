@@ -46,7 +46,7 @@ where
                 .with_span()
                 .try_map(|(digits, range): (&str, _)| {
                     // Ensure the value is within bounds
-                    digits.parse::<usize>().map(|_value| (digits, range))
+                    digits.parse::<usize>().map(|_| (digits, range))
                 })
                 .map(|(digit, range)| {
                     Access::Field(Ident {
