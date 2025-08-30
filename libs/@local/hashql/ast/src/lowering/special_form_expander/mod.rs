@@ -454,6 +454,14 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(name)
     }
 
+    /// Attempts to extract a field identifier from an argument.
+    ///
+    /// This function handles both named field access (using identifiers) and indexed field access
+    /// (using integer literals). For literals, it validates that they are integers without type
+    /// annotations and within usize bounds. Otherwise, it falls back to `lower_argument_to_ident`
+    /// for named field access.
+    ///
+    /// The `mode` parameter is used for generating appropriate error diagnostics.
     fn lower_argument_to_field(
         &mut self,
         mode: BindingMode,
