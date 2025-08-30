@@ -8,6 +8,14 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`defmt`](https://defmt.ferrous-systems.com).
 - Better support for serialization and deserialization of `Report`.
 
+## 0.7.0 - Unreleased
+
+### Breaking Changes
+
+- Remove deprecated `Context` ([#7763](https://github.com/hashintel/hash/pull/7763))
+- Remove deprecated `report!` ([#7763](https://github.com/hashintel/hash/pull/7763))
+- Remove deprecated `Report::{attach_lazy, attach_printable, attach_printable_lazy}` ([#7763](https://github.com/hashintel/hash/pull/7763))
+
 ## Unreleased
 
 ### Features
