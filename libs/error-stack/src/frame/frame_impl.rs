@@ -203,7 +203,7 @@ impl FrameImpl for EyreContext {
 }
 
 impl Frame {
-    /// Creates a frame from a [`Context`].
+    /// Creates a frame from an [`Error`].
     pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
     where
         C: Error + Send + Sync + 'static,
