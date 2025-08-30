@@ -1,10 +1,10 @@
 [type-extractor::non-contractive-type] Error: Invalid recursive type definition
-   ╭─[ <unknown>:5:3 ]
+   ╭─[ <unknown>:6:3 ]
    │
- 4 │   "A",
+ 5 │   "A",
    │    ┬  
    │    ╰── ... in this recursive type definition
- 5 │   ["|", "A", "A"],
+ 6 │   ["|", "A", "A"],
    │   ───────┬───────  
    │          ╰───────── Type `A` cannot reference itself directly
    │ 

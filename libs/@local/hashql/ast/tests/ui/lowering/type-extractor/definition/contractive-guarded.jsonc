@@ -1,6 +1,8 @@
 //@ run: pass
 //@ description: Guarded recursion should not fail
-["type", "A", {"#tuple": ["A"]},
-["type", "B", {"#struct": {"b": "B"}},
-  "_"
-]]
+[
+  "type",
+  "A",
+  { "#tuple": ["A"] },
+  ["type", "B", { "#struct": { "b": "B" } }, "_"]
+]
