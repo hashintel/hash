@@ -11,7 +11,7 @@
     "start:migrate:up": "cargo run --package hash-graph-migrations --bin cli --features cli -- run --user postgres --password postgres"
   },
   "dependencies": {
-    "@rust/error-stack": "0.5.0",
+    "@rust/error-stack": "0.6.0",
     "@rust/hash-graph-migrations-macros": "0.0.0-private",
     "@rust/hash-telemetry": "0.0.0-private"
   }

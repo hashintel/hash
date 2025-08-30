@@ -8,6 +8,6 @@
     "test:unit": "cargo hack nextest run --feature-powerset --exclude-features static --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/error-stack": "0.5.0"
+    "@rust/error-stack": "0.6.0"
   }
 }

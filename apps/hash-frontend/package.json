@@ -131,7 +131,7 @@
     "@graphql-codegen/typescript-operations": "2.5.13",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@next/bundle-analyzer": "15.3.5",
+    "@next/bundle-analyzer": "15.5.2",
     "@types/dotenv-flow": "3.3.3",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.17",

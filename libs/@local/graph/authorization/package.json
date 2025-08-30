@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.5.0",
+    "@rust/error-stack": "0.6.0",
     "@rust/hash-codec": "0.0.0-private"
   },
   "devDependencies": {

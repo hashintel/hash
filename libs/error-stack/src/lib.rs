@@ -262,12 +262,12 @@
 //! contexts. This distinction is reflected in the generic type parameter:
 //!
 //! - [`Report<C>`] indicates that a single current context is present.
-//! - [`Report<[C]>`] signifies that at least one current context is present, with the possibility
-//!   of multiple contexts.
+//! - [`Report<[C]>`](Report) signifies that at least one current context is present, with the
+//!   possibility of multiple contexts.
 //!
 //! You can seamlessly convert between these representations using [`Report::expand`] to transform
 //! a single-context report into a multi-context one. Using [`Report::change_context`] will
-//! transform a [`Report<[C]>`] to a [`Report<C2>`], where `C2` is a new context type.
+//! transform a [`Report<[C]>`](Report) to a [`Report<C2>`], where `C2` is a new context type.
 //!
 //! [`push()`]: Report::push
 //!
