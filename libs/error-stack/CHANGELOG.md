@@ -9,7 +9,9 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Unreleased
 
--
+### Features
+
+- Support trailing commans in `bail!` macro. ([#7772](https://github.com/hashintel/hash/pull/7772))
 
 ## [0.6.0](https://github.com/hashintel/hash/tree/error-stack%400.6.0/libs/error-stack) - 2025-08-30
 
