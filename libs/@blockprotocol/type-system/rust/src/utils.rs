@@ -1,7 +1,5 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use serde::{Deserialize, Serialize};
-    use tsify_next::Tsify;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(typescript_custom_section)]
@@ -94,23 +92,6 @@ mod wasm {
         // For more details see
         // https://github.com/rustwasm/console_error_panic_hook#readme
         console_error_panic_hook::set_once();
-    }
-
-    /// Represents either success (Ok) or failure (Err).
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-    #[serde(tag = "type", content = "inner")]
-    pub enum Result<T, E> {
-        Ok(T),
-        Err(E),
-    }
-
-    impl<T, E> From<std::result::Result<T, E>> for Result<T, E> {
-        fn from(result: std::result::Result<T, E>) -> Self {
-            match result {
-                Ok(val) => Self::Ok(val),
-                Err(err) => Self::Err(err),
-            }
-        }
     }
 }
 

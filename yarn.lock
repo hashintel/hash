@@ -8830,7 +8830,6 @@ __metadata:
   dependencies:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@napi-rs/cli": "npm:2.18.4"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
@@ -9523,15 +9522,6 @@ __metadata:
     uint8-varint: "npm:^2.0.1"
     uint8arrays: "npm:^5.0.0"
   checksum: 10c0/2ef621eea362de0b7936f958c91de34073d71bd59af0ef88912bf9ffa4279507738a2a71f00d2222e32c157dfac4b54bc4ec77d7b1e917690f39a531bf208a36
-  languageName: node
-  linkType: hard
-
-"@napi-rs/cli@npm:2.18.4":
-  version: 2.18.4
-  resolution: "@napi-rs/cli@npm:2.18.4"
-  bin:
-    napi: scripts/index.js
-  checksum: 10c0/cb80bc86687ba01077a0faa8d38198bc632b7caacf3a42ec42c3ec04700084ca26be9eec13bf7ac7da90e6afb46c65a39de8a86825a53b74dec2f2f459c0a7ea
   languageName: node
   linkType: hard
 
