@@ -1,6 +1,6 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+use core::error::Error;
 
-use crate::{Context, Report};
+use crate::Report;
 
 // inspired by the implementation in `std`, see: https://doc.rust-lang.org/1.81.0/src/core/iter/adapters/mod.rs.html#157
 // except with the removal of the Try trait, as it is unstable.
@@ -179,7 +179,7 @@ impl<T, C, R, I> TryReportIteratorExt<C> for I
 where
     I: Iterator<Item = Result<T, R>>,
     R: Into<Report<[C]>>,
-    C: Context,
+    C: Error + Send + Sync + 'static,
 {
     type Ok = T;
 

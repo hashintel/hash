@@ -11,14 +11,12 @@ mod eyre;
 
 /// Compatibility trait to convert from external libraries to [`Report`].
 ///
-/// **Note**: It's not possible to implement [`Context`] on other error libraries' types from within
-/// `error-stack` as the trait has a blanket implementation relying on [`Error`]. Thus, implementing
-/// the trait would violate the orphan rule; the upstream crate could implement [`Error`] and this
-/// would imply an implementation for [`Context`]. This also implies, that it's not possible to
-/// implement [`ResultExt`] from within `error-stack`.
+/// **Note**: Most error libraries don't implement [`Error`], so it's not possible to directly
+/// convert them to [`Report`]. However, `error-stack` supports converting errors generated from the
+/// [`anyhow`] or [`eyre`] crate via [`IntoReportCompat`].
 ///
-/// [`ResultExt`]: crate::ResultExt
-/// [`Context`]: crate::Context
+/// [`eyre`]: ::eyre
+/// [`anyhow`]: ::anyhow
 /// [`Error`]: core::error::Error
 pub trait IntoReportCompat: Sized {
     /// Type of the [`Ok`] value in the [`Result`]

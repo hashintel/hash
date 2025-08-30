@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
@@ -13,29 +11,30 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    Attachment, Context, Frame, OpaqueAttachment,
+    Attachment, Frame, OpaqueAttachment,
     context::SourceContext,
     iter::{Frames, FramesMut},
 };
 
-/// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.
+/// Contains a [`Frame`] stack consisting of [`Error`] contexts and attachments.
 ///
 /// Attachments can be added by using [`attach_opaque()`]. The [`Frame`] stack can be iterated by
 /// using [`frames()`].
 ///
-/// When creating a `Report` by using [`new()`], the passed [`Context`] is used to set the _current
-/// context_ on the `Report`. To provide a new one, use [`change_context()`].
+/// When creating a `Report` by using [`new()`], the passed [`Error`] context is used to set the
+/// _current context_ on the `Report`. To provide a new one, use [`change_context()`].
 ///
-/// Attachments, and objects [`provide`]d by a [`Context`], are directly retrievable by calling
-/// [`request_ref()`] or [`request_value()`].
+/// Attachments, and objects [`provide`]d by a [`Error`] context, are directly retrievable by
+/// calling [`request_ref()`] or [`request_value()`].
 ///
 /// ## Formatting
 ///
 /// `Report` implements [`Display`] and [`Debug`]. When utilizing the [`Display`] implementation,
 /// the current context of the `Report` is printed, e.g. `println!("{report}")`. For the alternate
-/// [`Display`] output (`"{:#}"`), all [`Context`]s are printed. To print the full stack of
-/// [`Context`]s and attachments, use the [`Debug`] implementation (`"{:?}"`). To customize the
-/// output of the attachments in the [`Debug`] output, please see the [`error_stack::fmt`] module.
+/// [`Display`] output (`"{:#}"`), all [`Error`] contexts are printed. To print the full stack of
+/// [`Error`] contexts and attachments, use the [`Debug`] implementation (`"{:?}"`). To customize
+/// the output of the attachments in the [`Debug`] output, please see the [`error_stack::fmt`]
+/// module.
 ///
 /// Please see the examples below for more information.
 ///
@@ -267,9 +266,9 @@ impl<C> Report<C> {
     #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
     pub fn new(context: C) -> Self
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
-        if let Some(mut current_source) = context.__source() {
+        if let Some(mut current_source) = context.source() {
             // The sources needs to be applied in reversed order, so we buffer them in a vector
             let mut sources = vec![SourceContext::from_error(current_source)];
             while let Some(source) = current_source.source() {
@@ -568,28 +567,14 @@ impl<C: ?Sized> Report<C> {
         self
     }
 
-    #[track_caller]
-    #[deprecated(
-        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
-                `attach_printable` was renamed to `attach`",
-        since = "0.6.0"
-    )]
-    #[inline]
-    pub fn attach_printable<A>(self, attachment: A) -> Self
-    where
-        A: Attachment,
-    {
-        self.attach(attachment)
-    }
-
-    /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
+    /// Add a new [`Error`] object to the top of the [`Frame`] stack, changing the type of the
     /// `Report`.
     ///
-    /// Please see the [`Context`] documentation for more information.
+    /// Please see the [`Error`] documentation for more information.
     #[track_caller]
     pub fn change_context<T>(mut self, context: T) -> Report<T>
     where
-        T: Context,
+        T: Error + Send + Sync + 'static,
     {
         let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
         let context_frame = vec![Frame::from_context(context, old_frames.into_boxed_slice())];
@@ -614,14 +599,14 @@ impl<C: ?Sized> Report<C> {
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](Error::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Error`] objects.
     #[cfg(nightly)]
     pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
         RequestRef::new(&self.frames)
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
-    /// that are [`provide`](Error::provide)d by [`Context`] objects.
+    /// that are [`provide`](Error::provide)d by [`Error`] objects.
     #[cfg(nightly)]
     pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
         RequestValue::new(&self.frames)
@@ -629,7 +614,7 @@ impl<C: ?Sized> Report<C> {
 
     /// Returns if `T` is the type held by any frame inside of the report.
     ///
-    /// `T` could either be an attachment or a [`Context`].
+    /// `T` could either be an attachment or a [`Error`] context.
     ///
     /// ## Example
     ///
@@ -654,7 +639,7 @@ impl<C: ?Sized> Report<C> {
     /// Searches the frame stack for a context provider `T` and returns the most recent context
     /// found.
     ///
-    /// `T` can either be an attachment or a [`Context`].
+    /// `T` can either be an attachment or a new [`Error`] context.
     ///
     /// ## Example
     ///
@@ -681,7 +666,7 @@ impl<C: ?Sized> Report<C> {
 
     /// Searches the frame stack for an instance of type `T`, returning the most recent one found.
     ///
-    /// `T` can either be an attachment or a [`Context`].
+    /// `T` can either be an attachment or a new [`Error`] context.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
