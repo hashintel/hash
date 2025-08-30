@@ -750,11 +750,10 @@ pub(crate) fn non_contractive_recursive_type(
     )));
 
     diagnostic.add_note(Note::new(
-        "Recursive types need some 'structure' between the type and its selft prevent  be \
-         'contractive' to ensure type checking terminates. This means every recursive reference \
-         must be protected by at least one type constructor (struct, tuple, etc.). Direct \
-         self-references like `type T = T` or `type T = T | U` where all variants are recursive \
-         are not allowed as they do not guarantee progression during type checking.",
+        "Recursive types need some 'structure' between the type and itself (be 'contractive') to \
+         ensure type checking terminates. This means every recursive reference must be protected \
+         by at least one type constructor (struct, tuple, etc.). Direct self-references like \
+         `type T = T` are not allowed as they do not guarantee progression during type checking.",
     ));
 
     diagnostic

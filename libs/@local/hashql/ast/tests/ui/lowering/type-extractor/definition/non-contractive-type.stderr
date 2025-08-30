@@ -13,5 +13,5 @@
    │       - `type A = (value: A)`
    │       - `type A = (A, String)`
    │ 
-   │ Note: Recursive types need some 'structure' between the type and its selft prevent  be 'contractive' to ensure type checking terminates. This means every recursive reference must be protected by at least one type constructor (struct, tuple, etc.). Direct self-references like `type T = T` or `type T = T | U` where all variants are recursive are not allowed as they do not guarantee progression during type checking.
+   │ Note: Recursive types need some 'structure' between the type and itself (be 'contractive') to ensure type checking terminates. This means every recursive reference must be protected by at least one type constructor (struct, tuple, etc.). Direct self-references like `type T = T` are not allowed as they do not guarantee progression during type checking.
 ───╯
