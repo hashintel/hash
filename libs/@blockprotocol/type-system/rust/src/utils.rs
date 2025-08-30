@@ -1,7 +1,5 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use serde::{Deserialize, Serialize};
-    use tsify_next::Tsify;
     use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(typescript_custom_section)]
