@@ -129,7 +129,7 @@ macro_rules! bail {
     }};
 
     [$($err:expr),+ $(,)?] => {{
-        compile_error!("Enable to `unstable` feature flag to bail using multiple errors.")
+        compile_error!("enable the `unstable` feature flag to use `bail` to create multiple errors")
     }};
 }
 
