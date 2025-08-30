@@ -311,7 +311,7 @@ impl<'heap> Visitor<'heap> for TypeDefinitionExtractor<'_, 'heap> {
             | ExprKind::If(_)
             | ExprKind::Field(_)
             | ExprKind::Index(_)
-            | ExprKind::Is(_)
+            | ExprKind::As(_)
             | ExprKind::Underscore
             | ExprKind::Dummy => unreachable!(),
         };

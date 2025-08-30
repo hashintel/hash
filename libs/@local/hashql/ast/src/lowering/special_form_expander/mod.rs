@@ -27,7 +27,7 @@ use self::error::{
 use crate::{
     node::{
         expr::{
-            CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr, IsExpr,
+            AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
             LetExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr, UseExpr,
             call::Argument,
             closure::{ClosureParam, ClosureSignature},
@@ -49,7 +49,7 @@ mod paths {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, enum_iterator::Sequence)]
 enum SpecialFormKind {
     If,
-    Is,
+    As,
     Let,
     Type,
     Newtype,
@@ -64,7 +64,7 @@ impl SpecialFormKind {
     const fn as_str(self) -> &'static str {
         match self {
             Self::If => "if",
-            Self::Is => "is",
+            Self::As => "as",
             Self::Let => "let",
             Self::Type => "type",
             Self::Newtype => "newtype",
@@ -79,7 +79,7 @@ impl SpecialFormKind {
     fn from_str(name: &str) -> Option<Self> {
         match name {
             "if" => Some(Self::If),
-            "is" => Some(Self::Is),
+            "as" => Some(Self::As),
             "let" => Some(Self::Let),
             "type" => Some(Self::Type),
             "newtype" => Some(Self::Newtype),
@@ -278,7 +278,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             | ExprKind::If(_)
             | ExprKind::Field(_)
             | ExprKind::Index(_)
-            | ExprKind::Is(_)
+            | ExprKind::As(_)
             | ExprKind::Dummy) => {
                 let kind_name = match kind {
                     ExprKind::Dict(_) => InvalidTypeExpressionKind::Dict,
@@ -293,7 +293,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                     ExprKind::If(_) => InvalidTypeExpressionKind::If,
                     ExprKind::Field(_) => InvalidTypeExpressionKind::Field,
                     ExprKind::Index(_) => InvalidTypeExpressionKind::Index,
-                    ExprKind::Is(_) => InvalidTypeExpressionKind::Is,
+                    ExprKind::As(_) => InvalidTypeExpressionKind::As,
                     ExprKind::Dummy => InvalidTypeExpressionKind::Dummy,
                     ExprKind::Call(_)
                     | ExprKind::Struct(_)
@@ -372,19 +372,19 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
-    /// Lowers an is/2 special form to an `IsExpr`.
+    /// Lowers an as/2 special form to an `AsExpr`.
     ///
-    /// The is/2 form has the syntax: `(is value type-expr)`
+    /// The as/2 form has the syntax: `(as value type-expr)`
     /// and is transformed into a type assertion expression. This validates
     /// that `value` conforms to the type specified by `type-expr`.
     ///
     /// The function first checks that exactly 2 arguments are provided,
     /// then attempts to convert the second argument into a valid type expression.
-    fn lower_is(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+    fn lower_as(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
         if call.arguments.len() != 2 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
-                SpecialFormKind::Is,
+                SpecialFormKind::As,
                 &call.arguments,
                 &[2],
             ));
@@ -396,7 +396,7 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         let r#type = self.lower_expr_to_type(*r#type.value)?;
 
-        Some(ExprKind::Is(IsExpr {
+        Some(ExprKind::As(AsExpr {
             id: call.id,
             span: call.span,
             value: value.value,
@@ -739,7 +739,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                 | ExprKind::If(_)
                 | ExprKind::Field(_)
                 | ExprKind::Index(_)
-                | ExprKind::Is(_)
+                | ExprKind::As(_)
                 | ExprKind::Dummy => {
                     self.diagnostics.push(invalid_use_import(entry.value.span));
                     continue;
@@ -860,7 +860,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             | ExprKind::If(_)
             | ExprKind::Field(_)
             | ExprKind::Index(_)
-            | ExprKind::Is(_)
+            | ExprKind::As(_)
             | ExprKind::Underscore
             | ExprKind::Dummy => {
                 self.diagnostics
@@ -1033,7 +1033,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             | ExprKind::If(_)
             | ExprKind::Field(_)
             | ExprKind::Index(_)
-            | ExprKind::Is(_)
+            | ExprKind::As(_)
             | ExprKind::Underscore
             | ExprKind::Dummy => {
                 self.diagnostics
@@ -1371,7 +1371,7 @@ impl<'heap> Visitor<'heap> for SpecialFormExpander<'heap> {
 
         let kind = match special_form {
             SpecialFormKind::If => self.lower_if(call),
-            SpecialFormKind::Is => self.lower_is(call),
+            SpecialFormKind::As => self.lower_as(call),
             SpecialFormKind::Let => self.lower_let(call),
             SpecialFormKind::Type => self.lower_type(call),
             SpecialFormKind::Newtype => self.lower_newtype(call),

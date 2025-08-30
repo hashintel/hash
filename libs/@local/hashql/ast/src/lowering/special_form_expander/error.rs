@@ -352,7 +352,7 @@ pub(super) fn invalid_argument_length(
             "Use either:\n- if/2: (if condition then-expr)\n- if/3: (if condition then-expr \
              else-expr)"
         }
-        SpecialFormKind::Is => "The is/2 form should look like: (is value type-expr)",
+        SpecialFormKind::As => "The as/2 form should look like: (as value type-expr)",
         SpecialFormKind::Let => {
             "Use either:\n- let/3: (let name value body)\n- let/4: (let name type value body)"
         }
@@ -437,7 +437,7 @@ pub(crate) enum InvalidTypeExpressionKind {
     If,
     Field,
     Index,
-    Is,
+    As,
     Dummy,
 }
 
@@ -456,7 +456,7 @@ impl InvalidTypeExpressionKind {
             Self::If => "if",
             Self::Field => "field access",
             Self::Index => "index",
-            Self::Is => "is",
+            Self::As => "as",
             Self::Dummy => "dummy",
         }
     }
@@ -502,7 +502,7 @@ pub(crate) fn invalid_type_expression(
         | InvalidTypeExpressionKind::Closure
         | InvalidTypeExpressionKind::Field
         | InvalidTypeExpressionKind::Index
-        | InvalidTypeExpressionKind::Is
+        | InvalidTypeExpressionKind::As
         | InvalidTypeExpressionKind::Dummy => {
             Cow::Owned(format!("Replace this {kind} with a proper type expression"))
         }
@@ -531,7 +531,7 @@ pub(crate) fn invalid_type_expression(
         | InvalidTypeExpressionKind::Closure
         | InvalidTypeExpressionKind::Field
         | InvalidTypeExpressionKind::Index
-        | InvalidTypeExpressionKind::Is
+        | InvalidTypeExpressionKind::As
         | InvalidTypeExpressionKind::Dummy => {
             "Replace this expression with a valid type reference, struct type, or tuple type"
         }

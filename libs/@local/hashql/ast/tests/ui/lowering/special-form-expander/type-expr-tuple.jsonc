@@ -1,7 +1,7 @@
 //@ run: pass
 //@ description: tuples should be converted to type expressions
 [
-  "::kernel::special_form::is",
+  "::kernel::special_form::as",
   { "#literal": true },
   { "#tuple": ["Name", "Date"] }
 ]

@@ -1,4 +1,4 @@
 //@ run: pass
 //@ description: mangle the name of a simple type expression
 // We only need to verify that mangling works correctly, as
-["type", "T", "X", ["is", "T", "T"]]
+["type", "T", "X", ["as", "T", "T"]]

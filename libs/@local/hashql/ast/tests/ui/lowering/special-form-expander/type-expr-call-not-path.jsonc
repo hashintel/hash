@@ -1,7 +1,7 @@
 //@ run: fail
 //@ description: calling something that isn't a path should result in a compile error
 [
-  "::kernel::special_form::is",
+  "::kernel::special_form::as",
   { "#literal": true },
   [
     ["+", { "#literal": 1 }, { "#literal": 2 }],

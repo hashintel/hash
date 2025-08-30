@@ -1,11 +1,11 @@
 [special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
    ╭─[ <unknown>:3:1 ]
    │
- 3 │ ["::kernel::special_form::is", { "#literal": true }]
+ 3 │ ["::kernel::special_form::as", { "#literal": true }]
    │ ──────────────────────────┬─────────────────────────  
    │                           ╰─────────────────────────── Add missing arguments
    │ 
-   │ Help: The is/2 form should look like: (is value type-expr)
+   │ Help: The as/2 form should look like: (as value type-expr)
    │ 
-   │ Note: The is function has 1 variant: is/2
+   │ Note: The as function has 1 variant: as/2
 ───╯
