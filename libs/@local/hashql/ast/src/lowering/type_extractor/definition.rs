@@ -117,6 +117,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: *name,
                     r#type: &expr.value,
                     identity: Identity::Structural,
                     arguments,
@@ -136,6 +137,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: *name,
                     r#type: &expr.value,
                     identity: Identity::Nominal(
                         self.environment

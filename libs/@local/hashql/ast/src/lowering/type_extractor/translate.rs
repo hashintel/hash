@@ -11,7 +11,7 @@ use hashql_core::{
     collection::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
     intern::Provisioned,
     module::{
-        ModuleRegistry, Universe,
+        Module, ModuleRegistry, Universe,
         item::{IntrinsicItem, IntrinsicTypeItem, Item, ItemKind},
         locals::{TypeDef, TypeLocals},
     },
@@ -191,6 +191,7 @@ impl<'heap> FromIterator<(GenericArgumentReference<'heap>, SpanId)>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
+    pub name: Symbol<'heap>,
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
 
@@ -738,6 +739,34 @@ where
         })
     }
 
+    fn is_contractive(
+        variable: &LocalVariable<'_, 'heap>,
+        kind: &node::r#type::TypeKind<'heap>,
+    ) -> bool {
+        match kind {
+            // A type is non-contractive, if it is a variable which points to itself
+            node::r#type::TypeKind::Path(path)
+                if let Some((name, _)) = path.as_generic_ident()
+                    && name.value == variable.name =>
+            {
+                false
+            }
+            // A union or intersection type are non-contractive, if any of its constitutions are
+            // non-contractive
+            node::r#type::TypeKind::Union(node::r#type::UnionType { types, .. })
+            | node::r#type::TypeKind::Intersection(node::r#type::IntersectionType {
+                types, ..
+            }) => types
+                .iter()
+                .all(|r#type| Self::is_contractive(variable, &r#type.kind)),
+            node::r#type::TypeKind::Infer
+            | node::r#type::TypeKind::Path(_)
+            | node::r#type::TypeKind::Tuple(_)
+            | node::r#type::TypeKind::Struct(_)
+            | node::r#type::TypeKind::Dummy => true,
+        }
+    }
+
     fn variable_verify(
         &mut self,
         variable: &LocalVariable<'_, 'heap>,
@@ -769,11 +798,16 @@ where
         variable: &LocalVariable<'_, 'heap>,
         constraints: &FastHashMap<GenericArgumentId, Option<TypeId>>,
     ) -> TypeDef<'heap> {
+        if !Self::is_contractive(variable, &variable.r#type.kind) {
+            // Handle non-contractive types here
+        }
+
         let (kind, arguments) = self.variable_verify(variable, constraints);
 
+        let kind = self.env.intern_kind(kind);
         let partial = PartialType {
             span: variable.r#type.span,
-            kind: self.env.intern_kind(kind),
+            kind,
         };
 
         let id = self.env.types.intern_provisioned(variable.id, partial).id;
