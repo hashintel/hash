@@ -8,15 +8,17 @@ use core::{
 use hashql_core::{
     collection::{FastHashMap, fast_hash_map},
     heap::{self, Heap},
+    literal::LiteralKind,
     span::SpanId,
-    symbol::Ident,
+    symbol::{Ident, IdentKind},
 };
 
 use self::error::{
     BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
     duplicate_closure_generic, duplicate_closure_parameter, duplicate_generic_constraint,
-    fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
-    invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
+    field_index_out_of_bounds, field_literal_type_annotation, fn_generics_with_type_annotation,
+    fn_params_with_type_annotation, invalid_argument_length, invalid_binding_name_not_path,
+    invalid_field_literal_type, invalid_fn_generic_param, invalid_fn_generics_expression,
     invalid_fn_params_expression, invalid_generic_argument_path, invalid_generic_argument_type,
     invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
     invalid_type_expression, invalid_type_name_qualified_path, invalid_use_import,
@@ -450,6 +452,39 @@ impl<'heap> SpecialFormExpander<'heap> {
         };
 
         Some(name)
+    }
+
+    fn lower_argument_to_field(
+        &mut self,
+        mode: BindingMode,
+        argument: Argument<'heap>,
+    ) -> Option<Ident<'heap>> {
+        if let ExprKind::Literal(literal) = &argument.value.kind {
+            if let Some(r#type) = &literal.r#type {
+                self.diagnostics
+                    .push(field_literal_type_annotation(r#type.span));
+            }
+
+            let LiteralKind::Integer(integer) = literal.kind else {
+                self.diagnostics
+                    .push(invalid_field_literal_type(literal.span));
+                return None;
+            };
+
+            if integer.as_usize().is_none() {
+                self.diagnostics
+                    .push(field_index_out_of_bounds(literal.span));
+                return None;
+            }
+
+            return Some(Ident {
+                span: literal.span,
+                value: integer.value,
+                kind: IdentKind::Lexical,
+            });
+        }
+
+        self.lower_argument_to_ident(mode, argument)
     }
 
     fn lower_argument_to_generic_ident(
@@ -1259,7 +1294,7 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         let [body, field] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
-        let field = self.lower_argument_to_ident(BindingMode::Access, field)?;
+        let field = self.lower_argument_to_field(BindingMode::Access, field)?;
 
         Some(ExprKind::Field(FieldExpr {
             id: call.id,

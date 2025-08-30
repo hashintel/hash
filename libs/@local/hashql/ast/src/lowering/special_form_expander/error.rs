@@ -120,6 +120,21 @@ const DUPLICATE_CLOSURE_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnost
     name: "Duplicate closure parameter",
 };
 
+const FIELD_LITERAL_TYPE_ANNOTATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-literal-type-annotation",
+    name: "Field literal with type annotation",
+};
+
+const INVALID_FIELD_LITERAL_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-field-literal-type",
+    name: "Invalid field literal type",
+};
+
+const FIELD_INDEX_OUT_OF_BOUNDS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-index-out-of-bounds",
+    name: "Field index out of bounds",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -142,6 +157,9 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidGenericArgumentType,
     DuplicateGenericConstraint,
     DuplicateClosureParameter,
+    FieldLiteralTypeAnnotation,
+    InvalidFieldLiteralType,
+    FieldIndexOutOfBounds,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -175,6 +193,9 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidGenericArgumentType => Some(&INVALID_GENERIC_ARGUMENT_TYPE),
             Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
             Self::DuplicateClosureParameter => Some(&DUPLICATE_CLOSURE_PARAMETER),
+            Self::FieldLiteralTypeAnnotation => Some(&FIELD_LITERAL_TYPE_ANNOTATION),
+            Self::InvalidFieldLiteralType => Some(&INVALID_FIELD_LITERAL_TYPE),
+            Self::FieldIndexOutOfBounds => Some(&FIELD_INDEX_OUT_OF_BOUNDS),
         }
     }
 }
@@ -1107,6 +1128,78 @@ pub(crate) fn duplicate_closure_generic(
         "Generic parameter names must be unique within a function's generic parameter list. For \
          example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn field_literal_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::FieldLiteralTypeAnnotation,
+        Severity::Error,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Remove this type annotation"));
+
+    diagnostic.add_help(Help::new(
+        "Field access using numeric literals cannot have type annotations. The literal represents \
+         the field index directly and doesn't need a separate type.",
+    ));
+
+    diagnostic.add_note(Note::new(
+        "When using numeric literals for field access (e.g., in tuple destructuring), the number \
+         itself indicates the position and cannot be annotated with a type.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_field_literal_type(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidFieldLiteralType,
+        Severity::Error,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use an integer literal here"));
+
+    diagnostic.add_help(Help::new(
+        "Field access using literals requires an integer literal that specifies the field index. \
+         Other literal types like strings, booleans, or numbers cannot be used for field indexing.",
+    ));
+
+    diagnostic.add_note(Note::new(
+        "Valid field access examples:\n- (access tuple 0) - accesses first field\n- (access \
+         record 2) - accesses third field\n- (access data my_field) - accesses named field",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn field_index_out_of_bounds(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::FieldIndexOutOfBounds,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "Use a valid field index within usize bounds",
+    ));
+
+    diagnostic.add_help(Help::new(
+        "Field indices must be non-negative integers that fit within the bounds of usize. Very \
+         large numbers or negative numbers cannot be used as field indices.",
+    ));
+
+    diagnostic.add_note(Note::new(format!(
+        "Field indexing in HashQL uses zero-based indexing where the first field is at index 0, \
+         the second at index 1, and so on. The maximum valid index depends on the system's \
+         architecture, which is {}-bit.",
+        usize::BITS
+    )));
 
     diagnostic
 }
