@@ -123,7 +123,7 @@ macro_rules! report {
 /// ```
 #[cfg(not(feature = "unstable"))]
 #[macro_export]
-macro_rules! bail {#[macro_export]
+macro_rules! bail {
     ($err:expr $(,)?) => {{
         return ::core::result::Result::Err($crate::IntoReport::into_report($err));
     }};
