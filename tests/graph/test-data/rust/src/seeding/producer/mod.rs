@@ -29,6 +29,7 @@ use error_stack::IntoReport;
 use super::context::{ProduceContext, ProducerId};
 
 pub mod data_type;
+pub mod entity;
 pub mod entity_type;
 pub mod ontology;
 pub mod property_type;
