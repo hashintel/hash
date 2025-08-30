@@ -50,7 +50,6 @@ fn is_contractive_kind<'heap>(
             // Empty unions/intersections are contractive
             result
         }
-
         &TypeKind::Generic(Generic { base, arguments: _ })
         | &TypeKind::Apply(Apply {
             base,

@@ -30,13 +30,9 @@ use hashql_core::{
     },
 };
 
-use super::{
-    contractive::is_contractive,
-    error::{
-        TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
-        invalid_resolved_item, non_contractive_recursive_type, resolution_error,
-        unknown_intrinsic_type, unused_generic_parameter,
-    },
+use super::error::{
+    TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
+    invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
     lowering::type_extractor::error::{
@@ -195,7 +191,7 @@ impl<'heap> FromIterator<(GenericArgumentReference<'heap>, SpanId)>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
-    pub name: Symbol<'heap>,
+    pub name: Ident<'heap>,
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
 

@@ -86,7 +86,7 @@ const UNUSED_GENERIC_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticC
 
 const NON_CONTRACTIVE_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "non-contractive-type",
-    name: "Non-contractive recursive type",
+    name: "Invalid recursive type definition",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -728,30 +728,33 @@ pub(crate) fn non_contractive_recursive_type(
         Severity::Error,
     );
 
+    let type_name = demangle_unwrap(type_name);
+
     diagnostic.labels.extend([
         Label::new(
             recursive_ref_span,
-            format!("Recursive reference to `{type_name}` is not contractive"),
+            format!("Type `{type_name}` cannot reference itself directly"),
         )
         .with_order(0)
         .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(type_span, "... in this type definition")
+        Label::new(type_span, "... in this recursive type definition")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     ]);
 
     diagnostic.add_help(Help::new(format!(
-        "Wrap the recursive reference to `{type_name}` in a type constructor like a struct, \
-         tuple, or union with non-recursive alternatives. For example: `Some<{type_name}> | None` \
-         or `{{ value: {type_name} }}`"
+        "Add structure around the recursive reference. Such as, but not limited to, a struct, \
+         tuple, or union with at least one non-recursive alternative:\n- `type {type_name} = \
+         {type_name} | Null`\n- `type {type_name} = (value: {type_name})`\n- `type {type_name} = \
+         ({type_name}, String)`"
     )));
 
     diagnostic.add_note(Note::new(
-        "Recursive types must be 'contractive' to ensure type checking terminates. This means \
-         every recursive reference must be protected by at least one type constructor (struct, \
-         tuple, etc.). Direct self-references like `type T = T` or `type T = T | U` where all \
-         variants are recursive are not allowed as they could cause infinite loops during type \
-         checking.",
+        "Recursive types need some 'structure' between the type and its selft prevent  be \
+         'contractive' to ensure type checking terminates. This means every recursive reference \
+         must be protected by at least one type constructor (struct, tuple, etc.). Direct \
+         self-references like `type T = T` or `type T = T | U` where all variants are recursive \
+         are not allowed as they do not guarantee progression during type checking.",
     ));
 
     diagnostic

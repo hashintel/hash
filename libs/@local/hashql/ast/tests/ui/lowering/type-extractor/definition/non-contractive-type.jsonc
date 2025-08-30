@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Non-contractive types (pure self references) should be rejected
+["type",
+  "A",
+  "A",
+  //~^ ERROR Type `A` cannot reference itself directly
+  "_"
+]
