@@ -123,9 +123,13 @@ macro_rules! report {
 /// ```
 #[cfg(not(feature = "unstable"))]
 #[macro_export]
-macro_rules! bail {
-    ($err:expr) => {{
+macro_rules! bail {#[macro_export]
+    ($err:expr $(,)?) => {{
         return ::core::result::Result::Err($crate::IntoReport::into_report($err));
+    }};
+
+    [$($err:expr),+ $(,)?] => {{
+        compile_error!("Enable to `unstable` feature flag to bail using multiple errors.")
     }};
 }
 
@@ -235,7 +239,7 @@ macro_rules! bail {
 #[cfg_attr(doc, doc(cfg(all())))]
 #[macro_export]
 macro_rules! bail {
-    ($err:expr) => {{
+    ($err:expr $(,)?) => {{
         return ::core::result::Result::Err($crate::IntoReport::into_report($err));
     }};
 
