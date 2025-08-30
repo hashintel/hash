@@ -5,7 +5,7 @@
   ["::core::graph::body::filter",
     ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-      ["is", {"#literal": true}, "Boolean"]
+      ["as", {"#literal": true}, "Boolean"]
     ]
   ]
 ]

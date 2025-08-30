@@ -9,9 +9,9 @@
    ┆ ┆   
  9 │ ├─▶ ]
    │ │       
-   │ ╰─────── In this `is` special form call
+   │ ╰─────── In this `as` special form call
    │     
-   │     Help: The is/2 form should look like: (is value type-expr)
+   │     Help: The as/2 form should look like: (as value type-expr)
    │     
-   │     Note: The is function has 1 variant: is/2
+   │     Note: The as function has 1 variant: as/2
 ───╯
