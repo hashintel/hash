@@ -726,7 +726,7 @@ pub(crate) fn type_with_existing_annotation(span: SpanId) -> SpecialFormExpander
     ));
 
     diagnostic.add_note(Note::new(
-        "When constructing type expressions for special forms like 'type', 'newtype', or 'is', \
+        "When constructing type expressions for special forms like 'type', 'newtype', or 'as', \
          the expression itself represents a type definition and cannot have a separate type \
          annotation.",
     ));

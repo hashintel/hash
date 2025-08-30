@@ -5,9 +5,9 @@ use crate::node::{id::NodeId, r#type::Type};
 
 /// A type assertion expression in the HashQL Abstract Syntax Tree.
 ///
-/// Represents an `as` expression that checks at compile time whether a value conforms to a
-/// specified type. Type assertions help enforce type safety within the language
-/// and can be used for type narrowing in pattern matching contexts.
+/// Represents an `as` expression that performs type ascription, asserting at compile time that a
+/// value can be widened to a specified type. Unlike type guards which would validate at runtime,
+/// type ascription helps enforce static type safety within the language.
 ///
 /// The expression evaluates to a boolean value indicating whether the checked value
 /// matches the specified type.
