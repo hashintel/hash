@@ -594,7 +594,7 @@ __metadata:
   resolution: "@apps/hash-graph@workspace:apps/hash-graph"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-server": "npm:0.0.0-private"
     "@rust/hash-codec": "npm:0.0.0-private"
@@ -4351,7 +4351,7 @@ __metadata:
   dependencies:
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
@@ -12821,7 +12821,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/chonky@workspace:libs/chonky"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
   languageName: unknown
   linkType: soft
 
@@ -12840,7 +12840,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/error-stack@npm:0.5.0, @rust/error-stack@workspace:libs/error-stack":
+"@rust/error-stack@npm:0.6.0, @rust/error-stack@workspace:libs/error-stack":
   version: 0.0.0-use.local
   resolution: "@rust/error-stack@workspace:libs/error-stack"
   dependencies:
@@ -12852,7 +12852,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-client@workspace:libs/@local/harpc/client/rust"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-net": "npm:0.0.0-private"
     "@rust/harpc-system": "npm:0.0.0-private"
@@ -12865,7 +12865,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-codec@workspace:libs/@local/harpc/codec"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-types": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12874,7 +12874,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-net@workspace:libs/@local/harpc/net"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
@@ -12887,7 +12887,7 @@ __metadata:
   resolution: "@rust/harpc-server@workspace:libs/@local/harpc/server"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-client": "npm:0.0.0-private"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-net": "npm:0.0.0-private"
@@ -12910,7 +12910,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-tower@workspace:libs/@local/harpc/tower"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-net": "npm:0.0.0-private"
     "@rust/harpc-types": "npm:0.0.0-private"
@@ -12927,7 +12927,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/harpc-wire-protocol@workspace:libs/@local/harpc/wire-protocol"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-types": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12937,7 +12937,7 @@ __metadata:
   resolution: "@rust/hash-codec@workspace:libs/@local/codec"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
@@ -12956,7 +12956,7 @@ __metadata:
   resolution: "@rust/hash-graph-api@workspace:libs/@local/graph/api"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/harpc-client": "npm:0.0.0-private"
     "@rust/harpc-codec": "npm:0.0.0-private"
     "@rust/harpc-server": "npm:0.0.0-private"
@@ -12983,7 +12983,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     typescript: "npm:5.7.3"
@@ -12995,7 +12995,7 @@ __metadata:
   resolution: "@rust/hash-graph-benches@workspace:tests/graph/benches"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
@@ -13022,7 +13022,7 @@ __metadata:
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-postgres-store": "npm:0.0.0-private"
@@ -13043,7 +13043,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-migrations@workspace:libs/@local/graph/migrations"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-graph-migrations-macros": "npm:0.0.0-private"
     "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
@@ -13065,7 +13065,7 @@ __metadata:
   resolution: "@rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-migrations": "npm:0.0.0-private"
@@ -13087,7 +13087,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
@@ -13111,7 +13111,7 @@ __metadata:
   resolution: "@rust/hash-graph-test-data@workspace:tests/graph/test-data/rust"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
   languageName: unknown
@@ -13122,7 +13122,7 @@ __metadata:
   resolution: "@rust/hash-graph-test-server@workspace:libs/@local/graph/test-server"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
@@ -13152,7 +13152,7 @@ __metadata:
   resolution: "@rust/hash-graph-type-fetcher@workspace:libs/@local/graph/type-fetcher"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
@@ -13166,7 +13166,7 @@ __metadata:
   resolution: "@rust/hash-graph-types@workspace:libs/@local/graph/types"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
   languageName: unknown
@@ -13177,7 +13177,7 @@ __metadata:
   resolution: "@rust/hash-graph-validation@workspace:libs/@local/graph/validation"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
@@ -13189,7 +13189,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -13206,7 +13206,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-telemetry@workspace:libs/@local/telemetry"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
   languageName: unknown
   linkType: soft
 
@@ -13215,7 +13215,7 @@ __metadata:
   resolution: "@rust/hash-temporal-client@workspace:libs/@local/temporal-client"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
   languageName: unknown
   linkType: soft
 
@@ -13232,7 +13232,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hashql-compiletest@workspace:libs/@local/hashql/compiletest"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hashql-ast": "npm:0.0.0-private"
@@ -13257,7 +13257,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hashql-diagnostics@workspace:libs/@local/hashql/diagnostics"
   dependencies:
-    "@rust/error-stack": "npm:0.5.0"
+    "@rust/error-stack": "npm:0.6.0"
   languageName: unknown
   linkType: soft
 

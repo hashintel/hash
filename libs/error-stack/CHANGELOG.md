@@ -9,6 +9,10 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Unreleased
 
+-
+
+## [0.6.0](https://github.com/hashintel/hash/tree/error-stack%400.6.0/libs/error-stack) - 2025-08-30
+
 ### Features
 
 - Report has been split into `Report<C>` and `Report<[C]>` to distinguish between a group of related errors and a single error. These errors can still be nested. ([#5047](https://github.com/hashintel/hash/pull/5047))
