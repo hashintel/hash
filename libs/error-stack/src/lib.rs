@@ -513,14 +513,10 @@ mod serde;
 #[cfg(feature = "unstable")]
 mod sink;
 
-#[expect(deprecated, reason = "`core::error::Error` is stable now")]
-pub use self::context::Context;
 #[cfg(all(feature = "unstable", feature = "futures"))]
 pub use self::ext::stream::TryReportStreamExt;
 #[cfg(feature = "unstable")]
 pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
-#[expect(deprecated, reason = "We are moving to a more explicit API")]
-pub use self::result::Result;
 #[cfg(feature = "unstable")]
 pub use self::sink::ReportSink;
 pub use self::{

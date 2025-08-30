@@ -1,7 +1,7 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-use core::fmt::{Debug, Display};
-
-use crate::Context;
+use core::{
+    error::Error,
+    fmt::{Debug, Display},
+};
 
 /// Classification of the contents of a [`Frame`], determined by how it was created.
 ///
@@ -11,7 +11,7 @@ pub enum FrameKind<'f> {
     ///
     /// [`Report::new()`]: crate::Report::new
     /// [`change_context()`]: crate::Report::change_context
-    Context(&'f dyn Context),
+    Context(&'f (dyn Error + Send + Sync + 'static)),
     /// Frame was created through [`attach()`] or [`attach_opaque()`].
     ///
     /// [`attach()`]: crate::Report::attach

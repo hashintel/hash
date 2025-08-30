@@ -1,49 +1,6 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
+use core::error::Error;
 
-use crate::{Attachment, Context, IntoReport, OpaqueAttachment, Report};
-
-#[expect(rustdoc::invalid_html_tags, reason = "False positive")]
-/// <code>[Result](core::result::Result)<T, [Report<C>]></code>
-///
-/// A reasonable return type to use throughout an application.
-///
-/// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Error` is used as in [`Report<C>`].
-///
-/// # Examples
-///
-/// `Result` can also be used in `fn main()`:
-///
-/// ```rust
-/// # fn has_permission(_: (), _: ()) -> bool { true }
-/// # fn get_user() -> Result<(), AccessError> { Ok(()) }
-/// # fn get_resource() -> Result<(), Report<AccessError>> { Ok(()) }
-/// # #[derive(Debug)] enum AccessError { PermissionDenied((), ()) }
-/// # impl core::fmt::Display for AccessError {
-/// #    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { Ok(()) }
-/// # }
-/// # impl core::error::Error for AccessError {}
-/// use error_stack::{ensure, Report};
-///
-/// fn main() -> Result<(), Report<AccessError>> {
-///     let user = get_user()?;
-///     let resource = get_resource()?;
-///
-///     ensure!(
-///         has_permission(user, resource),
-///         AccessError::PermissionDenied(user, resource)
-///     );
-///
-///     # const _: &str = stringify! {
-///     ...
-///     # }; Ok(())
-/// }
-/// ```
-#[deprecated(
-    note = "Use `core::result::Result<T, Report<C>>` instead",
-    since = "0.6.0"
-)]
-pub type Result<T, C> = core::result::Result<T, Report<C>>;
+use crate::{Attachment, IntoReport, OpaqueAttachment, Report};
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
@@ -74,19 +31,6 @@ pub trait ResultExt {
         A: Attachment,
         F: FnOnce() -> A;
 
-    #[deprecated(
-        note = "Use `attach_opaque_with` instead. `attach_lazy` was renamed to \
-                `attach_opaque_with` and `attach_printable_lazy` was renamed to `attach_with`",
-        since = "0.6.0"
-    )]
-    fn attach_lazy<A, F>(
-        self,
-        attachment: F,
-    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
-    where
-        A: OpaqueAttachment,
-        F: FnOnce() -> A;
-
     /// Adds a new attachment to the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
@@ -108,44 +52,19 @@ pub trait ResultExt {
         A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    #[deprecated(
-        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
-                `attach_printable` was renamed to `attach`",
-        since = "0.6.0"
-    )]
-    fn attach_printable<A>(
-        self,
-        attachment: A,
-    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
-    where
-        A: Attachment;
-
-    #[deprecated(
-        note = "Use `attach_with` instead. `attach_lazy` was renamed to `attach_opaque_with` and \
-                `attach_printable_lazy` was renamed to `attach_with`",
-        since = "0.6.0"
-    )]
-    fn attach_printable_lazy<A, F>(
-        self,
-        attachment: F,
-    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
-    where
-        A: Attachment,
-        F: FnOnce() -> A;
-
     /// Changes the context of the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context<C>(self, context: C) -> core::result::Result<Self::Ok, Report<C>>
     where
-        C: Context;
+        C: Error + Send + Sync + 'static;
 
     /// Lazily changes the context of the [`Report`] inside the [`Result`].
     ///
     /// Applies [`Report::change_context`] on the [`Err`] variant, refer to it for more information.
     fn change_context_lazy<C, F>(self, context: F) -> core::result::Result<Self::Ok, Report<C>>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C;
 }
 
@@ -180,18 +99,6 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
-    where
-        A: OpaqueAttachment,
-        F: FnOnce() -> A,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(error.into_report().attach_opaque(attachment())),
-        }
-    }
-
-    #[track_caller]
     fn attach_opaque<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
     where
         A: OpaqueAttachment,
@@ -215,35 +122,9 @@ where
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
-    where
-        A: Attachment,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(error.into_report().attach(attachment)),
-        }
-    }
-
-    #[track_caller]
-    fn attach_printable_lazy<A, F>(
-        self,
-        attachment: F,
-    ) -> core::result::Result<T, Report<E::Context>>
-    where
-        A: Attachment,
-        F: FnOnce() -> A,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(error.into_report().attach(attachment())),
-        }
-    }
-
-    #[track_caller]
     fn change_context<C>(self, context: C) -> core::result::Result<T, Report<C>>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
     {
         match self {
             Ok(value) => Ok(value),
@@ -254,7 +135,7 @@ where
     #[track_caller]
     fn change_context_lazy<C, F>(self, context: F) -> core::result::Result<T, Report<C>>
     where
-        C: Context,
+        C: Error + Send + Sync + 'static,
         F: FnOnce() -> C,
     {
         match self {
