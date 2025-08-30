@@ -3,16 +3,9 @@
     │
   3 │ ╭─▶ [
     ┆ ┆   
-  6 │ │       ":test": { "#literal": true },
+  6 │ │       ":test": { "#literal": true }
     │ │       ──────────────┬──────────────  
     │ │                     ╰──────────────── Remove this labeled argument
-    ┆ ┆   
-  8 │ │       ":then": { "#literal": true },
-    │ │       ──────────────┬──────────────  
-    │ │                     ╰──────────────── ... and this labeled argument
-  9 │ │       ":else": { "#literal": false }
-    │ │       ───────────────┬──────────────  
-    │ │                      ╰──────────────── ... and this labeled argument
     ┆ ┆   
  11 │ ├─▶ ]
     │ │       

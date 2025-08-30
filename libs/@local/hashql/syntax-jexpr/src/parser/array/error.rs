@@ -40,6 +40,11 @@ const LABELED_ARGUMENT_MISSING_PREFIX: TerminalDiagnosticCategory = TerminalDiag
     name: "Missing `:` prefix in labeled argument",
 };
 
+const LABELED_ARGUMENT_LENGTH_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "labeled-argument-length-mismatch",
+    name: "Invalid number of labeled arguments",
+};
+
 const LABELED_ARGUMENT_INVALID_IDENTIFIER: TerminalDiagnosticCategory =
     TerminalDiagnosticCategory {
         id: "labeled-argument-invalid-identifier",
@@ -54,6 +59,7 @@ pub enum ArrayDiagnosticCategory {
     ConsecutiveComma,
     Empty,
     LabeledArgumentMissingPrefix,
+    LabeledArgumentLengthMismatch,
     LabeledArgumentInvalidIdentifier,
 }
 
@@ -66,6 +72,7 @@ impl ArrayDiagnosticCategory {
             | Self::ConsecutiveComma
             | Self::Empty
             | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentLengthMismatch
             | Self::LabeledArgumentInvalidIdentifier => self,
         }
     }
@@ -80,6 +87,7 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
             | Self::ConsecutiveComma
             | Self::Empty
             | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentLengthMismatch
             | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("array"),
         }
     }
@@ -92,6 +100,7 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
             | Self::ConsecutiveComma
             | Self::Empty
             | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentLengthMismatch
             | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("Array"),
         }
     }
@@ -104,6 +113,7 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
             Self::ConsecutiveComma => Some(&CONSECUTIVE_COMMA),
             Self::Empty => Some(&EMPTY),
             Self::LabeledArgumentMissingPrefix => Some(&LABELED_ARGUMENT_MISSING_PREFIX),
+            Self::LabeledArgumentLengthMismatch => Some(&LABELED_ARGUMENT_LENGTH_MISMATCH),
             Self::LabeledArgumentInvalidIdentifier => Some(&LABELED_ARGUMENT_INVALID_IDENTIFIER),
         }
     }
@@ -209,8 +219,9 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
 }
 
 const LABELED_ARGUMENT_PREFIX_NOTE: &str = r#"In J-Expr, labeled arguments use the format:
-- `["function", ":label", value]`
-- `["function", ":label1", value1, ":label2", value2]`
+- `["function", {":label": value}]`
+- `["function", {":label1": value1}, {":label2": value2}]`
+- `["function", ":variable1"]`
 
 The colon prefix (':') is required to distinguish labeled arguments from positional arguments."#;
 
@@ -231,6 +242,52 @@ pub(crate) fn labeled_argument_missing_prefix(
         "Add ':' prefix to '{}' to make it a valid labeled argument",
         actual.as_ref()
     );
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(LABELED_ARGUMENT_PREFIX_NOTE));
+
+    diagnostic
+}
+
+pub(crate) fn labeled_arguments_length_mismatch(
+    span: SpanId,
+    extra: impl IntoIterator<Item = SpanId>,
+    count: usize,
+) -> ArrayDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ArrayDiagnosticCategory::LabeledArgumentLengthMismatch,
+        Severity::Error,
+    );
+
+    if count == 0 {
+        diagnostic
+            .labels
+            .push(Label::new(span, "Add exactly one key-value pair"));
+    } else {
+        diagnostic
+            .labels
+            .push(Label::new(span, "Remove extra arguments"));
+
+        let mut index = -1;
+
+        for extra_span in extra {
+            diagnostic.labels.push(
+                Label::new(extra_span, "... remove this extraneous argument").with_order(index),
+            );
+
+            index -= 1;
+        }
+    }
+
+    let help_message = if count == 0 {
+        Cow::Borrowed(
+            "Labeled arguments require exactly one key-value pair in the format {\":key\": value}",
+        )
+    } else {
+        Cow::Owned(format!(
+            "Labeled arguments must contain exactly one key-value pair, but {count} were provided",
+        ))
+    };
     diagnostic.add_help(Help::new(help_message));
 
     diagnostic.add_note(Note::new(LABELED_ARGUMENT_PREFIX_NOTE));

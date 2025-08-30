@@ -874,9 +874,9 @@ where
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
-                report.attach(hash_status::StatusCode::NotFound)
+                report.attach_opaque(hash_status::StatusCode::NotFound)
             } else if report.contains::<RaceConditionOnUpdate>() {
-                report.attach(hash_status::StatusCode::Cancelled)
+                report.attach_opaque(hash_status::StatusCode::Cancelled)
             } else {
                 report
             }
@@ -912,7 +912,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UpdateEntityEmbeddingsParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -966,7 +966,7 @@ where
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
-                report.attach(hash_status::StatusCode::NotFound)
+                report.attach_opaque(hash_status::StatusCode::NotFound)
             } else {
                 report
             }

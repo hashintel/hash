@@ -113,7 +113,7 @@ impl PropertyTypeProducerConfig {
                 // This would need special handling based on the values config, but for now we
                 // require it
                 return Err(Report::new(PropertyTypeProducerConfigError::Values)
-                    .attach_printable("Property types require a data type catalog")
+                    .attach("Property types require a data type catalog")
                     .expand());
             }
         };

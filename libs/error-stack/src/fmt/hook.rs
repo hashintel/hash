@@ -111,14 +111,14 @@ crate::hook::context::impl_hook_context! {
     /// Report::install_debug_hook::<Secret>(|_, _| {});
     ///
     /// let report = Report::new(Error::from(ErrorKind::InvalidInput))
-    ///     .attach(HttpResponseStatusCode(404))
-    ///     .attach(Suggestion("do you have a connection to the internet?"))
-    ///     .attach(HttpResponseStatusCode(405))
-    ///     .attach(Warning("unable to determine environment"))
-    ///     .attach(Secret("pssst, don't tell anyone else c;"))
-    ///     .attach(Suggestion("execute the program from the fish shell"))
-    ///     .attach(HttpResponseStatusCode(501))
-    ///     .attach(Suggestion("try better next time!"));
+    ///     .attach_opaque(HttpResponseStatusCode(404))
+    ///     .attach_opaque(Suggestion("do you have a connection to the internet?"))
+    ///     .attach_opaque(HttpResponseStatusCode(405))
+    ///     .attach_opaque(Warning("unable to determine environment"))
+    ///     .attach_opaque(Secret("pssst, don't tell anyone else c;"))
+    ///     .attach_opaque(Suggestion("execute the program from the fish shell"))
+    ///     .attach_opaque(HttpResponseStatusCode(501))
+    ///     .attach_opaque(Suggestion("try better next time!"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -197,8 +197,8 @@ crate::hook::context::impl_hook_context! {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Computation(2))
-    ///     .attach(Computation(3));
+    ///     .attach_opaque(Computation(2))
+    ///     .attach_opaque(Computation(3));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -277,11 +277,11 @@ impl<T> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Error {
+    ///     .attach_opaque(Error {
     ///         code: 404,
     ///         reason: "not found - server cannot find requested resource",
     ///     })
-    ///     .attach(Error {
+    ///     .attach_opaque(Error {
     ///         code: 405,
     ///         reason: "bad request - server cannot or will not process request",
     ///     });
@@ -331,7 +331,7 @@ impl<T> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(io::Error::from(io::ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("try better next time"));
+    ///     .attach_opaque(Suggestion("try better next time"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -409,8 +409,8 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// Hooks are added via [`.insert()`], which will wrap the function in an additional closure.
 /// This closure will downcast/request the [`Frame`] to the requested type.
 ///
-/// If not set, opaque attachments (added via [`.attach()`]) won't be rendered in the [`Debug`]
-/// output.
+/// If not set, opaque attachments (added via [`.attach_opaque()`]) won't be rendered in the
+/// [`Debug`] output.
 ///
 /// The default implementation provides supports for [`Backtrace`] and [`SpanTrace`],
 /// if their necessary features have been enabled.
@@ -420,7 +420,7 @@ fn into_boxed_hook<T: Send + Sync + 'static>(
 /// [`Display`]: core::fmt::Display
 /// [`Debug`]: core::fmt::Debug
 /// [`.insert()`]: Hooks::insert
-/// [`.attach()`]: crate::Report::attach
+/// [`.attach_opaque()`]: crate::Report::attach_opaque
 #[expect(clippy::field_scoped_visibility_modifiers)]
 pub(crate) struct Hooks {
     // We use `Vec`, instead of `HashMap` or `BTreeMap`, so that ordering is consistent with the

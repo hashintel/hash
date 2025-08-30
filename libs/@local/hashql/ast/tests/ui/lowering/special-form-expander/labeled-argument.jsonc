@@ -3,9 +3,9 @@
 [
   "::kernel::special_form::if",
   {
-    ":test": { "#literal": true },
+    ":test": { "#literal": true }
     //~^ ERROR this labeled argument
-    ":then": { "#literal": true },
-    ":else": { "#literal": false }
-  }
+  },
+  {"#literal": true},
+  {"#literal": false}
 ]

@@ -75,10 +75,7 @@ impl TryFrom<RpcAddress> for SocketAddr {
     type Error = Report<AddrParseError>;
 
     fn try_from(address: RpcAddress) -> Result<Self, Report<AddrParseError>> {
-        address
-            .to_string()
-            .parse::<Self>()
-            .attach_printable(address)
+        address.to_string().parse::<Self>().attach(address)
     }
 }
 
@@ -293,7 +290,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         .acquire(None)
         .await
         .change_context(GraphError)
-        .attach_printable("Connection to database failed")?;
+        .attach("Connection to database failed")?;
 
     let pool = if args.offline {
         FetchingPool::new_offline(pool)

@@ -13,7 +13,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
-    "start:healthcheck": "wait-on --timeout 600000 http://localhost:3000",
+    "start:healthcheck": "wait-on --timeout 1200000 http://localhost:3000",
     "start:test": "next start",
     "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000"
   },
