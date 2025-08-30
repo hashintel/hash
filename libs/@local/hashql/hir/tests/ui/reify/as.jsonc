@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of type assertion expressions using the `as` operator.
+["as", "+", "Integer"]
