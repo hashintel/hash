@@ -6,6 +6,6 @@
     ":test": { "#literal": true }
     //~^ ERROR this labeled argument
   },
-  {"#literal": true},
-  {"#literal": false}
+  { "#literal": true },
+  { "#literal": false }
 ]
