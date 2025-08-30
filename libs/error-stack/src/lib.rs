@@ -369,7 +369,7 @@
 //! }
 //! ```
 //!
-//! [`provide`]: Context::provide
+//! [`provide`]: core::error::Error::provide
 //!
 //! ## Additional Features
 //!

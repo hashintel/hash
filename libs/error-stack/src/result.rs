@@ -5,7 +5,7 @@ use crate::{Attachment, IntoReport, OpaqueAttachment, Report};
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
 pub trait ResultExt {
-    /// The [`Context`] type of the [`Result`].
+    /// The context type of the [`Result`] which becomes the `C` in `Report<C>`.
     type Context: ?Sized;
 
     /// Type of the [`Ok`] value in the [`Result`]

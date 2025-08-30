@@ -71,10 +71,7 @@ macro_rules! bail {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for <code>return Err([report!(..)])</code>.
-///
 /// [`Report`]: crate::Report
-/// [report!(..)]: report
 ///
 /// # `unstable`
 ///
@@ -98,42 +95,6 @@ macro_rules! bail {
 /// }
 /// # Ok(()) }
 /// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
-/// ```
-///
-/// Create a [`Report`] from [`Context`]:
-///
-/// [`Context`]: crate::Context
-///
-/// ```rust
-/// # fn has_permission(_: &u32, _: &u32) -> bool { true }
-/// # type User = u32;
-/// # let user = 0;
-/// # type Resource = u32;
-/// # let resource = 0;
-/// use core::error::Error;
-/// use core::fmt;
-///
-/// use error_stack::bail;
-///
-/// #[derive(Debug)]
-/// # #[allow(dead_code)]
-/// struct PermissionDenied(User, Resource);
-///
-/// impl fmt::Display for PermissionDenied {
-///     # #[allow(unused_variables)]
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         # const _: &str = stringify! {
-///         ...
-///         # }; Ok(())
-///     }
-/// }
-///
-/// impl Error for PermissionDenied {}
-///
-/// if !has_permission(&user, &resource) {
-///     bail!(PermissionDenied(user, resource));
-/// }
-/// # Ok(())
 /// ```
 ///
 /// Create a `Report<[C]>` from multiple errors (**unstable only**):
