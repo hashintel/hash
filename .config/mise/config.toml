@@ -17,7 +17,7 @@ java              = "25"
 protoc            = "32.0"
 
 # CLI tools
-biome                  = "2.2.2"
+biome                  = "1.9.5-nightly.ff02a0b"
 "cargo:cargo-hack"     = "0.6.37"
 "cargo:cargo-insta"    = "1.43.1"
 "cargo:cargo-llvm-cov" = "0.6.18"
