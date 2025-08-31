@@ -15,7 +15,6 @@
     "@rust/error-stack": "0.6.0",
     "@rust/hash-codec": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
-    "@rust/hash-graph-postgres-queries": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-types": "0.0.0-private",

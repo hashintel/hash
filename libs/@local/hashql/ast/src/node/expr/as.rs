@@ -5,9 +5,9 @@ use crate::node::{id::NodeId, r#type::Type};
 
 /// A type assertion expression in the HashQL Abstract Syntax Tree.
 ///
-/// Represents an `is` expression that checks at compile time whether a value conforms to a
-/// specified type. Type assertions help enforce type safety within the language
-/// and can be used for type narrowing in pattern matching contexts.
+/// Represents an `as` expression that performs type ascription, asserting at compile time that a
+/// value can be widened to a specified type. Unlike type guards which would validate at runtime,
+/// type ascription helps enforce static type safety within the language.
 ///
 /// The expression evaluates to a boolean value indicating whether the checked value
 /// matches the specified type.
@@ -17,18 +17,18 @@ use crate::node::{id::NodeId, r#type::Type};
 /// ## J-Expr
 ///
 /// ```json
-/// ["is", "value", "String"]
-/// ["is", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
+/// ["as", "value", "String"]
+/// ["as", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
 /// ```
 ///
 /// ## Documentation Format
 ///
 /// ```text
-/// value is String
-/// value is {name: String, age: Int}
+/// value as String
+/// value as {name: String, age: Int}
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IsExpr<'heap> {
+pub struct AsExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 

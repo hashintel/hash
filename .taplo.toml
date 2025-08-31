@@ -1,4 +1,4 @@
-exclude = ["**/node_modules/**", "**/.venv/**", "**/venv/**", "**/clorinde/**"]
+exclude = ["**/node_modules/**", "**/.venv/**", "**/venv/**"]
 
 [formatting]
 align_entries       = true
