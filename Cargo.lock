@@ -1557,21 +1557,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
-name = "clorinde"
-version = "0.0.0"
-dependencies = [
- "deadpool-postgres",
- "fallible-iterator",
- "futures",
- "hash-graph-authorization",
- "postgres",
- "postgres-protocol",
- "postgres-types",
- "tokio-postgres",
- "type-system",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3543,17 +3528,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash-graph-postgres-queries"
-version = "0.0.0"
-dependencies = [
- "clorinde",
- "hash-graph-authorization",
- "hash-graph-migrations",
- "simple-mermaid",
- "type-system",
-]
-
-[[package]]
 name = "hash-graph-postgres-store"
 version = "0.0.0"
 dependencies = [
@@ -3571,7 +3545,6 @@ dependencies = [
  "hash-codec",
  "hash-graph-authorization",
  "hash-graph-migrations",
- "hash-graph-postgres-queries",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
@@ -6922,20 +6895,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f84267b20a16ea918e43c6a88433c2d54fa145c92a811b5b047ccbe153674483"
 
 [[package]]
-name = "postgres"
-version = "0.19.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "363e6dfbdd780d3aa3597b6eb430db76bb315fa9bad7fae595bb8def808b8470"
-dependencies = [
- "bytes",
- "fallible-iterator",
- "futures-util",
- "log",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
 name = "postgres-derive"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6957,7 +6916,6 @@ dependencies = [
  "byteorder",
  "bytes",
  "fallible-iterator",
- "getrandom 0.3.3",
  "hmac",
  "md-5",
  "memchr",

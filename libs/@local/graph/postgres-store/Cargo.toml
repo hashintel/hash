@@ -24,7 +24,6 @@ tokio-postgres    = { workspace = true, public = true }
 # Private workspace dependencies
 error-stack                    = { workspace = true, features = ["std", "serde", "unstable"] }
 hash-codec                     = { workspace = true, features = ["numeric", "postgres"] }
-hash-graph-postgres-queries    = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true, features = ["postgres"] }
 hash-status                    = { workspace = true }
