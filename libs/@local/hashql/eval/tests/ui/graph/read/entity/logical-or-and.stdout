@@ -1,7 +1,7 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+::core::graph::head::entities(::core::graph::tmp::decision_time_now())
+|> ::core::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
  EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
    EntityUuid[Uuid[String]], web_id:
@@ -13,29 +13,11 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    (true && (true || false))) |> ::graph::tail::collect
+    (true || (true && false))) |> ::core::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
 [
-    Equal(
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
-    ),
     Any(
         [
             Equal(
@@ -56,23 +38,45 @@ _1«Boolean» ->
                     },
                 ),
             ),
-            Equal(
-                Some(
-                    Parameter {
-                        parameter: Boolean(
-                            false,
+            All(
+                [
+                    Equal(
+                        Some(
+                            Parameter {
+                                parameter: Boolean(
+                                    true,
+                                ),
+                                convert: None,
+                            },
                         ),
-                        convert: None,
-                    },
-                ),
-                Some(
-                    Parameter {
-                        parameter: Boolean(
-                            true,
+                        Some(
+                            Parameter {
+                                parameter: Boolean(
+                                    true,
+                                ),
+                                convert: None,
+                            },
                         ),
-                        convert: None,
-                    },
-                ),
+                    ),
+                    Equal(
+                        Some(
+                            Parameter {
+                                parameter: Boolean(
+                                    false,
+                                ),
+                                convert: None,
+                            },
+                        ),
+                        Some(
+                            Parameter {
+                                parameter: Boolean(
+                                    true,
+                                ),
+                                convert: None,
+                            },
+                        ),
+                    ),
+                ],
             ),
         ],
     ),
