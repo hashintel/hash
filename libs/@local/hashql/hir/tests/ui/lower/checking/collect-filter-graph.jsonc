@@ -1,12 +1,12 @@
 //@ run: pass
 //@ description: Test minimal graph specialization
 [
-  "::core::graph::tail::collect",
+  "::graph::tail::collect",
   [
-    "::core::graph::body::filter",
+    "::graph::body::filter",
     [
-      "::core::graph::head::entities",
-      ["::core::graph::tmp::decision_time_now"]
+      "::graph::head::entities",
+      ["::graph::tmp::decision_time_now"]
     ],
     [
       "fn",
@@ -17,7 +17,7 @@
         "==",
         "vertex.id.entity_id.entity_uuid",
         [
-          "::core::graph::types::knowledge::entity::EntityUuid",
+          "::graph::types::knowledge::entity::EntityUuid",
           [
             "::core::uuid::Uuid",
             { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }

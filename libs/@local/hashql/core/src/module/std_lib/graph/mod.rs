@@ -48,10 +48,8 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
 
         let graph_ty = lib.ty.generic(
             [t_arg],
-            lib.ty.opaque(
-                "::core::graph::Graph",
-                lib.ty.r#struct([("'marker", t_param)]),
-            ),
+            lib.ty
+                .opaque("::graph::Graph", lib.ty.r#struct([("'marker", t_param)])),
         );
         def.push(
             lib.heap.intern_symbol("Graph"),
@@ -68,7 +66,7 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         let time_axis_ty = lib.ty.generic(
             [] as [GenericArgumentId; 0],
             lib.ty.opaque(
-                "::core::graph::TimeAxis",
+                "::graph::TimeAxis",
                 lib.ty.r#struct([] as [(&str, TypeId); 0]),
             ),
         );

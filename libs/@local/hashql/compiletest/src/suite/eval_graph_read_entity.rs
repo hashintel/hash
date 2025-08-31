@@ -61,7 +61,7 @@ impl Suite for EvalGraphReadEntitySuite {
         );
 
         let user_id_value = Value::Opaque(Opaque::new(
-            heap.intern_symbol("::core::graph::types::knowledge::entity::EntityUuid"),
+            heap.intern_symbol("::graph::types::knowledge::entity::EntityUuid"),
             Value::Opaque(Opaque::new(
                 heap.intern_symbol("::core::uuid::Uuid"),
                 Value::Primitive(LiteralKind::String(StringLiteral {

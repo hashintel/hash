@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Tmp {
-    _dependencies: (std_lib::core::graph::Graph,),
+    _dependencies: (std_lib::graph::Graph,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Tmp {
@@ -25,14 +25,14 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
         let heap = lib.heap;
 
         let query_temporal_axes_ty = lib
-            .manifest::<std_lib::core::graph::Graph>()
+            .manifest::<std_lib::graph::Graph>()
             .expect_type(heap.intern_symbol("QueryTemporalAxes"));
 
-        // ::core::graph::tmp::decision_time_now() -> TimeAxis
+        // ::graph::tmp::decision_time_now() -> TimeAxis
         func(
             lib,
             &mut def,
-            "::core::graph::tmp::decision_time_now",
+            "::graph::tmp::decision_time_now",
             &[],
             TypeDef {
                 id: lib.ty.closure([] as [TypeId; 0], query_temporal_axes_ty.id),

@@ -1,14 +1,14 @@
 //@ run: pass
 //@ description: Test index access on input parameter values
 // biome-ignore format: readability
-["::core::graph::tail::collect",
-  ["::core::graph::body::filter",
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
-        ["as", "vertex.id.entity_id.entity_uuid", ["|", "::core::graph::types::knowledge::entity::EntityUuid", "Null"]],
+        ["as", "vertex.id.entity_id.entity_uuid", ["|", "::graph::types::knowledge::entity::EntityUuid", "Null"]],
         ["[]",
-          ["input", "user_ids", "List<::core::graph::types::knowledge::entity::EntityUuid>"],
+          ["input", "user_ids", "List<::graph::types::knowledge::entity::EntityUuid>"],
           {"#literal": 0}
         ]
       ]

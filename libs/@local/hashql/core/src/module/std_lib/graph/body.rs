@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Body {
-    _dependencies: (std_lib::core::graph::Graph,),
+    _dependencies: (std_lib::graph::Graph,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Body {
@@ -23,7 +23,7 @@ impl<'heap> StandardLibraryModule<'heap> for Body {
         let mut def = ModuleDef::new();
         let heap = lib.heap;
 
-        let graph = lib.manifest::<std_lib::core::graph::Graph>();
+        let graph = lib.manifest::<std_lib::graph::Graph>();
 
         let mut graph_param = graph.expect_type(heap.intern_symbol("Graph"));
         let mut graph_returns = graph_param;
@@ -40,7 +40,7 @@ impl<'heap> StandardLibraryModule<'heap> for Body {
             ) -> lib.ty.apply([(graph_returns.arguments[0].id, T)], graph_returns.id)
         );
 
-        func(lib, &mut def, "::core::graph::body::filter", &[], decl);
+        func(lib, &mut def, "::graph::body::filter", &[], decl);
 
         def
     }

@@ -1,7 +1,7 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::core::graph::head::entities(::core::graph::tmp::decision_time_now())
-|> ::core::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+::graph::head::entities(::graph::tmp::decision_time_now())
+|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
  EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
    EntityUuid[Uuid[String]], web_id:
@@ -13,7 +13,7 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    #is(true, type: Boolean)) |> ::core::graph::tail::collect
+    #is(true, type: Boolean)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 

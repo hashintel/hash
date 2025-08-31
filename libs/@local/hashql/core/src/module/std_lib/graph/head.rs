@@ -10,8 +10,8 @@ use crate::{
 
 pub(in crate::module::std_lib) struct Head {
     _dependencies: (
-        std_lib::core::graph::Graph,
-        std_lib::core::graph::types::knowledge::entity::Entity,
+        std_lib::graph::Graph,
+        std_lib::graph::types::knowledge::entity::Entity,
     ),
 }
 
@@ -26,18 +26,18 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
         let mut def = ModuleDef::new();
         let heap = lib.heap;
 
-        let graph = lib.manifest::<std_lib::core::graph::Graph>();
+        let graph = lib.manifest::<std_lib::graph::Graph>();
 
         let query_temporal_axes_ty = graph.expect_type(heap.intern_symbol("QueryTemporalAxes"));
         let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
         graph_ty.instantiate(&mut lib.instantiate);
 
         let mut entity = lib
-            .manifest::<std_lib::core::graph::types::knowledge::entity::Entity>()
+            .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
             .expect_newtype(heap.intern_symbol("Entity"));
         entity.instantiate(&mut lib.instantiate);
 
-        // ::core::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;
+        // ::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;
         let entities_returns = lib.ty.apply(
             [(
                 graph_ty.arguments[0].id,
@@ -49,7 +49,7 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
         func(
             lib,
             &mut def,
-            "::core::graph::head::entities",
+            "::graph::head::entities",
             &[],
             decl!(lib; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
         );
