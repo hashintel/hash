@@ -1,23 +1,39 @@
+use alloc::sync::Arc;
 use core::error::Error;
 use std::collections::HashMap;
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use hash_graph_authorization::policies::store::PrincipalStore as _;
-use hash_graph_store::{entity_type::EntityTypeStore as _, pool::StorePool as _};
+use hash_graph_store::{
+    entity_type::{EntityTypeStore as _, GetEntityTypesParams, IncludeEntityTypeOption},
+    filter::Filter,
+    pool::StorePool as _,
+    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+};
 use hash_graph_test_data::seeding::{
     context::StageId,
-    distributions::ontology::entity_type::properties::InMemoryPropertyTypeCatalog,
-    producer::{
-        entity_type::{EntityTypeProducerDeps, PropertyTypeCatalog as _},
-        ontology::InMemoryWebCatalog,
+    distributions::{
+        property::{
+            BoundPropertyDistribution, BoundPropertyObjectDistribution,
+            EntityObjectDistributionRegistry, PropertyDistribution, PropertyDistributionRegistry,
+            PropertyObjectDistribution,
+        },
+        value::{ValueDistribution, ValueDistributionRegistry},
     },
+    producer::entity_type::{EntityTypeCatalog, EntityTypeProducerDeps},
 };
+use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
-    ontology::{property_type::schema::PropertyTypeReference, provenance::OntologyOwnership},
+    ontology::{
+        data_type::schema::DataTypeReference,
+        entity_type::{EntityTypeUuid, schema::EntityTypeReference},
+        property_type::schema::PropertyTypeReference,
+        provenance::OntologyOwnership,
+    },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use super::Runner;
+use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
 
 #[derive(Debug, derive_more::Display)]
@@ -34,8 +50,8 @@ pub enum EntityTypeError {
     Persist,
     #[display("Missing owner for web: {web_id}")]
     MissingOwner { web_id: WebId },
-    #[display("Empty property type catalog - cannot generate entity types")]
-    EmptyPropertyTypeCatalog,
+    #[display("Failed to create entity type catalog")]
+    CreateCatalog,
 }
 
 impl Error for EntityTypeError {}
@@ -60,8 +76,17 @@ pub struct GenerateEntityTypesStage {
     pub stage_id: Option<u16>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GenerateEntityTypesResult {
+    pub created_entity_types: usize,
+}
+
 impl GenerateEntityTypesStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<GenerateEntityTypesResult, Report<EntityTypeError>> {
         let id = &self.id;
         let cfg = config::ENTITY_TYPE_PRODUCER_CONFIGS
             .get(&self.config_ref)
@@ -112,7 +137,9 @@ impl GenerateEntityTypesStage {
 
         let len = params.len();
         runner.resources.entity_types.insert(id.clone(), params);
-        Ok(len)
+        Ok(GenerateEntityTypesResult {
+            created_entity_types: len,
+        })
     }
 }
 
@@ -130,18 +157,20 @@ pub struct PersistEntityTypesStage {
     pub inputs: PersistEntityTypesInputs,
 }
 
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PersistEntityTypesResult {
+    pub persisted_entity_types: usize,
+    pub local_webs: usize,
+    pub local_entity_types: usize,
+    pub remote_entity_types: usize,
+}
+
 impl PersistEntityTypesStage {
-    pub async fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
-        let pool = runner
-            .ensure_db()
-            .await
-            .change_context(EntityTypeError::Persist)?;
-
-        let mut store = pool
-            .acquire(None)
-            .await
-            .change_context(EntityTypeError::Persist)?;
-
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<PersistEntityTypesResult, Report<EntityTypeError>> {
         let mut all_entity_types = Vec::new();
         for entity_type_key in &self.inputs.entity_types {
             let entity_types = runner
@@ -156,6 +185,16 @@ impl PersistEntityTypesStage {
             all_entity_types.extend_from_slice(entity_types);
         }
 
+        let pool = runner
+            .ensure_db()
+            .await
+            .change_context(EntityTypeError::Persist)?;
+
+        let mut store = pool
+            .acquire(None)
+            .await
+            .change_context(EntityTypeError::Persist)?;
+
         // Get web-to-user mapping for permissions
         let mut web_to_user_map: HashMap<WebId, ActorEntityUuid> = HashMap::new();
         for web_to_user_key in &self.inputs.web_to_user {
@@ -168,7 +207,7 @@ impl PersistEntityTypesStage {
 
         // Check if we have any entity types to persist
         if all_entity_types.is_empty() {
-            return Ok(0);
+            return Ok(PersistEntityTypesResult::default());
         }
 
         // System machine for remote types
@@ -191,6 +230,9 @@ impl PersistEntityTypesStage {
                 }
             }
         }
+
+        let local_webs = local_by_web.len();
+        let remote_entity_types = remote_params.len();
 
         // Persist locals per web, as user
         let mut total_created = 0_usize;
@@ -215,51 +257,307 @@ impl PersistEntityTypesStage {
         }
         drop(store);
 
-        Ok(total_created)
+        Ok(PersistEntityTypesResult {
+            persisted_entity_types: total_created,
+            local_webs,
+            local_entity_types: total_created - remote_entity_types,
+            remote_entity_types,
+        })
     }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum EntityTypeCatalogError {
+    #[display("Empty data type catalog")]
+    EmptyCatalog,
+}
+
+impl Error for EntityTypeCatalogError {}
+
+/// Simple in-memory implementation of [`EntityTypeCatalog`].
+#[derive(Debug, Clone)]
+pub struct InMemoryEntityTypeCatalog {
+    entity_types: Vec<EntityTypeReference>,
+}
+
+impl InMemoryEntityTypeCatalog {
+    /// Create a new catalog from a collection of entity type references.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(entity_types: Vec<EntityTypeReference>) -> Result<Self, EntityTypeCatalogError> {
+        if entity_types.is_empty() {
+            return Err(EntityTypeCatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { entity_types })
+    }
+}
+
+impl EntityTypeCatalog for InMemoryEntityTypeCatalog {
+    fn entity_type_references(&self) -> &[EntityTypeReference] {
+        &self.entity_types
+    }
+
+    fn sample_entity_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &EntityTypeReference {
+        // Uniform selection from available data types using SliceRandom::choose
+        self.entity_types
+            .choose(rng)
+            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
+    }
+}
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildEntityTypeCatalogStage {
+    pub id: String,
+    pub input: Vec<String>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildEntityTypeCatalogResult {
+    pub collected_entity_types: usize,
+}
+
+impl BuildEntityTypeCatalogStage {
+    pub fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<BuildEntityTypeCatalogResult, Report<EntityTypeError>> {
+        let mut entity_type_ids = Vec::new();
+        for input in &self.input {
+            let entity_types = runner.resources.entity_types.get(input).ok_or_else(|| {
+                Report::new(EntityTypeError::MissingConfig {
+                    name: input.clone(),
+                })
+            })?;
+            entity_type_ids.extend(entity_types.iter().map(|params| EntityTypeReference {
+                url: params.schema.id.clone(),
+            }));
+        }
+
+        let catalog = InMemoryEntityTypeCatalog::new(entity_type_ids)
+            .change_context(EntityTypeError::CreateCatalog)?;
+
+        let len = catalog.entity_type_references().len();
+
+        runner
+            .resources
+            .entity_type_catalogs
+            .insert(self.id.clone(), catalog);
+
+        Ok(BuildEntityTypeCatalogResult {
+            collected_entity_types: len,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct InMemoryValueRegistry {
+    values: HashMap<DataTypeReference, ValueDistribution<'static>>,
+}
+
+impl ValueDistributionRegistry for InMemoryValueRegistry {
+    fn get_distribution(&self, url: &DataTypeReference) -> Option<&ValueDistribution<'_>> {
+        self.values.get(url)
+    }
+}
+
+#[derive(Debug)]
+pub struct InMemoryPropertyRegistry {
+    properties: HashMap<
+        PropertyTypeReference,
+        BoundPropertyDistribution<'static, Arc<InMemoryValueRegistry>>,
+    >,
+}
+
+impl PropertyDistributionRegistry for InMemoryPropertyRegistry {
+    type ValueDistributionRegistry = Arc<InMemoryValueRegistry>;
+
+    fn get_distribution(
+        &self,
+        url: &PropertyTypeReference,
+    ) -> Option<&BoundPropertyDistribution<'static, Arc<InMemoryValueRegistry>>> {
+        self.properties.get(url)
+    }
+}
+
+#[derive(Debug)]
+pub struct InMemoryEntityObjectRegistry {
+    entities: HashMap<
+        EntityTypeReference,
+        BoundPropertyObjectDistribution<'static, Arc<InMemoryPropertyRegistry>>,
+    >,
+}
+
+impl EntityObjectDistributionRegistry for InMemoryEntityObjectRegistry {
+    type PropertyDistributionRegistry = Arc<InMemoryPropertyRegistry>;
+
+    fn get_distribution(
+        &self,
+        url: &EntityTypeReference,
+    ) -> Option<&BoundPropertyObjectDistribution<'static, Arc<InMemoryPropertyRegistry>>> {
+        self.entities.get(url)
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum BuildEntityTypeRegistryError {
+    #[display("Missing entity type config: {name}")]
+    MissingConfig { name: String },
+    #[display("Failed to read entity types")]
+    ReadEntityTypes,
+    #[display("Failed to create data type distributions")]
+    CreateDataTypeDistributions,
+    #[display("Failed to create property type distributions")]
+    CreatePropertyTypeDistributions,
+}
+
+impl Error for BuildEntityTypeRegistryError {}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BuildEntityTypeRegistryInputs {
+    pub entity_types: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BuildPropertyTypeCatalogStage {
+pub struct BuildEntityTypeRegistryStage {
     pub id: String,
-    pub input: String,
+    pub inputs: BuildEntityTypeRegistryInputs,
 }
 
-impl BuildPropertyTypeCatalogStage {
-    pub fn execute(&self, runner: &mut Runner) -> Result<usize, Report<EntityTypeError>> {
-        let property_types = runner
-            .resources
-            .property_types
-            .get(&self.input)
-            .ok_or_else(|| {
-                Report::new(EntityTypeError::MissingConfig {
-                    name: self.input.clone(),
-                })
-            })?;
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_field_names)]
+pub struct BuildEntityTypeRegistryResult {
+    pub collected_data_types: usize,
+    pub collected_property_types: usize,
+    pub collected_entity_types: usize,
+}
 
-        // Check for empty property types before creating catalog
-        if property_types.is_empty() {
-            return Err(Report::new(EntityTypeError::EmptyPropertyTypeCatalog));
+impl BuildEntityTypeRegistryStage {
+    #[expect(clippy::too_many_lines)]
+    pub async fn execute(
+        &self,
+        runner: &mut Runner,
+    ) -> Result<BuildEntityTypeRegistryResult, Report<[BuildEntityTypeRegistryError]>> {
+        let mut all_entity_types = Vec::new();
+        for entity_type_key in &self.inputs.entity_types {
+            all_entity_types.extend(
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(entity_type_key)
+                    .ok_or_else(|| {
+                        Report::new(BuildEntityTypeRegistryError::MissingConfig {
+                            name: entity_type_key.clone(),
+                        })
+                    })?
+                    .entity_type_references()
+                    .iter()
+                    .map(|entity_type_reference| {
+                        EntityTypeUuid::from_url(&entity_type_reference.url)
+                    }),
+            );
         }
 
-        let catalog = InMemoryPropertyTypeCatalog::new(
-            property_types
-                .iter()
-                .map(|params| PropertyTypeReference {
-                    url: params.schema.id.clone(),
+        let pool = runner
+            .ensure_db()
+            .await
+            .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
+
+        let store = pool
+            .acquire(None)
+            .await
+            .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
+
+        let get_entity_types_response = store
+            .get_entity_types(
+                ActorEntityUuid::public_actor(),
+                GetEntityTypesParams {
+                    filter: Filter::for_entity_type_uuids(&all_entity_types),
+                    temporal_axes: QueryTemporalAxesUnresolved::default(),
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                    include_entity_types: Some(IncludeEntityTypeOption::Resolved),
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                },
+            )
+            .await
+            .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
+
+        drop(store);
+
+        let (data_types, property_types) = get_entity_types_response
+            .definitions
+            .map(|definitions| (definitions.data_types, definitions.property_types))
+            .unwrap_or_default();
+
+        let data_types_len = data_types.len();
+        let property_types_len = property_types.len();
+
+        let value_registry = Arc::new(InMemoryValueRegistry {
+            values: data_types
+                .into_iter()
+                .map(|(url, data_type)| {
+                    ValueDistribution::try_from(data_type.schema)
+                        .map(|distribution| (DataTypeReference { url }, distribution))
                 })
-                .collect::<Vec<_>>(),
-        )
-        .change_context(EntityTypeError::EmptyPropertyTypeCatalog)?;
+                .try_collect_reports::<HashMap<_, _>>()
+                .change_context(BuildEntityTypeRegistryError::CreateDataTypeDistributions)?,
+        });
 
-        let len = catalog.property_type_references().len();
+        let property_registry = Arc::new(InMemoryPropertyRegistry {
+            properties: property_types
+                .into_iter()
+                .map(|(url, property_type)| {
+                    PropertyDistribution::try_from(property_type).map(|distribution| {
+                        (
+                            PropertyTypeReference { url },
+                            distribution.bind(Arc::clone(&value_registry)),
+                        )
+                    })
+                })
+                .try_collect_reports::<HashMap<_, _>>()
+                .change_context(BuildEntityTypeRegistryError::CreatePropertyTypeDistributions)?,
+        });
 
+        let entity_object_registry = InMemoryEntityObjectRegistry {
+            entities: get_entity_types_response
+                .closed_entity_types
+                .map(|entity_types| {
+                    entity_types
+                        .into_iter()
+                        .map(|entity_type| {
+                            (
+                                EntityTypeReference {
+                                    url: entity_type.id.clone(),
+                                },
+                                PropertyObjectDistribution::from(entity_type)
+                                    .bind(Arc::clone(&property_registry)),
+                            )
+                        })
+                        .collect::<HashMap<_, _>>()
+                })
+                .unwrap_or_default(),
+        };
+
+        let len = entity_object_registry.entities.len();
         runner
             .resources
-            .property_type_catalogs
-            .insert(self.id.clone(), catalog);
+            .entity_object_catalogs
+            .insert(self.id.clone(), entity_object_registry);
 
-        Ok(len)
+        Ok(BuildEntityTypeRegistryResult {
+            collected_data_types: data_types_len,
+            collected_property_types: property_types_len,
+            collected_entity_types: len,
+        })
     }
 }

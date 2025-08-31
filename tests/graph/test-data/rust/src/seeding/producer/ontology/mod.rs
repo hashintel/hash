@@ -7,13 +7,11 @@ use alloc::sync::Arc;
 
 use type_system::principal::actor_group::WebId;
 
-use crate::seeding::producer::user::UserCreation;
-
 pub mod domain;
 
 pub use self::domain::{
-    BoundDomainSampler, DomainBindingError, DomainPolicy, IndexSamplerConfig, LocalSourceConfig,
-    LocalWebTypeWeights, RemoteSourceConfig, SampledDomain,
+    BoundDomainSampler, DomainBindingError, DomainPolicy, IndexSamplerConfig, LocalWebTypeWeights,
+    SampledDomain, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
 };
 
 /// Trait for catalogs of web identities used for domain and ownership resolution.
@@ -40,38 +38,22 @@ where
     }
 }
 
-/// Simple in-memory implementation of [`WebCatalog`].
-#[derive(Debug, Clone)]
-pub struct InMemoryWebCatalog {
-    items: Vec<(Arc<str>, Arc<str>, WebId)>,
-}
+#[cfg(test)]
+pub(crate) mod tests {
+    use core::fmt::Debug;
 
-impl InMemoryWebCatalog {
-    #[must_use]
-    pub const fn from_tuples(items: Vec<(Arc<str>, Arc<str>, WebId)>) -> Self {
-        Self { items }
-    }
+    use super::*;
 
-    #[must_use]
-    pub fn from_users(users: &[UserCreation], domain: &Arc<str>) -> Self {
-        let mut items = Vec::with_capacity(users.len());
-        for user in users {
-            items.push((
-                Arc::clone(domain),
-                Arc::<str>::from(user.shortname.as_str()),
-                WebId::from(user.id),
-            ));
+    #[derive(Debug, Copy, Clone)]
+    pub(crate) struct EmptyTestCatalog;
+
+    impl WebCatalog for EmptyTestCatalog {
+        fn len(&self) -> usize {
+            0
         }
-        Self { items }
-    }
-}
 
-impl WebCatalog for InMemoryWebCatalog {
-    fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)> {
-        self.items.get(index).cloned()
+        fn get_entry(&self, _: usize) -> Option<(Arc<str>, Arc<str>, WebId)> {
+            None
+        }
     }
 }

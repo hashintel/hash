@@ -1,3 +1,5 @@
+use core::num::ParseIntError;
+
 use hashql_ast::node::{
     expr::{Expr, ExprKind, FieldExpr, IndexExpr, LiteralExpr},
     id::NodeId,
@@ -12,7 +14,7 @@ use winnow::{
     combinator::{
         alt, cut_err, delimited, dispatch, eof, fail, peek, preceded, repeat, terminated,
     },
-    error::{AddContext, ParserError, StrContext, StrContextValue},
+    error::{AddContext, FromExternalError, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
@@ -31,6 +33,7 @@ fn parse_field_access<'heap, 'span, 'source, E>(
 ) -> ModalResult<Access<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
@@ -39,14 +42,20 @@ where
         ws("."),
         alt((
             parse_ident.map(Access::Field),
-            digit1.with_span().map(|(digit, range)| {
-                Access::Field(Ident {
-                    span: context.span(range),
-
-                    value: context.heap.intern_symbol(digit),
-                    kind: IdentKind::Lexical, // Do we need to specify a different kind here?
+            digit1
+                .with_span()
+                .try_map(|(digits, range): (&str, _)| {
+                    // Ensure the value is within bounds
+                    digits.parse::<usize>().map(|_| (digits, range))
                 })
-            }),
+                .map(|(digit, range)| {
+                    Access::Field(Ident {
+                        span: context.span(range),
+
+                        value: context.heap.intern_symbol(digit),
+                        kind: IdentKind::Lexical, // Do we need to specify a different kind here?
+                    })
+                }),
         )),
     )
     .context(StrContext::Label("field"))
@@ -58,6 +67,7 @@ fn parse_index_access<'heap, 'span, 'source, E>(
 ) -> ModalResult<Access<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
@@ -91,6 +101,7 @@ pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
 ) -> ModalResult<Expr<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
@@ -126,6 +137,9 @@ where
 
                 let span = context.span(range.clone());
 
+                // We de-sugar into expressions directly instead of special forms, not to save
+                // on memory, but just because it is a lot easier and terse to create these
+                // nodes instead of fully-fledged call nodes.
                 let kind = match access {
                     Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
                         id: NodeId::PLACEHOLDER,
@@ -169,6 +183,7 @@ pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
 ) -> ModalResult<Expr<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     let context = input.state;
@@ -204,6 +219,7 @@ mod tests {
         // Error cases
         missing_field_name(".") => "Missing field name",
         invalid_field_name(".@field") => "Invalid field name",
+        index_too_large(".18446744073709551616") => "Index too large",
     );
 
     // Tests for index access

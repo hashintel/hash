@@ -11,6 +11,12 @@ All notable changes to `error-stack` will be documented in this file.
 
 ### Features
 
+- Support trailing commans in `bail!` macro. ([#7772](https://github.com/hashintel/hash/pull/7772))
+
+## [0.6.0](https://github.com/hashintel/hash/tree/error-stack%400.6.0/libs/error-stack) - 2025-08-30
+
+### Features
+
 - Report has been split into `Report<C>` and `Report<[C]>` to distinguish between a group of related errors and a single error. These errors can still be nested. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - Introduce a new `unstable` flag, which is used to enable unstable features, these features are not covered by semver and may be modified or removed at any time. ([#5181](https://github.com/hashintel/hash/pull/5181))
 - Reintroduce a new `IntoReport` trait, which is used to determine when a type can be converted to a `Report`. This allows the usage of errors more idiomatically in traits, such as `type Error: IntoReport`. ([#6738](https://github.com/hashintel/hash/pull/6738))

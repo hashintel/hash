@@ -50,7 +50,7 @@ impl<'heap> StandardLibraryModule<'heap> for SpecialForm {
         let mut def = ModuleDef::new();
 
         Self::make(lib, &mut def, "::kernel::special_form::if", &[]);
-        Self::make(lib, &mut def, "::kernel::special_form::is", &[]);
+        Self::make(lib, &mut def, "::kernel::special_form::as", &[]);
         Self::make(lib, &mut def, "::kernel::special_form::let", &[]);
         Self::make(lib, &mut def, "::kernel::special_form::type", &[]);
         Self::make(lib, &mut def, "::kernel::special_form::newtype", &[]);
