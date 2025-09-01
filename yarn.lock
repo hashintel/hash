@@ -799,7 +799,7 @@ __metadata:
     fs-extra: "npm:11.3.0"
     graphql: "npm:16.11.0"
     html-loader: "npm:4.2.0"
-    html-webpack-plugin: "npm:5.6.3"
+    html-webpack-plugin: "npm:5.6.4"
     lodash.debounce: "npm:4.0.8"
     process: "npm:0.11.10"
     react: "npm:19.1.1"
@@ -29531,9 +29531,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"html-webpack-plugin@npm:5.6.3, html-webpack-plugin@npm:^5.5.0":
-  version: 5.6.3
-  resolution: "html-webpack-plugin@npm:5.6.3"
+"html-webpack-plugin@npm:5.6.4, html-webpack-plugin@npm:^5.5.0":
+  version: 5.6.4
+  resolution: "html-webpack-plugin@npm:5.6.4"
   dependencies:
     "@types/html-minifier-terser": "npm:^6.0.0"
     html-minifier-terser: "npm:^6.0.2"
@@ -29548,7 +29548,7 @@ __metadata:
       optional: true
     webpack:
       optional: true
-  checksum: 10c0/25a21f83a8823d3711396dd8050bc0080c0ae55537352d432903eff58a7d9838fc811e3c26462419036190720357e67c7977efd106fb9a252770632824f0cc25
+  checksum: 10c0/c3acef1e2a007e2dfc67610eaf366bd13cb7e4a024ceef7f181eb7b7375dde2521543108377802f920cce4d3c842e2aafaef53254c08b8d400fbce56ff1715f3
   languageName: node
   linkType: hard
 
