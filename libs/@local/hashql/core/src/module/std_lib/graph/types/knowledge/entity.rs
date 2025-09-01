@@ -10,7 +10,7 @@ use crate::{
 pub(in crate::module::std_lib) struct Entity {
     _dependencies: (
         std_lib::core::uuid::Uuid,
-        std_lib::core::graph::types::principal::actor_group::web::Web,
+        std_lib::graph::types::principal::actor_group::web::Web,
     ),
 }
 
@@ -29,20 +29,18 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let uuid_ty = lib
             .manifest::<std_lib::core::uuid::Uuid>()
             .expect_newtype(heap.intern_symbol("Uuid"));
-        let entity_uuid_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::EntityUuid",
-            uuid_ty.id,
-        );
+        let entity_uuid_ty = lib
+            .ty
+            .opaque("::graph::types::knowledge::entity::EntityUuid", uuid_ty.id);
         def.push(
             heap.intern_symbol("EntityUuid"),
             ItemDef::newtype(lib.ty.env, entity_uuid_ty, &[]),
         );
 
         // newtype DraftId = Uuid;
-        let draft_id_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::DraftId",
-            uuid_ty.id,
-        );
+        let draft_id_ty = lib
+            .ty
+            .opaque("::graph::types::knowledge::entity::DraftId", uuid_ty.id);
         def.push(
             heap.intern_symbol("DraftId"),
             ItemDef::newtype(lib.ty.env, draft_id_ty, &[]),
@@ -50,7 +48,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityEditionId = Uuid;
         let entity_edition_id_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::EntityEditionId",
+            "::graph::types::knowledge::entity::EntityEditionId",
             uuid_ty.id,
         );
         def.push(
@@ -60,10 +58,10 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
         let web_id = lib
-            .manifest::<std_lib::core::graph::types::principal::actor_group::web::Web>()
+            .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_id_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::EntityId",
+            "::graph::types::knowledge::entity::EntityId",
             lib.ty.r#struct([
                 ("web_id", web_id.id),
                 ("entity_uuid", entity_uuid_ty),
@@ -77,7 +75,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityRecordId = (entity_id: EntityId, edition_id: EntityEditionId)
         let entity_record_id_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::EntityRecordId",
+            "::graph::types::knowledge::entity::EntityRecordId",
             lib.ty.r#struct([
                 ("entity_id", entity_id_ty),
                 ("edition_id", entity_edition_id_ty),
@@ -90,7 +88,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype LinkData = (left_entity_id: EntityId, right_entity_id: EntityId)
         let link_data_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::LinkData",
+            "::graph::types::knowledge::entity::LinkData",
             lib.ty.r#struct([
                 ("left_entity_id", entity_id_ty),
                 ("right_entity_id", entity_id_ty),
@@ -108,7 +106,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let entity_ty = lib.ty.generic(
             [t_arg],
             lib.ty.opaque(
-                "::core::graph::types::knowledge::entity::Entity",
+                "::graph::types::knowledge::entity::Entity",
                 lib.ty.r#struct([
                     ("id", entity_record_id_ty),
                     ("properties", t_param),

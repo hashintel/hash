@@ -205,10 +205,9 @@ pub(crate) fn non_intrinsic_graph_operation<'heap>(
          function.pretty_print(env, PrettyOptions::default().with_max_width(60)))));
 
     diagnostic.add_note(Note::new(
-        "Graph intrinsics are built-in operations like `::core::graph::head::entities`, \
-         `::core::graph::body::filter`, and `::core::graph::tail::collect` that can be optimized \
-         during compilation. Only these predefined operations can be used to build graph query \
-         chains.",
+        "Graph intrinsics are built-in operations like `::graph::head::entities`, \
+         `::graph::body::filter`, and `::graph::tail::collect` that can be optimized during \
+         compilation. Only these predefined operations can be used to build graph query chains.",
     ));
 
     diagnostic

@@ -1,14 +1,14 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-::core::graph::tail::collect(::core::graph::head::entities(::core::graph::tmp::decision_time_now()))
+::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-::core::graph::tail::collect(::core::graph::head::entities(::core::graph::tmp::decision_time_now()))
+::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ ::core::graph::tail::collect
+┌─ ::graph::tail::collect
 └→ fn(Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
       EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
@@ -31,7 +31,7 @@
        EntityUuid[Uuid[String]], web_id:
        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
 
-┌─ ::core::graph::head::entities
+┌─ ::graph::head::entities
 └→ fn(TimeAxis[(:)]) -> Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
       EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
@@ -44,13 +44,13 @@
         EntityUuid[Uuid[String]], web_id:
         WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
-┌─ ::core::graph::tmp::decision_time_now
+┌─ ::graph::tmp::decision_time_now
 └→ fn() -> TimeAxis[(:)]
 
-┌─ ::core::graph::tmp::decision_time_now()
+┌─ ::graph::tmp::decision_time_now()
 └→ TimeAxis[(:)]
 
-┌─ ::core::graph::head::entities(::core::graph::tmp::decision_time_now())
+┌─ ::graph::head::entities(::graph::tmp::decision_time_now())
 └→ Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
       EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
@@ -63,7 +63,7 @@
         EntityUuid[Uuid[String]], web_id:
         WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
-┌─ ::core::graph::tail::collect(::core::graph::head::entities(::core::graph::tmp::decision_time_now()))
+┌─ ::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
 └→ List<Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
      entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
       entity_uuid: EntityUuid[Uuid[String]], web_id:

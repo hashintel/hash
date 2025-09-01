@@ -14,8 +14,8 @@ use crate::{
 
 pub(in crate::module::std_lib) struct Entity {
     _dependencies: (
-        std_lib::core::graph::types::knowledge::entity::Entity,
-        std_lib::core::graph::types::ontology::Ontology,
+        std_lib::graph::types::knowledge::entity::Entity,
+        std_lib::graph::types::ontology::Ontology,
     ),
 }
 
@@ -31,12 +31,12 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let heap = lib.heap;
 
         let mut entity_ty = lib
-            .manifest::<std_lib::core::graph::types::knowledge::entity::Entity>()
+            .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
             .expect_newtype(heap.intern_symbol("Entity"));
         entity_ty.instantiate(&mut lib.instantiate);
 
         let versioned_url_ty = lib
-            .manifest::<std_lib::core::graph::types::ontology::Ontology>()
+            .manifest::<std_lib::graph::types::ontology::Ontology>()
             .expect_newtype(heap.intern_symbol("VersionedUrl"));
 
         let json_path_ty = lib
@@ -53,13 +53,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ) -> lib.ty.boolean()
         );
 
-        func(
-            lib,
-            &mut def,
-            "::core::graph::entity::is_of_type",
-            &[],
-            decl,
-        );
+        func(lib, &mut def, "::graph::entity::is_of_type", &[], decl);
 
         // `property<T>(entity: Entity<T>, path: JsonPath) -> Option<?>`
         let decl = decl!(lib;
@@ -68,7 +62,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ) -> option(lib, lib.ty.unknown())
         );
 
-        func(lib, &mut def, "::core::graph::entity::property", &[], decl);
+        func(lib, &mut def, "::graph::entity::property", &[], decl);
 
         def
     }

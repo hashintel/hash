@@ -9,8 +9,8 @@ use crate::{
 
 pub(in crate::module::std_lib) struct EntityType {
     _dependencies: (
-        std_lib::core::graph::types::principal::actor_group::web::Web,
-        std_lib::core::graph::types::ontology::Ontology,
+        std_lib::graph::types::principal::actor_group::web::Web,
+        std_lib::graph::types::ontology::Ontology,
     ),
 }
 
@@ -27,10 +27,10 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
 
         // newtype EntityTypeMetadata = (web_id: Option<WebId>)
         let web_id = lib
-            .manifest::<std_lib::core::graph::types::principal::actor_group::web::Web>()
+            .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_type_metadata_ty = lib.ty.opaque(
-            "::core::graph::types::ontology::entity_type::EntityTypeMetadata",
+            "::graph::types::ontology::entity_type::EntityTypeMetadata",
             lib.ty.r#struct([("web_id", option(lib, web_id.id))]),
         );
         def.push(
@@ -40,10 +40,10 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
 
         // newtype EntityType = (id: VersionedUrl, metadata: EntityTypeMetadata)
         let versioned_url = lib
-            .manifest::<std_lib::core::graph::types::ontology::Ontology>()
+            .manifest::<std_lib::graph::types::ontology::Ontology>()
             .expect_newtype(heap.intern_symbol("VersionedUrl"));
         let entity_id_ty = lib.ty.opaque(
-            "::core::graph::types::ontology::entity_type::EntityType",
+            "::graph::types::ontology::entity_type::EntityType",
             lib.ty.r#struct([
                 ("id", versioned_url.id),
                 ("metadata", entity_type_metadata_ty),

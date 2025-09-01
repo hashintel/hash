@@ -1,9 +1,9 @@
 [graph-read-compiler::index-access-internal-error] Internal Compiler Error: Internal error during index access
     ╭─[ <unknown>:14:11 ]
     │
- 13 │           ["input", "user_ids", "Dict<String, ::core::graph::types::knowledge::entity::EntityUuid>"],
-    │           ─────────────────────────────────────────────┬────────────────────────────────────────────  
-    │                                                        ╰────────────────────────────────────────────── ... on this value
+ 13 │           ["input", "user_ids", "Dict<String, ::graph::types::knowledge::entity::EntityUuid>"],
+    │           ──────────────────────────────────────────┬─────────────────────────────────────────  
+    │                                                     ╰─────────────────────────────────────────── ... on this value
  14 │           {"#literal": "abc"}
     │           ─────────┬─────────  
     │                    ╰─────────── Index access failed unexpectedly

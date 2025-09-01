@@ -3,9 +3,9 @@
     │
   8 │ ╭─▶       ["==",
     ┆ ┆   
- 11 │ │             ["input", "user_ids", "Dict<::core::graph::types::knowledge::entity::EntityUuid, Integer>"],
-    │ │             ─────────────────────────────────────────────┬─────────────────────────────────────────────  
-    │ │                                                          ╰─────────────────────────────────────────────── ... when indexing this value
+ 11 │ │             ["input", "user_ids", "Dict<::graph::types::knowledge::entity::EntityUuid, Integer>"],
+    │ │             ──────────────────────────────────────────┬──────────────────────────────────────────  
+    │ │                                                       ╰──────────────────────────────────────────── ... when indexing this value
  12 │ │             "vertex.id.entity_id.entity_uuid"
     │ │              ───────────────┬───────────────  
     │ │                             ╰───────────────── Cannot use computed value as index

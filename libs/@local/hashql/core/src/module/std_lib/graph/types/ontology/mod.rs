@@ -25,10 +25,9 @@ impl<'heap> StandardLibraryModule<'heap> for Ontology {
         let heap = lib.heap;
 
         // newtype OntologyTypeVersion = String;
-        let ontology_type_version_ty = lib.ty.opaque(
-            "::core::graph::ontology::OntologyTypeVersion",
-            lib.ty.string(),
-        );
+        let ontology_type_version_ty = lib
+            .ty
+            .opaque("::graph::ontology::OntologyTypeVersion", lib.ty.string());
         def.push(
             heap.intern_symbol("OntologyTypeVersion"),
             ItemDef::newtype(lib.ty.env, ontology_type_version_ty, &[]),
@@ -41,15 +40,13 @@ impl<'heap> StandardLibraryModule<'heap> for Ontology {
 
         // TODO: consider making this constructor private via intrinsic (requires VM)
         // newtype BaseUrl = Url;
-        let base_url_ty = lib
-            .ty
-            .opaque("::core::graph::types::ontology::BaseUrl", url_ty);
+        let base_url_ty = lib.ty.opaque("::graph::types::ontology::BaseUrl", url_ty);
         let base_url = ItemDef::newtype(lib.ty.env, base_url_ty, &[]);
         def.push(heap.intern_symbol("BaseUrl"), base_url);
 
         // newtype VersionedUrl = (base_url: BaseUrl, version: OntologyTypeVersion);
         let versioned_url_ty = lib.ty.opaque(
-            "::core::graph::types::ontology::VersionedUrl",
+            "::graph::types::ontology::VersionedUrl",
             lib.ty.r#struct([
                 ("base_url", base_url_ty),
                 ("version", ontology_type_version_ty),

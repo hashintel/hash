@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Web {
-    _dependencies: (std_lib::core::graph::types::principal::actor_group::ActorGroup,),
+    _dependencies: (std_lib::graph::types::principal::actor_group::ActorGroup,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Web {
@@ -24,10 +24,10 @@ impl<'heap> StandardLibraryModule<'heap> for Web {
 
         // newtype WebId = ActorGroupEntityUuid;
         let actor_group_entity_uuid_ty = lib
-            .manifest::<std_lib::core::graph::types::principal::actor_group::ActorGroup>()
+            .manifest::<std_lib::graph::types::principal::actor_group::ActorGroup>()
             .expect_newtype(heap.intern_symbol("ActorGroupEntityUuid"));
         let entity_uuid_ty = lib.ty.opaque(
-            "::core::graph::types::principal::actor_group::web::WebId",
+            "::graph::types::principal::actor_group::web::WebId",
             actor_group_entity_uuid_ty.id,
         );
         def.push(
