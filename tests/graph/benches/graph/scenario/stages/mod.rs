@@ -6,6 +6,7 @@ use serde_json::{Value as JsonValue, json};
 use self::{
     data_type::{BuildDataTypeCatalogStage, GenerateDataTypesStage, PersistDataTypesStage},
     entity::{GenerateEntitiesStage, PersistEntitiesStage},
+    entity_queries::QueryEntitiesByUserStage,
     entity_type::{
         BuildEntityTypeCatalogStage, BuildEntityTypeRegistryStage, GenerateEntityTypesStage,
         PersistEntityTypesStage,
@@ -21,6 +22,7 @@ use super::runner::Runner;
 
 pub mod data_type;
 pub mod entity;
+pub mod entity_queries;
 pub mod entity_type;
 pub mod property_type;
 pub mod reset_db;
@@ -52,9 +54,11 @@ pub enum Stage {
     BuildEntityObjectRegistry(BuildEntityTypeRegistryStage),
     GenerateEntities(GenerateEntitiesStage),
     PersistEntities(PersistEntitiesStage),
+    QueryEntitiesByUser(QueryEntitiesByUserStage),
 }
 
 impl Stage {
+    #[tracing::instrument(skip_all, fields(otel.name = format!(r#"Stage "{id}""#, id = self.id())))]
     pub async fn execute(&self, runner: &mut Runner) -> Result<JsonValue, Report<StageError>> {
         match self {
             Self::ResetDb(stage) => stage
@@ -128,6 +132,33 @@ impl Stage {
                 .await
                 .map(|result| json!(result))
                 .change_context(StageError),
+            Self::QueryEntitiesByUser(stage) => stage
+                .execute(runner)
+                .await
+                .map(|result| json!(result))
+                .change_context(StageError),
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            Self::ResetDb(stage) => &stage.id,
+            Self::GenerateUsers(stage) => &stage.id,
+            Self::PersistUsers(stage) => &stage.id,
+            Self::WebCatalog(stage) => &stage.id,
+            Self::GenerateDataTypes(stage) => &stage.id,
+            Self::PersistDataTypes(stage) => &stage.id,
+            Self::BuildDataTypeCatalog(stage) => &stage.id,
+            Self::GeneratePropertyTypes(stage) => &stage.id,
+            Self::PersistPropertyTypes(stage) => &stage.id,
+            Self::BuildPropertyTypeCatalog(stage) => &stage.id,
+            Self::GenerateEntityTypes(stage) => &stage.id,
+            Self::PersistEntityTypes(stage) => &stage.id,
+            Self::BuildEntityTypeCatalog(stage) => &stage.id,
+            Self::BuildEntityObjectRegistry(stage) => &stage.id,
+            Self::GenerateEntities(stage) => &stage.id,
+            Self::PersistEntities(stage) => &stage.id,
+            Self::QueryEntitiesByUser(stage) => &stage.id,
         }
     }
 }

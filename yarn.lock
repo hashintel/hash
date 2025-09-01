@@ -12985,6 +12985,7 @@ __metadata:
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
     "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
     "@rust/hash-repo-chores": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 

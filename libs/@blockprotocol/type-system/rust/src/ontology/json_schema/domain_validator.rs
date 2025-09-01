@@ -37,7 +37,7 @@ struct ShortNameAndKind<'a> {
 }
 
 /// Responsible for validating Type Urls against a known valid pattern.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DomainValidator(Regex);
 
 impl DomainValidator {

@@ -1,6 +1,8 @@
 extern crate alloc;
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path, time::Instant};
+use core::sync::atomic::{self, AtomicUsize};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
+use criterion::{BatchSize, BenchmarkGroup, measurement::Measurement};
 use error_stack::{IntoReport, Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PolicyStore as _;
 use hash_graph_postgres_store::{
@@ -22,12 +24,12 @@ use hash_graph_test_data::seeding::{
 use hash_graph_type_fetcher::FetchingPool;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
-use serde_json::Value as JsonValue;
+use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use type_system::ontology::json_schema::DomainValidator;
 
 use super::stages::{
-    Stage, StageError,
+    Stage,
     data_type::InMemoryDataTypeCatalog,
     entity_type::{InMemoryEntityObjectRegistry, InMemoryEntityTypeCatalog},
     property_type::InMemoryPropertyTypeCatalog,
@@ -39,12 +41,8 @@ type Pool = FetchingPool<InnerPool, (String, u16)>;
 
 #[derive(Debug, derive_more::Display)]
 pub enum ScenarioError {
-    #[display("Failed to load scenario file")]
-    Io,
     #[display("Failed to parse scenario file")]
     Parse,
-    #[display("Failed to run scenario")]
-    Run,
     #[display("Failed to create data type producer")]
     CreateProducer,
     #[display("Generation failed")]
@@ -57,71 +55,79 @@ impl core::error::Error for ScenarioError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BenchStage {
+    pub name: String,
+    pub steps: Vec<Stage>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Scenario {
     pub run_id: u16,
     pub num_shards: u16,
-    pub stages: Vec<Stage>,
+    pub setup: Vec<Stage>,
+    pub benches: Vec<BenchStage>,
 }
 
-pub async fn run_scenario_file(path: &Path) -> Result<ScenarioResult, Report<ScenarioError>> {
-    let file = File::open(path).change_context(ScenarioError::Io)?;
+pub fn run_scenario_file<M: Measurement>(
+    path: &Path,
+    runtime: &Runtime,
+    benchmark_group: BenchmarkGroup<M>,
+) {
+    let file = File::open(path).expect("Failed to open scenario file");
     let reader = BufReader::new(file);
-    let scenario: Scenario =
-        serde_json::from_reader(reader).change_context(ScenarioError::Parse)?;
-    run_scenario(&scenario)
-        .await
-        .change_context(ScenarioError::Run)
+    let scenario: Scenario = serde_json::from_reader(reader)
+        .change_context(ScenarioError::Parse)
+        .expect("Failed to parse scenario file");
+
+    let name = path
+        .file_stem()
+        .unwrap_or(path.as_os_str())
+        .to_string_lossy();
+
+    run_scenario(&scenario, &name, runtime, benchmark_group);
 }
 
-pub async fn run_scenario(scenario: &Scenario) -> Result<ScenarioResult, Report<StageError>> {
+#[tracing::instrument(skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
+pub fn run_scenario<M: Measurement>(
+    scenario: &Scenario,
+    name: &str,
+    runtime: &Runtime,
+    mut benchmark_group: BenchmarkGroup<M>,
+) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
-    Ok(ScenarioResult {
-        steps: {
-            let mut out = Vec::with_capacity(scenario.stages.len());
-            for stage in &scenario.stages {
-                let start = Instant::now();
-                let value = stage.execute(&mut runner).await?;
-                out.push(StepMetrics {
-                    id: match stage {
-                        Stage::ResetDb(stage) => stage.id.clone(),
-                        Stage::GenerateUsers(stage) => stage.id.clone(),
-                        Stage::PersistUsers(stage) => stage.id.clone(),
-                        Stage::WebCatalog(stage) => stage.id.clone(),
-                        Stage::GenerateDataTypes(stage) => stage.id.clone(),
-                        Stage::PersistDataTypes(stage) => stage.id.clone(),
-                        Stage::BuildDataTypeCatalog(stage) => stage.id.clone(),
-                        Stage::GeneratePropertyTypes(stage) => stage.id.clone(),
-                        Stage::PersistPropertyTypes(stage) => stage.id.clone(),
-                        Stage::BuildPropertyTypeCatalog(stage) => stage.id.clone(),
-                        Stage::GenerateEntityTypes(stage) => stage.id.clone(),
-                        Stage::PersistEntityTypes(stage) => stage.id.clone(),
-                        Stage::BuildEntityTypeCatalog(stage) => stage.id.clone(),
-                        Stage::BuildEntityObjectRegistry(stage) => stage.id.clone(),
-                        Stage::GenerateEntities(stage) => stage.id.clone(),
-                        Stage::PersistEntities(stage) => stage.id.clone(),
-                    },
-                    value,
-                    duration_ms: start.elapsed().as_millis(),
-                });
-            }
-            out
-        },
-    })
+
+    for stage in &scenario.setup {
+        let value = runtime
+            .block_on(stage.execute(&mut runner))
+            .expect("Could not execute stage");
+        tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
+    }
+
+    for bench in &scenario.benches {
+        let _bench_span =
+            tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
+                .entered();
+        let iteration = AtomicUsize::new(0);
+        benchmark_group.bench_function(bench.name.clone(), |bencher| {
+            bencher.to_async(runtime).iter_batched(
+                || (runner.clone(), &iteration),
+                |(mut runner,  iteration)| async move {
+                    let current_iteration = iteration.fetch_add(1, atomic::Ordering::Relaxed);
+                    for step in &bench.steps {
+                        let result = step.execute(&mut runner).await.expect("step failed");
+                        if current_iteration == 0 {
+                            tracing::info!(scenario = %name, bench = %bench.name, step = %step.id(), result = %result, "Bench step completed");
+                        }
+                    }
+                },
+                BatchSize::LargeInput,
+            );
+        });
+    }
 }
 
-#[derive(Debug, serde::Serialize)]
-pub struct StepMetrics {
-    pub id: String,
-    pub value: JsonValue,
-    pub duration_ms: u128,
-}
-
-#[derive(Debug, serde::Serialize)]
-pub struct ScenarioResult {
-    pub steps: Vec<StepMetrics>,
-}
-
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Resources {
     pub users: HashMap<String, Vec<UserCreation>>,
     pub user_catalogs: HashMap<String, InMemoryWebCatalog>,
@@ -135,6 +141,7 @@ pub struct Resources {
     pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Runner {
     run_id: RunId,
     num_shards: u16,
@@ -162,6 +169,9 @@ impl Runner {
     }
 
     pub(super) async fn setup_db(&mut self) -> Result<(), Report<ScenarioError>> {
+        // TODO: Support multiple database instances to avoid rebuilding state between benchmark
+        //       runs
+        //   see https://linear.app/hashintel/issue/BE-30
         load_env(Environment::Test);
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());
