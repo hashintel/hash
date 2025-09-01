@@ -74,7 +74,13 @@ impl QueryEntitiesByUserStage {
                 }
                 // TODO: Add diverse user selection strategies (heavy/light users, random,
                 //       permission-based)
-                //   see https://linear.app/hashintel/issue/BE-31
+                #[expect(
+                    clippy::float_arithmetic,
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    clippy::cast_precision_loss,
+                    reason = "https://linear.app/hashintel/issue/BE-31"
+                )]
                 let user_idx = ((num_users as f64 * 0.5) as usize).clamp(0, num_users - 1);
                 Ok(ActorId::User(UserId::new(
                     catalog
@@ -84,7 +90,7 @@ impl QueryEntitiesByUserStage {
                 )))
             })
             .transpose()?;
-        let actor_uuid = actor.map_or(ActorEntityUuid::public_actor(), ActorEntityUuid::from);
+        let actor_uuid = actor.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
 
         let pool = runner
             .ensure_db()
