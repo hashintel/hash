@@ -27,7 +27,7 @@ export const useMemoCompare = <Return, Dependencies extends unknown[]>(
     dependencies.some((dep, i) => dep !== previousDependenciesRef.current[i])
   ) {
     shouldComputeReturn = true;
-    console.log("Recomputing because a dependency changed");
+    console.log("Recomputing because a dependency changed", { dependencies });
   }
 
   if (shouldComputeReturn) {

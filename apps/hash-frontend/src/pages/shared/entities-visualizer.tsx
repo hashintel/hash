@@ -297,7 +297,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [visualizerData, setVisualizerData] = useState(entitiesData);
 
   const {
-    count: totalCount,
+    count: totalCountFromEntityRequest,
     createdByIds,
     cursor: nextCursor,
     definitions,
@@ -378,11 +378,16 @@ export const EntitiesVisualizer: FunctionComponent<{
   const [childDoingWork, setChildDoingWork] = useState(false);
 
   const internalEntitiesCount =
-    externalWebsOnlyCountData?.countEntities == null || totalCount == null
+    externalWebsOnlyCountData?.countEntities == null ||
+    totalCountFromEntityRequest == null
       ? undefined
       : filterState.includeGlobal && !entitiesData.loading
-        ? totalCount - externalWebsOnlyCountData.countEntities
-        : totalCount;
+        ? totalCountFromEntityRequest - externalWebsOnlyCountData.countEntities
+        : totalCountFromEntityRequest;
+
+  const totalResultCount = filterState.includeGlobal
+    ? (totalCountFromEntityRequest ?? null)
+    : (internalEntitiesCount ?? null);
 
   const loadingComponent = customLoadingComponent ?? (
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
@@ -603,11 +608,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           maxHeight={tableHeight}
           loadMoreRows={nextCursor ? nextPage : undefined}
           readonly={readonly}
-          remainingRows={
-            (filterState.includeGlobal
-              ? (totalCount ?? 0)
-              : (internalEntitiesCount ?? 0)) - (entities?.length ?? 0)
-          }
           setActiveConversions={setActiveConversions}
           setLoading={setChildDoingWork}
           setSelectedEntityType={handleEntityTypeClick}
@@ -618,6 +618,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           sort={sort}
           setSort={setSort}
           subgraph={subgraph}
+          totalResultCount={totalResultCount}
           typeIds={typeIds}
           typeTitles={typeTitles}
           webIds={webIds}

@@ -3,11 +3,7 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  extractBaseUrl,
-  extractVersion,
-  isBaseUrl,
-} from "@blockprotocol/type-system";
+import { isBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
@@ -17,7 +13,6 @@ import { gridHeaderBaseFont } from "../../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../../shared/use-actors";
 import { useActors } from "../../../../shared/use-actors";
-import { useMemoCompare } from "../../../../shared/use-memo-compare";
 import type { EntitiesVisualizerData } from "../use-entities-visualizer-data";
 import type {
   EntitiesTableColumn,
@@ -62,6 +57,7 @@ export const useEntitiesTable = (
     isPaginating: boolean;
   },
 ): {
+  entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;
   visibleDataTypesByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
   loading: boolean;
   tableData: EntitiesTableData | null;
@@ -97,43 +93,6 @@ export const useEntitiesTable = (
   }, []);
 
   const getOwnerForEntity = useGetOwnerForEntity();
-
-  const [
-    cumulativeEntityTypesWithMultipleVersionsPresent,
-    setCumulativeEntityTypesWithMultipleVersionsPresent,
-  ] = useState<Set<VersionedUrl>>(new Set());
-
-  /**
-   * We'll combine this with the table data when sending a request to the worker.
-   */
-  const thisPageEntityTypesWithMultipleVersionsPresent = useMemoCompare(
-    () => {
-      if (!entities || !definitions) {
-        return new Set<VersionedUrl>();
-      }
-
-      const typesWithMultipleVersions = new Set<VersionedUrl>();
-      const firstSeenTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
-
-      for (const entity of entities) {
-        for (const entityTypeId of entity.metadata.entityTypeIds) {
-          const baseUrl = extractBaseUrl(entityTypeId);
-          if (firstSeenTypeByBaseUrl[baseUrl]) {
-            typesWithMultipleVersions.add(entityTypeId);
-            typesWithMultipleVersions.add(firstSeenTypeByBaseUrl[baseUrl]);
-          } else {
-            firstSeenTypeByBaseUrl[baseUrl] = entityTypeId;
-          }
-        }
-      }
-
-      return typesWithMultipleVersions;
-    },
-    [definitions, entities],
-    (newSet, oldSet) => {
-      return newSet.size === oldSet.size && newSet.isSubsetOf(oldSet);
-    },
-  );
 
   const editorActorIds = useMemo(() => {
     const editorIds = new Set<ActorEntityUuid>([
@@ -227,14 +186,6 @@ export const useEntitiesTable = (
           count,
           entityTypeId,
           title,
-          version: [
-            ...thisPageEntityTypesWithMultipleVersionsPresent,
-            ...(isPaginating
-              ? cumulativeEntityTypesWithMultipleVersionsPresent
-              : []),
-          ].includes(entityTypeId)
-            ? extractVersion(entityTypeId)
-            : undefined,
         });
       }
 
@@ -257,10 +208,7 @@ export const useEntitiesTable = (
     }, [
       actorsByAccountId,
       createdByIds,
-      cumulativeEntityTypesWithMultipleVersionsPresent,
       editionCreatedByIds,
-      isPaginating,
-      thisPageEntityTypesWithMultipleVersionsPresent,
       typeIds,
       typeTitles,
       webIds,
@@ -283,16 +231,6 @@ export const useEntitiesTable = (
         }
 
         if (done) {
-          if (isPaginating) {
-            setCumulativeEntityTypesWithMultipleVersionsPresent((prev) => {
-              return prev.union(thisPageEntityTypesWithMultipleVersionsPresent);
-            });
-          } else {
-            setCumulativeEntityTypesWithMultipleVersionsPresent(
-              thisPageEntityTypesWithMultipleVersionsPresent,
-            );
-          }
-
           setTableData((currentTableData) => {
             /**
              * When paginating, we need to combine the following with previous results:
@@ -314,6 +252,11 @@ export const useEntitiesTable = (
                     dataTypeIds,
                   );
               }
+
+              const combinedEntityTypesWithMultipleVersionsPresent = new Set([
+                ...currentTableData.entityTypesWithMultipleVersionsPresent,
+                ...result.entityTypesWithMultipleVersionsPresent,
+              ]);
 
               const addedColumnIds: Set<string> = new Set();
               const combinedColumns: EntitiesTableColumn[] = [];
@@ -343,6 +286,8 @@ export const useEntitiesTable = (
                   ...accumulatedDataRef.current.rows,
                 ],
                 columns: combinedColumns,
+                entityTypesWithMultipleVersionsPresent:
+                  combinedEntityTypesWithMultipleVersionsPresent,
                 visibleDataTypeIdsByPropertyBaseUrl:
                   combinedVisibleDataTypeIdsByPropertyBaseUrl,
                 filterData: {
@@ -391,7 +336,6 @@ export const useEntitiesTable = (
     entityTypeFilters,
     isPaginating,
     lastEditedByActors,
-    thisPageEntityTypesWithMultipleVersionsPresent,
     webs,
     worker,
   ]);
@@ -414,13 +358,6 @@ export const useEntitiesTable = (
           closedMultiEntityTypesRootMap,
           definitions,
           entities: entities.map((entity) => entity.toJSON()),
-          entityTypesWithMultipleVersionsPresent: isPaginating
-            ? [
-                ...thisPageEntityTypesWithMultipleVersionsPresent.union(
-                  cumulativeEntityTypesWithMultipleVersionsPresent,
-                ),
-              ]
-            : [...thisPageEntityTypesWithMultipleVersionsPresent],
           subgraph: serializedSubgraph,
           hasSomeLinks,
           hideColumns,
@@ -434,21 +371,20 @@ export const useEntitiesTable = (
     actorsByAccountId,
     actorsLoading,
     closedMultiEntityTypesRootMap,
-    cumulativeEntityTypesWithMultipleVersionsPresent,
     definitions,
     entities,
-    isPaginating,
     hasSomeLinks,
     hideColumns,
     hideArchivedColumn,
     hidePropertiesColumns,
     subgraph,
-    thisPageEntityTypesWithMultipleVersionsPresent,
     webNameByWebId,
     worker,
   ]);
 
   return {
+    entityTypesWithMultipleVersionsPresent:
+      tableData?.entityTypesWithMultipleVersionsPresent ?? new Set(),
     visibleDataTypesByPropertyBaseUrl:
       tableData?.visibleDataTypeIdsByPropertyBaseUrl ?? {},
     tableData,

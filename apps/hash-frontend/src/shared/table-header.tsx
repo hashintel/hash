@@ -260,7 +260,7 @@ export const TableHeader = <R extends GridRow>({
                     }}
                   />
                 }
-                label={`${formatNumber(numberOfUserWebItems ?? 0)} in ${
+                label={`${numberOfUserWebItems !== undefined ? formatNumber(numberOfUserWebItems) : "–"} in ${
                   onlyOneWeb ? "this web" : "your webs"
                 }`}
                 sx={{
@@ -308,7 +308,11 @@ export const TableHeader = <R extends GridRow>({
                       <EarthAmericasRegularIcon />
                     )
                   }
-                  label={`${formatNumber(numberOfExternalItems ?? 0)} others`}
+                  label={`${
+                    numberOfExternalItems !== undefined
+                      ? formatNumber(numberOfExternalItems)
+                      : "–"
+                  } others`}
                   sx={({ palette }) => ({
                     ...commonChipSx,
                     [`.${chipClasses.label}`]: {

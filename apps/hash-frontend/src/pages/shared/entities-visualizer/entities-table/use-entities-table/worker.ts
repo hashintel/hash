@@ -1,6 +1,7 @@
 import { getEntityRevision } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   extractVersion,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
@@ -100,7 +101,6 @@ const generateTableData = (
     closedMultiEntityTypesRootMap,
     definitions,
     entities,
-    entityTypesWithMultipleVersionsPresent,
     subgraph: serializedSubgraph,
     hideColumns,
     hideArchivedColumn,
@@ -136,6 +136,9 @@ const generateTableData = (
 
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
 
+  const entityTypesWithMultipleVersions = new Set<VersionedUrl>();
+  const firstSeenEntityTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
+
   const entityTypeTitlesSharedAcrossAllEntities = new Set<string>();
 
   const rows: EntitiesTableRow[] = [];
@@ -154,19 +157,35 @@ const generateTableData = (
 
     const entityLabel = generateEntityLabel(closedMultiEntityType, entity);
 
+    for (const entityTypeId of entity.metadata.entityTypeIds) {
+      const baseUrl = extractBaseUrl(entityTypeId);
+
+      if (
+        firstSeenEntityTypeByBaseUrl[baseUrl] !== entityTypeId &&
+        firstSeenEntityTypeByBaseUrl[baseUrl]
+      ) {
+        entityTypesWithMultipleVersions.add(entityTypeId);
+        entityTypesWithMultipleVersions.add(
+          firstSeenEntityTypeByBaseUrl[baseUrl],
+        );
+      } else {
+        firstSeenEntityTypeByBaseUrl[baseUrl] = entityTypeId;
+      }
+    }
+
     let entityIcon: string | undefined;
     const entityTypeTitles = new Set<string>();
-    for (const entityType of closedMultiEntityType.allOf) {
+    for (const entityTypeMetadata of closedMultiEntityType.allOf) {
       if (index === 0) {
         /**
          * We add the titles of the types of the first entity to the set.
          */
-        entityTypeTitlesSharedAcrossAllEntities.add(entityType.title);
+        entityTypeTitlesSharedAcrossAllEntities.add(entityTypeMetadata.title);
       } else {
-        entityTypeTitles.add(entityType.title);
+        entityTypeTitles.add(entityTypeMetadata.title);
       }
 
-      for (const typeOrAncestor of entityType.allOf) {
+      for (const typeOrAncestor of entityTypeMetadata.allOf) {
         if (typeOrAncestor.icon) {
           entityIcon = typeOrAncestor.icon;
           break;
@@ -393,11 +412,7 @@ const generateTableData = (
           entityTypeId: entityType.$id,
           icon,
           isLink,
-          version: entityTypesWithMultipleVersionsPresent.includes(
-            entityType.$id,
-          )
-            ? extractVersion(entityType.$id)
-            : undefined,
+          version: extractVersion(entityType.$id),
         };
       }),
       web,
@@ -463,6 +478,7 @@ const generateTableData = (
   return {
     columns,
     rows,
+    entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
     visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
     filterData: {
       noSourceCount: noSource,

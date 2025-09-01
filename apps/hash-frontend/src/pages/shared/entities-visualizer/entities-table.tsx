@@ -7,6 +7,7 @@ import type {
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
+  extractVersion,
   extractWebIdFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
@@ -21,6 +22,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
@@ -77,6 +79,7 @@ const firstColumnLeftPadding = 16;
 const emptyTableData: EntitiesTableData = {
   columns: [],
   rows: [],
+  entityTypesWithMultipleVersionsPresent: new Set(),
   filterData: {
     createdByActors: [],
     lastEditedByActors: [],
@@ -124,7 +127,6 @@ export const EntitiesTable: FunctionComponent<
     maxHeight: string | number;
     loadMoreRows?: () => void;
     readonly?: boolean;
-    remainingRows: number;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
       SetStateAction<{
@@ -142,6 +144,7 @@ export const EntitiesTable: FunctionComponent<
         convertTo?: BaseUrl;
       },
     ) => void;
+    totalResultCount: number | null;
   }
 > = ({
   activeConversions,
@@ -165,7 +168,6 @@ export const EntitiesTable: FunctionComponent<
   maxHeight,
   loadMoreRows,
   readonly,
-  remainingRows,
   selectedRows,
   setActiveConversions,
   setLoading,
@@ -176,6 +178,7 @@ export const EntitiesTable: FunctionComponent<
   setSort,
   sort,
   subgraph,
+  totalResultCount,
   typeIds,
   typeTitles,
   webIds,
@@ -183,6 +186,7 @@ export const EntitiesTable: FunctionComponent<
   const router = useRouter();
 
   const {
+    entityTypesWithMultipleVersionsPresent,
     visibleDataTypesByPropertyBaseUrl,
     tableData,
     loading: tableDataCalculating,
@@ -716,12 +720,16 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "entityTypes",
         filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count: _count, title, version }) => ({
+          ({ entityTypeId, count: _count, title }) => ({
             id: entityTypeId,
             label: title,
             // @todo H-3841 –- rethink filtering
             // count,
-            labelSuffix: version ? `v${version.toString()}` : undefined,
+            labelSuffix: entityTypesWithMultipleVersionsPresent.has(
+              entityTypeId,
+            )
+              ? `v${extractVersion(entityTypeId).toString()}`
+              : undefined,
           }),
         ),
         selectedFilterItemIds: selectedEntityTypeIds,
@@ -762,6 +770,7 @@ export const EntitiesTable: FunctionComponent<
     [
       createdByActors,
       entityTypeFilters,
+      entityTypesWithMultipleVersionsPresent,
       lastEditedByActors,
       selectedEntityTypeIds,
       selectedCreatedByAccountIds,
@@ -893,44 +902,47 @@ export const EntitiesTable: FunctionComponent<
         setSort={setSortWithConversion}
       />
 
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        mt={1}
-      >
-        <Box>
-          {entities !== undefined && (
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{ color: theme.palette.gray[60] }}
-            >
-              Viewing <strong>{entities.length}</strong> of{" "}
-              <strong>{remainingRows}</strong> entities
-            </Typography>
-          )}
-        </Box>
-        <Button
-          onClick={loadMoreRows}
-          disabled={!loadMoreRows}
-          size="small"
-          sx={{ width: 160 }}
+      {totalResultCount !== null && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          mt={1}
         >
-          {entityDataLoading || tableDataCalculating ? (
-            <>
-              <Box component="span" mr={1}>
-                Loading...
-              </Box>
-              <LoadingSpinner size={16} color={theme.palette.blue[60]} />
-            </>
-          ) : (
-            <>
-              Load more
-              <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
-            </>
-          )}
-        </Button>
-      </Stack>
+          <Box>
+            {entities !== undefined && (
+              <Typography
+                variant="smallTextParagraphs"
+                sx={{ color: theme.palette.gray[60] }}
+              >
+                Viewing{" "}
+                <strong>{formatNumber(tableData?.rows.length ?? 0)}</strong> of{" "}
+                <strong>{formatNumber(totalResultCount)}</strong> entities
+              </Typography>
+            )}
+          </Box>
+          <Button
+            onClick={loadMoreRows}
+            disabled={!loadMoreRows}
+            size="small"
+            sx={{ width: 160 }}
+          >
+            {entityDataLoading || tableDataCalculating ? (
+              <>
+                <Box component="span" mr={1}>
+                  Loading...
+                </Box>
+                <LoadingSpinner size={16} color={theme.palette.blue[60]} />
+              </>
+            ) : (
+              <>
+                Load more
+                <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
+              </>
+            )}
+          </Button>
+        </Stack>
+      )}
     </Stack>
   );
 };

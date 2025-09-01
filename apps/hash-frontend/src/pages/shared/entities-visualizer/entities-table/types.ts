@@ -104,7 +104,6 @@ export type GenerateEntitiesTableDataParams = {
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
-  entityTypesWithMultipleVersionsPresent: VersionedUrl[];
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof EntitiesTableRow)[];
@@ -123,7 +122,6 @@ export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
   count: number;
-  version?: OntologyTypeVersion;
 };
 
 export type WebTableFilterData = {
@@ -150,6 +148,7 @@ export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
 
 export type EntitiesTableData = {
   columns: EntitiesTableColumn[];
+  entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;
   filterData: EntitiesTableFilterData;
   rows: EntitiesTableRow[];
   visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
@@ -170,7 +169,10 @@ export const isGenerateEntitiesTableDataRequestMessage = (
 
 export type WorkerDataReturn = Pick<
   EntitiesTableData,
-  "rows" | "columns" | "visibleDataTypeIdsByPropertyBaseUrl"
+  | "rows"
+  | "columns"
+  | "entityTypesWithMultipleVersionsPresent"
+  | "visibleDataTypeIdsByPropertyBaseUrl"
 > & {
   filterData: Omit<
     EntitiesTableFilterData,
