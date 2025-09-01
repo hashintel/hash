@@ -1,5 +1,5 @@
 use core::error::Error;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{entity_type::CreateEntityTypeParams, query::ConflictBehavior};
@@ -28,8 +28,11 @@ use crate::seeding::{
     distributions::{
         DistributionConfig,
         adaptors::{ConstDistribution, ConstDistributionConfig, WordDistributionConfig},
-        ontology::entity_type::properties::{
-            BoundEntityTypePropertiesDistribution, EntityTypePropertiesDistributionConfig,
+        ontology::entity_type::{
+            links::{BoundEntityTypeLinksDistribution, EntityTypeLinksDistributionConfig},
+            properties::{
+                BoundEntityTypePropertiesDistribution, EntityTypePropertiesDistributionConfig,
+            },
         },
     },
     producer::slug_from_title,
@@ -49,6 +52,9 @@ pub enum EntityTypeProducerConfigError {
 
     #[display("properties")]
     Properties,
+
+    #[display("links")]
+    Links,
 
     #[display("conflict behavior")]
     ConflictBehavior,
@@ -75,9 +81,8 @@ pub struct SchemaSection {
     pub title: WordDistributionConfig,
     pub description: WordDistributionConfig,
     pub properties: EntityTypePropertiesDistributionConfig,
-    // TODO: Add links support (recursive EntityType references - complex implementation)
-    //   see https://linear.app/hash/issue/H-5224/support-link-creation-in-entity-types-in-generated-entity-types
-    // pub links: EntityTypeLinksDistributionConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub links: Option<EntityTypeLinksDistributionConfig>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -96,10 +101,20 @@ impl EntityTypeProducerConfig {
     /// # Errors
     ///
     /// Returns an error if the producer cannot be created.
-    pub fn create_producer<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog>(
+    #[expect(
+        clippy::type_complexity,
+        reason = "False positive. The type is not complex, there are just some generics"
+    )]
+    pub fn create_producer<
+        U: WebCatalog,
+        O: WebCatalog,
+        P: PropertyTypeCatalog,
+        L: EntityTypeCatalog,
+        T: EntityTypeCatalog,
+    >(
         &self,
-        deps: EntityTypeProducerDeps<U, O, P>,
-    ) -> Result<EntityTypeProducer<U, O, P>, Report<[EntityTypeProducerConfigError]>> {
+        deps: EntityTypeProducerDeps<U, O, P, L, T>,
+    ) -> Result<EntityTypeProducer<U, O, P, L, T>, Report<[EntityTypeProducerConfigError]>> {
         let domain = self
             .schema
             .domain
@@ -120,6 +135,18 @@ impl EntityTypeProducerConfig {
             .properties
             .bind(deps.property_type_catalog)
             .change_context(EntityTypeProducerConfigError::Properties);
+
+        let links = self
+            .schema
+            .links
+            .as_ref()
+            .zip(deps.link_type_catalog)
+            .map(|(link_schema, target_catalog)| {
+                link_schema.bind(target_catalog, deps.link_target_catalog)
+            })
+            .transpose()
+            .change_context(EntityTypeProducerConfigError::Links);
+
         let conflict_behavior = self
             .config
             .conflict_behavior
@@ -131,11 +158,12 @@ impl EntityTypeProducerConfig {
             .create_distribution()
             .change_context(EntityTypeProducerConfigError::Provenance);
 
-        let (domain, title, description, properties, conflict_behavior, provenance) = (
+        let (domain, title, description, properties, links, conflict_behavior, provenance) = (
             domain,
             title,
             description,
             properties,
+            links,
             conflict_behavior,
             provenance,
         )
@@ -147,6 +175,7 @@ impl EntityTypeProducerConfig {
             title,
             description,
             properties,
+            links,
             conflict_behavior,
             provenance,
         })
@@ -156,26 +185,46 @@ impl EntityTypeProducerConfig {
 /// Dependencies required to create an [`EntityType`] producer.
 #[derive(Debug, Copy, Clone)]
 #[expect(clippy::struct_field_names)]
-pub struct EntityTypeProducerDeps<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> {
+pub struct EntityTypeProducerDeps<
+    U: WebCatalog,
+    O: WebCatalog,
+    P: PropertyTypeCatalog,
+    L: EntityTypeCatalog,
+    T: EntityTypeCatalog,
+> {
     pub user_catalog: Option<U>,
     pub org_catalog: Option<O>,
     pub property_type_catalog: P,
+    pub link_type_catalog: Option<L>,
+    pub link_target_catalog: Option<T>,
 }
 
 /// Producer for generating [`EntityType`]s with configurable properties.
 #[derive(Debug)]
-pub struct EntityTypeProducer<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> {
+pub struct EntityTypeProducer<
+    U: WebCatalog,
+    O: WebCatalog,
+    P: PropertyTypeCatalog,
+    L: EntityTypeCatalog,
+    T: EntityTypeCatalog,
+> {
     local_id: LocalId,
     domain: BoundDomainSampler<U, O>,
     title: <WordDistributionConfig as DistributionConfig>::Distribution,
     description: <WordDistributionConfig as DistributionConfig>::Distribution,
     properties: BoundEntityTypePropertiesDistribution<P>,
+    links: Option<BoundEntityTypeLinksDistribution<L, T>>,
     conflict_behavior: ConstDistribution<ConflictBehavior>,
     provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
 }
 
-impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntityTypeParams>
-    for EntityTypeProducer<U, O, P>
+impl<
+    U: WebCatalog,
+    O: WebCatalog,
+    P: PropertyTypeCatalog,
+    L: EntityTypeCatalog,
+    T: EntityTypeCatalog,
+> Producer<CreateEntityTypeParams> for EntityTypeProducer<U, O, P, L, T>
 {
     type Error = Report<ParseBaseUrlError>;
 
@@ -188,8 +237,14 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
         let title_gid = context.global_id(local_id, Scope::Schema, SubScope::Title);
         let description_gid = context.global_id(local_id, Scope::Schema, SubScope::Description);
         let properties_gid = context.global_id(local_id, Scope::Schema, SubScope::Property);
+        let links_gid = context.global_id(local_id, Scope::Schema, SubScope::Link);
 
         let (properties, required) = self.properties.sample(&mut properties_gid.rng());
+        let links = self
+            .links
+            .as_ref()
+            .map(|links| links.sample(&mut links_gid.rng()))
+            .unwrap_or_default();
         let title = self.title.sample(&mut title_gid.rng());
         let description = self.description.sample(&mut description_gid.rng());
 
@@ -228,7 +283,7 @@ impl<U: WebCatalog, O: WebCatalog, P: PropertyTypeCatalog> Producer<CreateEntity
             constraints: EntityConstraints {
                 properties,
                 required,
-                links: HashMap::new(), // TODO: Add links support later
+                links,
             },
             all_of: HashSet::new(),
             label_property: None,
@@ -282,6 +337,12 @@ where
 {
     fn entity_type_references(&self) -> &[EntityTypeReference] {
         (*self).entity_type_references()
+    }
+}
+
+impl EntityTypeCatalog for ! {
+    fn entity_type_references(&self) -> &[EntityTypeReference] {
+        &[]
     }
 }
 
@@ -347,6 +408,7 @@ mod tests {
                     count: 2,
                     required: true,
                 },
+                links: None,
             },
             metadata: MetadataSection {
                 provenance: ConstDistributionConfig {
@@ -372,6 +434,8 @@ mod tests {
                 user_catalog: Some(create_test_user_web_catalog()),
                 org_catalog: None::<EmptyTestCatalog>,
                 property_type_catalog: create_test_property_type_catalog(),
+                link_type_catalog: None::<!>,
+                link_target_catalog: None::<!>,
             })
             .expect("should be able to create entity type producer");
 

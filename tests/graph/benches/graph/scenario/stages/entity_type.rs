@@ -44,6 +44,10 @@ pub enum EntityTypeError {
     UnknownUserCatalog { name: String },
     #[display("Unknown property type catalog: {name}")]
     UnknownPropertyTypeCatalog { name: String },
+    #[display("Unknown link type catalog: {name}")]
+    UnknownLinkTypeCatalog { name: String },
+    #[display("Unknown link target catalog: {name}")]
+    UnknownLinkTargetCatalog { name: String },
     #[display("Failed to create entity type producer")]
     CreateProducer,
     #[display("Failed to persist entity types to the database")]
@@ -58,11 +62,15 @@ impl Error for EntityTypeError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_field_names)]
 pub struct EntityTypeInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
-    #[serde(default)]
     pub property_type_catalog: String,
+    #[serde(default)]
+    pub link_type_catalog: Option<String>,
+    #[serde(default)]
+    pub link_target_catalog: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -118,10 +126,42 @@ impl GenerateEntityTypesStage {
                 })
             })?;
 
+        let link_type_catalog = self
+            .inputs
+            .link_type_catalog
+            .as_ref()
+            .map(|key| {
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(key)
+                    .ok_or_else(|| {
+                        Report::new(EntityTypeError::UnknownLinkTypeCatalog { name: key.clone() })
+                    })
+            })
+            .transpose()?;
+
+        let link_target_catalog = self
+            .inputs
+            .link_target_catalog
+            .as_ref()
+            .map(|key| {
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(key)
+                    .ok_or_else(|| {
+                        Report::new(EntityTypeError::UnknownLinkTargetCatalog { name: key.clone() })
+                    })
+            })
+            .transpose()?;
+
         let deps = EntityTypeProducerDeps {
             user_catalog,
             org_catalog: None::<&InMemoryWebCatalog>,
             property_type_catalog,
+            link_type_catalog,
+            link_target_catalog,
         };
 
         let stage_id = self
