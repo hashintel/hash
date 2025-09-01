@@ -72,6 +72,9 @@ impl QueryEntitiesByUserStage {
                 if num_users == 0 {
                     return Err(Report::new(QueryEntitiesError::EmptyCatalog));
                 }
+                // TODO: Add diverse user selection strategies (heavy/light users, random,
+                //       permission-based)
+                //   see https://linear.app/hashintel/issue/BE-31
                 let user_idx = ((num_users as f64 * 0.5) as usize).clamp(0, num_users - 1);
                 Ok(ActorId::User(UserId::new(
                     catalog

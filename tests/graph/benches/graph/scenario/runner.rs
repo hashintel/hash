@@ -169,6 +169,9 @@ impl Runner {
     }
 
     pub(super) async fn setup_db(&mut self) -> Result<(), Report<ScenarioError>> {
+        // TODO: Support multiple database instances to avoid rebuilding state between benchmark
+        //       runs
+        //   see https://linear.app/hashintel/issue/BE-30
         load_env(Environment::Test);
 
         let user = std::env::var("HASH_GRAPH_PG_USER").unwrap_or_else(|_| "graph".to_owned());

@@ -86,6 +86,8 @@ fn scenarios(criterion: &mut Criterion) {
     let _runtime_enter = runtime.enter();
 
     let _telemetry_guard = init_tracing();
+    // TODO: Add resource usage monitoring (memory, CPU, database metrics) during benchmarks
+    //   see https://linear.app/hashintel/issue/BE-32
 
     let dir_entries = fs::read_dir(
         Path::new(env!("CARGO_MANIFEST_DIR"))
