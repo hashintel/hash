@@ -99,6 +99,7 @@ mod wasm {
     /// Represents either success (Ok) or failure (Err).
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
     #[serde(tag = "type", content = "inner")]
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
     pub enum Result<T, E> {
         Ok(T),
         Err(E),
