@@ -11,6 +11,7 @@
 
     // Library Features
     iterator_try_collect,
+    push_mut
 )]
 
 extern crate alloc;
