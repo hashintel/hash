@@ -17,6 +17,7 @@ use crate::store::{
     postgres::{PostgresStore, PostgresStoreSettings},
 };
 
+#[derive(Debug, Clone)]
 pub struct PostgresStorePool {
     pool: Pool,
     pub settings: PostgresStoreSettings,

@@ -3448,6 +3448,7 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-type-fetcher",
  "hash-repo-chores",
+ "hash-telemetry",
  "itertools 0.14.0",
  "rand 0.9.2",
  "rayon",

@@ -43,8 +43,15 @@ metrics_generator:
 
 overrides:
   defaults:
+    # Increase rate limits for benchmarking
+    ingestion:
+      rate_limit_bytes: 1000000000 # 100 MB/sec (up from 15 MB/sec)
+      burst_size_bytes: 2000000000 # 200 MB (up from 20 MB)
+      max_traces_per_user: 0 # disabled
     metrics_generator:
       processors:
         - service-graphs
         - span-metrics
         - local-blocks
+    global:
+      max_bytes_per_trace: 50000000 # 50MB per trace (up from 5MB)
