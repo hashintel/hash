@@ -8,7 +8,6 @@ use hash_graph_test_data::seeding::{
     context::StageId,
     producer::property_type::{PropertyTypeCatalog, PropertyTypeProducerDeps},
 };
-use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
     ontology::{property_type::schema::PropertyTypeReference, provenance::OntologyOwnership},
     principal::{actor::ActorEntityUuid, actor_group::WebId},
@@ -292,13 +291,6 @@ impl InMemoryPropertyTypeCatalog {
 impl PropertyTypeCatalog for InMemoryPropertyTypeCatalog {
     fn property_type_references(&self) -> &[PropertyTypeReference] {
         &self.property_types
-    }
-
-    fn sample_property_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &PropertyTypeReference {
-        // Uniform selection from available data types using SliceRandom::choose
-        self.property_types
-            .choose(rng)
-            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
     }
 }
 

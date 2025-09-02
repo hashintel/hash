@@ -31,6 +31,7 @@ use type_system::ontology::json_schema::DomainValidator;
 use super::stages::{
     Stage,
     data_type::InMemoryDataTypeCatalog,
+    entity::InMemoryEntityCatalog,
     entity_type::{InMemoryEntityObjectRegistry, InMemoryEntityTypeCatalog},
     property_type::InMemoryPropertyTypeCatalog,
     web_catalog::InMemoryWebCatalog,
@@ -155,6 +156,7 @@ pub struct Resources {
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
     pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
     pub entity_object_catalogs: HashMap<String, InMemoryEntityObjectRegistry>,
+    pub entity_catalogs: HashMap<String, InMemoryEntityCatalog>,
     pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
@@ -215,7 +217,10 @@ impl Runner {
             &conn_info,
             &DatabasePoolConfig::default(),
             NoTls,
-            PostgresStoreSettings::default(),
+            PostgresStoreSettings {
+                validate_links: true,
+                skip_embedding_creation: true,
+            },
         )
         .await
         .change_context(ScenarioError::Db)?;

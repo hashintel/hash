@@ -3,8 +3,15 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{entity::EntityStore as _, pool::StorePool as _};
-use hash_graph_test_data::seeding::{context::StageId, producer::entity::EntityProducerDeps};
-use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
+use hash_graph_test_data::seeding::{
+    context::StageId,
+    producer::entity::{EntityCatalog, EntityProducerDeps},
+};
+use type_system::{
+    knowledge::entity::EntityId,
+    ontology::VersionedUrl,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
+};
 
 use super::{Runner, web_catalog::InMemoryWebCatalog};
 use crate::config;
@@ -25,6 +32,8 @@ pub enum EntityError {
     Persist,
     #[display("Missing owner for web: {web_id}")]
     MissingOwner { web_id: WebId },
+    #[display("Failed to create entity catalog")]
+    CreateCatalog,
 }
 
 impl Error for EntityError {}
@@ -166,16 +175,6 @@ impl PersistEntitiesStage {
             }
         }
 
-        let pool = runner
-            .ensure_db()
-            .await
-            .change_context(EntityError::Persist)?;
-
-        let mut store = pool
-            .acquire(None)
-            .await
-            .change_context(EntityError::Persist)?;
-
         // Build web->user map from provided user resources
         let mut web_actor_by_web: HashMap<WebId, ActorEntityUuid> = HashMap::new();
         for user_key in &self.inputs.web_to_user {
@@ -195,24 +194,88 @@ impl PersistEntitiesStage {
             return Ok(PersistEntitiesResult::default());
         }
 
+        let mut entity_ids_by_type = HashMap::<VersionedUrl, Vec<EntityId>>::new();
+
+        let pool = runner
+            .ensure_db()
+            .await
+            .change_context(EntityError::Persist)?;
+
+        let mut store = pool
+            .acquire(None)
+            .await
+            .change_context(EntityError::Persist)?;
+
         // Persist locals per web, as user
-        let mut total_created = 0_usize;
         for (web_id, entities) in all_entities {
             let actor_id = *web_actor_by_web
                 .get(&web_id)
                 .ok_or_else(|| Report::new(EntityError::MissingOwner { web_id }))?;
-            total_created += store
+            let created_entities = store
                 .create_entities(actor_id, entities)
                 .await
-                .change_context(EntityError::Persist)?
-                .len();
+                .change_context(EntityError::Persist)?;
+
+            for entity in created_entities {
+                for entity_type in &entity.metadata.entity_type_ids {
+                    let id = entity.metadata.record_id.entity_id;
+                    if let Some(vec) = entity_ids_by_type.get_mut(entity_type) {
+                        vec.push(id);
+                    } else {
+                        entity_ids_by_type.insert(entity_type.clone(), vec![id]);
+                    }
+                }
+            }
         }
 
         drop(store);
+
+        let total_created = entity_ids_by_type.len();
+        runner.resources.entity_catalogs.insert(
+            self.id.clone(),
+            InMemoryEntityCatalog::new(entity_ids_by_type)
+                .change_context(EntityError::CreateCatalog)?,
+        );
 
         Ok(PersistEntitiesResult {
             persisted_entities: total_created,
             local_webs: web_actor_by_web.len(),
         })
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+pub enum EntityCatalogError {
+    #[display("Empty cataloc must not be empty")]
+    EmptyCatalog,
+}
+
+impl Error for EntityCatalogError {}
+
+#[derive(Debug, Clone)]
+pub struct InMemoryEntityCatalog {
+    entity_ids_by_type: HashMap<VersionedUrl, Vec<EntityId>>,
+}
+
+impl InMemoryEntityCatalog {
+    /// Create a new catalog from a collection of entities.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the catalog is empty.
+    pub fn new(
+        entity_ids_by_type: HashMap<VersionedUrl, Vec<EntityId>>,
+    ) -> Result<Self, EntityCatalogError> {
+        if entity_ids_by_type.is_empty() {
+            return Err(EntityCatalogError::EmptyCatalog);
+        }
+
+        Ok(Self { entity_ids_by_type })
+    }
+}
+
+impl EntityCatalog for InMemoryEntityCatalog {
+    fn entity_ids(&self, entity_type: &VersionedUrl) -> Option<&[EntityId]> {
+        self.entity_ids_by_type.get(entity_type).map(|ids| &**ids)
     }
 }

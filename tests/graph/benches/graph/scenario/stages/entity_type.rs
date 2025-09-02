@@ -22,7 +22,6 @@ use hash_graph_test_data::seeding::{
     },
     producer::entity_type::{EntityTypeCatalog, EntityTypeProducerDeps},
 };
-use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
     ontology::{
         data_type::schema::DataTypeReference,
@@ -349,13 +348,6 @@ impl InMemoryEntityTypeCatalog {
 impl EntityTypeCatalog for InMemoryEntityTypeCatalog {
     fn entity_type_references(&self) -> &[EntityTypeReference] {
         &self.entity_types
-    }
-
-    fn sample_entity_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &EntityTypeReference {
-        // Uniform selection from available data types using SliceRandom::choose
-        self.entity_types
-            .choose(rng)
-            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
     }
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

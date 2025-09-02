@@ -122,6 +122,9 @@ fn scenarios(criterion: &mut Criterion) {
             .file_stem()
             .expect("Should be able to read scenario name")
             .to_string_lossy();
+        if scenario != "linked_queries" {
+            continue;
+        }
         run_scenario_file(&path, &runtime, criterion.benchmark_group(scenario));
     }
 }

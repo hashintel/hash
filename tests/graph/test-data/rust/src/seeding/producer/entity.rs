@@ -3,10 +3,11 @@ use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::entity::CreateEntityParams;
-use rand::distr::Distribution as _;
+use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::{
     self,
-    knowledge::entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+    knowledge::entity::{EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+    ontology::VersionedUrl,
 };
 
 use super::{
@@ -164,5 +165,32 @@ impl<U: WebCatalog, O: WebCatalog, E: EntityTypeCatalog, D: EntityObjectDistribu
             policies: Vec::new(),
             provenance: self.provenance.sample(&mut provenance_gid.rng()),
         })
+    }
+}
+
+pub trait EntityCatalog {
+    /// Returns all available [`EntityId`]s in this catalog.
+    fn entity_ids(&self, entity_type: &VersionedUrl) -> Option<&[EntityId]>;
+
+    /// Sample a random [`EntityId`] from this catalog.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the catalog is empty.
+    fn sample_entity_id<R: rand::Rng + ?Sized>(
+        &self,
+        entity_type: &VersionedUrl,
+        rng: &mut R,
+    ) -> Option<&EntityId> {
+        self.entity_ids(entity_type)?.choose(rng)
+    }
+}
+
+impl<C> EntityCatalog for &C
+where
+    C: EntityCatalog,
+{
+    fn entity_ids(&self, entity_type: &VersionedUrl) -> Option<&[EntityId]> {
+        (*self).entity_ids(entity_type)
     }
 }
