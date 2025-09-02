@@ -88,7 +88,7 @@ pub fn run_scenario_file<M: Measurement>(
     run_scenario(&scenario, &name, runtime, benchmark_group);
 }
 
-#[tracing::instrument(skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
+#[tracing::instrument(level = "debug", skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
 pub fn run_scenario<M: Measurement>(
     scenario: &Scenario,
     name: &str,
@@ -98,26 +98,43 @@ pub fn run_scenario<M: Measurement>(
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
 
     for stage in &scenario.setup {
+        let _stage_span = tracing::info_span!(
+            "Bench",
+            scenario = %name,
+            otel.name = format!(r#"Stage "{}""#, stage.id()),
+        )
+        .entered();
+
         let value = runtime
             .block_on(stage.execute(&mut runner))
             .expect("Could not execute stage");
-        tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
+        tracing::info!(result = %value, "Step completed");
     }
 
     for bench in &scenario.benches {
-        let _bench_span =
-            tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
-                .entered();
+        let _bench_span = tracing::info_span!(
+            "Bench",
+            scenario =% name,
+            bench = bench.name,
+            otel.name = format!(r#"Bench "{}""#, bench.name),
+        )
+        .entered();
         let iteration = AtomicUsize::new(0);
         benchmark_group.bench_function(bench.name.clone(), |bencher| {
             bencher.to_async(runtime).iter_batched(
                 || (runner.clone(), &iteration),
-                |(mut runner,  iteration)| async move {
+                |(mut runner, iteration)| async move {
                     let current_iteration = iteration.fetch_add(1, atomic::Ordering::Relaxed);
-                    for step in &bench.steps {
-                        let result = step.execute(&mut runner).await.expect("step failed");
+                    for stage in &bench.steps {
+                        let _stage_span = tracing::info_span!(
+                            "Stage",
+                            otel.name = format!(r#"Stage "{}""#, stage.id()),
+                        )
+                        .entered();
+
+                        let result = stage.execute(&mut runner).await.expect("stage failed");
                         if current_iteration == 0 {
-                            tracing::info!(scenario = %name, bench = %bench.name, step = %step.id(), result = %result, "Bench step completed");
+                            tracing::info!(result = %result, "Bench stage completed");
                         }
                     }
                 },

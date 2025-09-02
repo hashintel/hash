@@ -80,6 +80,8 @@ pub struct SchemaSection {
     pub domain: DomainPolicy,
     pub title: WordDistributionConfig,
     pub description: WordDistributionConfig,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parents: Vec<VersionedUrl>,
     pub properties: EntityTypePropertiesDistributionConfig,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub links: Option<EntityTypeLinksDistributionConfig>,
@@ -130,12 +132,19 @@ impl EntityTypeProducerConfig {
             .description
             .create_distribution()
             .change_context(EntityTypeProducerConfigError::Description);
-        let properties = self
-            .schema
-            .properties
-            .bind(deps.property_type_catalog)
-            .change_context(EntityTypeProducerConfigError::Properties);
 
+        let parents = self
+            .schema
+            .parents
+            .iter()
+            .map(|url| EntityTypeReference { url: url.clone() })
+            .collect::<HashSet<_>>();
+
+        let properties = deps
+            .property_type_catalog
+            .map(|property_type_catalog| self.schema.properties.bind(property_type_catalog))
+            .transpose()
+            .change_context(EntityTypeProducerConfigError::Properties);
         let links = self
             .schema
             .links
@@ -174,6 +183,7 @@ impl EntityTypeProducerConfig {
             domain,
             title,
             description,
+            parents,
             properties,
             links,
             conflict_behavior,
@@ -194,7 +204,7 @@ pub struct EntityTypeProducerDeps<
 > {
     pub user_catalog: Option<U>,
     pub org_catalog: Option<O>,
-    pub property_type_catalog: P,
+    pub property_type_catalog: Option<P>,
     pub link_type_catalog: Option<L>,
     pub link_target_catalog: Option<T>,
 }
@@ -212,7 +222,8 @@ pub struct EntityTypeProducer<
     domain: BoundDomainSampler<U, O>,
     title: <WordDistributionConfig as DistributionConfig>::Distribution,
     description: <WordDistributionConfig as DistributionConfig>::Distribution,
-    properties: BoundEntityTypePropertiesDistribution<P>,
+    parents: HashSet<EntityTypeReference>,
+    properties: Option<BoundEntityTypePropertiesDistribution<P>>,
     links: Option<BoundEntityTypeLinksDistribution<L, T>>,
     conflict_behavior: ConstDistribution<ConflictBehavior>,
     provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
@@ -239,7 +250,13 @@ impl<
         let properties_gid = context.global_id(local_id, Scope::Schema, SubScope::Property);
         let links_gid = context.global_id(local_id, Scope::Schema, SubScope::Link);
 
-        let (properties, required) = self.properties.sample(&mut properties_gid.rng());
+        let all_of = self.parents.clone();
+
+        let (properties, required) = self
+            .properties
+            .as_ref()
+            .map(|properties| properties.sample(&mut properties_gid.rng()))
+            .unwrap_or_default();
         let links = self
             .links
             .as_ref()
@@ -285,7 +302,7 @@ impl<
                 required,
                 links,
             },
-            all_of: HashSet::new(),
+            all_of,
             label_property: None,
             icon: None,
         };
@@ -404,6 +421,7 @@ mod tests {
                 },
                 title: WordDistributionConfig { length: (4, 8) },
                 description: WordDistributionConfig { length: (40, 50) },
+                parents: Vec::new(),
                 properties: EntityTypePropertiesDistributionConfig::Fixed {
                     count: 2,
                     required: true,
@@ -433,7 +451,7 @@ mod tests {
             .create_producer(EntityTypeProducerDeps {
                 user_catalog: Some(create_test_user_web_catalog()),
                 org_catalog: None::<EmptyTestCatalog>,
-                property_type_catalog: create_test_property_type_catalog(),
+                property_type_catalog: Some(create_test_property_type_catalog()),
                 link_type_catalog: None::<!>,
                 link_target_catalog: None::<!>,
             })

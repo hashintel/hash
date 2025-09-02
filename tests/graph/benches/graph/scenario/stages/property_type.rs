@@ -183,13 +183,17 @@ impl PersistPropertyTypesStage {
             .await
             .change_context(PropertyTypeError::Persist)?;
 
-        // Get web-to-user mapping for permissions
-        let mut web_to_user_map: HashMap<WebId, ActorEntityUuid> = HashMap::new();
-        for web_to_user_key in &self.inputs.web_to_user {
-            if let Some(users) = runner.resources.users.get(web_to_user_key) {
-                for user in users {
-                    web_to_user_map.insert(user.id.into(), user.id.into());
-                }
+        // Build web->user map from provided user resources
+        let mut web_actor_by_web: HashMap<WebId, ActorEntityUuid> = HashMap::new();
+        for user_key in &self.inputs.web_to_user {
+            let Some(users) = runner.resources.users.get(user_key) else {
+                return Err(Report::new(PropertyTypeError::MissingConfig {
+                    name: user_key.clone(),
+                }));
+            };
+
+            for user in users {
+                web_actor_by_web.insert(user.id.into(), user.id.into());
             }
         }
 
@@ -225,7 +229,7 @@ impl PersistPropertyTypesStage {
         // Persist locals per web, as user
         let mut total_created = 0_usize;
         for (web_id, group) in local_by_web {
-            let actor_id = *web_to_user_map
+            let actor_id = *web_actor_by_web
                 .get(&web_id)
                 .ok_or_else(|| Report::new(PropertyTypeError::MissingOwner { web_id }))?;
             total_created += store
