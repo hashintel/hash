@@ -979,26 +979,28 @@ export const EntitiesTable: FunctionComponent<
               </Typography>
             )}
           </Box>
-          <Button
-            onClick={loadMoreRows}
-            disabled={entityDataLoading}
-            size="small"
-            sx={{ width: 160 }}
-          >
-            {entityDataLoading ? (
-              <>
-                <Box component="span" mr={1}>
-                  Loading...
-                </Box>
-                <LoadingSpinner size={16} color={theme.palette.blue[60]} />
-              </>
-            ) : (
-              <>
-                Load more
-                <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
-              </>
-            )}
-          </Button>
+          {totalResultCount > rows.length && (
+            <Button
+              onClick={loadMoreRows}
+              disabled={entityDataLoading}
+              size="small"
+              sx={{ width: 160 }}
+            >
+              {entityDataLoading ? (
+                <>
+                  <Box component="span" mr={1}>
+                    Loading...
+                  </Box>
+                  <LoadingSpinner size={16} color={theme.palette.blue[60]} />
+                </>
+              ) : (
+                <>
+                  Load more
+                  <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
+                </>
+              )}
+            </Button>
+          )}
         </Stack>
       )}
     </Stack>

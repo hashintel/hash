@@ -402,9 +402,10 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const internalEntitiesCount =
     externalWebsOnlyCountData?.countEntities == null ||
-    totalCountFromEntityRequest == null
+    totalCountFromEntityRequest == null ||
+    entitiesData.loading
       ? undefined
-      : filterState.includeGlobal && !entitiesData.loading
+      : filterState.includeGlobal
         ? totalCountFromEntityRequest - externalWebsOnlyCountData.countEntities
         : totalCountFromEntityRequest;
 
