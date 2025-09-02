@@ -20,10 +20,11 @@ use hash_graph_test_data::seeding::{
         },
         value::{ValueDistribution, ValueDistributionRegistry},
     },
-    producer::entity_type::{EntityTypeCatalog, EntityTypeProducerDeps},
+    producer::entity_type::{EntityTypeCatalog, EntityTypeProducerDeps, LinkSource, LinkTargets},
 };
 use type_system::{
     ontology::{
+        VersionedUrl,
         data_type::schema::DataTypeReference,
         entity_type::{EntityTypeUuid, schema::EntityTypeReference},
         property_type::schema::PropertyTypeReference,
@@ -328,6 +329,7 @@ impl Error for EntityTypeCatalogError {}
 #[derive(Debug, Clone)]
 pub struct InMemoryEntityTypeCatalog {
     entity_types: Vec<EntityTypeReference>,
+    link_sources: HashMap<VersionedUrl, LinkSource>,
 }
 
 impl InMemoryEntityTypeCatalog {
@@ -336,18 +338,28 @@ impl InMemoryEntityTypeCatalog {
     /// # Errors
     ///
     /// Returns an error if the catalog is empty.
-    pub fn new(entity_types: Vec<EntityTypeReference>) -> Result<Self, EntityTypeCatalogError> {
+    pub fn new(
+        entity_types: Vec<EntityTypeReference>,
+        link_sources: HashMap<VersionedUrl, LinkSource>,
+    ) -> Result<Self, EntityTypeCatalogError> {
         if entity_types.is_empty() {
             return Err(EntityTypeCatalogError::EmptyCatalog);
         }
 
-        Ok(Self { entity_types })
+        Ok(Self {
+            entity_types,
+            link_sources,
+        })
     }
 }
 
 impl EntityTypeCatalog for InMemoryEntityTypeCatalog {
     fn entity_type_references(&self) -> &[EntityTypeReference] {
         &self.entity_types
+    }
+
+    fn link_sources(&self) -> &HashMap<VersionedUrl, LinkSource> {
+        &self.link_sources
     }
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -361,6 +373,7 @@ pub struct BuildEntityTypeCatalogStage {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BuildEntityTypeCatalogResult {
     pub collected_entity_types: usize,
+    pub collected_link_sources: usize,
 }
 
 impl BuildEntityTypeCatalogStage {
@@ -369,21 +382,48 @@ impl BuildEntityTypeCatalogStage {
         runner: &mut Runner,
     ) -> Result<BuildEntityTypeCatalogResult, Report<EntityTypeError>> {
         let mut entity_type_ids = Vec::new();
+        let mut link_sources = HashMap::<VersionedUrl, LinkSource>::new();
+
         for input in &self.input {
             let entity_types = runner.resources.entity_types.get(input).ok_or_else(|| {
                 Report::new(EntityTypeError::MissingConfig {
                     name: input.clone(),
                 })
             })?;
-            entity_type_ids.extend(entity_types.iter().map(|params| EntityTypeReference {
-                url: params.schema.id.clone(),
-            }));
+
+            entity_type_ids.reserve(entity_types.len());
+            for entity_type in entity_types {
+                entity_type_ids.push(EntityTypeReference {
+                    url: entity_type.schema.id.clone(),
+                });
+
+                for (link, targets) in entity_type.schema.link_mappings() {
+                    let link_targets = LinkTargets {
+                        possible_types: targets.map(|targets| {
+                            targets.iter().map(|target| target.url.clone()).collect()
+                        }),
+                    };
+                    if let Some(link_source) = link_sources.get_mut(&link.url) {
+                        link_source
+                            .targets
+                            .push((entity_type.schema.id.clone(), link_targets));
+                    } else {
+                        link_sources.insert(
+                            link.url.clone(),
+                            LinkSource {
+                                targets: vec![(entity_type.schema.id.clone(), link_targets)],
+                            },
+                        );
+                    }
+                }
+            }
         }
 
-        let catalog = InMemoryEntityTypeCatalog::new(entity_type_ids)
-            .change_context(EntityTypeError::CreateCatalog)?;
+        let collected_entity_types = entity_type_ids.len();
+        let collected_link_sources = link_sources.len();
 
-        let len = catalog.entity_type_references().len();
+        let catalog = InMemoryEntityTypeCatalog::new(entity_type_ids, link_sources)
+            .change_context(EntityTypeError::CreateCatalog)?;
 
         runner
             .resources
@@ -391,7 +431,8 @@ impl BuildEntityTypeCatalogStage {
             .insert(self.id.clone(), catalog);
 
         Ok(BuildEntityTypeCatalogResult {
-            collected_entity_types: len,
+            collected_entity_types,
+            collected_link_sources,
         })
     }
 }

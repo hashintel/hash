@@ -1,5 +1,5 @@
 use core::error::Error;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{entity_type::CreateEntityTypeParams, query::ConflictBehavior};
@@ -324,6 +324,16 @@ impl<
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct LinkTargets {
+    pub possible_types: Option<Vec<VersionedUrl>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LinkSource {
+    pub targets: Vec<(VersionedUrl, LinkTargets)>,
+}
+
 /// Catalogs that provide [`EntityTypeReference`]s.
 ///
 /// This trait enables [`EntityType`]s to reference existing [`EntityType`]s
@@ -346,6 +356,29 @@ pub trait EntityTypeCatalog {
             .choose(rng)
             .expect("catalog should not be empty")
     }
+
+    fn link_sources(&self) -> &HashMap<VersionedUrl, LinkSource>;
+
+    fn sample_link<R: rand::Rng + ?Sized>(
+        &self,
+        link_type: &VersionedUrl,
+        rng: &mut R,
+    ) -> Option<(&VersionedUrl, Option<&VersionedUrl>)> {
+        let (source, target) = self
+            .link_sources()
+            .get(link_type)?
+            .targets
+            .choose(rng)
+            .expect("link source should contain at least one target");
+        Some((
+            source,
+            target.possible_types.as_ref().map(|target| {
+                target
+                    .choose(rng)
+                    .expect("target should contain at least one possible type")
+            }),
+        ))
+    }
 }
 
 impl<C> EntityTypeCatalog for &C
@@ -355,11 +388,21 @@ where
     fn entity_type_references(&self) -> &[EntityTypeReference] {
         (*self).entity_type_references()
     }
+
+    fn link_sources(&self) -> &HashMap<VersionedUrl, LinkSource> {
+        (*self).link_sources()
+    }
 }
 
 impl EntityTypeCatalog for ! {
+    #[expect(clippy::explicit_auto_deref, reason = "false positsive")]
     fn entity_type_references(&self) -> &[EntityTypeReference] {
-        &[]
+        *self
+    }
+
+    #[expect(clippy::explicit_auto_deref, reason = "false positsive")]
+    fn link_sources(&self) -> &HashMap<VersionedUrl, LinkSource> {
+        *self
     }
 }
 

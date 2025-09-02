@@ -219,8 +219,8 @@ impl PersistEntitiesStage {
             for entity in created_entities {
                 for entity_type in &entity.metadata.entity_type_ids {
                     let id = entity.metadata.record_id.entity_id;
-                    if let Some(vec) = entity_ids_by_type.get_mut(entity_type) {
-                        vec.push(id);
+                    if let Some(entity_ids) = entity_ids_by_type.get_mut(entity_type) {
+                        entity_ids.push(id);
                     } else {
                         entity_ids_by_type.insert(entity_type.clone(), vec![id]);
                     }
