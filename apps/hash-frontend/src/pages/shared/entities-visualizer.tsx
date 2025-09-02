@@ -24,7 +24,6 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -49,7 +48,7 @@ import { GridView } from "./entities-visualizer/entities-table/grid-view";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/entities-table/types";
+} from "./entities-visualizer/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
@@ -216,8 +215,9 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [filterState, setFilterState] = useState<FilterState>(
+  const [filterState, _setFilterState] = useState<FilterState>(
     defaultFilter ?? {
+      includeArchived: false,
       includeGlobal: false,
       limitToWebs: false,
     },
@@ -228,7 +228,31 @@ export const EntitiesVisualizer: FunctionComponent<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
 
-  const [view, setView] = useState<VisualizerView>(defaultView);
+  const setFilterState = useCallback(
+    (
+      newFilterStateOrUpdater:
+        | FilterState
+        | ((prev: FilterState) => FilterState),
+    ) => {
+      if (typeof newFilterStateOrUpdater === "function") {
+        _setFilterState(newFilterStateOrUpdater(filterState));
+      } else {
+        _setFilterState(newFilterStateOrUpdater);
+      }
+      setCursor(undefined);
+    },
+    [filterState, setCursor],
+  );
+
+  const [view, _setView] = useState<VisualizerView>(defaultView);
+
+  const setView = useCallback(
+    (newView: VisualizerView) => {
+      _setView(newView);
+      setCursor(undefined);
+    },
+    [setCursor],
+  );
 
   const pollInterval = usePollInterval();
 
@@ -283,6 +307,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     cursor,
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    hideColumns,
     /**
      * Translate into archived filter in query
      */
@@ -375,8 +400,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const [childDoingWork, setChildDoingWork] = useState(false);
-
   const internalEntitiesCount =
     externalWebsOnlyCountData?.countEntities == null ||
     totalCountFromEntityRequest == null
@@ -428,31 +451,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     } else {
       setView(defaultView);
     }
-  }, [defaultView, isDisplayingFilesOnly]);
+  }, [defaultView, isDisplayingFilesOnly, setView]);
 
-  const { isViewingOnlyPages, hasSomeLinks } = useMemo(() => {
-    let isViewingPages = true;
-    let hasLinks = false;
-    for (const entity of entities ?? []) {
-      if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
-        isViewingPages = false;
-      }
-      if (entity.linkData) {
-        hasLinks = true;
-      }
-
-      if (hasLinks && !isViewingPages) {
-        break;
-      }
-    }
-    return { isViewingOnlyPages: isViewingPages, hasSomeLinks: hasLinks };
-  }, [entities]);
-
-  useEffect(() => {
-    if (isViewingOnlyPages && filterState.includeArchived === undefined) {
-      setFilterState((prev) => ({ ...prev, includeArchived: false }));
-    }
-  }, [isViewingOnlyPages, filterState]);
+  const isViewingOnlyPages =
+    entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl ||
+    entityTypeId === systemEntityTypes.page.entityTypeId;
 
   const { pushToSlideStack } = useSlideStack();
 
@@ -535,7 +538,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         hideExportToCsv={view !== "Table"}
         hideFilters={hideFilters}
         itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
-        loading={dataLoading || childDoingWork}
+        loading={dataLoading}
         onBulkActionCompleted={() => {
           void refetchWithoutLinks();
         }}
@@ -593,23 +596,16 @@ export const EntitiesVisualizer: FunctionComponent<{
           createdByIds={createdByIds}
           currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
           definitions={definitions}
           editionCreatedByIds={editionCreatedByIds}
           entities={entities}
-          filterState={filterState}
           handleEntityClick={handleEntityClick}
-          hasSomeLinks={hasSomeLinks}
-          hideColumns={hideColumns}
-          isPaginating={!!cursor}
           loading={dataLoading}
-          loadingComponent={loadingComponent}
           isViewingOnlyPages={isViewingOnlyPages}
           maxHeight={tableHeight}
           loadMoreRows={nextCursor ? nextPage : undefined}
           readonly={readonly}
           setActiveConversions={setActiveConversions}
-          setLoading={setChildDoingWork}
           setSelectedEntityType={handleEntityTypeClick}
           setSelectedRows={setSelectedTableRows}
           selectedRows={selectedTableRows}
@@ -618,6 +614,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           sort={sort}
           setSort={setSort}
           subgraph={subgraph}
+          tableData={visualizerData.tableData}
           totalResultCount={totalResultCount}
           typeIds={typeIds}
           typeTitles={typeTitles}

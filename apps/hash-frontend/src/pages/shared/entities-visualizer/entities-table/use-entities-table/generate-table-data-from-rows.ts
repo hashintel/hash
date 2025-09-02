@@ -15,25 +15,22 @@ import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { format } from "date-fns";
 
+import { gridHeaderBaseFont } from "../../../../../components/grid/grid";
 import type {
   EntitiesTableColumn,
   EntitiesTableColumnKey,
+  EntitiesTableData,
   EntitiesTableRow,
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
-  GenerateEntitiesTableDataResultMessage,
   VisibleDataTypeIdsByPropertyBaseUrl,
-  WorkerDataReturn,
-} from "../types";
-import { isGenerateEntitiesTableDataRequestMessage } from "../types";
+} from "../../types";
 
 const staticColumnDefinitionsByKey: Record<
   Exclude<EntitiesTableColumnKey, "entityLabel">,
@@ -42,12 +39,12 @@ const staticColumnDefinitionsByKey: Record<
   entityTypes: {
     title: "Entity Type",
     id: "entityTypes",
-    width: 200,
+    width: 220,
   },
-  web: {
+  webId: {
     title: "Web",
-    id: "web",
-    width: 200,
+    id: "webId",
+    width: 150,
   },
   sourceEntity: {
     title: "Source",
@@ -69,9 +66,9 @@ const staticColumnDefinitionsByKey: Record<
     id: "lastEdited",
     width: 200,
   },
-  lastEditedBy: {
+  lastEditedById: {
     title: "Last Edited By",
-    id: "lastEditedBy",
+    id: "lastEditedById",
     width: 200,
   },
   created: {
@@ -79,40 +76,37 @@ const staticColumnDefinitionsByKey: Record<
     id: "created",
     width: 200,
   },
-  createdBy: {
+  createdById: {
     title: "Created By",
-    id: "createdBy",
+    id: "createdById",
     width: 200,
   },
 };
 
-let activeRequestId: string | null;
+let canvas: HTMLCanvasElement | undefined = undefined;
 
-const isCancelled = (requestId: string) => {
-  return activeRequestId !== requestId;
+export const getTextWidth = (text: string) => {
+  canvas ??= document.createElement("canvas");
+
+  const context = canvas.getContext("2d")!;
+
+  context.font = gridHeaderBaseFont;
+
+  const metrics = context.measureText(text);
+  return metrics.width;
 };
 
-const generateTableData = (
+export const generateTableDataFromRows = (
   params: GenerateEntitiesTableDataParams,
-  requestId: string,
-): WorkerDataReturn | "cancelled" => {
+): EntitiesTableData => {
   const {
-    actorsByAccountId,
     closedMultiEntityTypesRootMap,
     definitions,
     entities,
-    subgraph: serializedSubgraph,
+    subgraph,
     hideColumns,
     hideArchivedColumn,
-    hidePropertiesColumns,
-    webNameByWebId,
   } = params;
-
-  if (isCancelled(requestId)) {
-    return "cancelled";
-  }
-
-  const subgraph = deserializeSubgraph(serializedSubgraph);
 
   let noSource = 0;
   let noTarget = 0;
@@ -120,14 +114,12 @@ const generateTableData = (
   const sourcesByEntityId: {
     [entityId: string]: {
       count: number;
-      entityId: string;
       label: string;
     };
   } = {};
   const targetsByEntityId: {
     [entityId: string]: {
       count: number;
-      entityId: string;
       label: string;
     };
   } = {};
@@ -144,10 +136,6 @@ const generateTableData = (
   const rows: EntitiesTableRow[] = [];
 
   for (const [index, serializedEntity] of entities.entries()) {
-    if (isCancelled(requestId)) {
-      return "cancelled";
-    }
-
     const entity = new HashEntity(serializedEntity);
 
     const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
@@ -203,11 +191,6 @@ const generateTableData = (
       }
     }
 
-    const entityNamespace =
-      webNameByWebId[
-        extractWebIdFromEntityId(entity.metadata.recordId.entityId)
-      ] ?? "loading";
-
     const entityId = entity.metadata.recordId.entityId;
 
     const isPage = includesPageEntityTypeId(entity.metadata.entityTypeIds);
@@ -222,15 +205,14 @@ const generateTableData = (
       "yyyy-MM-dd HH:mm",
     );
 
-    const lastEditedBy =
-      actorsByAccountId[entity.metadata.provenance.edition.createdById];
+    const lastEditedById = entity.metadata.provenance.edition.createdById;
 
     const created = format(
       new Date(entity.metadata.provenance.createdAtDecisionTime),
       "yyyy-MM-dd HH:mm",
     );
 
-    const createdBy = actorsByAccountId[entity.metadata.provenance.createdById];
+    const createdById = entity.metadata.provenance.createdById;
 
     const propertyCellsForRow: Record<BaseUrl, EntitiesTableRowPropertyCell> =
       {};
@@ -267,14 +249,12 @@ const generateTableData = (
       }
 
       if (!propertyColumnsMap.has(baseUrl)) {
+        const width = getTextWidth(propertyType.title) + 85;
+
         propertyColumnsMap.set(baseUrl, {
           id: baseUrl,
           title: propertyType.title,
-          /**
-           * This fixed width will be adjusted in the caller by measuring the text.
-           * We can't measure the text here because we can't create DOM elements in the worker.
-           */
-          width: 200,
+          width,
         });
       }
     }
@@ -316,7 +296,6 @@ const generateTableData = (
 
       sourcesByEntityId[sourceEntity.entityId] ??= {
         count: 0,
-        entityId: sourceEntity.entityId,
         label: sourceEntity.label,
       };
       sourcesByEntityId[sourceEntity.entityId]!.count++;
@@ -352,7 +331,6 @@ const generateTableData = (
 
       targetsByEntityId[targetEntity.entityId] ??= {
         count: 0,
-        entityId: targetEntity.entityId,
         label: targetEntity.label,
       };
       targetsByEntityId[targetEntity.entityId]!.count++;
@@ -382,8 +360,6 @@ const generateTableData = (
         dataTypesByProperty[baseUrl].add(dataType);
       }
     }
-
-    const web = `@${entityNamespace}`;
 
     rows.push({
       rowId: entityId,
@@ -415,14 +391,14 @@ const generateTableData = (
           version: extractVersion(entityType.$id),
         };
       }),
-      web,
+      webId: extractWebIdFromEntityId(entity.entityId),
       archived: isPage
         ? simplifyProperties(entity.properties as PageProperties).archived
         : entity.metadata.archived,
       lastEdited,
-      lastEditedBy: lastEditedBy ?? "loading",
+      lastEditedById,
       created,
-      createdBy: createdBy ?? "loading",
+      createdById,
       sourceEntity,
       targetEntity,
       applicableProperties: typedKeys(closedMultiEntityType.properties),
@@ -444,7 +420,7 @@ const generateTableData = (
     },
   ];
 
-  const columnsToHide = hideColumns ?? [];
+  const columnsToHide = hideColumns ? [...hideColumns] : [];
   if (hideArchivedColumn) {
     columnsToHide.push("archived");
   }
@@ -465,77 +441,20 @@ const generateTableData = (
     }
   }
 
-  if (!hidePropertiesColumns) {
-    columns.push(
-      ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
-    );
-  }
-
-  if (isCancelled(requestId)) {
-    return "cancelled";
-  }
+  columns.push(
+    ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
+  );
 
   return {
     columns,
     rows,
     entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
     visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
-    filterData: {
+    visibleRowsFilterData: {
       noSourceCount: noSource,
       noTargetCount: noTarget,
-      sources: Object.values(sourcesByEntityId),
-      targets: Object.values(targetsByEntityId),
+      sources: sourcesByEntityId,
+      targets: targetsByEntityId,
     },
   };
-};
-
-// eslint-disable-next-line no-restricted-globals
-self.onmessage = ({ data }) => {
-  if (isGenerateEntitiesTableDataRequestMessage(data)) {
-    const params = data.params;
-
-    const requestId = generateUuid();
-    activeRequestId = requestId;
-
-    const result = generateTableData(params, requestId);
-
-    if (result !== "cancelled") {
-      /**
-       * Split the rows into chunks to avoid the message being too large.
-       */
-      const chunkSize = 20_000;
-      const chunkedRows: EntitiesTableRow[][] = [];
-      for (let i = 0; i < result.rows.length; i += chunkSize) {
-        chunkedRows.push(result.rows.slice(i, i + chunkSize));
-      }
-
-      if (chunkedRows.length === 0) {
-        // eslint-disable-next-line no-restricted-globals
-        self.postMessage({
-          type: "generateEntitiesTableDataResult",
-          requestId,
-          done: true,
-          result: {
-            ...result,
-            rows: [],
-          },
-        } satisfies GenerateEntitiesTableDataResultMessage);
-      }
-
-      for (const [index, rows] of chunkedRows.entries()) {
-        // eslint-disable-next-line no-restricted-globals
-        self.postMessage({
-          type: "generateEntitiesTableDataResult",
-          requestId,
-          done: index === chunkedRows.length - 1,
-          result: {
-            ...result,
-            rows,
-          },
-        } satisfies GenerateEntitiesTableDataResultMessage);
-      }
-    } else {
-      // Cancelled
-    }
-  }
 };

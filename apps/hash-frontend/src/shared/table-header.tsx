@@ -38,7 +38,7 @@ import { useCallback, useState } from "react";
 
 import type { GridRow } from "../components/grid/grid";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/entities-table/types";
+import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
 import type { TypesTableRow } from "../pages/shared/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
