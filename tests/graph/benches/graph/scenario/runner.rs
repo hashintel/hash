@@ -2,7 +2,7 @@ extern crate alloc;
 use core::sync::atomic::{self, AtomicUsize};
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
-use criterion::{BatchSize, BenchmarkGroup, measurement::Measurement};
+use criterion::{BatchSize, BenchmarkGroup, BenchmarkId, measurement::Measurement};
 use error_stack::{IntoReport, Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PolicyStore as _;
 use hash_graph_postgres_store::{
@@ -22,6 +22,10 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
+use hash_telemetry::{
+    OtlpConfig, TelemetryRegistry,
+    logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
+};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
@@ -71,10 +75,11 @@ pub struct Scenario {
 }
 
 pub fn run_scenario_file<M: Measurement>(
-    path: &Path,
+    path: impl AsRef<Path>,
     runtime: &Runtime,
-    benchmark_group: BenchmarkGroup<M>,
+    benchmark_group: &mut BenchmarkGroup<M>,
 ) {
+    let path = path.as_ref();
     let file = File::open(path).expect("Failed to open scenario file");
     let reader = BufReader::new(file);
     let scenario: Scenario = serde_json::from_reader(reader)
@@ -94,11 +99,28 @@ pub fn run_scenario<M: Measurement>(
     scenario: &Scenario,
     name: &str,
     runtime: &Runtime,
-    mut benchmark_group: BenchmarkGroup<M>,
+    benchmark_group: &mut BenchmarkGroup<M>,
 ) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
     {
-        let _telemetry_guard = init_tracing("graph", name, "setup");
+        let _telemetry_guard = TelemetryRegistry::default()
+            .with_error_layer()
+            .with_console_logging(ConsoleConfig {
+                enabled: true,
+                format: LogFormat::Pretty,
+                level: None,
+                color: ColorOption::Auto,
+                stream: ConsoleStream::Stderr,
+            })
+            .with_otlp(
+                OtlpConfig {
+                    endpoint: Some("http://localhost:4317".to_owned()),
+                },
+                "Graph Benches",
+            )
+            .init()
+            .expect("Failed to initialize tracing");
+
         for stage in &scenario.setup {
             let value = runtime
                 .block_on(stage.execute(&mut runner))
@@ -108,12 +130,12 @@ pub fn run_scenario<M: Measurement>(
     }
 
     for bench in &scenario.benches {
-        let _telemetry_guard = init_tracing("graph", name, &bench.name);
+        let _telemetry_guard = init_tracing(name, &bench.name);
         let _bench_span =
             tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
                 .entered();
         let iteration = AtomicUsize::new(0);
-        benchmark_group.bench_function(bench.name.clone(), |bencher| {
+        benchmark_group.bench_function(BenchmarkId::new(name, &bench.name), |bencher| {
             bencher.to_async(runtime).iter_batched(
                 || (runner.clone(), &iteration),
                 |(mut runner,  iteration)| async move {

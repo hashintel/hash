@@ -35,7 +35,7 @@ use hash_telemetry::{
 
 use self::scenario::run_scenario_file;
 
-fn init_tracing(suite: &'static str, scenario: &str, bench: &str) -> impl Drop {
+fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
     TelemetryRegistry::default()
         .with_error_layer()
         .with_console_logging(ConsoleConfig {
@@ -51,7 +51,11 @@ fn init_tracing(suite: &'static str, scenario: &str, bench: &str) -> impl Drop {
             },
             "Graph Benches",
         )
-        .with_flamegraph(Path::new("out").join(generate_path(suite, Some(scenario), Some(bench))))
+        .with_flamegraph(Path::new("out").join(generate_path(
+            "scenarios",
+            Some(scenario),
+            Some(bench),
+        )))
         .init()
         .expect("Failed to initialize tracing")
 }
@@ -71,6 +75,7 @@ fn scenarios(criterion: &mut Criterion) {
     )
     .expect("Should be able to read scenarios");
 
+    let mut group = criterion.benchmark_group("scenarios");
     for entry in dir_entries {
         let entry = entry.expect("Should be able to read scenario path");
         if entry
@@ -81,12 +86,6 @@ fn scenarios(criterion: &mut Criterion) {
             continue;
         }
 
-        let path = entry.path();
-        let scenario = path
-            .file_stem()
-            .expect("Should be able to read scenario name")
-            .to_string_lossy();
-
-        run_scenario_file(&path, &runtime, criterion.benchmark_group(scenario));
+        run_scenario_file(entry.path(), &runtime, &mut group);
     }
 }
