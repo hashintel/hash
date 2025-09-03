@@ -35,6 +35,7 @@ use super::stages::{
     property_type::InMemoryPropertyTypeCatalog,
     web_catalog::InMemoryWebCatalog,
 };
+use crate::init_tracing;
 
 type InnerPool = hash_graph_postgres_store::store::PostgresStorePool;
 type Pool = FetchingPool<InnerPool, (String, u16)>;
@@ -96,15 +97,18 @@ pub fn run_scenario<M: Measurement>(
     mut benchmark_group: BenchmarkGroup<M>,
 ) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
-
-    for stage in &scenario.setup {
-        let value = runtime
-            .block_on(stage.execute(&mut runner))
-            .expect("Could not execute stage");
-        tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
+    {
+        let _telemetry_guard = init_tracing("graph", name, "setup");
+        for stage in &scenario.setup {
+            let value = runtime
+                .block_on(stage.execute(&mut runner))
+                .expect("Could not execute stage");
+            tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
+        }
     }
 
     for bench in &scenario.benches {
+        let _telemetry_guard = init_tracing("graph", name, &bench.name);
         let _bench_span =
             tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
                 .entered();
