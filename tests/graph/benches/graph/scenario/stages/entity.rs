@@ -26,6 +26,8 @@ pub enum EntityError {
     UnknownEntityTypeCatalog { name: String },
     #[display("Unknown entity object registry: {name}")]
     UnknownEntityObjectRegistry { name: String },
+    #[display("Unknown entity catalog: {name}")]
+    UnknownEntityCatalog { name: String },
     #[display("Failed to create entity type producer")]
     CreateProducer,
     #[display("Failed to persist entity types to the database")]
@@ -44,6 +46,8 @@ pub struct EntityInputs {
     pub user_catalog: String,
     pub entity_type_catalog: String,
     pub entity_object_registry: String,
+    pub entity_catalog: Option<String>,
+    pub source_link_type_catalog: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -107,11 +111,47 @@ impl GenerateEntitiesStage {
                 })
             })?;
 
+        let source_link_type_catalog = self
+            .inputs
+            .source_link_type_catalog
+            .as_ref()
+            .map(|entity_type_catalog| {
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(entity_type_catalog)
+                    .ok_or_else(|| {
+                        Report::new(EntityError::UnknownEntityTypeCatalog {
+                            name: entity_type_catalog.clone(),
+                        })
+                    })
+            })
+            .transpose()?;
+
+        let entity_catalog = self
+            .inputs
+            .entity_catalog
+            .as_ref()
+            .map(|entity_catalog| {
+                runner
+                    .resources
+                    .entity_catalogs
+                    .get(entity_catalog)
+                    .ok_or_else(|| {
+                        Report::new(EntityError::UnknownEntityCatalog {
+                            name: entity_catalog.clone(),
+                        })
+                    })
+            })
+            .transpose()?;
+
         let deps = EntityProducerDeps {
             user_catalog: Some(user_catalog),
             org_catalog: None::<&InMemoryWebCatalog>,
             entity_type_catalog,
             entity_object_registry,
+            entity_catalog,
+            source_link_type_catalog,
         };
 
         let stage_id = self
@@ -207,6 +247,7 @@ impl PersistEntitiesStage {
             .change_context(EntityError::Persist)?;
 
         // Persist locals per web, as user
+        let mut total_created = 0;
         for (web_id, entities) in all_entities {
             let actor_id = *web_actor_by_web
                 .get(&web_id)
@@ -215,6 +256,7 @@ impl PersistEntitiesStage {
                 .create_entities(actor_id, entities)
                 .await
                 .change_context(EntityError::Persist)?;
+            total_created += created_entities.len();
 
             for entity in created_entities {
                 for entity_type in &entity.metadata.entity_type_ids {
@@ -230,7 +272,6 @@ impl PersistEntitiesStage {
 
         drop(store);
 
-        let total_created = entity_ids_by_type.len();
         runner.resources.entity_catalogs.insert(
             self.id.clone(),
             InMemoryEntityCatalog::new(entity_ids_by_type)
