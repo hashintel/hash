@@ -21,12 +21,14 @@ mod scenario;
 mod util;
 
 use std::{
+    collections::HashMap,
     fs::{self},
     path::Path,
 };
 
 use criterion::Criterion;
 use criterion_macro::criterion;
+use hash_graph_store::entity::EntityValidationReport;
 use hash_repo_chores::benches::generate_path;
 use hash_telemetry::{
     OtlpConfig, TelemetryRegistry,
@@ -62,6 +64,15 @@ fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
 
 #[criterion]
 fn scenarios(criterion: &mut Criterion) {
+    error_stack::Report::install_debug_hook::<HashMap<usize, EntityValidationReport>>(
+        |validation_report, context| {
+            context.push_appendix(format!(
+                "First validation error: {:#}",
+                serde_json::json!(validation_report[&0])
+            ));
+        },
+    );
+
     let runtime = tokio::runtime::Runtime::new().expect("Should be able to create runtime");
 
     let _runtime_enter = runtime.enter();

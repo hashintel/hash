@@ -44,6 +44,10 @@ pub enum EntityTypeError {
     UnknownUserCatalog { name: String },
     #[display("Unknown property type catalog: {name}")]
     UnknownPropertyTypeCatalog { name: String },
+    #[display("Unknown link type catalog: {name}")]
+    UnknownLinkTypeCatalog { name: String },
+    #[display("Unknown link target catalog: {name}")]
+    UnknownLinkTargetCatalog { name: String },
     #[display("Failed to create entity type producer")]
     CreateProducer,
     #[display("Failed to persist entity types to the database")]
@@ -58,11 +62,16 @@ impl Error for EntityTypeError {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_field_names)]
 pub struct EntityTypeInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
     #[serde(default)]
-    pub property_type_catalog: String,
+    pub property_type_catalog: Option<String>,
+    #[serde(default)]
+    pub link_type_catalog: Option<String>,
+    #[serde(default)]
+    pub link_target_catalog: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -107,21 +116,59 @@ impl GenerateEntityTypesStage {
             })
             .transpose()?;
 
-        // Get property type catalog reference
-        let property_type_catalog = runner
-            .resources
-            .property_type_catalogs
-            .get(&self.inputs.property_type_catalog)
-            .ok_or_else(|| {
-                Report::new(EntityTypeError::UnknownPropertyTypeCatalog {
-                    name: self.inputs.property_type_catalog.clone(),
-                })
-            })?;
+        let property_type_catalog = self
+            .inputs
+            .property_type_catalog
+            .as_ref()
+            .map(|key| {
+                runner
+                    .resources
+                    .property_type_catalogs
+                    .get(key)
+                    .ok_or_else(|| {
+                        Report::new(EntityTypeError::UnknownPropertyTypeCatalog {
+                            name: key.clone(),
+                        })
+                    })
+            })
+            .transpose()?;
+
+        let link_type_catalog = self
+            .inputs
+            .link_type_catalog
+            .as_ref()
+            .map(|key| {
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(key)
+                    .ok_or_else(|| {
+                        Report::new(EntityTypeError::UnknownLinkTypeCatalog { name: key.clone() })
+                    })
+            })
+            .transpose()?;
+
+        let link_target_catalog = self
+            .inputs
+            .link_target_catalog
+            .as_ref()
+            .map(|key| {
+                runner
+                    .resources
+                    .entity_type_catalogs
+                    .get(key)
+                    .ok_or_else(|| {
+                        Report::new(EntityTypeError::UnknownLinkTargetCatalog { name: key.clone() })
+                    })
+            })
+            .transpose()?;
 
         let deps = EntityTypeProducerDeps {
             user_catalog,
             org_catalog: None::<&InMemoryWebCatalog>,
             property_type_catalog,
+            link_type_catalog,
+            link_target_catalog,
         };
 
         let stage_id = self
@@ -195,13 +242,17 @@ impl PersistEntityTypesStage {
             .await
             .change_context(EntityTypeError::Persist)?;
 
-        // Get web-to-user mapping for permissions
-        let mut web_to_user_map: HashMap<WebId, ActorEntityUuid> = HashMap::new();
-        for web_to_user_key in &self.inputs.web_to_user {
-            if let Some(users) = runner.resources.users.get(web_to_user_key) {
-                for user in users {
-                    web_to_user_map.insert(user.id.into(), user.id.into());
-                }
+        // Build web->user map from provided user resources
+        let mut web_actor_by_web: HashMap<WebId, ActorEntityUuid> = HashMap::new();
+        for user_key in &self.inputs.web_to_user {
+            let Some(users) = runner.resources.users.get(user_key) else {
+                return Err(Report::new(EntityTypeError::MissingConfig {
+                    name: user_key.clone(),
+                }));
+            };
+
+            for user in users {
+                web_actor_by_web.insert(user.id.into(), user.id.into());
             }
         }
 
@@ -237,7 +288,7 @@ impl PersistEntityTypesStage {
         // Persist locals per web, as user
         let mut total_created = 0_usize;
         for (web_id, group) in local_by_web {
-            let actor_id = *web_to_user_map
+            let actor_id = *web_actor_by_web
                 .get(&web_id)
                 .ok_or_else(|| Report::new(EntityTypeError::MissingOwner { web_id }))?;
             total_created += store

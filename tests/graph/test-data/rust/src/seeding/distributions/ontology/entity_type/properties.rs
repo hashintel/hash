@@ -64,16 +64,16 @@ impl EntityTypePropertiesDistributionConfig {
         catalog: C,
     ) -> Result<BoundEntityTypePropertiesDistribution<C>, Report<[EntityTypePropertiesBindingError]>>
     {
+        if catalog.property_type_references().is_empty() {
+            return Err(
+                Report::new(EntityTypePropertiesBindingError::EmptyPropertyTypeCatalog).expand(),
+            );
+        }
+
         match self {
             Self::Fixed { count, required } => {
                 if *count == 0 {
                     return Ok(BoundEntityTypePropertiesDistribution::Empty);
-                }
-                if catalog.property_type_references().is_empty() {
-                    return Err(Report::new(
-                        EntityTypePropertiesBindingError::EmptyPropertyTypeCatalog,
-                    )
-                    .expand());
                 }
                 Ok(BoundEntityTypePropertiesDistribution::Fixed {
                     catalog,
@@ -84,12 +84,6 @@ impl EntityTypePropertiesDistributionConfig {
             Self::Range { min, max, required } => {
                 if *min == 0 && *max == 0 {
                     return Ok(BoundEntityTypePropertiesDistribution::Empty);
-                }
-                if catalog.property_type_references().is_empty() {
-                    return Err(Report::new(
-                        EntityTypePropertiesBindingError::EmptyPropertyTypeCatalog,
-                    )
-                    .expand());
                 }
                 if min > max {
                     return Err(Report::new(EntityTypePropertiesBindingError::InvalidRange {
