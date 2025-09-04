@@ -3461,8 +3461,6 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tracing",
- "tracing-flame",
- "tracing-subscriber",
  "type-system",
  "uuid",
  "walkdir",
@@ -3807,6 +3805,7 @@ dependencies = [
  "tracing-appender",
  "tracing-core",
  "tracing-error",
+ "tracing-flame",
  "tracing-opentelemetry",
  "tracing-subscriber",
 ]

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use core::mem::ManuallyDrop;
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -19,13 +19,12 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
+use hash_telemetry::TelemetryRegistry;
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
 use tracing::Instrument as _;
-use tracing_flame::FlameLayer;
-use tracing_subscriber::{prelude::*, registry::Registry};
 use type_system::{
     ontology::{
         data_type::DataType,
@@ -60,23 +59,10 @@ pub fn setup_subscriber(
     function_id: Option<&str>,
     value_str: Option<&str>,
 ) -> impl Drop {
-    struct Guard<A, B>(A, B);
-    #[expect(clippy::empty_drop)]
-    impl<A, B> Drop for Guard<A, B> {
-        fn drop(&mut self) {}
-    }
-
-    let target_dir = Path::new("out").join(generate_path(group_id, function_id, value_str));
-    fs::create_dir_all(&target_dir).expect("could not create directory");
-    let flame_file = target_dir.join("tracing.folded");
-
-    let (flame_layer, file_guard) =
-        FlameLayer::with_file(flame_file).expect("could not create flame layer");
-
-    let subscriber = Registry::default().with(flame_layer);
-
-    let default_guard = tracing::subscriber::set_default(subscriber);
-    Guard(default_guard, file_guard)
+    TelemetryRegistry::default()
+        .with_flamegraph(Path::new("out").join(generate_path(group_id, function_id, value_str)))
+        .init()
+        .expect("Failed to initialize tracing")
 }
 
 impl StoreWrapper {

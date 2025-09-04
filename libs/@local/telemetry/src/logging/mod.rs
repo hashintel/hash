@@ -420,30 +420,12 @@ pub(crate) fn file_layer<S>(config: FileConfig) -> (impl Layer<S>, impl Drop)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    struct DropGuard {
-        _guard: Option<tracing_appender::non_blocking::WorkerGuard>,
-    }
-
-    #[expect(clippy::empty_drop)]
-    impl Drop for DropGuard {
-        fn drop(&mut self) {}
-    }
-
-    if !config.enabled {
-        return (None, DropGuard { _guard: None });
-    }
-
     let appender = config.rotation.appender(config.output);
     let (writer, guard) = tracing_appender::non_blocking(appender);
 
     let layer = delegate_to_correct_layer(config.format, config.level, writer, AnsiSupport::Never);
 
-    (
-        Some(layer),
-        DropGuard {
-            _guard: Some(guard),
-        },
-    )
+    (layer, guard)
 }
 
 // pub type ConsoleLayer<S>
