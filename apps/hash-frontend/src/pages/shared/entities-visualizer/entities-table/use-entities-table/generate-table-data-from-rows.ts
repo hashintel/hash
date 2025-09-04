@@ -1,6 +1,7 @@
 import { getEntityRevision } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   extractVersion,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
@@ -14,25 +15,22 @@ import {
   generateEntityLabel,
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { format } from "date-fns";
 
+import { gridHeaderBaseFont } from "../../../../../components/grid/grid";
 import type {
   EntitiesTableColumn,
   EntitiesTableColumnKey,
+  EntitiesTableData,
   EntitiesTableRow,
   EntitiesTableRowPropertyCell,
   GenerateEntitiesTableDataParams,
-  GenerateEntitiesTableDataResultMessage,
-  WorkerDataReturn,
-} from "../types";
-import { isGenerateEntitiesTableDataRequestMessage } from "../types";
+  VisibleDataTypeIdsByPropertyBaseUrl,
+} from "../../types";
 
 const staticColumnDefinitionsByKey: Record<
   Exclude<EntitiesTableColumnKey, "entityLabel">,
@@ -41,12 +39,12 @@ const staticColumnDefinitionsByKey: Record<
   entityTypes: {
     title: "Entity Type",
     id: "entityTypes",
-    width: 200,
+    width: 220,
   },
-  web: {
+  webId: {
     title: "Web",
-    id: "web",
-    width: 200,
+    id: "webId",
+    width: 150,
   },
   sourceEntity: {
     title: "Source",
@@ -68,9 +66,9 @@ const staticColumnDefinitionsByKey: Record<
     id: "lastEdited",
     width: 200,
   },
-  lastEditedBy: {
+  lastEditedById: {
     title: "Last Edited By",
-    id: "lastEditedBy",
+    id: "lastEditedById",
     width: 200,
   },
   created: {
@@ -78,42 +76,37 @@ const staticColumnDefinitionsByKey: Record<
     id: "created",
     width: 200,
   },
-  createdBy: {
+  createdById: {
     title: "Created By",
-    id: "createdBy",
+    id: "createdById",
     width: 200,
   },
 };
 
-let activeRequestId: string | null;
+let canvas: HTMLCanvasElement | undefined = undefined;
 
-const isCancelled = async (requestId: string) => {
-  await sleep(0);
-  return activeRequestId !== requestId;
+export const getTextWidth = (text: string) => {
+  canvas ??= document.createElement("canvas");
+
+  const context = canvas.getContext("2d")!;
+
+  context.font = gridHeaderBaseFont;
+
+  const metrics = context.measureText(text);
+  return metrics.width;
 };
 
-const generateTableData = async (
+export const generateTableDataFromRows = (
   params: GenerateEntitiesTableDataParams,
-  requestId: string,
-): Promise<WorkerDataReturn | "cancelled"> => {
+): EntitiesTableData => {
   const {
-    actorsByAccountId,
     closedMultiEntityTypesRootMap,
     definitions,
     entities,
-    entityTypesWithMultipleVersionsPresent,
-    subgraph: serializedSubgraph,
+    subgraph,
     hideColumns,
     hideArchivedColumn,
-    hidePropertiesColumns,
-    webNameByWebId,
   } = params;
-
-  if (await isCancelled(requestId)) {
-    return "cancelled";
-  }
-
-  const subgraph = deserializeSubgraph(serializedSubgraph);
 
   let noSource = 0;
   let noTarget = 0;
@@ -121,28 +114,28 @@ const generateTableData = async (
   const sourcesByEntityId: {
     [entityId: string]: {
       count: number;
-      entityId: string;
       label: string;
     };
   } = {};
   const targetsByEntityId: {
     [entityId: string]: {
       count: number;
-      entityId: string;
       label: string;
     };
   } = {};
 
+  const dataTypesByProperty: VisibleDataTypeIdsByPropertyBaseUrl = {};
+
   const propertyColumnsMap = new Map<string, EntitiesTableColumn>();
+
+  const entityTypesWithMultipleVersions = new Set<VersionedUrl>();
+  const firstSeenEntityTypeByBaseUrl: { [baseUrl: string]: VersionedUrl } = {};
 
   const entityTypeTitlesSharedAcrossAllEntities = new Set<string>();
 
   const rows: EntitiesTableRow[] = [];
-  for (const [index, serializedEntity] of entities.entries()) {
-    if (await isCancelled(requestId)) {
-      return "cancelled";
-    }
 
+  for (const [index, serializedEntity] of entities.entries()) {
     const entity = new HashEntity(serializedEntity);
 
     const closedMultiEntityType = getClosedMultiEntityTypeFromMap(
@@ -152,19 +145,35 @@ const generateTableData = async (
 
     const entityLabel = generateEntityLabel(closedMultiEntityType, entity);
 
+    for (const entityTypeId of entity.metadata.entityTypeIds) {
+      const baseUrl = extractBaseUrl(entityTypeId);
+
+      if (
+        firstSeenEntityTypeByBaseUrl[baseUrl] !== entityTypeId &&
+        firstSeenEntityTypeByBaseUrl[baseUrl]
+      ) {
+        entityTypesWithMultipleVersions.add(entityTypeId);
+        entityTypesWithMultipleVersions.add(
+          firstSeenEntityTypeByBaseUrl[baseUrl],
+        );
+      } else {
+        firstSeenEntityTypeByBaseUrl[baseUrl] = entityTypeId;
+      }
+    }
+
     let entityIcon: string | undefined;
     const entityTypeTitles = new Set<string>();
-    for (const entityType of closedMultiEntityType.allOf) {
+    for (const entityTypeMetadata of closedMultiEntityType.allOf) {
       if (index === 0) {
         /**
          * We add the titles of the types of the first entity to the set.
          */
-        entityTypeTitlesSharedAcrossAllEntities.add(entityType.title);
+        entityTypeTitlesSharedAcrossAllEntities.add(entityTypeMetadata.title);
       } else {
-        entityTypeTitles.add(entityType.title);
+        entityTypeTitles.add(entityTypeMetadata.title);
       }
 
-      for (const typeOrAncestor of entityType.allOf) {
+      for (const typeOrAncestor of entityTypeMetadata.allOf) {
         if (typeOrAncestor.icon) {
           entityIcon = typeOrAncestor.icon;
           break;
@@ -182,11 +191,6 @@ const generateTableData = async (
       }
     }
 
-    const entityNamespace =
-      webNameByWebId[
-        extractWebIdFromEntityId(entity.metadata.recordId.entityId)
-      ] ?? "loading";
-
     const entityId = entity.metadata.recordId.entityId;
 
     const isPage = includesPageEntityTypeId(entity.metadata.entityTypeIds);
@@ -201,15 +205,14 @@ const generateTableData = async (
       "yyyy-MM-dd HH:mm",
     );
 
-    const lastEditedBy =
-      actorsByAccountId[entity.metadata.provenance.edition.createdById];
+    const lastEditedById = entity.metadata.provenance.edition.createdById;
 
     const created = format(
       new Date(entity.metadata.provenance.createdAtDecisionTime),
       "yyyy-MM-dd HH:mm",
     );
 
-    const createdBy = actorsByAccountId[entity.metadata.provenance.createdById];
+    const createdById = entity.metadata.provenance.createdById;
 
     const propertyCellsForRow: Record<BaseUrl, EntitiesTableRowPropertyCell> =
       {};
@@ -246,14 +249,12 @@ const generateTableData = async (
       }
 
       if (!propertyColumnsMap.has(baseUrl)) {
+        const width = getTextWidth(propertyType.title) + 85;
+
         propertyColumnsMap.set(baseUrl, {
           id: baseUrl,
           title: propertyType.title,
-          /**
-           * This fixed width will be adjusted in the caller by measuring the text.
-           * We can't measure the text here because we can't create DOM elements in the worker.
-           */
-          width: 200,
+          width,
         });
       }
     }
@@ -295,7 +296,6 @@ const generateTableData = async (
 
       sourcesByEntityId[sourceEntity.entityId] ??= {
         count: 0,
-        entityId: sourceEntity.entityId,
         label: sourceEntity.label,
       };
       sourcesByEntityId[sourceEntity.entityId]!.count++;
@@ -331,7 +331,6 @@ const generateTableData = async (
 
       targetsByEntityId[targetEntity.entityId] ??= {
         count: 0,
-        entityId: targetEntity.entityId,
         label: targetEntity.label,
       };
       targetsByEntityId[targetEntity.entityId]!.count++;
@@ -340,7 +339,27 @@ const generateTableData = async (
       noTarget += 1;
     }
 
-    const web = `@${entityNamespace}`;
+    for (const [baseUrl, { metadata }] of typedEntries(
+      entity.propertiesMetadata.value,
+    )) {
+      if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
+        dataTypesByProperty[baseUrl] ??= new Set();
+
+        const dataType = definitions.dataTypes[metadata.dataTypeId];
+
+        if (!dataType) {
+          throw new Error(
+            `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
+          );
+        }
+
+        /**
+         * As there is only one instance of each DataType in the subgraph, it'll be the same object in memory,
+         * and the Set equality check will work.
+         */
+        dataTypesByProperty[baseUrl].add(dataType);
+      }
+    }
 
     rows.push({
       rowId: entityId,
@@ -369,21 +388,17 @@ const generateTableData = async (
           entityTypeId: entityType.$id,
           icon,
           isLink,
-          version: entityTypesWithMultipleVersionsPresent.includes(
-            entityType.$id,
-          )
-            ? extractVersion(entityType.$id)
-            : undefined,
+          version: extractVersion(entityType.$id),
         };
       }),
-      web,
+      webId: extractWebIdFromEntityId(entity.entityId),
       archived: isPage
         ? simplifyProperties(entity.properties as PageProperties).archived
         : entity.metadata.archived,
       lastEdited,
-      lastEditedBy: lastEditedBy ?? "loading",
+      lastEditedById,
       created,
-      createdBy: createdBy ?? "loading",
+      createdById,
       sourceEntity,
       targetEntity,
       applicableProperties: typedKeys(closedMultiEntityType.properties),
@@ -405,7 +420,7 @@ const generateTableData = async (
     },
   ];
 
-  const columnsToHide = hideColumns ?? [];
+  const columnsToHide = hideColumns ? [...hideColumns] : [];
   if (hideArchivedColumn) {
     columnsToHide.push("archived");
   }
@@ -426,71 +441,20 @@ const generateTableData = async (
     }
   }
 
-  if (!hidePropertiesColumns) {
-    columns.push(
-      ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
-    );
-  }
+  columns.push(
+    ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
+  );
 
   return {
     columns,
     rows,
-    filterData: {
+    entityTypesWithMultipleVersionsPresent: entityTypesWithMultipleVersions,
+    visibleDataTypeIdsByPropertyBaseUrl: dataTypesByProperty,
+    visibleRowsFilterData: {
       noSourceCount: noSource,
       noTargetCount: noTarget,
-      sources: Object.values(sourcesByEntityId),
-      targets: Object.values(targetsByEntityId),
+      sources: sourcesByEntityId,
+      targets: targetsByEntityId,
     },
   };
-};
-
-// eslint-disable-next-line no-restricted-globals
-self.onmessage = async ({ data }) => {
-  if (isGenerateEntitiesTableDataRequestMessage(data)) {
-    const params = data.params;
-
-    const requestId = generateUuid();
-    activeRequestId = requestId;
-
-    const result = await generateTableData(params, requestId);
-
-    if (result !== "cancelled") {
-      /**
-       * Split the rows into chunks to avoid the message being too large.
-       */
-      const chunkSize = 20_000;
-      const chunkedRows: EntitiesTableRow[][] = [];
-      for (let i = 0; i < result.rows.length; i += chunkSize) {
-        chunkedRows.push(result.rows.slice(i, i + chunkSize));
-      }
-
-      if (chunkedRows.length === 0) {
-        // eslint-disable-next-line no-restricted-globals
-        self.postMessage({
-          type: "generateEntitiesTableDataResult",
-          requestId,
-          done: true,
-          result: {
-            ...result,
-            rows: [],
-          },
-        } satisfies GenerateEntitiesTableDataResultMessage);
-      }
-
-      for (const [index, rows] of chunkedRows.entries()) {
-        // eslint-disable-next-line no-restricted-globals
-        self.postMessage({
-          type: "generateEntitiesTableDataResult",
-          requestId,
-          done: index === chunkedRows.length - 1,
-          result: {
-            ...result,
-            rows,
-          },
-        } satisfies GenerateEntitiesTableDataResultMessage);
-      }
-    } else {
-      // Cancelled
-    }
-  }
 };

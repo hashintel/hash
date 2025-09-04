@@ -9,16 +9,18 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type {
   SerializedEntity,
   SerializedSubgraph,
 } from "@local/hash-graph-sdk/entity";
 import type {
+  ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
 
-import type { MinimalActor } from "../../../../shared/use-actors";
+import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 
 export type EntitiesTableRowPropertyCell = {
   isArray: boolean;
@@ -36,13 +38,13 @@ export interface EntitiesTableRow {
     icon?: string;
     isLink: boolean;
     title: string;
-    version?: OntologyTypeVersion;
+    version: OntologyTypeVersion;
   }[];
   archived?: boolean;
   lastEdited: string;
-  lastEditedBy?: MinimalActor | "loading";
+  lastEditedById: ActorEntityUuid;
   created: string;
-  createdBy?: MinimalActor | "loading";
+  createdById: ActorEntityUuid;
   sourceEntity?: {
     entityId: EntityId;
     label: string;
@@ -55,7 +57,7 @@ export interface EntitiesTableRow {
     icon?: string;
     isLink: boolean;
   };
-  web: string;
+  webId: WebId;
   applicableProperties: BaseUrl[];
 
   [key: BaseUrl]: EntitiesTableRowPropertyCell;
@@ -74,15 +76,19 @@ export type SortableEntitiesTableColumnKey =
       /**
        * @todo H-3908 allow sorting by these fields
        */
-      "createdBy" | "lastEditedBy" | "sourceEntity" | "targetEntity" | "web"
+      | "createdById"
+      | "lastEditedById"
+      | "sourceEntity"
+      | "targetEntity"
+      | "webId"
     >
   | BaseUrl;
 
 export const filterableEntitiesTableColumnKeys: EntitiesTableColumnKey[] = [
   "entityTypes",
-  "web",
-  "createdBy",
-  "lastEditedBy",
+  "webId",
+  "createdById",
+  "lastEditedById",
 ] as const;
 
 export type FilterableEntitiesColumnKey =
@@ -92,24 +98,21 @@ export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
 }
 
-export type SourceOrTargetFilterData = {
-  count: number;
-  entityId: string;
-  label: string;
-};
-
 export type GenerateEntitiesTableDataParams = {
-  actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null>;
   closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   definitions: ClosedMultiEntityTypesDefinitions;
   entities: SerializedEntity[];
-  entityTypesWithMultipleVersionsPresent: VersionedUrl[];
   subgraph: SerializedSubgraph;
   hasSomeLinks?: boolean;
   hideColumns?: (keyof EntitiesTableRow)[];
   hideArchivedColumn?: boolean;
-  hidePropertiesColumns: boolean;
-  webNameByWebId: Record<WebId, string>;
+};
+
+export type SourceOrTargetFilterData = {
+  [entityId: string]: {
+    count: number;
+    label: string;
+  };
 };
 
 export type ActorTableFilterData = {
@@ -122,7 +125,6 @@ export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
   count: number;
-  version?: OntologyTypeVersion;
 };
 
 export type WebTableFilterData = {
@@ -131,54 +133,32 @@ export type WebTableFilterData = {
   shortname: string;
 };
 
-export type EntitiesTableFilterData = {
-  createdByActors: ActorTableFilterData[];
-  lastEditedByActors: ActorTableFilterData[];
-  entityTypeFilters: EntityTypeTableFilterData[];
+export type EntitiesTableFilterDataFromVisibleRows = {
   noSourceCount: number;
   noTargetCount: number;
-  sources: SourceOrTargetFilterData[];
-  targets: SourceOrTargetFilterData[];
-  webs: WebTableFilterData[];
+  sources: SourceOrTargetFilterData;
+  targets: SourceOrTargetFilterData;
 };
+
+export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
+  BaseUrl,
+  Set<ClosedDataTypeDefinition>
+>;
 
 export type EntitiesTableData = {
   columns: EntitiesTableColumn[];
-  filterData: EntitiesTableFilterData;
+  entityTypesWithMultipleVersionsPresent: Set<VersionedUrl>;
+  visibleRowsFilterData: EntitiesTableFilterDataFromVisibleRows;
   rows: EntitiesTableRow[];
+  visibleDataTypeIdsByPropertyBaseUrl: VisibleDataTypeIdsByPropertyBaseUrl;
 };
 
-export type GenerateEntitiesTableDataRequestMessage = {
-  type: "generateEntitiesTableData";
-  params: GenerateEntitiesTableDataParams;
-};
-
-export const isGenerateEntitiesTableDataRequestMessage = (
-  message: unknown,
-): message is GenerateEntitiesTableDataRequestMessage =>
-  typeof message === "object" &&
-  message !== null &&
-  (message as Record<string, unknown>).type ===
-    ("generateEntitiesTableData" satisfies GenerateEntitiesTableDataRequestMessage["type"]);
-
-export type WorkerDataReturn = Pick<EntitiesTableData, "rows" | "columns"> & {
-  filterData: Omit<
-    EntitiesTableFilterData,
-    "createdByActors" | "entityTypeFilters" | "lastEditedByActors" | "webs"
-  >;
-};
-
-export type GenerateEntitiesTableDataResultMessage = {
-  done: boolean;
-  type: "generateEntitiesTableDataResult";
-  requestId: string;
-  result: WorkerDataReturn;
-};
-
-export const isGenerateEntitiesTableDataResultMessage = (
-  message: unknown,
-): message is GenerateEntitiesTableDataResultMessage =>
-  typeof message === "object" &&
-  message !== null &&
-  (message as Record<string, unknown>).type ===
-    ("generateEntitiesTableDataResult" satisfies GenerateEntitiesTableDataResultMessage["type"]);
+export type UpdateTableDataFn = (
+  params: Pick<
+    EntitiesVisualizerData,
+    "definitions" | "entities" | "subgraph"
+  > & {
+    appliedPaginationCursor: EntityQueryCursor | null;
+    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+  },
+) => void;

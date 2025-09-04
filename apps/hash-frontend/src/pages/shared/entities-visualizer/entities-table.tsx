@@ -1,12 +1,15 @@
 import { useQuery } from "@apollo/client";
 import type {
+  ActorEntityUuid,
   BaseUrl,
   EntityId,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
+  extractVersion,
   extractWebIdFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
@@ -18,14 +21,9 @@ import type {
   TextCell,
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-// import {
-//   ArrowRightRegularIcon,
-//   IconButton,
-//   LoadingSpinner,
-//   Select,
-// } from "@hashintel/design-system";
+import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
@@ -33,7 +31,6 @@ import type {
   Dispatch,
   FunctionComponent,
   MutableRefObject,
-  ReactElement,
   RefObject,
   SetStateAction,
 } from "react";
@@ -48,15 +45,18 @@ import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
+import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
   GetDataTypeConversionTargetsQuery,
   GetDataTypeConversionTargetsQueryVariables,
 } from "../../../graphql/api-types.gen";
 import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
-import { tableContentSx } from "../../../shared/table-content";
-import type { FilterState } from "../../../shared/table-header";
-// import { MenuItem } from "../../../shared/ui/menu-item";
-import { isAiMachineActor } from "../../../shared/use-actors";
+import { Button } from "../../../shared/ui/button";
+import {
+  isAiMachineActor,
+  type MinimalActor,
+  useActors,
+} from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import type { ChipCellProps } from "../chip-cell";
 import { createRenderChipCell } from "../chip-cell";
@@ -69,12 +69,14 @@ import {
 import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type {
+  ActorTableFilterData,
   EntitiesTableColumnKey,
   EntitiesTableData,
   EntitiesTableRow,
+  EntityTypeTableFilterData,
   SortableEntitiesTableColumnKey,
-} from "./entities-table/types";
-import { useEntitiesTable } from "./entities-table/use-entities-table";
+  WebTableFilterData,
+} from "./types";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 
 const firstColumnLeftPadding = 16;
@@ -82,16 +84,14 @@ const firstColumnLeftPadding = 16;
 const emptyTableData: EntitiesTableData = {
   columns: [],
   rows: [],
-  filterData: {
-    createdByActors: [],
-    lastEditedByActors: [],
-    entityTypeFilters: [],
+  entityTypesWithMultipleVersionsPresent: new Set(),
+  visibleRowsFilterData: {
     noSourceCount: 0,
     noTargetCount: 0,
-    sources: [],
-    targets: [],
-    webs: [],
+    sources: {},
+    targets: {},
   },
+  visibleDataTypeIdsByPropertyBaseUrl: {},
 };
 
 export const EntitiesTable: FunctionComponent<
@@ -100,7 +100,6 @@ export const EntitiesTable: FunctionComponent<
     | "createdByIds"
     | "definitions"
     | "editionCreatedByIds"
-    | "entities"
     | "subgraph"
     | "typeIds"
     | "typeTitles"
@@ -112,21 +111,14 @@ export const EntitiesTable: FunctionComponent<
         title: string;
       };
     } | null;
-    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
     currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
     currentlyDisplayedRowsRef: RefObject<EntitiesTableRow[] | null>;
     disableTypeClick?: boolean;
-    filterState: FilterState;
     handleEntityClick: (entityId: EntityId) => void;
-    hasSomeLinks: boolean;
-    hidePropertiesColumns?: boolean;
-    hideColumns?: (keyof EntitiesTableRow)[];
-    limit: number;
     loading: boolean;
-    loadingComponent: ReactElement;
     isViewingOnlyPages: boolean;
     maxHeight: string | number;
-    goToNextPage?: () => void;
+    loadMoreRows?: () => void;
     readonly?: boolean;
     selectedRows: EntitiesTableRow[];
     setActiveConversions: Dispatch<
@@ -134,8 +126,6 @@ export const EntitiesTable: FunctionComponent<
         [columnBaseUrl: BaseUrl]: VersionedUrl;
       } | null>
     >;
-    setLimit: (limit: number) => void;
-    setLoading: (loading: boolean) => void;
     setSelectedRows: (rows: EntitiesTableRow[]) => void;
     setSelectedEntityType: (params: { entityTypeId: VersionedUrl }) => void;
     setShowSearch: (showSearch: boolean) => void;
@@ -146,77 +136,102 @@ export const EntitiesTable: FunctionComponent<
         convertTo?: BaseUrl;
       },
     ) => void;
+    tableData: EntitiesTableData | null;
+    totalResultCount: number | null;
   }
 > = ({
   activeConversions,
-  closedMultiEntityTypesRootMap,
   createdByIds,
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   definitions,
   disableTypeClick,
   editionCreatedByIds,
-  entities,
-  filterState,
-  hasSomeLinks,
   handleEntityClick,
-  hideColumns,
-  hidePropertiesColumns = false,
-  limit: _limit,
   loading: entityDataLoading,
-  loadingComponent,
   isViewingOnlyPages,
   maxHeight,
-  goToNextPage: _goToNextPage,
+  loadMoreRows,
   readonly,
-  setLimit: _setLimit,
   selectedRows,
   setActiveConversions,
-  setLoading,
   setSelectedRows,
   showSearch,
   setShowSearch,
   setSelectedEntityType,
   setSort,
   sort,
-  subgraph,
+  tableData,
+  totalResultCount,
   typeIds,
   typeTitles,
   webIds,
 }) => {
   const router = useRouter();
 
-  const {
-    visibleDataTypesByPropertyBaseUrl,
-    tableData,
-    loading: tableDataCalculating,
-  } = useEntitiesTable({
-    closedMultiEntityTypesRootMap,
-    createdByIds,
-    definitions,
-    editionCreatedByIds,
-    entities,
-    hasSomeLinks,
-    hideColumns,
-    hideArchivedColumn: !filterState.includeArchived,
-    hidePropertiesColumns,
-    subgraph,
-    typeIds,
-    typeTitles,
-    webIds,
+  const getOwnerForEntity = useGetOwnerForEntity();
+
+  const editorActorIds = useMemo(() => {
+    const editorIds = new Set<ActorEntityUuid>([
+      ...typedKeys(editionCreatedByIds ?? {}),
+      ...typedKeys(createdByIds ?? {}),
+    ]);
+
+    return [...editorIds];
+  }, [createdByIds, editionCreatedByIds]);
+
+  const { actors } = useActors({
+    accountIds: editorActorIds,
   });
+
+  const actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null> =
+    useMemo(() => {
+      if (!actors) {
+        return {};
+      }
+
+      const actorsByAccount: Record<ActorEntityUuid, MinimalActor | null> = {};
+
+      for (const actor of actors) {
+        actorsByAccount[actor.accountId] = actor;
+      }
+
+      return actorsByAccount;
+    }, [actors]);
+
+  const webNameByWebId = useMemo(() => {
+    if (!webIds) {
+      return {};
+    }
+
+    const webNameByOwner: Record<WebId, string> = {};
+
+    for (const webId of typedKeys(webIds)) {
+      const owner = getOwnerForEntity({ webId });
+      webNameByOwner[webId] = owner.shortname;
+    }
+
+    return webNameByOwner;
+  }, [getOwnerForEntity, webIds]);
+
+  const {
+    columns,
+    entityTypesWithMultipleVersionsPresent,
+    rows,
+    visibleDataTypeIdsByPropertyBaseUrl,
+  } = tableData ?? emptyTableData;
 
   const visibleDataTypeIds = useMemoCompare(
     () => {
       return Array.from(
         new Set(
-          Object.values(visibleDataTypesByPropertyBaseUrl).flatMap((types) =>
-            types.map((type) => type.schema.$id),
+          Object.values(visibleDataTypeIdsByPropertyBaseUrl).flatMap((types) =>
+            [...types].map((type) => type.schema.$id),
           ),
         ),
       );
     },
-    [visibleDataTypesByPropertyBaseUrl],
+    [visibleDataTypeIdsByPropertyBaseUrl],
     (oldValue, newValue) => {
       const oldSet = new Set(oldValue);
       const newSet = new Set(newValue);
@@ -254,8 +269,8 @@ export const EntitiesTable: FunctionComponent<
        *
        * A conversion target which isn't present for one of the dataTypeIds cannot be included.
        */
-      for (const [propertyBaseUrl, dataTypes] of typedEntries(
-        visibleDataTypesByPropertyBaseUrl,
+      for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
+        visibleDataTypeIdsByPropertyBaseUrl,
       )) {
         const targetsByTargetTypeId: Record<
           VersionedUrl,
@@ -325,21 +340,6 @@ export const EntitiesTable: FunctionComponent<
       }
     },
   });
-
-  useEffect(() => {
-    setLoading(tableDataCalculating);
-  }, [tableDataCalculating, setLoading]);
-
-  const {
-    columns,
-    rows,
-    filterData: {
-      createdByActors,
-      lastEditedByActors,
-      entityTypeFilters,
-      webs,
-    },
-  } = tableData ?? emptyTableData;
 
   // eslint-disable-next-line no-param-reassign
   currentlyDisplayedColumnsRef.current = columns;
@@ -462,7 +462,7 @@ export const EntitiesTable: FunctionComponent<
                     onClick: () => {
                       if (isViewingOnlyPages) {
                         void router.push(
-                          `/${row.web}/${extractEntityUuidFromEntityId(
+                          `/${row.webId}/${extractEntityUuidFromEntityId(
                             row.entityId,
                           )}`,
                         );
@@ -491,7 +491,9 @@ export const EntitiesTable: FunctionComponent<
                     ? { entityTypeIcon: value.icon }
                     : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
                   iconFill: theme.palette.blue[70],
-                  suffix: value.version
+                  suffix: entityTypesWithMultipleVersionsPresent.has(
+                    value.entityTypeId,
+                  )
                     ? `v${value.version.toString()}`
                     : undefined,
                   onClick: disableTypeClick
@@ -506,22 +508,24 @@ export const EntitiesTable: FunctionComponent<
                 variant: "outlined",
               } satisfies ChipCellProps,
             };
-          } else if (columnId === "web") {
-            const shortname = row[columnId];
+          } else if (columnId === "webId") {
+            const shortname = webNameByWebId[row.webId];
 
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
               cursor: "pointer",
-              copyData: shortname,
+              copyData: shortname ?? "",
               data: {
                 kind: "text-icon-cell",
                 icon: null,
-                value: shortname,
-                onClick: () => {
-                  void router.push(`/${shortname}`);
-                },
+                value: `@${shortname}`,
+                onClick: shortname
+                  ? () => {
+                      void router.push(`/@${shortname}`);
+                    }
+                  : undefined,
               },
             };
           } else if (
@@ -597,10 +601,14 @@ export const EntitiesTable: FunctionComponent<
               data: row.lastEdited,
             };
           } else {
-            const actor =
-              columnId === "lastEditedBy" ? row.lastEditedBy : row.createdBy;
+            const actorId =
+              columnId === "lastEditedById"
+                ? row.lastEditedById
+                : row.createdById;
 
-            if (actor === "loading") {
+            const actor = actorsByAccountId[actorId];
+
+            if (!actor) {
               return {
                 kind: GridCellKind.Text,
                 readonly: true,
@@ -610,30 +618,25 @@ export const EntitiesTable: FunctionComponent<
               };
             }
 
-            const actorName = actor ? actor.displayName : undefined;
-
-            const actorIcon = actor
-              ? ((actor.kind === "machine"
-                  ? isAiMachineActor(actor)
-                    ? "wandMagicSparklesRegular"
-                    : "hashSolid"
-                  : "userRegular") satisfies CustomIcon)
-              : undefined;
+            const actorIcon =
+              actor.kind === "machine"
+                ? isAiMachineActor(actor)
+                  ? "wandMagicSparklesRegular"
+                  : "hashSolid"
+                : ("userRegular" satisfies CustomIcon);
 
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(actorName),
+              copyData: String(actor.displayName),
               data: {
                 kind: "chip-cell",
-                chips: actorName
+                chips: actor.displayName
                   ? [
                       {
-                        text: actorName,
-                        icon: actorIcon
-                          ? { inbuiltIcon: actorIcon }
-                          : undefined,
+                        text: actor.displayName,
+                        icon: { inbuiltIcon: actorIcon },
                       },
                     ]
                   : [],
@@ -647,17 +650,90 @@ export const EntitiesTable: FunctionComponent<
         return blankCell;
       },
     [
+      actorsByAccountId,
       columns,
       definitions?.dataTypes,
       disableTypeClick,
+      entityTypesWithMultipleVersionsPresent,
       handleEntityClick,
       isViewingOnlyPages,
       router,
       setSelectedEntityType,
       theme.palette.blue,
       theme.palette.gray,
+      webNameByWebId,
     ],
   );
+
+  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } =
+    useMemo<{
+      createdByActors: ActorTableFilterData[];
+      lastEditedByActors: ActorTableFilterData[];
+      entityTypeFilters: EntityTypeTableFilterData[];
+      webs: WebTableFilterData[];
+    }>(() => {
+      const createdBy: ActorTableFilterData[] = [];
+      for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
+        const actor = actorsByAccountId[actorId];
+        createdBy.push({
+          actorId,
+          count,
+          displayName: actor?.displayName ?? actorId,
+        });
+      }
+
+      const editedBy: ActorTableFilterData[] = [];
+      for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
+        const actor = actorsByAccountId[actorId];
+        editedBy.push({
+          actorId,
+          count,
+          displayName: actor?.displayName ?? actorId,
+        });
+      }
+
+      const types: EntityTypeTableFilterData[] = [];
+      for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
+        const title = typeTitles?.[entityTypeId];
+
+        if (!title) {
+          throw new Error(
+            `Could not find title for entity type ${entityTypeId}`,
+          );
+        }
+
+        types.push({
+          count,
+          entityTypeId,
+          title,
+        });
+      }
+
+      const webCounts: WebTableFilterData[] = [];
+      for (const [webId, count] of typedEntries(webIds ?? {})) {
+        const webname = webNameByWebId[webId] ?? webId;
+        webCounts.push({
+          count,
+          shortname: `@${webname}`,
+          webId,
+        });
+      }
+
+      return {
+        createdByActors: createdBy,
+        entityTypeFilters: types,
+        lastEditedByActors: editedBy,
+        webs: webCounts,
+      };
+    }, [
+      actorsByAccountId,
+      createdByIds,
+      editionCreatedByIds,
+      typeIds,
+      typeTitles,
+      webIds,
+      webNameByWebId,
+    ]);
 
   const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<
     Set<string>
@@ -704,11 +780,12 @@ export const EntitiesTable: FunctionComponent<
   >(
     () => [
       {
-        columnKey: "web",
-        filterItems: webs.map(({ shortname, webId, count }) => ({
+        columnKey: "webId",
+        filterItems: webs.map(({ shortname, webId, count: _count }) => ({
           id: webId,
           label: shortname,
-          count,
+          // @todo H-3841 –- rethink filtering
+          // count,
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
@@ -718,11 +795,16 @@ export const EntitiesTable: FunctionComponent<
       {
         columnKey: "entityTypes",
         filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count, title, version }) => ({
+          ({ entityTypeId, count: _count, title }) => ({
             id: entityTypeId,
             label: title,
-            count,
-            labelSuffix: version ? `v${version.toString()}` : undefined,
+            // @todo H-3841 –- rethink filtering
+            // count,
+            labelSuffix: entityTypesWithMultipleVersionsPresent.has(
+              entityTypeId,
+            )
+              ? `v${extractVersion(entityTypeId).toString()}`
+              : undefined,
           }),
         ),
         selectedFilterItemIds: selectedEntityTypeIds,
@@ -734,7 +816,7 @@ export const EntitiesTable: FunctionComponent<
         },
       },
       {
-        columnKey: "lastEditedBy",
+        columnKey: "lastEditedById",
         filterItems: lastEditedByActors.map((actor) => ({
           id: actor.actorId,
           label: actor.displayName ?? "Unknown Actor",
@@ -742,12 +824,12 @@ export const EntitiesTable: FunctionComponent<
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
         isRowFiltered: (row) =>
-          row.lastEditedBy && row.lastEditedBy !== "loading"
-            ? !selectedLastEditedByAccountIds.has(row.lastEditedBy.accountId)
+          row.lastEditedById && row.lastEditedById !== "loading"
+            ? !selectedLastEditedByAccountIds.has(row.lastEditedById)
             : false,
       },
       {
-        columnKey: "createdBy",
+        columnKey: "createdById",
         filterItems: createdByActors.map((actor) => ({
           id: actor.actorId,
           label: actor.displayName ?? "Unknown Actor",
@@ -755,14 +837,15 @@ export const EntitiesTable: FunctionComponent<
         selectedFilterItemIds: selectedCreatedByAccountIds,
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
         isRowFiltered: (row) =>
-          row.createdBy && row.createdBy !== "loading"
-            ? !selectedCreatedByAccountIds.has(row.createdBy.accountId)
+          row.createdById && row.createdById !== "loading"
+            ? !selectedCreatedByAccountIds.has(row.createdById)
             : false,
       },
     ],
     [
       createdByActors,
       entityTypeFilters,
+      entityTypesWithMultipleVersionsPresent,
       lastEditedByActors,
       selectedEntityTypeIds,
       selectedCreatedByAccountIds,
@@ -848,26 +931,36 @@ export const EntitiesTable: FunctionComponent<
     [conversionTargetsByColumnKey, setSort],
   );
 
-  if (!tableData && (entityDataLoading || tableDataCalculating)) {
-    return (
-      <Stack
-        alignItems="center"
-        justifyContent="center"
-        sx={[
-          {
-            height: maxHeight,
-            width: "100%",
-          },
-          tableContentSx,
-        ]}
-      >
-        <Box>{loadingComponent}</Box>
-      </Stack>
-    );
-  }
+  const [
+    { horizontalScrollbarHeight, verticalScrollbarWidth },
+    setScrollbarSizes,
+  ] = useState({
+    horizontalScrollbarHeight: 0,
+    verticalScrollbarWidth: 0,
+  });
+
+  useEffect(() => {
+    const gridEl = document.querySelector<HTMLElement>(".dvn-scroller");
+
+    if (!gridEl) {
+      return;
+    }
+
+    const scrollbarHeight = gridEl.offsetHeight - gridEl.clientHeight;
+    const scrollbarWidth = gridEl.offsetWidth - gridEl.clientWidth;
+
+    setScrollbarSizes({
+      horizontalScrollbarHeight: scrollbarHeight,
+      verticalScrollbarWidth: scrollbarWidth,
+    });
+  }, [rows.length]);
+
+  const hasMoreRowsAvailable =
+    totalResultCount && totalResultCount > rows.length;
+  const loadMoreRowHeight = 60;
 
   return (
-    <Stack gap={1}>
+    <Stack gap={1} sx={{ position: "relative" }}>
       <Grid
         activeConversions={activeConversions}
         columnFilters={columnFilters}
@@ -878,6 +971,9 @@ export const EntitiesTable: FunctionComponent<
         customRenderers={customRenderers}
         dataLoading={false}
         enableCheckboxSelection={!readonly}
+        experimental={{
+          paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
+        }}
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
         height={`min(${maxHeight}, 600px)`}
@@ -893,35 +989,77 @@ export const EntitiesTable: FunctionComponent<
         sort={sort}
         setSort={setSortWithConversion}
       />
-      {/* @todo H-3255 Enable pagination when performance improvements are implemented */}
 
-      {/*
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
+      {hasMoreRowsAvailable && (
         <Stack
-          direction="row"
           alignItems="center"
-          justifyContent="flex-start"
-          gap={2}
+          justifyContent="center"
+          mt={1}
+          sx={({ palette }) => ({
+            background: palette.common.white,
+            borderTop: `1px solid ${palette.gray[20]}`,
+            height: loadMoreRowHeight,
+            position: "absolute",
+            bottom: horizontalScrollbarHeight,
+            p: 1,
+            width: `calc(100% - ${verticalScrollbarWidth}px)`,
+          })}
         >
-          <Select
-            value={limit.toString()}
-            onChange={(event) => setLimit(parseInt(event.target.value, 10))}
-            sx={{ width: 100 }}
+          <Button
+            component="button"
+            onClick={loadMoreRows}
+            disabled={entityDataLoading}
+            size="small"
+            sx={({ palette }) => ({
+              background: palette.gray[10],
+              color: palette.gray[70],
+              fontSize: 14,
+              fontWeight: 500,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              "::before": {
+                background: "none",
+              },
+              "&:hover": {
+                background: palette.gray[15],
+                "::before": {
+                  background: "none",
+                },
+              },
+            })}
           >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-            <MenuItem value={100}>100</MenuItem>
-            <MenuItem value={500}>500</MenuItem>
-          </Select>
-          {(entityDataLoading || tableDataCalculating) && (
-            <LoadingSpinner size={28} color={theme.palette.blue[60]} />
-          )}
+            {entityDataLoading ? (
+              <>
+                <Box component="span" mr={1}>
+                  Loading...
+                </Box>
+                <LoadingSpinner size={16} color={theme.palette.gray[60]} />
+              </>
+            ) : (
+              <>
+                Show more entities
+                <Box
+                  component="span"
+                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
+                >
+                  - {formatNumber(totalResultCount - rows.length)} remaining
+                </Box>
+                <ArrowDownRegularIcon
+                  sx={{
+                    fontSize: 11,
+                    ml: 0.8,
+                    position: "relative",
+                    top: 1,
+                    color: ({ palette }) => palette.gray[50],
+                  }}
+                />
+              </>
+            )}
+          </Button>
         </Stack>
-        <IconButton onClick={goToNextPage} disabled={!goToNextPage}>
-          <ArrowRightRegularIcon />
-        </IconButton>
-      </Stack>
-      */}
+      )}
     </Stack>
   );
 };
