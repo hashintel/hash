@@ -15,7 +15,7 @@
       "type": "generate-users",
       "id": "generated-users",
       "configRef": "users/basic",
-      "count": 10
+      "count": 1
     },
     {
       "type": "persist-users",
@@ -150,13 +150,34 @@
         "entityTypeCatalog": "non-link-types",
         "entityObjectRegistry": "entity-object-registry"
       },
-      "count": 10000
+      "count": 1000
     },
     {
       "type": "persist-entities",
       "id": "persist-entities",
       "inputs": {
         "entities": ["entities"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "generate-entities",
+      "id": "link-entities",
+      "configRef": "entities/basic",
+      "inputs": {
+        "userCatalog": "all-users",
+        "entityTypeCatalog": "link-types",
+        "sourceLinkTypeCatalog": "non-link-types",
+        "entityObjectRegistry": "entity-object-registry",
+        "entityCatalog": "persist-entities"
+      },
+      "count": 100
+    },
+    {
+      "type": "persist-entities",
+      "id": "persist-link-entities",
+      "inputs": {
+        "entities": ["link-entities"],
         "webToUser": ["generated-users"]
       }
     }

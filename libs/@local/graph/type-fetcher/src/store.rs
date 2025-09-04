@@ -540,7 +540,7 @@ where
         Ok(references)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_type_references))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type_references, bypassed_types))]
     #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
@@ -669,7 +669,7 @@ where
         Ok(fetched_ontology_types)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_types))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: ActorEntityUuid,

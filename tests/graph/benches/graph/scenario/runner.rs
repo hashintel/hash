@@ -22,10 +22,6 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_telemetry::{
-    OtlpConfig, TelemetryRegistry,
-    logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
-};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
@@ -35,6 +31,7 @@ use type_system::ontology::json_schema::DomainValidator;
 use super::stages::{
     Stage,
     data_type::InMemoryDataTypeCatalog,
+    entity::InMemoryEntityCatalog,
     entity_type::{InMemoryEntityObjectRegistry, InMemoryEntityTypeCatalog},
     property_type::InMemoryPropertyTypeCatalog,
     web_catalog::InMemoryWebCatalog,
@@ -94,7 +91,7 @@ pub fn run_scenario_file<M: Measurement>(
     run_scenario(&scenario, &name, runtime, benchmark_group);
 }
 
-#[tracing::instrument(level = "debug", skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
+#[tracing::instrument(level = "warn", skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
 pub fn run_scenario<M: Measurement>(
     scenario: &Scenario,
     name: &str,
@@ -103,24 +100,6 @@ pub fn run_scenario<M: Measurement>(
 ) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
     {
-        let _telemetry_guard = TelemetryRegistry::default()
-            .with_error_layer()
-            .with_console_logging(ConsoleConfig {
-                enabled: true,
-                format: LogFormat::Pretty,
-                level: None,
-                color: ColorOption::Auto,
-                stream: ConsoleStream::Stderr,
-            })
-            .with_otlp(
-                OtlpConfig {
-                    endpoint: Some("http://localhost:4317".to_owned()),
-                },
-                "Graph Benches",
-            )
-            .init()
-            .expect("Failed to initialize tracing");
-
         for stage in &scenario.setup {
             let value = runtime
                 .block_on(stage.execute(&mut runner))
@@ -170,6 +149,7 @@ pub struct Resources {
     pub entity_types: HashMap<String, Vec<CreateEntityTypeParams>>,
     pub entity_type_catalogs: HashMap<String, InMemoryEntityTypeCatalog>,
     pub entity_object_catalogs: HashMap<String, InMemoryEntityObjectRegistry>,
+    pub entity_catalogs: HashMap<String, InMemoryEntityCatalog>,
     pub entities: HashMap<String, Vec<CreateEntityParams>>,
 }
 
@@ -230,7 +210,10 @@ impl Runner {
             &conn_info,
             &DatabasePoolConfig::default(),
             NoTls,
-            PostgresStoreSettings::default(),
+            PostgresStoreSettings {
+                validate_links: true,
+                skip_embedding_creation: true,
+            },
         )
         .await
         .change_context(ScenarioError::Db)?;

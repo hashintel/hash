@@ -8,7 +8,6 @@ use hash_graph_test_data::seeding::{
     context::StageId,
     producer::data_type::{DataTypeCatalog, DataTypeProducerDeps},
 };
-use rand::{Rng, seq::IndexedRandom as _};
 use type_system::{
     ontology::data_type::schema::DataTypeReference,
     principal::{actor::ActorEntityUuid, actor_group::WebId},
@@ -261,13 +260,6 @@ impl InMemoryDataTypeCatalog {
 impl DataTypeCatalog for InMemoryDataTypeCatalog {
     fn data_type_references(&self) -> &[DataTypeReference] {
         &self.data_types
-    }
-
-    fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
-        // Uniform selection from available data types using SliceRandom::choose
-        self.data_types
-            .choose(rng)
-            .unwrap_or_else(|| unreachable!("catalog should not be empty"))
     }
 }
 
