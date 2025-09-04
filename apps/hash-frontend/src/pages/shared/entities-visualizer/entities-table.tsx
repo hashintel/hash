@@ -25,7 +25,7 @@ import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, Stack, Typography, useTheme } from "@mui/material";
+import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import type {
   Dispatch,
@@ -100,7 +100,6 @@ export const EntitiesTable: FunctionComponent<
     | "createdByIds"
     | "definitions"
     | "editionCreatedByIds"
-    | "entities"
     | "subgraph"
     | "typeIds"
     | "typeTitles"
@@ -148,7 +147,6 @@ export const EntitiesTable: FunctionComponent<
   definitions,
   disableTypeClick,
   editionCreatedByIds,
-  entities,
   handleEntityClick,
   loading: entityDataLoading,
   isViewingOnlyPages,
@@ -933,8 +931,36 @@ export const EntitiesTable: FunctionComponent<
     [conversionTargetsByColumnKey, setSort],
   );
 
+  const [
+    { horizontalScrollbarHeight, verticalScrollbarWidth },
+    setScrollbarSizes,
+  ] = useState({
+    horizontalScrollbarHeight: 0,
+    verticalScrollbarWidth: 0,
+  });
+
+  useEffect(() => {
+    const gridEl = document.querySelector<HTMLElement>(".dvn-scroller");
+
+    if (!gridEl) {
+      return;
+    }
+
+    const scrollbarHeight = gridEl.offsetHeight - gridEl.clientHeight;
+    const scrollbarWidth = gridEl.offsetWidth - gridEl.clientWidth;
+
+    setScrollbarSizes({
+      horizontalScrollbarHeight: scrollbarHeight,
+      verticalScrollbarWidth: scrollbarWidth,
+    });
+  }, [rows.length]);
+
+  const hasMoreRowsAvailable =
+    totalResultCount && totalResultCount > rows.length;
+  const loadMoreRowHeight = 60;
+
   return (
-    <Stack gap={1}>
+    <Stack gap={1} sx={{ position: "relative" }}>
       <Grid
         activeConversions={activeConversions}
         columnFilters={columnFilters}
@@ -945,6 +971,9 @@ export const EntitiesTable: FunctionComponent<
         customRenderers={customRenderers}
         dataLoading={false}
         enableCheckboxSelection={!readonly}
+        experimental={{
+          paddingBottom: hasMoreRowsAvailable ? loadMoreRowHeight : 0,
+        }}
         firstColumnLeftPadding={firstColumnLeftPadding}
         freezeColumns={1}
         height={`min(${maxHeight}, 600px)`}
@@ -961,46 +990,74 @@ export const EntitiesTable: FunctionComponent<
         setSort={setSortWithConversion}
       />
 
-      {totalResultCount !== null && (
+      {hasMoreRowsAvailable && (
         <Stack
-          direction="row"
           alignItems="center"
-          justifyContent="space-between"
+          justifyContent="center"
           mt={1}
+          sx={({ palette }) => ({
+            background: palette.common.white,
+            borderTop: `1px solid ${palette.gray[20]}`,
+            height: loadMoreRowHeight,
+            position: "absolute",
+            bottom: horizontalScrollbarHeight,
+            p: 1,
+            width: `calc(100% - ${verticalScrollbarWidth}px)`,
+          })}
         >
-          <Box>
-            {entities !== undefined && (
-              <Typography
-                variant="smallTextParagraphs"
-                sx={{ color: theme.palette.gray[60] }}
-              >
-                Viewing <strong>{formatNumber(rows.length)}</strong> of{" "}
-                <strong>{formatNumber(totalResultCount)}</strong> entities
-              </Typography>
+          <Button
+            component="button"
+            onClick={loadMoreRows}
+            disabled={entityDataLoading}
+            size="small"
+            sx={({ palette }) => ({
+              background: palette.gray[10],
+              color: palette.gray[70],
+              fontSize: 14,
+              fontWeight: 500,
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              "::before": {
+                background: "none",
+              },
+              "&:hover": {
+                background: palette.gray[15],
+                "::before": {
+                  background: "none",
+                },
+              },
+            })}
+          >
+            {entityDataLoading ? (
+              <>
+                <Box component="span" mr={1}>
+                  Loading...
+                </Box>
+                <LoadingSpinner size={16} color={theme.palette.gray[60]} />
+              </>
+            ) : (
+              <>
+                Show more entities
+                <Box
+                  component="span"
+                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
+                >
+                  - {formatNumber(totalResultCount - rows.length)} remaining
+                </Box>
+                <ArrowDownRegularIcon
+                  sx={{
+                    fontSize: 11,
+                    ml: 0.8,
+                    position: "relative",
+                    top: 1,
+                    color: ({ palette }) => palette.gray[50],
+                  }}
+                />
+              </>
             )}
-          </Box>
-          {totalResultCount > rows.length && (
-            <Button
-              onClick={loadMoreRows}
-              disabled={entityDataLoading}
-              size="small"
-              sx={{ width: 160 }}
-            >
-              {entityDataLoading ? (
-                <>
-                  <Box component="span" mr={1}>
-                    Loading...
-                  </Box>
-                  <LoadingSpinner size={16} color={theme.palette.blue[60]} />
-                </>
-              ) : (
-                <>
-                  Load more
-                  <ArrowDownRegularIcon sx={{ fontSize: 14, ml: 1 }} />
-                </>
-              )}
-            </Button>
-          )}
+          </Button>
         </Stack>
       )}
     </Stack>

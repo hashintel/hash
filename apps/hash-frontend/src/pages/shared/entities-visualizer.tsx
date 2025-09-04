@@ -487,8 +487,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight =
     maxHeight ??
     `min(600px, calc(100vh - (${
-      // The magic number accounts for the page header and the pagination controls
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 290 + tableHeaderHeight
+      // The magic number accounts for the page header
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + tableHeaderHeight
     }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
 
   const isPrimaryEntity = useCallback(
@@ -599,7 +599,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           definitions={definitions}
           editionCreatedByIds={editionCreatedByIds}
-          entities={entities}
           handleEntityClick={handleEntityClick}
           loading={dataLoading}
           isViewingOnlyPages={isViewingOnlyPages}
