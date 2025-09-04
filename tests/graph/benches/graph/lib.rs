@@ -76,6 +76,25 @@ fn scenarios(criterion: &mut Criterion) {
     let runtime = tokio::runtime::Runtime::new().expect("Should be able to create runtime");
 
     let _runtime_enter = runtime.enter();
+
+    let _telemetry_guard = TelemetryRegistry::default()
+        .with_error_layer()
+        .with_console_logging(ConsoleConfig {
+            enabled: true,
+            format: LogFormat::Pretty,
+            level: None,
+            color: ColorOption::Auto,
+            stream: ConsoleStream::Stderr,
+        })
+        .with_otlp(
+            OtlpConfig {
+                endpoint: Some("http://localhost:4317".to_owned()),
+            },
+            "Graph Benches",
+        )
+        .init_global()
+        .expect("Failed to initialize tracing");
+
     // TODO: Add resource usage monitoring (memory, CPU, database metrics) during benchmarks
     //   see https://linear.app/hashintel/issue/BE-32
 

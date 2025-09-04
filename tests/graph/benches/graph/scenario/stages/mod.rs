@@ -58,6 +58,7 @@ pub enum Stage {
 }
 
 impl Stage {
+    #[tracing::instrument(skip(self, runner), fields(stage_id = %self.id(), otel.name = format!("execute({})", self.id())))]
     pub async fn execute(&self, runner: &mut Runner) -> Result<JsonValue, Report<StageError>> {
         match self {
             Self::ResetDb(stage) => stage
