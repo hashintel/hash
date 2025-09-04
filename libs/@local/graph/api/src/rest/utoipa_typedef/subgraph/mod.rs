@@ -18,7 +18,7 @@ pub(crate) use self::{
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Subgraph {
+pub struct Subgraph {
     roots: Vec<GraphElementVertexId>,
     vertices: Vertices,
     edges: Edges,
@@ -27,6 +27,7 @@ pub(crate) struct Subgraph {
 }
 
 impl From<hash_graph_store::subgraph::Subgraph> for Subgraph {
+    #[tracing::instrument(name = "convert_subgraph", level = "info", skip_all)]
     fn from(subgraph: hash_graph_store::subgraph::Subgraph) -> Self {
         Self {
             roots: subgraph.roots,

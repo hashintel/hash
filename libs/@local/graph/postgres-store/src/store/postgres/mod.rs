@@ -1196,7 +1196,7 @@ where
         Ok(status)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn determine_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
@@ -1234,7 +1234,7 @@ where
         }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, context_builder))]
+    #[tracing::instrument(level = "debug", skip(self, context_builder))]
     async fn build_principal_context(
         &self,
         actor_id: ActorId,
@@ -1615,8 +1615,7 @@ where
         // the actions for each policy. All actions are included, but the action hierarchy is used
         // to determine which actions are relevant to the actor.
 
-        self
-            .as_client()
+        self.as_client()
             .query_raw(
                 "
                 WITH principals AS (
@@ -1703,19 +1702,11 @@ where
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
-            .map_ok( |row| {
-                let _span = tracing::info_span!(
-                    "filtered_policy_conversion",
-                    original_policy_id = ?row.get::<_, PolicyId>(0),
-                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(2).is_some()
-                ).entered();
-
-                ResolvedPolicy {
-                    original_policy_id: row.get(0),
-                    effect: row.get(1),
-                    actions: row.get(3),
-                    resource: row.get::<_, Option<Json<_>>>(2).map(|json| json.0),
-                }
+            .map_ok(|row| ResolvedPolicy {
+                original_policy_id: row.get(0),
+                effect: row.get(1),
+                actions: row.get(3),
+                resource: row.get::<_, Option<Json<_>>>(2).map(|json| json.0),
             })
             .try_collect::<Vec<_>>()
             .instrument(tracing::info_span!("policy_result_collection"))

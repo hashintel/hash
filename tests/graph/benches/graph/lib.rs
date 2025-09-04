@@ -34,6 +34,8 @@ use hash_telemetry::{
     OtlpConfig, TelemetryRegistry,
     logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
 };
+use pyroscope::PyroscopeAgent;
+use pyroscope_pprofrs::{PprofConfig, pprof_backend};
 
 use self::scenario::run_scenario_file;
 
@@ -95,6 +97,24 @@ fn scenarios(criterion: &mut Criterion) {
         .init_global()
         .expect("Failed to initialize tracing");
 
+    let agent = PyroscopeAgent::builder("http://localhost:4040", "hash-graph-benchmarks")
+        .backend(pprof_backend(
+            PprofConfig::new()
+                .sample_rate(100)
+                .report_thread_id()
+                .report_thread_name(),
+        ))
+        .application_name("graph-benches")
+        .tags(vec![("component", "graph-benchmarks")])
+        .build()
+        .expect("Should be able to build Pyroscope agent");
+
+    let agent_running = agent
+        .start()
+        .expect("Should be able to start Pyroscope agent");
+
+    let (add_tag, remove_tag) = agent_running.tag_wrapper();
+
     // TODO: Add resource usage monitoring (memory, CPU, database metrics) during benchmarks
     //   see https://linear.app/hashintel/issue/BE-32
 
@@ -106,6 +126,7 @@ fn scenarios(criterion: &mut Criterion) {
     .expect("Should be able to read scenarios");
 
     let mut group = criterion.benchmark_group("scenarios");
+    // group.sample_size(10);
     for entry in dir_entries {
         let entry = entry.expect("Should be able to read scenario path");
         if entry
@@ -116,6 +137,26 @@ fn scenarios(criterion: &mut Criterion) {
             continue;
         }
 
-        run_scenario_file(entry.path(), &runtime, &mut group);
+        let path = entry.path();
+        let scenario = path
+            .file_stem()
+            .expect("Should be able to read scenario name")
+            .to_string_lossy();
+
+        if scenario != "linked_queries" {
+            continue;
+        }
+
+        let scenario_name = scenario.clone().into_owned();
+        add_tag("scenario".to_owned(), scenario_name.clone()).expect("Should be able to add tag");
+
+        run_scenario_file(&path, &runtime, &mut group, &agent_running);
+
+        remove_tag("scenario".to_owned(), scenario_name).expect("Should be able to remove tag");
     }
+
+    agent_running
+        .stop()
+        .expect("Should be able to stop agent")
+        .shutdown();
 }

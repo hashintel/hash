@@ -406,7 +406,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// # Errors
     ///
     /// Returns an error if the filter compilation fails.
-    #[instrument(level = "info", skip_all)]
+    #[instrument(level = "trace", skip_all)]
     pub fn add_filter<'f: 'q>(
         &mut self,
         filter: &'p Filter<'f, R>,
@@ -421,7 +421,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    #[instrument(level = "info", skip_all)]
+    #[instrument(level = "debug", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
             self.statement.transpile_to_string(),

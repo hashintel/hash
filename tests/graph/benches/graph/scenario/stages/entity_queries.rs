@@ -2,10 +2,13 @@ use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
-    entity::{EntityQuerySorting, EntityStore as _, GetEntitiesParams},
+    entity::{
+        EntityQueryCursor, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
+        GetEntitySubgraphParams,
+    },
     filter::Filter,
     pool::StorePool as _,
-    subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use hash_graph_test_data::seeding::producer::ontology::WebCatalog as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -31,6 +34,7 @@ impl Error for QueryEntitiesError {}
 pub struct QueryEntitiesInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
+    pub resolve_depths: Option<GraphResolveDepths>,
     pub limit: Option<usize>,
 }
 
@@ -46,8 +50,19 @@ pub struct QueryEntitiesByUserStage {
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryEntitiesByUserResult {
-    pub num_entities: usize,
+    pub entities: usize,
     pub actor: Option<ActorId>,
+    #[serde(flatten)]
+    pub subgraph: Option<EntitySubgraphInfo>,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntitySubgraphInfo {
+    roots: usize,
+    entity_types: usize,
+    property_types: usize,
+    data_types: usize,
 }
 
 impl QueryEntitiesByUserStage {
@@ -102,36 +117,101 @@ impl QueryEntitiesByUserStage {
             .await
             .change_context(QueryEntitiesError::Acquire)?;
 
-        let entities = store
-            .get_entities(
-                actor_uuid,
-                GetEntitiesParams {
-                    filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::default(),
-                    sorting: EntityQuerySorting {
-                        cursor: None,
-                        paths: Vec::new(),
+        if let Some(graph_resolve_depths) = self.inputs.resolve_depths {
+            let response: hash_graph_store::entity::GetEntitySubgraphResponse<'static> = store
+                .get_entity_subgraph(
+                    actor_uuid,
+                    GetEntitySubgraphParams {
+                        filter: Filter::All(Vec::new()),
+                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        graph_resolve_depths,
+                        sorting: EntityQuerySorting {
+                            cursor: None,
+                            paths: Vec::new(),
+                        },
+                        conversions: Vec::new(),
+                        limit: self.inputs.limit,
+                        include_drafts: false,
+                        include_count: false,
+                        include_entity_types: None,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    conversions: Vec::new(),
-                    limit: self.inputs.limit,
-                    include_drafts: false,
-                    include_count: false,
-                    include_entity_types: None,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
-                },
-            )
-            .await
-            .change_context(QueryEntitiesError::Query)?;
+                )
+                .await
+                .change_context(QueryEntitiesError::Query)?;
 
-        drop(store);
+            drop(store);
 
-        Ok(QueryEntitiesByUserResult {
-            num_entities: entities.entities.len(),
-            actor,
-        })
+            let query_result = QueryEntitiesByUserResult {
+                actor,
+                entities: response.subgraph.vertices.entities.len(),
+                subgraph: Some(EntitySubgraphInfo {
+                    roots: response.subgraph.roots.len(),
+                    entity_types: response.subgraph.vertices.entity_types.len(),
+                    property_types: response.subgraph.vertices.property_types.len(),
+                    data_types: response.subgraph.vertices.data_types.len(),
+                }),
+            };
+
+            let response = hash_graph_api::rest::entity::GetEntitySubgraphResponse {
+                subgraph: response.subgraph.into(),
+                cursor: response.cursor.map(EntityQueryCursor::into_owned),
+                count: response.count,
+                closed_multi_entity_types: response.closed_multi_entity_types,
+                definitions: response.definitions,
+                web_ids: response.web_ids,
+                created_by_ids: response.created_by_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
+                type_ids: response.type_ids,
+                type_titles: response.type_titles,
+            };
+
+            let response_json =
+                serde_json::to_vec(&response).expect("Failed to serialize response");
+            core::hint::black_box(response_json);
+
+            Ok(query_result)
+        } else {
+            let response = store
+                .get_entities(
+                    actor_uuid,
+                    GetEntitiesParams {
+                        filter: Filter::All(Vec::new()),
+                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        sorting: EntityQuerySorting {
+                            cursor: None,
+                            paths: Vec::new(),
+                        },
+                        conversions: Vec::new(),
+                        limit: self.inputs.limit,
+                        include_drafts: false,
+                        include_count: false,
+                        include_entity_types: None,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
+                    },
+                )
+                .await
+                .change_context(QueryEntitiesError::Query)?;
+
+            drop(store);
+
+            core::hint::black_box(
+                serde_json::to_vec(&response).expect("Failed to serialize response"),
+            );
+
+            Ok(QueryEntitiesByUserResult {
+                actor,
+                entities: response.entities.len(),
+                subgraph: None,
+            })
+        }
     }
 }

@@ -5,7 +5,9 @@ use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
-use futures::{StreamExt as _, TryStreamExt as _, stream};
+use futures::{
+    FutureExt, StreamExt as _, TryFutureExt, TryStreamExt as _, future::try_join_all, stream,
+};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
@@ -246,36 +248,45 @@ where
                 );
             }
 
-            for (edge_kind, edge_direction, table) in entity_edges {
-                if let Some(traversal_data) =
-                    knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
-                {
-                    let knowledge_edges = self
-                        .read_knowledge_edges(traversal_data, table, edge_direction, provider)
-                        .await?;
-                    let _entered = process_traversal_edges_span.enter();
-                    entity_queue.extend(knowledge_edges.flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            edge_kind,
-                            edge_direction,
-                            EntityIdWithInterval {
-                                entity_id: edge.right_endpoint.base_id,
-                                interval: edge.edge_interval,
-                            },
-                        );
-
-                        traversal_context
-                            .add_entity_id(
-                                edge.right_endpoint_edition_id,
-                                edge.resolve_depths,
-                                edge.traversal_interval,
+            let traversed_edges = try_join_all(entity_edges.into_iter().filter_map(
+                |(edge_kind, edge_direction, table)| {
+                    knowledge_edges_to_traverse
+                        .get(&(edge_kind, edge_direction))
+                        .map(|traversal_data| {
+                            self.read_knowledge_edges(
+                                traversal_data,
+                                table,
+                                edge_direction,
+                                provider,
                             )
-                            .map(move |(_, resolve_depths, interval)| {
-                                (edge.right_endpoint, resolve_depths, interval)
-                            })
-                    }));
-                }
+                            .map_ok(move |edges| (edges, edge_kind, edge_direction))
+                        })
+                },
+            ))
+            .await?;
+
+            for (knowledge_edges, edge_kind, edge_direction) in traversed_edges {
+                entity_queue.extend(knowledge_edges.flat_map(|edge| {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        edge_direction,
+                        EntityIdWithInterval {
+                            entity_id: edge.right_endpoint.base_id,
+                            interval: edge.edge_interval,
+                        },
+                    );
+
+                    traversal_context
+                        .add_entity_id(
+                            edge.right_endpoint_edition_id,
+                            edge.resolve_depths,
+                            edge.traversal_interval,
+                        )
+                        .map(move |(_, resolve_depths, interval)| {
+                            (edge.right_endpoint, resolve_depths, interval)
+                        })
+                }));
             }
         }
 

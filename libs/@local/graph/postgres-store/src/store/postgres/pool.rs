@@ -29,7 +29,7 @@ impl PostgresStorePool {
     /// # Errors
     ///
     /// - if creating a connection returns an error.
-    #[tracing::instrument(skip(tls))]
+    #[tracing::instrument(level = "debug", skip(tls))]
     pub async fn new<Tls>(
         db_info: &DatabaseConnectionInfo,
         pool_config: &DatabasePoolConfig,

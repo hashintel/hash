@@ -200,15 +200,15 @@ where
             }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, provider))]
+    #[tracing::instrument(level = "info", skip(self, traversal_data, provider))]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges<'t>(
+    pub(crate) async fn read_knowledge_edges(
         &self,
-        traversal_data: &'t EntityEdgeTraversalData,
+        traversal_data: &EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
         provider: &StoreProvider<'_, Self>,
-    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, Report<QueryError>> {
+    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + use<C>, Report<QueryError>> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -328,7 +328,6 @@ where
                 )
             })
             .try_collect::<(Vec<_>, Vec<_>)>()
-            .instrument(tracing::trace_span!("collect_edges"))
             .await
             .change_context(QueryError)?;
 
@@ -384,12 +383,10 @@ where
                             peer.service = "Postgres",
                             db.query.text = statement,
                         ))
-                        .instrument(tracing::trace_span!("query_permitted_entity_edition_ids"))
                         .await
                         .change_context(QueryError)?
                         .map_ok(|row| row.get::<_, EntityEditionId>(edition_id_idx))
                         .try_collect::<HashSet<_>>()
-                        .instrument(tracing::trace_span!("collect_permitted_entity_edition_ids"))
                         .await
                         .change_context(QueryError)?,
                 )

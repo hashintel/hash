@@ -681,32 +681,32 @@ impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySub
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntitySubgraphResponse<'r> {
-    subgraph: Subgraph,
+pub struct GetEntitySubgraphResponse<'r> {
+    pub subgraph: Subgraph,
     #[serde(borrow)]
-    cursor: Option<EntityQueryCursor<'r>>,
-    count: Option<usize>,
+    pub cursor: Option<EntityQueryCursor<'r>>,
+    pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
+    pub closed_multi_entity_types: Option<HashMap<VersionedUrl, ClosedMultiEntityTypeMap>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    definitions: Option<EntityTypeResolveDefinitions>,
+    pub definitions: Option<EntityTypeResolveDefinitions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    web_ids: Option<HashMap<WebId, usize>>,
+    pub web_ids: Option<HashMap<WebId, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    pub created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
+    pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    type_ids: Option<HashMap<VersionedUrl, usize>>,
+    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    type_titles: Option<HashMap<VersionedUrl, String>>,
+    pub type_titles: Option<HashMap<VersionedUrl, String>>,
 }
 
 #[utoipa::path(

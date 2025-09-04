@@ -96,7 +96,7 @@ impl PolicyComponents {
     /// This method returns an iterator of `(Effect, Option<&ResourceConstraint>)` tuples
     /// that can be used directly with filter creation methods. This encapsulates the
     /// extraction logic and provides a clean interface for filter optimization.
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn extract_filter_policies(
         &self,
         action: ActionName,
@@ -168,7 +168,7 @@ impl PolicyComponents {
     /// Currently detects:
     /// - Multiple exact entity permits that can be converted to IN clauses
     /// - Multiple web resource permits that can be converted to IN clauses
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn analyze_optimization_opportunities(&mut self, action: ActionName) {
         let mut entity_uuids_set = HashSet::new();
         let mut ontology_type_uuids_set = HashSet::new();
@@ -262,7 +262,7 @@ impl PolicyComponents {
     /// # Errors
     ///
     /// Returns error if policy set creation fails or if optimization has occurred.
-    #[tracing::instrument(level = "info", skip(self, actions))]
+    #[tracing::instrument(level = "debug", skip(self, actions))]
     pub fn build_policy_set(
         &self,
         actions: impl IntoIterator<Item = ActionName>,
@@ -568,7 +568,7 @@ where
 
     type IntoFuture = impl Future<Output = Self::Output> + Send;
 
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(name = "build_policy_components", level = "info", skip(self))]
     fn into_future(mut self) -> Self::IntoFuture {
         async move {
             let actor_id = match self.actor {

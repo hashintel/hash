@@ -150,7 +150,7 @@
         "entityTypeCatalog": "non-link-types",
         "entityObjectRegistry": "entity-object-registry"
       },
-      "count": 1000
+      "count": 500
     },
     {
       "type": "persist-entities",
@@ -171,7 +171,7 @@
         "entityObjectRegistry": "entity-object-registry",
         "entityCatalog": "persist-entities"
       },
-      "count": 100
+      "count": 200
     },
     {
       "type": "persist-entities",
@@ -184,26 +184,81 @@
   ],
   "benches": [
     {
-      "name": "query-limited",
+      "name": "query-links",
       "steps": [
         {
           "type": "query-entities-by-user",
           "id": "query-entities",
           "inputs": {
             "userCatalog": "all-users",
-            "limit": 100
+            "resolveDepths": {
+              "inheritsFrom": {
+                "outgoing": 0
+              },
+              "constrainsValuesOn": {
+                "outgoing": 0
+              },
+              "constrainsPropertiesOn": {
+                "outgoing": 0
+              },
+              "constrainsLinksOn": {
+                "outgoing": 0
+              },
+              "constrainsLinkDestinationsOn": {
+                "outgoing": 0
+              },
+              "isOfType": {
+                "outgoing": 0
+              },
+              "hasLeftEntity": {
+                "incoming": 1,
+                "outgoing": 1
+              },
+              "hasRightEntity": {
+                "incoming": 1,
+                "outgoing": 1
+              }
+            }
           }
         }
       ]
     },
     {
-      "name": "query-unlimited",
+      "name": "query-entities",
       "steps": [
         {
           "type": "query-entities-by-user",
           "id": "query-entities",
           "inputs": {
-            "userCatalog": "all-users"
+            "userCatalog": "all-users",
+            "resolveDepths": {
+              "inheritsFrom": {
+                "outgoing": 0
+              },
+              "constrainsValuesOn": {
+                "outgoing": 0
+              },
+              "constrainsPropertiesOn": {
+                "outgoing": 0
+              },
+              "constrainsLinksOn": {
+                "outgoing": 0
+              },
+              "constrainsLinkDestinationsOn": {
+                "outgoing": 0
+              },
+              "isOfType": {
+                "outgoing": 0
+              },
+              "hasLeftEntity": {
+                "incoming": 0,
+                "outgoing": 0
+              },
+              "hasRightEntity": {
+                "incoming": 0,
+                "outgoing": 0
+              }
+            }
           }
         }
       ]

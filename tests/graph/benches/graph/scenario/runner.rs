@@ -2,7 +2,7 @@ extern crate alloc;
 use core::sync::atomic::{self, AtomicUsize};
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
-use criterion::{BatchSize, BenchmarkGroup, BenchmarkId, measurement::Measurement};
+use criterion::{BatchSize, BenchmarkGroup, measurement::Measurement};
 use error_stack::{IntoReport, Report, ResultExt as _};
 use hash_graph_authorization::policies::store::PolicyStore as _;
 use hash_graph_postgres_store::{
@@ -22,6 +22,7 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
+use pyroscope::{PyroscopeAgent, pyroscope::PyroscopeAgentRunning};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
@@ -75,6 +76,7 @@ pub fn run_scenario_file<M: Measurement>(
     path: impl AsRef<Path>,
     runtime: &Runtime,
     benchmark_group: &mut BenchmarkGroup<M>,
+    pyroscope: &PyroscopeAgent<PyroscopeAgentRunning>,
 ) {
     let path = path.as_ref();
     let file = File::open(path).expect("Failed to open scenario file");
@@ -88,7 +90,7 @@ pub fn run_scenario_file<M: Measurement>(
         .unwrap_or(path.as_os_str())
         .to_string_lossy();
 
-    run_scenario(&scenario, &name, runtime, benchmark_group);
+    run_scenario(&scenario, &name, runtime, benchmark_group, pyroscope);
 }
 
 #[tracing::instrument(level = "warn", skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
@@ -97,44 +99,45 @@ pub fn run_scenario<M: Measurement>(
     name: &str,
     runtime: &Runtime,
     benchmark_group: &mut BenchmarkGroup<M>,
+    pyroscope: &PyroscopeAgent<PyroscopeAgentRunning>,
 ) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
-    {
-        for stage in &scenario.setup {
-            let value = runtime
-                .block_on(stage.execute(&mut runner))
-                .expect("Could not execute stage");
-            tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
-        }
+
+    for stage in &scenario.setup {
+        let value = runtime
+            .block_on(stage.execute(&mut runner))
+            .expect("Could not execute stage");
+        tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
     }
 
+    let (add_tag, remove_tag) = pyroscope.tag_wrapper();
+
     for bench in &scenario.benches {
-        let _telemetry_guard = init_tracing(name, &bench.name);
+        let _tracing = init_tracing(name, &bench.name);
         let _bench_span =
             tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
                 .entered();
+
+        add_tag("Bench".to_owned(), bench.name.clone()).expect("Should be able to add tag");
+
         let iteration = AtomicUsize::new(0);
-        benchmark_group.bench_function(BenchmarkId::new(name, &bench.name), |bencher| {
+        benchmark_group.bench_function(bench.name.clone(), |bencher| {
             bencher.to_async(runtime).iter_batched(
                 || (runner.clone(), &iteration),
-                |(mut runner, iteration)| async move {
+                |(mut runner,  iteration)| async move {
                     let current_iteration = iteration.fetch_add(1, atomic::Ordering::Relaxed);
-                    for stage in &bench.steps {
-                        let _stage_span = tracing::info_span!(
-                            "Stage",
-                            otel.name = format!(r#"Stage "{}""#, stage.id()),
-                        )
-                        .entered();
-
-                        let result = stage.execute(&mut runner).await.expect("stage failed");
+                    for step in &bench.steps {
+                        let result = step.execute(&mut runner).await.expect("step failed");
                         if current_iteration == 0 {
-                            tracing::info!(result = %result, "Bench stage completed");
+                            tracing::info!(scenario = %name, bench = %bench.name, step = %step.id(), result = %result, "Bench step completed");
                         }
                     }
                 },
                 BatchSize::LargeInput,
             );
         });
+
+        remove_tag("Bench".to_owned(), bench.name.clone()).expect("Should be able to add tag");
     }
 }
 
@@ -171,6 +174,7 @@ impl Runner {
         }
     }
 
+    #[tracing::instrument(level = "info", skip(self), fields(operation = "ensure_db"))]
     pub async fn ensure_db(&mut self) -> Result<&Pool, Report<ScenarioError>> {
         if self.pool.is_some() {
             return Ok(self.pool.as_ref().expect("pool set by setup_db"));

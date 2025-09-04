@@ -69,7 +69,6 @@ use hash_graph_types::ontology::{
 use hash_temporal_client::TemporalClient;
 use tarpc::context;
 use tokio::net::ToSocketAddrs;
-use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity,
@@ -518,7 +517,7 @@ where
         .attach("Could not check if ontology type exists")
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_type))]
+    #[tracing::instrument(level = "debug", skip(self, ontology_type))]
     async fn collect_external_ontology_types<'o, T: OntologyTypeSchema + Sync>(
         &self,
         actor_id: ActorEntityUuid,
@@ -580,13 +579,8 @@ where
             }
 
             let ontology_types = {
-                let span = tracing::info_span!(
-                    "fetching ontology types from type fetcher",
-                    urls=?ontology_urls
-                );
                 fetcher
                     .fetch_ontology_types(context::current(), ontology_urls)
-                    .instrument(span)
                     .await
                     .change_context(QueryError)?
                     .change_context(QueryError)?
