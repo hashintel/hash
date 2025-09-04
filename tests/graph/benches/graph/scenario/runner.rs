@@ -22,6 +22,7 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
+use pyroscope::{PyroscopeAgent, pyroscope::PyroscopeAgentRunning};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
@@ -73,6 +74,7 @@ pub fn run_scenario_file<M: Measurement>(
     path: &Path,
     runtime: &Runtime,
     benchmark_group: BenchmarkGroup<M>,
+    pyroscope: &PyroscopeAgent<PyroscopeAgentRunning>,
 ) {
     let file = File::open(path).expect("Failed to open scenario file");
     let reader = BufReader::new(file);
@@ -85,7 +87,7 @@ pub fn run_scenario_file<M: Measurement>(
         .unwrap_or(path.as_os_str())
         .to_string_lossy();
 
-    run_scenario(&scenario, &name, runtime, benchmark_group);
+    run_scenario(&scenario, &name, runtime, benchmark_group, pyroscope);
 }
 
 #[tracing::instrument(skip_all, fields(otel.name = format!(r#"Scenario "{name}""#)))]
@@ -94,6 +96,7 @@ pub fn run_scenario<M: Measurement>(
     name: &str,
     runtime: &Runtime,
     mut benchmark_group: BenchmarkGroup<M>,
+    pyroscope: &PyroscopeAgent<PyroscopeAgentRunning>,
 ) {
     let mut runner = Runner::new(RunId::new(scenario.run_id), scenario.num_shards);
 
@@ -104,10 +107,17 @@ pub fn run_scenario<M: Measurement>(
         tracing::info!(scenario = %name, stage = %stage.id(), result = %value, "Step completed");
     }
 
+    let (add_tag, remove_tag) = pyroscope.tag_wrapper();
+
     for bench in &scenario.benches {
-        let _bench_span =
-            tracing::info_span!("Bench", otel.name = format!(r#"Bench "{}""#, bench.name))
-                .entered();
+        add_tag("Bench".to_owned(), bench.name.clone()).expect("Should be able to add tag");
+        let _bench_span = tracing::info_span!(
+            "Bench",
+            scenario =% name,
+            bench = bench.name,
+            otel.name = format!(r#"Bench "{}""#, bench.name),
+        )
+        .entered();
         let iteration = AtomicUsize::new(0);
         benchmark_group.bench_function(bench.name.clone(), |bencher| {
             bencher.to_async(runtime).iter_batched(
@@ -124,6 +134,7 @@ pub fn run_scenario<M: Measurement>(
                 BatchSize::LargeInput,
             );
         });
+        remove_tag("Bench".to_owned(), bench.name.clone()).expect("Should be able to add tag");
     }
 }
 
@@ -159,6 +170,7 @@ impl Runner {
         }
     }
 
+    #[tracing::instrument(level = "info", skip(self), fields(operation = "ensure_db"))]
     pub async fn ensure_db(&mut self) -> Result<&Pool, Report<ScenarioError>> {
         if self.pool.is_some() {
             return Ok(self.pool.as_ref().expect("pool set by setup_db"));
