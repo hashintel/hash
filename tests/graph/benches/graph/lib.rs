@@ -21,12 +21,14 @@ mod scenario;
 mod util;
 
 use std::{
+    collections::HashMap,
     fs::{self},
     path::{Path, PathBuf},
 };
 
 use criterion::Criterion;
 use criterion_macro::criterion;
+use hash_graph_store::entity::EntityValidationReport;
 use hash_telemetry::{
     OtlpConfig, TracingConfig,
     logging::{
@@ -81,6 +83,15 @@ fn init_tracing() -> impl Drop {
 
 #[criterion]
 fn scenarios(criterion: &mut Criterion) {
+    error_stack::Report::install_debug_hook::<HashMap<usize, EntityValidationReport>>(
+        |validation_report, context| {
+            context.push_appendix(format!(
+                "First validation error: {:#}",
+                serde_json::json!(validation_report[&0])
+            ));
+        },
+    );
+
     let runtime = tokio::runtime::Runtime::new().expect("Should be able to create runtime");
 
     let _runtime_enter = runtime.enter();
