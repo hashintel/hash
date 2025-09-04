@@ -47,19 +47,14 @@ impl LogProcessor for TraceContextEnrichmentProcessor {
 pub(crate) fn provider(
     config: &OtlpConfig,
     service_name: &'static str,
-) -> Result<Option<SdkLoggerProvider>, Report<ExporterBuildError>> {
-    let Some(endpoint) = config.endpoint.as_deref() else {
-        return Ok(None);
-    };
-
-    Ok(Some(
-        SdkLoggerProvider::builder()
-            .with_resource(Resource::builder().with_service_name(service_name).build())
-            .with_log_processor(TraceContextEnrichmentProcessor)
-            .with_batch_exporter({
-                let mut exporter = opentelemetry_otlp::LogExporter::builder()
-                    .with_tonic()
-                    .with_endpoint(endpoint);
+) -> Result<SdkLoggerProvider, Report<ExporterBuildError>> {
+    Ok(SdkLoggerProvider::builder()
+        .with_resource(Resource::builder().with_service_name(service_name).build())
+        .with_log_processor(TraceContextEnrichmentProcessor)
+        .with_batch_exporter({
+            let mut exporter = opentelemetry_otlp::LogExporter::builder().with_tonic();
+            if let Some(endpoint) = &config.endpoint {
+                exporter = exporter.with_endpoint(endpoint);
 
                 // TODO: Properly check for `OTEL_EXPORTER_*` variables
                 //  see https://linear.app/hash/issue/H-5072/modernize-rust-opentelemetry-logs-module-to-be-fully-standard
@@ -67,11 +62,11 @@ pub(crate) fn provider(
                     exporter =
                         exporter.with_tls_config(ClientTlsConfig::new().with_enabled_roots());
                 }
+            }
 
-                exporter.build()?
-            })
-            .build(),
-    ))
+            exporter.build()?
+        })
+        .build())
 }
 
 #[must_use]
