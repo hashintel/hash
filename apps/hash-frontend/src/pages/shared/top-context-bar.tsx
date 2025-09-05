@@ -188,9 +188,15 @@ export const TopContextBar = ({
           {breadcrumbsEndAdornment}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemType(item) && !isEntityPageEntity(item) && (
+          {/*
+           * @todo: bring back draft entity viewers when the GQL resolver
+           * returns the correct number of authorization relationships.
+           *
+           * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+           */}
+          {/* {item && !isItemType(item) && !isEntityPageEntity(item) && (
             <ShareDropdownMenu entity={item} />
-          )}
+          )} */}
 
           {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>
