@@ -58,14 +58,6 @@
       fill: rgba(90, 90, 150, 0.1);
     }
   </style>
-  <style type="text/css">
-    svg.railroad text.comment {
-      font-family: "Roboto Mono";
-    }
-    svg.railroad text {
-      font-family: "Roboto Mono";
-    }
-  </style>
   <rect class="railroad_canvas" height="100%" width="100%" />
   <g class="verticalgrid">
     <g class="sequence">
