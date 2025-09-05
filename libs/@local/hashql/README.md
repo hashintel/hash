@@ -160,7 +160,7 @@ Special forms are **compiler-recognised macros** that lower to dedicated AST nod
 
 Conditional expression: executes `then` if `test` is `true`; otherwise executes `else`. Two‑argument `if` produces `Option<T>`; the three‑argument form is total and returns `T`.
 
-```
+```text
 if/2<T>(test: Expr<Boolean>, then: Expr<T>) -> Option<T>
 if/3<T>(test: Expr<Boolean>, then: Expr<T>, else: Expr<T>) -> T
 ```
@@ -169,7 +169,7 @@ if/3<T>(test: Expr<Boolean>, then: Expr<T>, else: Expr<T>) -> T
 
 Type ascription (assertion). Only **upcasts** are allowed; downcasts would require runtime checks. Operationally inert and erased after type checking.
 
-```
+```text
 as/2<T, U>(value: Expr<T>, type: Type<U>) -> Expr<U>   where T <: U
 ```
 
@@ -177,7 +177,7 @@ as/2<T, U>(value: Expr<T>, type: Type<U>) -> Expr<U>   where T <: U
 
 Lexically binds `value` to `name` within `body`. Bindings participate in standard shadowing.
 
-```
+```text
 let/3<T, U>(name: Ident, value: Expr<T>, body: Expr<U>) -> Expr<U>
 let/4<T, U, V>(name: Ident, type: Type<T>, value: Expr<U>, body: Expr<V>) -> Expr<V>  where U <: T
 ```
@@ -186,7 +186,7 @@ let/4<T, U, V>(name: Ident, type: Type<T>, value: Expr<U>, body: Expr<V>) -> Exp
 
 Introduces a **type alias** (possibly generic with bounds) visible within `body`.
 
-```
+```text
 type/3<T, U>(name: GenericIdent, value: Type<T>, body: Expr<U>) -> Expr<U>
 ```
 
@@ -194,7 +194,7 @@ type/3<T, U>(name: GenericIdent, value: Type<T>, body: Expr<U>) -> Expr<U>
 
 Declares a **nominal wrapper** over a structural type (opaque identity). Useful for domain types (`Url`, `Uuid`) and for tagging constructors used in sum types.
 
-```
+```text
 newtype/3<T, U>(name: GenericIdent, value: Type<T>, body: Expr<U>) -> Expr<U>
 ```
 
@@ -202,7 +202,7 @@ newtype/3<T, U>(name: GenericIdent, value: Type<T>, body: Expr<U>) -> Expr<U>
 
 Resolves items under `path` into the local scope of `body`. Supports wildcard, list, and selective imports with aliasing.
 
-```
+```text
 use/3<T>(path: Path, items: Ident<*>,                body: Expr<T>) -> Expr<T>   // wildcard
 use/3<T>(path: Path, items: List<Ident>,             body: Expr<T>) -> Expr<T>   // list
 use/3<T>(path: Path, items: Dict<Ident, Ident|_>,    body: Expr<T>) -> Expr<T>   // selective + aliasing
@@ -212,18 +212,18 @@ use/3<T>(path: Path, items: Dict<Ident, Ident|_>,    body: Expr<T>) -> Expr<T>  
 
 Builds a **closure**. Generics may be annotated with bounds or left as inference holes. Parameters and return are explicit; call sites leverage inference.
 
-```
+```text
 fn/4<T>(generics: Dict<Ident, _ | Type> | List<Ident>,
-parameters: Dict<Ident, Type>,
-returns: Type<T>,
-body: Expr<T>) -> Callable
+        parameters: Dict<Ident, Type>,
+        returns: Type<T>,
+        body: Expr<T>) -> Callable
 ```
 
 ### `input`
 
 Introduces **immutable host inputs** (e.g., user parameters). Referential transparency is preserved: the input set is fixed at program start.
 
-```
+```text
 input/2<T>(name: Ident, type: Type<T>) -> T
 input/3<T>(name: Ident, type: Type<T>, default: T) -> T
 ```
@@ -232,7 +232,7 @@ input/3<T>(name: Ident, type: Type<T>, default: T) -> T
 
 Static field/position selection. Selector must be a **literal** (identifier for structs; natural for tuples). Unknown fields/indices are compile‑time errors. Shorthand sugar: `[".", value, field]`.
 
-```
+```text
 access/2<T: Struct, U>(value: Expr<T>, field: Ident)   -> T.field
 access/2<T: Tuple,  U>(value: Expr<T>, field: Natural) -> T.field
 ```
@@ -241,7 +241,7 @@ access/2<T: Tuple,  U>(value: Expr<T>, field: Natural) -> T.field
 
 Dynamic lookup in dictionaries/lists. Totality is represented with `Option<V>`. Shorthand sugar: `["[]", value, index]`.
 
-```
+```text
 index/2<K, V>(value: Expr<Dict<K, V>>, index: Expr<K>)         -> Option<V>
 index/2<V>(   value: Expr<List<V>>,    index: Expr<Integer>)   -> Option<V>
 ```
@@ -287,13 +287,13 @@ HashQL's type system is designed to be both **compatible** with graph schemas an
 
 Algebraic data types are **encoded as unions of nominal wrappers** over structural carriers:
 
-```
+```text
 Option<T>  ≜  Some<T> | None
 Some<T>    ≜  newtype T
 None       ≜  newtype Unit (with `Unit` the empty tuple `()`)
 ```
 
-```
+```text
 Result<T, E>  ≜  Ok<T> | Err<E>
 Ok<T>         ≜  newtype T
 Err<E>        ≜  newtype E
