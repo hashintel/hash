@@ -347,3 +347,11 @@ User‑defined modules are not yet supported, but are planned.
 
 * Absolute: `"::core::math::add<Number, Integer>"`
 * Relative: `"math::add"`, `"Foo<T, U: Integer | String>"`
+
+## Appendix B — Identifier Syntax
+
+![](./core/docs/identifier-grammar.svg)
+
+## Appendix C — Embedded DSL Grammar
+
+![](./syntax-jexpr/docs/embedded-dsl.svg)
