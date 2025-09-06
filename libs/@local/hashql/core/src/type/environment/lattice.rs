@@ -156,8 +156,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             return lhs.id;
         }
 
-        // If we're at this point and should still discharge, it means that A and B are unrelated to
-        // each other, therefore create a union type.
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create a union type.
 
         // If they aren't in a subtyping relationship, create a union type
         let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
@@ -271,8 +271,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             return rhs.id;
         }
 
-        // If we're at this point and should still discharge, it means that A and B are unrelated to
-        // each other, therefore create an intersection type.
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create an intersection type.
 
         // If they aren't in a subtyping relationship, create an intersection type
         let kind = self

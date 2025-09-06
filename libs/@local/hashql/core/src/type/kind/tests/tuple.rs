@@ -1182,8 +1182,9 @@ fn join_recursive_tuple_unrelated() {
     let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
     let rhs = builder.tuple(lazy(|this, builder| [builder.string(), this.value()]));
 
-    // The type itself is a bit larger, than one might light (this is of the recursive property of
-    // the match), but the type approximation is still valid, as proven below.
+    // The type itself is a bit larger than one might like (this is of the recursive property of
+    // the match), but the type approximation is still valid, as proven below and is actually
+    // *smaller* than the naive approximation.
     let union = builder.union([builder.integer(), builder.string()]);
     let expected = builder.tuple([union, builder.tuple([union, builder.union([lhs, rhs])])]);
 
