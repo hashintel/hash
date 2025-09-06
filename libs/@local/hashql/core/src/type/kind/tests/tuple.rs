@@ -21,7 +21,7 @@ use crate::{
             intersection::IntersectionType,
             primitive::PrimitiveType,
             test::{assert_equiv, generic, intersection, primitive, tuple, union},
-            tests::{assert_equivalent, assert_is_subtype, assert_join, assert_meet},
+            tests::{assert_is_subtype, assert_join, assert_meet},
             union::UnionType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
