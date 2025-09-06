@@ -328,6 +328,26 @@ export const getDefinedPropertyFromPatchesGetter = <
       return;
     }
 
+    if (Array.isArray(foundPatch.property.value)) {
+      return foundPatch.property.value.map((arrayEntry) => {
+        if (
+          typeof arrayEntry === "object" &&
+          arrayEntry !== null &&
+          "value" in arrayEntry
+        ) {
+          return arrayEntry.value;
+        }
+
+        throw new Error(
+          `Expected array entry to be a value, but got metadata for array entry: ${JSON.stringify(
+            arrayEntry,
+            null,
+            2,
+          )}. Nested arrays/objects are not supported.`,
+        );
+      }) as Properties[Key];
+    }
+
     return foundPatch.property.value as Properties[Key];
   };
 };
