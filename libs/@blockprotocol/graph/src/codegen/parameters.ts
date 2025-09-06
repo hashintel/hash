@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+
+import { typedEntries, typedKeys } from "../util/typed-entries.js";
 
 /**
  * The input parameters of Codegen, prior to their validation.

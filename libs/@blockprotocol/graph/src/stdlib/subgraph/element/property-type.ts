@@ -8,7 +8,6 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
 
 import type {
   OntologyTypeVertexId,
@@ -16,6 +15,7 @@ import type {
   Subgraph,
 } from "../../../types/subgraph.js";
 import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
+import { typedValues } from "../../../util/typed-entries.js";
 import {
   getBreadthFirstEntityTypesAndParents,
   getEntityTypeById,
