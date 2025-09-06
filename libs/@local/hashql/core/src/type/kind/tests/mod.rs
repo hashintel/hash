@@ -5,7 +5,7 @@ use crate::{
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::{
         TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
         lattice::Lattice as _,
     },
 };
@@ -76,6 +76,25 @@ pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
         .pretty_print(env, PrettyOptions::default());
 
     assert!(analysis.is_equivalent(lhs, rhs), "{lhs_repr} != {rhs_repr}");
+}
+
+#[track_caller]
+pub(crate) fn assert_is_subtype(env: &Environment, lhs: TypeId, rhs: TypeId) {
+    let mut analysis = AnalysisEnvironment::new(env);
+
+    let lhs_repr = analysis
+        .r#type(lhs)
+        .kind
+        .pretty_print(env, PrettyOptions::default());
+    let rhs_repr = analysis
+        .r#type(rhs)
+        .kind
+        .pretty_print(env, PrettyOptions::default());
+
+    assert!(
+        analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
+        "{lhs_repr} !< {rhs_repr}"
+    );
 }
 
 macro_rules! ty {
