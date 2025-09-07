@@ -22,7 +22,7 @@ const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnostic
 
 const ARGUMENT_OVERRIDE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "argument-override",
-    name: "Type arguments would be overridden",
+    name: "Cannot apply type arguments to already-parameterized variable",
 };
 
 pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
@@ -176,61 +176,38 @@ pub(crate) fn argument_override<'heap>(
     );
 
     let variable_arguments = variable.arguments();
-    let replacement_arguments = replacement.arguments();
-
-    diagnostic.labels.push(Label::new(
-        variable.span,
-        format!(
-            "This variable `{}` already has {} type argument{}",
-            variable.name(),
-            variable_arguments.len(),
-            if variable_arguments.len() == 1 {
-                ""
-            } else {
-                "s"
-            }
-        ),
-    ));
 
     diagnostic.labels.push(
         Label::new(
             replacement.span,
-            format!(
-                "... but it aliases `{}` which also has {} type argument{} applied",
-                replacement.name(),
-                replacement_arguments.len(),
-                if replacement_arguments.len() == 1 {
-                    ""
-                } else {
-                    "s"
-                }
-            ),
+            format!("`{}` was defined with type arguments here", variable.name()),
         )
-        .with_order(1)
         .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
     for argument in variable_arguments {
         diagnostic.labels.push(
-            Label::new(argument.span, "... remove this argument")
-                .with_order(-2)
-                .with_color(Color::Ansi(AnsiColor::Red)),
+            Label::new(
+                argument.span,
+                "... but additional type arguments are provided here",
+            )
+            .with_order(1)
+            .with_color(Color::Ansi(AnsiColor::Red)),
         );
     }
 
     diagnostic.add_help(Help::new(format!(
-        "Variable aliases cannot override type arguments. Remove the type arguments from either \
-         `{}` or `{}` to resolve this conflict. Consider using the aliased variable `{}` directly \
-         instead of creating an alias with conflicting arguments.",
+        "The variable `{}` already represents `{}` with type arguments applied. Use `{}` directly \
+         without additional type arguments, or create a new binding if you need different type \
+         parameters.",
         variable.name(),
         replacement.name(),
-        replacement.name()
+        variable.name()
     )));
 
     diagnostic.add_note(Note::new(
-        "When a variable aliases another variable with type arguments, the alias cannot specify \
-         additional type arguments as this would create ambiguity about which arguments should be \
-         used.",
+        "Variables that alias parameterized expressions cannot have additional type arguments \
+         applied to them, as this would create ambiguous type parameter bindings.",
     ));
 
     diagnostic

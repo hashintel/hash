@@ -51,7 +51,10 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
         self.interner
     }
 
-    fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
+    fn fold_let(&mut self, mut r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
+        // Walk the node first, to resolve any aliases
+        r#let.value = fold::walk_node(self, r#let.value)?;
+
         // if the let statement is a simple re-assignment add the variable to the scope, if the
         // variable is already in the scope, simply add the proxy / alias
         if let NodeKind::Variable(variable) = r#let.value.kind {

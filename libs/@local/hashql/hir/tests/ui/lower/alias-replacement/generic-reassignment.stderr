@@ -1,15 +1,15 @@
-[lower::argument-override] Error: Type arguments would be overridden
-   ╭─[ <unknown>:3:60 ]
-   │
- 3 │ ["let", "foo", "core::math::add<Integer>", ["let", "bar", "foo<Number>", "bar"]]
-   │                 ────────────┬───────────                   ─────┬─┬───  
-   │                             │                                   │ ╰───── ... remove this argument
-   │                             │                                   │       
-   │                             │                                   ╰─────── This variable `foo` already has 1 type argument
-   │                             │                                           
-   │                             ╰─────────────────────────────────────────── ... but it aliases `::core::math::add` which also has 1 type argument
-   │ 
-   │ Help: Variable aliases cannot override type arguments. Remove the type arguments from either `foo` or `::core::math::add` to resolve this conflict. Consider using the aliased variable `::core::math::add` directly instead of creating an alias with conflicting arguments.
-   │ 
-   │ Note: When a variable aliases another variable with type arguments, the alias cannot specify additional type arguments as this would create ambiguity about which arguments should be used.
-───╯
+[lower::argument-override] Error: Cannot apply type arguments to already-parameterized variable
+    ╭─[ <unknown>:6:4 ]
+    │
+  6 │   "core::math::add<Integer>",
+    │    ────────────┬───────────  
+    │                ╰───────────── `foo` was defined with type arguments here
+    │ 
+ 10 │     "foo<Number>",
+    │          ───┬──  
+    │             ╰──── ... but additional type arguments are provided here
+    │ 
+    │ Help: The variable `foo` already represents `::core::math::add` with type arguments applied. Use `foo` directly without additional type arguments, or create a new binding if you need different type parameters.
+    │ 
+    │ Note: Variables that alias parameterized expressions cannot have additional type arguments applied to them, as this would create ambiguous type parameter bindings.
+────╯
