@@ -10,6 +10,7 @@ use super::{
     resolver::{Reference, ResolveIter},
 };
 use crate::{
+    collection::FastHashSet,
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
     symbol::Symbol,
 };
@@ -170,6 +171,20 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             name,
             item: ImportReference::Binding(universe),
         });
+    }
+
+    /// Return all the locals that have been registered so far
+    #[must_use]
+    pub fn locals(&self, universe: Universe) -> FastHashSet<Symbol<'heap>> {
+        self.imports
+            .iter()
+            .filter_map(|import| match import.item {
+                ImportReference::Binding(binding_universe) if binding_universe == universe => {
+                    Some(import.name)
+                }
+                ImportReference::Binding(_) | ImportReference::Item(_) => None,
+            })
+            .collect()
     }
 
     fn import_absolute_static(

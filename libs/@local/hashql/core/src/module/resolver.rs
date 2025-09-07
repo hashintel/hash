@@ -16,6 +16,7 @@ pub enum Reference<'heap> {
 }
 
 impl<'heap> Reference<'heap> {
+    #[must_use]
     pub const fn name(&self) -> Symbol<'heap> {
         match self {
             Self::Binding(binding) => binding.name,
@@ -23,6 +24,7 @@ impl<'heap> Reference<'heap> {
         }
     }
 
+    #[must_use]
     pub const fn universe(&self) -> Option<Universe> {
         match self {
             Self::Binding(binding) => Some(binding.value),

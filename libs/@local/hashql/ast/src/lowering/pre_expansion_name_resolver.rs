@@ -94,7 +94,7 @@ use hashql_core::{
     collection::FastHashMap,
     heap::Heap,
     module::{
-        ModuleRegistry, Universe,
+        ModuleRegistry, Reference, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
@@ -238,7 +238,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         // This is very conservative, in *theory* we should take a look at the whole path and use
         // that as import, but as we're only interested in special-forms, which are only imported as
         // name, we can safely just use the name.
-        let import = self
+        let reference = self
             .namespace
             .resolve(
                 [name],
@@ -248,6 +248,10 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
                 },
             )
             .ok()?;
+
+        let Reference::Item(import) = reference else {
+            return None;
+        };
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {

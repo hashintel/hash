@@ -15,13 +15,13 @@ pub mod universe;
 use core::slice;
 use std::sync::RwLock;
 
-pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
     item::{Item, ItemKind},
-    resolver::{Reference, Resolver, ResolverMode, ResolverOptions},
+    resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
+pub use self::{resolver::Reference, universe::Universe};
 use crate::{
     collection::{FastHashMap, FastHashSet},
     heap::Heap,
@@ -176,7 +176,7 @@ impl<'heap> ModuleRegistry<'heap> {
         &self,
         path: impl IntoIterator<Item = Symbol<'heap>>,
         universe: Universe,
-    ) -> Result<Reference<'heap>, ResolutionError<'heap>> {
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         let resolver = Resolver {
             registry: self,
             options: ResolverOptions {
@@ -193,7 +193,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
-            Ok(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Ok(item),
+            }
         }
     }
 
@@ -215,7 +220,7 @@ impl<'heap> ModuleRegistry<'heap> {
         &self,
         path: impl IntoIterator<Item = Symbol<'heap>>,
         universe: Universe,
-    ) -> Option<Reference<'heap>> {
+    ) -> Option<Item<'heap>> {
         let resolver = Resolver {
             registry: self,
             options: ResolverOptions {
@@ -235,7 +240,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             None
         } else {
-            Some(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Some(item),
+            }
         }
     }
 

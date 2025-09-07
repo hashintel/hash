@@ -3,10 +3,9 @@ pub mod error;
 use core::{iter, mem};
 
 use hashql_core::{
-    collection::FastHashSet,
     heap::Heap,
     module::{
-        Universe,
+        Reference, Universe,
         error::ResolutionError,
         namespace::{ImportOptions, ModuleNamespace, ResolutionMode, ResolveOptions},
     },
@@ -31,53 +30,20 @@ use crate::{
     visit::{Visitor, walk_closure_expr, walk_expr, walk_path, walk_type},
 };
 
-#[derive(Debug, Default)]
-struct Scope<'heap> {
-    value: FastHashSet<Symbol<'heap>>,
-    r#type: FastHashSet<Symbol<'heap>>,
-}
-
-impl<'heap> Scope<'heap> {
-    fn contains(&self, universe: Universe, name: Symbol<'heap>) -> bool {
-        let inner = match universe {
-            Universe::Type => &self.r#type,
-            Universe::Value => &self.value,
-        };
-
-        inner.contains(&name)
-    }
-
-    fn insert(&mut self, universe: Universe, name: Symbol<'heap>) -> bool {
-        match universe {
-            Universe::Type => self.r#type.insert(name),
-            Universe::Value => self.value.insert(name),
-        }
-    }
-
-    fn remove(&mut self, universe: Universe, name: Symbol<'heap>) -> bool {
-        match universe {
-            Universe::Type => self.r#type.remove(&name),
-            Universe::Value => self.value.remove(&name),
-        }
-    }
-}
-
 pub struct ImportResolver<'env, 'heap> {
     heap: &'heap Heap,
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
-    scope: Scope<'heap>,
     diagnostics: Vec<ImportResolverDiagnostic>,
     handled_diagnostics: usize,
 }
 
 impl<'env, 'heap> ImportResolver<'env, 'heap> {
-    pub fn new(heap: &'heap Heap, namespace: ModuleNamespace<'env, 'heap>) -> Self {
+    pub const fn new(heap: &'heap Heap, namespace: ModuleNamespace<'env, 'heap>) -> Self {
         Self {
             heap,
             namespace,
             current_universe: Universe::Value,
-            scope: Scope::default(),
             diagnostics: Vec::new(),
             handled_diagnostics: 0,
         }
@@ -100,13 +66,12 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
         symbol: Symbol<'heap>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let remove = self.scope.insert(universe, symbol);
+        let snapshot = self.namespace.snapshot();
+        self.namespace.local(symbol, universe);
 
         let result = closure(self);
 
-        if remove {
-            self.scope.remove(universe, symbol);
-        }
+        self.namespace.rollback_to(snapshot);
 
         result
     }
@@ -117,16 +82,14 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
         symbols: impl IntoIterator<Item = Symbol<'heap>>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let remove: Vec<_> = symbols
-            .into_iter()
-            .filter(|&symbol| self.scope.insert(universe, symbol))
-            .collect();
+        let snapshot = self.namespace.snapshot();
+        for symbol in symbols {
+            self.namespace.local(symbol, universe);
+        }
 
         let result = closure(self);
 
-        for symbol in remove {
-            self.scope.remove(universe, symbol);
-        }
+        self.namespace.rollback_to(snapshot);
 
         result
     }
@@ -232,12 +195,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             return;
         };
 
-        if modules.is_empty() && self.scope.contains(self.current_universe, ident.name.value) {
-            // We do not need to look this up, because it's already in scope as an identifier
-            walk_path(self, path);
-            return;
-        }
-
         // We don't support generics except for the *last* segment
         let mut should_continue = true;
         for module in modules {
@@ -264,7 +221,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             ResolutionMode::Relative
         };
 
-        let item = match self.namespace.resolve(
+        let reference = match self.namespace.resolve(
             segments,
             ResolveOptions {
                 mode,
@@ -281,10 +238,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     self.namespace.registry(),
                     self.current_universe,
                     ident.name,
-                    match self.current_universe {
-                        Universe::Type => &self.scope.r#type,
-                        Universe::Value => &self.scope.value,
-                    },
+                    &self.namespace.locals(self.current_universe),
                     suggestions,
                 ));
 
@@ -298,6 +252,14 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 walk_path(self, path);
                 return;
             }
+        };
+
+        let item = match reference {
+            Reference::Binding(_) => {
+                walk_path(self, path);
+                return;
+            }
+            Reference::Item(item) => item,
         };
 
         let segments: Vec<_> = item.absolute_path(self.namespace.registry()).collect();
