@@ -160,6 +160,8 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
     }
 
     pub fn collect_constraints(&mut self, variance: Variance, subtype: TypeId, supertype: TypeId) {
+        // TODO: we need to add a way that "tops" out, meaning that is called from outside, and one
+        // from inside, outside also registers all variables.
         let (_guard, variance_flow) = self.variance.transition(variance);
 
         #[expect(

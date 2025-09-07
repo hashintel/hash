@@ -6,7 +6,7 @@ use crate::{
         environment::Environment,
         kind::{GenericArgument, Infer, Param, generic::GenericSubstitution},
         recursion::RecursionBoundary,
-        visit::{self, Visitor},
+        visit::{self, Visitor, filter},
     },
 };
 
@@ -86,6 +86,66 @@ impl<'heap> Visitor<'heap> for VariableDependencyCollector<'_, 'heap> {
             span: self.current_span,
             kind: VariableKind::Generic(substitution.argument),
         });
+    }
+
+    fn visit_param(&mut self, param: Type<'heap, Param>) {
+        visit::walk_param(self, param);
+
+        self.variables.push(Variable {
+            span: param.span,
+            kind: VariableKind::Generic(param.kind.argument),
+        });
+    }
+
+    fn visit_infer(&mut self, infer: Type<'heap, Infer>) {
+        visit::walk_infer(self, infer);
+
+        self.variables.push(Variable {
+            span: infer.span,
+            kind: VariableKind::Hole(infer.kind.hole),
+        });
+    }
+}
+
+pub(crate) struct VariableCollector<'env, 'heap> {
+    env: &'env Environment<'heap>,
+    current_span: SpanId,
+    variables: Vec<Variable>,
+    recursion: RecursionBoundary<'heap>,
+}
+
+impl<'env, 'heap> VariableCollector<'env, 'heap> {
+    pub(crate) fn new(env: &'env Environment<'heap>) -> Self {
+        Self {
+            env,
+            current_span: SpanId::SYNTHETIC,
+            variables: Vec::new(),
+            recursion: RecursionBoundary::new(),
+        }
+    }
+}
+
+impl<'heap> Visitor<'heap> for VariableCollector<'_, 'heap> {
+    type Filter = filter::Deep;
+
+    fn env(&self) -> &Environment<'heap> {
+        self.env
+    }
+
+    fn visit_type(&mut self, r#type: Type<'heap>) {
+        if self.recursion.enter(r#type, r#type).is_break() {
+            // recursive type definition
+            return;
+        }
+
+        let previous = self.current_span;
+        self.current_span = r#type.span;
+
+        visit::walk_type(self, r#type);
+
+        self.current_span = previous;
+
+        self.recursion.exit(r#type, r#type);
     }
 
     fn visit_param(&mut self, param: Type<'heap, Param>) {
