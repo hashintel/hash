@@ -8,6 +8,7 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
+use hashql_diagnostics::Diagnostic;
 use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
@@ -54,6 +55,13 @@ impl Suite for HirLowerAliasReplacementSuite {
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
+
+        diagnostics.extend(
+            replacement
+                .take_diagnostics()
+                .into_iter()
+                .map(Diagnostic::boxed),
+        );
 
         let _ = writeln!(
             output,

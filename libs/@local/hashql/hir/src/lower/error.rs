@@ -13,10 +13,16 @@ use hashql_diagnostics::{
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;
+use crate::node::variable::Variable;
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
     name: "Incorrect number of type arguments",
+};
+
+const ARGUMENT_OVERRIDE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "argument-override",
+    name: "Type arguments would be overridden",
 };
 
 pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
@@ -24,6 +30,7 @@ pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LoweringDiagnosticCategory {
     GenericArgumentMismatch,
+    ArgumentOverride,
     TypeChecking(TypeCheckDiagnosticCategory),
     Specialization(SpecializationDiagnosticCategory),
 }
@@ -40,6 +47,7 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
+            Self::ArgumentOverride => Some(&ARGUMENT_OVERRIDE),
             Self::TypeChecking(category) => Some(category),
             Self::Specialization(category) => Some(category),
         }
@@ -154,6 +162,76 @@ pub(crate) fn generic_argument_mismatch(
 
         diagnostic.add_note(Note::new(note_message));
     }
+
+    diagnostic
+}
+
+pub(crate) fn argument_override<'heap>(
+    variable: &Variable<'heap>,
+    replacement: &Variable<'heap>,
+) -> LoweringDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::ArgumentOverride,
+        Severity::Error,
+    );
+
+    let variable_arguments = variable.arguments();
+    let replacement_arguments = replacement.arguments();
+
+    diagnostic.labels.push(Label::new(
+        variable.span,
+        format!(
+            "This variable `{}` already has {} type argument{}",
+            variable.name(),
+            variable_arguments.len(),
+            if variable_arguments.len() == 1 {
+                ""
+            } else {
+                "s"
+            }
+        ),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            replacement.span,
+            format!(
+                "... but it aliases `{}` which also has {} type argument{} applied",
+                replacement.name(),
+                replacement_arguments.len(),
+                if replacement_arguments.len() == 1 {
+                    ""
+                } else {
+                    "s"
+                }
+            ),
+        )
+        .with_order(1)
+        .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    for argument in variable_arguments {
+        diagnostic.labels.push(
+            Label::new(argument.span, "... remove this argument")
+                .with_order(-2)
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+    }
+
+    diagnostic.add_help(Help::new(format!(
+        "Variable aliases cannot override type arguments. Remove the type arguments from either \
+         `{}` or `{}` to resolve this conflict. Consider using the aliased variable `{}` directly \
+         instead of creating an alias with conflicting arguments.",
+        variable.name(),
+        replacement.name(),
+        replacement.name()
+    )));
+
+    diagnostic.add_note(Note::new(
+        "When a variable aliases another variable with type arguments, the alias cannot specify \
+         additional type arguments as this would create ambiguity about which arguments should be \
+         used.",
+    ));
 
     diagnostic
 }

@@ -1,0 +1,15 @@
+[lower::argument-override] Error: Type arguments would be overridden
+   ╭─[ <unknown>:3:60 ]
+   │
+ 3 │ ["let", "foo", "core::math::add<Integer>", ["let", "bar", "foo<Number>", "bar"]]
+   │                 ────────────┬───────────                   ─────┬─┬───  
+   │                             │                                   │ ╰───── ... remove this argument
+   │                             │                                   │       
+   │                             │                                   ╰─────── This variable `foo` already has 1 type argument
+   │                             │                                           
+   │                             ╰─────────────────────────────────────────── ... but it aliases `::core::math::add` which also has 1 type argument
+   │ 
+   │ Help: Variable aliases cannot override type arguments. Remove the type arguments from either `foo` or `::core::math::add` to resolve this conflict. Consider using the aliased variable `::core::math::add` directly instead of creating an alias with conflicting arguments.
+   │ 
+   │ Note: When a variable aliases another variable with type arguments, the alias cannot specify additional type arguments as this would create ambiguity about which arguments should be used.
+───╯

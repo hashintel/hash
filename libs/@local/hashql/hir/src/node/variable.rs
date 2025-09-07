@@ -112,4 +112,11 @@ impl<'heap> Variable<'heap> {
             VariableKind::Qualified(qualified) => qualified.arguments,
         }
     }
+
+    pub const fn arguments_mut(&mut self) -> &mut Interned<'heap, [Spanned<TypeId>]> {
+        match &mut self.kind {
+            VariableKind::Local(local) => &mut local.arguments,
+            VariableKind::Qualified(qualified) => &mut qualified.arguments,
+        }
+    }
 }

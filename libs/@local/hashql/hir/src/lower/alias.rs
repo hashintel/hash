@@ -5,7 +5,7 @@ use hashql_core::{
     symbol::Symbol,
 };
 
-use super::error::LoweringDiagnostic;
+use super::error::{LoweringDiagnostic, argument_override};
 use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
@@ -88,10 +88,20 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
             // aren't overriding any arguments that may have been applied. We can still continue,
             // but in the case that we override any arguments, we must accumulate a diagnostic.
             if !replacement.arguments().is_empty() && !variable.arguments().is_empty() {
-                todo!("create a diagnostic here")
+                self.diagnostics
+                    .push(argument_override(&variable, replacement));
             }
 
-            return Ok(*replacement);
+            if variable.arguments().is_empty() {
+                return Ok(*replacement);
+            }
+
+            // We need to create a new variable, that takes into account the new arguments, if both
+            // have arguments, we simply override, this is so that we can continue compilation.
+            let mut replacement = *replacement;
+            *replacement.arguments_mut() = variable.arguments();
+
+            return Ok(replacement);
         }
 
         Ok(variable)
