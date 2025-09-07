@@ -460,7 +460,7 @@ mod tests {
     use crate::{
         heap::Heap,
         module::{
-            ModuleId, ModuleRegistry, PartialModule, Universe,
+            ModuleId, ModuleRegistry, PartialModule, Reference, Universe,
             error::ResolutionError,
             item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
@@ -881,5 +881,44 @@ mod tests {
                 suggestions
             } if suggestions.is_empty()
         );
+    }
+
+    #[test]
+    fn import_local() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        namespace.local(heap.intern_symbol("+"), Universe::Value);
+
+        assert_eq!(
+            namespace
+                .locals(Universe::Value)
+                .into_iter()
+                .collect::<Vec<_>>(),
+            [heap.intern_symbol("+")]
+        );
+        assert_eq!(
+            namespace
+                .locals(Universe::Type)
+                .into_iter()
+                .collect::<Vec<_>>(),
+            []
+        );
+
+        let item = namespace
+            .resolve_relative(
+                [heap.intern_symbol("+")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("should be able to resolve symbol");
+
+        assert_matches!(item, Reference::Binding(_));
     }
 }
