@@ -1,3 +1,8 @@
 //@ run: pass
 //@ description: Verify that shadowing via `use` works as expected.
-["let", "add", {"#literal": 2}, ["use", "::core::math", {"#tuple": ["add"]}, "add"]]
+[
+  "let",
+  "add",
+  { "#literal": 2 },
+  ["use", "::core::math", { "#tuple": ["add"] }, "add"]
+]
