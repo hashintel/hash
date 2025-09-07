@@ -5,9 +5,9 @@ use ena::snapshot_vec::{Snapshot, SnapshotVec};
 use super::{
     ModuleId, ModuleRegistry, Universe,
     error::ResolutionError,
-    import::{Import, ImportDelegate},
+    import::{Import, ImportDelegate, ImportReference},
     item::{Item, ItemKind},
-    resolver::ResolveIter,
+    resolver::{Reference, ResolveIter},
 };
 use crate::{
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
@@ -29,6 +29,7 @@ pub struct ImportOptions {
     pub suggestions: bool,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ResolveOptions {
     pub universe: Universe,
     pub mode: ResolutionMode,
@@ -45,7 +46,7 @@ pub enum Transaction<T> {
 /// A `ModuleNamespace` defines the collection of names that are available within a module.
 #[derive(Debug, Clone)]
 pub struct ModuleNamespace<'env, 'heap> {
-    pub registry: &'env ModuleRegistry<'heap>,
+    registry: &'env ModuleRegistry<'heap>,
     imports: SnapshotVec<ImportDelegate<'heap>>,
 }
 
@@ -58,17 +59,20 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
+    #[must_use]
+    pub const fn registry(&self) -> &'env ModuleRegistry<'heap> {
+        self.registry
+    }
+
     fn import_commit(&mut self, name: Symbol<'heap>, glob: bool, iter: ResolveIter<'heap>) {
         // The resolver guarantees that the iterator is non-empty if the query was found
         for item in iter {
-            if glob {
-                self.imports.push(Import {
-                    name: item.name,
-                    item,
-                });
-            } else {
-                self.imports.push(Import { name, item });
-            }
+            let name = if glob { item.name() } else { name };
+
+            self.imports.push(Import {
+                name,
+                item: ImportReference::from_reference(item),
+            });
         }
     }
 
@@ -80,7 +84,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// # Errors
     ///
     /// Returns a `ResolutionError` if the path cannot be resolved.
-    pub fn import_absolute(
+    fn import_absolute(
         &mut self,
         name: Symbol<'heap>,
         query: impl IntoIterator<Item = Symbol<'heap>>,
@@ -115,7 +119,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// # Errors
     ///
     /// Returns a `ResolutionError` if the path cannot be resolved.
-    pub fn import_relative(
+    fn import_relative(
         &mut self,
         name: Symbol<'heap>,
         query: impl IntoIterator<Item = Symbol<'heap>>,
@@ -158,6 +162,16 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
+    /// Push a local import to the namespace.
+    ///
+    /// This prevents imports from being resolved in the specified universe to the specific item.
+    pub fn local(&mut self, name: Symbol<'heap>, universe: Universe) {
+        self.imports.push(Import {
+            name,
+            item: ImportReference::Binding(universe),
+        });
+    }
+
     fn import_absolute_static(
         &mut self,
         name: &'static str,
@@ -185,11 +199,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// # Errors
     ///
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
-    pub fn resolve_relative(
+    fn resolve_relative(
         &self,
         query: impl IntoIterator<Item = Symbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+    ) -> Result<Reference<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Relative);
 
         let resolver = Resolver {
@@ -205,6 +219,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         let item = iter.next().unwrap_or_else(|| {
             unreachable!("ResolveIter guarantees at least one item is returned")
         });
+
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
@@ -217,11 +232,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// # Errors
     ///
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
-    pub fn resolve_absolute(
+    fn resolve_absolute(
         &self,
         query: impl IntoIterator<Item = Symbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+    ) -> Result<Reference<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Absolute);
 
         let resolver = Resolver {
@@ -236,6 +251,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         let item = iter.next().unwrap_or_else(|| {
             unreachable!("ResolveIter guarantees at least one item is returned")
         });
+
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
@@ -252,7 +268,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &self,
         query: impl IntoIterator<Item = Symbol<'heap>> + Clone,
         options: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+    ) -> Result<Reference<'heap>, ResolutionError<'heap>> {
         match options.mode {
             ResolutionMode::Absolute => self.resolve_absolute(query, options),
             ResolutionMode::Relative => self.resolve_relative(query, options),
@@ -269,11 +285,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         for (&name, &module) in &*root {
             self.imports.push(Import {
                 name,
-                item: Item {
+                item: ImportReference::Item(Item {
                     module: ModuleId::ROOT,
                     name,
                     kind: ItemKind::Module(module),
-                },
+                }),
             });
         }
 
@@ -422,6 +438,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
 #[cfg(test)]
 mod tests {
+    #![coverage(off)]
     use core::assert_matches::assert_matches;
 
     use super::ModuleNamespace;
@@ -454,7 +471,8 @@ mod tests {
                     universe: Universe::Value,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(item.name.as_str(), "add");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
@@ -485,7 +503,8 @@ mod tests {
                     universe: Universe::Type,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
@@ -519,7 +538,8 @@ mod tests {
                     universe: Universe::Value,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(item.name.as_str(), "let");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
@@ -554,7 +574,8 @@ mod tests {
                     universe: Universe::Type,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(item.name.as_str(), "Dict");
         assert_eq!(item.kind.universe(), Some(Universe::Type));
@@ -602,7 +623,8 @@ mod tests {
                     mode: ResolutionMode::Relative,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(item.name.as_str(), "let");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
@@ -647,7 +669,8 @@ mod tests {
                     mode: ResolutionMode::Relative,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(import.name.as_str(), "Dict");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
@@ -679,7 +702,8 @@ mod tests {
                     mode: ResolutionMode::Relative,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(import.name.as_str(), "bar");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
@@ -735,7 +759,8 @@ mod tests {
                     mode: ResolutionMode::Relative,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(import.name.as_str(), "Dict");
         assert_eq!(import.kind.universe(), Some(Universe::Type));
@@ -806,7 +831,8 @@ mod tests {
                     mode: ResolutionMode::Relative,
                 },
             )
-            .expect("import should exist");
+            .expect("import should exist")
+            .expect_item();
 
         assert_eq!(import.name.as_str(), "Dict");
         assert_eq!(import.kind.universe(), Some(Universe::Type));

@@ -278,7 +278,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 suggestions,
             }) if modules.is_empty() => {
                 self.diagnostics.push(unresolved_variable(
-                    self.namespace.registry,
+                    self.namespace.registry(),
                     self.current_universe,
                     ident.name,
                     match self.current_universe {
@@ -300,7 +300,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             }
         };
 
-        let segments: Vec<_> = item.absolute_path(self.namespace.registry).collect();
+        let segments: Vec<_> = item.absolute_path(self.namespace.registry()).collect();
 
         // The trailing segments might not be the same due to renames, reset the symbol to the
         // canonical form (but retain the span)

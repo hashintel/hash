@@ -240,7 +240,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         // name, we can safely just use the name.
         let import = self
             .namespace
-            .resolve_relative(
+            .resolve(
                 [name],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,

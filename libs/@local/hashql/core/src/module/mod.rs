@@ -19,7 +19,7 @@ pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
     item::{Item, ItemKind},
-    resolver::{Resolver, ResolverMode, ResolverOptions},
+    resolver::{Reference, Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
 use crate::{
@@ -176,7 +176,7 @@ impl<'heap> ModuleRegistry<'heap> {
         &self,
         path: impl IntoIterator<Item = Symbol<'heap>>,
         universe: Universe,
-    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+    ) -> Result<Reference<'heap>, ResolutionError<'heap>> {
         let resolver = Resolver {
             registry: self,
             options: ResolverOptions {
@@ -215,7 +215,7 @@ impl<'heap> ModuleRegistry<'heap> {
         &self,
         path: impl IntoIterator<Item = Symbol<'heap>>,
         universe: Universe,
-    ) -> Option<Item<'heap>> {
+    ) -> Option<Reference<'heap>> {
         let resolver = Resolver {
             registry: self,
             options: ResolverOptions {

@@ -7,8 +7,30 @@ use core::marker::PhantomData;
 
 use ena::snapshot_vec::SnapshotVecDelegate;
 
-use super::item::Item;
+use super::{Universe, item::Item, locals::LocalBinding, resolver::Reference};
 use crate::symbol::Symbol;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ImportReference<'heap> {
+    Binding(Universe),
+    Item(Item<'heap>),
+}
+
+impl<'heap> ImportReference<'heap> {
+    pub(crate) const fn universe(&self) -> Option<Universe> {
+        match self {
+            Self::Binding(universe) => Some(*universe),
+            Self::Item(item) => item.kind.universe(),
+        }
+    }
+
+    pub(crate) const fn from_reference(item: Reference<'heap>) -> Self {
+        match item {
+            Reference::Binding(binding) => Self::Binding(binding.value),
+            Reference::Item(item) => Self::Item(item),
+        }
+    }
+}
 
 /// Represents a single import within a module.
 ///
@@ -19,7 +41,26 @@ use crate::symbol::Symbol;
 pub struct Import<'heap> {
     pub name: Symbol<'heap>,
 
-    pub item: Item<'heap>,
+    pub item: ImportReference<'heap>,
+}
+
+impl<'heap> Import<'heap> {
+    pub(crate) const fn into_reference(self) -> Reference<'heap> {
+        match self.item {
+            ImportReference::Binding(universe) => Reference::Binding(LocalBinding {
+                name: self.name,
+                value: universe,
+            }),
+            ImportReference::Item(item) => Reference::Item(item),
+        }
+    }
+
+    pub(crate) const fn into_item(self) -> Option<Item<'heap>> {
+        match self.item {
+            ImportReference::Binding(_) => None,
+            ImportReference::Item(item) => Some(item),
+        }
+    }
 }
 
 // This needs to be a separate struct, as to not leak `ena` as a dependency

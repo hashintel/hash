@@ -1,27 +1,50 @@
 use core::{fmt::Debug, iter};
 
 use super::{
-    Module, ModuleRegistry, Universe,
+    Module, ModuleId, ModuleRegistry, Universe,
     error::{ResolutionError, ResolutionSuggestion},
     import::Import,
     item::{Item, ItemKind},
+    locals::LocalBinding,
 };
-use crate::symbol::Symbol;
+use crate::{module::import::ImportReference, symbol::Symbol};
 
-pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>> + Debug;
-pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>> + Debug;
-pub(crate) type MultiResolveImportIterator<'heap> = impl Iterator<Item = Item<'heap>> + Debug;
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Reference<'heap> {
+    Binding(LocalBinding<'heap, Universe>),
+    Item(Item<'heap>),
+}
+
+impl<'heap> Reference<'heap> {
+    pub const fn name(&self) -> Symbol<'heap> {
+        match self {
+            Self::Binding(binding) => binding.name,
+            Self::Item(item) => item.name,
+        }
+    }
+
+    pub const fn universe(&self) -> Option<Universe> {
+        match self {
+            Self::Binding(binding) => Some(binding.value),
+            Self::Item(item) => item.kind.universe(),
+        }
+    }
+}
+
+pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Reference<'heap>> + Debug;
+pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Reference<'heap>> + Debug;
+pub(crate) type MultiResolveImportIterator<'heap> = impl Iterator<Item = Reference<'heap>> + Debug;
 
 #[derive(Debug)]
 pub(crate) enum ResolveIter<'heap> {
-    Single(iter::Once<Item<'heap>>),
+    Single(iter::Once<Reference<'heap>>),
     MultiResolve(MultiResolveItemIterator<'heap>),
     MultiImport(MultiResolveImportIterator<'heap>),
     Glob(ModuleItemIterator<'heap>),
 }
 
 impl<'heap> Iterator for ResolveIter<'heap> {
-    type Item = Item<'heap>;
+    type Item = Reference<'heap>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -29,6 +52,15 @@ impl<'heap> Iterator for ResolveIter<'heap> {
             ResolveIter::MultiResolve(iter) => iter.next(),
             ResolveIter::MultiImport(iter) => iter.next(),
             ResolveIter::Glob(iter) => iter.next(),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            ResolveIter::Single(iter) => iter.size_hint(),
+            ResolveIter::MultiResolve(iter) => iter.size_hint(),
+            ResolveIter::MultiImport(iter) => iter.size_hint(),
+            ResolveIter::Glob(iter) => iter.size_hint(),
         }
     }
 }
@@ -69,7 +101,7 @@ impl<'heap> Resolver<'_, 'heap> {
         universe: Universe,
         name: Symbol<'heap>,
         depth: usize,
-    ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
+    ) -> Result<iter::Once<Reference<'heap>>, ResolutionError<'heap>> {
         let item = module
             .items
             .iter()
@@ -85,7 +117,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        Ok(iter::once(item))
+        Ok(iter::once(Reference::Item(item)))
     }
 
     #[define_opaque(MultiResolveItemIterator)]
@@ -100,6 +132,7 @@ impl<'heap> Resolver<'_, 'heap> {
             .into_iter()
             .copied()
             .filter(move |item| item.name == name)
+            .map(Reference::Item)
             .peekable();
 
         if item.peek().is_none() {
@@ -148,7 +181,7 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::ModuleEmpty { depth });
         }
 
-        Ok(module.items.into_iter().copied())
+        Ok(module.items.into_iter().copied().map(Reference::Item))
     }
 
     #[define_opaque(ModuleItemIterator)]
@@ -166,7 +199,9 @@ impl<'heap> Resolver<'_, 'heap> {
                 return Err(ResolutionError::ModuleEmpty { depth: 0 });
             }
 
-            return Ok(ResolveIter::Glob(module.items.into_iter().copied()));
+            return Ok(ResolveIter::Glob(
+                module.items.into_iter().copied().map(Reference::Item),
+            ));
         }
 
         // Traverse the entry until we're at the last item
@@ -243,11 +278,11 @@ impl<'heap> Resolver<'_, 'heap> {
         name: Symbol<'heap>,
         imports: &[Import<'heap>],
         universe: Universe,
-    ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
+    ) -> Result<iter::Once<Reference<'heap>>, ResolutionError<'heap>> {
         let import = imports
             .iter()
             .rev()
-            .find(|import| import.name == name && import.item.kind.universe() == Some(universe));
+            .find(|import| import.name == name && import.item.universe() == Some(universe));
 
         let Some(import) = import else {
             return Err(ResolutionError::ImportNotFound {
@@ -256,7 +291,7 @@ impl<'heap> Resolver<'_, 'heap> {
                 suggestions: self.suggest(|| {
                     imports
                         .iter()
-                        .filter(|import| import.item.kind.universe() == Some(universe))
+                        .filter(|import| import.item.universe() == Some(universe))
                         .map(|&import| ResolutionSuggestion {
                             item: import,
                             name: import.name,
@@ -266,7 +301,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        Ok(iter::once(import.item))
+        Ok(iter::once(import.into_reference()))
     }
 
     #[define_opaque(MultiResolveImportIterator)]
@@ -284,13 +319,22 @@ impl<'heap> Resolver<'_, 'heap> {
         // try to import one of every type
         let value = base
             .clone()
-            .find(|import| import.item.kind.universe() == Some(Universe::Value));
+            .find(|import| import.item.universe() == Some(Universe::Value));
 
         let r#type = base
             .clone()
-            .find(|import| import.item.kind.universe() == Some(Universe::Type));
+            .find(|import| import.item.universe() == Some(Universe::Type));
 
-        let module = base.find(|import| matches!(import.item.kind, ItemKind::Module(_)));
+        let module = base.find(|import| {
+            matches!(
+                import.item,
+                ImportReference::Item(Item {
+                    kind: ItemKind::Module(_),
+                    module: _,
+                    name: _
+                })
+            )
+        });
 
         if value.is_none() && r#type.is_none() && module.is_none() {
             return Err(ResolutionError::ImportNotFound {
@@ -312,7 +356,30 @@ impl<'heap> Resolver<'_, 'heap> {
             .into_iter()
             .chain(r#type)
             .chain(module)
-            .map(|import| import.item))
+            .map(Import::into_reference))
+    }
+
+    fn find_module_from_imports(
+        name: Symbol<'heap>,
+        imports: &[Import<'heap>],
+    ) -> Option<ModuleId> {
+        imports.iter().rev().find_map(|import| match import.item {
+            ImportReference::Item(Item {
+                kind: ItemKind::Module(module),
+                module: _,
+                name: _,
+            }) if import.name == name => Some(module),
+            ImportReference::Item(Item {
+                kind:
+                    ItemKind::Module(_)
+                    | ItemKind::Type(_)
+                    | ItemKind::Constructor(_)
+                    | ItemKind::Intrinsic(_),
+                module: _,
+                name: _,
+            })
+            | ImportReference::Binding(_) => None,
+        })
     }
 
     #[define_opaque(ModuleItemIterator)]
@@ -321,16 +388,7 @@ impl<'heap> Resolver<'_, 'heap> {
         name: Symbol<'heap>,
         imports: &[Import<'heap>],
     ) -> Result<ModuleItemIterator<'heap>, ResolutionError<'heap>> {
-        let module = imports
-            .iter()
-            .rev()
-            .find_map(|import| match import.item.kind {
-                ItemKind::Module(module) if import.name == name => Some(module),
-                ItemKind::Module(_)
-                | ItemKind::Type(_)
-                | ItemKind::Constructor(_)
-                | ItemKind::Intrinsic(_) => None,
-            });
+        let module = Self::find_module_from_imports(name, imports);
 
         let Some(module) = module else {
             return Err(ResolutionError::ModuleRequired {
@@ -345,7 +403,7 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolutionError::ModuleEmpty { depth: 0 });
         }
 
-        Ok(module.items.into_iter().copied())
+        Ok(module.items.into_iter().copied().map(Reference::Item))
     }
 
     #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
@@ -363,16 +421,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let has_next = query.peek().is_some();
 
         if has_next {
-            let module = imports
-                .iter()
-                .rev()
-                .find_map(|import| match import.item.kind {
-                    ItemKind::Module(module) if import.name == name => Some(module),
-                    ItemKind::Module(_)
-                    | ItemKind::Type(_)
-                    | ItemKind::Constructor(_)
-                    | ItemKind::Intrinsic(_) => None,
-                });
+            let module = Self::find_module_from_imports(name, imports);
 
             let Some(module) = module else {
                 return Err(ResolutionError::ModuleNotFound {
@@ -382,11 +431,9 @@ impl<'heap> Resolver<'_, 'heap> {
                         // take every unique name from the imports (that are modules)
                         let mut names: Vec<_> = imports
                             .iter()
-                            .filter(|import| matches!(import.item.kind, ItemKind::Module(_)))
-                            .map(|import| ResolutionSuggestion {
-                                item: import.item,
-                                name: import.name,
-                            })
+                            .filter_map(|import| import.into_item().map(|item| (import.name, item)))
+                            .filter(|(_, item)| matches!(item.kind, ItemKind::Module(_)))
+                            .map(|(name, item)| ResolutionSuggestion { item, name })
                             .collect();
 
                         names.sort_unstable_by_key(|ResolutionSuggestion { item: _, name }| *name);
@@ -419,19 +466,31 @@ impl<'heap> Resolver<'_, 'heap> {
 
 #[cfg(test)]
 mod test {
+    #![coverage(off)]
     use core::assert_matches::assert_matches;
 
-    use super::ResolutionError;
+    use super::{Reference, ResolutionError};
     use crate::{
         heap::Heap,
         module::{
             ModuleId, ModuleRegistry, PartialModule, Universe,
+            item::Item,
             namespace::{ImportOptions, ModuleNamespace, ResolutionMode},
             resolver::{Resolver, ResolverMode, ResolverOptions},
         },
         span::SpanId,
         r#type::environment::Environment,
     };
+
+    impl<'heap> Reference<'heap> {
+        #[track_caller]
+        pub(crate) fn expect_item(self) -> Item<'heap> {
+            match self {
+                Self::Binding(_) => panic!("Expected an item, received a binding"),
+                Self::Item(item) => item,
+            }
+        }
+    }
 
     #[test]
     fn single_mode_resolve_type() {
@@ -457,8 +516,10 @@ mod test {
 
         let items: Vec<_> = result.collect();
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].name.as_str(), "Dict",);
-        assert_eq!(items[0].kind.universe(), Some(Universe::Type),);
+
+        let item = items[0].expect_item();
+        assert_eq!(item.name.as_str(), "Dict");
+        assert_eq!(item.kind.universe(), Some(Universe::Type));
     }
 
     #[test]
@@ -485,8 +546,10 @@ mod test {
 
         let items: Vec<_> = result.collect();
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].name.as_str(), "Url");
-        assert_eq!(items[0].kind.universe(), Some(Universe::Value));
+
+        let item = items[0].expect_item();
+        assert_eq!(item.name.as_str(), "Url");
+        assert_eq!(item.kind.universe(), Some(Universe::Value));
     }
 
     #[test]
@@ -543,13 +606,13 @@ mod test {
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Type))
+                .any(|item| item.universe() == Some(Universe::Type))
         );
 
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Value))
+                .any(|item| item.universe() == Some(Universe::Value))
         );
     }
 
@@ -577,7 +640,9 @@ mod test {
 
         let items: Vec<_> = result.collect();
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].kind.universe(), Some(Universe::Value));
+
+        let item = items[0].expect_item();
+        assert_eq!(item.kind.universe(), Some(Universe::Value));
     }
 
     #[test]
@@ -602,9 +667,9 @@ mod test {
         assert!(!items.is_empty());
 
         // Check for some known items in the "type" module
-        assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
-        assert!(items.iter().any(|item| item.name.as_str() == "Boolean"));
-        assert!(items.iter().any(|item| item.name.as_str() == "Never"));
+        assert!(items.iter().any(|item| item.name().as_str() == "Dict"));
+        assert!(items.iter().any(|item| item.name().as_str() == "Boolean"));
+        assert!(items.iter().any(|item| item.name().as_str() == "Never"));
     }
 
     #[test]
@@ -629,11 +694,11 @@ mod test {
         assert!(!items.is_empty());
 
         // Check for some known items in the "type" module
-        assert!(items.iter().any(|item| item.name.as_str() == "type"));
+        assert!(items.iter().any(|item| item.name().as_str() == "type"));
         assert!(
             items
                 .iter()
-                .any(|item| item.name.as_str() == "special_form")
+                .any(|item| item.name().as_str() == "special_form")
         );
     }
 
@@ -858,8 +923,8 @@ mod test {
 
         let items: Vec<_> = result.collect();
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].name.as_str(), "Dict");
-        assert_eq!(items[0].kind.universe(), Some(Universe::Type));
+        assert_eq!(items[0].name().as_str(), "Dict");
+        assert_eq!(items[0].universe(), Some(Universe::Type));
     }
 
     #[test]
@@ -906,12 +971,12 @@ mod test {
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Type))
+                .any(|item| item.universe() == Some(Universe::Type))
         );
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Value))
+                .any(|item| item.universe() == Some(Universe::Value))
         );
 
         let result = resolver
@@ -925,12 +990,12 @@ mod test {
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Type))
+                .any(|item| item.universe() == Some(Universe::Type))
         );
         assert!(
             items
                 .iter()
-                .any(|item| item.kind.universe() == Some(Universe::Value))
+                .any(|item| item.universe() == Some(Universe::Value))
         );
     }
 
@@ -1014,7 +1079,7 @@ mod test {
         assert!(!items.is_empty());
 
         // Check for some known items in the "type" module
-        assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
-        assert!(items.iter().any(|item| item.name.as_str() == "Never"));
+        assert!(items.iter().any(|item| item.name().as_str() == "Dict"));
+        assert!(items.iter().any(|item| item.name().as_str() == "Never"));
     }
 }
