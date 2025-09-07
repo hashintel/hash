@@ -36,9 +36,17 @@ pub fn lower<'heap>(
 ) -> Result<Node<'heap>, Vec<LoweringDiagnostic>> {
     let mut replacement = AliasReplacement::new(interner);
     let Ok(node) = replacement.fold_node(node);
+    let replacement_diagnostics = replacement.take_diagnostics();
 
     let mut converter = ConvertTypeConstructor::new(interner, &types.locals, registry, env);
-    let node = converter.fold_node(node)?;
+    let node = match converter.fold_node(node) {
+        Ok(_) if !replacement_diagnostics.is_empty() => return Err(replacement_diagnostics),
+        Ok(node) => node,
+        Err(mut diagnostics) => {
+            diagnostics.extend(replacement_diagnostics);
+            return Err(diagnostics);
+        }
+    };
 
     let mut inference = TypeInference::new(env, registry);
     inference.visit_node(&node);

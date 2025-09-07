@@ -78,7 +78,7 @@ pub struct Variable<'heap> {
     pub kind: VariableKind<'heap>,
 }
 
-impl Variable<'_> {
+impl<'heap> Variable<'heap> {
     #[must_use]
     pub fn name(&self) -> impl Display {
         enum DisplayName<L, Q> {
@@ -102,6 +102,14 @@ impl Variable<'_> {
         match &self.kind {
             VariableKind::Local(local) => DisplayName::Local(local.name()),
             VariableKind::Qualified(qualified) => DisplayName::Qualified(qualified.name()),
+        }
+    }
+
+    #[must_use]
+    pub const fn arguments(&self) -> Interned<'heap, [Spanned<TypeId>]> {
+        match &self.kind {
+            VariableKind::Local(local) => local.arguments,
+            VariableKind::Qualified(qualified) => qualified.arguments,
         }
     }
 }
