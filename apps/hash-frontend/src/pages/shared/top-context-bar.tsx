@@ -26,7 +26,6 @@ import type { BreadcrumbsProps } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
-import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
 import { isItemType } from "./top-context-bar/util";
 
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
