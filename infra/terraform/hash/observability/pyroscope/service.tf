@@ -167,6 +167,6 @@ resource "aws_ecs_service" "pyroscope" {
 
   tags = {
     Name    = local.service_name
-    Purpose = "Pyroscope log aggregation"
+    Purpose = "Pyroscope continuous profiling"
   }
 }
