@@ -1,18 +1,18 @@
-# ECS Task Definition and Service for Grafana Alloy
+# ECS Task Definition and Service for Pyroscope
 
 # Configuration hash for task definition versioning
 locals {
   config_hash = sha256(jsonencode({
-    alloy_config = aws_s3_object.alloy_config.content
+    pyroscope_config = aws_s3_object.pyroscope_config.content
   }))
 }
 
 # ECS Task Definition
-resource "aws_ecs_task_definition" "alloy" {
+resource "aws_ecs_task_definition" "pyroscope" {
   family                   = "${local.prefix}-${substr(local.config_hash, 0, 8)}"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
-  memory                   = 512
+  memory                   = 1024
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution_role.arn
   task_role_arn            = aws_iam_role.task_role.arn
@@ -21,15 +21,15 @@ resource "aws_ecs_task_definition" "alloy" {
     # CA certificates setup (shared configuration)
     var.ssl_config.init_container,
 
-    # Config downloader
+    # Pyroscope-specific config-downloader
     {
       name  = "config-downloader"
       image = "amazon/aws-cli:latest"
 
       command = [
         "s3", "cp",
-        "s3://${var.config_bucket.id}/alloy/",
-        "/etc/alloy/",
+        "s3://${var.config_bucket.id}/pyroscope/",
+        "/etc/pyroscope/",
         "--recursive"
       ]
 
@@ -47,17 +47,19 @@ resource "aws_ecs_task_definition" "alloy" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "alloy-config-downloader"
+          "awslogs-stream-prefix" = "pyroscope-config-downloader"
         }
       }
     },
 
-    # Main Grafana Alloy container
+    # Main Pyroscope container
     {
-      name  = "alloy"
-      image = "grafana/alloy:v1.10.1"
+      name  = "pyroscope"
+      image = "grafana/pyroscope:1.14.1"
 
-      command = ["run", "/etc/alloy/config.alloy", "--server.http.listen-addr=0.0.0.0:5000"]
+      command = [
+        "-config.file=/etc/pyroscope/config.yaml"
+      ]
 
       dependsOn = [
         {
@@ -79,33 +81,17 @@ resource "aws_ecs_task_definition" "alloy" {
         var.ssl_config.mount_point
       ]
 
-      environment = concat([
-        {
-          name  = "AWS_REGION"
-          value = var.region
-        },
-        {
-          name  = "AWS_DEFAULT_REGION"
-          value = var.region
-        }
-      ], var.ssl_config.environment_vars)
+      environment = var.ssl_config.environment_vars
 
       portMappings = [
-        # Internal ports with names for Service Connect
         {
           name          = local.http_port_name
           containerPort = local.http_port
           protocol      = "tcp"
         },
         {
-          name          = local.profile_port_name
-          containerPort = local.profile_port_internal
-          protocol      = "tcp"
-        },
-
-        # External ports without names (ALB only)
-        {
-          containerPort = local.profile_port_external
+          name          = local.grpc_port_name
+          containerPort = local.grpc_port
           protocol      = "tcp"
         }
       ]
@@ -118,7 +104,7 @@ resource "aws_ecs_task_definition" "alloy" {
         options = {
           "awslogs-group"         = var.log_group_name
           "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = local.service_name
+          "awslogs-stream-prefix" = "pyroscope"
         }
       }
 
@@ -137,22 +123,17 @@ resource "aws_ecs_task_definition" "alloy" {
     }
   }
 
-  runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = "ARM64"
-  }
-
   tags = {
     Name    = "${local.prefix}-task-definition"
-    Purpose = "Grafana Alloy ECS task definition"
+    Purpose = "Pyroscope ECS task definition"
   }
 }
 
 # ECS Service
-resource "aws_ecs_service" "alloy" {
+resource "aws_ecs_service" "pyroscope" {
   name                   = local.service_name
   cluster                = var.cluster_arn
-  task_definition        = aws_ecs_task_definition.alloy.arn
+  task_definition        = aws_ecs_task_definition.pyroscope.arn
   enable_execute_command = true
   desired_count          = 1
   launch_type            = "FARGATE"
@@ -160,7 +141,7 @@ resource "aws_ecs_service" "alloy" {
   network_configuration {
     subnets          = var.subnets
     assign_public_ip = true
-    security_groups  = [aws_security_group.alloy.id]
+    security_groups  = [aws_security_group.pyroscope.id]
   }
 
   service_connect_configuration {
@@ -176,30 +157,16 @@ resource "aws_ecs_service" "alloy" {
     }
 
     service {
-      port_name = local.profile_port_name
+      port_name = local.grpc_port_name
 
       client_alias {
-        port = local.profile_port_internal
+        port = local.grpc_port
       }
     }
   }
 
-  # Internal ALB target groups
-  load_balancer {
-    target_group_arn = aws_lb_target_group.profile_internal.arn
-    container_name   = "alloy"
-    container_port   = local.profile_port_internal
-  }
-
-  # External ALB target groups
-  load_balancer {
-    target_group_arn = aws_lb_target_group.profile_external.arn
-    container_name   = "alloy"
-    container_port   = local.profile_port_external
-  }
-
   tags = {
     Name    = local.service_name
-    Purpose = "Grafana Alloy CloudWatch metrics receiver"
+    Purpose = "Pyroscope log aggregation"
   }
 }

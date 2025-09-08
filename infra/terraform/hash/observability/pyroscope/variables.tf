@@ -38,29 +38,9 @@ variable "service_discovery_namespace_arn" {
 
 variable "service_discovery_namespace_name" {
   type        = string
-  description = "Name of the service discovery namespace for Service Connect"
+  description = "Name of the service discovery namespace for DNS resolution"
 }
 
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
-}
-
-variable "mimir_http_dns" {
-  type        = string
-  description = "Mimir HTTP API DNS name for metrics forwarding"
-}
-
-variable "mimir_http_port" {
-  type        = number
-  description = "Mimir HTTP API port number"
-}
-
-variable "pyroscope_http_dns" {
-  type        = string
-  description = "Pyroscope HTTP API DNS name for metrics forwarding"
-}
-
-variable "pyroscope_http_port" {
-  type        = number
-  description = "Pyroscope HTTP API port number"
 }

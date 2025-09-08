@@ -58,6 +58,15 @@ resource "aws_security_group" "grafana" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  # Allow outbound HTTP for Pyroscope API
+  egress {
+    from_port   = var.pyroscope_http_port
+    to_port     = var.pyroscope_http_port
+    protocol    = "tcp"
+    description = "Pyroscope API access"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   # Allow outbound PostgreSQL
   egress {
     from_port   = var.grafana_database_port
