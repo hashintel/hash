@@ -1,4 +1,4 @@
-# Loki service definition
+# Pyroscope service definition
 
 locals {
   service_name = "pyroscope"
