@@ -411,6 +411,17 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             return;
         };
 
+        // Check that the path itself is not generic, if it is, there is no safe way to create an
+        // alias
+        if from
+            .segments
+            .iter()
+            .any(|segment| !segment.arguments.is_empty())
+        {
+            walk_call_expr(self, expr);
+            return;
+        }
+
         // We have a new mapping from path to type
         self.resolve = true;
         self.visit_path(from);
