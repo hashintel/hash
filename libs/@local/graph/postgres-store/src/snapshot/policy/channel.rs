@@ -32,10 +32,10 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll policy sender")?;
+            .attach("could not poll policy sender")?;
         ready!(self.edition.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll policy edition sender")?;
+            .attach("could not poll policy edition sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -47,7 +47,7 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
         self.id
             .start_send_unpin(PolicyRow { id: policy.id })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send policy row")?;
+            .attach("could not send policy row")?;
 
         let (principal_id, actor_type) = policy
             .principal
@@ -67,7 +67,7 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
                 resource_constraint: policy.resource.map(Json),
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send policy edition row")?;
+            .attach("could not send policy edition row")?;
 
         Ok(())
     }
@@ -75,10 +75,10 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush policy sender")?;
+            .attach("could not flush policy sender")?;
         ready!(self.edition.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush policy edition sender")?;
+            .attach("could not flush policy edition sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -86,10 +86,10 @@ impl Sink<PolicyEditionSnapshotRecord> for PolicyEditionSender {
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close policy sender")?;
+            .attach("could not close policy sender")?;
         ready!(self.edition.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close policy edition sender")?;
+            .attach("could not close policy edition sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -106,7 +106,7 @@ impl Sink<PolicyActionSnapshotRecord> for PolicyActionSender {
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.action.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll policy action sender")?;
+            .attach("could not poll policy action sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -122,7 +122,7 @@ impl Sink<PolicyActionSnapshotRecord> for PolicyActionSender {
                 transaction_time: action.transaction_time,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send policy action row")?;
+            .attach("could not send policy action row")?;
 
         Ok(())
     }
@@ -130,7 +130,7 @@ impl Sink<PolicyActionSnapshotRecord> for PolicyActionSender {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.action.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush policy action sender")?;
+            .attach("could not flush policy action sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -138,7 +138,7 @@ impl Sink<PolicyActionSnapshotRecord> for PolicyActionSender {
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.action.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close policy action sender")?;
+            .attach("could not close policy action sender")?;
 
         Poll::Ready(Ok(()))
     }

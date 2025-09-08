@@ -27,12 +27,12 @@ fn test_kinds<E>(report: &Report<E>) {
 }
 
 #[test]
-fn attach() {
+fn attach_opaque() {
     let report = create_report()
         .change_context(ContextA(0))
-        .attach(AttachmentA)
+        .attach_opaque(AttachmentA)
         .change_context(ContextB(0))
-        .attach(AttachmentB);
+        .attach_opaque(AttachmentB);
 
     test_messages(&report);
     test_kinds(&report);
@@ -47,12 +47,12 @@ fn buried_duplicate_context_does_not_affect_current_contexts() {
     let auxillary = create_report();
     root.push(auxillary);
 
-    let mut root = root.attach(AttachmentA);
+    let mut root = root.attach_opaque(AttachmentA);
 
     let shallow = create_report()
-        .attach(AttachmentB)
+        .attach_opaque(AttachmentB)
         .change_context(ContextB(0))
-        .attach(AttachmentA)
+        .attach_opaque(AttachmentA)
         .change_context(ContextA(0))
         .change_context(RootError);
 
@@ -65,9 +65,9 @@ fn buried_duplicate_context_does_not_affect_current_contexts() {
 fn attach_result() {
     let error = create_error()
         .change_context(ContextA(0))
-        .attach(AttachmentA)
+        .attach_opaque(AttachmentA)
         .change_context_lazy(|| ContextB(0))
-        .attach_lazy(|| AttachmentB);
+        .attach_opaque_with(|| AttachmentB);
 
     let report = error.expect_err("Not an error");
     test_messages(&report);
@@ -78,9 +78,9 @@ fn attach_result() {
 fn attach_future() {
     let future = create_future()
         .change_context(ContextA(0))
-        .attach(AttachmentA)
+        .attach_opaque(AttachmentA)
         .change_context_lazy(|| ContextB(0))
-        .attach_lazy(|| AttachmentB);
+        .attach_opaque_with(|| AttachmentB);
 
     let error = futures::executor::block_on(future);
 

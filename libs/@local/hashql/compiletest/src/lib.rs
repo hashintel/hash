@@ -12,7 +12,6 @@
     file_buffered,
     formatting_options,
     lock_value_accessors,
-    panic_payload_as_str,
     pattern,
 )]
 

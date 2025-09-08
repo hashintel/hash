@@ -913,8 +913,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(InsertionError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to create the entity type `{}`",
                             inserted_entity_type.id
                         )));
@@ -931,7 +931,7 @@ where
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
             .change_context(InsertionError)
-            .attach_printable("Could not read entity type resolve data")?
+            .attach("Could not read entity type resolve data")?
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(InsertionError)?;
 
@@ -960,7 +960,7 @@ where
             )
             .await
             .change_context(InsertionError)
-            .attach_printable("Could not read parent entity types")?
+            .attach("Could not read parent entity types")?
             .entity_types
             .into_iter()
             .for_each(|entity_type| {
@@ -1428,7 +1428,7 @@ where
                         .inner()
                         .checked_sub(1)
                         .ok_or(UpdateError)
-                        .attach_printable(
+                        .attach(
                             "The version of the entity type is already at the lowest possible \
                              value",
                         )?,
@@ -1484,8 +1484,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(UpdateError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to update the entity type \
                              `{entity_type_id}`"
                         )));
@@ -1506,7 +1506,7 @@ where
             .get_per_entity_type_resolve_metadata(&required_reference_ids)
             .await
             .change_context(UpdateError)
-            .attach_printable("Could not read entity type resolve data")?
+            .attach("Could not read entity type resolve data")?
             .collect::<Result<HashMap<_, _>, _>>()
             .change_context(UpdateError)?;
 
@@ -1535,7 +1535,7 @@ where
             )
             .await
             .change_context(UpdateError)
-            .attach_printable("Could not read parent entity types")?
+            .attach("Could not read parent entity types")?
             .entity_types
             .into_iter()
             .for_each(|entity_type| {
@@ -1648,8 +1648,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to archive the entity type `{}`",
                         params.entity_type_id
                     )));
@@ -1692,8 +1692,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to unarchive the entity type `{}`",
                         params.entity_type_id
                     )));

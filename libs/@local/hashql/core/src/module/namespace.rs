@@ -300,7 +300,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         // Special Forms
         successful &= self.import_absolute_static("if", ["kernel", "special_form", "if"]);
-        successful &= self.import_absolute_static("is", ["kernel", "special_form", "is"]);
+        successful &= self.import_absolute_static("as", ["kernel", "special_form", "as"]);
         successful &= self.import_absolute_static("let", ["kernel", "special_form", "let"]);
         successful &= self.import_absolute_static("type", ["kernel", "special_form", "type"]);
         successful &= self.import_absolute_static("newtype", ["kernel", "special_form", "newtype"]);

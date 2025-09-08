@@ -1,9 +1,9 @@
 [graph-read-compiler::field-access-internal-error] Internal Compiler Error: Internal error during field access
     ╭─[ <unknown>:14:12 ]
     │
- 13 │           ["input", "user", {"#struct": {"ID": "::core::graph::types::knowledge::entity::EntityUuid"}}],
-    │           ──────────────────────────────────────────────┬──────────────────────────────────────────────  
-    │                                                         ╰──────────────────────────────────────────────── ... on this value
+ 13 │           ["input", "user", {"#struct": {"ID": "::graph::types::knowledge::entity::EntityUuid"}}],
+    │           ───────────────────────────────────────────┬───────────────────────────────────────────  
+    │                                                      ╰───────────────────────────────────────────── ... on this value
  14 │           "ID"
     │            ─┬  
     │             ╰── Field access for `ID` failed unexpectedly

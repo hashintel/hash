@@ -235,14 +235,14 @@ impl GlobalId {
     ///     shard_id: ShardId::new(0xCCCC),
     ///     local_id: LocalId::default(),
     ///     provenance: Provenance::Integration,
-    ///     producer: ProducerId::User,
+    ///     producer: ProducerId::EntityType,
     ///     scope: Scope::Schema,
     ///     sub_scope: SubScope::Unknown,
     ///     retry: 0xCC,
     /// };
     /// let uuid = gid.encode();
     ///
-    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8002-000000000000");
+    /// assert_eq!(uuid.to_string(), "aaaabbbb-cccc-80cc-8802-000000000000");
     /// assert_eq!(GlobalId::decode(uuid)?, gid);
     ///
     /// Ok::<_, error_stack::Report<[hash_graph_test_data::seeding::context::ParseGlobalIdError]>>(())
@@ -389,7 +389,15 @@ impl GlobalId {
 #[repr(u8)]
 pub enum ProducerId {
     User,
+    Machine,
+    Ai,
+    Web,
+    Team,
+    Policy,
     DataType,
+    PropertyType,
+    EntityType,
+    Entity,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -404,19 +412,34 @@ impl ProducerId {
     const fn from_u8(value: u8) -> Result<Self, ParseProducerIdError> {
         match value {
             0 => Ok(Self::User),
-            1 => Ok(Self::DataType),
+            1 => Ok(Self::Machine),
+            2 => Ok(Self::Ai),
+            3 => Ok(Self::Web),
+            4 => Ok(Self::Team),
+            5 => Ok(Self::Policy),
+            6 => Ok(Self::DataType),
+            7 => Ok(Self::PropertyType),
+            8 => Ok(Self::EntityType),
+            9 => Ok(Self::Entity),
             _ => Err(ParseProducerIdError { producer_id: value }),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct ProduceContext {
     pub run_id: RunId,
     pub stage_id: StageId,
     pub shard_id: ShardId,
     pub provenance: Provenance,
     pub producer: ProducerId,
+}
+
+impl ProduceContext {
+    #[must_use]
+    pub const fn for_producer(self, producer: ProducerId) -> Self {
+        Self { producer, ..self }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -430,6 +453,11 @@ pub enum Scope {
     Conversions,
     Config,
     Metadata,
+    Boolean,
+    Number,
+    String,
+    Array,
+    Object,
     Anonymous = 0xFF,
 }
 
@@ -452,6 +480,11 @@ impl Scope {
             5 => Ok(Self::Conversions),
             6 => Ok(Self::Config),
             7 => Ok(Self::Metadata),
+            8 => Ok(Self::Boolean),
+            9 => Ok(Self::Number),
+            10 => Ok(Self::String),
+            11 => Ok(Self::Array),
+            12 => Ok(Self::Object),
             0xFF => Ok(Self::Anonymous),
             _ => Err(ParseScopeError { scope: value }),
         }
@@ -463,15 +496,20 @@ impl Scope {
 pub enum SubScope {
     Unknown,
     Domain,
+    Web,
     Title,
     Description,
-    Constraint,
+    ValueConstraint,
+    PropertyValue,
+    Property,
+    Link,
     Conflict,
     Ownership,
     WebType,
     Index,
     FetchedAt,
     Provenance,
+    Type,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -487,15 +525,20 @@ impl SubScope {
         match value {
             0 => Ok(Self::Unknown),
             1 => Ok(Self::Domain),
-            2 => Ok(Self::Title),
-            3 => Ok(Self::Description),
-            4 => Ok(Self::Constraint),
-            5 => Ok(Self::Conflict),
-            6 => Ok(Self::Ownership),
-            7 => Ok(Self::WebType),
-            8 => Ok(Self::Index),
-            9 => Ok(Self::FetchedAt),
-            10 => Ok(Self::Provenance),
+            2 => Ok(Self::Web),
+            3 => Ok(Self::Title),
+            4 => Ok(Self::Description),
+            5 => Ok(Self::ValueConstraint),
+            6 => Ok(Self::PropertyValue),
+            7 => Ok(Self::Property),
+            8 => Ok(Self::Link),
+            9 => Ok(Self::Conflict),
+            10 => Ok(Self::Ownership),
+            11 => Ok(Self::WebType),
+            12 => Ok(Self::Index),
+            13 => Ok(Self::FetchedAt),
+            14 => Ok(Self::Provenance),
+            15 => Ok(Self::Type),
             _ => Err(ParseSubScopeError { sub_scope: value }),
         }
     }
@@ -514,12 +557,7 @@ impl ProduceContext {
     /// Combine the current context with a [`LocalId`], [`Scope`], and [`SubScope`] to form a
     /// [`GlobalId`].
     #[must_use]
-    pub const fn global_id(
-        &self,
-        local_id: LocalId,
-        scope: Scope,
-        sub_scope: SubScope,
-    ) -> GlobalId {
+    pub const fn global_id(self, local_id: LocalId, scope: Scope, sub_scope: SubScope) -> GlobalId {
         GlobalId {
             run_id: self.run_id,
             stage_id: self.stage_id,

@@ -46,25 +46,25 @@ impl Sink<Entity> for EntitySender {
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll id sender")?;
+            .attach("could not poll id sender")?;
         ready!(self.draft.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll draft sender")?;
+            .attach("could not poll draft sender")?;
         ready!(self.edition.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll edition sender")?;
+            .attach("could not poll edition sender")?;
         ready!(self.is_of_type.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll type sender")?;
+            .attach("could not poll type sender")?;
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll temporal metadata sender")?;
+            .attach("could not poll temporal metadata sender")?;
         ready!(self.left_links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll left entity link edges sender")?;
+            .attach("could not poll left entity link edges sender")?;
         ready!(self.right_links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll right entity link edges sender")?;
+            .attach("could not poll right entity link edges sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -77,7 +77,7 @@ impl Sink<Entity> for EntitySender {
                 provenance: entity.metadata.provenance.inferred,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity id")?;
+            .attach("could not send entity id")?;
 
         if let Some(draft_id) = entity.metadata.record_id.entity_id.draft_id {
             self.draft
@@ -87,7 +87,7 @@ impl Sink<Entity> for EntitySender {
                     draft_id,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity draft id")?;
+                .attach("could not send entity draft id")?;
         }
 
         self.edition
@@ -100,7 +100,7 @@ impl Sink<Entity> for EntitySender {
                 property_metadata: entity.metadata.properties,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity edition")?;
+            .attach("could not send entity edition")?;
 
         for is_of_type in &entity.metadata.entity_type_ids {
             self.is_of_type
@@ -110,7 +110,7 @@ impl Sink<Entity> for EntitySender {
                     inheritance_depth: InheritanceDepth::new(0),
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity type")?;
+                .attach("could not send entity type")?;
         }
 
         self.temporal_metadata
@@ -123,7 +123,7 @@ impl Sink<Entity> for EntitySender {
                 transaction_time: entity.metadata.temporal_versioning.transaction_time,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send entity temporal metadata")?;
+            .attach("could not send entity temporal metadata")?;
 
         if let Some(link_data) = entity.link_data {
             self.left_links
@@ -136,7 +136,7 @@ impl Sink<Entity> for EntitySender {
                     provenance: link_data.left_entity_provenance,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity link edges")?;
+                .attach("could not send entity link edges")?;
             self.right_links
                 .start_send_unpin(EntityHasRightEntityRow {
                     web_id: entity.metadata.record_id.entity_id.web_id,
@@ -147,7 +147,7 @@ impl Sink<Entity> for EntitySender {
                     provenance: link_data.right_entity_provenance,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity link edges")?;
+                .attach("could not send entity link edges")?;
         }
 
         Ok(())
@@ -156,25 +156,25 @@ impl Sink<Entity> for EntitySender {
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush id sender")?;
+            .attach("could not flush id sender")?;
         ready!(self.draft.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush draft sender")?;
+            .attach("could not flush draft sender")?;
         ready!(self.edition.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush edition sender")?;
+            .attach("could not flush edition sender")?;
         ready!(self.is_of_type.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush type sender")?;
+            .attach("could not flush type sender")?;
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush temporal metadata sender")?;
+            .attach("could not flush temporal metadata sender")?;
         ready!(self.left_links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush left entity link edges sender")?;
+            .attach("could not flush left entity link edges sender")?;
         ready!(self.right_links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush right entity link edges sender")?;
+            .attach("could not flush right entity link edges sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -182,25 +182,25 @@ impl Sink<Entity> for EntitySender {
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.id.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close id sender")?;
+            .attach("could not close id sender")?;
         ready!(self.draft.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close draft sender")?;
+            .attach("could not close draft sender")?;
         ready!(self.edition.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close edition sender")?;
+            .attach("could not close edition sender")?;
         ready!(self.is_of_type.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close type sender")?;
+            .attach("could not close type sender")?;
         ready!(self.temporal_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close temporal metadata sender")?;
+            .attach("could not close temporal metadata sender")?;
         ready!(self.left_links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity link edges sender")?;
+            .attach("could not close entity link edges sender")?;
         ready!(self.right_links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity link edges sender")?;
+            .attach("could not close entity link edges sender")?;
 
         Poll::Ready(Ok(()))
     }

@@ -836,7 +836,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(WebCreationError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1028,7 +1028,7 @@ where
                 .change_context(RoleAssignmentError::StoreError)?;
             if actor_id != system_machine.into() {
                 return Err(Report::new(RoleAssignmentError::PermissionDenied)
-                    .attach(StatusCode::PermissionDenied));
+                    .attach_opaque(StatusCode::PermissionDenied));
             }
         }
 
@@ -1044,7 +1044,7 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach(StatusCode::InvalidArgument)?;
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -1153,7 +1153,7 @@ where
             != Some(RoleName::Administrator)
         {
             return Err(Report::new(RoleAssignmentError::PermissionDenied)
-                .attach(StatusCode::PermissionDenied));
+                .attach_opaque(StatusCode::PermissionDenied));
         }
 
         let mut transaction = self
@@ -1168,7 +1168,7 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?
             .ok_or(RoleAssignmentError::ActorNotProvided)
-            .attach(StatusCode::InvalidArgument)?;
+            .attach_opaque(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -1455,7 +1455,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(CreatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1763,7 +1763,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1795,7 +1795,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdatePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1818,7 +1818,7 @@ where
             .change_context(RemovePolicyError::StoreError)?
             .ok_or_else(|| {
                 Report::new(RemovePolicyError::PolicyNotFound { id: policy_id })
-                    .attach_printable(StatusCode::NotFound)
+                    .attach(StatusCode::NotFound)
             })?;
 
         let policy_components = PolicyComponents::builder(self)
@@ -1845,7 +1845,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(RemovePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -1864,7 +1864,7 @@ where
             .change_context(RemovePolicyError::StoreError)?
             .ok_or_else(|| {
                 Report::new(RemovePolicyError::PolicyNotFound { id: policy_id })
-                    .attach_printable(StatusCode::NotFound)
+                    .attach(StatusCode::NotFound)
             })?;
 
         let policy_components = PolicyComponents::builder(self)
@@ -1891,7 +1891,7 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(RemovePolicyError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
+                    .attach(StatusCode::PermissionDenied);
             }
         }
 
@@ -2036,7 +2036,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2137,7 +2137,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2216,7 +2216,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2300,7 +2300,7 @@ where
             })
             .try_collect_reports()
             .await
-            .attach(StatusCode::NotFound)?;
+            .attach_opaque(StatusCode::NotFound)?;
 
         Ok(self
             .as_client()
@@ -2480,11 +2480,11 @@ where
                     .map_err(|report| match report.current_context().code() {
                         Some(&SqlState::UNIQUE_VIOLATION) => report
                             .change_context(BaseUrlAlreadyExists)
-                            .attach_printable(base_url.clone())
+                            .attach(base_url.clone())
                             .change_context(InsertionError),
                         _ => report
                             .change_context(InsertionError)
-                            .attach_printable(base_url.clone()),
+                            .attach(base_url.clone()),
                     })?;
             }
             ConflictBehavior::Skip => {
@@ -2543,7 +2543,7 @@ where
 
                     if !exists_in_specified_location {
                         return Err(Report::new(BaseUrlAlreadyExists)
-                            .attach_printable(base_url.clone())
+                            .attach(base_url.clone())
                             .change_context(InsertionError));
                     }
                 }
@@ -2601,11 +2601,11 @@ where
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(ontology_id.clone())
+                    .attach(ontology_id.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(ontology_id.clone()),
+                    .attach(ontology_id.clone()),
             })
             .map(|optional| optional.map(|row| row.get(0)))
     }
@@ -2697,11 +2697,11 @@ where
 
             Err(if exists {
                 Report::new(VersionedUrlAlreadyExists)
-                    .attach_printable(id.clone())
+                    .attach(id.clone())
                     .change_context(UpdateError)
             } else {
                 Report::new(OntologyVersionDoesNotExist)
-                    .attach_printable(id.clone())
+                    .attach(id.clone())
                     .change_context(UpdateError)
             })
         }
@@ -2740,15 +2740,13 @@ where
                 .map_err(|report| match report.current_context().code() {
                     Some(&SqlState::EXCLUSION_VIOLATION) => report
                         .change_context(VersionedUrlAlreadyExists)
-                        .attach_printable(id.clone())
+                        .attach(id.clone())
                         .change_context(UpdateError),
                     Some(&SqlState::NOT_NULL_VIOLATION) => report
                         .change_context(OntologyVersionDoesNotExist)
-                        .attach_printable(id.clone())
+                        .attach(id.clone())
                         .change_context(UpdateError),
-                    _ => report
-                        .change_context(UpdateError)
-                        .attach_printable(id.clone()),
+                    _ => report.change_context(UpdateError).attach(id.clone()),
                 })
                 .change_context(UpdateError)?
                 .get(0),
@@ -3241,9 +3239,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .inner()
                 .checked_sub(1)
                 .ok_or(UpdateError)
-                .attach_printable(
-                    "The version of the data type is already at the lowest possible value",
-                )?,
+                .attach("The version of the data type is already at the lowest possible value")?,
         );
         let Some(web_id) = self
             .as_client()
@@ -3292,11 +3288,11 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 .map(|row| row.get(0))?;
             return Err(if exists {
                 Report::new(OntologyTypeIsNotOwned)
-                    .attach_printable(url.clone())
+                    .attach(url.clone())
                     .change_context(UpdateError)
             } else {
                 Report::new(OntologyVersionDoesNotExist)
-                    .attach_printable(url.clone())
+                    .attach(url.clone())
                     .change_context(UpdateError)
             });
         };
@@ -3353,7 +3349,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(AccountInsertionError)?
             .ok_or(AccountInsertionError)
-            .attach(StatusCode::Unauthenticated)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
             .create_user(params.user_id)
@@ -3681,7 +3677,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(WebInsertionError)?
             .ok_or(WebInsertionError)
-            .attach(StatusCode::Unauthenticated)?;
+            .attach_opaque(StatusCode::Unauthenticated)?;
 
         let administrator = if let Some(administrator) = params.administrator {
             transaction
@@ -3689,7 +3685,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 .await
                 .change_context(WebInsertionError)?
                 .ok_or(WebInsertionError)
-                .attach(StatusCode::InvalidArgument)?
+                .attach_opaque(StatusCode::InvalidArgument)?
         } else {
             actor_id
         };
@@ -3822,7 +3818,7 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                     .await
                     .change_context(AccountGroupInsertionError)?
                     .ok_or(AccountGroupInsertionError)
-                    .attach(StatusCode::InvalidArgument)?,
+                    .attach_opaque(StatusCode::InvalidArgument)?,
                 admin_role,
             )
             .await

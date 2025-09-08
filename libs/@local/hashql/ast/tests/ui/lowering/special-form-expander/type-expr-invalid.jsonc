@@ -1,17 +1,17 @@
 //@ run: fail
 //@ description: every expression, except for struct, tuple and paths are not valid type expressions
 [
-  "::kernel::special_form::is",
+  "::kernel::special_form::as",
   [
-    "::kernel::special_form::is",
+    "::kernel::special_form::as",
     [
-      "::kernel::special_form::is",
+      "::kernel::special_form::as",
       [
-        "::kernel::special_form::is",
+        "::kernel::special_form::as",
         "x",
         // ensure that we properly resolve nested is expressions as errors
-        ["::kernel::special_form::is", "x", "X"]
-        //~^ ERROR Replace this is with a proper type expression
+        ["::kernel::special_form::as", "x", "X"]
+        //~^ ERROR Replace this as with a proper type expression
       ],
       { "#literal": 1 }
       //~^ ERROR Replace this literal with a type name

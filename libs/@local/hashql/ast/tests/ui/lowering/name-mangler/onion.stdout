@@ -25,8 +25,8 @@ Expr#4294967040@62
                       Type#4294967040@33
                         TypeKind (Infer)
                     Expr#4294967040@46
-                      ExprKind (Is)
-                        IsExpr#4294967040@46
+                      ExprKind (As)
+                        AsExpr#4294967040@46
                           Expr#4294967040@41
                             ExprKind (Path)
                               Path#4294967040@41 (rooted: false)
@@ -37,8 +37,8 @@ Expr#4294967040@62
                                 PathSegment#4294967040@44 (name: T:1)
             Argument#4294967040@60
               Expr#4294967040@60
-                ExprKind (Is)
-                  IsExpr#4294967040@60
+                ExprKind (As)
+                  AsExpr#4294967040@60
                     Expr#4294967040@55
                       ExprKind (Path)
                         Path#4294967040@55 (rooted: false)

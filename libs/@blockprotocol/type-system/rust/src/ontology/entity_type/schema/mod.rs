@@ -40,14 +40,14 @@ impl InverseEntityTypeMetadata {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
-enum EntityTypeKindTag {
+pub enum EntityTypeKindTag {
     EntityType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
-enum EntityTypeSchemaTag {
+pub enum EntityTypeSchemaTag {
     #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type")]
     V3,
 }
@@ -198,9 +198,9 @@ pub struct EntityTypeDisplayMetadata {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityType {
     #[serde(rename = "$schema")]
-    schema: EntityTypeSchemaTag,
-    kind: EntityTypeKindTag,
-    r#type: ObjectTypeTag,
+    pub schema: EntityTypeSchemaTag,
+    pub kind: EntityTypeKindTag,
+    pub r#type: ObjectTypeTag,
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
     pub title: String,

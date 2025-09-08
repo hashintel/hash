@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Field index out of bounds should error
+["::kernel::special_form::access", "data", { "#literal": 18446744073709551616 }]
+//~^ ERROR Use a valid field index within usize bounds

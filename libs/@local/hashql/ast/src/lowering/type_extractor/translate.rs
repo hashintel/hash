@@ -191,6 +191,7 @@ impl<'heap> FromIterator<(GenericArgumentReference<'heap>, SpanId)>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
+    pub name: Ident<'heap>,
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
 
@@ -771,9 +772,10 @@ where
     ) -> TypeDef<'heap> {
         let (kind, arguments) = self.variable_verify(variable, constraints);
 
+        let kind = self.env.intern_kind(kind);
         let partial = PartialType {
             span: variable.r#type.span,
-            kind: self.env.intern_kind(kind),
+            kind,
         };
 
         let id = self.env.types.intern_provisioned(variable.id, partial).id;

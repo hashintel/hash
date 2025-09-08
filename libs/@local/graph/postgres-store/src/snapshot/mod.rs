@@ -1159,12 +1159,8 @@ where
                     .and_then(tokio_postgres::Error::as_db_error)
                 {
                     match *error.code() {
-                        SqlState::FOREIGN_KEY_VIOLATION => {
-                            report.attach_printable(StatusCode::NotFound)
-                        }
-                        SqlState::UNIQUE_VIOLATION => {
-                            report.attach_printable(StatusCode::AlreadyExists)
-                        }
+                        SqlState::FOREIGN_KEY_VIOLATION => report.attach(StatusCode::NotFound),
+                        SqlState::UNIQUE_VIOLATION => report.attach(StatusCode::AlreadyExists),
                         _ => report,
                     }
                 } else {
@@ -1176,7 +1172,7 @@ where
             .commit()
             .await
             .change_context(SnapshotRestoreError::Write)
-            .attach_printable("unable to commit snapshot to the store")?;
+            .attach("unable to commit snapshot to the store")?;
 
         let mut found_metadata = false;
         for metadata in metadata_rx.collect::<Vec<SnapshotMetadata>>().await {

@@ -9,5 +9,5 @@
    │ 
    │ Help: Did you mean to use 'newtype' instead?
    │ 
-   │ Note: Available special forms include: if, is, let, type, newtype, use, fn, input, access, index
+   │ Note: Available special forms include: if, as, let, type, newtype, use, fn, input, access, index
 ───╯

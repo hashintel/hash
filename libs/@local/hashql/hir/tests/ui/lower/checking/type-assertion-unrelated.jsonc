@@ -1,7 +1,7 @@
 //@ run: fail
 //@ description: Ensures type checking fails when asserting a value is of an unrelated type (Integer as String).
 [
-  "is",
+  "as",
   { "#literal": 42 },
   //~^ ERROR This is of type `Integer`
   "String"

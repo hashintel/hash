@@ -6,7 +6,7 @@ use hashql_ast::{
     lowering::ExtractedTypes,
     node::{
         expr::{
-            CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IndexExpr, InputExpr, IsExpr,
+            AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IndexExpr, InputExpr,
             LetExpr, LiteralExpr, call::Argument, closure,
         },
         path::{Path, PathSegmentArgument},
@@ -373,14 +373,14 @@ impl<'heap> ReificationContext<'_, 'heap> {
         }))
     }
 
-    fn is_expr(
+    fn as_expr(
         &mut self,
-        IsExpr {
+        AsExpr {
             id: _,
             span,
             value,
             r#type,
-        }: IsExpr<'heap>,
+        }: AsExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let value = self.expr(*value)?;
 
@@ -478,7 +478,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             }
             ExprKind::Field(field) => self.field_expr(field)?,
             ExprKind::Index(index) => self.index_expr(index)?,
-            ExprKind::Is(is) => self.is_expr(is)?,
+            ExprKind::As(r#as) => self.as_expr(r#as)?,
             ExprKind::Underscore => {
                 self.diagnostics.push(underscore_expression(expr.span));
 

@@ -15,7 +15,7 @@ use hashql_hir::node::{
 
 use super::{
     CompilationError, FilterCompilerContext, GraphReadCompiler,
-    error::qualified_variable_unsupported, path::CompleteQueryPath,
+    error::qualified_variable_unsupported, path::CompleteQueryPath, sink::FilterSink,
 };
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
@@ -24,7 +24,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         &mut self,
         context: FilterCompilerContext<'heap>,
         node: &'heap Node<'heap>,
-    ) -> Result<Filter<'heap, R>, CompilationError>
+        sink: &mut FilterSink<'_, 'heap, R>,
+    ) -> Result<(), CompilationError>
     where
         R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath: Debug>>,
     {
@@ -44,7 +45,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 );
 
                 let value = self.locals[&name.value];
-                self.compile_filter(context, value)
+                self.compile_filter(context, value, sink)
             }
             NodeKind::Variable(Variable {
                 span: _,
@@ -62,7 +63,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 body,
             }) => {
                 self.locals.insert(name.value, value);
-                let filter = self.compile_filter(context, body);
+                let filter = self.compile_filter(context, body, sink);
                 self.locals.remove(&name.value);
 
                 filter
@@ -80,20 +81,32 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }) => {
                 let func = match op.kind {
                     BinOpKind::And => {
+                        let mut sink = sink.and();
+
                         let (left, right) = (
-                            self.compile_filter(context, left),
-                            self.compile_filter(context, right),
+                            self.compile_filter(context, left, &mut sink),
+                            self.compile_filter(context, right, &mut sink),
                         );
 
-                        return Ok(Filter::All(vec![left?, right?]));
+                        // We defer the error handling to make sure we gather every diagnostic
+                        left?;
+                        right?;
+
+                        return Ok(());
                     }
                     BinOpKind::Or => {
+                        let mut sink = sink.or();
+
                         let (left, right) = (
-                            self.compile_filter(context, left),
-                            self.compile_filter(context, right),
+                            self.compile_filter(context, left, &mut sink),
+                            self.compile_filter(context, right, &mut sink),
                         );
 
-                        return Ok(Filter::Any(vec![left?, right?]));
+                        // We defer the error handling to make sure we gather every diagnostic
+                        left?;
+                        right?;
+
+                        return Ok(());
                     }
                     BinOpKind::Eq => |left, right| Filter::Equal(Some(left), Some(right)),
                     BinOpKind::Ne => |left, right| Filter::NotEqual(Some(left), Some(right)),
@@ -110,7 +123,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                         .and_then(|expr| expr.finish(context, &mut self.diagnostics)),
                 );
 
-                Ok(func(left?, right?))
+                sink.push(func(left?, right?));
+                Ok(())
             }
             // Unary are currently not supported, so we can skip them
             NodeKind::Operation(Operation {
@@ -126,7 +140,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                                 force: _,
                             }),
                     }),
-            }) => self.compile_filter(context, value),
+            }) => self.compile_filter(context, value, sink),
             // If we came to this match arm using these nodes, then that means that the filter
             // must have evaluated to a boolean expression. Therefore we can just check if the
             // expression evaluates to true.
@@ -143,16 +157,20 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             | NodeKind::Access(_)
             | NodeKind::Call(_)
             | NodeKind::Closure(_)
-            | NodeKind::Graph(_) => Ok(Filter::Equal(
-                Some(
-                    self.compile_filter_expr(context, node)?
-                        .finish(context, &mut self.diagnostics)?,
-                ),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Boolean(true),
-                    convert: None,
-                }),
-            )),
+            | NodeKind::Graph(_) => {
+                sink.push(Filter::Equal(
+                    Some(
+                        self.compile_filter_expr(context, node)?
+                            .finish(context, &mut self.diagnostics)?,
+                    ),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Boolean(true),
+                        convert: None,
+                    }),
+                ));
+
+                Ok(())
+            }
         }
     }
 }

@@ -58,9 +58,9 @@
 [special-form-expander::invalid-type-expression] Error: Invalid type expression
     ╭─[ <unknown>:13:9 ]
     │
- 13 │         ["::kernel::special_form::is", "x", "X"]
+ 13 │         ["::kernel::special_form::as", "x", "X"]
     │         ────────────────────┬───────────────────  
-    │                             ╰───────────────────── Replace this is with a proper type expression
+    │                             ╰───────────────────── Replace this as with a proper type expression
     │ 
     │ Help: Replace this expression with a valid type reference, struct type, or tuple type
     │ 

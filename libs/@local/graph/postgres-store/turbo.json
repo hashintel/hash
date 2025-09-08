@@ -4,7 +4,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["@apps/hash-graph#dev:migrate"]
+      "dependsOn": ["@apps/hash-graph#start:test:migrate"]
     },
     "test:integration": {
       "dependsOn": ["@rust/hash-graph-migrations#start:migrate:up"]

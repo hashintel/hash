@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "web": {
+      "index": { "sampling": "uniform" }
+    },
+    "provenance": {
+      "value": {
+        "sources": [],
+        "actorType": "machine",
+        "origin": { "type": "api" }
+      }
+    }
+  },
+  "config": { "conflict_behavior": { "value": "Fail" } }
+}

@@ -1,7 +1,7 @@
 //@ run: pass
 //@ description: Invoking `::core::bits::and` should convert into a intersection type expression
 [
-  "::kernel::special_form::is",
+  "::kernel::special_form::as",
   { "#literal": true },
   ["::core::bits::and", "Int", "Float"]
 ]

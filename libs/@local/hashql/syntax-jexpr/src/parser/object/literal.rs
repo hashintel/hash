@@ -88,7 +88,7 @@ fn parse_literal<'heap>(
     let kind = match token.kind {
         TokenKind::Null => LiteralKind::Null,
         TokenKind::Number(number) => {
-            if number.has_fraction() {
+            if number.has_fraction() || number.has_exponent() {
                 LiteralKind::Float(FloatLiteral {
                     value: state.intern_symbol(number.as_str()),
                 })

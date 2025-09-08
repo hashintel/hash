@@ -13,6 +13,7 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
@@ -37,7 +38,7 @@ import { useCallback, useState } from "react";
 
 import type { GridRow } from "../components/grid/grid";
 import type { MinimalUser } from "../lib/user-and-org";
-import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/entities-table/types";
+import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
 import type { TypesTableRow } from "../pages/shared/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -259,7 +260,7 @@ export const TableHeader = <R extends GridRow>({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems ?? "–"} in ${
+                label={`${numberOfUserWebItems !== undefined ? formatNumber(numberOfUserWebItems) : "–"} in ${
                   onlyOneWeb ? "this web" : "your webs"
                 }`}
                 sx={{
@@ -307,7 +308,11 @@ export const TableHeader = <R extends GridRow>({
                       <EarthAmericasRegularIcon />
                     )
                   }
-                  label={`${numberOfExternalItems ?? "–"} others`}
+                  label={`${
+                    numberOfExternalItems !== undefined
+                      ? formatNumber(numberOfExternalItems)
+                      : "–"
+                  } others`}
                   sx={({ palette }) => ({
                     ...commonChipSx,
                     [`.${chipClasses.label}`]: {

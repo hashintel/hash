@@ -27,12 +27,12 @@ fn test_kinds<E>(report: &Report<E>) {
 }
 
 #[test]
-fn attach() {
+fn attach_opaque() {
     let report = create_report()
-        .attach(PrintableA)
-        .attach(PrintableB(0))
-        .attach(AttachmentA)
-        .attach(AttachmentB);
+        .attach_opaque(PrintableA)
+        .attach_opaque(PrintableB(0))
+        .attach_opaque(AttachmentA)
+        .attach_opaque(AttachmentB);
 
     test_messages(&report);
     test_kinds(&report);
@@ -41,20 +41,24 @@ fn attach() {
 #[test]
 fn attach_group() {
     let mut root = create_report()
-        .attach(PrintableA)
-        .attach(PrintableB(0))
+        .attach_opaque(PrintableA)
+        .attach_opaque(PrintableB(0))
         .expand();
-    let nested = create_report().attach(AttachmentA).attach(AttachmentB);
+    let nested = create_report()
+        .attach_opaque(AttachmentA)
+        .attach_opaque(AttachmentB);
 
     root.push(nested);
 
     // bury the first error under a couple of attachments
     let mut root = root
-        .attach_printable(PrintableB(0))
-        .attach_printable(PrintableB(1))
-        .attach_printable(PrintableB(2));
+        .attach(PrintableB(0))
+        .attach(PrintableB(1))
+        .attach(PrintableB(2));
 
-    let shallow = create_report().attach(AttachmentA).attach(AttachmentB);
+    let shallow = create_report()
+        .attach_opaque(AttachmentA)
+        .attach_opaque(AttachmentB);
 
     root.push(shallow);
 
@@ -64,10 +68,10 @@ fn attach_group() {
 #[test]
 fn attach_result() {
     let error = create_error()
-        .attach(PrintableA)
-        .attach_lazy(|| PrintableB(0))
-        .attach(AttachmentA)
-        .attach_lazy(|| AttachmentB);
+        .attach_opaque(PrintableA)
+        .attach_opaque_with(|| PrintableB(0))
+        .attach_opaque(AttachmentA)
+        .attach_opaque_with(|| AttachmentB);
 
     let report = error.expect_err("Not an error");
     test_messages(&report);
@@ -77,10 +81,10 @@ fn attach_result() {
 #[test]
 fn attach_future() {
     let future = create_future()
-        .attach(PrintableA)
-        .attach_lazy(|| PrintableB(0))
-        .attach(AttachmentA)
-        .attach_lazy(|| AttachmentB);
+        .attach_opaque(PrintableA)
+        .attach_opaque_with(|| PrintableB(0))
+        .attach_opaque(AttachmentA)
+        .attach_opaque_with(|| AttachmentB);
 
     let error = futures::executor::block_on(future);
 

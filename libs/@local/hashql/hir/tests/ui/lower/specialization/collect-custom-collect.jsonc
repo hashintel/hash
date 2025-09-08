@@ -1,10 +1,10 @@
 //@ run: fail
 //@ description: Test minimal graph specialization
 [
-  "::core::graph::tail::collect",
+  "::graph::tail::collect",
   [
     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", "graph"],
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]]
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]
   ]
   //~^ ERROR This is not a graph intrinsic operation
 ]

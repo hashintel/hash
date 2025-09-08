@@ -7,5 +7,5 @@
    │ 
    │ Help: Type expressions used in special forms cannot have their own type annotations. The expression itself defines a type and cannot be annotated with another type.
    │ 
-   │ Note: When constructing type expressions for special forms like 'type', 'newtype', or 'is', the expression itself represents a type definition and cannot have a separate type annotation.
+   │ Note: When constructing type expressions for special forms like 'type', 'newtype', or 'as', the expression itself represents a type definition and cannot have a separate type annotation.
 ───╯

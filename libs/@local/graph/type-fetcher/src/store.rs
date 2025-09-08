@@ -103,13 +103,14 @@ pub trait TypeFetcher {
     ) -> impl Future<Output = Result<OntologyTypeMetadata, Report<InsertionError>>> + Send;
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct TypeFetcherConnectionInfo<A> {
     address: A,
     config: tarpc::client::Config,
     domain_validator: DomainValidator,
 }
 
+#[derive(Debug, Clone)]
 pub struct FetchingPool<P, A> {
     pool: P,
     connection_info: Option<TypeFetcherConnectionInfo<A>>,
@@ -514,7 +515,7 @@ where
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
-        .attach_printable("Could not check if ontology type exists")
+        .attach("Could not check if ontology type exists")
     }
 
     #[tracing::instrument(level = "info", skip(self, ontology_type))]
@@ -539,7 +540,7 @@ where
         Ok(references)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_type_references))]
+    #[tracing::instrument(level = "info", skip(self, ontology_type_references, bypassed_types))]
     #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
@@ -564,7 +565,7 @@ where
         let fetcher = self
             .fetcher_client()
             .await
-            .attach_printable_lazy(|| {
+            .attach_with(|| {
                 queue
                     .iter()
                     .map(ToString::to_string)
@@ -668,7 +669,7 @@ where
         Ok(fetched_ontology_types)
     }
 
-    #[tracing::instrument(level = "info", skip(self, ontology_types))]
+    #[tracing::instrument(level = "info", skip_all)]
     async fn insert_external_types<'o, T: OntologyTypeSchema + Sync + 'o>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -911,7 +912,7 @@ where
             record_id.base_url == reference.base_url && record_id.version == reference.version
         })
         .ok_or_else(|| {
-            Report::new(InsertionError).attach_printable(format!(
+            Report::new(InsertionError).attach(format!(
                 "external type was not fetched: {}",
                 reference.url()
             ))
@@ -1127,7 +1128,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1187,7 +1188,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1278,7 +1279,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1340,7 +1341,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1420,7 +1421,7 @@ where
             &requested_types,
         )
         .await
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)
@@ -1501,7 +1502,7 @@ where
         )
         .await
         .change_context(UpdateError)
-        .attach_printable_lazy(|| {
+        .attach_with(|| {
             requested_types
                 .iter()
                 .map(ToString::to_string)

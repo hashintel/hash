@@ -1,6 +1,6 @@
 Expr#4294967040@26
-  ExprKind (Is)
-    IsExpr#4294967040@26
+  ExprKind (As)
+    AsExpr#4294967040@26
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8

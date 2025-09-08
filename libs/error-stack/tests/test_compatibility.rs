@@ -41,9 +41,7 @@ fn anyhow() {
         .context(PrintableA(0))
         .context(PrintableB(0)));
 
-    let report = create_report()
-        .attach_printable(PrintableA(0))
-        .attach_printable(PrintableB(0));
+    let report = create_report().attach(PrintableA(0)).attach(PrintableB(0));
 
     #[expect(unused_mut)]
     let mut report_messages = messages(&report);
@@ -152,9 +150,7 @@ fn eyre() {
         .wrap_err(PrintableA(0))
         .wrap_err(PrintableB(0)));
 
-    let report = create_report()
-        .attach_printable(PrintableA(0))
-        .attach_printable(PrintableB(0));
+    let report = create_report().attach(PrintableA(0)).attach(PrintableB(0));
     let report_messages = messages(&report);
 
     let eyre_report = eyre.into_report().expect_err("should have returned error");

@@ -13,25 +13,23 @@ use crate::OtlpConfig;
 pub(crate) fn provider(
     config: &OtlpConfig,
     service_name: &'static str,
-) -> Result<Option<SdkTracerProvider>, Report<ExporterBuildError>> {
-    let Some(endpoint) = config.endpoint.as_deref() else {
-        return Ok(None);
-    };
+) -> Result<SdkTracerProvider, Report<ExporterBuildError>> {
+    let mut exporter = SpanExporter::builder().with_tonic();
 
-    let mut exporter = SpanExporter::builder().with_tonic().with_endpoint(endpoint);
+    if let Some(endpoint) = &config.endpoint {
+        exporter = exporter.with_endpoint(endpoint);
 
-    // TODO: Properly check for `OTEL_EXPORTER_*` variables
-    //  see https://linear.app/hash/issue/H-5070/modernize-rust-opentelemetry-traces-module-to-be-fully-standard
-    if endpoint.starts_with("https://") {
-        exporter = exporter.with_tls_config(ClientTlsConfig::new().with_enabled_roots());
+        // TODO: Properly check for `OTEL_EXPORTER_*` variables
+        //  see https://linear.app/hash/issue/H-5070/modernize-rust-opentelemetry-traces-module-to-be-fully-standard
+        if endpoint.starts_with("https://") {
+            exporter = exporter.with_tls_config(ClientTlsConfig::new().with_enabled_roots());
+        }
     }
 
-    Ok(Some(
-        SdkTracerProvider::builder()
-            .with_resource(Resource::builder().with_service_name(service_name).build())
-            .with_batch_exporter(exporter.build()?)
-            .build(),
-    ))
+    Ok(SdkTracerProvider::builder()
+        .with_resource(Resource::builder().with_service_name(service_name).build())
+        .with_batch_exporter(exporter.build()?)
+        .build())
 }
 
 #[must_use]

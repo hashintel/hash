@@ -626,7 +626,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UpdateDataTypeEmbeddingParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -669,7 +669,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = ArchiveDataTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -682,10 +682,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })
@@ -721,7 +721,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UnarchiveDataTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -734,10 +734,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })

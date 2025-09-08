@@ -24,7 +24,7 @@ fn prepare() -> impl Drop {
 fn attachment() {
     let _guard = prepare();
 
-    let report = create_report().attach_printable(PrintableA(2));
+    let report = create_report().attach(PrintableA(2));
 
     assert_ron_snapshot!(report);
 }
@@ -34,7 +34,7 @@ fn context() {
     let _guard = prepare();
 
     let report = create_report()
-        .attach_printable(PrintableA(2))
+        .attach(PrintableA(2))
         .change_context(ContextA(2));
 
     assert_ron_snapshot!(report);
@@ -44,15 +44,15 @@ fn context() {
 fn multiple_sources() {
     let _guard = prepare();
 
-    let mut report_a = create_report().attach_printable(PrintableC(1)).expand();
-    let report_b = create_report().attach_printable(PrintableC(2));
+    let mut report_a = create_report().attach(PrintableC(1)).expand();
+    let report_b = create_report().attach(PrintableC(2));
 
     report_a.push(report_b);
 
     let report_a = report_a
-        .attach_printable(PrintableC(3))
+        .attach(PrintableC(3))
         .change_context(ContextA(2))
-        .attach_printable(PrintableC(4));
+        .attach(PrintableC(4));
 
     assert_ron_snapshot!(report_a);
 }
@@ -61,8 +61,8 @@ fn multiple_sources() {
 fn multiple_sources_at_root() {
     let _guard = prepare();
 
-    let mut report_a = create_report().attach_printable(PrintableC(1)).expand();
-    let report_b = create_report().attach_printable(PrintableC(2));
+    let mut report_a = create_report().attach(PrintableC(1)).expand();
+    let report_b = create_report().attach(PrintableC(2));
 
     report_a.push(report_b);
 

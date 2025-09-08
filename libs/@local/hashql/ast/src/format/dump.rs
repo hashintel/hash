@@ -28,8 +28,8 @@ use hashql_core::{
 
 use crate::node::{
     expr::{
-        CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-        IsExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
+        AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
+        InputExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
         UseExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSignature},
@@ -429,7 +429,7 @@ impl_syntax_dump!(struct ClosureExpr(); signature body);
 #[rustfmt::skip]
 impl_syntax_dump!(struct IfExpr(); test then ?r#else);
 
-impl_syntax_dump!(struct IsExpr(); value r#type);
+impl_syntax_dump!(struct AsExpr(); value r#type);
 
 #[rustfmt::skip]
 impl_syntax_dump!(struct FieldExpr(field); value);
@@ -509,10 +509,10 @@ impl SyntaxDump for ExprKind<'_> {
 
                 if_expr.syntax_dump(fmt, depth + 1)
             }
-            Self::Is(is_expr) => {
-                write_header(fmt, depth, "ExprKind", None, None, Some("Is"))?;
+            Self::As(as_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("As"))?;
 
-                is_expr.syntax_dump(fmt, depth + 1)
+                as_expr.syntax_dump(fmt, depth + 1)
             }
             Self::Field(field_expr) => {
                 write_header(fmt, depth, "ExprKind", None, None, Some("Field"))?;

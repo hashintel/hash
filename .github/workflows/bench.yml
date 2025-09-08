@@ -25,7 +25,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 2
 
@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -99,14 +99,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -181,7 +181,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -204,6 +204,9 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/warm-up-repo
 
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Cache Rust dependencies
         if: github.event_name == 'pull_request'
         uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
@@ -213,11 +216,42 @@ jobs:
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
-        run: yarn external-services:test up --wait
+        run: |
+          touch .env.local
+
+          echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
+
+          cp .env.local .env.test.local
+          yarn external-services:test up --wait
+
+      - name: Start background tasks
+        if: github.event_name == 'pull_request'
+        id: base-background-tasks
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          # Optimistically compile background tasks.
+          turbo run compile:release --env-mode=loose
+          mkdir -p logs
+          turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+
+          turbo run start:healthcheck --env-mode=loose
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
         run: turbo run bench:integration --filter "${{ matrix.name }}"
+
+      - name: Show background tasks logs
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          kill -15 ${{ steps.base-background-tasks.outputs.pid }} || true
+          cat var/logs/base-background-task.log
 
       - name: Tear down external services
         if: github.event_name == 'pull_request'
@@ -225,14 +259,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -252,11 +286,44 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Launch external services
-        run: yarn external-services:test up --wait
+        run: |
+          touch .env.local
+
+          echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
+
+          cp .env.local .env.test.local
+          yarn external-services:test up --wait
+
+      - name: Start background tasks
+        id: head-background-tasks
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          # Optimistically compile background tasks.
+          turbo run compile:release --env-mode=loose
+          mkdir -p logs
+          turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+
+          turbo run start:healthcheck --env-mode=loose
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"
+
+      - name: Show background tasks logs
+        if: always()
+        run: |
+          kill -15 ${{ steps.head-background-tasks.outputs.pid }} || true
+          cat var/logs/head-background-task.log
 
       - name: Analyze benchmarks
         if: github.event_name == 'pull_request'
@@ -298,6 +365,14 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
+      - name: Upload background tasks logs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: success() || failure()
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
+          path: |
+            var/logs
+
   passed:
     name: Benches passed
     needs: [setup, unit-benches, integration-benches]
@@ -330,11 +405,11 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           path: downloads
 

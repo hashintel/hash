@@ -6,8 +6,8 @@ Expr#4294967040@25
           Path#4294967040@11 (rooted: false)
             PathSegment#4294967040@10 (name: X)
       Expr#4294967040@24
-        ExprKind (Is)
-          IsExpr#4294967040@24
+        ExprKind (As)
+          AsExpr#4294967040@24
             Expr#4294967040@19
               ExprKind (Path)
                 Path#4294967040@19 (rooted: false)

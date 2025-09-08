@@ -15,7 +15,6 @@ import type {
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Fade, Stack } from "@mui/material";
-import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
@@ -30,6 +29,7 @@ import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page
 import { defaultBrowserPluginDomains } from "../../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { NotFound } from "../../../shared/not-found";
 import { ActivityLog } from "./flow-visualizer/activity-log";
 import { DAG } from "./flow-visualizer/dag";
 import { DagSlide } from "./flow-visualizer/dag-slide";

@@ -131,7 +131,7 @@ impl PolicySet {
         context: &Context,
     ) -> Result<Authorized, Report<PolicyEvaluationError>> {
         if !self.tracked_actions.contains(&request.action) {
-            return Err(Report::new(PolicyEvaluationError).attach_printable(format!(
+            return Err(Report::new(PolicyEvaluationError).attach(format!(
                 "Action `{}` is not tracked and cannot be evaluated",
                 request.action
             )));

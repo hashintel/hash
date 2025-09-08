@@ -546,8 +546,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(InsertionError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to create the data type `{}`",
                             inserted_data_type.id
                         )));
@@ -563,7 +563,7 @@ where
             .get_data_type_inheritance_metadata(&required_reference_ids)
             .await
             .change_context(InsertionError)
-            .attach_printable("Could not read parent data type inheritance data")?
+            .attach("Could not read parent data type inheritance data")?
             .collect::<HashMap<_, _>>();
 
         transaction
@@ -588,7 +588,7 @@ where
             )
             .await
             .change_context(InsertionError)
-            .attach_printable("Could not read parent data types")?
+            .attach("Could not read parent data types")?
             .data_types
             .into_iter()
             .for_each(|parent| {
@@ -628,11 +628,11 @@ where
         {
             let schema = data_type_validator
                 .validate_ref(&**data_type)
-                .attach(StatusCode::InvalidArgument)
+                .attach_opaque(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             let closed_schema = data_type_validator
                 .validate_ref(closed_schema)
-                .attach(StatusCode::InvalidArgument)
+                .attach_opaque(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
 
             transaction
@@ -874,7 +874,7 @@ where
                         .inner()
                         .checked_sub(1)
                         .ok_or(UpdateError)
-                        .attach_printable(
+                        .attach(
                             "The version of the data type is already at the lowest possible value",
                         )?,
                 ),
@@ -938,8 +938,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(UpdateError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to update the data type \
                              `{property_type_id}`"
                         )));
@@ -960,7 +960,7 @@ where
             .get_data_type_inheritance_metadata(&required_parent_ids)
             .await
             .change_context(UpdateError)
-            .attach_printable("Could not read parent data type inheritance data")?
+            .attach("Could not read parent data type inheritance data")?
             .collect::<HashMap<_, _>>();
 
         transaction
@@ -985,7 +985,7 @@ where
             )
             .await
             .change_context(UpdateError)
-            .attach_printable("Could not read parent data types")?
+            .attach("Could not read parent data types")?
             .data_types
             .into_iter()
             .for_each(|parent| {
@@ -1025,11 +1025,11 @@ where
         {
             let schema = data_type_validator
                 .validate_ref(&**data_type)
-                .attach(StatusCode::InvalidArgument)
+                .attach_opaque(StatusCode::InvalidArgument)
                 .change_context(UpdateError)?;
             let closed_schema = data_type_validator
                 .validate_ref(closed_schema)
-                .attach(StatusCode::InvalidArgument)
+                .attach_opaque(StatusCode::InvalidArgument)
                 .change_context(UpdateError)?;
 
             transaction
@@ -1118,8 +1118,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to archive the data type `{}`",
                         params.data_type_id
                     )));
@@ -1160,8 +1160,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to unarchive the data type `{}`",
                         params.data_type_id
                     )));
@@ -1324,8 +1324,8 @@ where
 
             if !allowed_data_types.contains(&data_type_uuid) {
                 return Err(Report::new(QueryError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to view the data type `{data_type_id}`",
                     )));
             }

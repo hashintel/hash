@@ -217,7 +217,8 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
 
 export const useEntityTypeEntities = (
   params: UseEntityTypeEntitiesQueryParams,
-): EntitiesVisualizerData => {
+  onCompleted?: (data: GetEntitySubgraphQuery) => void,
+): Omit<EntitiesVisualizerData, "tableData" | "updateTableData"> => {
   const variables = useMemo<GetEntitySubgraphQueryVariables>(
     () => generateUseEntityTypeEntitiesQueryVariables(params),
     [params],
@@ -228,6 +229,7 @@ export const useEntityTypeEntities = (
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
+    onCompleted,
     variables,
   });
 

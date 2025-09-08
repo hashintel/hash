@@ -1,0 +1,212 @@
+{
+  "runId": 1,
+  "numShards": 16,
+  "setup": [
+    {
+      "type": "reset-db",
+      "id": "reset",
+      "principals": true,
+      "dataTypes": true,
+      "propertyTypes": true,
+      "entityTypes": true,
+      "entities": true
+    },
+    {
+      "type": "generate-users",
+      "id": "generated-users",
+      "configRef": "users/basic",
+      "count": 1
+    },
+    {
+      "type": "persist-users",
+      "id": "persist-users-basic",
+      "from": ["generated-users"]
+    },
+    {
+      "type": "web-catalog",
+      "id": "all-users",
+      "from": ["generated-users"],
+      "domain": "https://localhost:3000"
+    },
+    {
+      "type": "generate-data-types",
+      "id": "datatypes",
+      "configRef": "data_types/basic",
+      "inputs": {
+        "userCatalog": "all-users"
+      },
+      "count": 20
+    },
+    {
+      "type": "persist-data-types",
+      "id": "persist-data-types",
+      "inputs": {
+        "dataTypes": ["datatypes"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "build-data-type-catalog",
+      "id": "all-data-types",
+      "input": ["datatypes"]
+    },
+    {
+      "type": "generate-property-types",
+      "id": "property-types",
+      "configRef": "property_types/basic",
+      "inputs": {
+        "userCatalog": "all-users",
+        "dataTypeCatalog": "all-data-types"
+      },
+      "count": 30
+    },
+    {
+      "type": "persist-property-types",
+      "id": "persist-property-types",
+      "inputs": {
+        "propertyTypes": ["property-types"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "build-property-type-catalog",
+      "id": "all-property-types",
+      "input": ["property-types"]
+    },
+    {
+      "type": "generate-entity-types",
+      "id": "simple-entity-types",
+      "configRef": "entity_types/with_properties",
+      "inputs": {
+        "userCatalog": "all-users",
+        "propertyTypeCatalog": "all-property-types"
+      },
+      "count": 50
+    },
+    {
+      "type": "generate-entity-types",
+      "id": "link-types",
+      "configRef": "entity_types/links",
+      "inputs": {
+        "userCatalog": "all-users"
+      },
+      "count": 10
+    },
+    {
+      "type": "persist-entity-types",
+      "id": "persist-entity-types",
+      "inputs": {
+        "entityTypes": ["simple-entity-types", "link-types"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "build-entity-type-catalog",
+      "id": "simple-entity-types",
+      "input": ["simple-entity-types"]
+    },
+    {
+      "type": "build-entity-type-catalog",
+      "id": "link-types",
+      "input": ["link-types"]
+    },
+    {
+      "type": "generate-entity-types",
+      "id": "linking-types",
+      "configRef": "entity_types/linking-types",
+      "inputs": {
+        "userCatalog": "all-users",
+        "linkTypeCatalog": "link-types",
+        "linkTargetCatalog": "simple-entity-types"
+      },
+      "count": 10
+    },
+    {
+      "type": "persist-entity-types",
+      "id": "persist-entity-types",
+      "inputs": {
+        "entityTypes": ["linking-types"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "build-entity-type-catalog",
+      "id": "non-link-types",
+      "input": ["simple-entity-types", "linking-types"]
+    },
+    {
+      "type": "build-entity-object-registry",
+      "id": "entity-object-registry",
+      "inputs": {
+        "entityTypes": ["non-link-types", "link-types"]
+      }
+    },
+    {
+      "type": "generate-entities",
+      "id": "entities",
+      "configRef": "entities/basic",
+      "inputs": {
+        "userCatalog": "all-users",
+        "entityTypeCatalog": "non-link-types",
+        "entityObjectRegistry": "entity-object-registry"
+      },
+      "count": 1000
+    },
+    {
+      "type": "persist-entities",
+      "id": "persist-entities",
+      "inputs": {
+        "entities": ["entities"],
+        "webToUser": ["generated-users"]
+      }
+    },
+    {
+      "type": "generate-entities",
+      "id": "link-entities",
+      "configRef": "entities/basic",
+      "inputs": {
+        "userCatalog": "all-users",
+        "entityTypeCatalog": "link-types",
+        "sourceLinkTypeCatalog": "non-link-types",
+        "entityObjectRegistry": "entity-object-registry",
+        "entityCatalog": "persist-entities"
+      },
+      "count": 100
+    },
+    {
+      "type": "persist-entities",
+      "id": "persist-link-entities",
+      "inputs": {
+        "entities": ["link-entities"],
+        "webToUser": ["generated-users"]
+      }
+    }
+  ],
+  "benches": [
+    {
+      "name": "query-limited",
+      "steps": [
+        {
+          "type": "query-entities-by-user",
+          "id": "query-entities",
+          "inputs": {
+            "userCatalog": "all-users",
+            "limit": 100
+          }
+        }
+      ]
+    },
+    {
+      "name": "query-unlimited",
+      "steps": [
+        {
+          "type": "query-entities-by-user",
+          "id": "query-entities",
+          "inputs": {
+            "userCatalog": "all-users"
+          }
+        }
+      ]
+    }
+  ]
+}

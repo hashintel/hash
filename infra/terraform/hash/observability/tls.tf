@@ -8,7 +8,7 @@ resource "aws_route53_record" "otlp" {
   records = [aws_lb.observability_internal.dns_name]
 }
 
-data "cloudflare_zone" "hash_ai" {
+data "cloudflare_zones" "hash_ai" {
   name = "hash.ai"
 }
 
@@ -25,8 +25,8 @@ resource "aws_acm_certificate" "otlp" {
   }
 }
 
-# Cloudflare DNS Records für ACM Validierung
-resource "cloudflare_record" "otlp_cert_validation" {
+# Cloudflare DNS Records for ACM validation
+resource "cloudflare_dns_record" "otlp_cert_validation" {
   for_each = {
     for dvo in aws_acm_certificate.otlp.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
@@ -35,18 +35,19 @@ resource "cloudflare_record" "otlp_cert_validation" {
     }
   }
 
-  zone_id = data.cloudflare_zone.hash_ai.id
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
   name    = each.value.name
   content = each.value.record
   type    = each.value.type
+  ttl     = 1
 
   tags = ["terraform"]
 }
 
-# Warten auf ACM Validierung
+# Wait for ACM validation
 resource "aws_acm_certificate_validation" "otlp" {
   certificate_arn         = aws_acm_certificate.otlp.arn
-  validation_record_fqdns = [for record in cloudflare_record.otlp_cert_validation : record.hostname]
+  validation_record_fqdns = [for record in cloudflare_dns_record.otlp_cert_validation : trimsuffix(record.name, ".")]
 
   timeouts {
     create = "5m"

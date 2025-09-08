@@ -13,16 +13,15 @@ fn main() -> Result<(), Report<io::Error>> {
         }
         if path.is_file() {
             fs::remove_file(&path)
-                .attach_printable("could not remove old OpenAPI file")
-                .attach_printable_lazy(|| path.display().to_string())?;
+                .attach("could not remove old OpenAPI file")
+                .attach_with(|| path.display().to_string())?;
         } else {
             fs::remove_dir_all(&path)
-                .attach_printable("could not remove old OpenAPI file")
-                .attach_printable_lazy(|| path.display().to_string())?;
+                .attach("could not remove old OpenAPI file")
+                .attach_with(|| path.display().to_string())?;
         }
     }
-    OpenApiDocumentation::write_openapi(openapi_path)
-        .attach_printable("could not write OpenAPI spec")?;
+    OpenApiDocumentation::write_openapi(openapi_path).attach("could not write OpenAPI spec")?;
 
     Ok(())
 }

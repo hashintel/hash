@@ -9,7 +9,7 @@
     "a",
     "Integer",
     [
-      "is",
+      "as",
       "a", // this should be `a:0` as it is in a value position
       "a" // this should be `a:1` as it is in a type position
     ]

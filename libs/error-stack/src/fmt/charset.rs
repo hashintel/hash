@@ -76,7 +76,7 @@ impl Report<()> {
     /// });
     ///
     /// let report =
-    ///     Error::from(ErrorKind::InvalidInput).into_report().attach(Suggestion("oh no, try again"));
+    ///     Error::from(ErrorKind::InvalidInput).into_report().attach_opaque(Suggestion("oh no, try again"));
     ///
     /// # fn render(value: String) -> String {
     /// #     let backtrace = regex::Regex::new(r"backtrace no\. (\d+)\n(?:  .*\n)*  .*").unwrap();

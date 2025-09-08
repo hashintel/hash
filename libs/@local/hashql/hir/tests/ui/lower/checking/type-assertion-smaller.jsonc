@@ -1,7 +1,7 @@
 //@ run: fail
 //@ description: Ensures type checking fails when asserting a supertype (Number) is a subtype (Integer).
 [
-  "is",
+  "as",
   { "#literal": 42.12 },
   //~^ ERROR This is of type `Number`
   "Integer"

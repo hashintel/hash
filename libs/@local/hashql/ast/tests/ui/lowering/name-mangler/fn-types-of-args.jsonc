@@ -1,3 +1,3 @@
 //@ run: pass
 //@ description: test params in args are mangled correctly
-["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "_", ["is", "a", "T"]]
+["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "_", ["as", "a", "T"]]

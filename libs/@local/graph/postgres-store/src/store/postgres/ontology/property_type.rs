@@ -525,8 +525,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(InsertionError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to create the property type `{}`",
                             inserted_property_type.schema.id
                         )));
@@ -542,13 +542,13 @@ where
                 .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
                 .change_context(InsertionError)
-                .attach_printable_lazy(|| {
+                .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
                         &property_type.schema.id
                     )
                 })
-                .attach_lazy(|| property_type.schema.clone())?;
+                .attach_opaque_with(|| property_type.schema.clone())?;
         }
 
         transaction.commit().await.change_context(InsertionError)?;
@@ -775,7 +775,7 @@ where
                         .inner()
                         .checked_sub(1)
                         .ok_or(UpdateError)
-                        .attach_printable(
+                        .attach(
                             "The version of the property type is already at the lowest possible \
                              value",
                         )?,
@@ -839,8 +839,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(UpdateError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to update the property type \
                              `{property_type_id}`"
                         )));
@@ -856,13 +856,13 @@ where
                 .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
                 .change_context(UpdateError)
-                .attach_printable_lazy(|| {
+                .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
                         &property_type.schema.id
                     )
                 })
-                .attach_lazy(|| property_type.schema.clone())?;
+                .attach_opaque_with(|| property_type.schema.clone())?;
         }
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -911,8 +911,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to archive the property type `{}`",
                         params.property_type_id
                     )));
@@ -955,8 +955,8 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(format!(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(format!(
                         "The actor does not have permission to unarchive the property type `{}`",
                         params.property_type_id
                     )));

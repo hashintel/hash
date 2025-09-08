@@ -108,7 +108,7 @@ impl<'graph> TrialGroup<'graph> {
                         Report::new(TrialError::AssertionFailed {
                             message: panic_payload_as_str(panic),
                         })
-                        .attach(TrialDescription {
+                        .attach_opaque(TrialDescription {
                             package: self.metadata.name().to_owned(),
                             namespace: trial.namespace.clone(),
                             name: trial.annotations.directive.name.clone(),

@@ -1,5 +1,3 @@
-ignore = ["**/clorinde/src/**"]
-
 # General
 edition           = "2024" # Default: "2015"
 style_edition     = "2024" # Default: "2015"

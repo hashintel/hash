@@ -43,7 +43,7 @@ impl Report<()> {
     /// });
     ///
     /// let report =
-    ///     Error::from(ErrorKind::InvalidInput).into_report().attach(Suggestion("oh no, try again"));
+    ///     Error::from(ErrorKind::InvalidInput).into_report().attach_opaque(Suggestion("oh no, try again"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {

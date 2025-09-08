@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: is/3 should error out
+[
+  "::kernel::special_form::as",
+  { "#literal": true },
+  { "#literal": true },
+  { "#literal": true }
+  //~^ ERROR Remove this argument
+]

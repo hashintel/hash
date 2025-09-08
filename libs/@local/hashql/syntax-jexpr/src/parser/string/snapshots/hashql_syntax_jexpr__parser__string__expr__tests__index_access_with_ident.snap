@@ -1,0 +1,18 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Index access with identifier
+expression: "foo[bar]"
+info:
+  kind: Ok
+---
+Expr#4294967040@7
+  ExprKind (Index)
+    IndexExpr#4294967040@7
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: foo)
+      Expr#4294967040@6
+        ExprKind (Path)
+          Path#4294967040@6 (rooted: false)
+            PathSegment#4294967040@5 (name: bar)

@@ -22,7 +22,7 @@ impl<T> IntoReportCompat for Result<T, EyreReport> {
                     Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
 
                 for source in sources {
-                    report = report.attach_printable(source);
+                    report = report.attach(source);
                 }
 
                 Err(report)

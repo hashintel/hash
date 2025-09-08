@@ -17,6 +17,7 @@ use crate::store::{
     postgres::{PostgresStore, PostgresStoreSettings},
 };
 
+#[derive(Debug, Clone)]
 pub struct PostgresStorePool {
     pool: Pool,
     pub settings: PostgresStoreSettings,
@@ -72,7 +73,7 @@ impl PostgresStorePool {
             pool: config
                 .builder(tls)
                 .change_context(StoreError)
-                .attach_printable_lazy(|| db_info.clone())?
+                .attach_with(|| db_info.clone())?
                 .post_create(Hook::sync_fn(|_client, _metrics| {
                     tracing::info!("Created connection to postgres");
                     Ok(())

@@ -140,9 +140,11 @@ pub trait TryReportIteratorExt<C> {
     /// Collects the successful items from the iterator into a container or returns all errors up to
     /// the specified bound.
     ///
-    /// This method is similar to `try_collect`, but it limits the number of errors collected to the
-    /// specified `bound`. If the number of errors encountered exceeds the bound, the method stops
-    /// collecting errors and returns the collected errors up to that point.
+    /// This method is similar to [`try_collect_reports`], but it limits the number of errors
+    /// collected to the specified `bound`. If the number of errors encountered exceeds the bound,
+    /// the method stops collecting errors and returns the collected errors up to that point.
+    ///
+    /// [`try_collect_reports`]: TryReportIteratorExt::try_collect_reports
     ///
     /// # Errors
     ///

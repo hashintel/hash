@@ -1,0 +1,23 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
+description: Parses a function call with labeled arguments
+expression: "[\"greet\", \"age\", \":name\"]"
+---
+Expr#4294967040@10
+  ExprKind (Call)
+    CallExpr#4294967040@10
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: greet)
+      Argument#4294967040@7
+        Expr#4294967040@7
+          ExprKind (Path)
+            Path#4294967040@7 (rooted: false)
+              PathSegment#4294967040@6 (name: age)
+      LabeledArgument#4294967040@8 (label: name)
+        Argument#4294967040@8
+          Expr#4294967040@8
+            ExprKind (Path)
+              Path#4294967040@8 (rooted: false)
+                PathSegment#4294967040@8 (name: name)

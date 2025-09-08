@@ -85,7 +85,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
                 .change_context(AnalyzeError::FlameGraphCreation)?;
             } else if args.enforce_flame_graph {
                 return Err(Report::new(AnalyzeError::FlameGraphMissing)
-                    .attach_printable(analysis.measurement.info.title));
+                    .attach(analysis.measurement.info.title));
             } else {
                 // No folded stacks available and flame graph is not enforced, continue without it
             }

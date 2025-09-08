@@ -272,7 +272,7 @@ impl PolicyComponents {
             if let Some(optimization_data) = self.tracked_actions.get(action) {
                 if optimization_data.is_some() {
                     return Err(
-                        Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                        Report::new(super::set::PolicySetInsertionError).attach(format!(
                             "Action `{action}` has been optimized and cannot be used to create a \
                              `PolicySet`"
                         )),
@@ -280,7 +280,7 @@ impl PolicyComponents {
                 }
             } else {
                 return Err(
-                    Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                    Report::new(super::set::PolicySetInsertionError).attach(format!(
                         "Action `{action}` is not tracked in this `PolicyComponents`"
                     )),
                 );

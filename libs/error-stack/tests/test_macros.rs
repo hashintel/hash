@@ -8,7 +8,7 @@ use error_stack::{bail, ensure, report};
 
 #[test]
 fn report() {
-    let report = capture_error(|| Err(report!(RootError))).attach_printable(PrintableA(0));
+    let report = capture_error(|| Err(report!(RootError))).attach(PrintableA(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
@@ -19,7 +19,7 @@ fn report() {
         remove_builtin_messages(["printable A", "root error"])
     );
 
-    let report = capture_error(|| Err(report!(report))).attach_printable(PrintableB(0));
+    let report = capture_error(|| Err(report!(report))).attach(PrintableB(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());
@@ -33,7 +33,7 @@ fn report() {
 
 #[test]
 fn bail() {
-    let report = capture_error(|| bail!(RootError)).attach_printable(PrintableA(0));
+    let report = capture_error(|| bail!(RootError)).attach(PrintableA(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
@@ -44,7 +44,7 @@ fn bail() {
         remove_builtin_messages(["printable A", "root error"])
     );
 
-    let report = capture_error(|| bail!(report)).attach_printable(PrintableB(0));
+    let report = capture_error(|| bail!(report)).attach(PrintableB(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());
@@ -66,7 +66,7 @@ fn ensure() {
         ensure!(false, RootError);
         Ok(())
     })
-    .attach_printable(PrintableA(0));
+    .attach(PrintableA(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(!report.contains::<PrintableB>());
@@ -81,7 +81,7 @@ fn ensure() {
         ensure!(false, report);
         Ok(())
     })
-    .attach_printable(PrintableB(0));
+    .attach(PrintableB(0));
     assert!(report.contains::<RootError>());
     assert!(report.contains::<PrintableA>());
     assert!(report.contains::<PrintableB>());

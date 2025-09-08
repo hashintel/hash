@@ -3,6 +3,7 @@ pub mod error;
 mod filter;
 mod filter_expr;
 mod path;
+mod sink;
 
 use core::{fmt::Debug, ops::Range};
 
@@ -21,7 +22,7 @@ use hashql_hir::{
 };
 use type_system::knowledge::Entity;
 
-use self::{error::GraphReadCompilerDiagnostic, path::CompleteQueryPath};
+use self::{error::GraphReadCompilerDiagnostic, path::CompleteQueryPath, sink::FilterSink};
 
 // The FilterSlice is an indirect approach to allow us to easily copy a filter between different
 // nodes.
@@ -135,6 +136,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                         unreachable!()
                     };
 
+                    let mut sink = FilterSink::from_result(&mut filters);
+
                     let filter = self.compile_filter::<R>(
                         FilterCompilerContext {
                             span: closure.body.span,
@@ -142,15 +145,11 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                             param_name: closure.signature.params[0].name.value,
                         },
                         &closure.body,
+                        &mut sink,
                     );
 
-                    match (&mut filters, filter) {
-                        (Ok(filters), Ok(filter)) => filters.push(filter),
-                        (filters @ Ok(_), Err(error)) => *filters = Err(error),
-
-                        // There is no point in pushing it, if we already errored out, we still
-                        // process it to collect more diagnostics
-                        (Err(_), _) => {}
+                    if let Err(error) = filter {
+                        filters = Err(error);
                     }
                 }
             }

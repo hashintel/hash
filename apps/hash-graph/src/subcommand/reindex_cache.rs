@@ -103,9 +103,8 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphErr
 
     ensure!(
         did_something,
-        Report::new(GraphError).attach_printable(
-            "No reindex operation was requested. See --help for more information."
-        )
+        Report::new(GraphError)
+            .attach("No reindex operation was requested. See --help for more information.")
     );
 
     Ok(())

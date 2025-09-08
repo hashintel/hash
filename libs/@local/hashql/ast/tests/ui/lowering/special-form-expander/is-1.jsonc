@@ -1,4 +1,0 @@
-//@ run: fail
-//@ description: is/1 should error out
-["::kernel::special_form::is", { "#literal": true }]
-//~^ ERROR Add missing arguments

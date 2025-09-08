@@ -2,14 +2,14 @@
 //@ description: Function calls not supported in filter expressions
 // biome-ignore format: readability
 ["let", "identity", ["fn", {"#tuple": ["T"]}, {"#struct": {"value": "T"}}, "T", "value"],
-["::core::graph::tail::collect",
-  ["::core::graph::body::filter",
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
         ["identity", "vertex.id.entity_id.entity_uuid"],
         //~^ ERROR Function call not supported here
-        ["::core::graph::types::knowledge::entity::EntityUuid",
+        ["::graph::types::knowledge::entity::EntityUuid",
           ["::core::uuid::Uuid", { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }]
         ]
       ]

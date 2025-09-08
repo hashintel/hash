@@ -74,7 +74,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
     ) -> Option<GraphRead<'heap>> {
         // The first argument is always the graph we're referring to.
         let tail = match intrinsic {
-            "::core::graph::tail::collect" => GraphReadTail::Collect,
+            "::graph::tail::collect" => GraphReadTail::Collect,
             _ => unreachable!(),
         };
 
@@ -109,7 +109,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             };
 
             match intrinsic {
-                "::core::graph::body::filter" => {
+                "::graph::body::filter" => {
                     let &[follow, closure] = &*call.arguments else {
                         unreachable!()
                     };
@@ -117,7 +117,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
                     body.push(GraphReadBody::Filter(closure.value));
                     next = follow.value;
                 }
-                "::core::graph::head::entities" => {
+                "::graph::head::entities" => {
                     let head = GraphReadHead::Entity {
                         axis: call.arguments[0].value,
                     };
@@ -193,15 +193,15 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             }
             "::core::bool::and" => OpKind::Bin(BinOpKind::And),
             "::core::bool::or" => OpKind::Bin(BinOpKind::Or),
-            "::core::graph::head::entities" | "::core::graph::body::filter" => {
+            "::graph::head::entities" | "::graph::body::filter" => {
                 // We ignore this on purpose, as `graph::tail::collect` will process these
                 return Ok(None);
             }
-            "::core::graph::tmp::decision_time_now" => {
+            "::graph::tmp::decision_time_now" => {
                 // currently a stand-in and not specialized in any way
                 return Ok(None);
             }
-            "::core::graph::tail::collect" => {
+            "::graph::tail::collect" => {
                 let Some(read) = self.fold_call_into_graph_read(call, intrinsic) else {
                     return Ok(None);
                 };

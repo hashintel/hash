@@ -1,0 +1,17 @@
+[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
+   ╭─[ <unknown>:7:3 ]
+   │
+ 3 │ ╭─▶ [
+   ┆ ┆   
+ 7 │ │     { "#literal": true }
+   │ │     ──────────┬─────────  
+   │ │               ╰─────────── Remove this argument
+   ┆ ┆   
+ 9 │ ├─▶ ]
+   │ │       
+   │ ╰─────── In this `as` special form call
+   │     
+   │     Help: The as/2 form should look like: (as value type-expr)
+   │     
+   │     Note: The as function has 1 variant: as/2
+───╯

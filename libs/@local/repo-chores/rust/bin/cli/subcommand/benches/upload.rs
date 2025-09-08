@@ -47,7 +47,7 @@ pub(super) async fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> 
                 .and_then(|analysis| {
                     if args.enforce_flame_graph && analysis.folded_stacks.is_none() {
                         Err(Report::new(UploadError::FlameGraphMissing)
-                            .attach_printable(analysis.measurement.info.title))
+                            .attach(analysis.measurement.info.title))
                     } else {
                         Ok(analysis)
                     }

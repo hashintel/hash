@@ -746,7 +746,7 @@ where
             .determine_actor(actor_uuid)
             .await
             .change_context(InsertionError)?
-            .ok_or_else(|| Report::new(InsertionError).attach_printable("Actor not found"))?;
+            .ok_or_else(|| Report::new(InsertionError).attach("Actor not found"))?;
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction);
 
@@ -822,11 +822,11 @@ where
 
         if !forbidden_instantiations.is_empty() {
             return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
+                .attach_opaque(StatusCode::PermissionDenied)
+                .attach(
                     "The actor does not have permission to instantiate one or more entity types",
                 )
-                .attach_printable(
+                .attach(
                     forbidden_instantiations
                         .into_iter()
                         .map(ToString::to_string)
@@ -859,11 +859,9 @@ where
 
         if !forbidden_entity_creations.is_empty() {
             return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
-                    "The actor does not have permission to create one or more entities",
-                )
-                .attach_printable(
+                .attach_opaque(StatusCode::PermissionDenied)
+                .attach("The actor does not have permission to create one or more entities")
+                .attach(
                     forbidden_entity_creations
                         .into_iter()
                         .map(ToString::to_string)
@@ -1131,7 +1129,7 @@ where
 
         ensure!(
             validation_reports.is_empty(),
-            Report::new(InsertionError).attach(validation_reports)
+            Report::new(InsertionError).attach_opaque(validation_reports)
         );
 
         transaction.commit().await.change_context(InsertionError)?;
@@ -1619,8 +1617,8 @@ where
             .await?
             .ok_or_else(|| {
                 Report::new(EntityDoesNotExist)
-                    .attach(StatusCode::NotFound)
-                    .attach_printable(params.entity_id)
+                    .attach_opaque(StatusCode::NotFound)
+                    .attach(params.entity_id)
                     .change_context(UpdateError)
             })?;
         let ClosedTemporalBound::Inclusive(locked_transaction_time) =
@@ -1649,7 +1647,7 @@ where
         )
         .await
         .change_context(EntityDoesNotExist)
-        .attach(params.entity_id)
+        .attach_opaque(params.entity_id)
         .change_context(UpdateError)?;
 
         let policy_components = PolicyComponents::builder(&transaction)
@@ -1699,9 +1697,9 @@ where
             Authorized::Always => {}
             Authorized::Never => {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable("The actor does not have permission to update the entity")
-                    .attach_printable(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach("The actor does not have permission to update the entity")
+                    .attach(
                         previous_entity
                             .metadata
                             .entity_type_ids
@@ -1729,8 +1727,8 @@ where
                 Authorized::Always => {}
                 Authorized::Never => {
                     return Err(Report::new(UpdateError)
-                        .attach(StatusCode::PermissionDenied)
-                        .attach_printable(format!(
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach(format!(
                             "The actor does not have permission to {} the entity",
                             if archive { "archive" } else { "publish" },
                         )));
@@ -1819,12 +1817,12 @@ where
 
             if !forbidden_instantiations.is_empty() {
                 return Err(Report::new(UpdateError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(
+                    .attach_opaque(StatusCode::PermissionDenied)
+                    .attach(
                         "The actor does not have permission to instantiate one or more entity \
                          types",
                     )
-                    .attach_printable(
+                    .attach(
                         forbidden_instantiations
                             .into_iter()
                             .map(ToString::to_string)
@@ -2082,7 +2080,7 @@ where
 
         ensure!(
             validation_report.is_valid(),
-            Report::new(UpdateError).attach(HashMap::from([(0_usize, validation_report)]))
+            Report::new(UpdateError).attach_opaque(HashMap::from([(0_usize, validation_report)]))
         );
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -2149,8 +2147,8 @@ where
         // if !permissions.is_empty() {
         //     let mut status = Report::new(PermissionAssertion);
         //     for entity_id in permissions {
-        //         status = status.attach(format!("Permission denied for entity {entity_id}"));
-        //     }
+        //         status = status.attach_opaque(format!("Permission denied for entity
+        // {entity_id}"));     }
         //     return Err(status.change_context(UpdateError));
         // }
 
@@ -2532,7 +2530,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
             })
             .map_err(|error| match error.code() {
                 Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
-                    .attach(entity_id)
+                    .attach_opaque(entity_id)
                     .change_context(UpdateError),
                 _ => Report::new(error).change_context(UpdateError),
             })

@@ -94,7 +94,7 @@ fn into_report() {
 }
 
 fn returning_boxed_error() -> Result<(), Box<dyn core::error::Error + Send + Sync>> {
-    io_error().attach(10_u32)?;
+    io_error().attach_opaque(10_u32)?;
     Ok(())
 }
 

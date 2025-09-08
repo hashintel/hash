@@ -15,7 +15,7 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx --import ./src/instrument.mjs ./src/index.ts",
-    "start:healthcheck": "wait-on --timeout 600000 http://localhost:5001",
+    "start:healthcheck": "wait-on --timeout 1200000 http://localhost:5001",
     "start:migrate": "NODE_ENV=production OTEL_SERVICE_NAME=\"Node Migrations\" tsx --import ./src/instrument.mjs ./src/ensure-system-graph-is-initialized.ts",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:5001",

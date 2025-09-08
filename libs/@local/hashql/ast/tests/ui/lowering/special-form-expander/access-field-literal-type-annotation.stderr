@@ -1,0 +1,11 @@
+[special-form-expander::field-literal-type-annotation] Error: Field literal with type annotation
+   ╭─[ <unknown>:6:30 ]
+   │
+ 6 │   { "#literal": 0, "#type": "Integer" }
+   │                              ───┬───  
+   │                                 ╰───── Remove this type annotation
+   │ 
+   │ Help: Field access using numeric literals cannot have type annotations. The literal represents the field index directly and doesn't need a separate type.
+   │ 
+   │ Note: When using numeric literals for field access (e.g., in tuple destructuring), the number itself indicates the position and cannot be annotated with a type.
+───╯

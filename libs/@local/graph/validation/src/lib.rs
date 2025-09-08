@@ -421,13 +421,13 @@ mod tests {
             [],
             data_types.into_iter().map(|data_type| {
                 serde_json::from_str(data_type)
-                    .attach_printable(data_type)
+                    .attach(data_type)
                     .expect("failed to parse data type")
             }),
         );
 
         let data_type = serde_json::from_str::<DataType>(data_type)
-            .attach_printable(data_type.to_owned())
+            .attach(data_type.to_owned())
             .expect("failed to parse data type");
         let data_type_ref = DataTypeReference {
             url: data_type.id.clone(),

@@ -123,7 +123,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => Err(Report::new(ParseExpressionError::Unexpected)),
         }
-        .attach_printable_lazy(|| expr.clone())
+        .attach_with(|| expr.clone())
     }
 
     fn not(self) -> Self {
@@ -224,7 +224,7 @@ impl PolicyExpressionTree {
                 (ast::ExprKind::Var(ast::Var::Principal), "id") => Ok(()),
                 (ast::ExprKind::Unknown(unknown), "id") if unknown.name == "principal" => Ok(()),
                 _ => Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
-                    .attach_printable(Arc::clone(expr))),
+                    .attach(Arc::clone(expr))),
             },
             ast::ExprKind::Lit(_)
             | ast::ExprKind::Var(_)
@@ -242,7 +242,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => {
                 Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
-                    .attach_printable(Arc::clone(expr)))
+                    .attach(Arc::clone(expr)))
             }
         }
     }
@@ -270,7 +270,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => {
                 Err(Report::new(ParseGetAttrExpressionError::NoResourceVariable)
-                    .attach_printable(Arc::clone(expr)))
+                    .attach(Arc::clone(expr)))
             }
         }
     }
@@ -281,7 +281,7 @@ impl PolicyExpressionTree {
     ) -> Result<Self, Report<ParseBinaryExpressionError>> {
         Self::expect_resource_variable(lhs)
             .change_context(ParseBinaryExpressionError::Left)
-            .attach_printable_lazy(|| Arc::clone(lhs))?;
+            .attach_with(|| Arc::clone(lhs))?;
 
         match rhs.expr_kind() {
             ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) => WebId::from_euid(euid)
@@ -305,7 +305,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Record(_) => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
-        .attach_printable(Arc::clone(rhs))
+        .attach(Arc::clone(rhs))
     }
 
     fn from_eq(
@@ -333,7 +333,7 @@ impl PolicyExpressionTree {
                 let ((), attr_type) = (Self::expect_resource_variable(expr), attr_type)
                     .try_collect()
                     .change_context(ParseBinaryExpressionError::Left)
-                    .attach_printable_lazy(|| Arc::clone(lhs))?;
+                    .attach_with(|| Arc::clone(lhs))?;
                 attr_type
             }
             ast::ExprKind::Var(ast::Var::Resource) => AttributeType::Resource,
@@ -355,9 +355,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Is { .. }
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => {
-                return Err(
-                    Report::new(ParseBinaryExpressionError::Left).attach_printable(Arc::clone(lhs))
-                );
+                return Err(Report::new(ParseBinaryExpressionError::Left).attach(Arc::clone(lhs)));
             }
         };
 
@@ -393,7 +391,7 @@ impl PolicyExpressionTree {
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
-        .attach_printable_lazy(|| Arc::clone(rhs))
+        .attach_with(|| Arc::clone(rhs))
     }
 
     fn from_contains(
@@ -420,7 +418,7 @@ impl PolicyExpressionTree {
                 let ((), attr_type) = (Self::expect_resource_variable(expr), attr_type)
                     .try_collect()
                     .change_context(ParseBinaryExpressionError::Left)
-                    .attach_printable_lazy(|| Arc::clone(lhs))?;
+                    .attach_with(|| Arc::clone(lhs))?;
                 attr_type
             }
             ast::ExprKind::Lit(_)
@@ -438,9 +436,7 @@ impl PolicyExpressionTree {
             | ast::ExprKind::Is { .. }
             | ast::ExprKind::Set(_)
             | ast::ExprKind::Record(_) => {
-                return Err(
-                    Report::new(ParseBinaryExpressionError::Left).attach_printable(Arc::clone(lhs))
-                );
+                return Err(Report::new(ParseBinaryExpressionError::Left).attach(Arc::clone(lhs)));
             }
         };
 
@@ -463,6 +459,6 @@ impl PolicyExpressionTree {
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
-        .attach_printable_lazy(|| Arc::clone(rhs))
+        .attach_with(|| Arc::clone(rhs))
     }
 }

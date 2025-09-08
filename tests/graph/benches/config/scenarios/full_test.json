@@ -1,0 +1,162 @@
+{
+  "runId": 1,
+  "numShards": 16,
+  "setup": [
+    {
+      "type": "reset-db",
+      "id": "reset",
+      "principals": true,
+      "dataTypes": true,
+      "propertyTypes": true,
+      "entityTypes": true,
+      "entities": true
+    },
+    {
+      "type": "generate-users",
+      "id": "users",
+      "configRef": "users/basic",
+      "count": 10
+    },
+    {
+      "type": "web-catalog",
+      "id": "webs",
+      "from": ["users"],
+      "domain": "https://localhost:3000"
+    },
+    {
+      "type": "generate-data-types",
+      "id": "local-datatypes",
+      "configRef": "data_types/basic",
+      "inputs": {
+        "userCatalog": "webs"
+      },
+      "count": 2
+    },
+    {
+      "type": "generate-data-types",
+      "id": "remote-datatypes",
+      "configRef": "data_types/basic",
+      "inputs": {
+        "userCatalog": "webs"
+      },
+      "count": 5
+    },
+    {
+      "type": "build-data-type-catalog",
+      "id": "data-type-catalog",
+      "input": ["local-datatypes", "remote-datatypes"]
+    },
+    {
+      "type": "generate-property-types",
+      "id": "property-types",
+      "configRef": "property_types/basic",
+      "inputs": {
+        "userCatalog": "webs",
+        "dataTypeCatalog": "data-type-catalog"
+      },
+      "count": 5
+    },
+    {
+      "type": "build-property-type-catalog",
+      "id": "property-type-catalog",
+      "input": ["property-types"]
+    },
+    {
+      "type": "generate-entity-types",
+      "id": "entity-types",
+      "configRef": "entity_types/with_properties",
+      "inputs": {
+        "userCatalog": "webs",
+        "propertyTypeCatalog": "property-type-catalog"
+      },
+      "count": 10
+    },
+    {
+      "type": "build-entity-type-catalog",
+      "id": "entity-type-catalog",
+      "input": ["entity-types"]
+    },
+    {
+      "type": "persist-users",
+      "id": "persist-users-basic",
+      "from": ["users"]
+    },
+    {
+      "type": "persist-data-types",
+      "id": "persist-local-datatypes",
+      "inputs": {
+        "dataTypes": ["local-datatypes", "remote-datatypes"],
+        "webToUser": ["users"]
+      }
+    },
+    {
+      "type": "persist-property-types",
+      "id": "persist-property-types",
+      "inputs": {
+        "propertyTypes": ["property-types"],
+        "webToUser": ["users"]
+      }
+    },
+    {
+      "type": "persist-entity-types",
+      "id": "persist-entity-types",
+      "inputs": {
+        "entityTypes": ["entity-types"],
+        "webToUser": ["users"]
+      }
+    },
+    {
+      "type": "build-entity-object-registry",
+      "id": "entity-object-registry",
+      "inputs": {
+        "entityTypes": ["entity-type-catalog"]
+      }
+    },
+    {
+      "type": "generate-entities",
+      "id": "entities",
+      "configRef": "entities/basic",
+      "inputs": {
+        "userCatalog": "webs",
+        "entityTypeCatalog": "entity-type-catalog",
+        "entityObjectRegistry": "entity-object-registry"
+      },
+      "count": 1000
+    },
+    {
+      "type": "persist-entities",
+      "id": "persist-entities",
+      "inputs": {
+        "entities": ["entities"],
+        "webToUser": ["users"]
+      }
+    }
+  ],
+  "benches": [
+    {
+      "name": "query-limited",
+      "steps": [
+        {
+          "type": "query-entities-by-user",
+          "id": "query-entities",
+          "inputs": {
+            "userCatalog": "webs",
+            "limit": 100
+          }
+        }
+      ]
+    },
+    {
+      "name": "query-unlimited",
+      "steps": [
+        {
+          "type": "query-entities-by-user",
+          "id": "query-entities",
+          "inputs": {
+            "userCatalog": "webs"
+          }
+        }
+      ]
+    }
+  ]
+}
