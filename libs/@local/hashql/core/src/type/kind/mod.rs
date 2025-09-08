@@ -2129,6 +2129,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 let super_variants = [supertype.id];
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
@@ -2152,6 +2153,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 let super_variants = supertype.with(rhs).unnest(env);
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
