@@ -3,10 +3,11 @@
 # Configuration hash for task definition versioning
 locals {
   config_hash = sha256(jsonencode({
-    grafana_config   = aws_s3_object.grafana_config.content
-    tempo_datasource = aws_s3_object.grafana_tempo_datasource.content
-    loki_datasource  = aws_s3_object.grafana_loki_datasource.content
-    mimi_datasource  = aws_s3_object.grafana_mimir_datasource.content
+    grafana_config       = aws_s3_object.grafana_config.content
+    tempo_datasource     = aws_s3_object.grafana_tempo_datasource.content
+    loki_datasource      = aws_s3_object.grafana_loki_datasource.content
+    mimir_datasource     = aws_s3_object.grafana_mimir_datasource.content
+    pyroscope_datasource = aws_s3_object.grafana_pyroscope_datasource.content
   }))
 }
 
@@ -76,6 +77,22 @@ resource "aws_s3_object" "grafana_mimir_datasource" {
 
   tags = {
     Purpose = "Grafana Mimir Datasource"
+    Service = "grafana"
+  }
+}
+
+# Pyroscope datasource provisioning
+resource "aws_s3_object" "grafana_pyroscope_datasource" {
+  bucket = var.config_bucket.id
+  key    = "grafana/provisioning/datasources/pyroscope.yaml"
+  content = templatefile("${path.module}/templates/provisioning/datasources/pyroscope.yaml.tpl", {
+    pyroscope_http_dns  = var.pyroscope_http_dns
+    pyroscope_http_port = var.pyroscope_http_port
+  })
+  content_type = "application/x-yaml"
+
+  tags = {
+    Purpose = "Grafana Pyroscope Datasource"
     Service = "grafana"
   }
 }
