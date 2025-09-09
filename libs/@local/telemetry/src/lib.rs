@@ -17,15 +17,12 @@ extern crate alloc;
 
 pub mod logging;
 pub mod metrics;
+pub mod profiling;
 pub mod traces;
 
 mod otlp;
 
-use std::{
-    fs::{self, File},
-    io::BufWriter,
-    path::PathBuf,
-};
+use core::time::Duration;
 
 use error_stack::{Report, ResultExt as _};
 use opentelemetry_sdk::{
@@ -33,12 +30,12 @@ use opentelemetry_sdk::{
 };
 use tracing::{Dispatch, subscriber::DefaultGuard, warn};
 use tracing_error::ErrorLayer;
-use tracing_flame::{FlameLayer, FlushGuard};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 pub use self::otlp::OtlpConfig;
 use self::{
     logging::{ConsoleConfig, FileConfig, LoggingConfig},
+    profiling::{ProfilerCliConfig, ProfilerConfig},
     traces::sentry::SentryConfig,
 };
 
@@ -54,6 +51,9 @@ pub struct TracingConfig {
 
     #[cfg_attr(feature = "clap", clap(flatten))]
     pub sentry: SentryConfig,
+
+    #[cfg_attr(feature = "clap", clap(flatten))]
+    pub profile: ProfilerCliConfig,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -63,11 +63,11 @@ pub struct InitTracingError;
 #[derive(Debug, Default)]
 pub struct TelemetryRegistry {
     error_layer: bool,
+    profiler: Option<ProfilerConfig>,
     console_logging: Option<ConsoleConfig>,
     file_logging: Option<FileConfig>,
     sentry: Option<SentryConfig>,
     otlp: Option<(OtlpConfig, &'static str)>,
-    flamegraph_path: Option<PathBuf>,
 }
 
 impl TelemetryRegistry {
@@ -111,8 +111,10 @@ impl TelemetryRegistry {
     }
 
     #[must_use]
-    pub fn with_flamegraph(mut self, target_dir: impl Into<PathBuf>) -> Self {
-        self.flamegraph_path = Some(target_dir.into());
+    pub fn with_tracing_profiler(mut self, config: ProfilerConfig) -> Self {
+        if config.pyroscope_endpoint.is_some() || config.folded_path.is_some() {
+            self.profiler = Some(config);
+        }
         self
     }
 
@@ -157,13 +159,11 @@ impl TelemetryRegistry {
             })
             .transpose()?;
 
-        let (flame_layer, flamegraph_guard) = self
-            .flamegraph_path
-            .map(|path| {
-                fs::create_dir_all(&path).change_context(InitTracingError)?;
-                FlameLayer::with_file(path.join("tracing.folded")).change_context(InitTracingError)
-            })
-            .transpose()?
+        let (profiling_layer, profiler_guard) = self
+            .profiler
+            .map(ProfilerConfig::build)
+            .transpose()
+            .change_context(InitTracingError)?
             .unzip();
 
         let guard = TelemetryGuard {
@@ -171,7 +171,7 @@ impl TelemetryRegistry {
             otlp_logs_provider,
             otlp_metrics_provider,
             _file_guard: file_guard,
-            _flamegraph: flamegraph_guard,
+            _profiler: profiler_guard,
         };
 
         Ok((
@@ -182,7 +182,7 @@ impl TelemetryRegistry {
                 .with(otlp_traces_layer)
                 .with(console_layer)
                 .with(file_layer)
-                .with(flame_layer),
+                .with(profiling_layer),
             guard,
         ))
     }
@@ -245,15 +245,15 @@ impl TelemetryRegistry {
     }
 }
 
-struct TelemetryGuard<F> {
+struct TelemetryGuard<F, P> {
     otlp_traces_provider: Option<SdkTracerProvider>,
     otlp_logs_provider: Option<SdkLoggerProvider>,
     otlp_metrics_provider: Option<SdkMeterProvider>,
     _file_guard: F,
-    _flamegraph: Option<FlushGuard<BufWriter<File>>>,
+    _profiler: Option<P>,
 }
 
-impl<F> Drop for TelemetryGuard<F> {
+impl<F, P> Drop for TelemetryGuard<F, P> {
     fn drop(&mut self) {
         if let Some(provider) = self.otlp_metrics_provider.take()
             && let Err(error) = provider.shutdown()
@@ -290,5 +290,11 @@ pub fn init_tracing(
         .with_file_logging(config.logging.file)
         .with_sentry(config.sentry)
         .with_otlp(config.otlp, service_name)
+        .with_tracing_profiler(ProfilerConfig {
+            pyroscope_endpoint: config.profile.profile_endpoint,
+            folded_path: None,
+            service_name: service_name.to_owned(),
+            flush_interval: Duration::from_secs(config.profile.flush_interval_seconds),
+        })
         .init_global()
 }

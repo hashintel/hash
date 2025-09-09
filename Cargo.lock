@@ -3790,12 +3790,14 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_builder",
+ "crossbeam-channel",
  "derive_more 2.0.1",
  "error-stack",
  "opentelemetry",
  "opentelemetry-appender-tracing",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
+ "reqwest",
  "sentry",
  "sentry-core",
  "sentry-types",
@@ -3805,7 +3807,6 @@ dependencies = [
  "tracing-appender",
  "tracing-core",
  "tracing-error",
- "tracing-flame",
  "tracing-opentelemetry",
  "tracing-subscriber",
 ]
@@ -9681,17 +9682,6 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b1581020d7a273442f5b45074a6a57d5757ad0a47dac0e9f0bd57b81936f3db"
 dependencies = [
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "tracing-flame"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bae117ee14789185e129aaee5d93750abe67fdc5a9a62650452bfe4e122a3a9"
-dependencies = [
- "lazy_static",
  "tracing",
  "tracing-subscriber",
 ]

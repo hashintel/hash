@@ -20,6 +20,7 @@ mod scenario;
 #[path = "../util.rs"]
 mod util;
 
+use core::time::Duration;
 use std::{
     collections::HashMap,
     fs::{self},
@@ -33,6 +34,7 @@ use hash_repo_chores::benches::generate_path;
 use hash_telemetry::{
     OtlpConfig, TelemetryRegistry,
     logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
+    profiling::ProfilerConfig,
 };
 
 use self::scenario::run_scenario_file;
@@ -53,11 +55,18 @@ fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
             },
             "Graph Benches",
         )
-        .with_flamegraph(Path::new("out").join(generate_path(
-            "scenarios",
-            Some(scenario),
-            Some(bench),
-        )))
+        .with_tracing_profiler(ProfilerConfig {
+            pyroscope_endpoint: std::env::var("HASH_PROFILER_ENDPOINT").ok(),
+            folded_path: Some(Path::new("out").join(generate_path(
+                "scenarios",
+                Some(scenario),
+                Some(bench),
+            ))),
+            service_name: format!(
+                "graph-benches{{group=scenarios,function={scenario},value={bench}}}"
+            ),
+            flush_interval: Duration::from_secs(10),
+        })
         .init()
         .expect("Failed to initialize tracing")
 }
