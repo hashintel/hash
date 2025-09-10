@@ -215,6 +215,11 @@ variable "otel_exporter_otlp_endpoint" {
   description = "The DNS endpoint for the OpenTelemetry Collector OTLP exporter."
 }
 
+variable "profile_exporter_endpoint" {
+  type        = string
+  description = "The DNS endpoint for the Pyroscope profiler."
+}
+
 variable "amazon_trust_ca_bundle" {
   type        = string
   description = "Combined Amazon Trust Services CA bundle for ACM certificate verification."
