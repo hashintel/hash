@@ -60,6 +60,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         core::mem::take(&mut self.constraints)
     }
 
+    pub(crate) fn is_invariant(&self) -> bool {
+        self.variance.get() == Variance::Invariant
+    }
+
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance.get() == Variance::Invariant {

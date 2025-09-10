@@ -1,4 +1,5 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
@@ -85,6 +86,23 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       throw new UserInputError("Cannot change email");
     }
 
+    const currentFeatureFlags = user.enabledFeatureFlags;
+
+    const updatedFeatureFlags = getNewValueForPath(
+      "https://hash.ai/@h/types/property-type/enabled-feature-flags/",
+    );
+
+    if (
+      updatedFeatureFlags &&
+      updatedFeatureFlags.sort().join(",") !==
+        currentFeatureFlags.sort().join(",") &&
+      !(await isUserHashInstanceAdmin(context, authentication, {
+        userAccountId: authentication.actorId,
+      }))
+    ) {
+      throw new UserInputError("Cannot change feature flags");
+    }
+
     const currentShortname = user.shortname;
 
     const updatedShortname = getNewValueForPath(
@@ -100,11 +118,13 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         throw new UserInputError("Cannot change shortname");
       }
 
-      await validateAccountShortname(
-        context,
-        { actorId: user.accountId },
-        updatedShortname,
-      );
+      if (!currentShortname) {
+        await validateAccountShortname(
+          context,
+          { actorId: user.accountId },
+          updatedShortname,
+        );
+      }
     }
 
     const isDisplayNameRemoved = isValueRemovedByPatches<UserProperties>({

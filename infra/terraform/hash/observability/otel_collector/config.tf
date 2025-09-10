@@ -36,6 +36,8 @@ resource "aws_s3_object" "otel_collector_config" {
     loki_http_port       = var.loki_http_port
     mimir_http_dns       = var.mimir_http_dns
     mimir_http_port      = var.mimir_http_port
+    pyroscope_http_dns   = var.pyroscope_http_dns
+    pyroscope_http_port  = var.pyroscope_http_port
     grafana_dns          = var.grafana_dns
     grafana_port         = var.grafana_port
     alloy_dns            = var.alloy_dns

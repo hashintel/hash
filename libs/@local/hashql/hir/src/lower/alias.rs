@@ -1,10 +1,11 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, mem};
 
 use hashql_core::{
     module::{Universe, universe::FastRealmsMap},
     symbol::Symbol,
 };
 
+use super::error::{LoweringDiagnostic, argument_override};
 use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
@@ -20,6 +21,7 @@ use crate::{
 pub struct AliasReplacement<'env, 'heap> {
     scope: FastRealmsMap<Symbol<'heap>, Variable<'heap>>,
     interner: &'env Interner<'heap>,
+    diagnostics: Vec<LoweringDiagnostic>,
 }
 
 impl<'env, 'heap> AliasReplacement<'env, 'heap> {
@@ -28,7 +30,12 @@ impl<'env, 'heap> AliasReplacement<'env, 'heap> {
         Self {
             scope: FastRealmsMap::new(),
             interner,
+            diagnostics: Vec::new(),
         }
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<LoweringDiagnostic> {
+        mem::take(&mut self.diagnostics)
     }
 }
 
@@ -44,7 +51,10 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
         self.interner
     }
 
-    fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
+    fn fold_let(&mut self, mut r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
+        // Walk the node first, to resolve any aliases
+        r#let.value = fold::walk_node(self, r#let.value)?;
+
         // if the let statement is a simple re-assignment add the variable to the scope, if the
         // variable is already in the scope, simply add the proxy / alias
         if let NodeKind::Variable(variable) = r#let.value.kind {
@@ -77,7 +87,24 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
         if let VariableKind::Local(local) = variable.kind
             && let Some(replacement) = self.scope.get(Universe::Value, &local.name.value)
         {
-            return Ok(*replacement);
+            // In the case that there are arguments on the local variable, we need to check if we
+            // aren't overriding any arguments that may have been applied. We can still continue,
+            // but in the case that we override any arguments, we must accumulate a diagnostic.
+            if !replacement.arguments().is_empty() && !variable.arguments().is_empty() {
+                self.diagnostics
+                    .push(argument_override(&variable, replacement));
+            }
+
+            if variable.arguments().is_empty() {
+                return Ok(*replacement);
+            }
+
+            // We need to create a new variable, that takes into account the new arguments, if both
+            // have arguments, we simply override, this is so that we can continue compilation.
+            let mut replacement = *replacement;
+            *replacement.arguments_mut() = variable.arguments();
+
+            return Ok(replacement);
         }
 
         Ok(variable)
@@ -86,7 +113,7 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let node = fold::walk_node(self, node)?;
 
-        // Check if the node is is a let expression and if said let expression is just an alias, if
+        // Check if the node is a let expression and if said let expression is just an alias, if
         // that's the case we can safely remove it in favour of it's body, as all occurences have
         // already been replaced
         if let NodeKind::Let(r#let) = node.kind

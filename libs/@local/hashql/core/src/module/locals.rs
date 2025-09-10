@@ -175,3 +175,9 @@ impl<'heap, T> Index<Symbol<'heap>> for Locals<'heap, T> {
 }
 
 pub type TypeLocals<'heap> = Locals<'heap, TypeDef<'heap>>;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct LocalBinding<'heap, T> {
+    pub name: Symbol<'heap>,
+    pub value: T,
+}

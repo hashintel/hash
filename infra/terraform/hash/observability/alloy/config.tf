@@ -7,9 +7,15 @@ resource "aws_s3_object" "alloy_config" {
 
   # Grafana Alloy configuration
   content = templatefile("${path.module}/templates/alloy-config.alloy.tpl", {
-    region          = var.region
-    mimir_http_dns  = var.mimir_http_dns
-    mimir_http_port = var.mimir_http_port
+    environment           = terraform.workspace
+    region                = var.region
+    profile_port_internal = local.profile_port_internal
+    profile_port_external = local.profile_port_external
+    mimir_http_dns        = var.mimir_http_dns
+    mimir_http_port       = var.mimir_http_port
+    pyroscope_http_dns    = var.pyroscope_http_dns
+    pyroscope_http_port   = var.pyroscope_http_port
+
   })
 
   content_type = "text/plain"

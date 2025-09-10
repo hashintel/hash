@@ -1,4 +1,4 @@
-use super::{ModuleId, Universe, import::Import, item::Item};
+use super::{ModuleId, Universe, import::Import, item::Item, resolver::Reference};
 use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -40,7 +40,7 @@ pub enum ResolutionError<'heap> {
         suggestions: Vec<ResolutionSuggestion<'heap, Item<'heap>>>,
     },
 
-    Ambiguous(Item<'heap>),
+    Ambiguous(Reference<'heap>),
 
     ModuleEmpty {
         depth: usize,

@@ -275,3 +275,41 @@ otelcol.exporter.otlphttp "mimir" {
     }
   }
 }
+
+pyroscope.receive_http "profiles_internal" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = ${profile_port_internal}
+  }
+
+  forward_to = [pyroscope.write.pyroscope_internal.receiver]
+}
+
+pyroscope.write "pyroscope_internal" {
+  endpoint {
+    url = "http://${pyroscope_http_dns}:${pyroscope_http_port}"
+  }
+
+  external_labels = {
+    "env" = "${environment}",
+  }
+}
+
+pyroscope.receive_http "profiles_external" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = ${profile_port_external}
+  }
+
+  forward_to = [pyroscope.write.pyroscope_external.receiver]
+}
+
+pyroscope.write "pyroscope_external" {
+  endpoint {
+    url = "http://${pyroscope_http_dns}:${pyroscope_http_port}"
+  }
+
+  external_labels = {
+    "env" = "external",
+  }
+}

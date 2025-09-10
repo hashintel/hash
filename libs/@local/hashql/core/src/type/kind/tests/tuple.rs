@@ -7,6 +7,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         PartialType,
+        builder::lazy,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
@@ -20,10 +21,11 @@ use crate::{
             intersection::IntersectionType,
             primitive::PrimitiveType,
             test::{assert_equiv, generic, intersection, primitive, tuple, union},
+            tests::{assert_is_subtype, assert_join, assert_meet},
             union::UnionType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-        tests::{instantiate, instantiate_infer, instantiate_param},
+        tests::{instantiate, instantiate_infer, instantiate_param, scaffold},
     },
 };
 
@@ -1136,4 +1138,59 @@ fn subscript() {
         diagnostics[0].category,
         TypeCheckDiagnosticCategory::UnsupportedSubscript
     );
+}
+
+#[test]
+fn meet_recursive_tuple() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.number(), this.value()]));
+
+    assert_meet(&mut lattice, lhs, rhs, &[lhs]);
+    assert_meet(&mut lattice, rhs, lhs, &[lhs]);
+}
+
+#[test]
+fn meet_recursive_tuple_unrelated() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.string(), this.value()]));
+
+    let never = builder.never();
+
+    assert_meet(&mut lattice, lhs, rhs, &[never]);
+    assert_meet(&mut lattice, rhs, lhs, &[never]);
+}
+
+#[test]
+fn join_recursive_tuple() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.number(), this.value()]));
+
+    assert_join(&mut lattice, lhs, rhs, &[rhs]);
+    assert_join(&mut lattice, rhs, lhs, &[rhs]);
+}
+
+#[test]
+fn join_recursive_tuple_unrelated() {
+    scaffold!(heap, env, builder, [lattice: lattice]);
+
+    let lhs = builder.tuple(lazy(|this, builder| [builder.integer(), this.value()]));
+    let rhs = builder.tuple(lazy(|this, builder| [builder.string(), this.value()]));
+
+    // The type itself is a bit larger than one might like (this is of the recursive property of
+    // the match), but the type approximation is still valid, as proven below and is actually
+    // *smaller* than the naive approximation.
+    let union = builder.union([builder.integer(), builder.string()]);
+    let expected = builder.tuple([union, builder.tuple([union, builder.union([lhs, rhs])])]);
+
+    assert_join(&mut lattice, lhs, rhs, &[expected]);
+    assert_join(&mut lattice, rhs, lhs, &[expected]);
+
+    assert_is_subtype(&env, lhs, expected);
+    assert_is_subtype(&env, rhs, expected);
 }

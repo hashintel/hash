@@ -3,8 +3,8 @@ volumes:
   loki_data:
   tempo_data:
   mimir_data:
+  pyroscope_data:
   grafana_data:
-
 
 services:
   postgres:
@@ -46,7 +46,7 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.128.0
-    command: [ "--config=/etc/otelcol/config.yaml" ]
+    command: ["--config=/etc/otelcol/config.yaml"]
     depends_on:
       tempo:
         condition: service_healthy
@@ -115,7 +115,7 @@ services:
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: [ "CMD", "vault", "status" ]
+      test: ["CMD", "vault", "status"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -138,7 +138,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/metrics" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/metrics"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -153,9 +153,9 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3200/status" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/status"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -167,8 +167,23 @@ services:
       - ./mimir/mimir.yml:/etc/mimir/mimir.yml:ro
       - mimir_data:/data
     command:
-      - '-config.file=/etc/mimir/mimir.yml'
+      - "-config.file=/etc/mimir/mimir.yml"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Pyroscope - Continuous Profiling
+  pyroscope:
+    image: grafana/pyroscope:1.14.1
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./pyroscope/pyroscope.yaml:/etc/pyroscope/config.yaml:ro
+      - pyroscope_data:/data
+    command:
+      - "-config.file=/etc/pyroscope/config.yaml"
+    restart: unless-stopped
+    read_only: true
     security_opt:
       - no-new-privileges:true
 
@@ -184,6 +199,8 @@ services:
         condition: service_healthy
       mimir:
         condition: service_started
+      pyroscope:
+        condition: service_started
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -194,7 +211,8 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
+      test:
+        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 2s
       timeout: 2s
       retries: 10

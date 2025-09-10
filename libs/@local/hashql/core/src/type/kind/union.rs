@@ -266,6 +266,7 @@ impl<'heap> UnionType<'heap> {
     }
 
     pub(crate) fn collect_constraints_variants(
+        selftype: TypeId,
         supertype: TypeId,
         super_span: SpanId,
         self_variants: &[TypeId],
@@ -277,6 +278,7 @@ impl<'heap> UnionType<'heap> {
         // ≡ (A <: C ∧ B <: C) ∨ (A <: D ∧ B <: D)
         // ≡ A <: (C | D) ∧ B <: (C | D)
         // ≡ (A <: C ∨ B <: C) ∧ (A <: D ∨ B <: D)
+        let is_invariant = env.is_invariant();
 
         #[expect(clippy::match_same_arms, reason = "readability")]
         match (self_variants, super_variants) {
@@ -329,15 +331,45 @@ impl<'heap> UnionType<'heap> {
                     bound: supertype,
                 });
             }
+            (_, &[super_variant]) if is_invariant => {
+                // Under invariance (A ≡ B means A <: B ∧ B <: A), we need to handle the reverse
+                // direction (B <: A). With a single variant on the right containing a variable,
+                // we can safely add a lower bound constraint. If it's not a variable, we can't
+                // recurse because that would require union-right inference (handling disjunctions)
+                let super_variant = env.r#type(super_variant);
+                let Some(variable) = super_variant.kind.into_variable() else {
+                    // There's no variable on the right, so nothing to constrain.
+                    return;
+                };
+
+                // There are multiple variables, therefore the right side is guaranteed to be a
+                // union
+                debug_assert_matches!(env.r#type(selftype).kind, TypeKind::Union(_));
+
+                env.add_constraint(Constraint::LowerBound {
+                    variable: Variable {
+                        span: super_variant.span,
+                        kind: variable,
+                    },
+                    bound: selftype,
+                });
+            }
+
             (self_variants, &[super_variant]) => {
                 // Single constraint, means we can actually recurse down
                 for &self_variant in self_variants {
                     env.collect_constraints(Variance::Covariant, self_variant, super_variant);
                 }
             }
+            (_, _) if is_invariant => {
+                // Multiple variants on both sides under invariance would require encoding
+                // disjunctive constraints (OR relationships), which our inference engine
+                // doesn't support. We must skip constraint generation to avoid over-constraining.
+            }
             (self_variants, super_variants) => {
                 for &self_variant in self_variants {
                     Self::collect_constraints_variants(
+                        selftype,
                         supertype,
                         super_span,
                         &[self_variant],
@@ -657,6 +689,7 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         let super_variants = supertype.unnest(env);
 
         Self::collect_constraints_variants(
+            self.id,
             supertype.id,
             supertype.span,
             &self_variants,

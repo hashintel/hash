@@ -1,0 +1,12 @@
+Expr#4294967040@30
+  ExprKind (Let)
+    LetExpr#4294967040@30 (name: add)
+      Expr#4294967040@25
+        ExprKind (Literal)
+          LiteralExpr#4294967040@24
+            LiteralKind (Integer)
+              IntegerLiteral (2)
+      Expr#4294967040@29
+        ExprKind (Path)
+          Path#4294967040@29 (rooted: false)
+            PathSegment#4294967040@28 (name: add)

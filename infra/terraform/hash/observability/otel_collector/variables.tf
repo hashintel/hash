@@ -81,6 +81,16 @@ variable "mimir_http_port" {
   description = "Mimir HTTP API port number"
 }
 
+variable "pyroscope_http_dns" {
+  type        = string
+  description = "Pyroscope HTTP API DNS name for metrics forwarding"
+}
+
+variable "pyroscope_http_port" {
+  type        = number
+  description = "Pyroscope HTTP API port number"
+}
+
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
 }

@@ -691,13 +691,13 @@ pub(crate) fn from_resolution_error<'heap>(
             let item_span = segments
                 .iter()
                 .find_map(|&(segment_span, segment_name)| {
-                    (segment_name == item.name).then_some(segment_span)
+                    (segment_name == item.name()).then_some(segment_span)
                 })
                 .unwrap_or(path.span);
 
             diagnostic.labels.extend([
                 // Primary label, pointing to the problem
-                Label::new(item_span, format!("'{}' is ambiguous", item.name))
+                Label::new(item_span, format!("'{}' is ambiguous", item.name()))
                     .with_order(0)
                     .with_color(Color::Ansi(AnsiColor::Red)),
                 // Secondary label, pointing to the path
@@ -709,7 +709,7 @@ pub(crate) fn from_resolution_error<'heap>(
             diagnostic.add_help(Help::new(format!(
                 "The name '{}' could refer to multiple different items in {}. Use a fully \
                  qualified path to specify which one you want.",
-                item.name,
+                item.name(),
                 FormatPath(path.rooted, &segments, None)
             )));
 

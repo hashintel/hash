@@ -91,9 +91,21 @@ resource "aws_ecs_task_definition" "alloy" {
       ], var.ssl_config.environment_vars)
 
       portMappings = [
+        # Internal ports with names for Service Connect
         {
           name          = local.http_port_name
           containerPort = local.http_port
+          protocol      = "tcp"
+        },
+        {
+          name          = local.profile_port_name
+          containerPort = local.profile_port_internal
+          protocol      = "tcp"
+        },
+
+        # External ports without names (ALB only)
+        {
+          containerPort = local.profile_port_external
           protocol      = "tcp"
         }
       ]
@@ -162,6 +174,28 @@ resource "aws_ecs_service" "alloy" {
         port = local.http_port
       }
     }
+
+    service {
+      port_name = local.profile_port_name
+
+      client_alias {
+        port = local.profile_port_internal
+      }
+    }
+  }
+
+  # Internal ALB target groups
+  load_balancer {
+    target_group_arn = aws_lb_target_group.profile_internal.arn
+    container_name   = "alloy"
+    container_port   = local.profile_port_internal
+  }
+
+  # External ALB target groups
+  load_balancer {
+    target_group_arn = aws_lb_target_group.profile_external.arn
+    container_name   = "alloy"
+    container_port   = local.profile_port_external
   }
 
   tags = {

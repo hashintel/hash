@@ -9,7 +9,7 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
         inference::{Constraint, Inference as _, Variable, VariableKind},
@@ -28,7 +28,7 @@ use crate::{
             tuple::TupleType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-        tests::{instantiate, instantiate_infer, instantiate_param},
+        tests::{instantiate, instantiate_infer, instantiate_param, scaffold},
     },
 };
 
@@ -1844,4 +1844,79 @@ fn subscript_union_values() {
     };
 
     assert_equiv!(env, [id], [union!(env, [integer, string])]);
+}
+
+#[test]
+fn collect_constraints_invariant_union_left() {
+    scaffold!(heap, env, builder, [inference: inference]);
+
+    let hole = builder.fresh_hole();
+
+    let integer = builder.integer();
+    let string = builder.string();
+
+    // union-left
+    let lhs = builder.union([integer, string]);
+    let rhs = builder.infer(hole);
+
+    // First check covariance:
+    inference.collect_constraints(Variance::Covariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [
+            Constraint::LowerBound {
+                variable: Variable::synthetic(hole.into()),
+                bound: integer
+            },
+            Constraint::LowerBound {
+                variable: Variable::synthetic(hole.into()),
+                bound: string
+            }
+        ]
+    );
+
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [Constraint::Equals {
+            variable: Variable::synthetic(hole.into()),
+            r#type: lhs
+        }]
+    );
+
+    // right hand side has no inference variable shouldn't crash the system
+    let rhs = builder.string();
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert!(constraints.is_empty());
+}
+
+#[test]
+fn collect_constraints_invariant_union_both() {
+    scaffold!(heap, env, builder, [inference: inference]);
+
+    let a = builder.fresh_hole();
+    let b = builder.fresh_hole();
+
+    let integer = builder.integer();
+    let string = builder.string();
+
+    let lhs = builder.union([integer, builder.infer(a)]);
+    let rhs = builder.union([string, builder.infer(b)]);
+
+    inference.collect_constraints(Variance::Covariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert_eq!(
+        constraints,
+        [Constraint::UpperBound {
+            variable: Variable::synthetic(a.into()),
+            bound: rhs
+        }]
+    );
+
+    inference.collect_constraints(Variance::Invariant, lhs, rhs);
+    let constraints = inference.take_constraints();
+    assert!(constraints.is_empty());
 }
