@@ -214,6 +214,8 @@ proc-macro-error2                  = { version = "=2.0.1", default-features = fa
 proc-macro2                        = { version = "=1.0.101", default-features = false }
 prometheus-client                  = { version = "=0.24.0", default-features = false }
 proptest                           = { version = "=1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
+pyroscope                          = { version = "=0.5.8", default-features = false }
+pyroscope_pprofrs                  = { version = "=0.2.10", default-features = false }
 quote                              = { version = "=1.0.40", default-features = false }
 radix_trie                         = { version = "=0.2.1", default-features = false }
 rand                               = { version = "=0.9.2", default-features = false }

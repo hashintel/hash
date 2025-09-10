@@ -23,6 +23,7 @@ pub mod traces;
 mod otlp;
 
 use core::time::Duration;
+use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
 use opentelemetry_sdk::{
@@ -112,9 +113,7 @@ impl TelemetryRegistry {
 
     #[must_use]
     pub fn with_tracing_profiler(mut self, config: ProfilerConfig) -> Self {
-        if config.pyroscope_endpoint.is_some() || config.folded_path.is_some() {
-            self.profiler = Some(config);
-        }
+        self.profiler = Some(config);
         self
     }
 
@@ -291,9 +290,12 @@ pub fn init_tracing(
         .with_sentry(config.sentry)
         .with_otlp(config.otlp, service_name)
         .with_tracing_profiler(ProfilerConfig {
+            enable_cpu: true,
+            enable_wall: true,
             pyroscope_endpoint: config.profile.profile_endpoint,
             folded_path: None,
             service_name: service_name.to_owned(),
+            labels: HashMap::new(),
             flush_interval: Duration::from_secs(config.profile.flush_interval_seconds),
         })
         .init_global()

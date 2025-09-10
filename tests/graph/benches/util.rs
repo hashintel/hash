@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+extern crate alloc;
+
+use alloc::borrow::Cow;
 use core::{mem::ManuallyDrop, time::Duration};
 use std::{collections::HashMap, path::Path};
 
@@ -19,12 +22,16 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
-use hash_telemetry::{TelemetryRegistry, profiling::ProfilerConfig};
+use hash_telemetry::{
+    TelemetryRegistry,
+    logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
+    profiling::ProfilerConfig,
+};
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use tracing::Instrument as _;
+use tracing::{Instrument as _, Level};
 use type_system::{
     ontology::{
         data_type::DataType,
@@ -59,24 +66,26 @@ pub fn setup_subscriber(
     function_id: Option<&str>,
     value_str: Option<&str>,
 ) -> impl Drop {
-    let labels = match (function_id, value_str) {
-        (Some(function_id), Some(value_str)) => {
-            format!(",function={function_id},value={value_str}")
-        }
-        (Some(function_id), None) => format!(",function={function_id}"),
-        (None, Some(value_str)) => format!(",value={value_str}"),
-        (None, None) => String::new(),
-    };
+    let mut labels = HashMap::from([("group", Cow::Owned(group_id.to_owned()))]);
+    if let Some(function_id) = function_id {
+        labels.insert("function", Cow::Owned(function_id.to_owned()));
+    }
+    if let Some(value_str) = value_str {
+        labels.insert("value", Cow::Owned(value_str.to_owned()));
+    }
 
     TelemetryRegistry::default()
         .with_tracing_profiler(ProfilerConfig {
+            enable_wall: true,
+            enable_cpu: true,
             pyroscope_endpoint: std::env::var("HASH_PROFILER_ENDPOINT").ok(),
             folded_path: Some(Path::new("out").join(generate_path(
                 group_id,
                 function_id,
                 value_str,
             ))),
-            service_name: format!("graph-benches{{group={group_id}{labels}}}"),
+            service_name: "graph-benches".to_owned(),
+            labels,
             flush_interval: Duration::from_secs(10),
         })
         .init()

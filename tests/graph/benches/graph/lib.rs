@@ -20,6 +20,7 @@ mod scenario;
 #[path = "../util.rs"]
 mod util;
 
+use alloc::borrow::Cow;
 use core::time::Duration;
 use std::{
     collections::HashMap,
@@ -56,15 +57,20 @@ fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
             "Graph Benches",
         )
         .with_tracing_profiler(ProfilerConfig {
+            enable_wall: true,
+            enable_cpu: true,
             pyroscope_endpoint: std::env::var("HASH_PROFILER_ENDPOINT").ok(),
             folded_path: Some(Path::new("out").join(generate_path(
                 "scenarios",
                 Some(scenario),
                 Some(bench),
             ))),
-            service_name: format!(
-                "graph-benches{{group=scenarios,function={scenario},value={bench}}}"
-            ),
+            service_name: "graph-benches".to_owned(),
+            labels: HashMap::from([
+                ("group", Cow::Borrowed("scenarios")),
+                ("function", Cow::Owned(scenario.to_owned())),
+                ("value", Cow::Owned(bench.to_owned())),
+            ]),
             flush_interval: Duration::from_secs(10),
         })
         .init()

@@ -385,6 +385,7 @@ fn bench_json_queries(crit: &mut Criterion) {
 
             for (request, parameter) in request.prepare_request() {
                 group.bench_function(BenchmarkId::new(name, &parameter), |bencher| {
+                    let _enter = runtime.enter();
                     let _guard = setup_subscriber(&group_id, Some(name), Some(&parameter));
 
                     bencher.to_async(&runtime).iter_batched(

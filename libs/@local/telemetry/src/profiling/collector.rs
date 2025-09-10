@@ -22,12 +22,20 @@ impl ProfileCollector {
         if let Some(endpoint) = &mut config.pyroscope_endpoint {
             endpoint.push_str("/ingest");
         }
-        config.service_name = format!("{}.wall", config.service_name.replace(' ', "-"));
+        let tags = config
+            .labels
+            .iter()
+            .map(|(key, value)| format!("{key}={value}"))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        // Format is `<SERVICE_NAME>.<PROFILE>{<KEY=VALUE>}`
+        config.service_name = format!("{}.wall{{{}}}", config.service_name, tags);
 
         Ok(Self {
             uploader: config
                 .pyroscope_endpoint
-                .map(|endpoint| ProfileUploader::new(endpoint, config.service_name)),
+                .map(|endpoint| dbg!(ProfileUploader::new(endpoint, config.service_name))),
             folded_file: config
                 .folded_path
                 .as_ref()
@@ -107,12 +115,10 @@ impl ProfileCollector {
         if let Some(file) = &mut self.folded_file
             && let Err(error) = file.write_fmt(args)
         {
-            tracing::error!(%error, "Failed to write profile data to file");
+            tracing::error!(?error, "Failed to write profile data to file");
         }
-        if let Some(buffer) = &mut self.uploader
-            && let Err(error) = buffer.write_fmt(args)
-        {
-            tracing::error!(%error, "Failed to write profile data to uploader");
+        if let Some(buffer) = &mut self.uploader {
+            buffer.write_fmt(args);
         }
     }
 
@@ -120,12 +126,12 @@ impl ProfileCollector {
         if let Some(file) = &mut self.folded_file
             && let Err(error) = file.flush()
         {
-            tracing::error!(%error, "Failed to flush profile data to file");
+            tracing::error!(?error, "Failed to flush profile data to file");
         }
         if let Some(buffer) = &mut self.uploader
             && let Err(error) = buffer.flush()
         {
-            tracing::error!(%error, "Failed to flush profile data to uploader");
+            tracing::error!(?error, "Failed to flush profile data to uploader");
         }
     }
 }

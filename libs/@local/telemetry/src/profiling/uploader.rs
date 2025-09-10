@@ -1,8 +1,17 @@
-use core::mem;
-use std::{
-    io::{self, Write},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use core::{error::Error, fmt, mem};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use error_stack::{Report, ResultExt as _};
+
+#[derive(Debug, derive_more::Display)]
+pub(crate) enum UploaderError {
+    #[display("Failed to send profile data")]
+    Send,
+    #[display("Failed to create runtime")]
+    Runtime,
+}
+
+impl Error for UploaderError {}
 
 #[derive(Debug)]
 pub(crate) struct ProfileUploader {
@@ -28,15 +37,16 @@ impl ProfileUploader {
             runtime_handle: tokio::runtime::Handle::try_current().ok(),
         }
     }
-}
 
-impl Write for ProfileUploader {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+    pub(crate) fn write(&mut self, buf: &[u8]) {
         self.buffer.extend_from_slice(buf);
-        Ok(buf.len())
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    pub(crate) fn write_fmt(&mut self, fmt: fmt::Arguments) {
+        self.write(fmt.to_string().as_bytes());
+    }
+
+    pub(crate) fn flush(&mut self) -> Result<(), Report<UploaderError>> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
@@ -58,22 +68,14 @@ impl Write for ProfileUploader {
                     .body(mem::take(&mut self.buffer))
                     .send()
                     .await
-                    .map_err(io::Error::other)
+                    .change_context(UploaderError::Send)
             };
 
             let response = if let Some(handle) = &self.runtime_handle {
                 handle.block_on(request)?
-            } else if let Ok(handle) = tokio::runtime::Handle::try_current() {
-                handle.block_on(request)?
             } else {
-                tracing::warn!(
-                    "No Tokio runtime found, spawning a new one for Pyroscope upload. Consider \
-                     initializing a Tokio runtime earlier to avoid this overhead."
-                );
-
-                // If we're not in a Tokio runtime, spawn a new one for this blocking task.
-                tokio::runtime::Runtime::new()
-                    .map_err(io::Error::other)?
+                tokio::runtime::Handle::try_current()
+                    .change_context(UploaderError::Runtime)?
                     .block_on(request)?
             };
 

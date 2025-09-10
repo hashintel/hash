@@ -1,12 +1,14 @@
 mod collector;
 mod uploader;
 
-use alloc::sync::Arc;
-use core::{fmt::Write as _, time::Duration};
-use std::{io, path::PathBuf, thread::JoinHandle, time::Instant};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{error::Error, fmt::Write as _, time::Duration};
+use std::{collections::HashMap, path::PathBuf, thread::JoinHandle, time::Instant};
 
 use crossbeam_channel::Sender;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
+use pyroscope::{PyroscopeAgent, pyroscope::PyroscopeAgentRunning};
+use pyroscope_pprofrs::{PprofConfig, pprof_backend};
 use tracing::{Subscriber, span};
 use tracing_subscriber::{
     Layer,
@@ -96,11 +98,24 @@ pub struct ProfilerCliConfig {
     pub flush_interval_seconds: u64,
 }
 
+#[derive(Debug, derive_more::Display)]
+pub enum ProfileConfigError {
+    #[display("Failed to initialize CPU profiling")]
+    Cpu,
+    #[display("Failed to create Wall profiling")]
+    Wall,
+}
+
+impl Error for ProfileConfigError {}
+
 #[derive(Debug)]
 pub struct ProfilerConfig {
+    pub enable_wall: bool,
+    pub enable_cpu: bool,
     pub pyroscope_endpoint: Option<String>,
     pub folded_path: Option<PathBuf>,
     pub service_name: String,
+    pub labels: HashMap<&'static str, Cow<'static, str>>,
     pub flush_interval: Duration,
 }
 
@@ -110,32 +125,83 @@ impl ProfilerConfig {
     /// # Errors
     ///
     /// Returns an error if the profiling layer cannot be created.
-    pub fn build<S>(self) -> Result<(impl Layer<S>, impl Drop), Report<io::Error>>
+    pub fn build<S>(mut self) -> Result<(impl Layer<S>, impl Drop), Report<ProfileConfigError>>
     where
         S: Subscriber + for<'a> LookupSpan<'a>,
     {
         struct Dropper {
-            join: Option<JoinHandle<()>>,
-            control_tx: Sender<ControlMessage>,
+            wall: Option<(Sender<ControlMessage>, JoinHandle<()>)>,
+            cpu: Option<PyroscopeAgent<PyroscopeAgentRunning>>,
         }
 
+        // TODO: We probably need to switch from `std::thread` to `tokio::task` but this prevents a
+        //       `Drop` implementation.
+        //   see https://linear.app/hash/issue/H-5339/implement-continuous-profiling-for-the-graph
         impl Drop for Dropper {
             fn drop(&mut self) {
-                _ = self.control_tx.send(ControlMessage::Shutdown);
-                self.join.take().map(JoinHandle::join);
+                if let Some((control_tx, handle)) = self.wall.take() {
+                    _ = control_tx.send(ControlMessage::Shutdown);
+                    if handle.join().is_err() {
+                        tracing::warn!("Failed to join profiling thread");
+                    }
+                }
+                if let Some(agent) = self.cpu.take() {
+                    match agent.stop() {
+                        Ok(agent) => agent.shutdown(),
+                        Err(error) => tracing::warn!("Failed to stop Pyroscope agent: {error}"),
+                    }
+                }
             }
         }
 
-        let (message_tx, message_rx) = crossbeam_channel::bounded(1_000);
-        let (control_tx, control_rx) = crossbeam_channel::unbounded();
+        self.service_name = self.service_name.replace(' ', "-").to_lowercase();
 
-        Ok((
-            ProfileLayer { message_tx },
-            Dropper {
-                join: Some(ProfileCollector::new(self)?.run(message_rx, control_rx)),
-                control_tx,
-            },
-        ))
+        let cpu = if self.enable_cpu
+            && let Some(pyroscope_endpoint) = self.pyroscope_endpoint.as_deref()
+        {
+            let agent = PyroscopeAgent::builder(pyroscope_endpoint, "hash-graph-benchmarks")
+                .backend(pprof_backend(PprofConfig::new().sample_rate(100)))
+                .func(|mut report| {
+                    report.data.retain(|trace, _| {
+                        trace.frames.iter().any(|frame| {
+                            frame.name.as_deref() != Some("std::thread::Thread::unpark")
+                        })
+                    });
+                    report
+                })
+                .application_name(&self.service_name)
+                .tags(
+                    self.labels
+                        .iter()
+                        .map(|(key, value)| (*key, value.as_ref()))
+                        .collect(),
+                )
+                .build()
+                .change_context(ProfileConfigError::Cpu)?;
+            Some(agent.start().change_context(ProfileConfigError::Cpu)?)
+        } else {
+            None
+        };
+
+        let (layer, wall) = if self.enable_wall
+            && (self.pyroscope_endpoint.is_some() || self.folded_path.is_some())
+        {
+            let (message_tx, message_rx) = crossbeam_channel::bounded(1_000);
+            let (control_tx, control_rx) = crossbeam_channel::unbounded();
+            (
+                Some(ProfileLayer { message_tx }),
+                Some((
+                    control_tx,
+                    ProfileCollector::new(self)
+                        .change_context(ProfileConfigError::Wall)?
+                        .run(message_rx, control_rx),
+                )),
+            )
+        } else {
+            (None, None)
+        };
+
+        Ok((layer, Dropper { wall, cpu }))
     }
 }
 
