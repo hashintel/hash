@@ -45,15 +45,16 @@ import {
   isValueMetadata,
 } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
-  Entity as GraphApiEntity,
   GetEntitiesRequest as GetEntitiesRequestGraphApi,
   GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
   GraphApi,
+  CreateEntityParams as GraphApiCreateEntityParams,
+  Entity as GraphApiEntity,
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
@@ -177,7 +178,7 @@ export type GetEntitiesRequest = Omit<
   conversions?: ConversionRequest[];
 };
 
-export type GetEntitySubgraphRequest = Omit<
+export type GetEntitySubgraphRequest = DistributiveOmit<
   GetEntitySubgraphRequestGraphApi,
   "conversions"
 > & {

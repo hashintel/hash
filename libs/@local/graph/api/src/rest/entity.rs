@@ -23,7 +23,10 @@ use hash_graph_store::{
     filter::Filter,
     pool::StorePool,
     query::{NullOrdering, Ordering},
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        edges::{GraphResolveDepths, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 use hash_graph_types::{
     Embedding,
@@ -619,62 +622,39 @@ where
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
-pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'q, Entity>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    pub limit: Option<usize>,
-    #[serde(borrow, default)]
-    pub conversions: Vec<QueryConversion<'p>>,
-    #[serde(borrow)]
-    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
-    #[serde(borrow)]
-    pub cursor: Option<EntityQueryCursor<'s>>,
-    #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
+#[serde(untagged, deny_unknown_fields)]
+pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
+    #[serde(rename_all = "camelCase")]
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: GetEntitiesRequest<'q, 's, 'p>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Path {
+        traversal_paths: Vec<TraversalPath>,
+        #[serde(borrow, flatten)]
+        request: GetEntitiesRequest<'q, 's, 'p>,
+    },
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
     fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
-        Self {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            graph_resolve_depths: request.graph_resolve_depths,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-            include_type_titles: request.include_type_titles,
+        match request {
+            GetEntitySubgraphRequest::ResolveDepths {
+                graph_resolve_depths,
+                request,
+            } => Self::ResolveDepths {
+                graph_resolve_depths,
+                request: request.into(),
+            },
+            GetEntitySubgraphRequest::Path {
+                traversal_paths,
+                request,
+            } => Self::Path {
+                traversal_paths,
+                request: request.into(),
+            },
         }
     }
 }
@@ -752,13 +732,6 @@ where
     let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-
-    if request.limit == Some(0) {
-        tracing::warn!(
-            %actor_id,
-            "The limit is set to zero, so no entities will be returned"
-        );
-    }
 
     let response = store
         .get_entity_subgraph(actor_id, request.into())

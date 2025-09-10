@@ -38,7 +38,11 @@ use crate::{
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -265,22 +269,86 @@ pub struct GetEntitiesResponse<'r> {
 }
 
 #[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntitySubgraphParams<'a> {
-    pub filter: Filter<'a, Entity>,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub sorting: EntityQuerySorting<'static>,
-    pub limit: Option<usize>,
-    pub conversions: Vec<QueryConversion<'a>>,
-    pub include_drafts: bool,
-    pub include_count: bool,
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    pub include_web_ids: bool,
-    pub include_created_by_ids: bool,
-    pub include_edition_created_by_ids: bool,
-    pub include_type_ids: bool,
-    pub include_type_titles: bool,
+pub enum GetEntitySubgraphParams<'a> {
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        request: GetEntitiesParams<'a>,
+    },
+    Path {
+        traversal_paths: Vec<TraversalPath>,
+        request: GetEntitiesParams<'a>,
+    },
+}
+
+impl<'a> GetEntitySubgraphParams<'a> {
+    #[must_use]
+    pub fn into_request(self) -> (GetEntitiesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Path {
+                request,
+                traversal_paths,
+            } => (request, SubgraphTraversalParams::Path { traversal_paths }),
+            Self::ResolveDepths {
+                request,
+                graph_resolve_depths,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
+
+    #[must_use]
+    pub fn view_actions(&self) -> Vec<ActionName> {
+        let mut actions = vec![ActionName::ViewEntity];
+
+        match self {
+            GetEntitySubgraphParams::Path {
+                traversal_paths, ..
+            } => {
+                if traversal_paths
+                    .iter()
+                    .any(|path| path.has_edge_kind(TraversalEdgeKind::IsOfType))
+                {
+                    actions.push(ActionName::ViewEntityType);
+
+                    if traversal_paths
+                        .iter()
+                        .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsPropertiesOn))
+                    {
+                        actions.push(ActionName::ViewPropertyType);
+
+                        if traversal_paths
+                            .iter()
+                            .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsValuesOn))
+                        {
+                            actions.push(ActionName::ViewDataType);
+                        }
+                    }
+                }
+            }
+            GetEntitySubgraphParams::ResolveDepths {
+                graph_resolve_depths,
+                ..
+            } => {
+                if graph_resolve_depths.is_of_type.outgoing > 0 {
+                    actions.push(ActionName::ViewEntityType);
+
+                    if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                        actions.push(ActionName::ViewPropertyType);
+
+                        if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                            actions.push(ActionName::ViewDataType);
+                        }
+                    }
+                }
+            }
+        }
+
+        actions
+    }
 }
 
 #[derive(Debug)]

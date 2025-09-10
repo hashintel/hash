@@ -4593,6 +4593,13 @@
         },
         "additionalProperties": false
       },
+      "EntityTraversalEdgeDirection": {
+        "type": "string",
+        "enum": [
+          "incoming",
+          "outgoing"
+        ]
+      },
       "EntityType": {
         "$ref": "./models/entity_type.json"
       },
@@ -5529,80 +5536,49 @@
         }
       },
       "GetEntitySubgraphRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
-            }
-          },
-          "cursor": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryCursor"
+                "$ref": "#/components/schemas/GetEntitiesRequest"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
             ],
-            "nullable": true
+            "title": "GetEntitySubgraphRequestGraphResolveDepths"
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                "$ref": "#/components/schemas/GetEntitiesRequest"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
               }
             ],
-            "nullable": true
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+            "title": "GetEntitySubgraphRequestTraversalPaths"
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntitySubgraphResponse": {
         "type": "object",
@@ -7126,6 +7102,12 @@
           }
         },
         "additionalProperties": false
+      },
+      "OntologyTraversalEdgeDirection": {
+        "type": "string",
+        "enum": [
+          "outgoing"
+        ]
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -8768,6 +8750,180 @@
         "enum": [
           "transactionTime"
         ]
+      },
+      "TraversalEdge": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "InheritsFromEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "inherits-from"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsValuesOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-values-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsPropertiesOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-properties-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsLinksOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-links-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsLinkDestinationsOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-link-destinations-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IsOfTypeEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "is-of-type"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "HasLeftEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-left-entity"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "HasRightEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-right-entity"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "TraversalPath": {
+        "type": "object",
+        "required": [
+          "edges"
+        ],
+        "properties": {
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraversalEdge"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "UnarchiveDataTypeParams": {
         "type": "object",

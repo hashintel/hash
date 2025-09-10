@@ -56,7 +56,7 @@ pub struct PinnedAxis;
 ///
 /// In a bitemporal system, a `PinnedTemporalAxisUnresolved` should almost always be accompanied by
 /// a [`VariableTemporalAxisUnresolved`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PinnedTemporalAxisUnresolved<A> {
     pub axis: A,
@@ -82,7 +82,7 @@ impl<A: Default> PinnedTemporalAxisUnresolved<A> {
     }
 }
 
-#[derive_where(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", bound = "", deny_unknown_fields)]
 pub struct RightBoundedTemporalIntervalUnresolved<A> {
@@ -158,7 +158,7 @@ where
 /// bounds referring the current [`Timestamp`]. In a bitemporal system, a
 /// `VariableTemporalAxisUnresolved` should almost always be accompanied by a
 /// [`PinnedTemporalAxisUnresolved`].
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct VariableTemporalAxisUnresolved<A> {
     pub axis: A,
@@ -220,7 +220,7 @@ where
 /// bounds an inclusive bound at the timestamp at point of resolving is assumed.
 ///
 /// [`Subgraph`]: crate::subgraph::Subgraph
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(untagged)]
 pub enum QueryTemporalAxesUnresolved {

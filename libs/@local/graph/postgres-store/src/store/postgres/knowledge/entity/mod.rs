@@ -1,7 +1,7 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, mem};
+use core::{borrow::Borrow, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
@@ -28,7 +28,7 @@ use hash_graph_store::{
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams},
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
@@ -98,22 +98,6 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-#[derive(Debug)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-struct GetEntitiesImplParams<'a> {
-    filter: Filter<'a, Entity>,
-    sorting: EntityQuerySorting<'static>,
-    limit: Option<usize>,
-    include_drafts: bool,
-    include_count: bool,
-    include_entity_types: Option<IncludeEntityTypeOption>,
-    include_web_ids: bool,
-    include_created_by_ids: bool,
-    include_edition_created_by_ids: bool,
-    include_type_ids: bool,
-    include_type_titles: bool,
-}
-
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -130,7 +114,7 @@ where
         &self,
         mut entity_queue: Vec<(
             EntityVertexId,
-            GraphResolveDepths,
+            Cow<'_, SubgraphTraversalParams>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
@@ -171,41 +155,27 @@ where
             ];
 
             #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
+            for (entity_vertex_id, subgraph_traversal_params, traversal_interval) in
                 entity_queue.drain(..)
             {
                 tracing::trace_span!(
                     "traverse_edges",
                     entity_id = %entity_vertex_id.base_id,
                     entity_revision = %entity_vertex_id.revision_id,
-                    graph_resolve_depths = ?graph_resolve_depths,
                     traversal_interval = ?traversal_interval
                 )
-                .in_scope(|| {
-                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                        .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
-                    {
-                        shared_edges_to_traverse
-                            .get_or_insert_with(|| {
-                                EntityEdgeTraversalData::new(
-                                    subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                    variable_axis,
-                                )
-                            })
-                            .push(
-                                entity_vertex_id,
-                                traversal_interval,
-                                new_graph_resolve_depths,
-                            );
-                    }
-
-                    for (edge_kind, edge_direction, _) in entity_edges {
-                        if let Some(new_graph_resolve_depths) =
-                            graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
+                .in_scope(|| match &*subgraph_traversal_params {
+                    SubgraphTraversalParams::ResolveDepths {
+                        graph_resolve_depths,
+                    } => {
+                        if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                            .decrement_depth_for_edge(
+                                SharedEdgeKind::IsOfType,
+                                EdgeDirection::Outgoing,
+                            )
                         {
-                            knowledge_edges_to_traverse
-                                .entry((edge_kind, edge_direction))
-                                .or_insert_with(|| {
+                            shared_edges_to_traverse
+                                .get_or_insert_with(|| {
                                     EntityEdgeTraversalData::new(
                                         subgraph.temporal_axes.resolved.pinned_timestamp(),
                                         variable_axis,
@@ -217,7 +187,28 @@ where
                                     new_graph_resolve_depths,
                                 );
                         }
+
+                        for (edge_kind, edge_direction, _) in entity_edges {
+                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                                .decrement_depth_for_edge(edge_kind, edge_direction)
+                            {
+                                knowledge_edges_to_traverse
+                                    .entry((edge_kind, edge_direction))
+                                    .or_insert_with(|| {
+                                        EntityEdgeTraversalData::new(
+                                            subgraph.temporal_axes.resolved.pinned_timestamp(),
+                                            variable_axis,
+                                        )
+                                    })
+                                    .push(
+                                        entity_vertex_id,
+                                        traversal_interval,
+                                        new_graph_resolve_depths,
+                                    );
+                            }
+                        }
                     }
+                    SubgraphTraversalParams::Path { traversal_paths: _ } => todo!(),
                 });
             }
 
@@ -271,8 +262,14 @@ where
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
-                            .map(move |(_, resolve_depths, interval)| {
-                                (edge.right_endpoint, resolve_depths, interval)
+                            .map(move |(_, graph_resolve_depths, interval)| {
+                                (
+                                    edge.right_endpoint,
+                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
+                                        graph_resolve_depths,
+                                    }),
+                                    interval,
+                                )
                             })
                     }));
                 }
@@ -401,7 +398,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn get_entities_impl(
         &self,
-        params: GetEntitiesImplParams<'_>,
+        params: &GetEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
@@ -1268,23 +1265,7 @@ where
         let temporal_axes = params.temporal_axes.resolve();
 
         let mut response = self
-            .get_entities_impl(
-                GetEntitiesImplParams {
-                    filter: params.filter,
-                    sorting: params.sorting,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_count: params.include_count,
-                    include_entity_types: params.include_entity_types,
-                    include_web_ids: params.include_web_ids,
-                    include_created_by_ids: params.include_created_by_ids,
-                    include_edition_created_by_ids: params.include_edition_created_by_ids,
-                    include_type_ids: params.include_type_ids,
-                    include_type_titles: params.include_type_titles,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .get_entities_impl(&params, &temporal_axes, &policy_components)
             .await?;
 
         if !params.conversions.is_empty() {
@@ -1303,25 +1284,9 @@ where
     async fn get_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitySubgraphParams<'_>,
+        params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let mut actions = vec![ActionName::ViewEntity];
-        if params.graph_resolve_depths.is_of_type.outgoing > 0 {
-            actions.push(ActionName::ViewEntityType);
-
-            if params
-                .graph_resolve_depths
-                .constrains_properties_on
-                .outgoing
-                > 0
-            {
-                actions.push(ActionName::ViewPropertyType);
-
-                if params.graph_resolve_depths.constrains_values_on.outgoing > 0 {
-                    actions.push(ActionName::ViewDataType);
-                }
-            }
-        }
+        let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
@@ -1331,15 +1296,14 @@ where
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        params
+        let (mut request, traversal_params) = params.into_request();
+        request
             .filter
             .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
-        let unresolved_temporal_axes = params.temporal_axes;
-        let temporal_axes = unresolved_temporal_axes.clone().resolve();
-
+        let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
         let GetEntitiesResponse {
@@ -1354,27 +1318,10 @@ where
             type_ids,
             type_titles,
         } = self
-            .get_entities_impl(
-                // actor_id,
-                GetEntitiesImplParams {
-                    filter: params.filter,
-                    sorting: params.sorting,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_count: params.include_count,
-                    include_entity_types: None,
-                    include_web_ids: params.include_web_ids,
-                    include_created_by_ids: params.include_created_by_ids,
-                    include_edition_created_by_ids: params.include_edition_created_by_ids,
-                    include_type_ids: params.include_type_ids,
-                    include_type_titles: params.include_type_titles,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .get_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
 
-        let mut subgraph = Subgraph::new(unresolved_temporal_axes, temporal_axes);
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
 
         async move {
             subgraph.roots.extend(
@@ -1399,7 +1346,7 @@ where
                     .map(|id| {
                         (
                             *id,
-                            params.graph_resolve_depths,
+                            Cow::Borrowed(&traversal_params),
                             subgraph.temporal_axes.resolved.variable_interval(),
                         )
                     })
@@ -1411,12 +1358,12 @@ where
             .await?;
 
             traversal_context
-                .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+                .read_traversed_vertices(self, &mut subgraph, request.include_drafts)
                 .await?;
 
-            if !params.conversions.is_empty() {
+            if !request.conversions.is_empty() {
                 for entity in subgraph.vertices.entities.values_mut() {
-                    self.convert_entity(&provider, entity, &params.conversions)
+                    self.convert_entity(&provider, entity, &request.conversions)
                         .await
                         .change_context(QueryError)?;
                 }
@@ -1427,7 +1374,7 @@ where
                     clippy::if_then_some_else_none,
                     reason = "False positive, use of `await`"
                 )]
-                closed_multi_entity_types: if params.include_entity_types.is_some() {
+                closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
                         self.get_closed_multi_entity_types(
                             actor_id,
@@ -1448,7 +1395,7 @@ where
                 } else {
                     None
                 },
-                definitions: match params.include_entity_types {
+                definitions: match request.include_entity_types {
                     Some(
                         IncludeEntityTypeOption::Resolved
                         | IncludeEntityTypeOption::ResolvedWithDataTypeChildren,
@@ -1471,7 +1418,7 @@ where
                             self.get_entity_type_resolve_definitions(
                                 actor_id,
                                 &entity_type_uuids,
-                                params.include_entity_types
+                                request.include_entity_types
                                     == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
                             )
                             .await?,
