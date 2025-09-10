@@ -22,16 +22,12 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
-use hash_telemetry::{
-    TelemetryRegistry,
-    logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
-    profiling::ProfilerConfig,
-};
+use hash_telemetry::{TelemetryRegistry, profiling::ProfilerConfig};
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use tracing::{Instrument as _, Level};
+use tracing::Instrument as _;
 use type_system::{
     ontology::{
         data_type::DataType,

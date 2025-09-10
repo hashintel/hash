@@ -35,7 +35,7 @@ impl ProfileCollector {
         Ok(Self {
             uploader: config
                 .pyroscope_endpoint
-                .map(|endpoint| dbg!(ProfileUploader::new(endpoint, config.service_name))),
+                .map(|endpoint| ProfileUploader::new(endpoint, config.service_name)),
             folded_file: config
                 .folded_path
                 .as_ref()
