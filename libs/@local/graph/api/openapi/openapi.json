@@ -8660,13 +8660,9 @@
           "roots",
           "vertices",
           "edges",
-          "depths",
           "temporalAxes"
         ],
         "properties": {
-          "depths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
           "edges": {
             "$ref": "#/components/schemas/Edges"
           },

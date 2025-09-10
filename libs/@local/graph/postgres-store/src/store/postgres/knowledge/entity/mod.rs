@@ -1374,11 +1374,7 @@ where
             )
             .await?;
 
-        let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            unresolved_temporal_axes,
-            temporal_axes,
-        );
+        let mut subgraph = Subgraph::new(unresolved_temporal_axes, temporal_axes);
 
         async move {
             subgraph.roots.extend(
@@ -1403,7 +1399,7 @@ where
                     .map(|id| {
                         (
                             *id,
-                            subgraph.depths,
+                            params.graph_resolve_depths,
                             subgraph.temporal_axes.resolved.variable_interval(),
                         )
                     })

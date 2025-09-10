@@ -683,11 +683,7 @@ where
             )
             .await?;
 
-        let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            params.temporal_axes,
-            temporal_axes.clone(),
-        );
+        let mut subgraph = Subgraph::new(params.temporal_axes, temporal_axes.clone());
 
         let (property_type_ids, property_type_vertex_ids): (Vec<_>, Vec<_>) = property_types
             .iter()
@@ -714,7 +710,7 @@ where
                 .map(|id| {
                     (
                         id,
-                        subgraph.depths,
+                        params.graph_resolve_depths,
                         subgraph.temporal_axes.resolved.variable_interval(),
                     )
                 })
