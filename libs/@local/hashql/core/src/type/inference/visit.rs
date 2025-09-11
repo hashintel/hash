@@ -107,7 +107,7 @@ impl<'heap> Visitor<'heap> for VariableDependencyCollector<'_, 'heap> {
     }
 }
 
-pub(crate) struct VariableCollector<'env, 'heap> {
+pub struct VariableCollector<'env, 'heap> {
     env: &'env Environment<'heap>,
     current_span: SpanId,
     variables: Vec<Variable>,
@@ -115,13 +115,18 @@ pub(crate) struct VariableCollector<'env, 'heap> {
 }
 
 impl<'env, 'heap> VariableCollector<'env, 'heap> {
-    pub(crate) fn new(env: &'env Environment<'heap>) -> Self {
+    pub fn new(env: &'env Environment<'heap>) -> Self {
         Self {
             env,
             current_span: SpanId::SYNTHETIC,
             variables: Vec::new(),
             recursion: RecursionBoundary::new(),
         }
+    }
+
+    #[must_use]
+    pub fn take_variables(self) -> Vec<Variable> {
+        self.variables
     }
 }
 

@@ -7,6 +7,7 @@ use pretty::RcDoc;
 pub use self::{
     solver::InferenceSolver,
     variable::{Variable, VariableKind},
+    visit::VariableCollector,
 };
 pub(crate) use self::{variable::VariableLookup, visit::VariableDependencyCollector};
 use super::{

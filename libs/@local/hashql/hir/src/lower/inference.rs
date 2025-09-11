@@ -16,8 +16,9 @@ use hashql_core::{
             Environment, InferenceEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnostic,
-        inference::InferenceSolver,
+        inference::{InferenceSolver, VariableCollector},
         kind::generic::{GenericArgumentReference, GenericSubstitution},
+        visit::Visitor as _,
     },
 };
 
@@ -58,6 +59,7 @@ pub struct TypeInference<'env, 'heap> {
     registry: &'env ModuleRegistry<'heap>,
 
     inference: InferenceEnvironment<'env, 'heap>,
+    collector: VariableCollector<'env, 'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
     current: HirId,
@@ -76,6 +78,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             registry,
 
             inference: InferenceEnvironment::new(env),
+            collector: VariableCollector::new(env),
             instantiate: InstantiateEnvironment::new(env),
 
             current: HirId::PLACEHOLDER,
@@ -89,7 +92,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
     }
 
     fn apply_substitution(
-        &self,
+        &mut self,
         span: SpanId,
         def: TypeDef<'heap>,
         arguments: &[Spanned<TypeId>],
@@ -112,7 +115,10 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             },
         );
 
-        builder.apply(substitutions, base)
+        let type_id = builder.apply(substitutions, base);
+        self.collector.visit_id(type_id);
+
+        type_id
     }
 
     #[must_use]
@@ -123,6 +129,9 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
         TypeInferenceResidual<'heap>,
         Vec<TypeCheckDiagnostic>,
     ) {
+        let variables = self.collector.take_variables();
+        self.inference.add_variables(variables);
+
         let diagnostics = self.instantiate.take_diagnostics().into_vec();
         let solver = self.inference.into_solver();
 
@@ -141,6 +150,10 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
 }
 
 impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
+    fn visit_type_id(&mut self, id: TypeId) {
+        self.collector.visit_id(id);
+    }
+
     fn visit_node(&mut self, node: &Node<'heap>) {
         if !self.visited.insert(node.id) {
             return;
