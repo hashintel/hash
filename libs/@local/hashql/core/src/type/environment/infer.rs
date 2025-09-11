@@ -150,6 +150,8 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
     }
 
     pub fn add_variables(&mut self, variables: impl IntoIterator<Item = Variable>) {
+        // This acts like registering variables, because we unify each variable with themselves,
+        // therefore adding the node, but no edges.
         self.constraints
             .extend(variables.into_iter().map(|variable| Constraint::Unify {
                 lhs: variable,
