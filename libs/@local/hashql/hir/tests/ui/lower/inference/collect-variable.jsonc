@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Collect variables that aren't explicitely mentioned
+//@ description: Collect variables that aren't explicitly mentioned
 [
   "let",
   "foo",
