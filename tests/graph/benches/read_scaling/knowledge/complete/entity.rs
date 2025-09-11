@@ -7,7 +7,10 @@ use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_store::{
-    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
+    entity::{
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
+        GetEntitySubgraphParams,
+    },
     filter::Filter,
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -242,30 +245,32 @@ pub fn bench_get_entity_by_id(
             store
                 .get_entity_subgraph(
                     actor_id,
-                    GetEntitySubgraphParams {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                    GetEntitySubgraphParams::ResolveDepths {
                         graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
+                        request: GetEntitiesParams {
+                            filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            sorting: EntityQuerySorting {
+                                paths: Vec::new(),
+                                cursor: None,
+                            },
+                            limit: None,
+                            conversions: Vec::new(),
+                            include_count: false,
+                            include_entity_types: None,
+                            include_drafts: false,
+                            include_web_ids: false,
+                            include_created_by_ids: false,
+                            include_edition_created_by_ids: false,
+                            include_type_ids: false,
+                            include_type_titles: false,
                         },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        conversions: Vec::new(),
-                        include_count: false,
-                        include_entity_types: None,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
-                        include_type_titles: false,
                     },
                 )
                 .await

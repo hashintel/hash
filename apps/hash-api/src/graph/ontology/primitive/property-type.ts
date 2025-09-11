@@ -12,6 +12,7 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
@@ -108,7 +109,7 @@ export const getPropertyTypes: ImpureGraphFunction<
  * @param params.query the structural query to filter property types by.
  */
 export const getPropertyTypeSubgraph: ImpureGraphFunction<
-  Omit<GetPropertyTypeSubgraphParams, "includeDrafts">,
+  DistributiveOmit<GetPropertyTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<PropertyTypeRootType>>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
@@ -152,19 +153,22 @@ export const getPropertyTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
-  Omit<GetPropertyTypeSubgraphParams, "filter" | "includeDrafts"> & {
+  DistributiveOmit<
+    GetPropertyTypeSubgraphParams,
+    "filter" | "includeDrafts"
+  > & {
     propertyTypeId: VersionedUrl;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, authentication, params) => {
-  const { graphResolveDepths, temporalAxes, propertyTypeId } = params;
+  const propertyTypeId = params.propertyTypeId;
 
-  const request: Omit<GetPropertyTypeSubgraphParams, "includeDrafts"> = {
+  const request: GetPropertyTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
-    graphResolveDepths,
-    temporalAxes,
+    includeDrafts: false,
+    ...params,
   };
 
   let subgraph = await getPropertyTypeSubgraph(

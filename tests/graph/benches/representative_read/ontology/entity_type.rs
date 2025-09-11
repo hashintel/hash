@@ -1,6 +1,6 @@
 use criterion::{BatchSize::SmallInput, Bencher};
 use hash_graph_store::{
-    entity_type::{EntityTypeStore as _, GetEntityTypesParams},
+    entity_type::{CommonGetEntityTypesParams, EntityTypeStore as _, GetEntityTypesParams},
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -33,21 +33,23 @@ pub fn bench_get_entity_type_by_id(
                 .get_entity_types(
                     actor_id,
                     GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(entity_type_id),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
+                        request: CommonGetEntityTypesParams {
+                            filter: Filter::for_versioned_url(entity_type_id),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            include_drafts: false,
+                            after: None,
+                            limit: None,
+                            include_count: false,
+                            include_web_ids: false,
+                            include_edition_created_by_ids: false,
                         },
-                        include_drafts: false,
-                        after: None,
-                        limit: None,
-                        include_count: false,
                         include_entity_types: None,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
                     },
                 )
                 .await

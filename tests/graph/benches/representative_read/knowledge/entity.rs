@@ -103,30 +103,32 @@ pub fn bench_get_entities_by_property(
         let response = store
             .get_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams {
-                    filter,
+                GetEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                    request: GetEntitiesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
+                        conversions: Vec::new(),
+                        include_count: false,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    conversions: Vec::new(),
-                    include_count: false,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                 },
             )
             .await
@@ -163,30 +165,32 @@ pub fn bench_get_link_by_target_by_property(
         let response = store
             .get_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams {
-                    filter,
+                GetEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                    request: GetEntitiesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
+                        conversions: Vec::new(),
+                        include_count: false,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    conversions: Vec::new(),
-                    include_count: false,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                 },
             )
             .await

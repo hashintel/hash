@@ -3587,6 +3587,48 @@
           "propertyName": "kind"
         }
       },
+      "CommonGetEntityTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
       "Confidence": {
         "type": "number",
         "format": "double",
@@ -5268,44 +5310,47 @@
         }
       },
       "GetDataTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/GetDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GetDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetDataTypeSubgraphResponse": {
         "type": "object",
@@ -5553,8 +5598,7 @@
                   }
                 }
               }
-            ],
-            "title": "GetEntitySubgraphRequestGraphResolveDepths"
+            ]
           },
           {
             "allOf": [
@@ -5575,8 +5619,7 @@
                   }
                 }
               }
-            ],
-            "title": "GetEntitySubgraphRequestTraversalPaths"
+            ]
           }
         ]
       },
@@ -5652,50 +5695,47 @@
         }
       },
       "GetEntityTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntityTypeSubgraphResponse": {
         "type": "object",
@@ -5736,54 +5776,24 @@
         }
       },
       "GetEntityTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "includeEntityTypes": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                  }
+                ],
+                "nullable": true
               }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntityTypesResponse": {
         "type": "object",
@@ -5840,44 +5850,47 @@
         }
       },
       "GetPropertyTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/GetPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GetPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetPropertyTypeSubgraphResponse": {
         "type": "object",

@@ -41,10 +41,10 @@ use hash_graph_store::{
         ValidateEntityParams,
     },
     entity_type::{
-        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        ArchiveEntityTypeParams, CommonGetEntityTypesParams, CountEntityTypesParams,
+        CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -498,18 +498,20 @@ where
                 .get_entity_types(
                     actor_id,
                     GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        request: CommonGetEntityTypesParams {
+                            filter: Filter::for_versioned_url(url),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            include_drafts: true,
+                            after: None,
+                            limit: None,
+                            include_count: false,
+                            include_web_ids: false,
+                            include_edition_created_by_ids: false,
                         },
-                        include_drafts: true,
-                        after: None,
-                        limit: None,
                         include_entity_types: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
                     },
                 )
                 .await

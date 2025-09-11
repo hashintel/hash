@@ -24,7 +24,7 @@ use hash_graph_store::{
     pool::StorePool,
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{GraphResolveDepths, TraversalPath},
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -631,11 +631,51 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
         request: GetEntitiesRequest<'q, 's, 'p>,
     },
     #[serde(rename_all = "camelCase")]
-    Path {
+    Paths {
         traversal_paths: Vec<TraversalPath>,
         #[serde(borrow, flatten)]
         request: GetEntitiesRequest<'q, 's, 'p>,
     },
+}
+
+impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
+    #[must_use]
+    pub fn from_parts(
+        request: GetEntitiesRequest<'q, 's, 'p>,
+        traversal_params: SubgraphTraversalParams,
+    ) -> Self {
+        match traversal_params {
+            SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
+                request,
+                traversal_paths,
+            },
+            SubgraphTraversalParams::ResolveDepths {
+                graph_resolve_depths,
+            } => Self::ResolveDepths {
+                request,
+                graph_resolve_depths,
+            },
+        }
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (GetEntitiesRequest<'q, 's, 'p>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                request,
+                traversal_paths,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                request,
+                graph_resolve_depths,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
 }
 
 impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
@@ -648,10 +688,10 @@ impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySub
                 graph_resolve_depths,
                 request: request.into(),
             },
-            GetEntitySubgraphRequest::Path {
+            GetEntitySubgraphRequest::Paths {
                 traversal_paths,
                 request,
-            } => Self::Path {
+            } => Self::Paths {
                 traversal_paths,
                 request: request.into(),
             },

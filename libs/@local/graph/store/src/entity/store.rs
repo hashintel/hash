@@ -274,7 +274,7 @@ pub enum GetEntitySubgraphParams<'a> {
         graph_resolve_depths: GraphResolveDepths,
         request: GetEntitiesParams<'a>,
     },
-    Path {
+    Paths {
         traversal_paths: Vec<TraversalPath>,
         request: GetEntitiesParams<'a>,
     },
@@ -282,12 +282,26 @@ pub enum GetEntitySubgraphParams<'a> {
 
 impl<'a> GetEntitySubgraphParams<'a> {
     #[must_use]
+    pub const fn request(&self) -> &GetEntitiesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut GetEntitiesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
     pub fn into_request(self) -> (GetEntitiesParams<'a>, SubgraphTraversalParams) {
         match self {
-            Self::Path {
+            Self::Paths {
                 request,
                 traversal_paths,
-            } => (request, SubgraphTraversalParams::Path { traversal_paths }),
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
                 request,
                 graph_resolve_depths,
@@ -305,7 +319,7 @@ impl<'a> GetEntitySubgraphParams<'a> {
         let mut actions = vec![ActionName::ViewEntity];
 
         match self {
-            GetEntitySubgraphParams::Path {
+            Self::Paths {
                 traversal_paths, ..
             } => {
                 if traversal_paths
@@ -329,7 +343,7 @@ impl<'a> GetEntitySubgraphParams<'a> {
                     }
                 }
             }
-            GetEntitySubgraphParams::ResolveDepths {
+            Self::ResolveDepths {
                 graph_resolve_depths,
                 ..
             } => {

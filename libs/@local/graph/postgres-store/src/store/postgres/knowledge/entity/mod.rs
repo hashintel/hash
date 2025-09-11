@@ -1,7 +1,7 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::{borrow::Borrow, mem};
+use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
@@ -208,7 +208,7 @@ where
                             }
                         }
                     }
-                    SubgraphTraversalParams::Path { traversal_paths: _ } => todo!(),
+                    SubgraphTraversalParams::Paths { traversal_paths: _ } => todo!(),
                 });
             }
 
@@ -228,11 +228,21 @@ where
                             edge.right_endpoint.clone(),
                         );
 
-                        traversal_context.add_entity_type_id(
-                            EntityTypeUuid::from(edge.right_endpoint_ontology_id),
-                            edge.resolve_depths,
-                            edge.traversal_interval,
-                        )
+                        traversal_context
+                            .add_entity_type_id(
+                                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                            .map(|(entity_type_uuid, graph_resolve_depths, interval)| {
+                                (
+                                    entity_type_uuid,
+                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
+                                        graph_resolve_depths,
+                                    }),
+                                    interval,
+                                )
+                            })
                     }),
                 );
             }

@@ -96,12 +96,13 @@ pub struct TraversalPath {
     pub edges: Vec<TraversalEdge>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(untagged, rename_all_fields = "camelCase")]
 pub enum SubgraphTraversalParams {
     ResolveDepths {
         graph_resolve_depths: GraphResolveDepths,
     },
-    Path {
+    Paths {
         traversal_paths: Vec<TraversalPath>,
     },
 }

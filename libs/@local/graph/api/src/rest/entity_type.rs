@@ -16,10 +16,11 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     entity_type::{
-        ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
-        EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypesParams,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
-        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        ArchiveEntityTypeParams, CommonGetEntityTypesParams, CreateEntityTypeParams,
+        EntityTypeQueryToken, EntityTypeResolveDefinitions, EntityTypeStore,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
+        GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
+        HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
         IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
@@ -79,6 +80,7 @@ use crate::rest::{
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
             GetEntityTypesParams,
+            CommonGetEntityTypesParams,
             GetEntityTypesResponse,
             GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,

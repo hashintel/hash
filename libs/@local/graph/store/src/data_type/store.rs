@@ -24,7 +24,11 @@ use crate::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,19 +45,55 @@ pub struct CreateDataTypeParams {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypeSubgraphParams<'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'p, DataTypeWithMetadata>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    #[serde(default)]
-    pub after: Option<VersionedUrl>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-    #[serde(default)]
-    pub include_count: bool,
+#[serde(untagged, deny_unknown_fields)]
+pub enum GetDataTypeSubgraphParams<'a> {
+    #[serde(rename_all = "camelCase")]
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: GetDataTypesParams<'a>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
+        #[serde(borrow, flatten)]
+        request: GetDataTypesParams<'a>,
+    },
+}
+
+impl<'a> GetDataTypeSubgraphParams<'a> {
+    #[must_use]
+    pub const fn request(&self) -> &GetDataTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut GetDataTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub fn into_request(self) -> (GetDataTypesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                request,
+                traversal_paths,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                request,
+                graph_resolve_depths,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]

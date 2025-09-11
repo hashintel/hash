@@ -14,7 +14,7 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    entity::EntityStore, pool::StorePool as _, subgraph::edges::GraphResolveDepths,
+    entity::EntityStore, pool::StorePool as _, subgraph::edges::SubgraphTraversalParams,
 };
 use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
@@ -193,7 +193,7 @@ struct GetEntitySubgraphQueryParameters {
     #[serde(default)]
     include_count: Vec<bool>,
     #[serde(default)]
-    graph_resolve_depths: Vec<GraphResolveDepths>,
+    traversal_params: Vec<SubgraphTraversalParams>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -206,21 +206,40 @@ struct GetEntitySubgraphQuery<'q, 's, 'p> {
     settings: Settings<GetEntitySubgraphQueryParameters>,
 }
 
-fn format_graph_resolve_depths(depths: GraphResolveDepths) -> String {
-    format!(
-        "resolve_depths=inherit:{};values:{};properties:{};links:{};link_dests:{};type:{};left:{}/\
-         {};right:{}/{}",
-        depths.inherits_from.outgoing,
-        depths.constrains_values_on.outgoing,
-        depths.constrains_properties_on.outgoing,
-        depths.constrains_links_on.outgoing,
-        depths.constrains_link_destinations_on.outgoing,
-        depths.is_of_type.outgoing,
-        depths.has_left_entity.incoming,
-        depths.has_left_entity.outgoing,
-        depths.has_right_entity.incoming,
-        depths.has_right_entity.outgoing
-    )
+fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
+    match params {
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: depths,
+        } => format!(
+            "resolve_depths=inherit:{};values:{};properties:{};links:{};link_dests:{};type:{};\
+             left:{}/{};right:{}/{}",
+            depths.inherits_from.outgoing,
+            depths.constrains_values_on.outgoing,
+            depths.constrains_properties_on.outgoing,
+            depths.constrains_links_on.outgoing,
+            depths.constrains_link_destinations_on.outgoing,
+            depths.is_of_type.outgoing,
+            depths.has_left_entity.incoming,
+            depths.has_left_entity.outgoing,
+            depths.has_right_entity.incoming,
+            depths.has_right_entity.outgoing
+        ),
+        SubgraphTraversalParams::Paths { traversal_paths } => format!(
+            "traversal_paths={}",
+            traversal_paths
+                .iter()
+                .map(|path| format!(
+                    "({})",
+                    path.edges
+                        .iter()
+                        .map(|edge| format!("{edge:?}"))
+                        .collect::<Vec<_>>()
+                        .join(";")
+                ))
+                .collect::<Vec<_>>()
+                .join(";")
+        ),
+    }
 }
 
 impl GetEntitySubgraphQuery<'_, '_, '_> {
@@ -228,14 +247,15 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
         let modifies_include_count = !self.settings.parameters.include_count.is_empty();
-        let modifies_graph_resolve_depths =
-            !self.settings.parameters.graph_resolve_depths.is_empty();
+        let modifies_graph_resolve_depths = !self.settings.parameters.traversal_params.is_empty();
+
+        let (request, traversal_params) = self.request.clone().into_parts();
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
             .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
-        let limit = iter::once(self.request.limit)
+        let limit = iter::once(request.limit)
             .chain(
                 mem::take(&mut self.settings.parameters.limit)
                     .into_iter()
@@ -243,19 +263,15 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(self.request.include_count)
+        let include_count = iter::once(request.include_count)
             .chain(mem::take(&mut self.settings.parameters.include_count))
             .sorted()
             .dedup();
-        let graph_resolve_depths = iter::once(self.request.graph_resolve_depths)
-            .chain(mem::take(
-                &mut self.settings.parameters.graph_resolve_depths,
-            ))
-            .sorted()
-            .dedup();
+        let traversal_params_iter = iter::once(traversal_params)
+            .chain(mem::take(&mut self.settings.parameters.traversal_params));
 
-        iproduct!(actor_id, limit, include_count, graph_resolve_depths).map(
-            move |(actor_id, limit, include_count, graph_resolve_depths)| {
+        iproduct!(actor_id, limit, include_count, traversal_params_iter).map(
+            move |(actor_id, limit, include_count, traversal_params)| {
                 let mut parameters = Vec::new();
                 if modifies_actor_id {
                     parameters.push(format!("actor_id={actor_id}"));
@@ -267,16 +283,19 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
                     parameters.push(format!("include_count={include_count}"));
                 }
                 if modifies_graph_resolve_depths {
-                    parameters.push(format_graph_resolve_depths(graph_resolve_depths));
+                    parameters.push(format_traversal_params(&traversal_params));
                 }
                 (
                     Self {
                         actor_id,
-                        request: GetEntitySubgraphRequest {
-                            limit,
-                            include_count,
-                            ..self.request.clone()
-                        },
+                        request: GetEntitySubgraphRequest::from_parts(
+                            GetEntitiesRequest {
+                                limit,
+                                include_count,
+                                ..request.clone()
+                            },
+                            traversal_params,
+                        ),
                         settings: self.settings.clone(),
                     },
                     parameters.join(","),
