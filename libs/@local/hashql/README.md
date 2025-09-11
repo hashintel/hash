@@ -16,13 +16,22 @@ HashQL (HASH Query Language) is a **typed, functional traversal language** for q
 HashQL's compiler is organized into four phases. Only the frontend **pushes** into its successor; all other phases **pull** from their single predecessor. Each phase is side‑effect‑free and delimited by diagnostic boundaries.
 
 ```mermaid
-flowchart LR
+---
+config:
+  flowchart:
+    subGraphTitleMargin:
+      top: 10
+      bottom: 10
+---
+flowchart TB
   %% ---------- Nodes ----------
   subgraph FE[Frontend]
     J[J‑Expr]:::current
   end
 
-  subgraph AST["Abstract Syntax Tree (AST)"]
+  subgraph AST["Abstract&nbsp;Syntax&nbsp;Tree&nbsp;(AST)"]
+    direction LR
+
     A1[PreExpansionNameResolver]
     A2[SpecialFormExpander]
     A3[Sanitizer]
@@ -31,40 +40,45 @@ flowchart LR
     A6[TypeDefinitionExtractor]
     A7[NodeRenumberer]
     A8[TypeExtractor]
+
+    A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8
   end
 
-  subgraph HIR["Higher‑level Intermediate Representation (HIR)"]
+  subgraph HIR["Higher‑level&nbsp;Intermediate&nbsp;Representation&nbsp;(HIR)"]
+    direction LR
+
     H1[Reification]
     H2[AliasReplacement]
     H3[ConvertTypeConstructor]
     H4[TypeInference]
     H5[TypeChecking]
     H6[Specialization]
+
+    H1 --> H2 --> H3 --> H4 --> H5 --> H6
   end
 
   %% Current and planned evaluation backends
   subgraph EVAL[Evaluation]
+    direction TB
+
     E1["PostgreSQL"]:::current
     E2["Interpreter VM"]:::planned
     E3["Permission Engine"]:::planned
     E4["Cold Storage / Other"]:::planned
   end
 
-  MIR["Middle-level intermediate representation (MIR)"]:::planned
+  MIR["Middle‑level&nbsp;intermediate&nbsp;representation&nbsp;(MIR)"]:::planned
 
   %% ---------- Edges ----------
-  J --> A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8 --> H1
-  H1 --> H2 --> H3 --> H4 --> H5 --> H6
+  FE ==> AST
+  AST ==> HIR
 
   %% Current path
-  H6 --> E1
+  HIR ==> E1
 
   %% Planned path via MIR
-  H6 -.-> MIR
-  MIR -.-> E1
-  MIR -.-> E2
-  MIR -.-> E3
-  MIR -.-> E4
+  HIR -.-> MIR
+  MIR -.-> EVAL
 
   %% ---------- Legend ----------
   subgraph Legend
