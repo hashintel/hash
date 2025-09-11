@@ -627,6 +627,7 @@ where
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
     #[expect(clippy::too_many_lines)]
+    #[expect(clippy::todo, reason = "Incomplete implementation")]
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
@@ -669,7 +670,7 @@ where
                             }
                         }
                     }
-                    SubgraphTraversalParams::Paths { traversal_paths: _ } => todo!(),
+                    SubgraphTraversalParams::Paths { traversal_paths: _ } => todo!("https://linear.app/hash/issue/BE-103/implement-path-based-query-traversal-depths"),
                 }
             }
 
