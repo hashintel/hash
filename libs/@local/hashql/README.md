@@ -87,9 +87,9 @@ flowchart TB
   end
 
   %% ---------- Styles ----------
-  classDef current fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20,stroke-width:1px;
-  classDef planned fill:#fff8e1,stroke:#ef6c00,color:#bf360c,stroke-dasharray:5 3,stroke-width:1px;
-  classDef groups fill:none;
+  classDef current fill:#e8f5e9,stroke:#2e7d32,color:#0f4c1b,stroke-width:2px,font-weight:600;
+  classDef planned fill:#fff8e1,stroke:#ef6c00,color:#9a3412,stroke-dasharray:6 4,stroke-width:2px,font-weight:600;
+  classDef groups fill:#fafafa,stroke:#e2e8f0,stroke-width:2px,color:#374151;
   class FE,AST,HIR,EVAL groups;
   class A1,A2,A3,A4,A5,A6,A7,A8,H1,H2,H3,H4,H5,H6 current;
 ```
