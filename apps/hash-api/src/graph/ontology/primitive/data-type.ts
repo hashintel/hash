@@ -174,14 +174,14 @@ export const getDataTypeSubgraphById: ImpureGraphFunction<
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
-  const dataTypeId = params.dataTypeId;
+  const { dataTypeId, ...subgraphRequest } = params;
 
   const request: GetDataTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
     includeDrafts: false,
-    ...params,
+    ...subgraphRequest,
   };
 
   let subgraph = await getDataTypeSubgraph(context, authentication, request);

@@ -161,14 +161,14 @@ export const getPropertyTypeSubgraphById: ImpureGraphFunction<
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, authentication, params) => {
-  const propertyTypeId = params.propertyTypeId;
+  const { propertyTypeId, ...subgraphRequest } = params;
 
   const request: GetPropertyTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
     includeDrafts: false,
-    ...params,
+    ...subgraphRequest,
   };
 
   let subgraph = await getPropertyTypeSubgraph(
