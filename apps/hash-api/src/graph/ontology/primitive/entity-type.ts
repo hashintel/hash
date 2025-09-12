@@ -274,13 +274,13 @@ export const getEntityTypeSubgraphById: ImpureGraphFunction<
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {
-  const entityTypeId = params.entityTypeId;
+  const { entityTypeId, ...subgraphRequest } = params;
   const request: GetEntityTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
     includeDrafts: false,
-    ...params,
+    ...subgraphRequest,
   };
 
   let subgraph = await getEntityTypeSubgraph(context, authentication, request);
