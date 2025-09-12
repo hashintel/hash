@@ -246,7 +246,6 @@ export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   roots: subgraph.roots,
   vertices: serializeGraphVertices(subgraph.vertices as Vertices<HashEntity>),
   edges: subgraph.edges,
-  depths: subgraph.depths,
   temporalAxes: subgraph.temporalAxes,
 });
 
@@ -260,7 +259,6 @@ export const deserializeSubgraph = <
   roots: subgraph.roots as RootType["vertexId"][],
   vertices: deserializeGraphVertices(subgraph.vertices),
   edges: subgraph.edges,
-  depths: subgraph.depths,
   temporalAxes: subgraph.temporalAxes,
 });
 

@@ -43,7 +43,6 @@ export const subgraphTypedef = gql`
     roots: [GraphElementVertexId!]!
     vertices: SerializedVertices!
     edges: Edges!
-    depths: ResolveDepths!
     temporalAxes: SubgraphTemporalAxes!
   }
 `;

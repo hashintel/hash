@@ -4,7 +4,6 @@ import type {
   EntityRevisionId,
   EntityTypeRootType,
   EntityVertexId,
-  GraphResolveDepths,
   OntologyVertices,
   PropertyTypeRootType,
   SubgraphTemporalAxes,
@@ -112,7 +111,6 @@ export type SerializedSubgraph<
   roots: RootType["vertexId"][];
   vertices: SerializedVertices;
   edges: Edges;
-  depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };
 

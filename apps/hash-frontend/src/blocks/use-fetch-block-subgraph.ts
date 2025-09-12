@@ -137,7 +137,6 @@ export const useFetchBlockSubgraph = (): ((
           },
         } as const;
         const blockEntitySubgraph: Subgraph<EntityRootType> = {
-          depths,
           edges: {},
           roots: [
             {
