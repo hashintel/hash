@@ -1,6 +1,7 @@
 //! Web routes for CRU operations on entities.
 
 use alloc::sync::Arc;
+use core::{assert_matches::debug_assert_matches, mem};
 use std::collections::HashMap;
 
 use axum::{Extension, Router, response::Response, routing::post};
@@ -44,6 +45,12 @@ use hash_graph_types::{
     },
 };
 use hash_temporal_client::TemporalClient;
+use hashql_core::{
+    collection::fast_hash_map, heap::Heap, module::ModuleRegistry, span::storage::SpanStorage,
+    r#type::environment::Environment,
+};
+use hashql_eval::graph::read::FilterSlice;
+use hashql_hir::visit::Visitor as _;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
@@ -488,14 +495,34 @@ fn generate_sorting_paths(
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(untagged, deny_unknown_fields)]
+#[expect(clippy::large_enum_variant)]
+pub enum GetEntitiesQuery<'q> {
+    Filter {
+        #[serde(borrow)]
+        filter: Filter<'q, Entity>,
+    },
+    Query {
+        #[serde(borrow)]
+        query: &'q serde_json::value::RawValue,
+    },
+    /// Empty query
+    ///
+    /// Cannot be used directly, only used internally when removing the query from the request body.
+    #[serde(skip)]
+    #[doc(hidden)]
+    Empty,
+}
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
 pub struct GetEntitiesRequest<'q, 's, 'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'q, Entity>,
+    #[serde(flatten, borrow)]
+    pub query: GetEntitiesQuery<'q>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     pub limit: Option<usize>,
@@ -521,29 +548,105 @@ pub struct GetEntitiesRequest<'q, 's, 'p> {
     pub include_type_titles: bool,
 }
 
-impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
-    fn from(request: GetEntitiesRequest<'q, 's, 'p>) -> Self {
-        Self {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-            include_type_titles: request.include_type_titles,
-        }
+fn get_entities_request_to_params<'q, 's, 'p: 'q>(
+    request: GetEntitiesRequest<'_, 's, 'p>,
+    filter: Filter<'q, Entity>,
+) -> GetEntitiesParams<'q> {
+    debug_assert_matches!(
+        request.query,
+        GetEntitiesQuery::Empty,
+        "The query parameter is unused, instead use the filter parameter."
+    );
+
+    GetEntitiesParams {
+        filter,
+        sorting: generate_sorting_paths(
+            request.sorting_paths,
+            request.limit,
+            request.cursor,
+            &request.temporal_axes,
+        ),
+        limit: request.limit,
+        conversions: request.conversions,
+        include_drafts: request.include_drafts,
+        include_count: request.include_count,
+        include_entity_types: request.include_entity_types,
+        temporal_axes: request.temporal_axes,
+        include_web_ids: request.include_web_ids,
+        include_created_by_ids: request.include_created_by_ids,
+        include_edition_created_by_ids: request.include_edition_created_by_ids,
+        include_type_ids: request.include_type_ids,
+        include_type_titles: request.include_type_titles,
     }
+}
+
+fn compile_query<'h, 'q>(
+    heap: &'h Heap,
+    query: &'q serde_json::value::RawValue,
+) -> Result<Filter<'h, Entity>, !> {
+    let spans = Arc::new(SpanStorage::new());
+
+    // Parse the query
+    let parser = hashql_syntax_jexpr::Parser::new(&heap, Arc::clone(&spans));
+    let mut ast = parser.parse_expr(query.get().as_bytes()).expect(
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+    );
+
+    let mut env = Environment::new(ast.span, &heap);
+    let modules = ModuleRegistry::new(&env);
+
+    // Lower the AST
+    let (types, diagnostics) =
+        hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules);
+    assert!(
+        diagnostics.is_empty(),
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
+    );
+
+    let interner = hashql_hir::intern::Interner::new(&heap);
+
+    // Reify the HIR from the AST
+    let (hir, diagnostics) = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types);
+    assert!(
+        diagnostics.is_empty(),
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
+    );
+    let hir = hir.expect(
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+    );
+
+    // Lower the HIR
+    let hir = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+    );
+
+    // Evaluate the HIR
+    // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
+    let inputs = fast_hash_map(0);
+    let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(&heap, &inputs);
+
+    compiler.visit_node(&hir);
+
+    let result = compiler.finish().expect(
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+    );
+
+    let output = result.output.get(&hir.id).expect(
+        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+    );
+
+    // Compile the Filter into one
+    let filters = match output {
+        FilterSlice::Entity { range } => result.filters.entity(range.clone()),
+    };
+
+    let filter = match filters {
+        [] => Filter::All(Vec::new()),
+        [filter] => filter.clone(),
+        _ => Filter::All(filters.to_vec()),
+    };
+
+    return Ok(filter);
 }
 
 #[utoipa::path(
@@ -586,7 +689,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitiesRequest::deserialize(&request)
+    let mut request = GetEntitiesRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
@@ -597,8 +700,29 @@ where
         );
     }
 
+    let query = mem::replace(&mut request.query, GetEntitiesQuery::Empty);
+
+    // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
+    let heap = Heap::empty_unchecked();
+
+    let filter = match query {
+        GetEntitiesQuery::Empty => unreachable!("empty cannot be deserialized"),
+        GetEntitiesQuery::Filter { filter } => filter,
+        GetEntitiesQuery::Query { query } => {
+            // "super let" would not require us to prime the heap separately, we could just declare
+            // the heap here
+            heap.prime_unchecked();
+
+            compile_query(&heap, &query).expect(
+                "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+            )
+        }
+    };
+
+    let params = get_entities_request_to_params(request, filter);
+
     let response = store
-        .get_entities(actor_id, request.into())
+        .get_entities(actor_id, params)
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
@@ -615,10 +739,33 @@ where
             })
         })
         .map_err(report_to_response);
+
     if let Some(query_logger) = &mut query_logger {
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
+}
+
+fn get_entities_subgraph_request_to_params<'q, 's, 'p: 'q>(
+    request: GetEntitySubgraphRequest<'_, 's, 'p>,
+    filter: Filter<'q, Entity>,
+) -> GetEntitySubgraphParams<'q> {
+    match request {
+        GetEntitySubgraphRequest::ResolveDepths {
+            graph_resolve_depths,
+            request,
+        } => GetEntitySubgraphParams::ResolveDepths {
+            graph_resolve_depths,
+            request: get_entities_request_to_params(request, filter),
+        },
+        GetEntitySubgraphRequest::Paths {
+            traversal_paths,
+            request,
+        } => GetEntitySubgraphParams::Paths {
+            traversal_paths,
+            request: get_entities_request_to_params(request, filter),
+        },
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
@@ -674,27 +821,6 @@ impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
                     graph_resolve_depths,
                 },
             ),
-        }
-    }
-}
-
-impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
-    fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
-        match request {
-            GetEntitySubgraphRequest::ResolveDepths {
-                graph_resolve_depths,
-                request,
-            } => Self::ResolveDepths {
-                graph_resolve_depths,
-                request: request.into(),
-            },
-            GetEntitySubgraphRequest::Paths {
-                traversal_paths,
-                request,
-            } => Self::Paths {
-                traversal_paths,
-                request: request.into(),
-            },
         }
     }
 }

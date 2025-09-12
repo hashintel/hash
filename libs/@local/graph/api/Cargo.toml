@@ -50,6 +50,11 @@ derive_more                        = { workspace = true, features = ["display", 
 error-stack                        = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                              = { workspace = true }
 futures                            = { workspace = true }
+hashql-ast.workspace               = true
+hashql-core.workspace              = true
+hashql-eval                        = { workspace = true, features = ["graph"] }
+hashql-hir.workspace               = true
+hashql-syntax-jexpr.workspace      = true
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
 mime                               = { workspace = true }
@@ -58,7 +63,7 @@ opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_ex
 opentelemetry_sdk                  = { workspace = true, features = ["rt-tokio"] }
 sentry                             = { workspace = true }
 serde                              = { workspace = true, features = ['derive'] }
-serde_json                         = { workspace = true }
+serde_json                         = { workspace = true, features = ["raw_value"] }
 simple-mermaid                     = { workspace = true }
 time                               = { workspace = true }
 tower                              = { workspace = true }

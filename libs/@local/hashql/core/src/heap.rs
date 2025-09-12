@@ -84,27 +84,65 @@ pub struct Heap {
 }
 
 impl Heap {
-    /// Creates a new empty heap.
+    /// Creates a new empty heap without performing initial allocations.
     ///
-    /// Initializes a heap with default capacity, which will grow as needed
-    /// when allocations are made.
+    /// This creates a heap structure without allocating memory for common symbols.
+    /// The actual allocation work is deferred until [`Self::prime_unchecked`] is called,
+    /// allowing precise control over when memory allocation occurs.
+    ///
+    /// For normal usage, prefer [`Self::new`] which handles initialization automatically.
+    ///
+    /// # Usage Requirements
+    ///
+    /// The caller must call [`Self::prime_unchecked`] exactly once before using the heap
+    /// for any allocations or symbol interning operations. Using an unprimed heap may
+    /// result in missing essential symbols that other parts of the system expect to exist.
     #[must_use]
-    pub fn new() -> Self {
-        let this = Self {
+    pub fn empty_unchecked() -> Self {
+        Self {
             bump: Bump::new(),
             strings: Mutex::default(),
-        };
+        }
+    }
 
-        this.prime_symbols();
+    /// Primes an empty heap with common symbols, performing the deferred allocations.
+    ///
+    /// This method allocates memory for and initializes the heap's symbol table with
+    /// predefined symbols from the global symbol tables. It performs the allocation
+    /// work that was deferred when the heap was created with [`Self::empty_unchecked`].
+    ///
+    /// This is automatically called by [`Self::new`] and [`Self::reset`], so manual
+    /// invocation is only necessary when using the [`Self::empty_unchecked`] constructor.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the heap is already primed.
+    pub fn prime_unchecked(&self) {
+        self.prime_symbols();
+    }
+
+    /// Creates a new heap.
+    ///
+    /// Creates and immediately primes the heap with common symbols. The heap will start with
+    /// default capacity and grow as needed.
+    ///
+    /// For cases where you need control over allocation timing, use [`Self::empty_unchecked`]
+    /// followed by [`Self::prime_unchecked`].
+    #[must_use]
+    #[inline]
+    pub fn new() -> Self {
+        let this = Self::empty_unchecked();
+        this.prime_unchecked();
 
         this
     }
 
     /// Creates a new heap with the specified initial capacity.
     ///
-    /// Pre-allocates memory to avoid frequent reallocations when building
-    /// larger ASTs. This can improve performance when the approximate size
-    /// of the AST is known in advance.
+    /// Pre-allocates memory to avoid frequent reallocations when building larger ASTs. This can
+    /// improve performance when the approximate size of the AST is known in advance.
+    ///
+    /// The heap is immediately primed with common symbols.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         let this = Self {
@@ -117,11 +155,15 @@ impl Heap {
         this
     }
 
-    /// Resets the heap, clearing all allocations.
+    /// Resets the heap
+    ///
+    /// Clears all allocations and re-primes with common symbols. The original capacity of the
+    /// largest memory allocation is retained.
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal mutex is poisoned.
+    /// Panics if the internal mutex is poisoned due to a panic in another thread while holding the
+    /// lock.
     pub fn reset(&mut self) {
         // It's important that we first clear the strings before resetting the bump allocator so
         // that we don't have any dangling references.
