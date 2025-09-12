@@ -4,6 +4,7 @@ import {
   AngleRightRegularIcon,
   PlaySolidIcon,
   Select,
+  StopSolidIcon,
 } from "@hashintel/design-system";
 import {
   generateFlowDefinitionPath,
@@ -30,7 +31,6 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { cancelFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../../shared/icons/bolt-light-icon";
-import { StopSolidIcon } from "../../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";

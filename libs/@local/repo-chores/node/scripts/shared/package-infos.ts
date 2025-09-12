@@ -15,6 +15,7 @@ export interface PackageInfo {
 const packageParentFolders = [
   path.resolve(monorepoRootDirPath, "libs"),
   path.resolve(monorepoRootDirPath, "libs/@hashintel"),
+  path.resolve(monorepoRootDirPath, "libs/@blockprotocol"),
 ];
 
 export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
@@ -32,12 +33,33 @@ export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
 
   for (const packagePath of packagePaths) {
     try {
+      const packageJsonExistsAtRoot = await fs
+        .pathExists(`${packagePath}/package.json`)
+        .catch(() => false);
+
+      const packageJsonExistsInTypescript = await fs
+        .pathExists(path.join(packagePath, "typescript", "package.json"))
+        .catch(() => false);
+
+      const resolvedPackagePath = packageJsonExistsAtRoot
+        ? packagePath
+        : packageJsonExistsInTypescript
+          ? path.join(packagePath, "typescript")
+          : null;
+
+      if (!resolvedPackagePath) {
+        continue;
+      }
+
       /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
-      const packageJson = await fs.readJson(`${packagePath}/package.json`);
+      const packageJson = await fs.readJson(
+        `${resolvedPackagePath}/package.json`,
+      );
+
       if (packageJson.private !== true) {
         result.push({
           name: packageJson.name,
-          path: packagePath,
+          path: resolvedPackagePath,
           version: packageJson.version,
         });
       }

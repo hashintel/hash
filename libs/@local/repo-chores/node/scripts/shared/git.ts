@@ -10,5 +10,18 @@ export const checkIfDirHasUncommittedChanges = async (
     reject: false,
   });
 
-  return gitDiffResult.exitCode > 0;
+  const { stdout: untrackedFiles } = await execa(
+    "git",
+    ["ls-files", "--others", "--exclude-standard", "--", dirPath],
+    {
+      cwd: monorepoRootDirPath,
+    },
+  );
+
+  if (untrackedFiles.trim().length > 0) {
+    // there are untracked files
+    return true;
+  }
+
+  return gitDiffResult.exitCode > 0 || untrackedFiles.trim().length > 0;
 };
