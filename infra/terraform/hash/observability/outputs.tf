@@ -4,3 +4,8 @@ output "otel_otlp_endpoint" {
   description = "OTLP HTTPS DNS name for sending telemetry via internal domain"
   value       = aws_route53_record.otlp.fqdn
 }
+
+output "profile_exporter_endpoint" {
+  description = "Profile exporter DNS name for sending profiling data via internal domain"
+  value       = aws_route53_record.profile.fqdn
+}

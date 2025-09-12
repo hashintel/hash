@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "profile_internal" {
 
   tags = {
     Name    = "${var.prefix}-profile-int"
-    Purpose = "OpenTelemetry Collector internal profile target group"
+    Purpose = "Alloy internal profile target group"
   }
 }
 
@@ -46,6 +46,6 @@ resource "aws_lb_target_group" "profile_external" {
 
   tags = {
     Name    = "${var.prefix}-profile-ext"
-    Purpose = "OpenTelemetry Collector external profile target group"
+    Purpose = "Alloy external profile target group"
   }
 }
