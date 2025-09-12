@@ -580,6 +580,11 @@ fn get_entities_request_to_params<'q, 's, 'p: 'q>(
     }
 }
 
+#[expect(
+    clippy::unnecessary_wraps,
+    clippy::panic_in_result_fn,
+    reason = "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
+)]
 fn compile_query<'h, 'q>(
     heap: &'h Heap,
     query: &'q serde_json::value::RawValue,
@@ -587,12 +592,12 @@ fn compile_query<'h, 'q>(
     let spans = Arc::new(SpanStorage::new());
 
     // Parse the query
-    let parser = hashql_syntax_jexpr::Parser::new(&heap, Arc::clone(&spans));
+    let parser = hashql_syntax_jexpr::Parser::new(heap, Arc::clone(&spans));
     let mut ast = parser.parse_expr(query.get().as_bytes()).expect(
         "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
     );
 
-    let mut env = Environment::new(ast.span, &heap);
+    let mut env = Environment::new(ast.span, heap);
     let modules = ModuleRegistry::new(&env);
 
     // Lower the AST
@@ -603,7 +608,7 @@ fn compile_query<'h, 'q>(
         "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
     );
 
-    let interner = hashql_hir::intern::Interner::new(&heap);
+    let interner = hashql_hir::intern::Interner::new(heap);
 
     // Reify the HIR from the AST
     let (hir, diagnostics) = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types);
@@ -623,7 +628,7 @@ fn compile_query<'h, 'q>(
     // Evaluate the HIR
     // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
     let inputs = fast_hash_map(0);
-    let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(&heap, &inputs);
+    let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
 
     compiler.visit_node(&hir);
 
@@ -646,7 +651,7 @@ fn compile_query<'h, 'q>(
         _ => Filter::All(filters.to_vec()),
     };
 
-    return Ok(filter);
+    Ok(filter)
 }
 
 #[utoipa::path(
@@ -713,7 +718,7 @@ where
             // the heap here
             heap.prime_unchecked();
 
-            compile_query(&heap, &query).expect(
+            compile_query(&heap, query).expect(
                 "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
             )
         }
@@ -895,12 +900,45 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitySubgraphRequest::deserialize(&request)
+    let mut request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
+    let query = mem::replace(
+        match &mut request {
+            GetEntitySubgraphRequest::ResolveDepths {
+                graph_resolve_depths: _,
+                request,
+            }
+            | GetEntitySubgraphRequest::Paths {
+                traversal_paths: _,
+                request,
+            } => &mut request.query,
+        },
+        GetEntitiesQuery::Empty,
+    );
+
+    // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
+    let heap = Heap::empty_unchecked();
+
+    let filter = match query {
+        GetEntitiesQuery::Empty => unreachable!("empty cannot be deserialized"),
+        GetEntitiesQuery::Filter { filter } => filter,
+        GetEntitiesQuery::Query { query } => {
+            // "super let" would not require us to prime the heap separately, we could just declare
+            // the heap here
+            heap.prime_unchecked();
+
+            compile_query(&heap, query).expect(
+                "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+            )
+        }
+    };
+
+    let params = get_entities_subgraph_request_to_params(request, filter);
+
     let response = store
-        .get_entity_subgraph(actor_id, request.into())
+        .get_entity_subgraph(actor_id, params)
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
