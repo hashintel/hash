@@ -3587,6 +3587,48 @@
           "propertyName": "kind"
         }
       },
+      "CommonGetEntityTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
       "Confidence": {
         "type": "number",
         "format": "double",
@@ -4593,6 +4635,13 @@
         },
         "additionalProperties": false
       },
+      "EntityTraversalEdgeDirection": {
+        "type": "string",
+        "enum": [
+          "incoming",
+          "outgoing"
+        ]
+      },
       "EntityType": {
         "$ref": "./models/entity_type.json"
       },
@@ -5261,44 +5310,47 @@
         }
       },
       "GetDataTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/GetDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GetDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetDataTypeSubgraphResponse": {
         "type": "object",
@@ -5529,80 +5581,47 @@
         }
       },
       "GetEntitySubgraphRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
-            }
-          },
-          "cursor": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityQueryCursor"
+                "$ref": "#/components/schemas/GetEntitiesRequest"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                "$ref": "#/components/schemas/GetEntitiesRequest"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
               }
-            ],
-            "nullable": true
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntitySubgraphResponse": {
         "type": "object",
@@ -5676,50 +5695,47 @@
         }
       },
       "GetEntityTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntityTypeSubgraphResponse": {
         "type": "object",
@@ -5760,54 +5776,24 @@
         }
       },
       "GetEntityTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonGetEntityTypesParams"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "includeEntityTypes": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                  }
+                ],
+                "nullable": true
               }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetEntityTypesResponse": {
         "type": "object",
@@ -5864,44 +5850,47 @@
         }
       },
       "GetPropertyTypeSubgraphParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "graphResolveDepths",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
+        "oneOf": [
+          {
             "allOf": [
               {
-                "$ref": "#/components/schemas/VersionedUrl"
+                "$ref": "#/components/schemas/GetPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
               }
-            ],
-            "nullable": true
+            ]
           },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "graphResolveDepths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GetPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "GetPropertyTypeSubgraphResponse": {
         "type": "object",
@@ -7126,6 +7115,12 @@
           }
         },
         "additionalProperties": false
+      },
+      "OntologyTraversalEdgeDirection": {
+        "type": "string",
+        "enum": [
+          "outgoing"
+        ]
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -8660,13 +8655,9 @@
           "roots",
           "vertices",
           "edges",
-          "depths",
           "temporalAxes"
         ],
         "properties": {
-          "depths": {
-            "$ref": "#/components/schemas/GraphResolveDepths"
-          },
           "edges": {
             "$ref": "#/components/schemas/Edges"
           },
@@ -8772,6 +8763,180 @@
         "enum": [
           "transactionTime"
         ]
+      },
+      "TraversalEdge": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "InheritsFromEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "inherits-from"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsValuesOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-values-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsPropertiesOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-properties-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsLinksOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-links-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ConstrainsLinkDestinationsOnEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "constrains-link-destinations-on"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IsOfTypeEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "is-of-type"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "HasLeftEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-left-entity"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "HasRightEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-right-entity"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "TraversalPath": {
+        "type": "object",
+        "required": [
+          "edges"
+        ],
+        "properties": {
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TraversalEdge"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "UnarchiveDataTypeParams": {
         "type": "object",

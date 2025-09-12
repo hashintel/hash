@@ -22,7 +22,11 @@ use crate::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -37,19 +41,83 @@ pub struct CreatePropertyTypeParams {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetPropertyTypeSubgraphParams<'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'p, PropertyTypeWithMetadata>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    #[serde(default)]
-    pub after: Option<VersionedUrl>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-    #[serde(default)]
-    pub include_count: bool,
+#[serde(untagged, deny_unknown_fields)]
+pub enum GetPropertyTypeSubgraphParams<'a> {
+    #[serde(rename_all = "camelCase")]
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: GetPropertyTypesParams<'a>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
+        #[serde(borrow, flatten)]
+        request: GetPropertyTypesParams<'a>,
+    },
+}
+
+impl<'a> GetPropertyTypeSubgraphParams<'a> {
+    #[must_use]
+    pub const fn request(&self) -> &GetPropertyTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut GetPropertyTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub fn into_request(self) -> (GetPropertyTypesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                traversal_paths,
+                request,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                graph_resolve_depths,
+                request,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
+
+    #[must_use]
+    pub fn view_actions(&self) -> Vec<ActionName> {
+        let mut actions = vec![ActionName::ViewPropertyType];
+
+        match self {
+            Self::Paths {
+                traversal_paths, ..
+            } => {
+                if traversal_paths
+                    .iter()
+                    .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsValuesOn))
+                {
+                    actions.push(ActionName::ViewDataType);
+                }
+            }
+            Self::ResolveDepths {
+                graph_resolve_depths,
+                ..
+            } => {
+                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                    actions.push(ActionName::ViewDataType);
+                }
+            }
+        }
+
+        actions
+    }
 }
 
 #[derive(Debug)]

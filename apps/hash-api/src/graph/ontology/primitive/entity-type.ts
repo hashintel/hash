@@ -13,6 +13,7 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
@@ -150,7 +151,7 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
-  Omit<GetEntityTypeSubgraphParams, "includeDrafts">,
+  DistributiveOmit<GetEntityTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<EntityTypeRootType>>
 > = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
@@ -168,7 +169,10 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes">,
+  DistributiveOmit<
+    GetEntityTypesParams,
+    "includeDrafts" | "includeEntityTypes"
+  >,
   Promise<EntityTypeWithMetadata[]>
 > = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
@@ -265,20 +269,18 @@ export const getEntityTypeById: ImpureGraphFunction<
  * into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  Omit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
+  DistributiveOmit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {
-  const { graphResolveDepths, temporalAxes, entityTypeId } = params;
-
+  const { entityTypeId, ...subgraphRequest } = params;
   const request: GetEntityTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
-    graphResolveDepths,
-    temporalAxes,
     includeDrafts: false,
+    ...subgraphRequest,
   };
 
   let subgraph = await getEntityTypeSubgraph(context, authentication, request);

@@ -5,7 +5,10 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{
-    entity_type::{EntityTypeStore as _, GetEntityTypesParams, IncludeEntityTypeOption},
+    entity_type::{
+        CommonGetEntityTypesParams, EntityTypeStore as _, GetEntityTypesParams,
+        IncludeEntityTypeOption,
+    },
     filter::Filter,
     pool::StorePool as _,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
@@ -562,15 +565,17 @@ impl BuildEntityTypeRegistryStage {
             .get_entity_types(
                 ActorEntityUuid::public_actor(),
                 GetEntityTypesParams {
-                    filter: Filter::for_entity_type_uuids(&all_entity_types),
-                    temporal_axes: QueryTemporalAxesUnresolved::default(),
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
-                    include_count: false,
+                    request: CommonGetEntityTypesParams {
+                        filter: Filter::for_entity_type_uuids(&all_entity_types),
+                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    },
                     include_entity_types: Some(IncludeEntityTypeOption::Resolved),
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
                 },
             )
             .await

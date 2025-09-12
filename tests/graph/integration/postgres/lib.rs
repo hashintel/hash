@@ -306,7 +306,7 @@ impl DataTypeStore for DatabaseApi<'_> {
                 actor_id,
                 CountDataTypesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
+                    temporal_axes: params.temporal_axes,
                     include_drafts: params.include_drafts,
                 },
             )
@@ -332,17 +332,18 @@ impl DataTypeStore for DatabaseApi<'_> {
         actor_id: ActorEntityUuid,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        let request = params.request_mut();
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_data_types(
                 actor_id,
                 CountDataTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
@@ -458,7 +459,7 @@ impl PropertyTypeStore for DatabaseApi<'_> {
                 actor_id,
                 CountPropertyTypesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
+                    temporal_axes: params.temporal_axes,
                     include_drafts: params.include_drafts,
                 },
             )
@@ -485,17 +486,19 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         actor_id: ActorEntityUuid,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_property_types(
                 actor_id,
                 CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
@@ -593,17 +596,19 @@ impl EntityTypeStore for DatabaseApi<'_> {
         actor_id: ActorEntityUuid,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        let request = &mut params.request;
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entity_types(
                 actor_id,
                 CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
@@ -649,17 +654,19 @@ impl EntityTypeStore for DatabaseApi<'_> {
         actor_id: ActorEntityUuid,
         mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entity_types(
                 actor_id,
                 CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
@@ -766,7 +773,7 @@ impl EntityStore for DatabaseApi<'_> {
                 actor_id,
                 CountEntitiesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
+                    temporal_axes: params.temporal_axes,
                     include_drafts: params.include_drafts,
                 },
             )
@@ -792,17 +799,19 @@ impl EntityStore for DatabaseApi<'_> {
         actor_id: ActorEntityUuid,
         mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entities(
                 actor_id,
                 CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;

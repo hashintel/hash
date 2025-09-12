@@ -7,26 +7,66 @@
       "actorId": [],
       "limit": [],
       "includeCount": [],
-      "graphResolveDepths": [
+      "traversalParams": [
         {
-          "inheritsFrom": { "outgoing": 255 },
-          "constrainsValuesOn": { "outgoing": 255 },
-          "constrainsPropertiesOn": { "outgoing": 255 },
-          "constrainsLinksOn": { "outgoing": 255 },
-          "constrainsLinkDestinationsOn": { "outgoing": 255 },
-          "isOfType": { "outgoing": 255 },
-          "hasLeftEntity": { "incoming": 0, "outgoing": 0 },
-          "hasRightEntity": { "incoming": 0, "outgoing": 0 }
+          "graphResolveDepths": {
+            "inheritsFrom": {
+              "outgoing": 255
+            },
+            "constrainsValuesOn": {
+              "outgoing": 255
+            },
+            "constrainsPropertiesOn": {
+              "outgoing": 255
+            },
+            "constrainsLinksOn": {
+              "outgoing": 255
+            },
+            "constrainsLinkDestinationsOn": {
+              "outgoing": 255
+            },
+            "isOfType": {
+              "outgoing": 255
+            },
+            "hasLeftEntity": {
+              "incoming": 0,
+              "outgoing": 0
+            },
+            "hasRightEntity": {
+              "incoming": 0,
+              "outgoing": 0
+            }
+          }
         },
         {
-          "inheritsFrom": { "outgoing": 255 },
-          "constrainsValuesOn": { "outgoing": 255 },
-          "constrainsPropertiesOn": { "outgoing": 255 },
-          "constrainsLinksOn": { "outgoing": 255 },
-          "constrainsLinkDestinationsOn": { "outgoing": 255 },
-          "isOfType": { "outgoing": 255 },
-          "hasLeftEntity": { "incoming": 255, "outgoing": 255 },
-          "hasRightEntity": { "incoming": 255, "outgoing": 255 }
+          "graphResolveDepths": {
+            "inheritsFrom": {
+              "outgoing": 255
+            },
+            "constrainsValuesOn": {
+              "outgoing": 255
+            },
+            "constrainsPropertiesOn": {
+              "outgoing": 255
+            },
+            "constrainsLinksOn": {
+              "outgoing": 255
+            },
+            "constrainsLinkDestinationsOn": {
+              "outgoing": 255
+            },
+            "isOfType": {
+              "outgoing": 255
+            },
+            "hasLeftEntity": {
+              "incoming": 255,
+              "outgoing": 255
+            },
+            "hasRightEntity": {
+              "incoming": 255,
+              "outgoing": 255
+            }
+          }
         }
       ]
     }
@@ -49,14 +89,32 @@
       }
     },
     "graphResolveDepths": {
-      "inheritsFrom": { "outgoing": 0 },
-      "constrainsValuesOn": { "outgoing": 0 },
-      "constrainsPropertiesOn": { "outgoing": 0 },
-      "constrainsLinksOn": { "outgoing": 0 },
-      "constrainsLinkDestinationsOn": { "outgoing": 0 },
-      "isOfType": { "outgoing": 0 },
-      "hasLeftEntity": { "incoming": 0, "outgoing": 0 },
-      "hasRightEntity": { "incoming": 0, "outgoing": 0 }
+      "inheritsFrom": {
+        "outgoing": 0
+      },
+      "constrainsValuesOn": {
+        "outgoing": 0
+      },
+      "constrainsPropertiesOn": {
+        "outgoing": 0
+      },
+      "constrainsLinksOn": {
+        "outgoing": 0
+      },
+      "constrainsLinkDestinationsOn": {
+        "outgoing": 0
+      },
+      "isOfType": {
+        "outgoing": 0
+      },
+      "hasLeftEntity": {
+        "incoming": 0,
+        "outgoing": 0
+      },
+      "hasRightEntity": {
+        "incoming": 0,
+        "outgoing": 0
+      }
     },
     "includeDrafts": false
   }

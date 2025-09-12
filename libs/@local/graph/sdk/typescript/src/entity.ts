@@ -4,7 +4,6 @@ import type {
   EntityRevisionId,
   EntityTypeRootType,
   EntityVertexId,
-  GraphResolveDepths,
   OntologyVertices,
   PropertyTypeRootType,
   SubgraphTemporalAxes,
@@ -45,6 +44,7 @@ import {
   isValueMetadata,
 } from "@blockprotocol/type-system";
 import type { Brand } from "@local/advanced-types/brand";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
@@ -111,7 +111,6 @@ export type SerializedSubgraph<
   roots: RootType["vertexId"][];
   vertices: SerializedVertices;
   edges: Edges;
-  depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };
 
@@ -177,7 +176,7 @@ export type GetEntitiesRequest = Omit<
   conversions?: ConversionRequest[];
 };
 
-export type GetEntitySubgraphRequest = Omit<
+export type GetEntitySubgraphRequest = DistributiveOmit<
   GetEntitySubgraphRequestGraphApi,
   "conversions"
 > & {

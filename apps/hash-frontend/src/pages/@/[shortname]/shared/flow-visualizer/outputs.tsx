@@ -541,17 +541,6 @@ export const Outputs = ({
         },
         [mockedEntity.metadata.recordId],
         {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-          hasRightEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-        },
-        {
           initial: currentTimeInstantTemporalAxes,
           resolved: {
             pinned: {

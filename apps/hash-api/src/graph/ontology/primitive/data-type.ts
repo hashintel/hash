@@ -14,6 +14,7 @@ import {
   DATA_TYPE_META_SCHEMA,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@blockprotocol/type-system";
+import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -120,7 +121,7 @@ export const getDataTypes: ImpureGraphFunction<
  * @param params.query the structural query to filter data types by.
  */
 export const getDataTypeSubgraph: ImpureGraphFunction<
-  Omit<GetDataTypeSubgraphParams, "includeDrafts">,
+  DistributiveOmit<GetDataTypeSubgraphParams, "includeDrafts">,
   Promise<Subgraph<DataTypeRootType>>
 > = async ({ graphApi }, { actorId }, request) => {
   return await graphApi
@@ -168,19 +169,19 @@ export const getDataTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getDataTypeSubgraphById: ImpureGraphFunction<
-  Omit<GetDataTypeSubgraphParams, "filter" | "includeDrafts"> & {
+  DistributiveOmit<GetDataTypeSubgraphParams, "filter" | "includeDrafts"> & {
     dataTypeId: VersionedUrl;
   },
   Promise<Subgraph<DataTypeRootType>>
 > = async (context, authentication, params) => {
-  const { graphResolveDepths, temporalAxes, dataTypeId } = params;
+  const { dataTypeId, ...subgraphRequest } = params;
 
-  const request: Omit<GetDataTypeSubgraphParams, "includeDrafts"> = {
+  const request: GetDataTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
     },
-    graphResolveDepths,
-    temporalAxes,
+    includeDrafts: false,
+    ...subgraphRequest,
   };
 
   let subgraph = await getDataTypeSubgraph(context, authentication, request);

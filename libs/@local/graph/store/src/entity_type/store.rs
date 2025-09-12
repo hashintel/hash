@@ -27,7 +27,11 @@ use crate::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -42,22 +46,94 @@ pub struct CreateEntityTypeParams {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntityTypeSubgraphParams<'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'p, EntityTypeWithMetadata>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<VersionedUrl>,
-    pub limit: Option<usize>,
-    pub include_drafts: bool,
-    #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
+#[serde(untagged, deny_unknown_fields)]
+pub enum GetEntityTypeSubgraphParams<'p> {
+    #[serde(rename_all = "camelCase")]
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: CommonGetEntityTypesParams<'p>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
+        #[serde(borrow, flatten)]
+        request: CommonGetEntityTypesParams<'p>,
+    },
+}
+
+impl<'a> GetEntityTypeSubgraphParams<'a> {
+    #[must_use]
+    pub const fn request(&self) -> &CommonGetEntityTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut CommonGetEntityTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub fn into_request(self) -> (CommonGetEntityTypesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                traversal_paths,
+                request,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                graph_resolve_depths,
+                request,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
+
+    #[must_use]
+    pub fn view_actions(&self) -> Vec<ActionName> {
+        let mut actions = vec![ActionName::ViewEntityType];
+
+        match self {
+            Self::Paths {
+                traversal_paths, ..
+            } => {
+                if traversal_paths
+                    .iter()
+                    .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsPropertiesOn))
+                {
+                    actions.push(ActionName::ViewPropertyType);
+
+                    if traversal_paths
+                        .iter()
+                        .any(|path| path.has_edge_kind(TraversalEdgeKind::ConstrainsValuesOn))
+                    {
+                        actions.push(ActionName::ViewDataType);
+                    }
+                }
+            }
+            Self::ResolveDepths {
+                graph_resolve_depths,
+                ..
+            } => {
+                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                    actions.push(ActionName::ViewPropertyType);
+
+                    if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                        actions.push(ActionName::ViewDataType);
+                    }
+                }
+            }
+        }
+
+        actions
+    }
 }
 
 #[derive(Debug)]
@@ -83,7 +159,7 @@ pub struct CountEntityTypesParams<'p> {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntityTypesParams<'p> {
+pub struct CommonGetEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
@@ -95,11 +171,19 @@ pub struct GetEntityTypesParams<'p> {
     #[serde(default)]
     pub include_count: bool,
     #[serde(default)]
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
     pub include_web_ids: bool,
     #[serde(default)]
     pub include_edition_created_by_ids: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetEntityTypesParams<'p> {
+    #[serde(borrow, flatten)]
+    pub request: CommonGetEntityTypesParams<'p>,
+    #[serde(default)]
+    pub include_entity_types: Option<IncludeEntityTypeOption>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]

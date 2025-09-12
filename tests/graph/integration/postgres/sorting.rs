@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+        EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams, GetEntitySubgraphResponse,
     },
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
@@ -80,27 +80,29 @@ async fn test_root_sorting(
         } = api
             .get_entity_subgraph(
                 api.account_id,
-                GetEntitySubgraphParams {
-                    filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: sorting_paths.clone(),
-                        cursor: Option::take(&mut cursor),
-                    },
-                    limit: Some(chunk_size),
-                    conversions: Vec::new(),
+                GetEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    include_count: true,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
+                    request: GetEntitiesParams {
+                        filter: Filter::All(Vec::new()),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: sorting_paths.clone(),
+                            cursor: Option::take(&mut cursor),
+                        },
+                        limit: Some(chunk_size),
+                        conversions: Vec::new(),
+                        include_count: true,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
+                    },
                 },
             )
             .await

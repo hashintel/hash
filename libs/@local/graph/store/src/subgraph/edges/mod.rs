@@ -1,6 +1,7 @@
 mod edge;
 mod endpoint;
 mod kind;
+mod traversal;
 
 use alloc::collections::BTreeMap;
 use core::{
@@ -14,6 +15,10 @@ pub use self::{
     kind::{
         EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
         OutgoingEdgeResolveDepth, SharedEdgeKind,
+    },
+    traversal::{
+        EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection, SubgraphTraversalParams,
+        TraversalEdge, TraversalEdgeKind, TraversalPath,
     },
 };
 use crate::subgraph::{
