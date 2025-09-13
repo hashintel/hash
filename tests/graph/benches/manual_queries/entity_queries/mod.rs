@@ -5,7 +5,10 @@ use criterion::{BatchSize, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
-use hash_graph_api::rest::entity::{GetEntitiesRequest, GetEntitySubgraphRequest};
+use hash_graph_api::rest::{
+    self,
+    entity::{GetEntitiesRequest, GetEntitySubgraphRequest},
+};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -327,20 +330,29 @@ fn read_groups(path: impl AsRef<Path>) -> Result<Vec<(String, JsonValue)>, Repor
         .collect()
 }
 
-async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, request: GraphQuery<'q, 's, 'p>)
+async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, mut request: GraphQuery<'q, 's, 'p>)
 where
     S: EntityStore + Sync,
 {
+    let query = match &mut request {
+        GraphQuery::GetEntities(request) => request.request.take_query(),
+        GraphQuery::GetEntitySubgraph(request) => request.request.take_query(),
+    };
+
+    let rest::entity::GetEntitiesQuery::Filter { filter } = query else {
+        panic!("unsupported query type")
+    };
+
     match request {
         GraphQuery::GetEntities(request) => {
             let _response = store
-                .get_entities(request.actor_id, request.request.into())
+                .get_entities(request.actor_id, request.request.into_params(filter))
                 .await
                 .expect("failed to read entities from store");
         }
         GraphQuery::GetEntitySubgraph(request) => {
             let _response = store
-                .get_entity_subgraph(request.actor_id, request.request.into())
+                .get_entity_subgraph(request.actor_id, request.request.into_params(filter))
                 .await
                 .expect("failed to read entity subgraph from store");
         }
