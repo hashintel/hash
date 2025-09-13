@@ -2,7 +2,7 @@
 
 use alloc::sync::Arc;
 use core::{assert_matches::debug_assert_matches, mem};
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use axum::{Extension, Router, response::Response, routing::post};
 use error_stack::{Report, ResultExt as _};
@@ -52,6 +52,7 @@ use hashql_core::{
 use hashql_eval::graph::read::FilterSlice;
 use hashql_hir::visit::Visitor as _;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 use type_system::{
     knowledge::{
         Confidence, Entity, Property,
@@ -495,7 +496,7 @@ fn generate_sorting_paths(
 }
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, deny_unknown_fields)]
+#[serde(untagged)]
 #[expect(clippy::large_enum_variant)]
 pub enum GetEntitiesQuery<'q> {
     Filter {
@@ -504,7 +505,7 @@ pub enum GetEntitiesQuery<'q> {
     },
     Query {
         #[serde(borrow)]
-        query: &'q serde_json::value::RawValue,
+        query: &'q RawValue,
     },
     /// Empty query
     ///
@@ -608,14 +609,15 @@ impl<'q> GetEntitiesQuery<'q> {
     pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
         match self {
             GetEntitiesQuery::Filter { filter } => Ok(filter),
-            GetEntitiesQuery::Query { query } => Self::compile_query(heap, query),
+            GetEntitiesQuery::Query { query } => Self::compile_query(heap, &query),
             GetEntitiesQuery::Empty => panic!("Unable to compile empty query"),
         }
     }
 }
 
+// We cannot use deny_unknown_fields here because we do nested flattening/untagged, which is not supported by serde: https://github.com/serde-rs/serde/issues/1358
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
@@ -713,7 +715,7 @@ async fn get_entities<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
-    Json(request): Json<serde_json::Value>,
+    Json(request): Json<Box<RawValue>>,
 ) -> Result<Json<GetEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
@@ -727,7 +729,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntitiesRequest::deserialize(&request)
+    let mut request = GetEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
@@ -782,8 +784,9 @@ where
     response
 }
 
+// We cannot use deny_unknown_fields here because we do nested flattening/untagged, which is not supported by serde: https://github.com/serde-rs/serde/issues/1358
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, deny_unknown_fields)]
+#[serde(untagged)]
 pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(rename_all = "camelCase")]
     ResolveDepths {
