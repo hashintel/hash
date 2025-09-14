@@ -5645,13 +5645,13 @@
                 "type": "object",
                 "required": [
                   "filter",
-                  "graph_resolve_depths"
+                  "graphResolveDepths"
                 ],
                 "properties": {
                   "filter": {
                     "$ref": "#/components/schemas/Filter"
                   },
-                  "graph_resolve_depths": {
+                  "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
                   }
                 }
