@@ -1,7 +1,19 @@
-//! Implement the request types
+//! Request types for entity queries.
 //!
-//! Some of the design decisions may be odd and non idiomatic for Rust, but have been made to ensure
-//! downwards compatibility with OpenAPI, utoipa and openapi-generator.
+//! Contains the deserialization structs for both simple entity queries and subgraph requests.
+//! Some design choices may look odd due to serde/OpenAPI limitations we need to work around:
+//!
+//! - Uses proxy structs for deserialization because `RawValue` doesn't play nice with `untagged` +
+//!   `deny_unknown_fields` (forces intermediate representation).
+//! - Subgraph enum has 4 variants instead of nested structs because openapi-generator uses `&`
+//!   instead of `|` for nested `oneOf` constraints.
+//! - Outer enum instead of nested enum because utoipa generates `allOf` constraints (merges all
+//!   fields into one type). With discriminator on the outer edge we get `oneOf` (proper union), but
+//!   openapi-generator can't handle nested oneOf and merges them anyway - so we flatten everything
+//! - Lots of boolean fields instead of option structs for the same reason
+//!
+//! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
+//! into any of these cases.
 use alloc::sync::Arc;
 
 use hash_graph_store::{
