@@ -117,6 +117,7 @@ use crate::rest::{
 
             HasPermissionForEntitiesParams,
 
+            GetEntitiesQuery,
             GetEntitiesRequest,
             GetEntitySubgraphRequest,
             EntityQueryCursor,

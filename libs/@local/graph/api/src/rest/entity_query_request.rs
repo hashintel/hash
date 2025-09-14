@@ -178,6 +178,7 @@ pub enum GetEntitiesQuery<'q> {
     },
     Query {
         #[serde(borrow)]
+        #[schema(value_type = utoipa::openapi::schema::Value)]
         query: &'q RawValue,
     },
     /// Empty query

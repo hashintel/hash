@@ -5434,77 +5434,103 @@
           }
         }
       },
-      "GetEntitiesRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
+      "GetEntitiesQuery": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "filter"
+            ],
+            "properties": {
+              "filter": {
+                "$ref": "#/components/schemas/Filter"
+              }
             }
           },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
+          {
+            "type": "object",
+            "required": [
+              "query"
             ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+            "properties": {
+              "query": {}
+            }
           }
-        },
-        "additionalProperties": false
+        ]
+      },
+      "GetEntitiesRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GetEntitiesQuery"
+          },
+          {
+            "type": "object",
+            "required": [
+              "temporalAxes",
+              "includeDrafts"
+            ],
+            "properties": {
+              "conversions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QueryConversion"
+                }
+              },
+              "cursor": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityQueryCursor"
+                  }
+                ],
+                "nullable": true
+              },
+              "includeCount": {
+                "type": "boolean"
+              },
+              "includeCreatedByIds": {
+                "type": "boolean"
+              },
+              "includeDrafts": {
+                "type": "boolean"
+              },
+              "includeEditionCreatedByIds": {
+                "type": "boolean"
+              },
+              "includeEntityTypes": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                  }
+                ],
+                "nullable": true
+              },
+              "includeTypeIds": {
+                "type": "boolean"
+              },
+              "includeTypeTitles": {
+                "type": "boolean"
+              },
+              "includeWebIds": {
+                "type": "boolean"
+              },
+              "limit": {
+                "type": "integer",
+                "nullable": true,
+                "minimum": 0
+              },
+              "sortingPaths": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntityQuerySortingRecord"
+                },
+                "nullable": true
+              },
+              "temporalAxes": {
+                "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+              }
+            }
+          }
+        ]
       },
       "GetEntitiesResponse": {
         "type": "object",
