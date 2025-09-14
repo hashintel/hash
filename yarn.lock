@@ -12974,6 +12974,11 @@ __metadata:
     "@rust/hash-graph-validation": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
+    "@rust/hashql-ast": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-eval": "npm:0.0.0-private"
+    "@rust/hashql-hir": "npm:0.0.0-private"
+    "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
