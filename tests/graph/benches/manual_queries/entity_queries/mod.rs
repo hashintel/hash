@@ -7,7 +7,7 @@ use either::Either;
 use error_stack::Report;
 use hash_graph_api::rest::{
     self,
-    entity::{GetEntitiesRequest, GetEntitySubgraphRequest},
+    entity::{EntityQueryOptions, GetEntitiesRequest, GetEntitySubgraphRequest},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -142,11 +142,13 @@ impl GetEntitiesQuery<'_, '_, '_> {
         let modifies_limit = !self.settings.parameters.limit.is_empty();
         let modifies_include_count = !self.settings.parameters.include_count.is_empty();
 
+        let (query, options) = self.request.into_parts();
+
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
             .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
-        let limit = iter::once(self.request.limit)
+        let limit = iter::once(options.limit)
             .chain(
                 mem::take(&mut self.settings.parameters.limit)
                     .into_iter()
@@ -154,7 +156,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(self.request.include_count)
+        let include_count = iter::once(options.include_count)
             .chain(mem::take(&mut self.settings.parameters.include_count))
             .sorted()
             .dedup();
@@ -173,11 +175,14 @@ impl GetEntitiesQuery<'_, '_, '_> {
             (
                 Self {
                     actor_id,
-                    request: GetEntitiesRequest {
-                        limit,
-                        include_count,
-                        ..self.request.clone()
-                    },
+                    request: GetEntitiesRequest::from_parts(
+                        query.clone(),
+                        EntityQueryOptions {
+                            limit,
+                            include_count,
+                            ..options.clone()
+                        },
+                    ),
                     settings: self.settings.clone(),
                 },
                 parameters.join(","),
@@ -252,13 +257,13 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
         let modifies_include_count = !self.settings.parameters.include_count.is_empty();
         let modifies_graph_resolve_depths = !self.settings.parameters.traversal_params.is_empty();
 
-        let (request, traversal_params) = self.request.clone().into_parts();
+        let (query, options, traversal_params) = self.request.clone().into_parts();
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
             .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
-        let limit = iter::once(request.limit)
+        let limit = iter::once(options.limit)
             .chain(
                 mem::take(&mut self.settings.parameters.limit)
                     .into_iter()
@@ -266,7 +271,7 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
             )
             .sorted()
             .dedup();
-        let include_count = iter::once(request.include_count)
+        let include_count = iter::once(options.include_count)
             .chain(mem::take(&mut self.settings.parameters.include_count))
             .sorted()
             .dedup();
@@ -292,10 +297,11 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
                     Self {
                         actor_id,
                         request: GetEntitySubgraphRequest::from_parts(
-                            GetEntitiesRequest {
+                            query.clone(),
+                            EntityQueryOptions {
                                 limit,
                                 include_count,
-                                ..request.clone()
+                                ..options.clone()
                             },
                             traversal_params,
                         ),
@@ -334,25 +340,29 @@ async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, mut request: GraphQuery<'q,
 where
     S: EntityStore + Sync,
 {
-    let query = match &mut request {
-        GraphQuery::GetEntities(request) => request.request.take_query(),
-        GraphQuery::GetEntitySubgraph(request) => request.request.take_query(),
-    };
-
-    let rest::entity::GetEntitiesQuery::Filter { filter } = query else {
-        panic!("unsupported query type")
-    };
-
     match request {
         GraphQuery::GetEntities(request) => {
+            let (query, options) = request.request.into_parts();
+            let rest::entity::EntityQuery::Filter { filter } = query else {
+                panic!("unsupported query type")
+            };
+
             let _response = store
-                .get_entities(request.actor_id, request.request.into_params(filter))
+                .get_entities(request.actor_id, options.into_params(filter))
                 .await
                 .expect("failed to read entities from store");
         }
         GraphQuery::GetEntitySubgraph(request) => {
+            let (query, options, traversal) = request.request.into_parts();
+            let rest::entity::EntityQuery::Filter { filter } = query else {
+                panic!("unsupported query type")
+            };
+
             let _response = store
-                .get_entity_subgraph(request.actor_id, request.request.into_params(filter))
+                .get_entity_subgraph(
+                    request.actor_id,
+                    options.into_traversal_params(filter, traversal),
+                )
                 .await
                 .expect("failed to read entity subgraph from store");
         }

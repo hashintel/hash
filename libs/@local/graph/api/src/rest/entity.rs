@@ -75,7 +75,7 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 pub use crate::rest::entity_query_request::{
-    GetEntitiesQuery, GetEntitiesRequest, GetEntitySubgraphRequest,
+    EntityQuery, EntityQueryOptions, GetEntitiesRequest, GetEntitySubgraphRequest,
 };
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
@@ -117,7 +117,7 @@ use crate::rest::{
 
             HasPermissionForEntitiesParams,
 
-            GetEntitiesQuery,
+            EntityQueryOptions,
             GetEntitiesRequest,
             GetEntitySubgraphRequest,
             EntityQueryCursor,
@@ -437,23 +437,23 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntitiesRequest::deserialize(&*request)
+    let request = GetEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
-    if request.limit == Some(0) {
+    let (query, options) = request.into_parts();
+
+    if options.limit == Some(0) {
         tracing::warn!(
             %actor_id,
             "The limit is set to zero, so no entities will be returned."
         );
     }
 
-    let query = request.take_query();
-
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
     let heap = Heap::empty_unchecked();
 
-    if matches!(query, GetEntitiesQuery::Query { .. }) {
+    if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
         // primed.
         // Doing this in a separate step allows us to be allocation free when not using HashQL
@@ -465,7 +465,7 @@ where
         "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
     );
 
-    let params = request.into_params(filter);
+    let params = options.into_params(filter);
 
     let response = store
         .get_entities(actor_id, params)
@@ -562,16 +562,15 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntitySubgraphRequest::deserialize(&request)
+    let request = GetEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
-
-    let query = request.take_query();
+    let (query, options, traversal) = request.into_parts();
 
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
     let heap = Heap::empty_unchecked();
 
-    if matches!(query, GetEntitiesQuery::Query { .. }) {
+    if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
         // primed.
         // Doing this in a separate step allows us to be allocation free when not using HashQL
@@ -583,7 +582,7 @@ where
         "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
     );
 
-    let params = request.into_params(filter);
+    let params = options.into_traversal_params(filter, traversal);
 
     let response = store
         .get_entity_subgraph(actor_id, params)

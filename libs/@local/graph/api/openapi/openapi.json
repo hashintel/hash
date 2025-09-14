@@ -5461,7 +5461,28 @@
       "GetEntitiesRequest": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/GetEntitiesQuery"
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "filter"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {}
+                }
+              }
+            ]
           },
           {
             "type": "object",

@@ -1,5 +1,4 @@
 use alloc::sync::Arc;
-use core::{assert_matches::debug_assert_matches, mem};
 
 use hash_graph_store::{
     entity::{
@@ -129,7 +128,7 @@ fn generate_sorting_paths(
     reason = "Parameter struct deserialized from JSON"
 )]
 #[serde(rename_all = "camelCase")]
-struct GetEntitiesRequestData<'q, 's, 'p> {
+struct FlatEntitiesRequestData<'q, 's, 'p> {
     // `GetEntitiesQuery::Filter`
     #[serde(borrow)]
     filter: Option<Filter<'q, Entity>>,
@@ -168,28 +167,14 @@ struct GetEntitiesRequestData<'q, 's, 'p> {
     traversal_paths: Option<Vec<TraversalPath>>,
 }
 
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, deny_unknown_fields)]
+#[derive(Debug, Clone)]
 #[expect(clippy::large_enum_variant)]
-pub enum GetEntitiesQuery<'q> {
-    Filter {
-        #[serde(borrow)]
-        filter: Filter<'q, Entity>,
-    },
-    Query {
-        #[serde(borrow)]
-        #[schema(value_type = utoipa::openapi::schema::Value)]
-        query: &'q RawValue,
-    },
-    /// Empty query
-    ///
-    /// Cannot be used directly, only used internally when removing the query from the request body.
-    #[serde(skip)]
-    #[doc(hidden)]
-    Empty,
+pub enum EntityQuery<'q> {
+    Filter { filter: Filter<'q, Entity> },
+    Query { query: &'q RawValue },
 }
 
-impl<'q> GetEntitiesQuery<'q> {
+impl<'q> EntityQuery<'q> {
     #[expect(
         clippy::unnecessary_wraps,
         clippy::panic_in_result_fn,
@@ -274,48 +259,36 @@ impl<'q> GetEntitiesQuery<'q> {
     /// # Errors
     ///
     /// Returns an error if the HashQL query cannot be compiled.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called on an [`GetEntitiesQuery::Empty`] query variant, which cannot be compiled
-    /// and should only be used internally during request processing.
-    #[expect(clippy::panic_in_result_fn)]
     pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
         match self {
-            GetEntitiesQuery::Filter { filter } => Ok(filter),
-            GetEntitiesQuery::Query { query } => Self::compile_query(heap, query),
-            GetEntitiesQuery::Empty => panic!("Unable to compile empty query"),
+            EntityQuery::Filter { filter } => Ok(filter),
+            EntityQuery::Query { query } => Self::compile_query(heap, query),
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
-enum GetEntitiesRequestError {
+enum EntityQueryOptionsError {
     #[display(
         "Field '{field}' is only valid in subgraph requests. Use the subgraph endpoint instead."
     )]
     InvalidFieldForEntityQuery { field: &'static str },
-    #[display("Missing required query parameter. Provide either 'filter' or 'query'.")]
-    MissingQueryParameter,
-    #[display("Conflicting query parameters. Provide either 'filter' or 'query', not both.")]
-    ConflictingQueryParameters,
+    #[display(
+        "Field '{field}' is only valid in entity and subgraph requests. Use the entity endpoint \
+         instead."
+    )]
+    InvalidFieldForEntityOptions { field: &'static str },
 }
 
-impl core::error::Error for GetEntitiesRequestError {}
+impl core::error::Error for EntityQueryOptionsError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(
-    rename_all = "camelCase",
-    try_from = "GetEntitiesRequestData",
-    deny_unknown_fields
-)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Parameter struct deserialized from JSON"
 )]
-pub struct GetEntitiesRequest<'q, 's, 'p> {
-    #[serde(flatten, borrow)]
-    pub query: GetEntitiesQuery<'q>,
+pub struct EntityQueryOptions<'s, 'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     pub limit: Option<usize>,
@@ -341,11 +314,11 @@ pub struct GetEntitiesRequest<'q, 's, 'p> {
     pub include_type_titles: bool,
 }
 
-impl<'q, 's, 'p> TryFrom<GetEntitiesRequestData<'q, 's, 'p>> for GetEntitiesRequest<'q, 's, 'p> {
-    type Error = GetEntitiesRequestError;
+impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for EntityQueryOptions<'s, 'p> {
+    type Error = EntityQueryOptionsError;
 
-    fn try_from(value: GetEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
-        let GetEntitiesRequestData {
+    fn try_from(value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+        let FlatEntitiesRequestData {
             filter,
             query,
             temporal_axes,
@@ -365,29 +338,27 @@ impl<'q, 's, 'p> TryFrom<GetEntitiesRequestData<'q, 's, 'p>> for GetEntitiesRequ
             traversal_paths,
         } = value;
 
+        if filter.is_some() {
+            return Err(EntityQueryOptionsError::InvalidFieldForEntityOptions { field: "filter" });
+        }
+
+        if query.is_some() {
+            return Err(EntityQueryOptionsError::InvalidFieldForEntityOptions { field: "query" });
+        }
+
         if graph_resolve_depths.is_some() {
-            return Err(GetEntitiesRequestError::InvalidFieldForEntityQuery {
+            return Err(EntityQueryOptionsError::InvalidFieldForEntityQuery {
                 field: "graphResolveDepths",
             });
         }
 
         if traversal_paths.is_some() {
-            return Err(GetEntitiesRequestError::InvalidFieldForEntityQuery {
+            return Err(EntityQueryOptionsError::InvalidFieldForEntityQuery {
                 field: "traversalPaths",
             });
         }
 
-        let query = match (filter, query) {
-            (None, None) => return Err(GetEntitiesRequestError::MissingQueryParameter),
-            (Some(_), Some(_)) => {
-                return Err(GetEntitiesRequestError::ConflictingQueryParameters);
-            }
-            (Some(filter), None) => GetEntitiesQuery::Filter { filter },
-            (None, Some(query)) => GetEntitiesQuery::Query { query },
-        };
-
         Ok(Self {
-            query,
             temporal_axes,
             include_drafts,
             limit,
@@ -405,18 +376,12 @@ impl<'q, 's, 'p> TryFrom<GetEntitiesRequestData<'q, 's, 'p>> for GetEntitiesRequ
     }
 }
 
-impl<'q, 'p> GetEntitiesRequest<'q, '_, 'p> {
+impl<'p> EntityQueryOptions<'_, 'p> {
     #[must_use]
     pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> GetEntitiesParams<'f>
     where
         'p: 'f,
     {
-        debug_assert_matches!(
-            self.query,
-            GetEntitiesQuery::Empty,
-            "The query parameter is unused, instead use the filter parameter."
-        );
-
         GetEntitiesParams {
             filter,
             sorting: generate_sorting_paths(
@@ -439,8 +404,102 @@ impl<'q, 'p> GetEntitiesRequest<'q, '_, 'p> {
         }
     }
 
-    pub const fn take_query(&mut self) -> GetEntitiesQuery<'q> {
-        mem::replace(&mut self.query, GetEntitiesQuery::Empty)
+    pub fn into_traversal_params<'q, 's, 'p>(
+        self,
+        filter: Filter<'q, Entity>,
+        traversal: SubgraphTraversalParams,
+    ) -> GetEntitySubgraphParams<'q>
+    where
+        'p: 'q,
+    {
+        match traversal {
+            SubgraphTraversalParams::ResolveDepths {
+                graph_resolve_depths,
+            } => GetEntitySubgraphParams::ResolveDepths {
+                graph_resolve_depths,
+                request: options.into_params(filter),
+            },
+            SubgraphTraversalParams::Paths { traversal_paths } => GetEntitySubgraphParams::Paths {
+                traversal_paths,
+                request: options.into_params(filter),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::From)]
+enum GetEntitiesRequestError {
+    #[from]
+    RequestOptions(EntityQueryOptionsError),
+    #[display("Missing required query parameter. Provide either 'filter' or 'query'.")]
+    MissingQueryParameter,
+    #[display("Conflicting query parameters. Provide either 'filter' or 'query', not both.")]
+    ConflictingQueryParameters,
+}
+
+impl core::error::Error for GetEntitiesRequestError {}
+
+#[derive(Debug, Clone, Deserialize, ToSchema)]
+#[serde(
+    rename_all = "camelCase",
+    try_from = "FlatEntitiesRequestData",
+    deny_unknown_fields
+)]
+#[expect(clippy::large_enum_variant)]
+pub enum GetEntitiesRequest<'q, 's, 'p> {
+    Query {
+        query: &'q RawValue,
+        #[serde(borrow, flatten)]
+        options: EntityQueryOptions<'s, 'p>,
+    },
+    Filter {
+        #[serde(borrow)]
+        filter: Filter<'q, Entity>,
+        #[serde(borrow, flatten)]
+        #[schema(value_type = utoipa::openapi::schema::Value)]
+        options: EntityQueryOptions<'s, 'p>,
+    },
+}
+
+impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for GetEntitiesRequest<'q, 's, 'p> {
+    type Error = GetEntitiesRequestError;
+
+    fn try_from(mut value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+        let filter = value.filter.take();
+        let query = value.query.take();
+
+        match (filter, query) {
+            (None, None) => Err(GetEntitiesRequestError::MissingQueryParameter),
+            (Some(_), Some(_)) => Err(GetEntitiesRequestError::ConflictingQueryParameters),
+            (Some(filter), None) => Ok(Self::Filter {
+                filter,
+                options: value.try_into()?,
+            }),
+            (None, Some(query)) => Ok(Self::Query {
+                query,
+                options: value.try_into()?,
+            }),
+        }
+    }
+}
+
+impl<'q, 's, 'p> GetEntitiesRequest<'q, 's, 'p> {
+    #[must_use]
+    pub fn from_parts(query: EntityQuery<'q>, options: EntityQueryOptions<'s, 'p>) -> Self {
+        match query {
+            EntityQuery::Filter { filter } => Self::Filter { filter, options },
+            EntityQuery::Query { query } => Self::Query { query, options },
+        }
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (EntityQuery<'q>, EntityQueryOptions<'s, 'p>) {
+        match self {
+            GetEntitiesRequest::Query { query, options } => (EntityQuery::Query { query }, options),
+            GetEntitiesRequest::Filter { filter, options } => {
+                (EntityQuery::Filter { filter }, options)
+            }
+        }
     }
 }
 
@@ -463,7 +522,7 @@ enum GetEntitySubgraphRequestError {
 impl core::error::Error for GetEntitySubgraphRequestError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, try_from = "GetEntitiesRequestData", deny_unknown_fields)]
+#[serde(untagged, try_from = "FlatEntitiesRequestData", deny_unknown_fields)]
 pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(rename_all = "camelCase")]
     ResolveDepths {
@@ -479,12 +538,12 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     },
 }
 
-impl<'q, 's, 'p> TryFrom<GetEntitiesRequestData<'q, 's, 'p>>
+impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>>
     for GetEntitySubgraphRequest<'q, 's, 'p>
 {
     type Error = GetEntitySubgraphRequestError;
 
-    fn try_from(mut value: GetEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+    fn try_from(mut value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
         let graph_resolve_depths = value.graph_resolve_depths.take();
         let traversal_paths = value.traversal_paths.take();
 
@@ -506,75 +565,59 @@ impl<'q, 's, 'p> TryFrom<GetEntitiesRequestData<'q, 's, 'p>>
 impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
     #[must_use]
     pub fn from_parts(
-        request: GetEntitiesRequest<'q, 's, 'p>,
+        query: EntityQuery<'q>,
+        options: EntityQueryOptions<'s, 'p>,
         traversal_params: SubgraphTraversalParams,
     ) -> Self {
         match traversal_params {
             SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
-                request,
+                request: GetEntitiesRequest::from_parts(query, options),
                 traversal_paths,
             },
             SubgraphTraversalParams::ResolveDepths {
                 graph_resolve_depths,
             } => Self::ResolveDepths {
-                request,
+                request: GetEntitiesRequest::from_parts(query, options),
                 graph_resolve_depths,
             },
         }
     }
 
     #[must_use]
-    pub fn into_parts(self) -> (GetEntitiesRequest<'q, 's, 'p>, SubgraphTraversalParams) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        EntityQuery<'q>,
+        EntityQueryOptions<'s, 'p>,
+        SubgraphTraversalParams,
+    ) {
         match self {
             Self::Paths {
                 request,
                 traversal_paths,
-            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
-            Self::ResolveDepths {
-                request,
-                graph_resolve_depths,
-            } => (
-                request,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
-        }
-    }
+            } => {
+                let (query, options) = request.into_parts();
 
-    #[must_use]
-    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> GetEntitySubgraphParams<'f>
-    where
-        'p: 'f,
-    {
-        match self {
-            Self::ResolveDepths {
-                graph_resolve_depths,
-                request,
-            } => GetEntitySubgraphParams::ResolveDepths {
-                graph_resolve_depths,
-                request: request.into_params(filter),
-            },
-            Self::Paths {
-                traversal_paths,
-                request,
-            } => GetEntitySubgraphParams::Paths {
-                traversal_paths,
-                request: request.into_params(filter),
-            },
-        }
-    }
-
-    pub const fn take_query(&mut self) -> GetEntitiesQuery<'q> {
-        match self {
-            Self::ResolveDepths {
-                graph_resolve_depths: _,
-                request,
+                (
+                    query,
+                    options,
+                    SubgraphTraversalParams::Paths { traversal_paths },
+                )
             }
-            | Self::Paths {
-                traversal_paths: _,
+            Self::ResolveDepths {
                 request,
-            } => request.take_query(),
+                graph_resolve_depths,
+            } => {
+                let (query, options) = request.into_parts();
+
+                (
+                    query,
+                    options,
+                    SubgraphTraversalParams::ResolveDepths {
+                        graph_resolve_depths,
+                    },
+                )
+            }
         }
     }
 }
