@@ -14,7 +14,7 @@ pub mod status;
 
 pub mod http_tracing_layer;
 
-mod entity_query;
+mod entity_query_request;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};

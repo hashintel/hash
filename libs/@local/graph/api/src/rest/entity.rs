@@ -1,7 +1,6 @@
 //! Web routes for CRU operations on entities.
 
 use alloc::sync::Arc;
-use core::{assert_matches::debug_assert_matches, mem};
 use std::collections::HashMap;
 
 use axum::{Extension, Router, response::Response, routing::post};
@@ -9,25 +8,20 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
+    self,
     entity::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore,
-        EntityTypesError, EntityValidationReport, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, HasPermissionForEntitiesParams,
+        DiffEntityResult, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
+        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
+        EntityValidationType, GetEntitiesResponse, HasPermissionForEntitiesParams,
         LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
         LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
         PropertyMetadataValidationReport, QueryConversion, UnexpectedEntityType,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
-    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    filter::Filter,
+    entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
     query::{NullOrdering, Ordering},
-    subgraph::{
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
-        temporal_axes::QueryTemporalAxesUnresolved,
-    },
 };
 use hash_graph_types::{
     Embedding,
@@ -45,13 +39,8 @@ use hash_graph_types::{
     },
 };
 use hash_temporal_client::TemporalClient;
-use hashql_core::{
-    collection::fast_hash_map, heap::Heap, module::ModuleRegistry, span::storage::SpanStorage,
-    r#type::environment::Environment,
-};
-use hashql_eval::graph::read::FilterSlice;
-use hashql_hir::visit::Visitor as _;
-use serde::{Deserialize, Serialize};
+use hashql_core::heap::Heap;
+use serde::{Deserialize as _, Serialize};
 use serde_json::value::RawValue;
 use type_system::{
     knowledge::{
@@ -85,6 +74,9 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+pub use crate::rest::entity_query_request::{
+    GetEntitiesQuery, GetEntitiesRequest, GetEntitySubgraphRequest,
+};
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
     utoipa_typedef::subgraph::Subgraph,
@@ -404,291 +396,6 @@ where
         .map_err(report_to_response)
 }
 
-#[tracing::instrument(level = "info", skip_all)]
-fn generate_sorting_paths(
-    paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
-    limit: Option<usize>,
-    cursor: Option<EntityQueryCursor<'_>>,
-    temporal_axes: &QueryTemporalAxesUnresolved,
-) -> EntityQuerySorting<'static> {
-    let temporal_axes_sorting_path = match temporal_axes {
-        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
-        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
-    };
-
-    let sorting = paths
-        .map_or_else(
-            || {
-                if limit.is_some() || cursor.is_some() {
-                    vec![
-                        EntityQuerySortingRecord {
-                            path: temporal_axes_sorting_path.clone(),
-                            ordering: Ordering::Descending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::Uuid,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::WebId,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                    ]
-                } else {
-                    Vec::new()
-                }
-            },
-            |mut paths| {
-                let mut has_temporal_axis = false;
-                let mut has_uuid = false;
-                let mut has_web_id = false;
-
-                for path in &paths {
-                    if path.path == EntityQueryPath::TransactionTime
-                        || path.path == EntityQueryPath::DecisionTime
-                    {
-                        has_temporal_axis = true;
-                    }
-                    if path.path == EntityQueryPath::Uuid {
-                        has_uuid = true;
-                    }
-                    if path.path == EntityQueryPath::WebId {
-                        has_web_id = true;
-                    }
-                }
-
-                if !has_temporal_axis {
-                    paths.push(EntityQuerySortingRecord {
-                        path: temporal_axes_sorting_path.clone(),
-                        ordering: Ordering::Descending,
-                        nulls: None,
-                    });
-                }
-                if !has_uuid {
-                    paths.push(EntityQuerySortingRecord {
-                        path: EntityQueryPath::Uuid,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    });
-                }
-                if !has_web_id {
-                    paths.push(EntityQuerySortingRecord {
-                        path: EntityQueryPath::WebId,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    });
-                }
-
-                paths
-            },
-        )
-        .into_iter()
-        .map(EntityQuerySortingRecord::into_owned)
-        .collect();
-
-    EntityQuerySorting {
-        paths: sorting,
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged)]
-#[expect(clippy::large_enum_variant)]
-pub enum GetEntitiesQuery<'q> {
-    Filter {
-        #[serde(borrow)]
-        filter: Filter<'q, Entity>,
-    },
-    Query {
-        #[serde(borrow)]
-        query: &'q RawValue,
-    },
-    /// Empty query
-    ///
-    /// Cannot be used directly, only used internally when removing the query from the request body.
-    #[serde(skip)]
-    #[doc(hidden)]
-    Empty,
-}
-
-impl<'q> GetEntitiesQuery<'q> {
-    #[expect(
-        clippy::unnecessary_wraps,
-        clippy::panic_in_result_fn,
-        reason = "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-    )]
-    fn compile_query<'h>(
-        heap: &'h Heap,
-        query: &serde_json::value::RawValue,
-    ) -> Result<Filter<'h, Entity>, !> {
-        let spans = Arc::new(SpanStorage::new());
-
-        // Parse the query
-        let parser = hashql_syntax_jexpr::Parser::new(heap, Arc::clone(&spans));
-        let mut ast = parser.parse_expr(query.get().as_bytes()).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-
-        let mut env = Environment::new(ast.span, heap);
-        let modules = ModuleRegistry::new(&env);
-
-        // Lower the AST
-        let (types, diagnostics) =
-            hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules);
-        assert!(
-            diagnostics.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
-
-        let interner = hashql_hir::intern::Interner::new(heap);
-
-        // Reify the HIR from the AST
-        let (hir, diagnostics) = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types);
-        assert!(
-            diagnostics.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
-        let hir = hir.expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-
-        // Lower the HIR
-        let hir = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-
-        // Evaluate the HIR
-        // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
-        let inputs = fast_hash_map(0);
-        let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
-
-        compiler.visit_node(&hir);
-
-        let result = compiler.finish().expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-
-        let output = result.output.get(&hir.id).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-
-        // Compile the Filter into one
-        let filters = match output {
-            FilterSlice::Entity { range } => result.filters.entity(range.clone()),
-        };
-
-        let filter = match filters {
-            [] => Filter::All(Vec::new()),
-            [filter] => filter.clone(),
-            _ => Filter::All(filters.to_vec()),
-        };
-
-        Ok(filter)
-    }
-
-    /// Compiles a query into an executable entity filter.
-    ///
-    /// Transforms the query representation into a [`Filter`] that can be executed
-    /// against the entity store. For already-compiled filter queries, this returns
-    /// the filter directly. For raw HashQL queries, it parses and compiles them using
-    /// the provided `heap` arena allocator.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the HashQL query cannot be compiled.
-    ///
-    /// # Panics
-    ///
-    /// Panics if called on an [`GetEntitiesQuery::Empty`] query variant, which cannot be compiled
-    /// and should only be used internally during request processing.
-    #[expect(clippy::panic_in_result_fn)]
-    pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
-        match self {
-            GetEntitiesQuery::Filter { filter } => Ok(filter),
-            GetEntitiesQuery::Query { query } => Self::compile_query(heap, query),
-            GetEntitiesQuery::Empty => panic!("Unable to compile empty query"),
-        }
-    }
-}
-
-// We cannot use deny_unknown_fields here because we do nested flattening/untagged, which is not supported by serde: https://github.com/serde-rs/serde/issues/1358
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
-pub struct GetEntitiesRequest<'q, 's, 'p> {
-    #[serde(flatten, borrow)]
-    pub query: GetEntitiesQuery<'q>,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    pub limit: Option<usize>,
-    #[serde(borrow, default)]
-    pub conversions: Vec<QueryConversion<'p>>,
-    #[serde(borrow)]
-    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
-    #[serde(borrow)]
-    pub cursor: Option<EntityQueryCursor<'s>>,
-    #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
-}
-
-impl<'q, 'p> GetEntitiesRequest<'q, '_, 'p> {
-    #[must_use]
-    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> GetEntitiesParams<'f>
-    where
-        'p: 'f,
-    {
-        debug_assert_matches!(
-            self.query,
-            GetEntitiesQuery::Empty,
-            "The query parameter is unused, instead use the filter parameter."
-        );
-
-        GetEntitiesParams {
-            filter,
-            sorting: generate_sorting_paths(
-                self.sorting_paths,
-                self.limit,
-                self.cursor,
-                &self.temporal_axes,
-            ),
-            limit: self.limit,
-            conversions: self.conversions,
-            include_drafts: self.include_drafts,
-            include_count: self.include_count,
-            include_entity_types: self.include_entity_types,
-            temporal_axes: self.temporal_axes,
-            include_web_ids: self.include_web_ids,
-            include_created_by_ids: self.include_created_by_ids,
-            include_edition_created_by_ids: self.include_edition_created_by_ids,
-            include_type_ids: self.include_type_ids,
-            include_type_titles: self.include_type_titles,
-        }
-    }
-
-    pub const fn take_query(&mut self) -> GetEntitiesQuery<'q> {
-        mem::replace(&mut self.query, GetEntitiesQuery::Empty)
-    }
-}
-
 #[utoipa::path(
     post,
     path = "/entities/query",
@@ -782,100 +489,6 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
-}
-
-// We cannot use deny_unknown_fields here because we do nested flattening/untagged, which is not supported by serde: https://github.com/serde-rs/serde/issues/1358
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged)]
-pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
-    #[serde(rename_all = "camelCase")]
-    ResolveDepths {
-        graph_resolve_depths: GraphResolveDepths,
-        #[serde(borrow, flatten)]
-        request: GetEntitiesRequest<'q, 's, 'p>,
-    },
-    #[serde(rename_all = "camelCase")]
-    Paths {
-        traversal_paths: Vec<TraversalPath>,
-        #[serde(borrow, flatten)]
-        request: GetEntitiesRequest<'q, 's, 'p>,
-    },
-}
-
-impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
-    #[must_use]
-    pub fn from_parts(
-        request: GetEntitiesRequest<'q, 's, 'p>,
-        traversal_params: SubgraphTraversalParams,
-    ) -> Self {
-        match traversal_params {
-            SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
-                request,
-                traversal_paths,
-            },
-            SubgraphTraversalParams::ResolveDepths {
-                graph_resolve_depths,
-            } => Self::ResolveDepths {
-                request,
-                graph_resolve_depths,
-            },
-        }
-    }
-
-    #[must_use]
-    pub fn into_parts(self) -> (GetEntitiesRequest<'q, 's, 'p>, SubgraphTraversalParams) {
-        match self {
-            Self::Paths {
-                request,
-                traversal_paths,
-            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
-            Self::ResolveDepths {
-                request,
-                graph_resolve_depths,
-            } => (
-                request,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
-        }
-    }
-
-    #[must_use]
-    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> GetEntitySubgraphParams<'f>
-    where
-        'p: 'f,
-    {
-        match self {
-            Self::ResolveDepths {
-                graph_resolve_depths,
-                request,
-            } => GetEntitySubgraphParams::ResolveDepths {
-                graph_resolve_depths,
-                request: request.into_params(filter),
-            },
-            Self::Paths {
-                traversal_paths,
-                request,
-            } => GetEntitySubgraphParams::Paths {
-                traversal_paths,
-                request: request.into_params(filter),
-            },
-        }
-    }
-
-    pub const fn take_query(&mut self) -> GetEntitiesQuery<'q> {
-        match self {
-            Self::ResolveDepths {
-                graph_resolve_depths: _,
-                request,
-            }
-            | Self::Paths {
-                traversal_paths: _,
-                request,
-            } => request.take_query(),
-        }
-    }
 }
 
 #[derive(Serialize, ToSchema)]
