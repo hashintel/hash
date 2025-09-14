@@ -33,39 +33,48 @@ graph TD
     21[<a href="../harpc_tower/index.html">harpc-tower</a>]
     22[<a href="../harpc_types/index.html">harpc-types</a>]
     23[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    24[<a href="../hash_status/index.html">hash-status</a>]
-    25[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
-    26[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    27[<a href="../error_stack/index.html">error-stack</a>]
-    28[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    29[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    24[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    25[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    26[<a href="../hashql_core/index.html">hashql-core</a>]
+    27[<a href="../hashql_diagnostics/index.html">hashql-diagnostics</a>]
+    28[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    29[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    30[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    31[<a href="../hash_status/index.html">hash-status</a>]
+    32[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    33[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    34[<a href="../error_stack/index.html">error-stack</a>]
+    35[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    36[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 11
     1 --> 10
-    1 -.-> 29
+    1 -.-> 36
     2 -.-> 3
     2 --> 23
     4 --> 8
     4 --> 12
     4 --> 13
     4 --> 19
+    4 --> 28
+    4 --> 30
     5 --> 1
     6 --> 7
-    6 --> 25
+    6 --> 32
     8 -.-> 6
     8 --> 15
-    8 --> 24
+    8 --> 31
     9 --> 5
     9 --> 14
-    9 --> 26
+    9 --> 33
     10 --> 2
     11 --> 4
-    12 --> 24
+    12 --> 31
     13 --> 9
-    14 -.-> 29
-    15 -.-> 29
+    14 -.-> 36
+    15 -.-> 36
     16 --> 20
     17 --> 22
-    17 --> 27
+    17 --> 34
     18 --> 2
     18 -.-> 17
     18 --> 17
@@ -76,8 +85,19 @@ graph TD
     21 --> 18
     23 -.-> 22
     23 --> 22
-    23 --> 27
-    25 --> 27
-    26 --> 1
-    28 -.-> 4
-    29 --> 9
+    23 --> 34
+    24 -.-> 25
+    25 --> 28
+    25 --> 30
+    26 --> 2
+    26 --> 27
+    27 --> 34
+    28 --> 9
+    28 --> 29
+    29 -.-> 25
+    30 --> 24
+    30 --> 26
+    32 --> 34
+    33 --> 1
+    35 -.-> 4
+    36 --> 9
