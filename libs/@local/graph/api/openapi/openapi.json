@@ -5619,15 +5619,39 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/GetEntitiesRequest"
+                "$ref": "#/components/schemas/EntityQueryOptions"
               },
               {
                 "type": "object",
                 "required": [
+                  "query",
                   "graphResolveDepths"
                 ],
                 "properties": {
                   "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "query": {}
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter",
+                  "graph_resolve_depths"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  },
+                  "graph_resolve_depths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
                   }
                 }
@@ -5637,14 +5661,41 @@
           {
             "allOf": [
               {
-                "$ref": "#/components/schemas/GetEntitiesRequest"
+                "$ref": "#/components/schemas/EntityQueryOptions"
               },
               {
                 "type": "object",
                 "required": [
+                  "query",
                   "traversalPaths"
                 ],
                 "properties": {
+                  "query": {},
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter",
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  },
                   "traversalPaths": {
                     "type": "array",
                     "items": {
