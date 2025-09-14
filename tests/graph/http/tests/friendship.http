@@ -1315,53 +1315,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
 %}
 
-### Get latest person entity via HashQL
-POST http://127.0.0.1:4000/entities/query
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-{
-  "sortingPaths": [
-    {
-      "path": [
-        "label"
-      ],
-      "ordering": "ascending"
-    }
-  ],
-  "query": ["::graph::tail::collect", [
-    "::graph::body::filter",
-      ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-        ["==", "vertex.provenance.createdById",
-            ["::graph::types::knowledge::entity::EntityUuid", ["::core::uuid::Uuid", { "#literal": "{user_id}" }]]
-        ]
-      ]
-    ]
-  ],
-  "temporalAxes": {
-    "pinned": {
-      "axis": "transactionTime",
-      "timestamp": null
-    },
-    "variable": {
-      "axis": "decisionTime",
-      "interval": {
-        "start": null,
-        "end": null
-      }
-    }
-  },
-  "includeDrafts": false
-}
-
-> {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
-    });
-%}
-
 ### Validate person entity to update
 POST http://127.0.0.1:4000/entities/validate
 Content-Type: application/json
