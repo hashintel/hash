@@ -4533,6 +4533,74 @@
           "type": "object"
         }
       },
+      "EntityQueryOptions": {
+        "type": "object",
+        "required": [
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
+          "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeTypeTitles": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
       "EntityQuerySortingPath": {
         "type": "array",
         "items": {
@@ -5434,44 +5502,12 @@
           }
         }
       },
-      "GetEntitiesQuery": {
+      "GetEntitiesRequest": {
         "oneOf": [
           {
-            "type": "object",
-            "required": [
-              "filter"
-            ],
-            "properties": {
-              "filter": {
-                "$ref": "#/components/schemas/Filter"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "query"
-            ],
-            "properties": {
-              "query": {}
-            }
-          }
-        ]
-      },
-      "GetEntitiesRequest": {
-        "allOf": [
-          {
-            "oneOf": [
+            "allOf": [
               {
-                "type": "object",
-                "required": [
-                  "filter"
-                ],
-                "properties": {
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  }
-                }
+                "$ref": "#/components/schemas/EntityQueryOptions"
               },
               {
                 "type": "object",
@@ -5485,71 +5521,22 @@
             ]
           },
           {
-            "type": "object",
-            "required": [
-              "temporalAxes",
-              "includeDrafts"
-            ],
-            "properties": {
-              "conversions": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/QueryConversion"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
                 }
-              },
-              "cursor": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/EntityQueryCursor"
-                  }
-                ],
-                "nullable": true
-              },
-              "includeCount": {
-                "type": "boolean"
-              },
-              "includeCreatedByIds": {
-                "type": "boolean"
-              },
-              "includeDrafts": {
-                "type": "boolean"
-              },
-              "includeEditionCreatedByIds": {
-                "type": "boolean"
-              },
-              "includeEntityTypes": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
-                  }
-                ],
-                "nullable": true
-              },
-              "includeTypeIds": {
-                "type": "boolean"
-              },
-              "includeTypeTitles": {
-                "type": "boolean"
-              },
-              "includeWebIds": {
-                "type": "boolean"
-              },
-              "limit": {
-                "type": "integer",
-                "nullable": true,
-                "minimum": 0
-              },
-              "sortingPaths": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/EntityQuerySortingRecord"
-                },
-                "nullable": true
-              },
-              "temporalAxes": {
-                "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
               }
-            }
+            ]
           }
         ]
       },

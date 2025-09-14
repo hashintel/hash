@@ -404,7 +404,8 @@ impl<'p> EntityQueryOptions<'_, 'p> {
         }
     }
 
-    pub fn into_traversal_params<'q, 's, 'p>(
+    #[must_use]
+    pub fn into_traversal_params<'q>(
         self,
         filter: Filter<'q, Entity>,
         traversal: SubgraphTraversalParams,
@@ -417,11 +418,11 @@ impl<'p> EntityQueryOptions<'_, 'p> {
                 graph_resolve_depths,
             } => GetEntitySubgraphParams::ResolveDepths {
                 graph_resolve_depths,
-                request: options.into_params(filter),
+                request: self.into_params(filter),
             },
             SubgraphTraversalParams::Paths { traversal_paths } => GetEntitySubgraphParams::Paths {
                 traversal_paths,
-                request: options.into_params(filter),
+                request: self.into_params(filter),
             },
         }
     }
@@ -440,23 +441,21 @@ enum GetEntitiesRequestError {
 impl core::error::Error for GetEntitiesRequestError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(
-    rename_all = "camelCase",
-    try_from = "FlatEntitiesRequestData",
-    deny_unknown_fields
-)]
+#[serde(untagged, try_from = "FlatEntitiesRequestData", deny_unknown_fields)]
 #[expect(clippy::large_enum_variant)]
 pub enum GetEntitiesRequest<'q, 's, 'p> {
+    #[serde(rename_all = "camelCase")]
     Query {
+        #[schema(value_type = utoipa::openapi::schema::Value)]
         query: &'q RawValue,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
     },
+    #[serde(rename_all = "camelCase")]
     Filter {
         #[serde(borrow)]
         filter: Filter<'q, Entity>,
         #[serde(borrow, flatten)]
-        #[schema(value_type = utoipa::openapi::schema::Value)]
         options: EntityQueryOptions<'s, 'p>,
     },
 }

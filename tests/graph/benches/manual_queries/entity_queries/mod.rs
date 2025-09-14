@@ -336,7 +336,7 @@ fn read_groups(path: impl AsRef<Path>) -> Result<Vec<(String, JsonValue)>, Repor
         .collect()
 }
 
-async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, mut request: GraphQuery<'q, 's, 'p>)
+async fn run_benchmark<'q, 's, 'p: 'q, S>(store: &S, request: GraphQuery<'q, 's, 'p>)
 where
     S: EntityStore + Sync,
 {
