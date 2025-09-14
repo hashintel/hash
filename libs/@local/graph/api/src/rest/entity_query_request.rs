@@ -549,6 +549,7 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
     },
+    #[serde(rename_all = "camelCase")]
     ResolveDepthsWithFilter {
         #[serde(borrow)]
         filter: Filter<'q, Entity>,
