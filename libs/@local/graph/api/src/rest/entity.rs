@@ -2,7 +2,7 @@
 
 use alloc::sync::Arc;
 use core::{assert_matches::debug_assert_matches, mem};
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 use axum::{Extension, Router, response::Response, routing::post};
 use error_stack::{Report, ResultExt as _};
@@ -609,7 +609,7 @@ impl<'q> GetEntitiesQuery<'q> {
     pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
         match self {
             GetEntitiesQuery::Filter { filter } => Ok(filter),
-            GetEntitiesQuery::Query { query } => Self::compile_query(heap, &query),
+            GetEntitiesQuery::Query { query } => Self::compile_query(heap, query),
             GetEntitiesQuery::Empty => panic!("Unable to compile empty query"),
         }
     }
