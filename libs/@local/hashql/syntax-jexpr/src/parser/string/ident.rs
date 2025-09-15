@@ -1,10 +1,10 @@
-use ada_url::{SchemeType, Url};
 use hashql_core::{
     heap::Heap,
     symbol::{Ident, IdentKind, Symbol},
 };
 use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
+use url::Url;
 use winnow::{
     ModalResult, Parser as _,
     combinator::{alt, cut_err, delimited, dispatch, fail, peek, preceded},
@@ -141,11 +141,11 @@ where
         .take()
         .verify(|value: &str| {
             // check if the value is an actual URL, we have only parsed what *looks* like a URL
-            let Ok(url) = Url::parse(value, None) else {
+            let Ok(url) = Url::parse(value) else {
                 return false;
             };
 
-            let scheme = matches!(url.scheme_type(), SchemeType::Http | SchemeType::Https);
+            let scheme = matches!(url.scheme(), "http" | "https");
             let ends_with_slash = value.ends_with('/');
 
             scheme && ends_with_slash
