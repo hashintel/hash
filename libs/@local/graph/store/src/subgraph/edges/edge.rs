@@ -2,6 +2,8 @@ use serde::{Serialize, Serializer, ser::SerializeStruct as _};
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 
+use super::{EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection};
+
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct OutwardEdge<K, E> {
     pub kind: K,
@@ -41,6 +43,23 @@ impl EdgeDirection {
         match self {
             Self::Outgoing => Self::Incoming,
             Self::Incoming => Self::Outgoing,
+        }
+    }
+}
+
+impl From<OntologyTraversalEdgeDirection> for EdgeDirection {
+    fn from(direction: OntologyTraversalEdgeDirection) -> Self {
+        match direction {
+            OntologyTraversalEdgeDirection::Outgoing => Self::Outgoing,
+        }
+    }
+}
+
+impl From<EntityTraversalEdgeDirection> for EdgeDirection {
+    fn from(direction: EntityTraversalEdgeDirection) -> Self {
+        match direction {
+            EntityTraversalEdgeDirection::Outgoing => Self::Outgoing,
+            EntityTraversalEdgeDirection::Incoming => Self::Incoming,
         }
     }
 }

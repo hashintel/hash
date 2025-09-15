@@ -17,8 +17,8 @@ pub use self::{
         OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
     traversal::{
-        EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection, SubgraphTraversalParams,
-        TraversalEdge, TraversalEdgeKind, TraversalPath,
+        BorrowedTraversalParams, EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection,
+        SubgraphTraversalParams, TraversalEdge, TraversalEdgeKind, TraversalPath,
     },
 };
 use crate::subgraph::{
