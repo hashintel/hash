@@ -36,7 +36,7 @@ use hashql_core::{
 use hashql_eval::graph::read::FilterSlice;
 use hashql_hir::visit::Visitor as _;
 use serde::Deserialize;
-use serde_json::value::RawValue;
+use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
 
@@ -150,7 +150,7 @@ struct FlatEntitiesRequestData<'q, 's, 'p> {
     filter: Option<Filter<'q, Entity>>,
     // `GetEntitiesQuery::Query`,
     #[serde(borrow)]
-    query: Option<&'q RawValue>,
+    query: Option<&'q RawJsonValue>,
 
     // `GetEntitiesRequest`
     temporal_axes: QueryTemporalAxesUnresolved,
@@ -187,7 +187,7 @@ struct FlatEntitiesRequestData<'q, 's, 'p> {
 #[expect(clippy::large_enum_variant)]
 pub enum EntityQuery<'q> {
     Filter { filter: Filter<'q, Entity> },
-    Query { query: &'q RawValue },
+    Query { query: &'q RawJsonValue },
 }
 
 impl<'q> EntityQuery<'q> {
@@ -196,10 +196,7 @@ impl<'q> EntityQuery<'q> {
         clippy::panic_in_result_fn,
         reason = "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
     )]
-    fn compile_query<'h>(
-        heap: &'h Heap,
-        query: &serde_json::value::RawValue,
-    ) -> Result<Filter<'h, Entity>, !> {
+    fn compile_query<'h>(heap: &'h Heap, query: &RawJsonValue) -> Result<Filter<'h, Entity>, !> {
         let spans = Arc::new(SpanStorage::new());
 
         // Parse the query
@@ -464,7 +461,7 @@ pub enum GetEntitiesRequest<'q, 's, 'p> {
     Query {
         #[serde(borrow)]
         #[schema(value_type = utoipa::openapi::schema::Value)]
-        query: &'q RawValue,
+        query: &'q RawJsonValue,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
     },
@@ -544,7 +541,7 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     ResolveDepthsWithQuery {
         #[serde(borrow)]
         #[schema(value_type = utoipa::openapi::schema::Value)]
-        query: &'q RawValue,
+        query: &'q RawJsonValue,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
@@ -561,7 +558,7 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     PathsWithQuery {
         #[serde(borrow)]
         #[schema(value_type = utoipa::openapi::schema::Value)]
-        query: &'q RawValue,
+        query: &'q RawJsonValue,
         traversal_paths: Vec<TraversalPath>,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,

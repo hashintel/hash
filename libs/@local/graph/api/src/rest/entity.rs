@@ -41,7 +41,7 @@ use hash_graph_types::{
 use hash_temporal_client::TemporalClient;
 use hashql_core::heap::Heap;
 use serde::{Deserialize as _, Serialize};
-use serde_json::value::RawValue;
+use serde_json::value::RawValue as RawJsonvalue;
 use type_system::{
     knowledge::{
         Confidence, Entity, Property,
@@ -423,7 +423,7 @@ async fn get_entities<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
-    Json(request): Json<Box<RawValue>>,
+    Json(request): Json<Box<RawJsonvalue>>,
 ) -> Result<Json<GetEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,

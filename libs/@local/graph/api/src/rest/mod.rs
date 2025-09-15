@@ -72,7 +72,7 @@ use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
-use serde_json::{Number as JsonNumber, Value as JsonValue, value::RawValue};
+use serde_json::{Number as JsonNumber, Value as JsonValue, value::RawValue as RawJsonValue};
 use tower::ServiceBuilder;
 use type_system::{
     ontology::{
@@ -291,7 +291,7 @@ pub enum OpenApiQuery<'a> {
     GetEntityTypes(&'a JsonValue),
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
-    GetEntities(&'a RawValue),
+    GetEntities(&'a RawJsonValue),
     CountEntities(&'a JsonValue),
     GetEntitySubgraph(&'a JsonValue),
     ValidateEntity(&'a JsonValue),
