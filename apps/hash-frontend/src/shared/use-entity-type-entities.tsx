@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -59,7 +60,7 @@ export const generateUseEntityTypeEntitiesFilter = ({
   "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
   excludeWebIds?: WebId[];
-}): GetEntitySubgraphRequest["filter"] => {
+}): DistributiveField<GetEntitySubgraphRequest, "filter"> => {
   return {
     // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
     //   @see https://linear.app/hash/issue/H-1207

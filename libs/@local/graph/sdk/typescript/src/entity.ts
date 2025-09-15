@@ -169,7 +169,7 @@ export type ConversionRequest = {
   dataTypeId: VersionedUrl;
 };
 
-export type GetEntitiesRequest = Omit<
+export type GetEntitiesRequest = DistributiveOmit<
   GetEntitiesRequestGraphApi,
   "conversions"
 > & {

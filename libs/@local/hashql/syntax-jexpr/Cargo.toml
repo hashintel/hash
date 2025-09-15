@@ -19,7 +19,6 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-ada-url               = { workspace = true }
 circular-buffer       = { workspace = true }
 ecow                  = { workspace = true }
 hifijson              = { workspace = true, features = ["alloc"] }
@@ -30,6 +29,7 @@ simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }
+url                   = { workspace = true }
 winnow                = { workspace = true, features = ["std"] }
 
 [lints]

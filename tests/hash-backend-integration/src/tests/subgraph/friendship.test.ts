@@ -42,6 +42,7 @@ import type {
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   GetDataTypesParams,
   GetEntitySubgraphRequest,
@@ -96,7 +97,7 @@ const personTypeBaseId =
 const friendshipTypeBaseId =
   "http://localhost:3000/@alice/types/entity-type/friendship/" as BaseUrl;
 
-const aliceFilter: GetEntitySubgraphRequest["filter"] = {
+const aliceFilter: DistributiveField<GetEntitySubgraphRequest, "filter"> = {
   startsWith: [
     {
       path: ["properties", nameProperty],
@@ -107,7 +108,7 @@ const aliceFilter: GetEntitySubgraphRequest["filter"] = {
   ],
 };
 
-const bobFilter: GetEntitySubgraphRequest["filter"] = {
+const bobFilter: DistributiveField<GetEntitySubgraphRequest, "filter"> = {
   startsWith: [
     {
       path: ["properties", nameProperty],
@@ -118,18 +119,19 @@ const bobFilter: GetEntitySubgraphRequest["filter"] = {
   ],
 };
 
-const friendshipFilter: GetEntitySubgraphRequest["filter"] = {
-  startsWith: [
-    {
-      path: ["type", "baseUrl"],
-    },
-    {
-      parameter: friendshipTypeBaseId,
-    },
-  ],
-};
+const friendshipFilter: DistributiveField<GetEntitySubgraphRequest, "filter"> =
+  {
+    startsWith: [
+      {
+        path: ["type", "baseUrl"],
+      },
+      {
+        parameter: friendshipTypeBaseId,
+      },
+    ],
+  };
 
-const linkFilter: GetEntitySubgraphRequest["filter"] = {
+const linkFilter: DistributiveField<GetEntitySubgraphRequest, "filter"> = {
   startsWith: [
     {
       path: ["type", "inheritsFrom", "*", "versionedUrl"],
