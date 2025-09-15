@@ -1315,7 +1315,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
 %}
 
-
 ### Validate person entity to update
 POST http://127.0.0.1:4000/entities/validate
 Content-Type: application/json

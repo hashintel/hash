@@ -9,18 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
-name = "ada-url"
-version = "3.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56840fa70a01670d320bbd6d9a4e3283bf9aa31d5b9792020c20ed9f5edbae50"
-dependencies = [
- "cc",
- "derive_more 1.0.0",
- "link_args",
- "regex",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2210,7 +2198,6 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
 dependencies = [
- "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -3398,6 +3385,11 @@ dependencies = [
  "hash-graph-validation",
  "hash-status",
  "hash-temporal-client",
+ "hashql-ast",
+ "hashql-core",
+ "hashql-eval",
+ "hashql-hir",
+ "hashql-syntax-jexpr",
  "http 1.3.1",
  "hyper",
  "include_dir",
@@ -4007,7 +3999,6 @@ dependencies = [
 name = "hashql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [
- "ada-url",
  "ariadne",
  "circular-buffer",
  "ecow",
@@ -4028,6 +4019,7 @@ dependencies = [
  "unicode-ident",
  "unicode-normalization",
  "unicode-properties",
+ "url",
  "winnow",
 ]
 
@@ -5370,12 +5362,6 @@ dependencies = [
  "nohash-hasher",
  "text-size",
 ]
-
-[[package]]
-name = "link_args"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c7721e472624c9aaad27a5eb6b7c9c6045c7a396f2efb6dabaec1b640d5e89b"
 
 [[package]]
 name = "linux-raw-sys"
