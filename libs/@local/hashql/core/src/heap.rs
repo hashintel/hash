@@ -90,7 +90,7 @@ impl Heap {
     /// Creates a new empty heap without performing initial allocations.
     ///
     /// This creates a heap structure without allocating memory for common symbols.
-    /// The actual allocation work is deferred until [`Self::prime_unchecked`] is called,
+    /// The actual allocation work is deferred until [`Self::prime`] is called,
     /// allowing precise control over when memory allocation occurs.
     ///
     /// For normal usage, prefer [`Self::new`] which handles initialization automatically.
@@ -135,8 +135,8 @@ impl Heap {
     /// Creates and immediately primes the heap with common symbols. The heap will start with
     /// default capacity and grow as needed.
     ///
-    /// For cases where you need control over allocation timing, use [`Self::empty_unchecked`]
-    /// followed by [`Self::prime_unchecked`].
+    /// For cases where you need control over allocation timing, use [`Self::uninitialized`]
+    /// followed by [`Self::prime`].
     #[must_use]
     #[inline]
     pub fn new() -> Self {
