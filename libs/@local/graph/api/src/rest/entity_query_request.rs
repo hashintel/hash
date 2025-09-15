@@ -133,9 +133,10 @@ fn generate_sorting_paths(
 
 /// Internal deserialization proxy for `GetEntitiesRequest`.
 ///
-/// This struct is necessary because [`RawValue`] cannot be used directly with `#[serde(untagged,
-/// deny_unknown_fields)]` - these attributes force deserialization into an intermediate
-/// representation, which cannot deserialize into a [`RawValue`] as it materializes the content.
+/// This struct is necessary because [`RawJsonValue`] cannot be used directly with
+/// `#[serde(untagged, deny_unknown_fields)]` - these attributes force deserialization into an
+/// intermediate representation, which cannot deserialize into a [`RawJsonValue`] as it materializes
+/// the content.
 ///
 /// See <https://github.com/serde-rs/json/issues/497> and <https://github.com/serde-rs/serde/issues/1183> for more details.
 #[derive(Debug, Clone, Deserialize)]
