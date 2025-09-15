@@ -112,10 +112,10 @@ impl Heap {
     ///
     /// This method allocates memory for and initializes the heap's symbol table with
     /// predefined symbols from the global symbol tables. It performs the allocation
-    /// work that was deferred when the heap was created with [`Self::empty_unchecked`].
+    /// work that was deferred when the heap was created with [`Self::uninitialized`].
     ///
     /// This is automatically called by [`Self::new`] and [`Self::reset`], so manual
-    /// invocation is only necessary when using the [`Self::empty_unchecked`] constructor.
+    /// invocation is only necessary when using the [`Self::uninitialized`] constructor.
     ///
     /// # Panics
     ///
