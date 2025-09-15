@@ -168,7 +168,7 @@ beforeAll(async () => {
     {
       filter: aliceFilter,
       temporalAxes: fullDecisionTimeAxis,
-      graphResolveDepths: zeroedGraphResolveDepths,
+      traversalPaths: [],
       includeDrafts: false,
     },
   )
@@ -184,7 +184,7 @@ beforeAll(async () => {
   bobEntities = await getEntitySubgraphResponse(graphContext, authentication, {
     filter: bobFilter,
     temporalAxes: fullDecisionTimeAxis,
-    graphResolveDepths: zeroedGraphResolveDepths,
+    traversalPaths: [],
     includeDrafts: false,
   })
     .then(({ subgraph }) => getRoots(subgraph))
@@ -199,7 +199,7 @@ beforeAll(async () => {
   linkEntities = await getEntitySubgraphResponse(graphContext, authentication, {
     filter: linkFilter,
     temporalAxes: fullDecisionTimeAxis,
-    graphResolveDepths: zeroedGraphResolveDepths,
+    traversalPaths: [],
     includeDrafts: false,
   })
     .then(({ subgraph }) => getRoots(subgraph))
@@ -541,7 +541,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
       },
@@ -562,7 +562,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2000-01-01T00:00Z" as Timestamp,
           null,
@@ -586,7 +586,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2001-01-01T00:00Z" as Timestamp,
           null,
@@ -610,7 +610,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2001-01-01T00:00Z" as Timestamp,
           "2001-01-01T00:00Z" as Timestamp,
@@ -634,7 +634,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2001-01-01T00:00Z" as Timestamp,
           "2001-01-20T00:00Z" as Timestamp,
@@ -658,7 +658,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2002-01-01T00:00Z" as Timestamp,
           "2001-01-01T00:00Z" as Timestamp,
@@ -682,7 +682,7 @@ describe("Simple queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: temporalAxesForTimestamp(
           "2001-02-01T00:00Z" as Timestamp,
           null,
@@ -708,7 +708,7 @@ describe("Simple queries", () => {
       authentication,
       {
         filter: aliceFilter,
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -728,7 +728,7 @@ describe("Simple queries", () => {
       authentication,
       {
         filter: friendshipFilter,
-        graphResolveDepths: zeroedGraphResolveDepths,
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -749,17 +749,24 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: friendshipFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            incoming: 0,
-            outgoing: 1,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 0,
-            outgoing: 1,
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -808,17 +815,24 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: friendshipFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            incoming: 0,
-            outgoing: 1,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 0,
-            outgoing: 1,
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: false,
       },
@@ -893,12 +907,16 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: friendshipFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          isOfType: {
-            outgoing: 1,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "is-of-type",
+                direction: "outgoing",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -921,13 +939,16 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: aliceFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 0,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -964,13 +985,16 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: bobFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasRightEntity: {
-            incoming: 1,
-            outgoing: 0,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "incoming",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -996,17 +1020,20 @@ describe("non-zero, simple resolve depths", () => {
       authentication,
       {
         filter: aliceFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 0,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
           },
-          hasRightEntity: {
-            incoming: 0,
-            outgoing: 1,
-          },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
@@ -1035,22 +1062,34 @@ describe("non-zero, simple resolve depths", () => {
 });
 
 describe("complex resolve depths", () => {
-  it("read persons based on the friendship (as of now)", async () => {
+  it("read person, include friendship link and their types (as of now)", async () => {
     const { subgraph } = await getEntitySubgraphResponse(
       graphContext,
       authentication,
       {
         filter: aliceFilter,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 0,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "is-of-type",
+                direction: "outgoing",
+              },
+            ],
           },
-          isOfType: {
-            outgoing: 1,
+          {
+            edges: [
+              {
+                kind: "is-of-type",
+                direction: "outgoing",
+              },
+            ],
           },
-        },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
