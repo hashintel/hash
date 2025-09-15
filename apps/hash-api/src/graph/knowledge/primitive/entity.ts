@@ -61,6 +61,7 @@ import {
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import { ApolloError } from "apollo-server-errors";
+import { Predicate } from "effect";
 
 import type {
   EntityDefinition,
@@ -170,7 +171,9 @@ export const getEntities: ImpureGraphFunction<
   GetEntitiesRequest & { temporalClient?: TemporalClient },
   Promise<HashEntity[]>
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  await rewriteSemanticFilter(params.filter, temporalClient);
+  if (Predicate.hasProperty(params, "filter")) {
+    await rewriteSemanticFilter(params.filter, temporalClient);
+  }
 
   const isRequesterAdmin = isTestEnv
     ? false
@@ -203,7 +206,9 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
     > & { subgraph: Subgraph<EntityRootType<HashEntity>> }
   >
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  await rewriteSemanticFilter(params.filter, temporalClient);
+  if (Predicate.hasProperty(params, "filter")) {
+    await rewriteSemanticFilter(params.filter, temporalClient);
+  }
 
   const isRequesterAdmin = isTestEnv
     ? false
