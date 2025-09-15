@@ -2,6 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
@@ -34,7 +35,6 @@ import { apolloClient } from "../lib/apollo-client";
  * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
  */
 import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer/use-entities-visualizer-data";
-import { DistributiveField } from "@local/advanced-types/distribute";
 
 type UseEntityTypeEntitiesQueryParams = {
   conversions?: ConversionRequest[];

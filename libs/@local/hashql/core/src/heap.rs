@@ -101,7 +101,7 @@ impl Heap {
     /// for any allocations or symbol interning operations. Using an unprimed heap may
     /// result in missing essential symbols that other parts of the system expect to exist.
     #[must_use]
-    pub fn uninitalized() -> Self {
+    pub fn uninitialized() -> Self {
         Self {
             bump: Bump::new(),
             strings: Mutex::default(),

@@ -451,7 +451,7 @@ where
     }
 
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
-    let mut heap = Heap::uninitalized();
+    let mut heap = Heap::uninitialized();
 
     if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
@@ -568,7 +568,7 @@ where
     let (query, options, traversal) = request.into_parts();
 
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
-    let mut heap = Heap::uninitalized();
+    let mut heap = Heap::uninitialized();
 
     if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
