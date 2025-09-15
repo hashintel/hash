@@ -34,6 +34,7 @@ import { apolloClient } from "../lib/apollo-client";
  * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
  */
 import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer/use-entities-visualizer-data";
+import { DistributiveField } from "@local/advanced-types/distribute";
 
 type UseEntityTypeEntitiesQueryParams = {
   conversions?: ConversionRequest[];
@@ -59,7 +60,7 @@ export const generateUseEntityTypeEntitiesFilter = ({
   "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
   excludeWebIds?: WebId[];
-}): GetEntitySubgraphRequest["filter"] => {
+}): DistributiveField<GetEntitySubgraphRequest, "filter"> => {
   return {
     // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
     //   @see https://linear.app/hash/issue/H-1207

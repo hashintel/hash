@@ -11,3 +11,9 @@ export type DistributiveOmit<T, K extends keyof T> = T extends unknown
 export type DistributivePick<T, K extends keyof T> = T extends unknown
   ? Pick<T, K>
   : never;
+
+export type DistributiveField<T, K> = T extends unknown
+  ? K extends keyof T
+    ? T[K]
+    : never
+  : never;

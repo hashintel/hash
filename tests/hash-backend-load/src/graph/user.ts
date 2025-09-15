@@ -1,3 +1,4 @@
+import type { DistributiveField } from "@local/advanced-types/distribute";
 import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -13,7 +14,7 @@ import { getGraphApiClient, getSystemAccountId } from "./api";
 
 export const getUser = async (params: {
   authentication: AuthenticationContext;
-  filter: GetEntitiesRequest["filter"];
+  filter: DistributiveField<GetEntitiesRequest, "filter">;
   includeDrafts?: boolean;
 }): Promise<HashEntity<User> | undefined> => {
   const systemAccountId = await getSystemAccountId();
