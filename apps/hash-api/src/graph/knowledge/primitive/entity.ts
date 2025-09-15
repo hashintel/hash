@@ -172,6 +172,7 @@ export const getEntities: ImpureGraphFunction<
   Promise<HashEntity[]>
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
   if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, temporalClient);
   }
 
@@ -207,6 +208,7 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
   >
 > = async ({ graphApi, temporalClient }, { actorId }, params) => {
   if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, temporalClient);
   }
 
