@@ -451,14 +451,14 @@ where
     }
 
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
-    let heap = Heap::empty_unchecked();
+    let mut heap = Heap::uninitalized();
 
     if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
         // primed.
         // Doing this in a separate step allows us to be allocation free when not using HashQL
         // queries.
-        heap.prime_unchecked();
+        heap.prime();
     }
 
     let filter = query.compile(&heap).expect(
@@ -568,14 +568,14 @@ where
     let (query, options, traversal) = request.into_parts();
 
     // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
-    let heap = Heap::empty_unchecked();
+    let mut heap = Heap::uninitalized();
 
     if matches!(query, EntityQuery::Query { .. }) {
         // The heap is going to be used in the compilation of the query and therefore needs to be
         // primed.
         // Doing this in a separate step allows us to be allocation free when not using HashQL
         // queries.
-        heap.prime_unchecked();
+        heap.prime();
     }
 
     let filter = query.compile(&heap).expect(

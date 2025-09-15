@@ -43,7 +43,10 @@ use std::sync::Mutex;
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
-use crate::symbol::{Symbol, sym::TABLES};
+use crate::{
+    collection::{FastHashSet, fast_hash_set},
+    symbol::{Symbol, sym::TABLES},
+};
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -94,11 +97,11 @@ impl Heap {
     ///
     /// # Usage Requirements
     ///
-    /// The caller must call [`Self::prime_unchecked`] exactly once before using the heap
+    /// The caller must call [`Self::prime`] exactly once before using the heap
     /// for any allocations or symbol interning operations. Using an unprimed heap may
     /// result in missing essential symbols that other parts of the system expect to exist.
     #[must_use]
-    pub fn empty_unchecked() -> Self {
+    pub fn uninitalized() -> Self {
         Self {
             bump: Bump::new(),
             strings: Mutex::default(),
@@ -117,8 +120,14 @@ impl Heap {
     /// # Panics
     ///
     /// Panics if the heap is already primed.
-    pub fn prime_unchecked(&self) {
-        self.prime_symbols();
+    pub fn prime(&mut self) {
+        let strings = self.strings.get_mut().expect("lock should not be poisoned");
+        assert!(
+            strings.is_empty(),
+            "heap has already been primed or has interned symbols"
+        );
+
+        Self::prime_symbols(strings);
     }
 
     /// Creates a new heap.
@@ -131,10 +140,13 @@ impl Heap {
     #[must_use]
     #[inline]
     pub fn new() -> Self {
-        let this = Self::empty_unchecked();
-        this.prime_unchecked();
+        let mut strings = fast_hash_set(0);
+        Self::prime_symbols(&mut strings);
 
-        this
+        Self {
+            bump: Bump::new(),
+            strings: Mutex::new(strings),
+        }
     }
 
     /// Creates a new heap with the specified initial capacity.
@@ -145,14 +157,13 @@ impl Heap {
     /// The heap is immediately primed with common symbols.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        let this = Self {
+        let mut strings = fast_hash_set(0);
+        Self::prime_symbols(&mut strings);
+
+        Self {
             bump: Bump::with_capacity(capacity),
-            strings: Mutex::default(),
-        };
-
-        this.prime_symbols();
-
-        this
+            strings: Mutex::new(strings),
+        }
     }
 
     /// Resets the heap
@@ -167,11 +178,12 @@ impl Heap {
     pub fn reset(&mut self) {
         // It's important that we first clear the strings before resetting the bump allocator so
         // that we don't have any dangling references.
-        self.strings
-            .lock()
-            .expect("lock should not be poisoned")
-            .clear();
-        self.prime_symbols();
+        {
+            let mut strings = self.strings.lock().expect("lock should not be poisoned");
+            strings.clear();
+            Self::prime_symbols(&mut strings);
+            drop(strings);
+        }
 
         self.bump.reset();
     }
@@ -182,8 +194,7 @@ impl Heap {
         self.bump.alloc(value)
     }
 
-    fn prime_symbols(&self) {
-        let mut strings = self.strings.lock().expect("lock should not be poisoned");
+    fn prime_symbols(strings: &mut FastHashSet<&'static str>) {
         strings.reserve(TABLES.iter().map(|table| table.len()).sum());
 
         for &table in TABLES {
@@ -191,8 +202,6 @@ impl Heap {
                 assert!(strings.insert(symbol.as_str()));
             }
         }
-
-        drop(strings);
     }
 
     /// Interns a string symbol, returning a reference to the interned value.
