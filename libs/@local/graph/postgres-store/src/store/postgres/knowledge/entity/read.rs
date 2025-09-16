@@ -103,7 +103,7 @@ where
     C: AsClient,
 {
     #[tracing::instrument(level = "info", skip(self))]
-    pub(crate) async fn read_shared_edges<'edges, 't>(
+    pub(crate) async fn read_shared_edges<'t, 'edges>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData<'edges>,
         depth: Option<u32>,
