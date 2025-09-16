@@ -4,7 +4,7 @@ import { getBezierPath, type Position } from "reactflow";
 import { useEditorContext } from "./editor-context";
 import { generateUuid } from "./generate-uuid";
 import { useSimulationContext } from "./simulation-context";
-import { type TokenType } from "./types";
+import type { TokenType } from "./types";
 
 type AnimatingToken = {
   id: string;
