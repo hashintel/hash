@@ -22,7 +22,7 @@ use crate::principal::actor_group::WebId;
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct WebRoleId(Uuid);
+pub struct WebRoleId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl WebRoleId {
     #[must_use]
