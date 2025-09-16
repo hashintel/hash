@@ -19,6 +19,7 @@ regex      = { workspace = true, public = true, optional = true }
 specta     = { workspace = true, public = true, optional = true, features = ["derive"] }
 tokio-util = { workspace = true, public = true, optional = true, features = ["codec"] }
 utoipa     = { workspace = true, public = true, optional = true }
+uuid       = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
 
@@ -51,7 +52,7 @@ bytes = [
     "dep:tokio-util",
     "dep:error-stack",
 ]
-serde = ["dep:serde", "dep:time", "dep:regex"]
+serde = ["dep:serde", "dep:time", "dep:regex", "dep:uuid"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
 numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
 postgres = ["dep:postgres-types"]
