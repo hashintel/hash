@@ -33,6 +33,10 @@ pub fn serialize<S: Serializer>(uuid: &Uuid, serializer: S) -> Result<S::Ok, S::
 /// - If the uuid is missing a version or variant.
 pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Uuid, D::Error> {
     let uuid = Uuid::deserialize(deserializer)?;
+    if uuid.is_nil() {
+        return Ok(uuid);
+    }
+
     if uuid.get_version().is_none() {
         return Err(de::Error::custom(InvalidUuid::VersionMissing));
     }
