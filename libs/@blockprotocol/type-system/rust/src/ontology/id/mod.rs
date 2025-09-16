@@ -588,7 +588,7 @@ impl From<OntologyTypeRecordId> for VersionedUrl {
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct OntologyTypeUuid(Uuid);
+pub struct OntologyTypeUuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl OntologyTypeUuid {
     /// Creates a new instance of the identifier type from a [`VersionedUrl`].

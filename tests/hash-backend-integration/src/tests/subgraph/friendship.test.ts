@@ -151,7 +151,7 @@ let bobEntities: Entity[];
 let linkEntities: Entity[];
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as ActorEntityUuid,
+  actorId: "00000000-0001-8000-8000-000000000000" as ActorEntityUuid,
 };
 
 beforeAll(async () => {
@@ -699,7 +699,7 @@ describe("Simple queries", () => {
 
     expect(entities.length).toBe(1);
     expect(entities[0]!.metadata.recordId.editionId).toBe(
-      "00000001-0001-0000-0000-000000000002",
+      "00000001-0001-8000-8000-000000000002",
     );
     expect(entities[0]!.properties[nameProperty]).toBe("Alice Allison");
   });

@@ -1,7 +1,10 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  getEntities,
+  getEntitySubgraphResponse,
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type {
   EntityRootType,
   KnowledgeGraphEdgeKind,
@@ -40,7 +43,7 @@ const createRequest = ({
           path: ["uuid"],
         },
         {
-          parameter: "0000000A-0001-0000-0000-000000000000",
+          parameter: "0000000A-0001-8000-8000-000000000000",
         },
       ],
     },
@@ -84,7 +87,7 @@ let link_dc: Entity;
 let link_ad: Entity;
 
 const authentication = {
-  actorId: "00000000-0001-0000-0000-000000000000" as ActorEntityUuid,
+  actorId: "00000000-0001-8000-8000-000000000000" as ActorEntityUuid,
 };
 
 beforeAll(async () => {
@@ -93,18 +96,13 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntitySubgraphResponse(
-    graphContext,
-    authentication,
-    {
-      filter: {
-        all: [],
-      },
-      traversalPaths: [],
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const entities = await getEntities(graphContext, authentication, {
+    filter: {
+      all: [],
     },
-  ).then(({ subgraph }) => getRoots(subgraph));
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+  });
 
   expect(entities.length).toBe(12);
 
@@ -112,9 +110,9 @@ beforeAll(async () => {
     return entities.find((entity) => {
       return (
         (entity.metadata.recordId.entityId as string).toLowerCase() ===
-        `00000000-0001-0000-0000-000000000000${ENTITY_ID_DELIMITER}${name
+        `00000000-0001-8000-8000-000000000000${ENTITY_ID_DELIMITER}${name
           .toLowerCase()
-          .padStart(8, "0")}-0001-0000-0000-000000000000`
+          .padStart(8, "0")}-0001-8000-8000-000000000000`
       );
     })!;
   };
