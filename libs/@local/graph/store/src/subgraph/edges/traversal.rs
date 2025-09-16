@@ -17,7 +17,7 @@ pub enum OntologyTraversalEdgeDirection {
     Outgoing,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case", tag = "kind")]
@@ -56,7 +56,7 @@ pub enum TraversalEdge {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case", tag = "kind")]
@@ -104,6 +104,16 @@ pub enum SubgraphTraversalParams {
     },
     Paths {
         traversal_paths: Vec<TraversalPath>,
+    },
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum BorrowedTraversalParams<'e> {
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+    },
+    Path {
+        traversal_path: &'e [TraversalEdge],
     },
 }
 
