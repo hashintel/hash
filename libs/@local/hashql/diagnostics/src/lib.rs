@@ -20,6 +20,7 @@ pub mod diagnostic;
 pub mod encoding;
 pub mod error;
 pub mod help;
+pub mod issues;
 pub mod label;
 pub mod note;
 pub mod severity;
@@ -27,4 +28,6 @@ pub mod span;
 
 pub use anstyle as color;
 
-pub use self::{diagnostic::Diagnostic, help::Help, note::Note, severity::Severity};
+pub use self::{
+    diagnostic::Diagnostic, help::Help, issues::DiagnosticIssues, note::Note, severity::Severity,
+};
