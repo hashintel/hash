@@ -3,13 +3,14 @@ use crate::{Diagnostic, category::DiagnosticCategory};
 pub type BoxedDiagnosticIssues<'category, S> =
     DiagnosticIssues<Box<dyn DiagnosticCategory + 'category>, S>;
 
+#[must_use]
+#[derive(Debug)]
 pub struct DiagnosticIssues<C, S> {
     diagnostics: Vec<Diagnostic<C, S>>,
     fatal: usize,
 }
 
 impl<C, S> DiagnosticIssues<C, S> {
-    #[must_use]
     pub const fn new() -> Self {
         Self {
             diagnostics: Vec::new(),
@@ -72,14 +73,45 @@ impl<C, S> DiagnosticIssues<C, S> {
         self.diagnostics.is_empty()
     }
 
+    pub fn insert_front(&mut self, diagnostic: Diagnostic<C, S>) {
+        self.fatal += usize::from(diagnostic.severity.is_fatal());
+        self.diagnostics.insert(0, diagnostic);
+    }
+
     pub fn push(&mut self, diagnostic: Diagnostic<C, S>) {
         self.fatal += usize::from(diagnostic.severity.is_fatal());
         self.diagnostics.push(diagnostic);
     }
 
+    pub fn pop(&mut self) -> Option<Diagnostic<C, S>> {
+        let diagnostic = self.diagnostics.pop();
+
+        if let Some(diagnostic) = &diagnostic {
+            self.fatal -= usize::from(diagnostic.severity.is_fatal());
+        }
+
+        diagnostic
+    }
+
+    pub fn pop_fatal(&mut self) -> Option<Diagnostic<C, S>> {
+        let position = self
+            .diagnostics
+            .iter()
+            .position(|diagnostic| diagnostic.severity.is_fatal());
+
+        if let Some(position) = position {
+            let diagnostic = self.diagnostics.swap_remove(position);
+            self.fatal -= 1;
+            Some(diagnostic)
+        } else {
+            None
+        }
+    }
+
     pub fn append(&mut self, other: &mut Self) {
         self.fatal += other.fatal;
         self.diagnostics.append(&mut other.diagnostics);
+        other.fatal = 0;
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Diagnostic<C, S>> {
@@ -116,5 +148,39 @@ impl<C, S> IntoIterator for DiagnosticIssues<C, S> {
 impl<C, S> Default for DiagnosticIssues<C, S> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub trait DiagnosticSink<T> {
+    type Output;
+
+    fn sink(&mut self, value: T) -> Option<Self::Output>;
+}
+
+impl<T, C, S> DiagnosticSink<Result<T, Diagnostic<C, S>>> for DiagnosticIssues<C, S> {
+    type Output = T;
+
+    fn sink(&mut self, value: Result<T, Diagnostic<C, S>>) -> Option<Self::Output> {
+        match value {
+            Ok(value) => Some(value),
+            Err(diagnostic) => {
+                self.push(diagnostic);
+                None
+            }
+        }
+    }
+}
+
+impl<T, C, S> DiagnosticSink<Result<T, Self>> for DiagnosticIssues<C, S> {
+    type Output = T;
+
+    fn sink(&mut self, value: Result<T, Self>) -> Option<Self::Output> {
+        match value {
+            Ok(value) => Some(value),
+            Err(mut issues) => {
+                self.append(&mut issues);
+                None
+            }
+        }
     }
 }
