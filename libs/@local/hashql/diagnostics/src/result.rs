@@ -590,6 +590,17 @@ impl<T, C, S> Try for DiagnosticResult<T, C, S> {
     fn from_output(output: Self::Output) -> Self {
         let DiagnosticValue { value, diagnostics } = output;
 
+        // We cannot convert here directly because of the invariants of the `Try` trait, as in:
+        // `Try::from_output(x).branch() --> ControlFlow::Continue(x)`
+        // must hold, if we were to convert it this would no longer be the case.
+        // As this method is only used internally (and shouldn't be used by a user) - it is fine.
+        // `From` does the "correct" conversion.
+        assert_eq!(
+            diagnostics.fatal(),
+            0,
+            "Fatal diagnostics should have been promoted to an error variant"
+        );
+
         Self {
             result: Ok(value),
             diagnostics,
@@ -622,5 +633,214 @@ impl<T, C, S> Try for DiagnosticResult<T, C, S> {
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+
+    use crate::{Diagnostic, DiagnosticIssues, Severity, category::TerminalDiagnosticCategory};
+
+    const TEST_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+        id: "test",
+        name: "Test Category",
+    };
+
+    const ERROR_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+        id: "error",
+        name: "Error Category",
+    };
+
+    #[test]
+    fn diagnostic_result_map_diagnostics_transforms_all() {
+        let mut result: DiagnosticResult<&'static str, _, ()> =
+            DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        let transformed = result.map_diagnostics(|mut diagnostic| {
+            diagnostic.message = Some(Cow::Borrowed("transformed"));
+            diagnostic
+        });
+
+        let error = transformed
+            .into_result()
+            .expect_err("Should have a fatal error as result");
+        assert_eq!(error.primary.message, Some(Cow::Borrowed("transformed")));
+
+        for diagnostic in error.secondary {
+            assert_eq!(diagnostic.message, Some(Cow::Borrowed("transformed")));
+        }
+    }
+
+    #[test]
+    fn from_diagnostic_value_creates_success_result() {
+        let mut diagnostics = DiagnosticIssues::new();
+        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        let value = DiagnosticValue {
+            value: 42,
+            diagnostics,
+        };
+
+        let result = DiagnosticResult::from(value);
+        let converted_back = result.into_result().unwrap();
+
+        assert_eq!(converted_back.value, 42);
+        assert_eq!(converted_back.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn from_diagnostic_error_creates_error_result() {
+        let mut secondary = DiagnosticIssues::new();
+        secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        let error = DiagnosticError {
+            primary: Diagnostic::new(ERROR_CATEGORY, Severity::Error),
+            secondary,
+        };
+
+        let result = DiagnosticResult::from(error);
+        let converted_back = result.into_result().unwrap_err();
+
+        assert!(converted_back.primary.severity.is_fatal());
+        assert_eq!(converted_back.secondary.len(), 1);
+    }
+
+    #[test]
+    fn from_residual_diagnostic_issues_promotes_fatal_to_error() {
+        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        diagnostics.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error)); // Fatal
+        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        // Very contrived example, but demonstrates how it works
+        let result: DiagnosticResult<_, _, _> = try {
+            let value: Result<&'static str, _> = Err(diagnostics);
+            let _foo = value?;
+
+            DiagnosticValue {
+                value: "ok",
+                diagnostics: DiagnosticIssues::new(),
+            }
+        };
+
+        let error = result.into_result().expect_err("should've errored out");
+        assert!(error.primary.severity.is_fatal());
+        assert_eq!(error.secondary.len(), 2); // Warning and Note remain
+    }
+
+    #[test]
+    fn from_residual_single_diagnostic() {
+        let diagnostic = Diagnostic::new(ERROR_CATEGORY, Severity::Error);
+        let residual: Result<core::convert::Infallible, _> = Err(diagnostic);
+
+        let result = DiagnosticResult::<String, _, ()>::from_residual(residual);
+        let error = result.into_result().unwrap_err();
+
+        assert!(error.primary.severity.is_fatal());
+        assert_eq!(error.secondary.len(), 0);
+    }
+
+    #[test]
+    fn from_residual_diagnostic_result() {
+        let mut other_result =
+            DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+        other_result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        // Convert to residual type
+        let residual = DiagnosticResult::<!, _, _> {
+            diagnostics: other_result.diagnostics,
+            result: other_result.result,
+        };
+
+        let result = DiagnosticResult::<String, _, _>::from_residual(residual);
+        let error = result.into_result().unwrap_err();
+
+        assert!(error.primary.severity.is_fatal());
+        assert_eq!(error.secondary.len(), 1);
+    }
+
+    #[test]
+    fn try_trait_from_output() {
+        let mut diagnostics = DiagnosticIssues::new();
+        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        let value = DiagnosticValue {
+            value: "test",
+            diagnostics,
+        };
+
+        let result = DiagnosticResult::from_output(value);
+        let converted_back = result.into_result().unwrap();
+
+        assert_eq!(converted_back.value, "test");
+        assert_eq!(converted_back.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn try_trait_branch_success() {
+        let mut result = DiagnosticResult::ok(100);
+        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        match result.branch() {
+            core::ops::ControlFlow::Continue(value) => {
+                assert_eq!(value.value, 100);
+                assert_eq!(value.diagnostics.len(), 1);
+            }
+            core::ops::ControlFlow::Break(_) => {
+                panic!("Expected Continue variant");
+            }
+        }
+    }
+
+    #[test]
+    fn try_trait_branch_error() {
+        let result = DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+
+        match result.branch() {
+            core::ops::ControlFlow::Continue(_) => {
+                panic!("Expected Break variant");
+            }
+            core::ops::ControlFlow::Break(residual) => {
+                let error = residual.into_result().unwrap_err();
+                assert!(error.primary.severity.is_fatal());
+            }
+        }
+    }
+
+    #[test]
+    fn append_diagnostics_promotes_fatal_to_error() {
+        let mut result = DiagnosticResult::ok(42);
+
+        let mut additional = DiagnosticIssues::new();
+        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        additional.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error)); // Fatal
+        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        result.append_diagnostics(&mut additional);
+
+        let error = result.into_result().unwrap_err();
+        assert!(error.primary.severity.is_fatal());
+        assert_eq!(error.secondary.len(), 2); // Warning and Note
+        assert!(additional.is_empty()); // All moved
+    }
+
+    #[test]
+    fn append_diagnostics_no_promotion_when_no_fatal() {
+        let mut result = DiagnosticResult::ok(42);
+
+        let mut additional = DiagnosticIssues::new();
+        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        result.append_diagnostics(&mut additional);
+
+        let success = result.into_result().unwrap();
+        assert_eq!(success.value, 42);
+        assert_eq!(success.diagnostics.len(), 2);
+        assert_eq!(success.diagnostics.fatal(), 0);
+        assert!(additional.is_empty());
     }
 }

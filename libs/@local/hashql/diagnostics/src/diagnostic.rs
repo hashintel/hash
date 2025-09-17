@@ -43,9 +43,9 @@ impl<C, S> Diagnostic<C, S> {
     /// Initializes an empty diagnostic that can be populated with message, labels, notes,
     /// and help messages through the appropriate methods. The category and severity
     /// determine how the diagnostic will be classified and displayed.
-    pub fn new(category: impl Into<C>, severity: Severity) -> Self {
+    pub const fn new(category: C, severity: Severity) -> Self {
         Self {
-            category: category.into(),
+            category,
             severity,
             message: None,
             labels: Vec::new(),

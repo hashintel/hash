@@ -584,3 +584,153 @@ impl<T, C, S> DiagnosticSink<DiagnosticResult<T, C, S>> for DiagnosticIssues<C, 
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Diagnostic, Severity, category::TerminalDiagnosticCategory};
+
+    const TEST_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+        id: "test",
+        name: "Test Category",
+    };
+
+    const ERROR_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+        id: "error",
+        name: "Error Category",
+    };
+
+    #[test]
+    fn map_preserves_fatal_count_correctly() {
+        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Fatal));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        let transformed = issues.map(|mut diagnostic| {
+            diagnostic.severity = Severity::Fatal;
+            diagnostic
+        });
+
+        assert_eq!(transformed.len(), 3);
+        assert_eq!(transformed.fatal(), 3);
+    }
+
+    #[test]
+    fn extend_trait_adds_diagnostics_correctly() {
+        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues.fatal(), 0);
+
+        issues.extend([
+            Diagnostic::new(ERROR_CATEGORY, Severity::Error),
+            Diagnostic::new(TEST_CATEGORY, Severity::Note),
+            Diagnostic::new(ERROR_CATEGORY, Severity::Fatal),
+        ]);
+
+        assert_eq!(issues.len(), 4);
+        assert_eq!(issues.fatal(), 2);
+    }
+
+    #[test]
+    fn extend_trait_handles_empty_iterator() {
+        let mut issues = DiagnosticIssues::new();
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        issues.extend([] as [Diagnostic<_, ()>; 0]);
+
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues.fatal(), 0);
+    }
+
+    #[test]
+    fn into_iterator_trait_consumes_collection() {
+        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        let collected: Vec<_> = issues.into_iter().collect();
+
+        assert_eq!(collected.len(), 3);
+        assert_eq!(collected[0].severity, Severity::Error);
+        assert_eq!(collected[1].severity, Severity::Warning);
+        assert_eq!(collected[2].severity, Severity::Note);
+    }
+
+    #[test]
+    fn default_trait_creates_empty_collection() {
+        let issues: DiagnosticIssues<(), ()> = Default::default();
+
+        assert_eq!(issues.len(), 0);
+        assert_eq!(issues.fatal(), 0);
+        assert!(issues.is_empty());
+    }
+
+    #[test]
+    fn diagnostic_sink_with_single_diagnostic_success() {
+        let mut issues: DiagnosticIssues<TerminalDiagnosticCategory, ()> = DiagnosticIssues::new();
+        let success: Result<&'static str, Diagnostic<_, ()>> = Ok("success");
+
+        let value = issues.sink(success);
+
+        assert_eq!(value, Some("success"));
+        assert_eq!(issues.len(), 0);
+    }
+
+    #[test]
+    fn diagnostic_sink_with_single_diagnostic_error() {
+        let mut issues = DiagnosticIssues::new();
+        let error: Result<&'static str, Diagnostic<_, ()>> =
+            Err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+
+        let value = issues.sink(error);
+
+        assert_eq!(value, None);
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues.fatal(), 1);
+    }
+
+    #[test]
+    fn diagnostic_sink_with_diagnostic_issues_success() {
+        let mut primary = DiagnosticIssues::new();
+        let success: Result<i32, DiagnosticIssues<TerminalDiagnosticCategory, ()>> = Ok(42);
+
+        let value = primary.sink(success);
+
+        assert_eq!(value, Some(42));
+        assert_eq!(primary.len(), 0);
+    }
+
+    #[test]
+    fn diagnostic_sink_with_diagnostic_issues_error() {
+        let mut primary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        primary.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+
+        let mut secondary = DiagnosticIssues::new();
+        secondary.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+        secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+
+        let error_result: Result<i32, _> = Err(secondary);
+        let value = primary.sink(error_result);
+
+        assert!(value.is_none());
+        assert_eq!(primary.len(), 3); // Original note + error + warning
+        assert_eq!(primary.fatal(), 1); // Only the error is fatal
+    }
+
+    #[test]
+    fn boxed_diagnostic_issues_type_alias() {
+        let mut issues: BoxedDiagnosticIssues<()> = DiagnosticIssues::new();
+        let diagnostic = Diagnostic::new(TEST_CATEGORY, Severity::Error).boxed();
+
+        issues.push(diagnostic);
+
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues.fatal(), 1);
+    }
+}
