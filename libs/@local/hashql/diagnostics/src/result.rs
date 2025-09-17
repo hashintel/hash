@@ -638,9 +638,13 @@ impl<T, C, S> Try for DiagnosticResult<T, C, S> {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Try;
     use std::borrow::Cow;
 
-    use crate::{Diagnostic, DiagnosticIssues, Severity, category::TerminalDiagnosticCategory};
+    use crate::{
+        Diagnostic, DiagnosticError, DiagnosticIssues, DiagnosticResult, DiagnosticValue, Severity,
+        category::TerminalDiagnosticCategory,
+    };
 
     const TEST_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
         id: "test",
@@ -676,7 +680,7 @@ mod tests {
 
     #[test]
     fn from_diagnostic_value_creates_success_result() {
-        let mut diagnostics = DiagnosticIssues::new();
+        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
         diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
 
         let value = DiagnosticValue {
@@ -685,15 +689,33 @@ mod tests {
         };
 
         let result = DiagnosticResult::from(value);
-        let converted_back = result.into_result().unwrap();
+        let converted_back = result.into_result().expect("Should have a success result");
 
         assert_eq!(converted_back.value, 42);
         assert_eq!(converted_back.diagnostics.len(), 1);
     }
 
     #[test]
+    fn from_diagnostic_value_creates_error_result_if_fatal() {
+        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Fatal));
+
+        let value = DiagnosticValue {
+            value: 42,
+            diagnostics,
+        };
+
+        let result = DiagnosticResult::from(value);
+        let converted_back = result
+            .into_result()
+            .expect_err("Should have an error result");
+
+        assert!(converted_back.primary.severity.is_fatal());
+    }
+
+    #[test]
     fn from_diagnostic_error_creates_error_result() {
-        let mut secondary = DiagnosticIssues::new();
+        let mut secondary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
         secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
 
         let error = DiagnosticError {
@@ -701,15 +723,17 @@ mod tests {
             secondary,
         };
 
-        let result = DiagnosticResult::from(error);
-        let converted_back = result.into_result().unwrap_err();
+        let result: DiagnosticResult<(), _, _> = DiagnosticResult::from(error);
+        let converted_back = result
+            .into_result()
+            .expect_err("Should have an error result");
 
         assert!(converted_back.primary.severity.is_fatal());
         assert_eq!(converted_back.secondary.len(), 1);
     }
 
     #[test]
-    fn from_residual_diagnostic_issues_promotes_fatal_to_error() {
+    fn from_residual_result_diagnostic_issues() {
         let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
         diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
         diagnostics.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error)); // Fatal
@@ -732,12 +756,20 @@ mod tests {
     }
 
     #[test]
-    fn from_residual_single_diagnostic() {
-        let diagnostic = Diagnostic::new(ERROR_CATEGORY, Severity::Error);
-        let residual: Result<core::convert::Infallible, _> = Err(diagnostic);
+    fn from_residual_result_diagnostic() {
+        let diagnostic: Diagnostic<_, ()> = Diagnostic::new(ERROR_CATEGORY, Severity::Error);
 
-        let result = DiagnosticResult::<String, _, ()>::from_residual(residual);
-        let error = result.into_result().unwrap_err();
+        let result: DiagnosticResult<_, _, _> = try {
+            let value: Result<&'static str, _> = Err(diagnostic);
+            let _foo = value?;
+
+            DiagnosticValue {
+                value: "ok",
+                diagnostics: DiagnosticIssues::new(),
+            }
+        };
+
+        let error = result.into_result().expect_err("should've errored out");
 
         assert!(error.primary.severity.is_fatal());
         assert_eq!(error.secondary.len(), 0);
@@ -745,43 +777,25 @@ mod tests {
 
     #[test]
     fn from_residual_diagnostic_result() {
-        let mut other_result =
-            DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
-        other_result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        let foo: DiagnosticResult<_, TerminalDiagnosticCategory, ()> = try {
+            let result: DiagnosticValue<i32, _, _> =
+                DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error))?;
 
-        // Convert to residual type
-        let residual = DiagnosticResult::<!, _, _> {
-            diagnostics: other_result.diagnostics,
-            result: other_result.result,
+            DiagnosticValue {
+                value: result.value + 2,
+                diagnostics: result.diagnostics,
+            }
         };
 
-        let result = DiagnosticResult::<String, _, _>::from_residual(residual);
-        let error = result.into_result().unwrap_err();
+        let error = foo.into_result().expect_err("should've errored out");
 
         assert!(error.primary.severity.is_fatal());
-        assert_eq!(error.secondary.len(), 1);
-    }
-
-    #[test]
-    fn try_trait_from_output() {
-        let mut diagnostics = DiagnosticIssues::new();
-        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
-
-        let value = DiagnosticValue {
-            value: "test",
-            diagnostics,
-        };
-
-        let result = DiagnosticResult::from_output(value);
-        let converted_back = result.into_result().unwrap();
-
-        assert_eq!(converted_back.value, "test");
-        assert_eq!(converted_back.diagnostics.len(), 1);
+        assert!(error.secondary.is_empty());
     }
 
     #[test]
     fn try_trait_branch_success() {
-        let mut result = DiagnosticResult::ok(100);
+        let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(100);
         result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
 
         match result.branch() {
@@ -797,14 +811,15 @@ mod tests {
 
     #[test]
     fn try_trait_branch_error() {
-        let result = DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+        let result: DiagnosticResult<(), _, ()> =
+            DiagnosticResult::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
 
         match result.branch() {
             core::ops::ControlFlow::Continue(_) => {
                 panic!("Expected Break variant");
             }
             core::ops::ControlFlow::Break(residual) => {
-                let error = residual.into_result().unwrap_err();
+                let error = residual.into_result().expect_err("Expected error");
                 assert!(error.primary.severity.is_fatal());
             }
         }
@@ -812,7 +827,7 @@ mod tests {
 
     #[test]
     fn append_diagnostics_promotes_fatal_to_error() {
-        let mut result = DiagnosticResult::ok(42);
+        let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
 
         let mut additional = DiagnosticIssues::new();
         additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
@@ -821,7 +836,7 @@ mod tests {
 
         result.append_diagnostics(&mut additional);
 
-        let error = result.into_result().unwrap_err();
+        let error = result.into_result().expect_err("Expected error");
         assert!(error.primary.severity.is_fatal());
         assert_eq!(error.secondary.len(), 2); // Warning and Note
         assert!(additional.is_empty()); // All moved
@@ -829,7 +844,7 @@ mod tests {
 
     #[test]
     fn append_diagnostics_no_promotion_when_no_fatal() {
-        let mut result = DiagnosticResult::ok(42);
+        let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
 
         let mut additional = DiagnosticIssues::new();
         additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
@@ -837,7 +852,7 @@ mod tests {
 
         result.append_diagnostics(&mut additional);
 
-        let success = result.into_result().unwrap();
+        let success = result.into_result().expect("Result should be successful");
         assert_eq!(success.value, 42);
         assert_eq!(success.diagnostics.len(), 2);
         assert_eq!(success.diagnostics.fatal(), 0);
