@@ -664,7 +664,7 @@ mod tests {
 
     #[test]
     fn default_trait_creates_empty_collection() {
-        let issues: DiagnosticIssues<(), ()> = Default::default();
+        let issues: DiagnosticIssues<(), ()> = DiagnosticIssues::default();
 
         assert_eq!(issues.len(), 0);
         assert_eq!(issues.fatal(), 0);

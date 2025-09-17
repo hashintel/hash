@@ -638,8 +638,8 @@ impl<T, C, S> Try for DiagnosticResult<T, C, S> {
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Try;
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
+    use core::ops::Try as _;
 
     use crate::{
         Diagnostic, DiagnosticError, DiagnosticIssues, DiagnosticResult, DiagnosticValue, Severity,
