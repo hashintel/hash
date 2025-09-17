@@ -3090,7 +3090,7 @@
           "Graph",
           "PropertyType"
         ],
-        "operationId": "get_property_types",
+        "operationId": "query_property_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3106,7 +3106,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
               }
             }
           },
@@ -3118,7 +3118,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetPropertyTypesResponse"
+                  "$ref": "#/components/schemas/QueryPropertyTypesResponse"
                 }
               }
             }
@@ -3138,7 +3138,7 @@
           "Graph",
           "PropertyType"
         ],
-        "operationId": "get_property_type_subgraph",
+        "operationId": "query_property_type_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3154,7 +3154,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypeSubgraphParams"
+                "$ref": "#/components/schemas/QueryPropertyTypeSubgraphParams"
               }
             }
           },
@@ -3174,7 +3174,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetPropertyTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/QueryPropertyTypeSubgraphResponse"
                 }
               }
             }
@@ -5809,131 +5809,6 @@
           }
         }
       },
-      "GetPropertyTypeSubgraphParams": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetPropertyTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetPropertyTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetPropertyTypesResponse": {
-        "type": "object",
-        "required": [
-          "propertyTypes"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "propertyTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyTypeWithMetadata"
-            }
-          }
-        }
-      },
       "GraphElementVertexId": {
         "oneOf": [
           {
@@ -8422,6 +8297,123 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DataTypeWithMetadata"
+            }
+          }
+        }
+      },
+      "QueryPropertyTypeSubgraphParams": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryPropertyTypeSubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
+      "QueryPropertyTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryPropertyTypesResponse": {
+        "type": "object",
+        "required": [
+          "propertyTypes"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "propertyTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeWithMetadata"
             }
           }
         }

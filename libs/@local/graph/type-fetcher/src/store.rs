@@ -52,8 +52,8 @@ use hash_graph_store::{
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        GetPropertyTypeSubgraphResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
@@ -476,9 +476,9 @@ where
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(
+                .query_property_types(
                     actor_id,
-                    GetPropertyTypesParams {
+                    QueryPropertyTypesParams {
                         filter: Filter::for_versioned_url(url),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -486,7 +486,6 @@ where
                         },
                         after: None,
                         limit: None,
-                        include_drafts: true,
                         include_count: false,
                     },
                 )
@@ -1301,21 +1300,21 @@ where
         self.store.count_property_types(actor_id, params).await
     }
 
-    async fn get_property_types(
+    async fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
-        self.store.get_property_types(actor_id, params).await
+        params: QueryPropertyTypesParams<'_>,
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
+        self.store.query_property_types(actor_id, params).await
     }
 
-    async fn get_property_type_subgraph(
+    async fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypeSubgraphParams<'_>,
+        params: QueryPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
         self.store
-            .get_property_type_subgraph(actor_id, params)
+            .query_property_type_subgraph(actor_id, params)
             .await
     }
 

@@ -5,8 +5,8 @@ pub use self::{
     query::{PropertyTypeQueryPath, PropertyTypeQueryToken},
     store::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        GetPropertyTypeSubgraphResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
 };

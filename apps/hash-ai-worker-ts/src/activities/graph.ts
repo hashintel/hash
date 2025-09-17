@@ -21,8 +21,8 @@ import type {
   EntityQueryCursor,
   GetEntitySubgraphRequest,
   GetEntityTypeSubgraphParams,
-  GetPropertyTypeSubgraphParams,
   GraphApi,
+  QueryPropertyTypeSubgraphParams,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
@@ -105,10 +105,10 @@ export const createGraphActivities = ({
     authentication: {
       actorId: ActorEntityUuid;
     };
-    request: GetPropertyTypeSubgraphParams;
+    request: QueryPropertyTypeSubgraphParams;
   }): Promise<SerializedSubgraph<PropertyTypeRootType>> {
     return graphApiClient
-      .getPropertyTypeSubgraph(params.authentication.actorId, params.request)
+      .queryPropertyTypeSubgraph(params.authentication.actorId, params.request)
       .then(
         ({ data: response }) =>
           serializeSubgraph(

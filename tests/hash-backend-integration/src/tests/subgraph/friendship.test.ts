@@ -44,7 +44,7 @@ import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
-  GetPropertyTypesParams,
+  QueryPropertyTypesParams,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import {
@@ -362,7 +362,7 @@ describe("Ontology queries", () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
-    const request: GetPropertyTypesParams = {
+    const request: QueryPropertyTypesParams = {
       filter: {
         equal: [
           {
@@ -374,7 +374,6 @@ describe("Ontology queries", () => {
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     };
 
     const initialPropertyTypes = await getPropertyTypes(

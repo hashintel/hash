@@ -16,8 +16,8 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
-  GetPropertyTypesParams,
-  GetPropertyTypeSubgraphParams,
+  QueryPropertyTypesParams,
+  QueryPropertyTypeSubgraphParams,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
@@ -92,11 +92,11 @@ export const createPropertyType: ImpureGraphFunction<
 };
 
 export const getPropertyTypes: ImpureGraphFunction<
-  Omit<GetPropertyTypesParams, "includeDrafts">,
+  QueryPropertyTypesParams,
   Promise<PropertyTypeWithMetadata[]>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .getPropertyTypes(actorId, { includeDrafts: false, ...request })
+    .queryPropertyTypes(actorId, request)
     .then(({ data: response }) =>
       mapGraphApiPropertyTypesToPropertyTypes(response.propertyTypes),
     );
@@ -107,11 +107,11 @@ export const getPropertyTypes: ImpureGraphFunction<
  * @param params.query the structural query to filter property types by.
  */
 export const getPropertyTypeSubgraph: ImpureGraphFunction<
-  DistributiveOmit<GetPropertyTypeSubgraphParams, "includeDrafts">,
+  QueryPropertyTypeSubgraphParams,
   Promise<Subgraph<PropertyTypeRootType>>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .getPropertyTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .queryPropertyTypeSubgraph(actorId, request)
     .then(({ data: response }) =>
       mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
     );
@@ -151,21 +151,17 @@ export const getPropertyTypeById: ImpureGraphFunction<
  * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
  */
 export const getPropertyTypeSubgraphById: ImpureGraphFunction<
-  DistributiveOmit<
-    GetPropertyTypeSubgraphParams,
-    "filter" | "includeDrafts"
-  > & {
+  DistributiveOmit<QueryPropertyTypeSubgraphParams, "filter"> & {
     propertyTypeId: VersionedUrl;
   },
   Promise<Subgraph<PropertyTypeRootType>>
 > = async (context, authentication, params) => {
   const { propertyTypeId, ...subgraphRequest } = params;
 
-  const request: GetPropertyTypeSubgraphParams = {
+  const request: QueryPropertyTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
-    includeDrafts: false,
     ...subgraphRequest,
   };
 

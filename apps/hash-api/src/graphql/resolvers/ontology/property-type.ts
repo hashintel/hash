@@ -85,7 +85,7 @@ export const queryPropertyTypesResolver: ResolverFn<
    *   authorized to see.
    * @see https://linear.app/hash/issue/H-2995
    */
-  const { data: response } = await graphApi.getPropertyTypeSubgraph(
+  const { data: response } = await graphApi.queryPropertyTypeSubgraph(
     authentication.actorId,
     {
       filter: latestOnly
@@ -101,7 +101,6 @@ export const queryPropertyTypesResolver: ResolverFn<
       temporalAxes: includeArchived
         ? fullTransactionTimeAxis
         : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     },
   );
 
