@@ -987,6 +987,51 @@
         }
       }
     },
+    "/data-types/find/conversions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "find_data_type_conversion_targets",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindDataTypeConversionTargetsParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindDataTypeConversionTargetsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/load": {
       "post": {
         "tags": [
@@ -1092,7 +1137,7 @@
           "Graph",
           "DataType"
         ],
-        "operationId": "get_data_types",
+        "operationId": "query_data_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1108,7 +1153,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypesParams"
+                "$ref": "#/components/schemas/QueryDataTypesParams"
               }
             }
           },
@@ -1120,7 +1165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDataTypesResponse"
+                  "$ref": "#/components/schemas/QueryDataTypesResponse"
                 }
               }
             }
@@ -1134,58 +1179,13 @@
         }
       }
     },
-    "/data-types/query/conversions": {
-      "post": {
-        "tags": [
-          "Graph",
-          "DataType"
-        ],
-        "operationId": "get_data_type_conversion_targets",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GetDataTypeConversionTargetsParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetDataTypeConversionTargetsResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
     "/data-types/query/subgraph": {
       "post": {
         "tags": [
           "Graph",
           "DataType"
         ],
-        "operationId": "get_data_type_subgraph",
+        "operationId": "query_data_type_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1201,7 +1201,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypeSubgraphParams"
+                "$ref": "#/components/schemas/QueryDataTypeSubgraphParams"
               }
             }
           },
@@ -1213,7 +1213,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDataTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/QueryDataTypeSubgraphResponse"
                 }
               }
             }
@@ -5294,6 +5294,38 @@
           }
         ]
       },
+      "FindDataTypeConversionTargetsParams": {
+        "type": "object",
+        "required": [
+          "dataTypeIds"
+        ],
+        "properties": {
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FindDataTypeConversionTargetsResponse": {
+        "type": "object",
+        "required": [
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/DataTypeConversionTargets"
+              }
+            }
+          }
+        }
+      },
       "GetClosedMultiEntityTypesParams": {
         "type": "object",
         "required": [
@@ -5341,163 +5373,6 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
-            }
-          }
-        }
-      },
-      "GetDataTypeConversionTargetsParams": {
-        "type": "object",
-        "required": [
-          "dataTypeIds"
-        ],
-        "properties": {
-          "dataTypeIds": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetDataTypeConversionTargetsResponse": {
-        "type": "object",
-        "required": [
-          "conversions"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/components/schemas/DataTypeConversionTargets"
-              }
-            }
-          }
-        }
-      },
-      "GetDataTypeSubgraphParams": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetDataTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetDataTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetDataTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetDataTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetDataTypesResponse": {
-        "type": "object",
-        "required": [
-          "dataTypes"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "dataTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeWithMetadata"
             }
           }
         }
@@ -8433,6 +8308,123 @@
           }
         },
         "additionalProperties": false
+      },
+      "QueryDataTypeSubgraphParams": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryDataTypeSubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
+      "QueryDataTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryDataTypesResponse": {
+        "type": "object",
+        "required": [
+          "dataTypes"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "dataTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeWithMetadata"
+            }
+          }
+        }
       },
       "QueryTemporalAxes": {
         "oneOf": [

@@ -12,13 +12,13 @@ import type {
 import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import dedent from "dedent";
 import get from "lodash/get.js";

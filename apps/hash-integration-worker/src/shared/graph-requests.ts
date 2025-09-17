@@ -11,12 +11,12 @@ import {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;

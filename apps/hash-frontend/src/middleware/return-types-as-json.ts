@@ -15,12 +15,12 @@ import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
 import type {
-  GetDataTypeQuery,
-  GetDataTypeQueryVariables,
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
@@ -95,9 +95,9 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    GetEntityTypeQuery | GetDataTypeQuery | GetPropertyTypeQuery,
+    GetEntityTypeQuery | QueryDataTypeSubgraphQuery | GetPropertyTypeQuery,
     | GetEntityTypeQueryVariables
-    | GetDataTypeQueryVariables
+    | QueryDataTypeSubgraphQueryVariables
     | GetPropertyTypeQueryVariables
   >(query, variables, cookie);
 
@@ -113,8 +113,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   }
 
   const { roots, vertices } =
-    "getDataType" in data
-      ? data.getDataType
+    "queryDataTypeSubgraph" in data
+      ? data.queryDataTypeSubgraph.subgraph
       : "getEntityType" in data
         ? data.getEntityType
         : data.getPropertyType;

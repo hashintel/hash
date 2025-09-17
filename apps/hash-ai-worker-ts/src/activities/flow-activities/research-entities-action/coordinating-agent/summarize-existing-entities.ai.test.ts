@@ -1,12 +1,12 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { expect, test } from "vitest";
 
 import { graphApiClient } from "../../../shared/graph-api-client.js";

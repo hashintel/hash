@@ -1,11 +1,11 @@
 import type { ActorEntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { backOff } from "exponential-backoff";
 
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types.js";

@@ -5,15 +5,13 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  mapGraphApiSubgraphToSubgraph,
-  serializeSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import {
   archivePropertyType,

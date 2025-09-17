@@ -12,10 +12,10 @@ use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
         DataTypeConversionTargets, DataTypeQueryPath, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
@@ -196,18 +196,18 @@ where
             }))
     }
 
-    async fn get_data_types_impl(
+    async fn query_data_types_impl(
         &self,
-        params: GetDataTypesParams<'_>,
+        params: QueryDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewDataType),
             policy_components.optimization_data(ActionName::ViewDataType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -299,7 +299,7 @@ where
             (data_types, cursor)
         };
 
-        Ok(GetDataTypesResponse {
+        Ok(QueryDataTypesResponse {
             cursor,
             data_types,
             count,
@@ -614,9 +614,9 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(
+            .query_data_types(
                 actor_id,
-                GetDataTypesParams {
+                QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
@@ -627,7 +627,6 @@ where
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -736,11 +735,11 @@ where
         Ok(inserted_data_type_metadata)
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        mut params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
@@ -754,7 +753,7 @@ where
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.resolve();
-        self.get_data_types_impl(params, &temporal_axes, &policy_components)
+        self.query_data_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
 
@@ -781,7 +780,7 @@ where
             .read(
                 &[params.filter],
                 Some(&params.temporal_axes.resolve()),
-                params.include_drafts,
+                false,
             )
             .await?
             .count()
@@ -789,11 +788,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
@@ -813,14 +812,13 @@ where
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
-        let include_drafts = request.include_drafts;
 
-        let GetDataTypesResponse {
+        let QueryDataTypesResponse {
             data_types,
             cursor,
             count,
         } = self
-            .get_data_types_impl(request, &temporal_axes, &policy_components)
+            .query_data_types_impl(request, &temporal_axes, &policy_components)
             .await?;
 
         let (data_type_ids, data_type_vertex_ids): (Vec<_>, Vec<_>) = data_types
@@ -881,10 +879,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetDataTypeSubgraphResponse {
+        Ok(QueryDataTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
@@ -1019,9 +1017,9 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(
+            .query_data_types(
                 actor_id,
-                GetDataTypesParams {
+                QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
@@ -1032,7 +1030,6 @@ where
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -1317,11 +1314,11 @@ where
         clippy::too_many_lines,
         reason = "This function is complex and needs refactoring"
     )]
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
@@ -1369,7 +1366,7 @@ where
                 .change_context(QueryError)?
         };
 
-        let mut response = GetDataTypeConversionTargetsResponse {
+        let mut response = FindDataTypeConversionTargetsResponse {
             conversions: HashMap::with_capacity(params.data_type_ids.len()),
         };
 

@@ -29,10 +29,10 @@ use hash_graph_store::{
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
@@ -459,9 +459,9 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(
+                .query_data_types(
                     actor_id,
-                    GetDataTypesParams {
+                    QueryDataTypesParams {
                         filter: Filter::for_versioned_url(url),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -469,7 +469,6 @@ where
                         },
                         after: None,
                         limit: None,
-                        include_drafts: true,
                         include_count: false,
                     },
                 )
@@ -1151,20 +1150,20 @@ where
         self.store.count_data_types(actor_id, params).await
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
-        self.store.get_data_types(actor_id, params).await
+        params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
+        self.store.query_data_types(actor_id, params).await
     }
 
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
-        self.store.get_data_type_subgraph(actor_id, params).await
+        params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
+        self.store.query_data_type_subgraph(actor_id, params).await
     }
 
     async fn update_data_types<P>(
@@ -1229,13 +1228,13 @@ where
             .await
     }
 
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
-            .get_data_type_conversion_targets(actor_id, params)
+            .find_data_type_conversion_targets(actor_id, params)
             .await
     }
 

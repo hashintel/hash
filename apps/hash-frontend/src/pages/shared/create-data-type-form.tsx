@@ -5,7 +5,10 @@ import {
   makeOntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
@@ -13,10 +16,10 @@ import { useContext } from "react";
 import { useForm } from "react-hook-form";
 
 import type {
-  GetDataTypeQuery,
-  GetDataTypeQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { useDataTypesContext } from "./data-types-context";
@@ -51,10 +54,10 @@ export const CreateDataTypeForm = ({
 }: CreateDataTypeFormProps) => {
   const router = useRouter();
 
-  const [getDataType] = useLazyQuery<
-    GetDataTypeQuery,
-    GetDataTypeQueryVariables
-  >(getDataTypeQuery);
+  const [queryDataTypeSubgraph] = useLazyQuery<
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery);
 
   const {
     handleSubmit,
@@ -205,18 +208,30 @@ export const CreateDataTypeForm = ({
                 clearErrors("title");
               },
               async validate(titleToValidate) {
-                const res = await getDataType({
+                const res = await queryDataTypeSubgraph({
                   variables: {
-                    dataTypeId: generateTypeUrlsForUser({
-                      kind: "data-type",
-                      title: titleToValidate,
-                      version: makeOntologyTypeVersion({ major: 1 }),
-                    }).versionedUrl,
-                    ...zeroedGraphResolveDepths,
+                    request: {
+                      filter: {
+                        equal: [
+                          {
+                            path: ["versionedUrl"],
+                          },
+                          {
+                            parameter: generateTypeUrlsForUser({
+                              kind: "data-type",
+                              title: titleToValidate,
+                              version: makeOntologyTypeVersion({ major: 1 }),
+                            }).versionedUrl,
+                          },
+                        ],
+                      },
+                      temporalAxes: currentTimeInstantTemporalAxes,
+                      graphResolveDepths: zeroedGraphResolveDepths,
+                    },
                   },
                 });
 
-                return res.data?.getDataType.roots.length
+                return res.data?.queryDataTypeSubgraph.subgraph.roots.length
                   ? "Data type name must be unique"
                   : true;
               },

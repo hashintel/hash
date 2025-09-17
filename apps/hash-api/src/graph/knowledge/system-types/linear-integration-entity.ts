@@ -16,6 +16,10 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+} from "@local/hash-graph-sdk/subgraph";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -28,10 +32,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   LinearIntegration as LinearIntegrationEntity,
   SyncLinearDataWith,

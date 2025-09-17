@@ -15,6 +15,7 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { queryDataTypes } from "@local/hash-graph-sdk/data-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import type {
@@ -23,7 +24,6 @@ import type {
 } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import { getDataTypes } from "./graph/ontology/primitive/data-type";
 import {
   getEntityTypes,
   isEntityTypeLinkEntityType,
@@ -237,14 +237,14 @@ const generateOntologyIds = async () => {
   const [
     hashEntityTypes,
     hashPropertyTypes,
-    hashDataTypes,
+    { dataTypes: hashDataTypes },
     googleEntityTypes,
     googlePropertyTypes,
     linearEntityTypes,
     linearPropertyTypes,
     blockProtocolEntityTypes,
     blockProtocolPropertyTypes,
-    blockProtocolDataTypes,
+    { dataTypes: blockProtocolDataTypes },
   ] = await Promise.all([
     // HASH types
     getEntityTypes(
@@ -257,8 +257,8 @@ const generateOntologyIds = async () => {
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
-    getDataTypes(
-      graphContext,
+    queryDataTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
@@ -295,8 +295,8 @@ const generateOntologyIds = async () => {
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),
-    getDataTypes(
-      graphContext,
+    queryDataTypes(
+      graphContext.graphApi,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),

@@ -1,13 +1,13 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";

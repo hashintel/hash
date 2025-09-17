@@ -100,8 +100,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -264,8 +263,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1923,8 +1921,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": true
+  }
 }
 
 > {%

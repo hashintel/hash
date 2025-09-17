@@ -15,6 +15,13 @@ export const scalars = {
     "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@blockprotocol/type-system#DataTypeWithMetadata",
+  QueryDataTypesParams: "@local/hash-graph-sdk/data-type#QueryDataTypesParams",
+  QueryDataTypesResponse:
+    "@local/hash-graph-sdk/data-type#QueryDataTypesResponse",
+  QueryDataTypeSubgraphParams:
+    "@local/hash-graph-sdk/data-type#QueryDataTypeSubgraphParams",
+  QueryDataTypeSubgraphResponse:
+    "@local/hash-graph-sdk/data-type#SerializedQueryDataTypeSubgraphResponse",
   ConstructDataTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructDataTypeParams",
   DataTypeFullConversionTargetsMap:

@@ -1,12 +1,16 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import {
+  fullTransactionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { DocumentNode } from "graphql";
 
 import type {
-  GetDataTypeQueryVariables,
   GetEntityTypeQueryVariables,
   GetPropertyTypeQueryVariables,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { getPropertyTypeQuery } from "../../graphql/queries/ontology/property-type.queries";
 
@@ -33,18 +37,22 @@ export const generateQueryArgs = (
 ): {
   query: string;
   variables:
-    | GetDataTypeQueryVariables
+    | QueryDataTypeSubgraphQueryVariables
     | GetEntityTypeQueryVariables
     | GetPropertyTypeQueryVariables;
 } => {
   switch (ontologyType) {
     case "data-type":
       return {
-        query: queryStringFromNode(getDataTypeQuery),
+        query: queryStringFromNode(queryDataTypeSubgraphQuery),
         variables: {
-          dataTypeId: versionedUrl,
-          constrainsValuesOn: zeroDepth,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            graphResolveDepths: zeroedGraphResolveDepths,
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
     case "entity-type":
