@@ -4,8 +4,6 @@ import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types"
 import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
-  getDataTypes,
-  getDataTypeSubgraph,
   unarchiveDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
@@ -44,12 +42,16 @@ import type {
 } from "@blockprotocol/type-system";
 import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
-  GetDataTypesParams,
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
   GetPropertyTypesParams,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
+import {
+  queryDataTypes,
+  type QueryDataTypesParams,
+  queryDataTypeSubgraph,
+} from "@local/hash-graph-sdk/data-type";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
@@ -230,13 +232,17 @@ describe("Ontology queries", () => {
       inheritsFrom: { outgoing: 255 },
     },
   ])("read data types %#", async (resolve_depths) => {
-    const subgraph = await getDataTypeSubgraph(graphContext, authentication, {
-      filter: {
-        all: [],
+    const { subgraph } = await queryDataTypeSubgraph(
+      graphContext.graphApi,
+      authentication,
+      {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
       },
-      graphResolveDepths: resolve_depths,
-      temporalAxes: fullDecisionTimeAxis,
-    });
+    );
     expect(subgraph.roots.length).toEqual(6);
     expect(Object.keys(subgraph.edges).length).toEqual(0);
 
@@ -258,7 +264,7 @@ describe("Ontology queries", () => {
     const dataTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/data-type/number/v/1";
 
-    const request: GetDataTypesParams = {
+    const request: QueryDataTypesParams = {
       filter: {
         equal: [
           {
@@ -270,11 +276,10 @@ describe("Ontology queries", () => {
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     };
 
-    const initialDataTypes = await getDataTypes(
-      graphContext,
+    const { dataTypes: initialDataTypes } = await queryDataTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );
@@ -291,8 +296,8 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptyDataTypes = await getDataTypes(
-      graphContext,
+    const { dataTypes: emptyDataTypes } = await queryDataTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );
@@ -306,8 +311,8 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptyDataTypes = await getDataTypes(
-      graphContext,
+    const { dataTypes: nonEmptyDataTypes } = await queryDataTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );

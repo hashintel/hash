@@ -8,8 +8,8 @@ import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import { systemAccountId } from "../graph/system-account";
 import {

@@ -16,9 +16,11 @@ import type {
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   generateVersionedUrlMatchingFilter,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
@@ -31,15 +33,15 @@ import { useCallback, useMemo, useState } from "react";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 import {
@@ -146,22 +148,35 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const { data: dataTypesData, loading: dataTypesLoading } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      filter: {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: profileWebId! },
-        ],
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["version"],
+                },
+                { parameter: "latest" },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: profileWebId! },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: fullTransactionTimeAxis,
       },
-      ...zeroedGraphResolveDepths,
-      includeArchived: true,
-      latestOnly: true,
     },
     skip: !profileWebId,
   });
@@ -195,7 +210,9 @@ const ProfilePage: NextPageWithLayout = () => {
 
     if (dataTypesData) {
       const dataTypes = getRoots<DataTypeRootType>(
-        mapGqlSubgraphFieldsFragmentToSubgraph(dataTypesData.queryDataTypes),
+        deserializeQueryDataTypeSubgraphResponse(
+          dataTypesData.queryDataTypeSubgraph,
+        ).subgraph,
       );
 
       types.push(...dataTypes);

@@ -6,6 +6,7 @@ import type {
   BaseUrl,
   Conversions,
   DataType,
+  DataTypeMetadata,
   DataTypeReference,
   DataTypeWithMetadata,
   Entity,
@@ -37,6 +38,7 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
+import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -61,10 +63,7 @@ import {
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getEntities } from "../../knowledge/primitive/entity";
-import {
-  createDataType,
-  getDataTypeById,
-} from "../../ontology/primitive/data-type";
+import { createDataType } from "../../ontology/primitive/data-type";
 import {
   createEntityType,
   getEntityTypeById,
@@ -229,9 +228,14 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
 
   migrationState.dataTypeVersions[baseUrl] = versionNumber;
 
-  const existingDataType = await getDataTypeById(context, authentication, {
-    dataTypeId,
-  }).catch((error: Error) => {
+  const existingDataType = await getDataTypeById(
+    context.graphApi,
+    authentication,
+    {
+      dataTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  ).catch((error: Error) => {
     if (error instanceof NotFoundError) {
       return null;
     }
@@ -257,16 +261,18 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalDataType(systemActorMachineId, {
-      // Specify the schema so that self-hosted instances don't need network access to hash.ai
-      schema: dataTypeSchema,
-      conversions,
-      provenance: context.provenance,
-    });
+    const { data: dataTypeMetadata } =
+      await context.graphApi.loadExternalDataType(systemActorMachineId, {
+        // Specify the schema so that self-hosted instances don't need network access to hash.ai
+        schema: dataTypeSchema,
+        conversions,
+        provenance: context.provenance,
+      });
 
-    return await getDataTypeById(context, authentication, {
-      dataTypeId: dataTypeSchema.$id,
-    });
+    return {
+      schema: dataTypeSchema,
+      metadata: dataTypeMetadata as DataTypeMetadata,
+    };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdDataType = await createDataType(

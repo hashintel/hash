@@ -12,6 +12,7 @@ import {
   addActorGroupMember,
   createUserActor,
 } from "@local/hash-graph-sdk/principal/actor-group";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import {
   type FeatureFlag,
   featureFlags,
@@ -28,7 +29,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EnabledFeatureFlagsPropertyValue,
   User as UserEntity,

@@ -21,13 +21,13 @@ import {
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { createOrgWeb } from "@local/hash-graph-sdk/principal/actor-group";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   Organization,
   OrganizationNamePropertyValueWithMetadata,

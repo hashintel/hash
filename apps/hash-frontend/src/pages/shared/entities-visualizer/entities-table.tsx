@@ -47,10 +47,10 @@ import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icon
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
-  GetDataTypeConversionTargetsQuery,
-  GetDataTypeConversionTargetsQueryVariables,
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
+import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../../shared/ui/button";
 import {
   isAiMachineActor,
@@ -251,16 +251,16 @@ export const EntitiesTable: FunctionComponent<
     useState<ConversionTargetsByColumnKey>({});
 
   useQuery<
-    GetDataTypeConversionTargetsQuery,
-    GetDataTypeConversionTargetsQueryVariables
-  >(getDataTypeConversionTargetsQuery, {
+    FindDataTypeConversionTargetsQuery,
+    FindDataTypeConversionTargetsQueryVariables
+  >(findDataTypeConversionTargetsQuery, {
     fetchPolicy: "cache-first",
     variables: {
       dataTypeIds: visibleDataTypeIds,
     },
     skip: visibleDataTypeIds.length === 0,
     onCompleted: (data) => {
-      const conversionMap = data.getDataTypeConversionTargets;
+      const conversionMap = data.findDataTypeConversionTargets;
 
       const conversionData: ConversionTargetsByColumnKey = {};
 

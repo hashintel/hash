@@ -22,12 +22,10 @@ import type {
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  mapGraphApiPropertyTypesToPropertyTypes,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { mapGraphApiPropertyTypesToPropertyTypes } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";

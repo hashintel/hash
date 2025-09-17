@@ -14,13 +14,13 @@ import {
   getAiByIdentifier,
   getMachineByIdentifier,
 } from "@local/hash-graph-sdk/principal/actor";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
 

@@ -1382,14 +1382,14 @@ mod tests {
         type DataTypeWithMetadata = DataTypeWithMetadata;
         type Error = !;
 
-        async fn lookup_data_type_by_uuid(
+        async fn get_data_type_by_uuid(
             &self,
             _: DataTypeUuid,
         ) -> Result<Self::DataTypeWithMetadata, Report<!>> {
             unimplemented!()
         }
 
-        async fn lookup_closed_data_type_by_uuid(
+        async fn get_closed_data_type_by_uuid(
             &self,
             _: DataTypeUuid,
         ) -> Result<Self::ClosedDataType, Report<Self::Error>> {

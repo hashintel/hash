@@ -34,6 +34,7 @@ import type {
   ConstructEntityTypeParams,
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-sdk/ontology";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -41,7 +42,6 @@ import {
   mapGraphApiClosedEntityTypesToClosedEntityTypes,
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiEntityTypesToEntityTypes,
-  mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import type { ImpureGraphFunction } from "../../context-types";

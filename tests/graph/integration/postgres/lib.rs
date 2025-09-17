@@ -45,10 +45,10 @@ use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
@@ -292,11 +292,11 @@ impl DataTypeStore for DatabaseApi<'_> {
         self.store.count_data_types(actor_id, params).await
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        mut params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -307,12 +307,11 @@ impl DataTypeStore for DatabaseApi<'_> {
                 CountDataTypesParams {
                     filter: params.filter.clone(),
                     temporal_axes: params.temporal_axes,
-                    include_drafts: params.include_drafts,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_data_types(actor_id, params).await?;
+        let mut response = self.store.query_data_types(actor_id, params).await?;
 
         // We can ensure that `count_data_types` and `get_data_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -327,11 +326,11 @@ impl DataTypeStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        mut params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
         let request = params.request_mut();
         let include_count = request.include_count;
         let has_limit = request.limit.is_some();
@@ -343,12 +342,14 @@ impl DataTypeStore for DatabaseApi<'_> {
                 CountDataTypesParams {
                     filter: request.filter.clone(),
                     temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_data_type_subgraph(actor_id, params).await?;
+        let mut response = self
+            .store
+            .query_data_type_subgraph(actor_id, params)
+            .await?;
 
         // We can ensure that `count_data_types` and `get_data_type_subgraph` return the same count;
         assert_eq!(response.count, Some(count));
@@ -400,13 +401,13 @@ impl DataTypeStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
-            .get_data_type_conversion_targets(actor_id, params)
+            .find_data_type_conversion_targets(actor_id, params)
             .await
     }
 
