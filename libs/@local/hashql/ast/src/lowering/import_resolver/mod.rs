@@ -11,6 +11,7 @@ use hashql_core::{
     },
     symbol::{Ident, IdentKind, Symbol},
 };
+use hashql_diagnostics::severity::SeverityKind as _;
 
 use self::error::{
     ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,

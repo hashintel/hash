@@ -1,7 +1,7 @@
 use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, severity::SeverityKind as _};
 
 use super::SuiteDiagnostic;
 

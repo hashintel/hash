@@ -83,7 +83,8 @@ impl<T, C, S> Success<T, C, S> {
 /// ```
 #[derive(Debug)]
 pub struct Failure<C, S> {
-    pub primary: Diagnostic<C, S, Critical>,
+    // boxed to reduce memory footprint
+    pub primary: Box<Diagnostic<C, S, Critical>>,
     pub secondary: DiagnosticIssues<C, S>,
 }
 
@@ -127,7 +128,7 @@ impl<C, S> Failure<C, S> {
     /// );
     /// ```
     pub fn into_issues(mut self) -> DiagnosticIssues<C, S> {
-        self.secondary.insert_front(self.primary.mask());
+        self.secondary.insert_front(self.primary.generalize());
         self.secondary
     }
 
@@ -136,7 +137,7 @@ impl<C, S> Failure<C, S> {
         C: DiagnosticCategory + 'category,
     {
         Failure {
-            primary: self.primary.boxed(),
+            primary: Box::new(self.primary.boxed()),
             secondary: self.secondary.boxed(),
         }
     }
@@ -342,7 +343,7 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
 
     fn err(error: Diagnostic<C, S, Critical>) -> Self {
         Self::Err(Failure {
-            primary: error,
+            primary: Box::new(error),
             secondary: DiagnosticIssues::new(),
         })
     }
@@ -359,14 +360,14 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
 
     fn push_diagnostic(&mut self, diagnostic: Diagnostic<C, S>) {
         match self {
-            Ok(success) => match diagnostic.categorize() {
+            Ok(success) => match diagnostic.specialize() {
                 Ok(advisory) => success.advisories.push(advisory),
                 Err(critical) => {
                     let issues = mem::take(&mut success.advisories);
 
                     *self = Err(Failure {
-                        primary: critical,
-                        secondary: issues.mask(),
+                        primary: Box::new(critical),
+                        secondary: issues.generalize(),
                     });
                 }
             },
@@ -383,7 +384,7 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
                     diagnostics.merge_into_advisories(&mut success.advisories)
                 {
                     *self = Err(Failure {
-                        primary: critical,
+                        primary: Box::new(critical),
                         secondary: issues,
                     });
                 }

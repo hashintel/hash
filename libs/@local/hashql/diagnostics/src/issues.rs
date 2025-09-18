@@ -449,9 +449,13 @@ where
         diagnostic
     }
 
-    pub fn mask(self) -> DiagnosticIssues<C, S, Severity> {
+    pub fn generalize(self) -> DiagnosticIssues<C, S, Severity> {
         DiagnosticIssues {
-            diagnostics: self.diagnostics.into_iter().map(Diagnostic::mask).collect(),
+            diagnostics: self
+                .diagnostics
+                .into_iter()
+                .map(Diagnostic::generalize)
+                .collect(),
             critical: self.critical,
         }
     }
@@ -489,7 +493,7 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
         let failure = diagnostic.into_critical_unchecked();
 
         self.diagnostics
-            .extend(other.diagnostics.drain(..).map(Diagnostic::mask));
+            .extend(other.diagnostics.drain(..).map(Diagnostic::generalize));
 
         let this = mem::take(self);
 
@@ -619,7 +623,7 @@ impl<T, C, S> DiagnosticSink<Success<T, C, S>> for DiagnosticIssues<C, S, Severi
     type Output = T;
 
     fn sink(&mut self, value: Success<T, C, S>) -> Option<Self::Output> {
-        self.append(&mut value.advisories.mask());
+        self.append(&mut value.advisories.generalize());
 
         Some(value.value)
     }
@@ -631,14 +635,14 @@ impl<T, C, S> DiagnosticSink<Status<T, C, S>> for DiagnosticIssues<C, S> {
     fn sink(&mut self, value: Status<T, C, S>) -> Option<Self::Output> {
         match value {
             Ok(Success { value, advisories }) => {
-                self.append(&mut advisories.mask());
+                self.append(&mut advisories.generalize());
                 Some(value)
             }
             Err(Failure {
                 primary,
                 mut secondary,
             }) => {
-                self.push(primary.mask());
+                self.push(primary.generalize());
                 self.append(&mut secondary);
                 None
             }

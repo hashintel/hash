@@ -85,7 +85,7 @@ impl<C, S> Diagnostic<C, S> {
         }
     }
 
-    pub fn categorize(self) -> Result<Diagnostic<C, S, Advisory>, Diagnostic<C, S, Critical>> {
+    pub fn specialize(self) -> Result<Diagnostic<C, S, Advisory>, Diagnostic<C, S, Critical>> {
         let Some(severity) = Advisory::try_new(self.severity) else {
             return Err(Diagnostic {
                 category: self.category,
@@ -113,7 +113,7 @@ impl<C, S, K> Diagnostic<C, S, K>
 where
     K: Copy + Into<Severity>,
 {
-    pub fn mask(self) -> Diagnostic<C, S, Severity> {
+    pub fn generalize(self) -> Diagnostic<C, S, Severity> {
         Diagnostic {
             category: self.category,
             severity: self.severity.into(),

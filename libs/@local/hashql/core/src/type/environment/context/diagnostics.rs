@@ -1,5 +1,7 @@
 use alloc::vec;
 
+use hashql_diagnostics::severity::SeverityKind as _;
+
 use crate::r#type::error::TypeCheckDiagnostic;
 
 /// A collection of type checking diagnostics produced during compilation.
