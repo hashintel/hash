@@ -25,7 +25,7 @@ pub type BoxedDiagnosticIssues<'category, S> =
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut issues = DiagnosticIssues::new();
+/// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
 /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
 /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
 ///
@@ -42,7 +42,7 @@ pub type BoxedDiagnosticIssues<'category, S> =
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut issues = DiagnosticIssues::new();
+/// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
 ///
 /// // Success case - value is extracted
 /// let success: Result<i32, Diagnostic<_, ()>> = Ok(42);
@@ -96,10 +96,11 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "new", name: "New"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(OLD_CATEGORY, Severity::Error));
     ///
-    /// let transformed = issues.map(|diagnostic| Diagnostic::new(NEW_CATEGORY, diagnostic.severity));
+    /// let transformed: DiagnosticIssues<_, ()> =
+    ///     issues.map(|diagnostic| Diagnostic::new(NEW_CATEGORY, diagnostic.severity));
     /// ```
     pub fn map<C2, S2>(
         self,
@@ -133,7 +134,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "lowering", name: "Lowering"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(PARSER_CATEGORY, Severity::Error));
     ///
     /// let lowering_issues = issues.map_category(|_| LOWERING_CATEGORY);
@@ -163,7 +164,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     ///
     /// let boxed_issues = issues.boxed();
@@ -193,7 +194,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     /// assert_eq!(issues.len(), 1);
     ///
@@ -221,7 +222,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// assert_eq!(issues.fatal(), 0);
     ///
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
@@ -246,7 +247,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// assert_eq!(issues.len(), 0);
     ///
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
@@ -269,7 +270,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// assert!(issues.is_empty());
     ///
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
@@ -291,12 +292,12 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     /// issues.insert_front(Diagnostic::new(CATEGORY, Severity::Error));
     ///
     /// // The error is now first
-    /// let first = issues.iter().next().unwrap();
+    /// let first = issues.iter().next().expect("should have diagnostics");
     /// assert_eq!(first.severity, Severity::Error);
     /// ```
     pub fn insert_front(&mut self, diagnostic: Diagnostic<C, S>) {
@@ -315,7 +316,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
@@ -340,15 +341,15 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
-    /// let last = issues.pop().unwrap();
+    /// let last = issues.pop().expect("should have diagnostic");
     /// assert_eq!(last.severity, Severity::Warning);
     /// assert_eq!(issues.len(), 1);
     ///
-    /// let first = issues.pop().unwrap();
+    /// let first = issues.pop().expect("should have one diagnostic");
     /// assert_eq!(first.severity, Severity::Error);
     /// assert_eq!(issues.len(), 0);
     ///
@@ -377,12 +378,12 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Note));
     ///
-    /// let fatal = issues.pop_fatal().unwrap();
+    /// let fatal = issues.pop_fatal().expect("should have fatal diagnostic");
     /// assert_eq!(fatal.severity, Severity::Error);
     /// assert_eq!(issues.fatal(), 0);
     /// assert_eq!(issues.len(), 2);
@@ -417,10 +418,10 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut main_issues = DiagnosticIssues::new();
+    /// let mut main_issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// main_issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
-    /// let mut other_issues = DiagnosticIssues::new();
+    /// let mut other_issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// other_issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     ///
     /// main_issues.append(&mut other_issues);
@@ -446,7 +447,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues = DiagnosticIssues::new();
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     ///

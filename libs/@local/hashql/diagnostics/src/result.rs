@@ -21,7 +21,7 @@ use crate::{Diagnostic, DiagnosticIssues, category::DiagnosticCategory};
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut diagnostics = DiagnosticIssues::new();
+/// let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
 /// diagnostics.push(Diagnostic::new(CATEGORY, Severity::Warning));
 ///
 /// let result = DiagnosticValue {
@@ -57,7 +57,7 @@ pub struct DiagnosticValue<T, C, S> {
 /// #     id: "warning", name: "Warning"
 /// # };
 ///
-/// let mut secondary = DiagnosticIssues::new();
+/// let mut secondary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
 /// secondary.push(Diagnostic::new(WARNING_CATEGORY, Severity::Warning));
 ///
 /// let error = DiagnosticError {
@@ -92,7 +92,7 @@ impl<C, S> DiagnosticError<C, S> {
     /// #     id: "warning", name: "Warning"
     /// # };
     ///
-    /// let mut secondary = DiagnosticIssues::new();
+    /// let mut secondary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// secondary.push(Diagnostic::new(WARNING_CATEGORY, Severity::Warning));
     ///
     /// let error = DiagnosticError {
@@ -104,7 +104,14 @@ impl<C, S> DiagnosticError<C, S> {
     /// assert_eq!(issues.len(), 2);
     /// assert_eq!(issues.fatal(), 1);
     /// // Primary error is now first in the collection
-    /// assert_eq!(issues.iter().next().unwrap().severity, Severity::Error);
+    /// assert_eq!(
+    ///     issues
+    ///         .iter()
+    ///         .next()
+    ///         .expect("should have diagnostics")
+    ///         .severity,
+    ///     Severity::Error
+    /// );
     /// ```
     pub fn into_issues(mut self) -> DiagnosticIssues<C, S> {
         self.secondary.insert_front(self.primary);
@@ -134,15 +141,16 @@ impl<C, S> DiagnosticError<C, S> {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let success = DiagnosticResult::ok(42);
-/// let error = DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
+/// let success: DiagnosticResult<_, (), ()> = DiagnosticResult::ok(42);
+/// let error: DiagnosticResult<i32, _, ()> =
+///     DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
 ///
 /// // Converting to regular Result
-/// let success_result = success.into_result().unwrap();
+/// let success_result = success.into_result().expect("should be successful");
 /// assert_eq!(success_result.value, 42);
 /// assert_eq!(success_result.diagnostics.len(), 0);
 ///
-/// let error_result = error.into_result().unwrap_err();
+/// let error_result = error.into_result().expect_err("should be error");
 /// assert!(error_result.primary.severity.is_fatal());
 /// ```
 ///
@@ -155,7 +163,7 @@ impl<C, S> DiagnosticError<C, S> {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut result = DiagnosticResult::ok(100);
+/// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(100);
 ///
 /// // Add a warning - doesn't change the success state
 /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
@@ -185,8 +193,8 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// ```
     /// use hashql_diagnostics::DiagnosticResult;
     ///
-    /// let result = DiagnosticResult::ok(42);
-    /// let success = result.into_result().unwrap();
+    /// let result: DiagnosticResult<_, (), ()> = DiagnosticResult::ok(42);
+    /// let success = result.into_result().expect("should be successful");
     /// assert_eq!(success.value, 42);
     /// assert_eq!(success.diagnostics.len(), 0);
     /// ```
@@ -212,8 +220,9 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let result = DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
-    /// let error = result.into_result().unwrap_err();
+    /// let result: DiagnosticResult<i32, _, ()> =
+    ///     DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let error = result.into_result().expect_err("should be error");
     /// assert!(error.primary.severity.is_fatal());
     /// ```
     pub const fn err(diagnostic: Diagnostic<C, S>) -> Self {
@@ -248,12 +257,14 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     ///
     /// // Fatal diagnostic - creates error result
     /// let fatal = Diagnostic::new(CATEGORY, Severity::Error);
-    /// let result = DiagnosticResult::try_err(fatal).unwrap();
+    /// let result: DiagnosticResult<i32, _, ()> =
+    ///     DiagnosticResult::try_err(fatal).expect("should create result");
     /// assert!(result.into_result().is_err());
     ///
     /// // Non-fatal diagnostic - returns the diagnostic
     /// let warning = Diagnostic::new(CATEGORY, Severity::Warning);
-    /// let returned_diagnostic = DiagnosticResult::try_err(warning).unwrap_err();
+    /// let returned_diagnostic =
+    ///     DiagnosticResult::<i32, _, ()>::try_err(warning).expect_err("should return diagnostic");
     /// assert_eq!(returned_diagnostic.severity, Severity::Warning);
     /// ```
     pub const fn try_err(diagnostic: Diagnostic<C, S>) -> Result<Self, Diagnostic<C, S>> {
@@ -265,6 +276,52 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
             diagnostics: DiagnosticIssues::new(),
             result: Err(diagnostic),
         })
+    }
+
+    /// Returns `true` if the result is a success value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticResult, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let success: DiagnosticResult<_, (), ()> = DiagnosticResult::ok(42);
+    /// assert!(success.is_ok());
+    ///
+    /// let error: DiagnosticResult<i32, _, ()> =
+    ///     DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
+    /// assert!(!error.is_ok());
+    /// ```
+    #[must_use]
+    pub const fn is_ok(&self) -> bool {
+        self.result.is_ok()
+    }
+
+    /// Returns `true` if the result contains a fatal diagnostic.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticResult, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let success: DiagnosticResult<_, (), ()> = DiagnosticResult::ok(42);
+    /// assert!(!success.is_err());
+    ///
+    /// let error: DiagnosticResult<i32, _, ()> =
+    ///     DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
+    /// assert!(error.is_err());
+    /// ```
+    #[must_use]
+    pub const fn is_err(&self) -> bool {
+        self.result.is_err()
     }
 
     /// Converts to a result with type-erased diagnostic categories.
@@ -281,12 +338,15 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result = DiagnosticResult::ok(42);
+    /// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(100);
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
     /// let boxed_result = result.boxed();
-    /// let success = boxed_result.into_result().unwrap();
-    /// assert_eq!(success.value, 42);
+    /// // Verify the result is still successful after boxing
+    /// let Ok(success) = boxed_result.into_result() else {
+    ///     panic!("Unexpected error")
+    /// };
+    /// assert_eq!(success.value, 100);
     /// assert_eq!(success.diagnostics.len(), 1);
     /// ```
     pub fn boxed<'category>(self) -> DiagnosticResult<T, Box<dyn DiagnosticCategory + 'category>, S>
@@ -320,13 +380,13 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let result = DiagnosticResult::ok(21);
-    /// let doubled = result.map_ok(|x| x * 2);
+    /// let result: DiagnosticResult<_, (), ()> = DiagnosticResult::ok(21);
+    /// let doubled = result.map(|x| x * 2);
     ///
-    /// let success = doubled.into_result().unwrap();
+    /// let success = doubled.into_result().expect("should be successful");
     /// assert_eq!(success.value, 42);
     /// ```
-    pub fn map_ok<U>(self, func: impl FnOnce(T) -> U) -> DiagnosticResult<U, C, S> {
+    pub fn map<U>(self, func: impl FnOnce(T) -> U) -> DiagnosticResult<U, C, S> {
         let Self {
             diagnostics,
             result,
@@ -357,10 +417,10 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "new", name: "New"
     /// # };
     ///
-    /// let mut result = DiagnosticResult::ok(42);
+    /// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
     /// result.push_diagnostic(Diagnostic::new(OLD_CATEGORY, Severity::Warning));
     ///
-    /// let transformed =
+    /// let transformed: DiagnosticResult<_, _, ()> =
     ///     result.map_diagnostics(|diagnostic| Diagnostic::new(NEW_CATEGORY, diagnostic.severity));
     /// ```
     pub fn map_diagnostics<C2, S2>(
@@ -396,13 +456,13 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result = DiagnosticResult::ok(42);
+    /// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
     ///
     /// // Add a warning - still successful
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
     /// assert!(result.into_result().is_ok());
     ///
-    /// let mut result = DiagnosticResult::ok(42);
+    /// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
     /// // Add a fatal error - becomes error
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Error));
     /// assert!(result.into_result().is_err());
@@ -430,8 +490,8 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result = DiagnosticResult::ok(42);
-    /// let mut additional = DiagnosticIssues::new();
+    /// let mut result: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
+    /// let mut additional: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Warning));
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Error));
     ///
@@ -471,16 +531,17 @@ impl<T, C, S> DiagnosticResult<T, C, S> {
     /// # };
     ///
     /// // Success case
-    /// let mut success = DiagnosticResult::ok(42);
+    /// let mut success: DiagnosticResult<_, _, ()> = DiagnosticResult::ok(42);
     /// success.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
-    /// let result = success.into_result().unwrap();
+    /// let result = success.into_result().expect("should be successful");
     /// assert_eq!(result.value, 42);
     /// assert_eq!(result.diagnostics.len(), 1);
     ///
     /// // Error case
-    /// let error = DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
-    /// let error_result = error.into_result().unwrap_err();
+    /// let error: DiagnosticResult<i32, _, ()> =
+    ///     DiagnosticResult::err(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let error_result = error.into_result().expect_err("should be error");
     /// assert!(error_result.primary.severity.is_fatal());
     /// ```
     pub fn into_result(self) -> Result<DiagnosticValue<T, C, S>, Box<DiagnosticError<C, S>>> {
