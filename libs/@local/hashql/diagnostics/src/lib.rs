@@ -26,9 +26,9 @@ pub mod help;
 pub mod issues;
 pub mod label;
 pub mod note;
-pub mod result;
 pub mod severity;
 pub mod span;
+pub mod status;
 
 pub use anstyle as color;
 
@@ -37,6 +37,6 @@ pub use self::{
     help::Help,
     issues::{DiagnosticIssues, DiagnosticSink},
     note::Note,
-    result::{DiagnosticError, DiagnosticResult, DiagnosticValue},
     severity::Severity,
+    status::{Failure, Status, Success},
 };

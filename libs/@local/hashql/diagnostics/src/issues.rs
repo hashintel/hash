@@ -1,4 +1,4 @@
-use crate::{Diagnostic, DiagnosticResult, DiagnosticValue, category::DiagnosticCategory};
+use crate::{Diagnostic, Status, Success, category::DiagnosticCategory};
 
 /// Type alias for [`DiagnosticIssues`] with type-erased diagnostic categories.
 ///
@@ -559,10 +559,10 @@ impl<T, C, S> DiagnosticSink<Result<T, Self>> for DiagnosticIssues<C, S> {
     }
 }
 
-impl<T, C, S> DiagnosticSink<DiagnosticValue<T, C, S>> for DiagnosticIssues<C, S> {
+impl<T, C, S> DiagnosticSink<Success<T, C, S>> for DiagnosticIssues<C, S> {
     type Output = T;
 
-    fn sink(&mut self, mut value: DiagnosticValue<T, C, S>) -> Option<Self::Output> {
+    fn sink(&mut self, mut value: Success<T, C, S>) -> Option<Self::Output> {
         let is_ok = value.diagnostics.fatal == 0;
         self.append(&mut value.diagnostics);
 
@@ -570,10 +570,10 @@ impl<T, C, S> DiagnosticSink<DiagnosticValue<T, C, S>> for DiagnosticIssues<C, S
     }
 }
 
-impl<T, C, S> DiagnosticSink<DiagnosticResult<T, C, S>> for DiagnosticIssues<C, S> {
+impl<T, C, S> DiagnosticSink<Status<T, C, S>> for DiagnosticIssues<C, S> {
     type Output = T;
 
-    fn sink(&mut self, mut value: DiagnosticResult<T, C, S>) -> Option<Self::Output> {
+    fn sink(&mut self, mut value: Status<T, C, S>) -> Option<Self::Output> {
         self.append(&mut value.diagnostics);
 
         match value.result {
