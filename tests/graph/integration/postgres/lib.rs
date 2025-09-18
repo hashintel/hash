@@ -67,8 +67,8 @@ use hash_graph_store::{
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
-        QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams, QueryPropertyTypesResponse,
+        HasPermissionForPropertyTypesParams, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        QueryPropertyTypeSubgraphResponse, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
@@ -485,7 +485,7 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         &self,
         actor_id: ActorEntityUuid,
         mut params: QueryPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let request = params.request_mut();
 
         let include_count = request.include_count;

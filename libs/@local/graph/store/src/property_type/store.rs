@@ -121,7 +121,7 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct GetPropertyTypeSubgraphResponse {
+pub struct QueryPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
@@ -266,7 +266,7 @@ pub trait PropertyTypeStore {
         params: CountPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`] specified by the [`GetPropertyTypeSubgraphParams`].
+    /// Get the [`Subgraph`] specified by the [`QueryPropertyTypeSubgraphParams`].
     ///
     /// # Errors
     ///
@@ -275,9 +275,9 @@ pub trait PropertyTypeStore {
         &self,
         actor_id: ActorEntityUuid,
         params: QueryPropertyTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
+    ) -> impl Future<Output = Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`PropertyTypes`] specified by the [`GetPropertyTypesParams`].
+    /// Get the [`PropertyTypes`] specified by the [`QueryPropertyTypesParams`].
     ///
     /// # Errors
     ///

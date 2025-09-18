@@ -52,8 +52,8 @@ use hash_graph_store::{
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
-        QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams, QueryPropertyTypesResponse,
+        HasPermissionForPropertyTypesParams, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        QueryPropertyTypeSubgraphResponse, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
@@ -1312,7 +1312,7 @@ where
         &self,
         actor_id: ActorEntityUuid,
         params: QueryPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         self.store
             .query_property_type_subgraph(actor_id, params)
             .await

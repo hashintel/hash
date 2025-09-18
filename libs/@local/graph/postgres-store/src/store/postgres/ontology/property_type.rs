@@ -12,8 +12,8 @@ use hash_graph_store::{
     filter::Filter,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphResponse, HasPermissionForPropertyTypesParams,
-        PropertyTypeQueryPath, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        HasPermissionForPropertyTypesParams, PropertyTypeQueryPath, PropertyTypeStore,
+        QueryPropertyTypeSubgraphParams, QueryPropertyTypeSubgraphResponse,
         QueryPropertyTypesParams, QueryPropertyTypesResponse, UnarchivePropertyTypeParams,
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
@@ -704,7 +704,7 @@ where
         &self,
         actor_id: ActorEntityUuid,
         params: QueryPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -796,7 +796,7 @@ where
             .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetPropertyTypeSubgraphResponse {
+        Ok(QueryPropertyTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
