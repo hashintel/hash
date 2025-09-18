@@ -18,9 +18,9 @@ use hash_graph_store::{
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CreateEntityTypeParams,
         EntityTypeQueryToken, EntityTypeResolveDefinitions, EntityTypeStore,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, QueryClosedMultiEntityTypesParams,
-        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
         QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
         UpdateEntityTypesParams,
     },
@@ -61,7 +61,7 @@ use crate::rest::{
         load_external_entity_type,
         query_entity_types,
         query_entity_type_subgraph,
-        query_closed_multi_entity_types,
+        get_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
         update_entity_type_embeddings,
@@ -82,9 +82,9 @@ use crate::rest::{
             QueryEntityTypesParams,
             CommonQueryEntityTypesParams,
             QueryEntityTypesResponse,
-            QueryClosedMultiEntityTypesParams,
+            GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
-            QueryClosedMultiEntityTypesResponse,
+            GetClosedMultiEntityTypesResponse,
             EntityTypeResolveDefinitions,
             QueryEntityTypeSubgraphParams,
             QueryEntityTypeSubgraphResponse,
@@ -120,7 +120,7 @@ impl EntityTypeResource {
                     "/query",
                     Router::new()
                         .route("/", post(query_entity_types::<S>))
-                        .route("/multi", post(query_closed_multi_entity_types::<S>))
+                        .route("/multi", post(get_closed_multi_entity_types::<S>))
                         .route("/subgraph", post(query_entity_type_subgraph::<S>)),
                 )
                 .route("/load", post(load_external_entity_type::<S>))
@@ -506,7 +506,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query/multi",
-    request_body = QueryClosedMultiEntityTypesParams,
+    request_body = GetClosedMultiEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -515,7 +515,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = QueryClosedMultiEntityTypesResponse,
+            body = GetClosedMultiEntityTypesResponse,
             description = "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
         ),
 
@@ -523,13 +523,13 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_closed_multi_entity_types<S>(
+async fn get_closed_multi_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryClosedMultiEntityTypesResponse>, Response>
+) -> Result<Json<GetClosedMultiEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -544,12 +544,12 @@ where
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization
     // and better error reporting.
-    let params = QueryClosedMultiEntityTypesParams::deserialize(&request)
+    let params = GetClosedMultiEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
     let response = store
-        .query_closed_multi_entity_types(
+        .get_closed_multi_entity_types(
             actor_id,
             params.entity_type_ids,
             params.temporal_axes,

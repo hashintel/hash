@@ -2272,7 +2272,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "query_closed_multi_entity_types",
+        "operationId": "get_closed_multi_entity_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2288,7 +2288,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/QueryClosedMultiEntityTypesParams"
+                "$ref": "#/components/schemas/GetClosedMultiEntityTypesParams"
               }
             }
           },
@@ -2300,7 +2300,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueryClosedMultiEntityTypesResponse"
+                  "$ref": "#/components/schemas/GetClosedMultiEntityTypesResponse"
                 }
               }
             }
@@ -5320,6 +5320,56 @@
           }
         }
       },
+      "GetClosedMultiEntityTypesParams": {
+        "type": "object",
+        "required": [
+          "entityTypeIds",
+          "temporalAxes"
+        ],
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            }
+          },
+          "includeResolved": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeResolvedEntityTypeOption"
+              }
+            ]
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetClosedMultiEntityTypesResponse": {
+        "type": "object",
+        "required": [
+          "entityTypes"
+        ],
+        "properties": {
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
+          "entityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          }
+        }
+      },
       "GetEntitiesRequest": {
         "oneOf": [
           {
@@ -7956,57 +8006,6 @@
         },
         "additionalProperties": false
       },
-      "QueryClosedMultiEntityTypesParams": {
-        "type": "object",
-        "required": [
-          "entityTypeIds",
-          "temporalAxes"
-        ],
-        "properties": {
-          "entityTypeIds": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            }
-          },
-          "includeResolved": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeResolvedEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "QueryClosedMultiEntityTypesResponse": {
-        "type": "object",
-        "required": [
-          "entityTypes"
-        ],
-        "properties": {
-          "definitions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
-              }
-            ]
-          },
-          "entityTypes": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
-            }
-          }
-        }
-      },
       "QueryConversion": {
         "type": "object",
         "required": [
@@ -8253,7 +8252,6 @@
           },
           "count": {
             "type": "integer",
-            "nullable": true,
             "minimum": 0
           },
           "cursor": {
@@ -8261,8 +8259,7 @@
               {
                 "$ref": "#/components/schemas/VersionedUrl"
               }
-            ],
-            "nullable": true
+            ]
           },
           "definitions": {
             "allOf": [

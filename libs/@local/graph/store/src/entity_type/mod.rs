@@ -4,9 +4,9 @@ pub use self::{
     store::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
-        EntityTypeStore, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, QueryClosedMultiEntityTypesParams,
-        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams,
+        EntityTypeStore, GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
+        HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },

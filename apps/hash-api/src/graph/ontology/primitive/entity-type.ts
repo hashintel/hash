@@ -1,4 +1,3 @@
-import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityType,
   EntityTypeMetadata,
@@ -13,28 +12,28 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   ontologyTypeRecordIdToVersionedUrl,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
-  QueryClosedMultiEntityTypesParams,
-  QueryClosedMultiEntityTypesResponse as GraphApiQueryClosedMultiEntityTypesResponse,
+  GetClosedMultiEntityTypesParams,
+  GetClosedMultiEntityTypesResponse as GraphApiGetClosedMultiEntityTypesResponse,
   QueryEntityTypesParams,
-  QueryEntityTypeSubgraphParams,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
-import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import {
+  getEntityTypeById,
+  hasPermissionForEntityTypes,
+} from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedEntityTypeWithMetadata,
   ConstructEntityTypeParams,
   EntityTypeResolveDefinitions,
 } from "@local/hash-graph-sdk/ontology";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -46,7 +45,7 @@ import {
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
-import { getWebShortname, isExternalTypeId } from "./util";
+import { getWebShortname } from "./util";
 
 export const checkPermissionsOnEntityType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
@@ -145,44 +144,6 @@ export const createEntityType: ImpureGraphFunction<
   return { schema, metadata: metadata as unknown as EntityTypeMetadata };
 };
 
-/**
- * Get entity types by a structural query.
- *
- * @param params.query the structural query to filter entity types by.
- */
-export const getEntityTypeSubgraph: ImpureGraphFunction<
-  QueryEntityTypeSubgraphParams,
-  Promise<Subgraph<EntityTypeRootType>>
-> = async ({ graphApi, temporalClient }, { actorId }, request) => {
-  await rewriteSemanticFilter(request.filter, temporalClient);
-
-  return await graphApi
-    .queryEntityTypeSubgraph(actorId, request)
-    .then(({ data: response }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        response.subgraph,
-        actorId,
-      );
-
-      return subgraph;
-    });
-};
-
-export const getEntityTypes: ImpureGraphFunction<
-  DistributiveOmit<QueryEntityTypesParams, "includeEntityTypes">,
-  Promise<EntityTypeWithMetadata[]>
-> = async ({ graphApi, temporalClient }, { actorId }, request) => {
-  await rewriteSemanticFilter(request.filter, temporalClient);
-
-  return await graphApi
-    .queryEntityTypes(actorId, {
-      ...request,
-    })
-    .then(({ data: response }) =>
-      mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
-    );
-};
-
 export const getClosedEntityTypes: ImpureGraphFunction<
   Omit<QueryEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
     temporalClient?: TemporalClient;
@@ -206,7 +167,7 @@ export const getClosedEntityTypes: ImpureGraphFunction<
 };
 
 export type GetClosedMultiEntityTypesResponse = Omit<
-  GraphApiQueryClosedMultiEntityTypesResponse,
+  GraphApiGetClosedMultiEntityTypesResponse,
   "entityTypes" | "definitions"
 > & {
   closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
@@ -214,11 +175,11 @@ export type GetClosedMultiEntityTypesResponse = Omit<
 };
 
 export const getClosedMultiEntityTypes: ImpureGraphFunction<
-  QueryClosedMultiEntityTypesParams,
+  GetClosedMultiEntityTypesParams,
   Promise<GetClosedMultiEntityTypesResponse>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .queryClosedMultiEntityTypes(actorId, request)
+    .getClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) => ({
       closedMultiEntityTypes: response.entityTypes,
       definitions: response.definitions
@@ -227,68 +188,6 @@ export const getClosedMultiEntityTypes: ImpureGraphFunction<
           )
         : undefined,
     }));
-
-/**
- * Get an entity type by its versioned URL.
- *
- * @param params.entityTypeId the unique versioned URL for an entity type.
- */
-export const getEntityTypeById: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-  },
-  Promise<EntityTypeWithMetadata>
-> = async (context, authentication, params) => {
-  const { entityTypeId } = params;
-
-  const [entityType] = await getEntityTypes(context, authentication, {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-
-  if (!entityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID "${entityTypeId}"`,
-    );
-  }
-
-  return entityType;
-};
-
-/**
- * Get an entity type rooted subgraph by its versioned URL.
- *
- * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type
- * into the Graph.
- */
-export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  DistributiveOmit<QueryEntityTypeSubgraphParams, "filter"> & {
-    entityTypeId: VersionedUrl;
-  },
-  Promise<Subgraph<EntityTypeRootType>>
-> = async (context, authentication, params) => {
-  const { entityTypeId, ...subgraphRequest } = params;
-  const request: QueryEntityTypeSubgraphParams = {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-    },
-    ...subgraphRequest,
-  };
-
-  let subgraph = await getEntityTypeSubgraph(context, authentication, request);
-
-  if (subgraph.roots.length === 0 && isExternalTypeId(entityTypeId)) {
-    await context.graphApi.loadExternalEntityType(authentication.actorId, {
-      entityTypeId,
-    });
-
-    subgraph = await getEntityTypeSubgraph(context, authentication, request);
-  }
-
-  return subgraph;
-};
 
 type UpdateEntityTypeParams = {
   entityTypeId: VersionedUrl;
@@ -422,11 +321,20 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
   }
 
   const parentTypes = await Promise.all(
-    (allOf ?? []).map(async ({ $ref }) =>
-      getEntityTypeById(context, authentication, {
-        entityTypeId: $ref,
-      }),
-    ),
+    (allOf ?? []).map(async ({ $ref }) => {
+      const parentEntityType = await getEntityTypeById(
+        context.graphApi,
+        authentication,
+        {
+          entityTypeId: $ref,
+          temporalAxes: currentTimeInstantTemporalAxes,
+        },
+      );
+      if (!parentEntityType) {
+        throw new NotFoundError(`Could not find entity type with ID ${$ref}`);
+      }
+      return parentEntityType;
+    }),
   );
 
   return new Promise((resolve) => {

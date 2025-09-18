@@ -9,10 +9,6 @@ import {
   createEntityType,
   getClosedEntityTypes,
   getClosedMultiEntityTypes,
-  getEntityTypeById,
-  getEntityTypes,
-  getEntityTypeSubgraph,
-  getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -32,7 +28,12 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import {
+  getEntityTypeById,
+  getEntityTypeSubgraphById,
+  hasPermissionForEntityTypes,
+  queryEntityTypeSubgraph,
+} from "@local/hash-graph-sdk/entity-type";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -226,25 +227,41 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedEntityType = await getEntityTypeById(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         entityTypeId: createdEntityType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
 
-    expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
+    expect(fetchedEntityType?.schema).toEqual(createdEntityType.schema);
   });
 
   it("can read a closed entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const userType = await getEntityTypeById(graphContext, authentication, {
-      entityTypeId: systemEntityTypes.user.entityTypeId,
-    });
-    const actorType = await getEntityTypeById(graphContext, authentication, {
-      entityTypeId: systemEntityTypes.actor.entityTypeId,
-    });
+    const userType = await getEntityTypeById(
+      graphContext.graphApi,
+      authentication,
+      {
+        entityTypeId: systemEntityTypes.user.entityTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+    expect(userType).not.toBeNull();
+    assert(userType);
+
+    const actorType = await getEntityTypeById(
+      graphContext.graphApi,
+      authentication,
+      {
+        entityTypeId: systemEntityTypes.actor.entityTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+    expect(actorType).not.toBeNull();
+    assert(actorType);
 
     const fetchedEntityType = await getClosedEntityTypes(
       graphContext,
@@ -401,30 +418,34 @@ describe("Entity type CRU", () => {
       ),
     } satisfies ClosedMultiEntityType);
 
-    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
-      filter: {
-        any: [
-          {
-            equal: [
-              { path: ["versionedUrl"] },
-              { parameter: systemEntityTypes.user.entityTypeId },
-            ],
-          },
-          {
-            equal: [
-              { path: ["versionedUrl"] },
-              { parameter: systemEntityTypes.actor.entityTypeId },
-            ],
-          },
-        ],
+    const { subgraph } = await queryEntityTypeSubgraph(
+      graphContext.graphApi,
+      authentication,
+      {
+        filter: {
+          any: [
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeId },
+              ],
+            },
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.actor.entityTypeId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 255 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-    });
+    );
 
     for (const propertyType of getPropertyTypes(subgraph)) {
       expect(propertyType.schema).toEqual(
@@ -496,50 +517,34 @@ describe("Entity type CRU", () => {
       entityTypeId: createdEntityType.schema.$id,
     });
 
-    const [archivedEntityType] = await getEntityTypes(
-      graphContext,
+    const archivedEntityType = await getEntityTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
+        entityTypeId: createdEntityType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
-
-    expect(
-      await getEntityTypes(graphContext, authentication, {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      }),
-    ).toHaveLength(0);
-
     expect(
       archivedEntityType?.metadata.temporalVersioning.transactionTime.end.kind,
     ).toBe("exclusive");
+
+    expect(
+      await getEntityTypeById(graphContext.graphApi, authentication, {
+        entityTypeId: createdEntityType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).toBeNull();
 
     await unarchiveEntityType(graphContext, authentication, {
       entityTypeId: createdEntityType.schema.$id,
     });
 
-    const [unarchivedEntityType] = await getEntityTypes(
-      graphContext,
+    const unarchivedEntityType = await getEntityTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
+        entityTypeId: createdEntityType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
@@ -556,20 +561,20 @@ describe("Entity type CRU", () => {
     const entityTypeId =
       "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
 
-    await expect(
-      getEntityTypeById(
-        graphContext,
+    expect(
+      await getEntityTypeById(
+        graphContext.graphApi,
         { actorId: publicUserAccountId },
-        { entityTypeId },
+        { entityTypeId, temporalAxes: currentTimeInstantTemporalAxes },
       ),
-    ).rejects.toThrow("Could not find entity type with ID");
+    ).toBeNull();
 
-    await expect(
-      getEntityTypeSubgraphById(graphContext, authentication, {
+    expect(
+      await getEntityTypeSubgraphById(graphContext.graphApi, authentication, {
         entityTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
-    ).resolves.not.toThrow();
+    ).not.toBeNull();
   });
 });

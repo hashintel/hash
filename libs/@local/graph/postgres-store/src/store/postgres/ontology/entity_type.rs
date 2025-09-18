@@ -13,9 +13,9 @@ use hash_graph_store::{
     entity_type::{
         ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
-        EntityTypeResolveDefinitions, EntityTypeStore, HasPermissionForEntityTypesParams,
-        IncludeEntityTypeOption, IncludeResolvedEntityTypeOption,
-        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams,
+        EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypesResponse,
+        HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
@@ -1211,18 +1211,18 @@ where
         level = "info",
         skip(self, actor_id, entity_type_ids, temporal_axes, include_resolved)
     )]
-    async fn query_closed_multi_entity_types<I, J>(
+    async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
-    ) -> Result<QueryClosedMultiEntityTypesResponse, Report<QueryError>>
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
     where
         I: IntoIterator<Item = J>,
         J: IntoIterator<Item = VersionedUrl>,
     {
-        let mut response = QueryClosedMultiEntityTypesResponse {
+        let mut response = GetClosedMultiEntityTypesResponse {
             entity_types: HashMap::new(),
             definitions: None,
         };

@@ -18,8 +18,8 @@ import type {
   ClosedEntityType as GraphApiClosedEntityType,
   ClosedMultiEntityType as GraphApiClosedMultiEntityType,
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
-  EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
+  GetClosedMultiEntityTypesResponseDefinitions,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
 } from "@local/hash-graph-client";
 import type {
@@ -112,8 +112,9 @@ export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
 ) => closedEntityTypes as ClosedEntityType[];
 
 export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
-  (entityTypeResolveDefinitions: GraphApiEntityTypeResolveDefinitions) =>
-    entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
+  (
+    entityTypeResolveDefinitions: GetClosedMultiEntityTypesResponseDefinitions,
+  ) => entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
 
 export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
   closedMultiEntityTypes: GraphApiClosedMultiEntityType[],

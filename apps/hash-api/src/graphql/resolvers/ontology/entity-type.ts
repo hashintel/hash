@@ -6,6 +6,12 @@ import type {
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
+  getClosedMultiEntityTypes,
+  getEntityTypeSubgraphById,
+  queryEntityTypeSubgraph,
+  serializeQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
+import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
@@ -17,9 +23,6 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedMultiEntityTypes,
-  getEntityTypeSubgraph,
-  getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
   updateEntityTypes,
@@ -76,39 +79,37 @@ export const queryEntityTypesResolver: ResolverFn<
     latestOnly = true,
     includeArchived = false,
   },
-  { dataSources, authentication, provenance, temporal },
+  { dataSources, authentication },
   __,
 ) => {
-  const { graphApi } = dataSources;
-
   const latestOnlyFilter = {
     equal: [{ path: ["version"] }, { parameter: "latest" }],
   };
 
-  return serializeSubgraph(
-    await getEntityTypeSubgraph(
-      { graphApi, provenance, temporalClient: temporal },
-      authentication,
-      {
-        filter: latestOnly
-          ? filter
-            ? { all: [filter, latestOnlyFilter] }
-            : latestOnlyFilter
-          : (filter ?? { all: [] }),
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
+  const response = await queryEntityTypeSubgraph(
+    dataSources.graphApi,
+    authentication,
+    {
+      filter: latestOnly
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : (filter ?? { all: [] }),
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
       },
-    ),
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
+    },
   );
+
+  return serializeQueryEntityTypeSubgraphResponse(response).subgraph;
 };
 
 export const getEntityTypeResolver: ResolverFn<
@@ -129,27 +130,32 @@ export const getEntityTypeResolver: ResolverFn<
   },
   graphQLContext,
   __,
-) =>
-  serializeSubgraph(
-    await getEntityTypeSubgraphById(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        entityTypeId,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-          constrainsLinksOn,
-          constrainsLinkDestinationsOn,
-          inheritsFrom,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
+) => {
+  const subgraph = await getEntityTypeSubgraphById(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    {
+      entityTypeId,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
+        constrainsLinksOn,
+        constrainsLinkDestinationsOn,
+        inheritsFrom,
       },
-    ),
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
+    },
   );
+
+  if (!subgraph) {
+    throw new ApolloError(`Entity type with ID ${entityTypeId} not found`);
+  }
+
+  return serializeSubgraph(subgraph);
+};
 
 export const getClosedMultiEntityTypesResolver: ResolverFn<
   Promise<GetClosedMultiEntityTypesResponse>,
@@ -161,7 +167,7 @@ export const getClosedMultiEntityTypesResolver: ResolverFn<
 
   const { closedMultiEntityTypes, definitions } =
     await getClosedMultiEntityTypes(
-      graphQLContextToImpureGraphContext(graphQLContext),
+      graphQLContextToImpureGraphContext(graphQLContext).graphApi,
       graphQLContext.authentication,
       {
         entityTypeIds,

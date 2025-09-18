@@ -254,7 +254,11 @@ pub struct QueryEntityTypesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -275,17 +279,18 @@ pub enum IncludeResolvedEntityTypeOption {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct QueryClosedMultiEntityTypesParams {
+pub struct GetClosedMultiEntityTypesParams {
     pub entity_type_ids: Vec<Vec<VersionedUrl>>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_resolved: Option<IncludeResolvedEntityTypeOption>,
 }
 
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct QueryClosedMultiEntityTypesResponse {
+pub struct GetClosedMultiEntityTypesResponse {
     pub entity_types: HashMap<VersionedUrl, ClosedMultiEntityTypeMap>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -433,13 +438,13 @@ pub trait EntityTypeStore {
     /// Returns a `QueryError` if:
     /// - Database operations fail when retrieving closed entity type information
     /// - Type resolution fails due to invalid entity type references
-    fn query_closed_multi_entity_types<I, J>(
+    fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
-    ) -> impl Future<Output = Result<QueryClosedMultiEntityTypesResponse, Report<QueryError>>> + Send
+    ) -> impl Future<Output = Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>> + Send
     where
         I: IntoIterator<Item = J> + Send,
         J: IntoIterator<Item = VersionedUrl> + Send;

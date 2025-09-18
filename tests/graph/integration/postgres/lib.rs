@@ -58,8 +58,8 @@ use hash_graph_store::{
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
-        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams,
+        GetClosedMultiEntityTypesResponse, HasPermissionForEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
         QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
@@ -626,19 +626,19 @@ impl EntityTypeStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn query_closed_multi_entity_types<I, J>(
+    async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
-    ) -> Result<QueryClosedMultiEntityTypesResponse, Report<QueryError>>
+    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
     where
         I: IntoIterator<Item = J> + Send,
         J: IntoIterator<Item = VersionedUrl> + Send,
     {
         self.store
-            .query_closed_multi_entity_types(
+            .get_closed_multi_entity_types(
                 actor_id,
                 entity_type_ids,
                 temporal_axes,

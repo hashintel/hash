@@ -8,9 +8,9 @@ import {
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -34,10 +34,7 @@ import {
   createOrg,
   getOrgByShortname,
 } from "../graph/knowledge/system-types/org";
-import {
-  createEntityType,
-  getEntityTypeById,
-} from "../graph/ontology/primitive/entity-type";
+import { createEntityType } from "../graph/ontology/primitive/entity-type";
 import { createPropertyType } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
 
@@ -116,14 +113,14 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 
   const entityTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
-  const existingEntityType = await getEntityTypeById(context, authentication, {
-    entityTypeId,
-  }).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+  const existingEntityType = await getEntityTypeById(
+    context.graphApi,
+    authentication,
+    {
+      entityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
 
   if (existingEntityType) {
     return existingEntityType;

@@ -693,7 +693,7 @@ where
             )]
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
-                    self.query_closed_multi_entity_types(
+                    self.get_closed_multi_entity_types(
                         policy_components
                             .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
@@ -1444,7 +1444,7 @@ where
                 )]
                 closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
-                        self.query_closed_multi_entity_types(
+                        self.get_closed_multi_entity_types(
                             actor_id,
                             subgraph
                                 .vertices
