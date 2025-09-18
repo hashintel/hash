@@ -17,7 +17,7 @@ use hashql_core::{
     symbol::{Ident, Symbol},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -29,6 +29,9 @@ use hashql_diagnostics::{
 use crate::node::path::Path;
 
 pub(crate) type ImportResolverDiagnostic = Diagnostic<ImportResolverDiagnosticCategory, SpanId>;
+
+pub(crate) type ImportResolverDiagnosticIssues =
+    DiagnosticIssues<ImportResolverDiagnosticCategory, SpanId>;
 
 const GENERIC_ARGUMENTS_IN_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-arguments-in-use-path",

@@ -1,11 +1,13 @@
 use hashql_core::{
     module::{ModuleRegistry, locals::TypeLocals, namespace::ModuleNamespace},
+    span::SpanId,
     symbol::Symbol,
     r#type::environment::Environment,
 };
+use hashql_diagnostics::{DiagnosticIssues, DiagnosticResult};
 
 use self::{
-    error::{LoweringDiagnostic, LoweringDiagnosticCategory},
+    error::LoweringDiagnosticCategory,
     import_resolver::ImportResolver,
     name_mangler::NameMangler,
     node_renumberer::NodeRenumberer,
@@ -38,28 +40,26 @@ pub fn lower<'heap>(
 
     env: &Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
-) -> (ExtractedTypes<'heap>, Vec<LoweringDiagnostic>) {
-    let mut diagnostics = Vec::new();
+) -> DiagnosticResult<ExtractedTypes<'heap>, LoweringDiagnosticCategory, SpanId> {
+    let mut diagnostics = DiagnosticIssues::new();
 
     let mut resolver = PreExpansionNameResolver::new(registry);
     resolver.visit_expr(expr);
 
     let mut expander = SpecialFormExpander::new(env.heap);
     expander.visit_expr(expr);
-    diagnostics.extend(
-        expander
+    diagnostics.append(
+        &mut expander
             .take_diagnostics()
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Expander)),
+            .map_category(LoweringDiagnosticCategory::Expander),
     );
 
     let mut sanitizer = Sanitizer::new();
     sanitizer.visit_expr(expr);
-    diagnostics.extend(
-        sanitizer
+    diagnostics.append(
+        &mut sanitizer
             .take_diagnostics()
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Sanitizer)),
+            .map_category(LoweringDiagnosticCategory::Sanitizer),
     );
 
     let mut namespace = ModuleNamespace::new(registry);
@@ -67,11 +67,10 @@ pub fn lower<'heap>(
 
     let mut resolver = ImportResolver::new(env.heap, namespace);
     resolver.visit_expr(expr);
-    diagnostics.extend(
-        resolver
+    diagnostics.append(
+        &mut resolver
             .take_diagnostics()
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Resolver)),
+            .map_category(LoweringDiagnosticCategory::Resolver),
     );
 
     let mut mangler = NameMangler::new(env.heap);
@@ -80,31 +79,28 @@ pub fn lower<'heap>(
     let mut extractor = TypeDefinitionExtractor::new(env, registry, module_name);
     extractor.visit_expr(expr);
     let (named_types, extractor_diagnostics) = extractor.finish();
-    diagnostics.extend(
-        extractor_diagnostics
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Extractor)),
-    );
+    diagnostics
+        .append(&mut extractor_diagnostics.map_category(LoweringDiagnosticCategory::Extractor));
 
     let mut renumberer = NodeRenumberer::new();
     renumberer.visit_expr(expr);
 
     let mut extractor = TypeExtractor::new(env, registry, &named_types);
     extractor.visit_expr(expr);
-    diagnostics.extend(
-        extractor
+    diagnostics.append(
+        &mut extractor
             .take_diagnostics()
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Extractor)),
+            .map_category(LoweringDiagnosticCategory::Extractor),
     );
     let (anonymous_types, closure_signatures) = extractor.into_types();
 
-    (
-        ExtractedTypes {
-            locals: named_types,
-            anonymous: anonymous_types,
-            signatures: closure_signatures,
-        },
-        diagnostics,
-    )
+    let types = ExtractedTypes {
+        locals: named_types,
+        anonymous: anonymous_types,
+        signatures: closure_signatures,
+    };
+
+    let mut result = DiagnosticResult::ok(types);
+    result.append_diagnostics(&mut diagnostics);
+    result
 }

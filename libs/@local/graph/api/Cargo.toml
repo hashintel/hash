@@ -55,6 +55,7 @@ derive_more                        = { workspace = true, features = ["display", 
 error-stack                        = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                              = { workspace = true }
 futures                            = { workspace = true }
+hashql-diagnostics.workspace       = true
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
 mime                               = { workspace = true }

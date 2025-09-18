@@ -31,7 +31,7 @@ use hashql_core::{
 };
 
 use super::error::{
-    TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
+    TypeExtractorDiagnosticIssues, duplicate_struct_fields, generic_constraint_not_allowed,
     invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
@@ -241,7 +241,7 @@ impl<'heap> LocalVariableResolver<'heap> for TypeLocals<'heap> {
 pub(crate) struct TranslationUnit<'env, 'heap, L> {
     pub env: &'env Environment<'heap>,
     pub registry: &'env ModuleRegistry<'heap>,
-    pub diagnostics: Vec<TypeExtractorDiagnostic>,
+    pub diagnostics: TypeExtractorDiagnosticIssues,
 
     pub locals: &'env L,
 

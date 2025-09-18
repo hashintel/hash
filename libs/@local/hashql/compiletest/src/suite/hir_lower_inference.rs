@@ -19,6 +19,7 @@ use super::{
     Suite, SuiteDiagnostic,
     common::{Annotated, Header, process_diagnostics},
 };
+use crate::suite::common::process_diagnostic_result;
 
 pub(crate) struct HirLowerTypeInferenceSuite;
 
@@ -37,14 +38,13 @@ impl Suite for HirLowerTypeInferenceSuite {
         let registry = ModuleRegistry::new(&environment);
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
+        let result = lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
+        let types = process_diagnostic_result(diagnostics, result)?;
 
         let interner = Interner::new(heap);
         let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
