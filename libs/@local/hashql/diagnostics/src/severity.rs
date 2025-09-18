@@ -16,17 +16,17 @@ pub const trait SeverityKind: Copy + const Into<Severity> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::Severity;
+    /// use hashql_diagnostics::{Severity, severity::SeverityKind};
     ///
-    /// // Fatal severities
-    /// assert!(Severity::Bug.is_fatal());
-    /// assert!(Severity::Fatal.is_fatal());
-    /// assert!(Severity::Error.is_fatal());
+    /// // Critical severities
+    /// assert!(Severity::Bug.is_critical());
+    /// assert!(Severity::Fatal.is_critical());
+    /// assert!(Severity::Error.is_critical());
     ///
-    /// // Non-fatal severities
-    /// assert!(!Severity::Warning.is_fatal());
-    /// assert!(!Severity::Note.is_fatal());
-    /// assert!(!Severity::Debug.is_fatal());
+    /// // Non-critical severities
+    /// assert!(!Severity::Warning.is_critical());
+    /// assert!(!Severity::Note.is_critical());
+    /// assert!(!Severity::Debug.is_critical());
     /// ```
     fn is_critical(self) -> bool;
     fn is_advisory(self) -> bool;
@@ -96,23 +96,23 @@ pub struct SeverityInfo {
 /// # Examples
 ///
 /// ```
-/// use hashql_diagnostics::Severity;
+/// use hashql_diagnostics::{Severity, severity::SeverityKind};
 ///
-/// // Fatal severity levels
+/// // Critical severity levels
 /// let bug = Severity::Bug; // Code: 600
 /// let fatal = Severity::Fatal; // Code: 500
 /// let error = Severity::Error; // Code: 400
-/// assert!(bug.is_fatal());
-/// assert!(fatal.is_fatal());
-/// assert!(error.is_fatal());
+/// assert!(bug.is_critical());
+/// assert!(fatal.is_critical());
+/// assert!(error.is_critical());
 ///
-/// // Non-fatal severity levels
+/// // Non-critical severity levels
 /// let warning = Severity::Warning; // Code: 300
 /// let note = Severity::Note; // Code: 200
 /// let debug = Severity::Debug; // Code: 100
-/// assert!(!warning.is_fatal());
-/// assert!(!note.is_fatal());
-/// assert!(!debug.is_fatal());
+/// assert!(!warning.is_critical());
+/// assert!(!note.is_critical());
+/// assert!(!debug.is_critical());
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Severity {

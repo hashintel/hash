@@ -9,20 +9,28 @@ use crate::{
 
 /// Type alias for [`DiagnosticIssues`] with type-erased diagnostic categories.
 ///
-/// This convenience type allows working with collections of diagnostics where the
-/// specific category types may vary.
+/// This convenience type allows working with collections of diagnostics where the specific category
+/// types may vary.
 pub type BoxedDiagnosticIssues<'category, S, K = Severity> =
     DiagnosticIssues<Box<dyn DiagnosticCategory + 'category>, S, K>;
 
+/// Type alias for [`DiagnosticIssues`] containing only critical diagnostics.
+///
+/// This type ensures compile-time safety by restricting the collection to only critical (fatal)
+/// diagnostics that prevent successful compilation.
 pub type CriticalDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Critical>;
+
+/// Type alias for [`DiagnosticIssues`] containing only advisory diagnostics.
+///
+/// This type ensures compile-time safety by restricting the collection to only advisory (non-fatal)
+/// diagnostics such as warnings and informational messages.
 pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 
 /// A collection of diagnostic messages for error reporting.
 ///
-/// `DiagnosticIssues` collects diagnostic messages during compilation phases,
-/// allowing you to accumulate errors, warnings, and other messages before
-/// deciding how to handle them. Fatal diagnostics are errors that prevent
-/// successful compilation (severity codes ≥ 400).
+/// [`DiagnosticIssues`] collects diagnostic messages during compilation phases, allowing you to
+/// accumulate errors, warnings, and other messages before deciding how to handle them. Critical
+/// diagnostics are errors that prevent successful compilation (severity codes ≥ 400).
 ///
 /// # Examples
 ///
@@ -40,7 +48,7 @@ pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
 ///
 /// assert_eq!(issues.len(), 2);
-/// assert_eq!(issues.fatal(), 1);
+/// assert_eq!(issues.critical(), 1);
 /// ```
 ///
 /// Working with the [`DiagnosticSink`] trait to process results:
@@ -82,7 +90,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     ///
     /// let issues: DiagnosticIssues<(), ()> = DiagnosticIssues::new();
     /// assert_eq!(issues.len(), 0);
-    /// assert_eq!(issues.fatal(), 0);
+    /// assert_eq!(issues.critical(), 0);
     /// assert!(issues.is_empty());
     /// ```
     pub const fn new() -> Self {
@@ -175,7 +183,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     ///
     /// issues.clear();
     /// assert_eq!(issues.len(), 0);
-    /// assert_eq!(issues.fatal(), 0);
+    /// assert_eq!(issues.critical(), 0);
     /// assert!(issues.is_empty());
     /// ```
     pub fn clear(&mut self) {
@@ -183,9 +191,9 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
         self.critical = 0;
     }
 
-    /// Returns the number of fatal diagnostics.
+    /// Returns the number of critical diagnostics.
     ///
-    /// Fatal diagnostics are errors that prevent successful compilation
+    /// Critical diagnostics are errors that prevent successful compilation
     /// (severity codes ≥ 400). This method runs in O(1) time.
     ///
     /// # Examples
@@ -198,19 +206,43 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # };
     ///
     /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// assert_eq!(issues.fatal(), 0);
+    /// assert_eq!(issues.critical(), 0);
     ///
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// assert_eq!(issues.fatal(), 1);
+    /// assert_eq!(issues.critical(), 1);
     ///
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
-    /// assert_eq!(issues.fatal(), 1); // Warnings are not fatal
+    /// assert_eq!(issues.critical(), 1); // Warnings are not critical
     /// ```
     #[must_use]
     pub const fn critical(&self) -> usize {
         self.critical
     }
 
+    /// Returns the number of advisory (non-critical) diagnostics.
+    ///
+    /// Advisory diagnostics are warnings, notes, and other non-fatal messages
+    /// (severity codes < 400). This method runs in O(1) time.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// assert_eq!(issues.advisory(), 0);
+    ///
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// assert_eq!(issues.advisory(), 1);
+    ///
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// assert_eq!(issues.advisory(), 1); // Errors are not advisory
+    /// assert_eq!(issues.critical(), 1);
+    /// ```
     #[must_use]
     pub const fn advisory(&self) -> usize {
         self.len() - self.critical
@@ -263,7 +295,8 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
 
     /// Moves all diagnostics from another collection into this one.
     ///
-    /// The other collection is left empty.
+    /// After this operation, the other collection will be empty and all its
+    /// diagnostics will have been moved to this collection.
     ///
     /// # Examples
     ///
@@ -283,7 +316,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// main_issues.append(&mut other_issues);
     ///
     /// assert_eq!(main_issues.len(), 2);
-    /// assert_eq!(main_issues.fatal(), 1);
+    /// assert_eq!(main_issues.critical(), 1);
     /// assert!(other_issues.is_empty());
     /// ```
     pub fn append(&mut self, other: &mut Self) {
@@ -315,6 +348,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
         self.diagnostics.iter()
     }
 
+    /// Returns a mutable iterator over the diagnostics in the collection.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Diagnostic<C, S, K>> {
         self.diagnostics.iter_mut()
     }
@@ -405,7 +439,7 @@ where
     /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
     /// assert_eq!(issues.len(), 2);
-    /// assert_eq!(issues.fatal(), 1);
+    /// assert_eq!(issues.critical(), 1);
     /// ```
     pub fn push(&mut self, diagnostic: Diagnostic<C, S, K>) {
         self.critical += usize::from(diagnostic.severity.is_critical());
@@ -462,6 +496,10 @@ where
 }
 
 impl<C, S> DiagnosticIssues<C, S, Severity> {
+    #[expect(
+        clippy::result_large_err,
+        reason = "The error is only used transiently"
+    )]
     pub(crate) fn merge_into_advisories(
         &mut self,
         other: &mut DiagnosticIssues<C, S, Advisory>,
