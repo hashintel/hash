@@ -41,7 +41,7 @@ import type {
 import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   GetEntitySubgraphRequest,
-  GetEntityTypesParams,
+  QueryEntityTypesParams,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import {
@@ -484,7 +484,7 @@ it("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
-  const request: GetEntityTypesParams = {
+  const request: QueryEntityTypesParams = {
     filter: {
       equal: [
         {
@@ -496,7 +496,6 @@ it("archives/unarchives entity types", async () => {
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
   };
 
   const initialEntityTypes = await getEntityTypes(

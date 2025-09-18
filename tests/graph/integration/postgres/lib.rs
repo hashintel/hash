@@ -58,9 +58,9 @@ use hash_graph_store::{
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -590,11 +590,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
         self.store.count_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        mut params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let request = &mut params.request;
 
         let include_count = request.include_count;
@@ -607,12 +607,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
                 CountEntityTypesParams {
                     filter: request.filter.clone(),
                     temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_entity_types(actor_id, params).await?;
+        let mut response = self.store.query_entity_types(actor_id, params).await?;
 
         // We can ensure that `count_entity_types` and `get_entity_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -627,19 +626,19 @@ impl EntityTypeStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_closed_multi_entity_types<I, J>(
+    async fn query_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
         entity_type_ids: I,
         temporal_axes: QueryTemporalAxesUnresolved,
         include_resolved: Option<IncludeResolvedEntityTypeOption>,
-    ) -> Result<GetClosedMultiEntityTypesResponse, Report<QueryError>>
+    ) -> Result<QueryClosedMultiEntityTypesResponse, Report<QueryError>>
     where
         I: IntoIterator<Item = J> + Send,
         J: IntoIterator<Item = VersionedUrl> + Send,
     {
         self.store
-            .get_closed_multi_entity_types(
+            .query_closed_multi_entity_types(
                 actor_id,
                 entity_type_ids,
                 temporal_axes,
@@ -648,11 +647,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
+        mut params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
@@ -665,14 +664,13 @@ impl EntityTypeStore for DatabaseApi<'_> {
                 CountEntityTypesParams {
                     filter: request.filter.clone(),
                     temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
 
         let mut response = self
             .store
-            .get_entity_type_subgraph(actor_id, params)
+            .query_entity_type_subgraph(actor_id, params)
             .await?;
 
         // We can ensure that `count_entity_types` and `get_entity_type_subgraph` return the same

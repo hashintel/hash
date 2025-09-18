@@ -73,7 +73,7 @@ export const gptQueryTypes: RequestHandler<
     : null;
 
   const queryResponse: GptQueryTypesResponseBody = await req.context.graphApi
-    .getEntityTypeSubgraph(user.accountId, {
+    .queryEntityTypeSubgraph(user.accountId, {
       filter: {
         all: [
           ...(webUuids?.length
@@ -98,7 +98,6 @@ export const gptQueryTypes: RequestHandler<
             : []),
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
         inheritsFrom: { outgoing: 255 },

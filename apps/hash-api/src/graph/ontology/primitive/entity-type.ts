@@ -20,10 +20,10 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
-  GetClosedMultiEntityTypesParams,
-  GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
-  GetEntityTypesParams,
-  GetEntityTypeSubgraphParams,
+  QueryClosedMultiEntityTypesParams,
+  QueryClosedMultiEntityTypesResponse as GraphApiQueryClosedMultiEntityTypesResponse,
+  QueryEntityTypesParams,
+  QueryEntityTypeSubgraphParams,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
@@ -151,13 +151,13 @@ export const createEntityType: ImpureGraphFunction<
  * @param params.query the structural query to filter entity types by.
  */
 export const getEntityTypeSubgraph: ImpureGraphFunction<
-  DistributiveOmit<GetEntityTypeSubgraphParams, "includeDrafts">,
+  QueryEntityTypeSubgraphParams,
   Promise<Subgraph<EntityTypeRootType>>
 > = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypeSubgraph(actorId, { includeDrafts: false, ...request })
+    .queryEntityTypeSubgraph(actorId, request)
     .then(({ data: response }) => {
       const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
         response.subgraph,
@@ -169,17 +169,13 @@ export const getEntityTypeSubgraph: ImpureGraphFunction<
 };
 
 export const getEntityTypes: ImpureGraphFunction<
-  DistributiveOmit<
-    GetEntityTypesParams,
-    "includeDrafts" | "includeEntityTypes"
-  >,
+  DistributiveOmit<QueryEntityTypesParams, "includeEntityTypes">,
   Promise<EntityTypeWithMetadata[]>
 > = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
   return await graphApi
-    .getEntityTypes(actorId, {
-      includeDrafts: false,
+    .queryEntityTypes(actorId, {
       ...request,
     })
     .then(({ data: response }) =>
@@ -188,15 +184,14 @@ export const getEntityTypes: ImpureGraphFunction<
 };
 
 export const getClosedEntityTypes: ImpureGraphFunction<
-  Omit<GetEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
+  Omit<QueryEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
     temporalClient?: TemporalClient;
   },
   Promise<ClosedEntityTypeWithMetadata[]>
 > = async ({ graphApi, temporalClient }, { actorId }, request) => {
   await rewriteSemanticFilter(request.filter, temporalClient);
 
-  const { data: response } = await graphApi.getEntityTypes(actorId, {
-    includeDrafts: false,
+  const { data: response } = await graphApi.queryEntityTypes(actorId, {
     includeEntityTypes: "closed",
     ...request,
   });
@@ -211,7 +206,7 @@ export const getClosedEntityTypes: ImpureGraphFunction<
 };
 
 export type GetClosedMultiEntityTypesResponse = Omit<
-  GetClosedMultiEntityTypesResponseGraphApi,
+  GraphApiQueryClosedMultiEntityTypesResponse,
   "entityTypes" | "definitions"
 > & {
   closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
@@ -219,11 +214,11 @@ export type GetClosedMultiEntityTypesResponse = Omit<
 };
 
 export const getClosedMultiEntityTypes: ImpureGraphFunction<
-  GetClosedMultiEntityTypesParams,
+  QueryClosedMultiEntityTypesParams,
   Promise<GetClosedMultiEntityTypesResponse>
 > = async ({ graphApi }, { actorId }, request) =>
   graphApi
-    .getClosedMultiEntityTypes(actorId, request)
+    .queryClosedMultiEntityTypes(actorId, request)
     .then(({ data: response }) => ({
       closedMultiEntityTypes: response.entityTypes,
       definitions: response.definitions
@@ -269,17 +264,16 @@ export const getEntityTypeById: ImpureGraphFunction<
  * into the Graph.
  */
 export const getEntityTypeSubgraphById: ImpureGraphFunction<
-  DistributiveOmit<GetEntityTypeSubgraphParams, "filter" | "includeDrafts"> & {
+  DistributiveOmit<QueryEntityTypeSubgraphParams, "filter"> & {
     entityTypeId: VersionedUrl;
   },
   Promise<Subgraph<EntityTypeRootType>>
 > = async (context, authentication, params) => {
   const { entityTypeId, ...subgraphRequest } = params;
-  const request: GetEntityTypeSubgraphParams = {
+  const request: QueryEntityTypeSubgraphParams = {
     filter: {
       equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
     },
-    includeDrafts: false,
     ...subgraphRequest,
   };
 

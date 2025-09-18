@@ -60,9 +60,7 @@ export const findExistingEntity = async ({
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
     (await graphApiClient
-      .getEntityTypeSubgraph(actorId, {
-        includeDrafts: false,
-
+      .queryEntityTypeSubgraph(actorId, {
         filter: {
           any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],

@@ -400,7 +400,7 @@ export const getLlmAnalysisOfDoc = async ({
     await getFlowContext();
 
   const docsEntityTypeSubgraph = await graphApiClient
-    .getEntityTypeSubgraph(userAuthentication.actorId, {
+    .queryEntityTypeSubgraph(userAuthentication.actorId, {
       filter: {
         all: [
           {
@@ -415,7 +415,6 @@ export const getLlmAnalysisOfDoc = async ({
           },
         ],
       },
-      includeDrafts: false,
 
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {

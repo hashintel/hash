@@ -16,13 +16,13 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     entity_type::{
-        ArchiveEntityTypeParams, CommonGetEntityTypesParams, CreateEntityTypeParams,
+        ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CreateEntityTypeParams,
         EntityTypeQueryToken, EntityTypeResolveDefinitions, EntityTypeStore,
-        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypesParams, GetEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryClosedMultiEntityTypesParams,
+        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
+        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     pool::StorePool,
     query::ConflictBehavior,
@@ -59,9 +59,9 @@ use crate::rest::{
 
         create_entity_type,
         load_external_entity_type,
-        get_entity_types,
-        get_entity_type_subgraph,
-        get_closed_multi_entity_types,
+        query_entity_types,
+        query_entity_type_subgraph,
+        query_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
         update_entity_type_embeddings,
@@ -79,15 +79,15 @@ use crate::rest::{
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
-            GetEntityTypesParams,
-            CommonGetEntityTypesParams,
-            GetEntityTypesResponse,
-            GetClosedMultiEntityTypesParams,
+            QueryEntityTypesParams,
+            CommonQueryEntityTypesParams,
+            QueryEntityTypesResponse,
+            QueryClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
-            GetClosedMultiEntityTypesResponse,
+            QueryClosedMultiEntityTypesResponse,
             EntityTypeResolveDefinitions,
-            GetEntityTypeSubgraphParams,
-            GetEntityTypeSubgraphResponse,
+            QueryEntityTypeSubgraphParams,
+            QueryEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
             UnarchiveEntityTypeParams,
             IncludeResolvedEntityTypeOption,
@@ -119,9 +119,9 @@ impl EntityTypeResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entity_types::<S>))
-                        .route("/multi", post(get_closed_multi_entity_types::<S>))
-                        .route("/subgraph", post(get_entity_type_subgraph::<S>)),
+                        .route("/", post(query_entity_types::<S>))
+                        .route("/multi", post(query_closed_multi_entity_types::<S>))
+                        .route("/subgraph", post(query_entity_type_subgraph::<S>)),
                 )
                 .route("/load", post(load_external_entity_type::<S>))
                 .route("/archive", put(archive_entity_type::<S>))
@@ -449,7 +449,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = GetEntityTypesParams,
+    request_body = QueryEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -458,7 +458,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityTypesResponse,
+            body = QueryEntityTypesResponse,
             description = "Gets a a list of entity types that satisfy the given query.",
         ),
 
@@ -466,13 +466,13 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_types<S>(
+async fn query_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityTypesResponse>, Response>
+) -> Result<Json<QueryEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -486,11 +486,11 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_entity_types(
+        .query_entity_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetEntityTypesParams::deserialize(&request)
+            QueryEntityTypesParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
@@ -506,7 +506,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query/multi",
-    request_body = GetClosedMultiEntityTypesParams,
+    request_body = QueryClosedMultiEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -515,7 +515,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetClosedMultiEntityTypesResponse,
+            body = QueryClosedMultiEntityTypesResponse,
             description = "Gets a list of multi-entity types that satisfy the given query. A multi-entity type is the combination of multiple entity types.",
         ),
 
@@ -523,13 +523,13 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_closed_multi_entity_types<S>(
+async fn query_closed_multi_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetClosedMultiEntityTypesResponse>, Response>
+) -> Result<Json<QueryClosedMultiEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -544,12 +544,12 @@ where
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization
     // and better error reporting.
-    let params = GetClosedMultiEntityTypesParams::deserialize(&request)
+    let params = QueryClosedMultiEntityTypesParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
     let response = store
-        .get_closed_multi_entity_types(
+        .query_closed_multi_entity_types(
             actor_id,
             params.entity_type_ids,
             params.temporal_axes,
@@ -566,9 +566,13 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntityTypeSubgraphResponse {
+struct QueryEntityTypeSubgraphResponse {
     subgraph: Subgraph,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -581,7 +585,7 @@ struct GetEntityTypeSubgraphResponse {
 #[utoipa::path(
     post,
     path = "/entity-types/query/subgraph",
-    request_body = GetEntityTypeSubgraphParams,
+    request_body = QueryEntityTypeSubgraphParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -590,20 +594,20 @@ struct GetEntityTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityTypeSubgraphResponse,
+            body = QueryEntityTypeSubgraphResponse,
             description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_type_subgraph<S>(
+async fn query_entity_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityTypeSubgraphResponse>, Response>
+) -> Result<Json<QueryEntityTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -617,16 +621,16 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_entity_type_subgraph(
+        .query_entity_type_subgraph(
             actor_id,
-            GetEntityTypeSubgraphParams::deserialize(&request)
+            QueryEntityTypeSubgraphParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
         .map(|response| {
-            Json(GetEntityTypeSubgraphResponse {
+            Json(QueryEntityTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
                 count: response.count,

@@ -17,8 +17,8 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type {
   EntityQueryCursor,
   GetEntitySubgraphRequest,
-  GetEntityTypeSubgraphParams,
   GraphApi,
+  QueryEntityTypeSubgraphParams,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
@@ -120,10 +120,10 @@ export const createGraphActivities = ({
     authentication: {
       actorId: ActorEntityUuid;
     };
-    request: GetEntityTypeSubgraphParams;
+    request: QueryEntityTypeSubgraphParams;
   }): Promise<SerializedSubgraph<EntityTypeRootType>> {
     return graphApiClient
-      .getEntityTypeSubgraph(params.authentication.actorId, params.request)
+      .queryEntityTypeSubgraph(params.authentication.actorId, params.request)
       .then(
         ({ data: response }) =>
           serializeSubgraph(

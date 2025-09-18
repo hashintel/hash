@@ -37,7 +37,7 @@ let __systemAccountId: ActorEntityUuid | undefined;
 export const getSystemAccountId = async (): Promise<ActorEntityUuid> => {
   if (!__systemAccountId) {
     __systemAccountId = await getGraphApiClient()
-      .getEntityTypes(publicUserAccountId, {
+      .queryEntityTypes(publicUserAccountId, {
         filter: {
           equal: [
             { path: ["versionedUrl"] },
@@ -45,7 +45,6 @@ export const getSystemAccountId = async (): Promise<ActorEntityUuid> => {
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
       })
       .then(({ data: response }) => {
         const entityType = response.entityTypes[0];

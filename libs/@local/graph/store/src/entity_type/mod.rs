@@ -2,13 +2,13 @@ pub(crate) use self::query::EntityTypeQueryPathVisitor;
 pub use self::{
     query::{EntityTypeQueryPath, EntityTypeQueryToken},
     store::{
-        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonGetEntityTypesParams,
+        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeResolveDefinitions,
-        EntityTypeStore, GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        EntityTypeStore, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, QueryClosedMultiEntityTypesParams,
+        QueryClosedMultiEntityTypesResponse, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
 };
 

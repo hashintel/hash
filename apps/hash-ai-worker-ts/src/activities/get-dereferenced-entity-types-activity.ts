@@ -28,7 +28,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
 
   const { data: response } = await backOff(
     () =>
-      graphApiClient.getEntityTypeSubgraph(actorId, {
+      graphApiClient.queryEntityTypeSubgraph(actorId, {
         filter: {
           any: entityTypeIds.map((entityTypeId) => ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -41,7 +41,6 @@ export const getDereferencedEntityTypesActivity = async (params: {
           inheritsFrom: { outgoing: 255 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
       }),
     {
       numOfAttempts: 3,
