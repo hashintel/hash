@@ -1,9 +1,10 @@
-use core::{
-    convert::Infallible,
-    ops::{ControlFlow, FromResidual, Try},
-};
+use core::mem;
 
-use crate::{Diagnostic, DiagnosticIssues, category::DiagnosticCategory};
+use crate::{
+    Diagnostic, DiagnosticIssues,
+    category::DiagnosticCategory,
+    severity::{Advisory, Critical},
+};
 
 /// A successful result combined with any accumulated diagnostic messages.
 ///
@@ -36,7 +37,19 @@ use crate::{Diagnostic, DiagnosticIssues, category::DiagnosticCategory};
 #[derive(Debug)]
 pub struct Success<T, C, S> {
     pub value: T,
-    pub diagnostics: DiagnosticIssues<C, S>,
+    pub advisories: DiagnosticIssues<C, S, Advisory>,
+}
+
+impl<T, C, S> Success<T, C, S> {
+    pub fn boxed<'category>(self) -> Success<T, Box<dyn DiagnosticCategory + 'category>, S>
+    where
+        C: DiagnosticCategory + 'category,
+    {
+        Success {
+            value: self.value,
+            advisories: self.advisories.boxed(),
+        }
+    }
 }
 
 /// An error result with additional diagnostic context.
@@ -70,7 +83,7 @@ pub struct Success<T, C, S> {
 /// ```
 #[derive(Debug)]
 pub struct Failure<C, S> {
-    pub primary: Diagnostic<C, S>,
+    pub primary: Diagnostic<C, S, Critical>,
     pub secondary: DiagnosticIssues<C, S>,
 }
 
@@ -114,8 +127,18 @@ impl<C, S> Failure<C, S> {
     /// );
     /// ```
     pub fn into_issues(mut self) -> DiagnosticIssues<C, S> {
-        self.secondary.insert_front(self.primary);
+        self.secondary.insert_front(self.primary.mask());
         self.secondary
+    }
+
+    pub fn boxed<'category>(self) -> Failure<Box<dyn DiagnosticCategory + 'category>, S>
+    where
+        C: DiagnosticCategory + 'category,
+    {
+        Failure {
+            primary: self.primary.boxed(),
+            secondary: self.secondary.boxed(),
+        }
     }
 }
 
@@ -173,18 +196,13 @@ impl<C, S> Failure<C, S> {
 /// // Now it's an error
 /// assert!(result.into_result().is_err());
 /// ```
-#[must_use]
-#[derive(Debug)]
-#[expect(
-    clippy::field_scoped_visibility_modifiers,
-    reason = "required for `DiagnosticIssues`"
-)]
-pub struct Status<T, C, S> {
-    pub(crate) diagnostics: DiagnosticIssues<C, S>,
-    pub(crate) result: Result<T, Diagnostic<C, S>>,
-}
+pub type Status<T, C, S> = Result<Success<T, C, S>, Failure<C, S>>;
 
-impl<T, C, S> Status<T, C, S> {
+pub trait StatusExt<T, C, S> {
+    type Boxed<'category>: StatusExt<T, Box<dyn DiagnosticCategory + 'category>, S>
+    where
+        C: 'category;
+
     /// Creates a successful `Status` with the given value.
     ///
     /// # Examples
@@ -197,12 +215,7 @@ impl<T, C, S> Status<T, C, S> {
     /// assert_eq!(success.value, 42);
     /// assert_eq!(success.diagnostics.len(), 0);
     /// ```
-    pub const fn ok(value: T) -> Self {
-        Self {
-            diagnostics: DiagnosticIssues::new(),
-            result: Ok(value),
-        }
-    }
+    fn ok(value: T) -> Self;
 
     /// Creates a failed `Status` with the given fatal diagnostic.
     ///
@@ -223,101 +236,7 @@ impl<T, C, S> Status<T, C, S> {
     /// let error = result.into_result().expect_err("should be error");
     /// assert!(error.primary.severity.is_fatal());
     /// ```
-    pub const fn err(diagnostic: Diagnostic<C, S>) -> Self {
-        assert!(
-            diagnostic.severity.is_critical(),
-            "Diagnostic severity must be fatal"
-        );
-
-        Self {
-            diagnostics: DiagnosticIssues::new(),
-            result: Err(diagnostic),
-        }
-    }
-
-    /// Creates a failed `Status` if the diagnostic is fatal.
-    ///
-    /// Returns the diagnostic unchanged if it's not fatal, allowing the caller
-    /// to handle non-fatal diagnostics differently.
-    ///
-    /// # Errors
-    ///
-    /// Returns the original diagnostic if it is not fatal (severity code < 400).
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// // Fatal diagnostic - creates error result
-    /// let fatal = Diagnostic::new(CATEGORY, Severity::Error);
-    /// let result: Status<i32, _, ()> = Status::try_err(fatal).expect("should create result");
-    /// assert!(result.into_result().is_err());
-    ///
-    /// // Non-fatal diagnostic - returns the diagnostic
-    /// let warning = Diagnostic::new(CATEGORY, Severity::Warning);
-    /// let returned_diagnostic =
-    ///     Status::<i32, _, ()>::try_err(warning).expect_err("should return diagnostic");
-    /// assert_eq!(returned_diagnostic.severity, Severity::Warning);
-    /// ```
-    pub const fn try_err(diagnostic: Diagnostic<C, S>) -> Result<Self, Diagnostic<C, S>> {
-        if !diagnostic.severity.is_critical() {
-            return Err(diagnostic);
-        }
-
-        Ok(Self {
-            diagnostics: DiagnosticIssues::new(),
-            result: Err(diagnostic),
-        })
-    }
-
-    /// Returns `true` if the result is a success value.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let success: Status<_, (), ()> = Status::ok(42);
-    /// assert!(success.is_ok());
-    ///
-    /// let error: Status<i32, _, ()> = Status::err(Diagnostic::new(CATEGORY, Severity::Error));
-    /// assert!(!error.is_ok());
-    /// ```
-    #[must_use]
-    pub const fn is_ok(&self) -> bool {
-        self.result.is_ok()
-    }
-
-    /// Returns `true` if the result contains a fatal diagnostic.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let success: Status<_, (), ()> = Status::ok(42);
-    /// assert!(!success.is_err());
-    ///
-    /// let error: Status<i32, _, ()> = Status::err(Diagnostic::new(CATEGORY, Severity::Error));
-    /// assert!(error.is_err());
-    /// ```
-    #[must_use]
-    pub const fn is_err(&self) -> bool {
-        self.result.is_err()
-    }
+    fn err(error: Diagnostic<C, S, Critical>) -> Self;
 
     /// Converts to a result with type-erased diagnostic categories.
     ///
@@ -344,97 +263,9 @@ impl<T, C, S> Status<T, C, S> {
     /// assert_eq!(success.value, 100);
     /// assert_eq!(success.diagnostics.len(), 1);
     /// ```
-    pub fn boxed<'category>(self) -> Status<T, Box<dyn DiagnosticCategory + 'category>, S>
+    fn boxed<'category>(self) -> Self::Boxed<'category>
     where
-        C: DiagnosticCategory + 'category,
-    {
-        let Self {
-            diagnostics,
-            result,
-        } = self;
-
-        let diagnostics = diagnostics.boxed();
-        let result = result.map_err(Diagnostic::boxed);
-
-        Status {
-            diagnostics,
-            result,
-        }
-    }
-
-    /// Transforms the success value using the provided function.
-    ///
-    /// If the result is an error, the error and diagnostics are left unchanged.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let result: Status<_, (), ()> = Status::ok(21);
-    /// let doubled = result.map(|x| x * 2);
-    ///
-    /// let success = doubled.into_result().expect("should be successful");
-    /// assert_eq!(success.value, 42);
-    /// ```
-    pub fn map<U>(self, func: impl FnOnce(T) -> U) -> Status<U, C, S> {
-        let Self {
-            diagnostics,
-            result,
-        } = self;
-
-        let result = result.map(func);
-
-        Status {
-            diagnostics,
-            result,
-        }
-    }
-
-    /// Transforms all diagnostics using the provided function.
-    ///
-    /// This applies the transformation to both the collected diagnostics and
-    /// any error diagnostic, allowing you to change category and span types.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const OLD_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "old", name: "Old"
-    /// # };
-    /// # const NEW_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "new", name: "New"
-    /// # };
-    ///
-    /// let mut result: Status<_, _, ()> = Status::ok(42);
-    /// result.push_diagnostic(Diagnostic::new(OLD_CATEGORY, Severity::Warning));
-    ///
-    /// let transformed: Status<_, _, ()> =
-    ///     result.map_diagnostics(|diagnostic| Diagnostic::new(NEW_CATEGORY, diagnostic.severity));
-    /// ```
-    pub fn map_diagnostics<C2, S2>(
-        self,
-        mut func: impl FnMut(Diagnostic<C, S>) -> Diagnostic<C2, S2>,
-    ) -> Status<T, C2, S2> {
-        let Self {
-            diagnostics,
-            result,
-        } = self;
-
-        let diagnostics = diagnostics.map(&mut func);
-        let result = result.map_err(func);
-
-        Status {
-            diagnostics,
-            result,
-        }
-    }
+        C: DiagnosticCategory + 'category;
 
     /// Adds a diagnostic to the result.
     ///
@@ -462,13 +293,7 @@ impl<T, C, S> Status<T, C, S> {
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Error));
     /// assert!(result.into_result().is_err());
     /// ```
-    pub fn push_diagnostic(&mut self, diagnostic: Diagnostic<C, S>) {
-        if self.result.is_ok() && diagnostic.severity.is_critical() {
-            self.result = Err(diagnostic);
-        } else {
-            self.diagnostics.push(diagnostic);
-        }
-    }
+    fn push_diagnostic(&mut self, diagnostic: Diagnostic<C, S>);
 
     /// Adds all diagnostics from another collection to this result.
     ///
@@ -496,439 +321,76 @@ impl<T, C, S> Status<T, C, S> {
     /// assert!(result.into_result().is_err());
     /// assert!(additional.is_empty()); // Diagnostics were moved
     /// ```
-    pub fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) {
-        self.diagnostics.append(diagnostics);
-
-        if self.result.is_ok()
-            && let Some(fatal) = self.diagnostics.pop_fatal()
-        {
-            self.result = Err(fatal);
-        }
-    }
-
-    /// Converts the result into a standard [`Result`] type.
-    ///
-    /// Success cases become [`Success`] containing the value and any
-    /// collected diagnostics. Error cases become [`Failure`] containing
-    /// the primary error and any secondary diagnostics.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Failure`] if the result contains a fatal diagnostic.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, Status};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// // Success case
-    /// let mut success: Status<_, _, ()> = Status::ok(42);
-    /// success.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
-    ///
-    /// let result = success.into_result().expect("should be successful");
-    /// assert_eq!(result.value, 42);
-    /// assert_eq!(result.diagnostics.len(), 1);
-    ///
-    /// // Error case
-    /// let error: Status<i32, _, ()> = Status::err(Diagnostic::new(CATEGORY, Severity::Error));
-    /// let error_result = error.into_result().expect_err("should be error");
-    /// assert!(error_result.primary.severity.is_fatal());
-    /// ```
-    pub fn into_result(self) -> Result<Success<T, C, S>, Box<Failure<C, S>>> {
-        match self.result {
-            Ok(value) => {
-                debug_assert_eq!(
-                    self.diagnostics.fatal(),
-                    0,
-                    "Fatal diagnostics should have been promoted to an error variant"
-                );
-
-                Ok(Success {
-                    value,
-                    diagnostics: self.diagnostics,
-                })
-            }
-            Err(diagnostic) => {
-                debug_assert!(
-                    diagnostic.severity.is_critical(),
-                    "Fatal diagnostics should only be present in error variants"
-                );
-
-                Err(Box::new(Failure {
-                    primary: diagnostic,
-                    secondary: self.diagnostics,
-                }))
-            }
-        }
-    }
+    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>);
 }
 
-impl<T, C, S> From<Success<T, C, S>> for Status<T, C, S> {
-    fn from(
-        Success {
+impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
+    type Boxed<'category>
+        = Result<
+        Success<T, Box<dyn DiagnosticCategory + 'category>, S>,
+        Failure<Box<dyn DiagnosticCategory + 'category>, S>,
+    >
+    where
+        C: 'category;
+
+    fn ok(value: T) -> Self {
+        Self::Ok(Success {
             value,
-            mut diagnostics,
-        }: Success<T, C, S>,
-    ) -> Self {
-        // in case the `Success` contains fatal diagnostics convert into an error
-        if let Some(diagnostic) = diagnostics.pop_fatal() {
-            return Self {
-                result: Err(diagnostic),
-                diagnostics,
-            };
-        }
-
-        Self {
-            result: Ok(value),
-            diagnostics,
-        }
+            advisories: DiagnosticIssues::new(),
+        })
     }
-}
 
-impl<T, C, S> From<Failure<C, S>> for Status<T, C, S> {
-    fn from(Failure { primary, secondary }: Failure<C, S>) -> Self {
-        assert!(
-            primary.severity.is_critical(),
-            "primary error must be fatal"
-        );
-
-        Self {
-            result: Err(primary),
-            diagnostics: secondary,
-        }
+    fn err(error: Diagnostic<C, S, Critical>) -> Self {
+        Self::Err(Failure {
+            primary: error,
+            secondary: DiagnosticIssues::new(),
+        })
     }
-}
 
-impl<T, C, S> From<Result<Success<T, C, S>, Failure<C, S>>> for Status<T, C, S> {
-    fn from(result: Result<Success<T, C, S>, Failure<C, S>>) -> Self {
-        match result {
-            Ok(success) => success.into(),
-            Err(failure) => failure.into(),
-        }
-    }
-}
-
-impl<T, C, S> From<Status<T, C, S>> for Result<Success<T, C, S>, Box<Failure<C, S>>> {
-    fn from(value: Status<T, C, S>) -> Self {
-        value.into_result()
-    }
-}
-
-impl<T, C, S> FromResidual<Result<Infallible, DiagnosticIssues<C, S>>> for Status<T, C, S> {
-    fn from_residual(Err(mut diagnostics): Result<Infallible, DiagnosticIssues<C, S>>) -> Self {
-        let error = diagnostics
-            .pop_fatal()
-            .expect("error variant should have at least one fatal error");
-
-        Self {
-            result: Err(error),
-            diagnostics,
-        }
-    }
-}
-
-impl<T, C, S> FromResidual<Result<Infallible, Diagnostic<C, S>>> for Status<T, C, S> {
-    fn from_residual(Err(diagnostic): Result<Infallible, Diagnostic<C, S>>) -> Self {
-        assert!(
-            diagnostic.severity.is_critical(),
-            "Error diagnostic must always be fatal"
-        );
-
-        Self {
-            result: Err(diagnostic),
-            diagnostics: DiagnosticIssues::new(),
-        }
-    }
-}
-
-impl<T, C, S> FromResidual<Status<!, C, S>> for Status<T, C, S> {
-    fn from_residual(residual: Status<!, C, S>) -> Self {
-        let Err(error) = residual.result;
-
-        Self {
-            result: Err(error),
-            diagnostics: residual.diagnostics,
-        }
-    }
-}
-
-impl<T, C, S> Try for Status<T, C, S> {
-    type Output = Success<T, C, S>;
-    type Residual = Status<!, C, S>;
-
-    fn from_output(output: Self::Output) -> Self {
-        let Success { value, diagnostics } = output;
-
-        // We cannot convert here directly because of the invariants of the `Try` trait, as in:
-        // `Try::from_output(x).branch() --> ControlFlow::Continue(x)`
-        // must hold, if we were to convert it this would no longer be the case.
-        // As this method is only used internally (and shouldn't be used by a user) - it is fine.
-        // `From` does the "correct" conversion.
-        assert_eq!(
-            diagnostics.fatal(),
-            0,
-            "Fatal diagnostics should have been promoted to an error variant"
-        );
-
-        Self {
-            result: Ok(value),
-            diagnostics,
+    fn boxed<'category>(self) -> Self::Boxed<'category>
+    where
+        C: DiagnosticCategory + 'category,
+    {
+        match self {
+            Ok(success) => Ok(success.boxed()),
+            Err(failure) => Err(failure.boxed()),
         }
     }
 
-    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
-        match self.result {
-            Ok(value) => {
-                debug_assert_eq!(
-                    self.diagnostics.fatal(),
-                    0,
-                    "Fatal diagnostics should have been promoted to an error variant"
-                );
+    fn push_diagnostic(&mut self, diagnostic: Diagnostic<C, S>) {
+        match self {
+            Ok(success) => match diagnostic.categorize() {
+                Ok(advisory) => success.advisories.push(advisory),
+                Err(critical) => {
+                    let issues = mem::take(&mut success.advisories);
 
-                ControlFlow::Continue(Success {
-                    value,
-                    diagnostics: self.diagnostics,
-                })
-            }
-            Err(diagnostic) => {
-                debug_assert!(
-                    diagnostic.severity.is_critical(),
-                    "Fatal diagnostics should only be present in error variants"
-                );
-
-                ControlFlow::Break(Status {
-                    result: Err(diagnostic),
-                    diagnostics: self.diagnostics,
-                })
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use alloc::borrow::Cow;
-    use core::ops::Try as _;
-
-    use crate::{
-        Diagnostic, DiagnosticIssues, Failure, Severity, Status, Success,
-        category::TerminalDiagnosticCategory,
-    };
-
-    const TEST_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-        id: "test",
-        name: "Test Category",
-    };
-
-    const ERROR_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-        id: "error",
-        name: "Error Category",
-    };
-
-    #[test]
-    fn diagnostic_result_map_diagnostics_transforms_all() {
-        let mut result: Status<&'static str, _, ()> =
-            Status::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
-        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Note));
-
-        let transformed = result.map_diagnostics(|mut diagnostic| {
-            diagnostic.message = Some(Cow::Borrowed("transformed"));
-            diagnostic
-        });
-
-        let error = transformed
-            .into_result()
-            .expect_err("Should have a fatal error as result");
-        assert_eq!(error.primary.message, Some(Cow::Borrowed("transformed")));
-
-        for diagnostic in error.secondary {
-            assert_eq!(diagnostic.message, Some(Cow::Borrowed("transformed")));
-        }
-    }
-
-    #[test]
-    fn from_success_creates_success_result() {
-        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-
-        let value = Success {
-            value: 42,
-            diagnostics,
-        };
-
-        let result = Status::from(value);
-        let converted_back = result.into_result().expect("Should have a success result");
-
-        assert_eq!(converted_back.value, 42);
-        assert_eq!(converted_back.diagnostics.len(), 1);
-    }
-
-    #[test]
-    fn from_success_creates_error_result_if_fatal() {
-        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Fatal));
-
-        let value = Success {
-            value: 42,
-            diagnostics,
-        };
-
-        let result = Status::from(value);
-        let converted_back = result
-            .into_result()
-            .expect_err("Should have an error result");
-
-        assert!(converted_back.primary.severity.is_critical());
-    }
-
-    #[test]
-    fn from_failure_creates_error_result() {
-        let mut secondary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-
-        let error = Failure {
-            primary: Diagnostic::new(ERROR_CATEGORY, Severity::Error),
-            secondary,
-        };
-
-        let result: Status<(), _, _> = Status::from(error);
-        let converted_back = result
-            .into_result()
-            .expect_err("Should have an error result");
-
-        assert!(converted_back.primary.severity.is_critical());
-        assert_eq!(converted_back.secondary.len(), 1);
-    }
-
-    #[test]
-    fn from_residual_result_diagnostic_issues() {
-        let mut diagnostics: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-        diagnostics.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error)); // Fatal
-        diagnostics.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
-
-        // Very contrived example, but demonstrates how it works
-        let result: Status<_, _, _> = try {
-            let value: Result<&'static str, _> = Err(diagnostics);
-            let _foo = value?;
-
-            Success {
-                value: "ok",
-                diagnostics: DiagnosticIssues::new(),
-            }
-        };
-
-        let error = result.into_result().expect_err("should've errored out");
-        assert!(error.primary.severity.is_critical());
-        assert_eq!(error.secondary.len(), 2); // Warning and Note remain
-    }
-
-    #[test]
-    fn from_residual_result_diagnostic() {
-        let diagnostic: Diagnostic<_, ()> = Diagnostic::new(ERROR_CATEGORY, Severity::Error);
-
-        let result: Status<_, _, _> = try {
-            let value: Result<&'static str, _> = Err(diagnostic);
-            let _foo = value?;
-
-            Success {
-                value: "ok",
-                diagnostics: DiagnosticIssues::new(),
-            }
-        };
-
-        let error = result.into_result().expect_err("should've errored out");
-
-        assert!(error.primary.severity.is_critical());
-        assert_eq!(error.secondary.len(), 0);
-    }
-
-    #[test]
-    fn from_residual_diagnostic_result() {
-        let foo: Status<_, TerminalDiagnosticCategory, ()> = try {
-            let result: Success<i32, _, _> =
-                Status::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error))?;
-
-            Success {
-                value: result.value + 2,
-                diagnostics: result.diagnostics,
-            }
-        };
-
-        let error = foo.into_result().expect_err("should've errored out");
-
-        assert!(error.primary.severity.is_critical());
-        assert!(error.secondary.is_empty());
-    }
-
-    #[test]
-    fn try_trait_branch_success() {
-        let mut result: Status<_, _, ()> = Status::ok(100);
-        result.push_diagnostic(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-
-        match result.branch() {
-            core::ops::ControlFlow::Continue(value) => {
-                assert_eq!(value.value, 100);
-                assert_eq!(value.diagnostics.len(), 1);
-            }
-            core::ops::ControlFlow::Break(_) => {
-                panic!("Expected Continue variant");
+                    *self = Err(Failure {
+                        primary: critical,
+                        secondary: issues.mask(),
+                    });
+                }
+            },
+            Err(failure) => {
+                failure.secondary.push(diagnostic);
             }
         }
     }
 
-    #[test]
-    fn try_trait_branch_error() {
-        let result: Status<(), _, ()> =
-            Status::err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
-
-        match result.branch() {
-            core::ops::ControlFlow::Continue(_) => {
-                panic!("Expected Break variant");
+    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) {
+        match self {
+            Ok(success) => {
+                if let Err((critical, issues)) =
+                    diagnostics.merge_into_advisories(&mut success.advisories)
+                {
+                    *self = Err(Failure {
+                        primary: critical,
+                        secondary: issues,
+                    });
+                }
             }
-            core::ops::ControlFlow::Break(residual) => {
-                let error = residual.into_result().expect_err("Expected error");
-                assert!(error.primary.severity.is_critical());
+            Err(failure) => {
+                failure.secondary.append(diagnostics);
             }
         }
-    }
-
-    #[test]
-    fn append_diagnostics_promotes_fatal_to_error() {
-        let mut result: Status<_, _, ()> = Status::ok(42);
-
-        let mut additional = DiagnosticIssues::new();
-        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-        additional.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error)); // Fatal
-        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
-
-        result.append_diagnostics(&mut additional);
-
-        let error = result.into_result().expect_err("Expected error");
-        assert!(error.primary.severity.is_critical());
-        assert_eq!(error.secondary.len(), 2); // Warning and Note
-        assert!(additional.is_empty()); // All moved
-    }
-
-    #[test]
-    fn append_diagnostics_no_promotion_when_no_fatal() {
-        let mut result: Status<_, _, ()> = Status::ok(42);
-
-        let mut additional = DiagnosticIssues::new();
-        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-        additional.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
-
-        result.append_diagnostics(&mut additional);
-
-        let success = result.into_result().expect("Result should be successful");
-        assert_eq!(success.value, 42);
-        assert_eq!(success.diagnostics.len(), 2);
-        assert_eq!(success.diagnostics.fatal(), 0);
-        assert!(additional.is_empty());
     }
 }

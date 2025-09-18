@@ -7,6 +7,8 @@
     never_type,
     trait_alias,
     try_blocks,
+    const_trait_impl,
+    const_convert,
 
     // Library Features
     try_trait_v2,
@@ -38,5 +40,5 @@ pub use self::{
     issues::{DiagnosticIssues, DiagnosticSink},
     note::Note,
     severity::Severity,
-    status::{Failure, Status, Success},
+    status::{Failure, Status, StatusExt, Success},
 };

@@ -17,7 +17,7 @@ use crate::{
     help::Help,
     label::Label,
     note::Note,
-    severity::{Advisory, Critical, Severity},
+    severity::{Advisory, Critical, Severity, SeverityKind},
     span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
@@ -30,10 +30,10 @@ pub type AdvisoryDiagnostic<C, S> = Diagnostic<C, S, Advisory>;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[must_use = "A diagnostic must be reported"]
-// C = Category, S = Span, L = (Severity) Level
-pub struct Diagnostic<C, S, L = Severity> {
+// C = Category, S = Span, K = (Severity) Kind
+pub struct Diagnostic<C, S, K = Severity> {
     pub category: C,
-    pub severity: L,
+    pub severity: K,
 
     pub message: Option<Cow<'static, str>>,
 
@@ -59,24 +59,43 @@ impl<C, S> Diagnostic<C, S> {
         }
     }
 
-    pub fn try_into_critical(self) -> Result<Diagnostic<C, S, Critical>, Self> {
-        let Some(severity) = Critical::try_new(self.severity) else {
-            return Err(self);
-        };
+    pub(crate) fn into_critical_unchecked(self) -> Diagnostic<C, S, Critical> {
+        debug_assert!(self.severity.is_critical());
 
-        Ok(Diagnostic {
+        Diagnostic {
             category: self.category,
-            severity,
+            severity: Critical::new_unchecked(self.severity),
             message: self.message,
             labels: self.labels,
             notes: self.notes,
             help: self.help,
-        })
+        }
     }
 
-    pub fn try_into_advisory(self) -> Result<Diagnostic<C, S, Advisory>, Self> {
+    pub(crate) fn into_advisory_unchecked(self) -> Diagnostic<C, S, Advisory> {
+        debug_assert!(self.severity.is_advisory());
+
+        Diagnostic {
+            category: self.category,
+            severity: Advisory::new_unchecked(self.severity),
+            message: self.message,
+            labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        }
+    }
+
+    pub fn categorize(self) -> Result<Diagnostic<C, S, Advisory>, Diagnostic<C, S, Critical>> {
         let Some(severity) = Advisory::try_new(self.severity) else {
-            return Err(self);
+            return Err(Diagnostic {
+                category: self.category,
+                // critical and advisory are mutually exclusive
+                severity: Critical::new_unchecked(self.severity),
+                message: self.message,
+                labels: self.labels,
+                notes: self.notes,
+                help: self.help,
+            });
         };
 
         Ok(Diagnostic {
@@ -90,11 +109,11 @@ impl<C, S> Diagnostic<C, S> {
     }
 }
 
-impl<C, S, L> Diagnostic<C, S, L>
+impl<C, S, K> Diagnostic<C, S, K>
 where
-    L: Copy + Into<Severity>,
+    K: Copy + Into<Severity>,
 {
-    pub fn into_severity(self) -> Diagnostic<C, S, Severity> {
+    pub fn mask(self) -> Diagnostic<C, S, Severity> {
         Diagnostic {
             category: self.category,
             severity: self.severity.into(),
@@ -106,13 +125,13 @@ where
     }
 }
 
-impl<C, S, L> Diagnostic<C, S, L> {
+impl<C, S, K> Diagnostic<C, S, K> {
     /// Transforms the diagnostic's category using the provided function.
     ///
     /// Takes the current category, applies the transformation function, and produces a new
     /// [`Diagnostic`] with the transformed category while preserving all other fields such as
     /// severity, message, labels, notes, and help messages.
-    pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S, L> {
+    pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S, K> {
         Diagnostic {
             category: func(self.category),
             severity: self.severity,
@@ -127,7 +146,7 @@ impl<C, S, L> Diagnostic<C, S, L> {
     ///
     /// Creates a new [`Diagnostic`] where the category is type-erased into a
     /// `Box<dyn DiagnosticCategory>`.
-    pub fn boxed<'category>(self) -> BoxedDiagnostic<'category, S, L>
+    pub fn boxed<'category>(self) -> BoxedDiagnostic<'category, S, K>
     where
         C: DiagnosticCategory + 'category,
     {
@@ -161,7 +180,7 @@ impl<C, S, L> Diagnostic<C, S, L> {
     pub fn resolve<DiagnosticContext>(
         self,
         context: &mut DiagnosticContext,
-    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan, L>, Report<[ResolveError]>>
+    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan, K>, Report<[ResolveError]>>
     where
         S: DiagnosticSpan<DiagnosticContext>,
     {
@@ -183,10 +202,10 @@ impl<C, S, L> Diagnostic<C, S, L> {
     }
 }
 
-impl<C, L> Diagnostic<C, AbsoluteDiagnosticSpan, L>
+impl<C, K> Diagnostic<C, AbsoluteDiagnosticSpan, K>
 where
     C: DiagnosticCategory,
-    L: Copy + Into<Severity>,
+    K: SeverityKind,
 {
     /// Creates a formatted report for displaying the diagnostic to users.
     ///
@@ -242,11 +261,11 @@ where
     }
 }
 
-impl<C, S, L> Display for Diagnostic<C, S, L>
+impl<C, S, K> Display for Diagnostic<C, S, K>
 where
     C: DiagnosticCategory,
     S: Display,
-    L: Display,
+    K: Display,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
@@ -258,10 +277,10 @@ where
     }
 }
 
-impl<C, S, L> Error for Diagnostic<C, S, L>
+impl<C, S, K> Error for Diagnostic<C, S, K>
 where
     C: Debug + DiagnosticCategory,
     S: Debug + Display,
-    L: Debug + Display,
+    K: Debug + Display,
 {
 }

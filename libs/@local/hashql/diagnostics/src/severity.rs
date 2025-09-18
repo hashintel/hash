@@ -7,6 +7,31 @@ use anstyle::Color;
 
 use crate::{Help, Note};
 
+pub const trait SeverityKind: Copy + const Into<Severity> {
+    /// Returns whether this severity level is fatal.
+    ///
+    /// A severity is considered fatal if its code is >= 400.
+    /// Fatal severities are `Error`, `Fatal`, and `Bug`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Severity;
+    ///
+    /// // Fatal severities
+    /// assert!(Severity::Bug.is_fatal());
+    /// assert!(Severity::Fatal.is_fatal());
+    /// assert!(Severity::Error.is_fatal());
+    ///
+    /// // Non-fatal severities
+    /// assert!(!Severity::Warning.is_fatal());
+    /// assert!(!Severity::Note.is_fatal());
+    /// assert!(!Severity::Debug.is_fatal());
+    /// ```
+    fn is_critical(self) -> bool;
+    fn is_advisory(self) -> bool;
+}
+
 #[cfg(feature = "serde")]
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -342,36 +367,6 @@ impl Severity {
         self.info().name
     }
 
-    /// Returns whether this severity level is fatal.
-    ///
-    /// A severity is considered fatal if its code is >= 400.
-    /// Fatal severities are `Error`, `Fatal`, and `Bug`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::Severity;
-    ///
-    /// // Fatal severities
-    /// assert!(Severity::Bug.is_fatal());
-    /// assert!(Severity::Fatal.is_fatal());
-    /// assert!(Severity::Error.is_fatal());
-    ///
-    /// // Non-fatal severities
-    /// assert!(!Severity::Warning.is_fatal());
-    /// assert!(!Severity::Note.is_fatal());
-    /// assert!(!Severity::Debug.is_fatal());
-    /// ```
-    #[must_use]
-    pub const fn is_critical(self) -> bool {
-        self.code() >= 400
-    }
-
-    #[must_use]
-    pub const fn is_advisory(self) -> bool {
-        !self.is_critical()
-    }
-
     /// Returns the display color for this severity level.
     ///
     /// # Examples
@@ -390,6 +385,16 @@ impl Severity {
 
     pub(crate) fn kind(self) -> ariadne::ReportKind<'static> {
         ariadne::ReportKind::Custom(self.name(), anstyle_yansi::to_yansi_color(self.color()))
+    }
+}
+
+impl const SeverityKind for Severity {
+    fn is_critical(self) -> bool {
+        self.code() >= 400
+    }
+
+    fn is_advisory(self) -> bool {
+        !self.is_critical()
     }
 }
 
@@ -428,12 +433,17 @@ impl Display for Severity {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Critical(Severity);
 
 impl Critical {
     pub const BUG: Self = Self(Severity::Bug);
     pub const ERROR: Self = Self(Severity::Error);
     pub const FATAL: Self = Self(Severity::Fatal);
+
+    pub(crate) const fn new_unchecked(severity: Severity) -> Self {
+        Self(severity)
+    }
 
     #[must_use]
     pub const fn try_new(severity: Severity) -> Option<Self> {
@@ -445,13 +455,23 @@ impl Critical {
     }
 }
 
+impl const SeverityKind for Critical {
+    fn is_critical(self) -> bool {
+        true
+    }
+
+    fn is_advisory(self) -> bool {
+        false
+    }
+}
+
 impl Display for Critical {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
     }
 }
 
-impl From<Critical> for Severity {
+impl const From<Critical> for Severity {
     fn from(severity: Critical) -> Self {
         severity.0
     }
@@ -478,12 +498,17 @@ impl<'de> serde::Deserialize<'de> for Critical {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct Advisory(Severity);
 
 impl Advisory {
     pub const DEBUG: Self = Self(Severity::Debug);
     pub const NOTE: Self = Self(Severity::Note);
     pub const WARNING: Self = Self(Severity::Warning);
+
+    pub(crate) const fn new_unchecked(severity: Severity) -> Self {
+        Self(severity)
+    }
 
     #[must_use]
     pub const fn try_new(severity: Severity) -> Option<Self> {
@@ -495,13 +520,23 @@ impl Advisory {
     }
 }
 
+impl const SeverityKind for Advisory {
+    fn is_critical(self) -> bool {
+        false
+    }
+
+    fn is_advisory(self) -> bool {
+        true
+    }
+}
+
 impl Display for Advisory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
     }
 }
 
-impl From<Advisory> for Severity {
+impl const From<Advisory> for Severity {
     fn from(severity: Advisory) -> Self {
         severity.0
     }
