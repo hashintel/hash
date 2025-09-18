@@ -40,6 +40,14 @@ export const scalars = {
 
   PropertyTypeWithMetadata:
     "@blockprotocol/type-system#PropertyTypeWithMetadata",
+  QueryPropertyTypesParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesParams",
+  QueryPropertyTypesResponse:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesResponse",
+  QueryPropertyTypeSubgraphParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypeSubgraphParams",
+  QueryPropertyTypeSubgraphResponse:
+    "@local/hash-graph-sdk/property-type#SerializedQueryPropertyTypeSubgraphResponse",
   ConstructPropertyTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 

@@ -1,22 +1,26 @@
 import { useLazyQuery } from "@apollo/client";
-import type { PropertyTypeRootType } from "@blockprotocol/graph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
+import {
+  currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
-  QueryPropertyTypesQuery,
-  QueryPropertyTypesQueryVariables,
+  QueryPropertyTypeSubgraphQuery,
+  QueryPropertyTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+import { queryPropertyTypeSubgraphQuery } from "../../../../graphql/queries/ontology/property-type.queries";
 import type { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryPropertyTypes = (): {
   queryPropertyTypes: QueryPropertyTypesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    QueryPropertyTypesQuery,
-    QueryPropertyTypesQueryVariables
-  >(queryPropertyTypesQuery, {
+    QueryPropertyTypeSubgraphQuery,
+    QueryPropertyTypeSubgraphQueryVariables
+  >(queryPropertyTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -42,11 +46,20 @@ export const useBlockProtocolQueryPropertyTypes = (): {
        */
       const response = await queryFn({
         variables: {
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          ...graphResolveDepths,
-          includeArchived,
-          latestOnly,
+          request: {
+            filter: latestOnly
+              ? { equal: [{ path: ["version"] }, { parameter: "latest" }] }
+              : { all: [] },
+            temporalAxes: includeArchived
+              ? fullTransactionTimeAxis
+              : currentTimeInstantTemporalAxes,
+            graphResolveDepths: {
+              ...zeroedGraphResolveDepths,
+              constrainsValuesOn: { outgoing: 255 },
+              constrainsPropertiesOn: { outgoing: 255 },
+              ...graphResolveDepths,
+            },
+          },
         },
       });
 
@@ -61,12 +74,11 @@ export const useBlockProtocolQueryPropertyTypes = (): {
         };
       }
 
-      const subgraph =
-        mapGqlSubgraphFieldsFragmentToSubgraph<PropertyTypeRootType>(
-          response.data.queryPropertyTypes,
-        );
-
-      return { data: subgraph };
+      return {
+        data: deserializeQueryPropertyTypeSubgraphResponse(
+          response.data.queryPropertyTypeSubgraph,
+        ).subgraph,
+      };
     },
     [queryFn],
   );

@@ -3,19 +3,13 @@ import type {
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
-import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
-  getPropertyTypeSubgraphById,
+  queryPropertyTypes,
+  type QueryPropertyTypesResponse,
   queryPropertyTypeSubgraph,
+  type SerializedQueryPropertyTypeSubgraphResponse,
   serializeQueryPropertyTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/property-type";
-import {
-  currentTimeInstantTemporalAxes,
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import {
   archivePropertyType,
@@ -28,8 +22,8 @@ import type {
   MutationCreatePropertyTypeArgs,
   MutationUnarchivePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
+  QueryQueryPropertyTypeSubgraphArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
@@ -60,93 +54,28 @@ export const createPropertyTypeResolver: ResolverFn<
 };
 
 export const queryPropertyTypesResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryQueryPropertyTypesArgs
-> = async (
-  _,
-  {
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    filter,
-    latestOnly = true,
-    includeArchived = false,
-  },
-  { dataSources, authentication },
-  __,
-) => {
-  const { graphApi } = dataSources;
-
-  const latestOnlyFilter = {
-    equal: [{ path: ["version"] }, { parameter: "latest" }],
-  };
-
-  /**
-   * @todo: get all latest property types in specified account.
-   *   This may mean implicitly filtering results by what an account is
-   *   authorized to see.
-   * @see https://linear.app/hash/issue/H-2995
-   */
-  const response = await queryPropertyTypeSubgraph(graphApi, authentication, {
-    filter: latestOnly
-      ? filter
-        ? { all: [filter, latestOnlyFilter] }
-        : latestOnlyFilter
-      : (filter ?? { all: [] }),
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn,
-      constrainsPropertiesOn,
-    },
-    temporalAxes: includeArchived
-      ? fullTransactionTimeAxis
-      : currentTimeInstantTemporalAxes,
-  });
-
-  return serializeQueryPropertyTypeSubgraphResponse(response).subgraph;
-};
-
-export const getPropertyTypeResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
+  Promise<QueryPropertyTypesResponse>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetPropertyTypeArgs
-> = async (
-  _,
-  {
-    propertyTypeId,
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    includeArchived,
-  },
-  graphQLContext,
-  __,
-) => {
-  const subgraph = await getPropertyTypeSubgraphById(
+  QueryQueryPropertyTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  queryPropertyTypes(
     graphQLContextToImpureGraphContext(graphQLContext).graphApi,
     graphQLContext.authentication,
-    {
-      propertyTypeId,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-    },
+    request,
   );
 
-  if (!subgraph) {
-    throw new NotFoundError(
-      `Could not find property type with ID "${propertyTypeId}"`,
-    );
-  }
-
-  return serializeSubgraph(subgraph);
-};
+export const queryPropertyTypeSubgraphResolver: ResolverFn<
+  Promise<SerializedQueryPropertyTypeSubgraphResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryPropertyTypeSubgraphArgs
+> = async (_, { request }, graphQLContext) =>
+  queryPropertyTypeSubgraph(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  ).then(serializeQueryPropertyTypeSubgraphResponse);
 
 export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,
