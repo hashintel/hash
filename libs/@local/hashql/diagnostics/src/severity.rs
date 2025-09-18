@@ -1,4 +1,7 @@
-use core::{fmt::Display, mem};
+use core::{
+    fmt::{self, Display},
+    mem,
+};
 
 use anstyle::Color;
 
@@ -360,8 +363,13 @@ impl Severity {
     /// assert!(!Severity::Debug.is_fatal());
     /// ```
     #[must_use]
-    pub const fn is_fatal(self) -> bool {
+    pub const fn is_critical(self) -> bool {
         self.code() >= 400
+    }
+
+    #[must_use]
+    pub const fn is_advisory(self) -> bool {
+        !self.is_critical()
     }
 
     /// Returns the display color for this severity level.
@@ -414,7 +422,107 @@ impl<'de> serde::Deserialize<'de> for Severity {
 }
 
 impl Display for Severity {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(self.name(), fmt)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Critical(Severity);
+
+impl Critical {
+    pub const BUG: Self = Self(Severity::Bug);
+    pub const ERROR: Self = Self(Severity::Error);
+    pub const FATAL: Self = Self(Severity::Fatal);
+
+    #[must_use]
+    pub const fn try_new(severity: Severity) -> Option<Self> {
+        if severity.is_critical() {
+            Some(Self(severity))
+        } else {
+            None
+        }
+    }
+}
+
+impl Display for Critical {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<Critical> for Severity {
+    fn from(severity: Critical) -> Self {
+        severity.0
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Critical {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Critical {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Severity::deserialize(deserializer).map(Self)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Advisory(Severity);
+
+impl Advisory {
+    pub const DEBUG: Self = Self(Severity::Debug);
+    pub const NOTE: Self = Self(Severity::Note);
+    pub const WARNING: Self = Self(Severity::Warning);
+
+    #[must_use]
+    pub const fn try_new(severity: Severity) -> Option<Self> {
+        if severity.is_advisory() {
+            Some(Self(severity))
+        } else {
+            None
+        }
+    }
+}
+
+impl Display for Advisory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<Advisory> for Severity {
+    fn from(severity: Advisory) -> Self {
+        severity.0
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Advisory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Advisory {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Severity::deserialize(deserializer).map(Self)
     }
 }

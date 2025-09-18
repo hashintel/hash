@@ -111,7 +111,7 @@ impl<C, S> DiagnosticIssues<C, S> {
         // re-calculate the fatal count as it might have changed during iteration
         let fatal = diagnostics
             .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .filter(|diagnostic| diagnostic.severity.is_critical())
             .count();
 
         DiagnosticIssues { diagnostics, fatal }
@@ -301,7 +301,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// assert_eq!(first.severity, Severity::Error);
     /// ```
     pub fn insert_front(&mut self, diagnostic: Diagnostic<C, S>) {
-        self.fatal += usize::from(diagnostic.severity.is_fatal());
+        self.fatal += usize::from(diagnostic.severity.is_critical());
         self.diagnostics.insert(0, diagnostic);
     }
 
@@ -324,7 +324,7 @@ impl<C, S> DiagnosticIssues<C, S> {
     /// assert_eq!(issues.fatal(), 1);
     /// ```
     pub fn push(&mut self, diagnostic: Diagnostic<C, S>) {
-        self.fatal += usize::from(diagnostic.severity.is_fatal());
+        self.fatal += usize::from(diagnostic.severity.is_critical());
         self.diagnostics.push(diagnostic);
     }
 
@@ -359,7 +359,7 @@ impl<C, S> DiagnosticIssues<C, S> {
         let diagnostic = self.diagnostics.pop();
 
         if let Some(diagnostic) = &diagnostic {
-            self.fatal -= usize::from(diagnostic.severity.is_fatal());
+            self.fatal -= usize::from(diagnostic.severity.is_critical());
         }
 
         diagnostic
@@ -394,7 +394,7 @@ impl<C, S> DiagnosticIssues<C, S> {
         let position = self
             .diagnostics
             .iter()
-            .position(|diagnostic| diagnostic.severity.is_fatal());
+            .position(|diagnostic| diagnostic.severity.is_critical());
 
         if let Some(position) = position {
             let diagnostic = self.diagnostics.swap_remove(position);
@@ -472,7 +472,7 @@ impl<C, S> Extend<Diagnostic<C, S>> for DiagnosticIssues<C, S> {
 
         self.fatal += self.diagnostics[previous..]
             .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .filter(|diagnostic| diagnostic.severity.is_critical())
             .count();
     }
 }

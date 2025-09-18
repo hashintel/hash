@@ -17,18 +17,23 @@ use crate::{
     help::Help,
     label::Label,
     note::Note,
-    severity::Severity,
+    severity::{Advisory, Critical, Severity},
     span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
-pub type AbsoluteDiagnostic<C> = Diagnostic<C, AbsoluteDiagnosticSpan>;
+pub type AbsoluteDiagnostic<C, F = Severity> = Diagnostic<C, AbsoluteDiagnosticSpan, F>;
+pub type BoxedDiagnostic<'category, S, F = Severity> =
+    Diagnostic<Box<dyn DiagnosticCategory + 'category>, S, F>;
+pub type CriticalDiagnostic<C, S> = Diagnostic<C, S, Critical>;
+pub type AdvisoryDiagnostic<C, S> = Diagnostic<C, S, Advisory>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[must_use = "A diagnostic must be reported"]
-pub struct Diagnostic<C, S> {
+// C = Category, S = Span, L = (Severity) Level
+pub struct Diagnostic<C, S, L = Severity> {
     pub category: C,
-    pub severity: Severity,
+    pub severity: L,
 
     pub message: Option<Cow<'static, str>>,
 
@@ -54,12 +59,60 @@ impl<C, S> Diagnostic<C, S> {
         }
     }
 
+    pub fn try_into_critical(self) -> Result<Diagnostic<C, S, Critical>, Self> {
+        let Some(severity) = Critical::try_new(self.severity) else {
+            return Err(self);
+        };
+
+        Ok(Diagnostic {
+            category: self.category,
+            severity,
+            message: self.message,
+            labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        })
+    }
+
+    pub fn try_into_advisory(self) -> Result<Diagnostic<C, S, Advisory>, Self> {
+        let Some(severity) = Advisory::try_new(self.severity) else {
+            return Err(self);
+        };
+
+        Ok(Diagnostic {
+            category: self.category,
+            severity,
+            message: self.message,
+            labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        })
+    }
+}
+
+impl<C, S, L> Diagnostic<C, S, L>
+where
+    L: Copy + Into<Severity>,
+{
+    pub fn into_severity(self) -> Diagnostic<C, S, Severity> {
+        Diagnostic {
+            category: self.category,
+            severity: self.severity.into(),
+            message: self.message,
+            labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        }
+    }
+}
+
+impl<C, S, L> Diagnostic<C, S, L> {
     /// Transforms the diagnostic's category using the provided function.
     ///
     /// Takes the current category, applies the transformation function, and produces a new
     /// [`Diagnostic`] with the transformed category while preserving all other fields such as
     /// severity, message, labels, notes, and help messages.
-    pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S> {
+    pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S, L> {
         Diagnostic {
             category: func(self.category),
             severity: self.severity,
@@ -74,9 +127,9 @@ impl<C, S> Diagnostic<C, S> {
     ///
     /// Creates a new [`Diagnostic`] where the category is type-erased into a
     /// `Box<dyn DiagnosticCategory>`.
-    pub fn boxed<'a>(self) -> Diagnostic<Box<dyn DiagnosticCategory + 'a>, S>
+    pub fn boxed<'category>(self) -> BoxedDiagnostic<'category, S, L>
     where
-        C: DiagnosticCategory + 'a,
+        C: DiagnosticCategory + 'category,
     {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
@@ -108,7 +161,7 @@ impl<C, S> Diagnostic<C, S> {
     pub fn resolve<DiagnosticContext>(
         self,
         context: &mut DiagnosticContext,
-    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan>, Report<[ResolveError]>>
+    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan, L>, Report<[ResolveError]>>
     where
         S: DiagnosticSpan<DiagnosticContext>,
     {
@@ -130,9 +183,10 @@ impl<C, S> Diagnostic<C, S> {
     }
 }
 
-impl<C> Diagnostic<C, AbsoluteDiagnosticSpan>
+impl<C, L> Diagnostic<C, AbsoluteDiagnosticSpan, L>
 where
     C: DiagnosticCategory,
+    L: Copy + Into<Severity>,
 {
     /// Creates a formatted report for displaying the diagnostic to users.
     ///
@@ -149,9 +203,11 @@ where
             .first()
             .map_or_else(AbsoluteDiagnosticSpan::full, |label| *label.span());
 
+        let severity: Severity = self.severity.into();
+
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.kind(), span)
+        let mut builder = ariadne::Report::build(severity.kind(), span)
             .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
 
         builder.set_message(
@@ -164,7 +220,7 @@ where
             builder.add_note(note.colored(config.color));
         }
 
-        for note in self.severity.notes() {
+        for note in severity.notes() {
             builder.add_note(note.colored(config.color));
         }
 
@@ -172,7 +228,7 @@ where
             builder.add_help(help.colored(config.color));
         }
 
-        for help in self.severity.help() {
+        for help in severity.help() {
             builder.add_help(help.colored(config.color));
         }
 
@@ -186,10 +242,11 @@ where
     }
 }
 
-impl<C, S> Display for Diagnostic<C, S>
+impl<C, S, L> Display for Diagnostic<C, S, L>
 where
     C: DiagnosticCategory,
     S: Display,
+    L: Display,
 {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
@@ -201,9 +258,10 @@ where
     }
 }
 
-impl<C, S> Error for Diagnostic<C, S>
+impl<C, S, L> Error for Diagnostic<C, S, L>
 where
     C: Debug + DiagnosticCategory,
     S: Debug + Display,
+    L: Debug + Display,
 {
 }

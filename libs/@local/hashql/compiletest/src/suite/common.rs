@@ -22,7 +22,7 @@ where
     for diagnostic in reported {
         let diagnostic = diagnostic.boxed();
 
-        if fatal.is_none() && diagnostic.severity.is_fatal() {
+        if fatal.is_none() && diagnostic.severity.is_critical() {
             fatal = Some(diagnostic);
             continue;
         }

@@ -56,7 +56,7 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
     fn fatal_diagnostics_count(&self) -> usize {
         self.diagnostics
             .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .filter(|diagnostic| diagnostic.severity.is_critical())
             .count()
     }
 

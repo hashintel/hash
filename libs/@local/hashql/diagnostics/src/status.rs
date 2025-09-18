@@ -225,7 +225,7 @@ impl<T, C, S> Status<T, C, S> {
     /// ```
     pub const fn err(diagnostic: Diagnostic<C, S>) -> Self {
         assert!(
-            diagnostic.severity.is_fatal(),
+            diagnostic.severity.is_critical(),
             "Diagnostic severity must be fatal"
         );
 
@@ -265,7 +265,7 @@ impl<T, C, S> Status<T, C, S> {
     /// assert_eq!(returned_diagnostic.severity, Severity::Warning);
     /// ```
     pub const fn try_err(diagnostic: Diagnostic<C, S>) -> Result<Self, Diagnostic<C, S>> {
-        if !diagnostic.severity.is_fatal() {
+        if !diagnostic.severity.is_critical() {
             return Err(diagnostic);
         }
 
@@ -463,7 +463,7 @@ impl<T, C, S> Status<T, C, S> {
     /// assert!(result.into_result().is_err());
     /// ```
     pub fn push_diagnostic(&mut self, diagnostic: Diagnostic<C, S>) {
-        if self.result.is_ok() && diagnostic.severity.is_fatal() {
+        if self.result.is_ok() && diagnostic.severity.is_critical() {
             self.result = Err(diagnostic);
         } else {
             self.diagnostics.push(diagnostic);
@@ -554,7 +554,7 @@ impl<T, C, S> Status<T, C, S> {
             }
             Err(diagnostic) => {
                 debug_assert!(
-                    diagnostic.severity.is_fatal(),
+                    diagnostic.severity.is_critical(),
                     "Fatal diagnostics should only be present in error variants"
                 );
 
@@ -591,7 +591,10 @@ impl<T, C, S> From<Success<T, C, S>> for Status<T, C, S> {
 
 impl<T, C, S> From<Failure<C, S>> for Status<T, C, S> {
     fn from(Failure { primary, secondary }: Failure<C, S>) -> Self {
-        assert!(primary.severity.is_fatal(), "primary error must be fatal");
+        assert!(
+            primary.severity.is_critical(),
+            "primary error must be fatal"
+        );
 
         Self {
             result: Err(primary),
@@ -631,7 +634,7 @@ impl<T, C, S> FromResidual<Result<Infallible, DiagnosticIssues<C, S>>> for Statu
 impl<T, C, S> FromResidual<Result<Infallible, Diagnostic<C, S>>> for Status<T, C, S> {
     fn from_residual(Err(diagnostic): Result<Infallible, Diagnostic<C, S>>) -> Self {
         assert!(
-            diagnostic.severity.is_fatal(),
+            diagnostic.severity.is_critical(),
             "Error diagnostic must always be fatal"
         );
 
@@ -693,7 +696,7 @@ impl<T, C, S> Try for Status<T, C, S> {
             }
             Err(diagnostic) => {
                 debug_assert!(
-                    diagnostic.severity.is_fatal(),
+                    diagnostic.severity.is_critical(),
                     "Fatal diagnostics should only be present in error variants"
                 );
 
@@ -780,7 +783,7 @@ mod tests {
             .into_result()
             .expect_err("Should have an error result");
 
-        assert!(converted_back.primary.severity.is_fatal());
+        assert!(converted_back.primary.severity.is_critical());
     }
 
     #[test]
@@ -798,7 +801,7 @@ mod tests {
             .into_result()
             .expect_err("Should have an error result");
 
-        assert!(converted_back.primary.severity.is_fatal());
+        assert!(converted_back.primary.severity.is_critical());
         assert_eq!(converted_back.secondary.len(), 1);
     }
 
@@ -821,7 +824,7 @@ mod tests {
         };
 
         let error = result.into_result().expect_err("should've errored out");
-        assert!(error.primary.severity.is_fatal());
+        assert!(error.primary.severity.is_critical());
         assert_eq!(error.secondary.len(), 2); // Warning and Note remain
     }
 
@@ -841,7 +844,7 @@ mod tests {
 
         let error = result.into_result().expect_err("should've errored out");
 
-        assert!(error.primary.severity.is_fatal());
+        assert!(error.primary.severity.is_critical());
         assert_eq!(error.secondary.len(), 0);
     }
 
@@ -859,7 +862,7 @@ mod tests {
 
         let error = foo.into_result().expect_err("should've errored out");
 
-        assert!(error.primary.severity.is_fatal());
+        assert!(error.primary.severity.is_critical());
         assert!(error.secondary.is_empty());
     }
 
@@ -890,7 +893,7 @@ mod tests {
             }
             core::ops::ControlFlow::Break(residual) => {
                 let error = residual.into_result().expect_err("Expected error");
-                assert!(error.primary.severity.is_fatal());
+                assert!(error.primary.severity.is_critical());
             }
         }
     }
@@ -907,7 +910,7 @@ mod tests {
         result.append_diagnostics(&mut additional);
 
         let error = result.into_result().expect_err("Expected error");
-        assert!(error.primary.severity.is_fatal());
+        assert!(error.primary.severity.is_critical());
         assert_eq!(error.secondary.len(), 2); // Warning and Note
         assert!(additional.is_empty()); // All moved
     }

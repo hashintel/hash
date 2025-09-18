@@ -49,7 +49,7 @@ impl Diagnostics {
 
     /// Adds a new diagnostic to the collection.
     pub(crate) fn push(&mut self, diagnostic: TypeCheckDiagnostic) {
-        if diagnostic.severity.is_fatal() {
+        if diagnostic.severity.is_critical() {
             self.fatal += 1;
         }
 
