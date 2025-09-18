@@ -11,6 +11,8 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
@@ -36,10 +38,7 @@ import {
   createEntityType,
   getEntityTypeById,
 } from "../graph/ontology/primitive/entity-type";
-import {
-  createPropertyType,
-  getPropertyTypeById,
-} from "../graph/ontology/primitive/property-type";
+import { createPropertyType } from "../graph/ontology/primitive/property-type";
 import { logger } from "../logger";
 
 const provenance: ProvidedEntityEditionProvenance = {
@@ -70,15 +69,10 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   const propertyTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
   const existingPropertyType = await getPropertyTypeById(
-    context,
+    context.graphApi,
     authentication,
-    { propertyTypeId },
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+    { propertyTypeId, temporalAxes: currentTimeInstantTemporalAxes },
+  );
 
   if (existingPropertyType) {
     return existingPropertyType;

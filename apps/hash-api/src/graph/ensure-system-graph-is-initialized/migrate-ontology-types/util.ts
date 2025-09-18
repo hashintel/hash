@@ -16,6 +16,7 @@ import type {
   OntologyTypeRecordId,
   PropertyObjectWithMetadata,
   PropertyType,
+  PropertyTypeMetadata,
   PropertyTypeReference,
   PropertyTypeWithMetadata,
   PropertyValueArray,
@@ -40,6 +41,7 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -68,10 +70,7 @@ import {
   createEntityType,
   getEntityTypeById,
 } from "../../ontology/primitive/entity-type";
-import {
-  createPropertyType,
-  getPropertyTypeById,
-} from "../../ontology/primitive/property-type";
+import { createPropertyType } from "../../ontology/primitive/property-type";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import { getOrCreateOwningWebId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
@@ -317,9 +316,9 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   migrationState.propertyTypeVersions[baseUrl] = versionNumber;
 
   const existingPropertyType = await getPropertyTypeById(
-    context,
+    context.graphApi,
     authentication,
-    { propertyTypeId },
+    { propertyTypeId, temporalAxes: currentTimeInstantTemporalAxes },
   ).catch((error: Error) => {
     if (error instanceof NotFoundError) {
       return null;
@@ -346,15 +345,17 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an
      * in-instance web, although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
-      // Specify the schema so that self-hosted instances don't need network access to hash.ai
-      schema: propertyTypeSchema,
-      provenance: context.provenance,
-    });
+    const propertyTypeMetadata =
+      await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
+        // Specify the schema so that self-hosted instances don't need network access to hash.ai
+        schema: propertyTypeSchema,
+        provenance: context.provenance,
+      });
 
-    return await getPropertyTypeById(context, authentication, {
-      propertyTypeId: propertyTypeSchema.$id,
-    });
+    return {
+      schema: propertyTypeSchema,
+      metadata: propertyTypeMetadata.data as PropertyTypeMetadata,
+    };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdPropertyType = await createPropertyType(
@@ -780,16 +781,26 @@ export const updateSystemPropertyType: ImpureGraphFunction<
     );
   }
 
+  const nextPropertyTypeVersion = incrementOntologyTypeVersion(version);
   const nextPropertyTypeId = versionedUrlFromComponents(
     baseUrl,
-    incrementOntologyTypeVersion(version),
+    nextPropertyTypeVersion,
   );
-  try {
-    await getPropertyTypeById(context, authentication, {
+
+  const nextPropertyType = await getPropertyTypeById(
+    context.graphApi,
+    authentication,
+    {
       propertyTypeId: nextPropertyTypeId,
-    });
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
+
+  if (nextPropertyType) {
+    migrationState.propertyTypeVersions[baseUrl] = nextPropertyTypeVersion;
+
     return { updatedPropertyTypeId: nextPropertyTypeId };
-  } catch {
+  } else {
     // the next version doesn't exist, continue to create it
   }
 

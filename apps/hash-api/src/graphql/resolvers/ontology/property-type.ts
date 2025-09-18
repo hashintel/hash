@@ -1,11 +1,15 @@
-import type { PropertyTypeRootType } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import {
+  getPropertyTypeSubgraphById,
+  queryPropertyTypeSubgraph,
+  serializeQueryPropertyTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
@@ -16,7 +20,6 @@ import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping
 import {
   archivePropertyType,
   createPropertyType,
-  getPropertyTypeSubgraphById,
   unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
@@ -85,31 +88,23 @@ export const queryPropertyTypesResolver: ResolverFn<
    *   authorized to see.
    * @see https://linear.app/hash/issue/H-2995
    */
-  const { data: response } = await graphApi.queryPropertyTypeSubgraph(
-    authentication.actorId,
-    {
-      filter: latestOnly
-        ? filter
-          ? { all: [filter, latestOnlyFilter] }
-          : latestOnlyFilter
-        : (filter ?? { all: [] }),
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
+  const response = await queryPropertyTypeSubgraph(graphApi, authentication, {
+    filter: latestOnly
+      ? filter
+        ? { all: [filter, latestOnlyFilter] }
+        : latestOnlyFilter
+      : (filter ?? { all: [] }),
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      constrainsValuesOn,
+      constrainsPropertiesOn,
     },
-  );
+    temporalAxes: includeArchived
+      ? fullTransactionTimeAxis
+      : currentTimeInstantTemporalAxes,
+  });
 
-  return serializeSubgraph(
-    mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
-      response.subgraph,
-      authentication.actorId,
-    ),
-  );
+  return serializeQueryPropertyTypeSubgraphResponse(response).subgraph;
 };
 
 export const getPropertyTypeResolver: ResolverFn<
@@ -127,24 +122,31 @@ export const getPropertyTypeResolver: ResolverFn<
   },
   graphQLContext,
   __,
-) =>
-  serializeSubgraph(
-    await getPropertyTypeSubgraphById(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        propertyTypeId,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
+) => {
+  const subgraph = await getPropertyTypeSubgraphById(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    {
+      propertyTypeId,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn,
+        constrainsPropertiesOn,
       },
-    ),
+      temporalAxes: includeArchived
+        ? fullTransactionTimeAxis
+        : currentTimeInstantTemporalAxes,
+    },
   );
+
+  if (!subgraph) {
+    throw new NotFoundError(
+      `Could not find property type with ID "${propertyTypeId}"`,
+    );
+  }
+
+  return serializeSubgraph(subgraph);
+};
 
 export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,

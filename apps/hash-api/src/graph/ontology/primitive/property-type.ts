@@ -1,4 +1,3 @@
-import type { PropertyTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
   OntologyTypeRecordId,
@@ -12,23 +11,16 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   ArchivePropertyTypeParams,
-  QueryPropertyTypesParams,
-  QueryPropertyTypeSubgraphParams,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
 } from "@local/hash-graph-client";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { mapGraphApiPropertyTypesToPropertyTypes } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname, isExternalTypeId } from "./util";
+import { getWebShortname } from "./util";
 
 /**
  * Create a property type.
@@ -89,97 +81,6 @@ export const createPropertyType: ImpureGraphFunction<
   // TODO: Avoid casting through `unknown` when new codegen is in place
   //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
   return { schema, metadata: metadata as unknown as PropertyTypeMetadata };
-};
-
-export const getPropertyTypes: ImpureGraphFunction<
-  QueryPropertyTypesParams,
-  Promise<PropertyTypeWithMetadata[]>
-> = async ({ graphApi }, { actorId }, request) =>
-  graphApi
-    .queryPropertyTypes(actorId, request)
-    .then(({ data: response }) =>
-      mapGraphApiPropertyTypesToPropertyTypes(response.propertyTypes),
-    );
-
-/**
- * Get property types by a structural query.
- *
- * @param params.query the structural query to filter property types by.
- */
-export const getPropertyTypeSubgraph: ImpureGraphFunction<
-  QueryPropertyTypeSubgraphParams,
-  Promise<Subgraph<PropertyTypeRootType>>
-> = async ({ graphApi }, { actorId }, request) =>
-  graphApi
-    .queryPropertyTypeSubgraph(actorId, request)
-    .then(({ data: response }) =>
-      mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
-    );
-
-/**
- * Get a property type by its versioned URL.
- *
- * @param params.propertyTypeId the unique versioned URL for a property type.
- */
-export const getPropertyTypeById: ImpureGraphFunction<
-  {
-    propertyTypeId: VersionedUrl;
-  },
-  Promise<PropertyTypeWithMetadata>
-> = async (context, authentication, params) => {
-  const { propertyTypeId } = params;
-
-  const [propertyType] = await getPropertyTypes(context, authentication, {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-    },
-    temporalAxes: currentTimeInstantTemporalAxes,
-  });
-
-  if (!propertyType) {
-    throw new NotFoundError(
-      `Could not find property type with ID "${propertyTypeId}"`,
-    );
-  }
-
-  return propertyType;
-};
-
-/**
- * Get a property type rooted subgraph by its versioned URL.
- *
- * If the type does not already exist within the Graph, and is an externally-hosted type, this will also load the type into the Graph.
- */
-export const getPropertyTypeSubgraphById: ImpureGraphFunction<
-  DistributiveOmit<QueryPropertyTypeSubgraphParams, "filter"> & {
-    propertyTypeId: VersionedUrl;
-  },
-  Promise<Subgraph<PropertyTypeRootType>>
-> = async (context, authentication, params) => {
-  const { propertyTypeId, ...subgraphRequest } = params;
-
-  const request: QueryPropertyTypeSubgraphParams = {
-    filter: {
-      equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-    },
-    ...subgraphRequest,
-  };
-
-  let subgraph = await getPropertyTypeSubgraph(
-    context,
-    authentication,
-    request,
-  );
-
-  if (subgraph.roots.length === 0 && isExternalTypeId(propertyTypeId)) {
-    await context.graphApi.loadExternalPropertyType(authentication.actorId, {
-      propertyTypeId,
-    });
-
-    subgraph = await getPropertyTypeSubgraph(context, authentication, request);
-  }
-
-  return subgraph;
 };
 
 /**
