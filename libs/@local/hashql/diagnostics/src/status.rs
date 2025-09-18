@@ -597,6 +597,8 @@ impl<T, C, S> From<Success<T, C, S>> for Status<T, C, S> {
 
 impl<T, C, S> From<Failure<C, S>> for Status<T, C, S> {
     fn from(Failure { primary, secondary }: Failure<C, S>) -> Self {
+        assert!(primary.severity.is_fatal(), "primary error must be fatal");
+
         Self {
             result: Err(primary),
             diagnostics: secondary,
