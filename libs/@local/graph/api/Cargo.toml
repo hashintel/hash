@@ -42,6 +42,7 @@ hash-graph-temporal-versioning = { workspace = true }
 hash-graph-type-defs           = { workspace = true }
 hash-graph-validation          = { workspace = true }
 hashql-ast                     = { workspace = true }
+hashql-diagnostics             = { workspace = true }
 hashql-eval                    = { workspace = true, features = ["graph"] }
 hashql-hir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
@@ -55,7 +56,6 @@ derive_more                        = { workspace = true, features = ["display", 
 error-stack                        = { workspace = true, features = ["futures", "spantrace", "unstable"] }
 frunk                              = { workspace = true }
 futures                            = { workspace = true }
-hashql-diagnostics.workspace       = true
 hyper                              = { workspace = true }
 include_dir                        = { workspace = true }
 mime                               = { workspace = true }
