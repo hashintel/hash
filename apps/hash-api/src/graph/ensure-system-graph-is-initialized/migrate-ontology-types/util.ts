@@ -319,12 +319,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     context.graphApi,
     authentication,
     { propertyTypeId, temporalAxes: currentTimeInstantTemporalAxes },
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+  );
 
   if (existingPropertyType) {
     return existingPropertyType;
