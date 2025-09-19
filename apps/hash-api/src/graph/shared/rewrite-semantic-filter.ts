@@ -7,13 +7,9 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { Client } from "@temporalio/client";
 
 export const rewriteSemanticFilter = async (
-  filter?: Filter,
+  filter: Filter,
   temporalClient?: Client,
 ) => {
-  if (!filter) {
-    return;
-  }
-
   /**
    * Convert any strings provided under a 'cosineDistance' filter into embeddings.
    */

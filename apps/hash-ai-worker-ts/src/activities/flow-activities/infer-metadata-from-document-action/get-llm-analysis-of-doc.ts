@@ -1,4 +1,3 @@
-import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
@@ -12,7 +11,7 @@ import type {
 import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -399,8 +398,10 @@ export const getLlmAnalysisOfDoc = async ({
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
-  const docsEntityTypeSubgraph = await graphApiClient
-    .queryEntityTypeSubgraph(userAuthentication.actorId, {
+  const docsEntityType = await queryEntityTypeSubgraph(
+    graphApiClient,
+    userAuthentication,
+    {
       filter: {
         all: [
           {
@@ -425,20 +426,15 @@ export const getLlmAnalysisOfDoc = async ({
         constrainsPropertiesOn: { outgoing: 255 },
         inheritsFrom: { outgoing: 255 },
       },
-    })
-    .then(({ data: response }) =>
-      mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        response.subgraph,
-        userAuthentication.actorId,
-      ),
-    );
+    },
+  );
 
   // const docEntityTypes
-  const dereferencedDocEntityTypes = getEntityTypes(docsEntityTypeSubgraph)
+  const dereferencedDocEntityTypes = getEntityTypes(docsEntityType.subgraph)
     .map((entityType) =>
       dereferenceEntityType({
         entityTypeId: entityType.schema.$id,
-        subgraph: docsEntityTypeSubgraph,
+        subgraph: docsEntityType.subgraph,
         simplifyPropertyKeys: true,
       }),
     )

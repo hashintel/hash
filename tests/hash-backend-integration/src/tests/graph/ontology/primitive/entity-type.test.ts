@@ -8,7 +8,6 @@ import {
   checkPermissionsOnEntityType,
   createEntityType,
   getClosedEntityTypes,
-  getClosedMultiEntityTypes,
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -29,6 +28,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
+  getClosedMultiEntityTypes,
   getEntityTypeById,
   getEntityTypeSubgraphById,
   hasPermissionForEntityTypes,
@@ -264,7 +264,7 @@ describe("Entity type CRU", () => {
     assert(actorType);
 
     const fetchedEntityType = await getClosedEntityTypes(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         filter: {
@@ -330,7 +330,7 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     const closedEntityTypes = await getClosedEntityTypes(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         filter: {
@@ -356,7 +356,7 @@ describe("Entity type CRU", () => {
     closedEntityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 
     const { closedMultiEntityTypes, definitions } =
-      await getClosedMultiEntityTypes(graphContext, authentication, {
+      await getClosedMultiEntityTypes(graphContext.graphApi, authentication, {
         entityTypeIds: [
           [
             systemEntityTypes.user.entityTypeId,

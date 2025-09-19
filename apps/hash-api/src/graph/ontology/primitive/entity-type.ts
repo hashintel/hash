@@ -17,31 +17,25 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
-  ClosedMultiEntityTypeMap,
-  GetClosedMultiEntityTypesParams,
-  GetClosedMultiEntityTypesResponse as GraphApiGetClosedMultiEntityTypesResponse,
-  QueryEntityTypesParams,
+  GraphApi,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import {
   getEntityTypeById,
   hasPermissionForEntityTypes,
+  queryEntityTypes,
+  type QueryEntityTypesParams,
 } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedEntityTypeWithMetadata,
   ConstructEntityTypeParams,
-  EntityTypeResolveDefinitions,
 } from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  mapGraphApiClosedEntityTypesToClosedEntityTypes,
-  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
-  mapGraphApiEntityTypesToEntityTypes,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
@@ -144,50 +138,28 @@ export const createEntityType: ImpureGraphFunction<
   return { schema, metadata: metadata as unknown as EntityTypeMetadata };
 };
 
-export const getClosedEntityTypes: ImpureGraphFunction<
-  Omit<QueryEntityTypesParams, "includeDrafts" | "includeEntityTypes"> & {
+export const getClosedEntityTypes = async (
+  graphApi: GraphApi,
+  authentication: AuthenticationContext,
+  params: Omit<QueryEntityTypesParams, "includeEntityTypes"> & {
     temporalClient?: TemporalClient;
   },
-  Promise<ClosedEntityTypeWithMetadata[]>
-> = async ({ graphApi, temporalClient }, { actorId }, request) => {
-  await rewriteSemanticFilter(request.filter, temporalClient);
+): Promise<ClosedEntityTypeWithMetadata[]> => {
+  await rewriteSemanticFilter(params.filter, params.temporalClient);
 
-  const { data: response } = await graphApi.queryEntityTypes(actorId, {
-    includeEntityTypes: "closed",
-    ...request,
-  });
-  const entityTypes = mapGraphApiEntityTypesToEntityTypes(response.entityTypes);
-  const closedEntityTypes = mapGraphApiClosedEntityTypesToClosedEntityTypes(
-    response.closedEntityTypes!,
+  const { entityTypes, closedEntityTypes } = await queryEntityTypes(
+    graphApi,
+    authentication,
+    {
+      ...params,
+      includeEntityTypes: "closed",
+    },
   );
-  return closedEntityTypes.map((schema, idx) => ({
+  return closedEntityTypes!.map((schema, idx) => ({
     schema,
     metadata: entityTypes[idx]!.metadata,
   }));
 };
-
-export type GetClosedMultiEntityTypesResponse = Omit<
-  GraphApiGetClosedMultiEntityTypesResponse,
-  "entityTypes" | "definitions"
-> & {
-  closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
-  definitions?: EntityTypeResolveDefinitions;
-};
-
-export const getClosedMultiEntityTypes: ImpureGraphFunction<
-  GetClosedMultiEntityTypesParams,
-  Promise<GetClosedMultiEntityTypesResponse>
-> = async ({ graphApi }, { actorId }, request) =>
-  graphApi
-    .getClosedMultiEntityTypes(actorId, request)
-    .then(({ data: response }) => ({
-      closedMultiEntityTypes: response.entityTypes,
-      definitions: response.definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            response.definitions,
-          )
-        : undefined,
-    }));
 
 type UpdateEntityTypeParams = {
   entityTypeId: VersionedUrl;

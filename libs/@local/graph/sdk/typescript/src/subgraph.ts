@@ -1,4 +1,5 @@
 import {
+  type EntityRootType,
   isEntityVertex,
   type KnowledgeGraphVertex,
   type Subgraph,
@@ -31,6 +32,7 @@ import type {
 import {
   HashEntity,
   type SerializedKnowledgeGraphVertex,
+  type SerializedSubgraph,
   type SerializedVertices,
 } from "./entity.js";
 
@@ -225,3 +227,23 @@ export const deserializeGraphVertices = (
       ),
     ]),
   ) as Vertices<HashEntity>;
+
+export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
+  roots: subgraph.roots,
+  vertices: serializeGraphVertices(subgraph.vertices as Vertices<HashEntity>),
+  edges: subgraph.edges,
+  temporalAxes: subgraph.temporalAxes,
+});
+
+export const deserializeSubgraph = <
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
+>(
+  subgraph: SerializedSubgraph,
+): Subgraph<RootType, HashEntity> => ({
+  roots: subgraph.roots as RootType["vertexId"][],
+  vertices: deserializeGraphVertices(subgraph.vertices),
+  edges: subgraph.edges,
+  temporalAxes: subgraph.temporalAxes,
+});

@@ -403,7 +403,7 @@ export const updateEntityEmbeddings = async (
       // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
       //       just making another request here. We should add the required methods to the library and do this client
       //       side.
-      const subgraph = await graphActivities.getEntityTypesSubgraph({
+      const { subgraph } = await graphActivities.queryEntityTypesSubgraph({
         authentication: params.authentication,
         request: {
           filter: {

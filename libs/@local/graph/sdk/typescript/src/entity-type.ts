@@ -1,11 +1,15 @@
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
+  ActorEntityUuid,
+  ClosedEntityType,
   EntityTypeWithMetadata,
   VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
+  ClosedEntityType as ClosedEntityTypeGraphApi,
   ClosedMultiEntityTypeMap,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
@@ -62,15 +66,28 @@ export type QueryEntityTypesParams = Omit<
 
 export type QueryEntityTypesResponse = Omit<
   QueryEntityTypesResponseGraphApi,
-  "entityTypes" | "cursor"
+  | "closedEntityTypes"
+  | "entityTypes"
+  | "cursor"
+  | "definitions"
+  | "webIds"
+  | "editionCreatedByIds"
 > & {
+  closedEntityTypes?: ClosedEntityType[];
   entityTypes: EntityTypeWithMetadata[];
   cursor?: VersionedUrl;
+  definitions?: EntityTypeResolveDefinitions;
+  webIds?: Record<WebId, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
 };
 
 const mapGraphApiEntityTypesToEntityTypes = (
   entityTypes: EntityTypeWithMetadataGraphApi[],
 ) => entityTypes as unknown as EntityTypeWithMetadata[];
+
+export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
+  closedEntityTypes: ClosedEntityTypeGraphApi[],
+) => closedEntityTypes as ClosedEntityType[];
 
 export const queryEntityTypes = (
   graphApi: GraphApi,
@@ -81,8 +98,20 @@ export const queryEntityTypes = (
     .queryEntityTypes(authentication.actorId, params)
     .then(({ data: response }) => ({
       ...response,
+      closedEntityTypes: response.closedEntityTypes
+        ? mapGraphApiClosedEntityTypesToClosedEntityTypes(
+            response.closedEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions as
+        | EntityTypeResolveDefinitions
+        | undefined,
       entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
       cursor: response.cursor as VersionedUrl | undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
     }));
 
 export type QueryEntityTypeSubgraphParams = DistributiveOmit<
@@ -94,10 +123,12 @@ export type QueryEntityTypeSubgraphParams = DistributiveOmit<
 
 export type QueryEntityTypeSubgraphResponse = DistributiveOmit<
   QueryEntityTypeSubgraphResponseGraphApi,
-  "subgraph" | "cursor"
+  "subgraph" | "cursor" | "webIds" | "editionCreatedByIds"
 > & {
   subgraph: Subgraph<EntityTypeRootType, HashEntity>;
   cursor?: VersionedUrl;
+  webIds?: Record<WebId, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
 };
 
 export type SerializedQueryEntityTypeSubgraphResponse = DistributiveOmit<
@@ -122,6 +153,10 @@ export const queryEntityTypeSubgraph = (
         false,
       ),
       cursor: response.cursor as VersionedUrl | undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
     }));
 
 export const serializeQueryEntityTypeSubgraphResponse = (

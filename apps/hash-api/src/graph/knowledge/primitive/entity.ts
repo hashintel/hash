@@ -48,6 +48,7 @@ import {
   HashEntity,
   HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions } from "@local/hash-graph-sdk/entity-type";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import {
   mapGraphApiEntityToEntity,
@@ -58,7 +59,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import { ApolloError } from "apollo-server-errors";
 import { Predicate } from "effect";

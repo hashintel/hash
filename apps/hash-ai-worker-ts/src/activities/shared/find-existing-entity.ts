@@ -1,4 +1,3 @@
-import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -17,10 +16,8 @@ import type {
   GraphApi,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-graph-sdk/subgraph";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
+import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -59,8 +56,10 @@ export const findExistingEntity = async ({
 }): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const entityTypes: DereferencedEntityType[] =
     dereferencedEntityTypes ??
-    (await graphApiClient
-      .queryEntityTypeSubgraph(actorId, {
+    (await queryEntityTypeSubgraph(
+      graphApiClient,
+      { actorId },
+      {
         filter: {
           any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
@@ -71,24 +70,19 @@ export const findExistingEntity = async ({
           ...fullOntologyResolveDepths,
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data }) => {
-        const subgraph = mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-          data.subgraph,
-          actorId,
-        );
+      },
+    ).then(({ subgraph }) => {
+      const foundEntityTypes = getRoots(subgraph);
 
-        const foundEntityTypes = getRoots(subgraph);
-
-        return foundEntityTypes.map(({ schema }) => {
-          const dereferencedType = dereferenceEntityType({
-            entityTypeId: schema.$id,
-            subgraph,
-          });
-
-          return dereferencedType.schema;
+      return foundEntityTypes.map(({ schema }) => {
+        const dereferencedType = dereferenceEntityType({
+          entityTypeId: schema.$id,
+          subgraph,
         });
-      }));
+
+        return dereferencedType.schema;
+      });
+    }));
 
   if (!entityTypes.length) {
     throw new Error(
