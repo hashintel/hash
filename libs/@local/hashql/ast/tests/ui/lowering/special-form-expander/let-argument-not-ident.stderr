@@ -1,17 +1,4 @@
 [special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
-    ╭─[ <unknown>:10:6 ]
-    │
- 10 │     "x::A",
-    │      ──┬─  
-    │        ╰─── Replace this with a simple identifier
-    │ 
-    │ Help: let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
-    │ 
-    │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
-────╯
-
-
-[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
    ╭─[ <unknown>:5:4 ]
    │
  5 │   "Int<T>",
@@ -22,6 +9,19 @@
    │ 
    │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
 ───╯
+
+
+[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
+    ╭─[ <unknown>:10:6 ]
+    │
+ 10 │     "x::A",
+    │      ──┬─  
+    │        ╰─── Replace this with a simple identifier
+    │ 
+    │ Help: let binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+    │ 
+    │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
+────╯
 
 
 [special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
