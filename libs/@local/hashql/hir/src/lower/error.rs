@@ -6,7 +6,7 @@ use hashql_core::{
     r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic, Help, Note, Severity,
+    Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     label::Label,
@@ -25,7 +25,10 @@ const ARGUMENT_OVERRIDE: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Cannot apply type arguments to already-parameterized variable",
 };
 
-pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
+pub type LoweringDiagnostic<K = Severity> = Diagnostic<LoweringDiagnosticCategory, SpanId, K>;
+pub type LoweringDiagnosticIssues<K = Severity> =
+    DiagnosticIssues<LoweringDiagnosticCategory, SpanId, K>;
+pub type LoweringDiagnosticStatus<T> = Status<T, LoweringDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LoweringDiagnosticCategory {

@@ -43,6 +43,13 @@ pub struct Success<T, C, S> {
 }
 
 impl<T, C, S> Success<T, C, S> {
+    pub fn map<U>(self, func: impl FnOnce(T) -> U) -> Success<U, C, S> {
+        Success {
+            value: func(self.value),
+            advisories: self.advisories,
+        }
+    }
+
     /// Converts to a result with type-erased diagnostic categories.
     ///
     /// When combining diagnostics from different compilation phases that use different category
@@ -298,6 +305,8 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     where
         C: 'category;
 
+    type Zip<A, B>: StatusExt<(A, B), C, S>;
+
     /// Creates a successful [`Status`] with the given value.
     ///
     /// The created status contains no diagnostic messages and represents a computation that
@@ -347,6 +356,8 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// }
     /// ```
     fn failure(error: Diagnostic<C, S, Critical>) -> Self;
+
+    fn map_value<U>(self, func: impl FnOnce(T) -> U) -> Status<U, C, S>;
 
     /// Converts to a result with type-erased diagnostic categories.
     ///
@@ -447,6 +458,8 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// assert!(additional.is_empty()); // Diagnostics were moved
     /// ```
     fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>);
+
+    fn zip<B>(this: Self, other: Status<B, C, S>) -> Self::Zip<T, B>;
 }
 
 impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
@@ -457,6 +470,7 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
     >
     where
         C: 'category;
+    type Zip<A, B> = Status<(A, B), C, S>;
 
     fn success(value: T) -> Self {
         Self::Ok(Success {
@@ -469,6 +483,13 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
         Self::Err(Failure {
             primary: Box::new(error),
             secondary: DiagnosticIssues::new(),
+        })
+    }
+
+    fn map_value<U>(self, func: impl FnOnce(T) -> U) -> Status<U, C, S> {
+        self.map(|Success { value, advisories }| Success {
+            value: func(value),
+            advisories,
         })
     }
 
@@ -504,17 +525,74 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
     fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) {
         match self {
             Ok(success) => {
-                if let Err((critical, issues)) =
-                    diagnostics.merge_into_advisories(&mut success.advisories)
-                {
-                    *self = Err(Failure {
-                        primary: Box::new(critical),
-                        secondary: issues,
-                    });
+                if let Err(failure) = diagnostics.merge_into_advisories(&mut success.advisories) {
+                    *self = Err(failure);
                 }
             }
             Err(failure) => {
                 failure.secondary.append(diagnostics);
+            }
+        }
+    }
+
+    fn zip<B>(this: Self, other: Status<B, C, S>) -> Self::Zip<T, B> {
+        match (this, other) {
+            (
+                Ok(Success {
+                    value: self_value,
+                    advisories: mut self_advisories,
+                }),
+                Ok(Success {
+                    value: other_value,
+                    advisories: mut other_advisories,
+                }),
+            ) => {
+                self_advisories.append(&mut other_advisories);
+                Ok(Success {
+                    value: (self_value, other_value),
+                    advisories: self_advisories,
+                })
+            }
+            (
+                Err(Failure {
+                    primary: self_primary,
+                    secondary: mut self_secondary,
+                }),
+                Err(Failure {
+                    primary: other_primary,
+                    secondary: mut other_secondary,
+                }),
+            ) => {
+                self_secondary.push(other_primary.generalize());
+                self_secondary.append(&mut other_secondary);
+
+                Err(Failure {
+                    primary: self_primary,
+                    secondary: self_secondary,
+                })
+            }
+            (
+                Ok(Success {
+                    value: _,
+                    advisories,
+                }),
+                Err(Failure {
+                    primary,
+                    mut secondary,
+                }),
+            )
+            | (
+                Err(Failure {
+                    primary,
+                    mut secondary,
+                }),
+                Ok(Success {
+                    value: _,
+                    advisories,
+                }),
+            ) => {
+                secondary.append(&mut advisories.generalize());
+                Err(Failure { primary, secondary })
             }
         }
     }

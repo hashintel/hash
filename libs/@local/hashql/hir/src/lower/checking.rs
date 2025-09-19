@@ -18,9 +18,13 @@ use hashql_core::{
         kind::generic::GenericArgumentReference,
     },
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 use super::{
-    error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory},
+    error::{
+        GenericArgumentContext, LoweringDiagnosticCategory, LoweringDiagnosticIssues,
+        LoweringDiagnosticStatus,
+    },
     inference::{Local, TypeInferenceResidual},
 };
 use crate::{
@@ -64,7 +68,7 @@ pub struct TypeChecking<'env, 'heap> {
 
     current: HirId,
     visited: FastHashSet<HirId>,
-    diagnostics: Vec<LoweringDiagnostic>,
+    diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: Diagnostics,
 
     types: FastRealmsMap<HirId, TypeId>,
@@ -100,7 +104,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 
             current: HirId::PLACEHOLDER,
             visited: FastHashSet::default(),
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             analysis_diagnostics: Diagnostics::new(),
 
             types: FastRealmsMap::new(),
@@ -178,8 +182,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         }
     }
 
-    #[must_use]
-    pub fn finish(mut self) -> (TypeCheckingResidual<'heap>, Vec<LoweringDiagnostic>) {
+    pub fn finish(mut self) -> LoweringDiagnosticStatus<TypeCheckingResidual<'heap>> {
         let diagnostics = iter::empty()
             .chain(self.lattice.take_diagnostics())
             .chain(self.simplify.take_diagnostics().into_iter().flatten())
@@ -198,7 +201,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             intrinsics: self.intrinsics,
         };
 
-        (residual, self.diagnostics)
+        self.diagnostics.into_status(residual)
     }
 }
 
