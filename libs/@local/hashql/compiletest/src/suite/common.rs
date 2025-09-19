@@ -2,7 +2,7 @@ use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticError, DiagnosticResult, DiagnosticValue, category::DiagnosticCategory,
+    Diagnostic, Failure, Status, Success, category::DiagnosticCategory, severity::SeverityKind as _,
 };
 
 use super::SuiteDiagnostic;
@@ -37,23 +37,19 @@ where
 
 pub(crate) fn process_diagnostic_result<T, C>(
     output: &mut Vec<SuiteDiagnostic>,
-    result: DiagnosticResult<T, C, SpanId>,
+    result: Status<T, C, SpanId>,
 ) -> Result<T, SuiteDiagnostic>
 where
     C: DiagnosticCategory + 'static,
 {
-    let result = result.into_result();
-
     match result {
-        Ok(DiagnosticValue { value, diagnostics }) => {
-            output.extend(diagnostics.boxed());
+        Ok(Success { value, advisories }) => {
+            output.extend(advisories.generalize().boxed());
             Ok(value)
         }
-        Err(error) => {
-            let DiagnosticError { primary, secondary } = *error;
-
+        Err(Failure { primary, secondary }) => {
             output.extend(secondary.boxed());
-            Err(primary.boxed())
+            Err(primary.generalize().boxed())
         }
     }
 }

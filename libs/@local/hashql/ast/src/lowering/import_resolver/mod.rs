@@ -11,7 +11,6 @@ use hashql_core::{
     },
     symbol::{Ident, IdentKind, Symbol},
 };
-use hashql_diagnostics::severity::SeverityKind as _;
 use hashql_diagnostics::DiagnosticIssues;
 
 use self::error::{
@@ -55,8 +54,8 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
         mem::take(&mut self.diagnostics)
     }
 
-    const fn fatal_diagnostics_count(&self) -> usize {
-        self.diagnostics.fatal()
+    const fn critical_diagnostics_count(&self) -> usize {
+        self.diagnostics.critical()
     }
 
     fn enter<T>(
@@ -309,7 +308,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             }
             // Replace any path, which has had diagnostics emitted with a dummy expression
             kind @ ExprKind::Path(_) => {
-                let fatal = self.fatal_diagnostics_count();
+                let fatal = self.critical_diagnostics_count();
                 if self.handled_diagnostics < fatal {
                     *kind = ExprKind::Dummy;
                     self.handled_diagnostics = fatal;
@@ -344,7 +343,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
 
         // Replace any path, which has had diagnostics emitted with a dummy expression
         if matches!(r#type.kind, TypeKind::Path(_)) {
-            let fatal = self.fatal_diagnostics_count();
+            let fatal = self.critical_diagnostics_count();
             if self.handled_diagnostics < fatal {
                 r#type.kind = TypeKind::Dummy;
                 self.handled_diagnostics = fatal;
