@@ -17,10 +17,10 @@ import stringify from "safe-stable-stringify";
 import type {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
-  GetPropertyTypeQuery,
-  GetPropertyTypeQueryVariables,
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
+  QueryPropertyTypeSubgraphQuery,
+  QueryPropertyTypeSubgraphQueryVariables,
 } from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
@@ -95,10 +95,12 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    GetEntityTypeQuery | QueryDataTypeSubgraphQuery | GetPropertyTypeQuery,
+    | GetEntityTypeQuery
+    | QueryDataTypeSubgraphQuery
+    | QueryPropertyTypeSubgraphQuery,
     | GetEntityTypeQueryVariables
     | QueryDataTypeSubgraphQueryVariables
-    | GetPropertyTypeQueryVariables
+    | QueryPropertyTypeSubgraphQueryVariables
   >(query, variables, cookie);
 
   if (errors ?? !data) {
@@ -117,7 +119,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
       ? data.queryDataTypeSubgraph.subgraph
       : "getEntityType" in data
         ? data.getEntityType
-        : data.getPropertyType;
+        : data.queryPropertyTypeSubgraph.subgraph;
 
   const root = roots[0] as OntologyTypeVertexId | undefined;
   if (!root) {

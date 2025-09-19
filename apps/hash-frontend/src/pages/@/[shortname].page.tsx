@@ -18,6 +18,7 @@ import type {
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
@@ -37,13 +38,13 @@ import type {
   QueryDataTypeSubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
-  QueryPropertyTypesQuery,
-  QueryPropertyTypesQueryVariables,
+  QueryPropertyTypeSubgraphQuery,
+  QueryPropertyTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
 import {
   constructOrg,
   constructUser,
@@ -126,23 +127,35 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const { data: propertyTypesData, loading: propertyTypesLoading } = useQuery<
-    QueryPropertyTypesQuery,
-    QueryPropertyTypesQueryVariables
-  >(queryPropertyTypesQuery, {
+    QueryPropertyTypeSubgraphQuery,
+    QueryPropertyTypeSubgraphQueryVariables
+  >(queryPropertyTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      filter: {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: profileWebId! },
-        ],
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["version"],
+                },
+                { parameter: "latest" },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: profileWebId! },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: fullTransactionTimeAxis,
       },
-
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
-      includeArchived: true,
     },
     skip: !profileWebId,
   });
@@ -190,9 +203,9 @@ const ProfilePage: NextPageWithLayout = () => {
 
     if (propertyTypesData) {
       const propertyTypes = getRoots<PropertyTypeRootType>(
-        mapGqlSubgraphFieldsFragmentToSubgraph(
-          propertyTypesData.queryPropertyTypes,
-        ),
+        deserializeQueryPropertyTypeSubgraphResponse(
+          propertyTypesData.queryPropertyTypeSubgraph,
+        ).subgraph,
       );
 
       types.push(...propertyTypes);

@@ -1,22 +1,19 @@
-import type { PropertyTypeRootType } from "@blockprotocol/graph";
 import type {
   OntologyTemporalMetadata,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
-import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
-  currentTimeInstantTemporalAxes,
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+  queryPropertyTypes,
+  type QueryPropertyTypesResponse,
+  queryPropertyTypeSubgraph,
+  type SerializedQueryPropertyTypeSubgraphResponse,
+  serializeQueryPropertyTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/property-type";
 
 import {
   archivePropertyType,
   createPropertyType,
-  getPropertyTypeSubgraphById,
   unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
@@ -25,8 +22,8 @@ import type {
   MutationCreatePropertyTypeArgs,
   MutationUnarchivePropertyTypeArgs,
   MutationUpdatePropertyTypeArgs,
-  QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
+  QueryQueryPropertyTypeSubgraphArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
@@ -57,95 +54,28 @@ export const createPropertyTypeResolver: ResolverFn<
 };
 
 export const queryPropertyTypesResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryQueryPropertyTypesArgs
-> = async (
-  _,
-  {
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    filter,
-    latestOnly = true,
-    includeArchived = false,
-  },
-  { dataSources, authentication },
-  __,
-) => {
-  const { graphApi } = dataSources;
-
-  const latestOnlyFilter = {
-    equal: [{ path: ["version"] }, { parameter: "latest" }],
-  };
-
-  /**
-   * @todo: get all latest property types in specified account.
-   *   This may mean implicitly filtering results by what an account is
-   *   authorized to see.
-   * @see https://linear.app/hash/issue/H-2995
-   */
-  const { data: response } = await graphApi.getPropertyTypeSubgraph(
-    authentication.actorId,
-    {
-      filter: latestOnly
-        ? filter
-          ? { all: [filter, latestOnlyFilter] }
-          : latestOnlyFilter
-        : (filter ?? { all: [] }),
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    },
-  );
-
-  return serializeSubgraph(
-    mapGraphApiSubgraphToSubgraph<PropertyTypeRootType>(
-      response.subgraph,
-      authentication.actorId,
-    ),
-  );
-};
-
-export const getPropertyTypeResolver: ResolverFn<
-  Promise<SerializedSubgraph>,
+  Promise<QueryPropertyTypesResponse>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetPropertyTypeArgs
-> = async (
-  _,
-  {
-    propertyTypeId,
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    includeArchived,
-  },
-  graphQLContext,
-  __,
-) =>
-  serializeSubgraph(
-    await getPropertyTypeSubgraphById(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        propertyTypeId,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-          constrainsPropertiesOn,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
-      },
-    ),
+  QueryQueryPropertyTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  queryPropertyTypes(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
   );
+
+export const queryPropertyTypeSubgraphResolver: ResolverFn<
+  Promise<SerializedQueryPropertyTypeSubgraphResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryPropertyTypeSubgraphArgs
+> = async (_, { request }, graphQLContext) =>
+  queryPropertyTypeSubgraph(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  ).then(serializeQueryPropertyTypeSubgraphResponse);
 
 export const updatePropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,

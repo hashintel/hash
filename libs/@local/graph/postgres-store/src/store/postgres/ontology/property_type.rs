@@ -12,10 +12,10 @@ use hash_graph_store::{
     filter::Filter,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeQueryPath,
-        PropertyTypeStore, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-        UpdatePropertyTypesParams,
+        HasPermissionForPropertyTypesParams, PropertyTypeQueryPath, PropertyTypeStore,
+        QueryPropertyTypeSubgraphParams, QueryPropertyTypeSubgraphResponse,
+        QueryPropertyTypesParams, QueryPropertyTypesResponse, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{Ordering, QueryResult as _, VersionedUrlSorting},
     subgraph::{
@@ -146,18 +146,18 @@ where
             }))
     }
 
-    async fn get_property_types_impl(
+    async fn query_property_types_impl(
         &self,
-        params: GetPropertyTypesParams<'_>,
+        params: QueryPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<PropertyTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewPropertyType),
             policy_components.optimization_data(ActionName::ViewPropertyType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -248,7 +248,7 @@ where
             (property_types, cursor)
         };
 
-        Ok(GetPropertyTypesResponse {
+        Ok(QueryPropertyTypesResponse {
             cursor,
             property_types,
             count,
@@ -651,7 +651,7 @@ where
         );
 
         let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -677,11 +677,11 @@ where
             .await)
     }
 
-    async fn get_property_types(
+    async fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+        mut params: QueryPropertyTypesParams<'_>,
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
@@ -695,16 +695,16 @@ where
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.resolve();
-        self.get_property_types_impl(params, &temporal_axes, &policy_components)
+        self.query_property_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type_subgraph(
+    async fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryPropertyTypeSubgraphParams<'_>,
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -726,14 +726,13 @@ where
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
-        let include_drafts = request.include_drafts;
 
-        let GetPropertyTypesResponse {
+        let QueryPropertyTypesResponse {
             property_types,
             cursor,
             count,
         } = self
-            .get_property_types_impl(request, &temporal_axes, &policy_components)
+            .query_property_types_impl(request, &temporal_axes, &policy_components)
             .await?;
 
         let (property_type_ids, property_type_vertex_ids): (Vec<_>, Vec<_>) = property_types
@@ -794,10 +793,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetPropertyTypeSubgraphResponse {
+        Ok(QueryPropertyTypeSubgraphResponse {
             subgraph,
             cursor,
             count,

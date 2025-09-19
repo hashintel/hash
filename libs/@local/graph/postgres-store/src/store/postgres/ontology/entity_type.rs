@@ -22,7 +22,7 @@ use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     property_type::{
-        GetPropertyTypeSubgraphParams, GetPropertyTypesParams, PropertyTypeStore as _,
+        PropertyTypeStore as _, QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams,
     },
     query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
@@ -233,9 +233,9 @@ where
         }
 
         let property_types = self
-            .get_property_type_subgraph(
+            .query_property_type_subgraph(
                 actor_id,
-                GetPropertyTypeSubgraphParams::ResolveDepths {
+                QueryPropertyTypeSubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths {
                         constrains_properties_on: OutgoingEdgeResolveDepth {
                             outgoing: 255,
@@ -243,12 +243,11 @@ where
                         },
                         ..GraphResolveDepths::default()
                     },
-                    request: GetPropertyTypesParams {
+                    request: QueryPropertyTypesParams {
                         filter: Filter::for_property_type_uuids(&property_type_uuids),
                         temporal_axes: QueryTemporalAxesUnresolved::default(),
                         after: None,
                         limit: None,
-                        include_drafts: false,
                         include_count: false,
                     },
                 },

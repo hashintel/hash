@@ -15,8 +15,6 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import {
   archivePropertyType,
-  getPropertyTypes,
-  getPropertyTypeSubgraph,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type {
@@ -44,7 +42,6 @@ import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   GetEntitySubgraphRequest,
   GetEntityTypesParams,
-  GetPropertyTypesParams,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import {
@@ -52,6 +49,11 @@ import {
   type QueryDataTypesParams,
   queryDataTypeSubgraph,
 } from "@local/hash-graph-sdk/data-type";
+import {
+  queryPropertyTypes,
+  type QueryPropertyTypesParams,
+  queryPropertyTypeSubgraph,
+} from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
@@ -335,8 +337,8 @@ describe("Ontology queries", () => {
       constrainsPropertiesOn: { outgoing: 255 },
     },
   ])("read property types %#", async (resolve_depths) => {
-    const subgraph = await getPropertyTypeSubgraph(
-      graphContext,
+    const { subgraph } = await queryPropertyTypeSubgraph(
+      graphContext.graphApi,
       authentication,
       {
         filter: {
@@ -362,7 +364,7 @@ describe("Ontology queries", () => {
     const propertyTypeId: VersionedUrl =
       "http://localhost:3000/@alice/types/property-type/name/v/1";
 
-    const request: GetPropertyTypesParams = {
+    const request: QueryPropertyTypesParams = {
       filter: {
         equal: [
           {
@@ -374,11 +376,10 @@ describe("Ontology queries", () => {
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
     };
 
-    const initialPropertyTypes = await getPropertyTypes(
-      graphContext,
+    const { propertyTypes: initialPropertyTypes } = await queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );
@@ -395,8 +396,8 @@ describe("Ontology queries", () => {
       },
     );
 
-    const emptyPropertyTypes = await getPropertyTypes(
-      graphContext,
+    const { propertyTypes: emptyPropertyTypes } = await queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );
@@ -410,8 +411,8 @@ describe("Ontology queries", () => {
       },
     );
 
-    const nonEmptyPropertyTypes = await getPropertyTypes(
-      graphContext,
+    const { propertyTypes: nonEmptyPropertyTypes } = await queryPropertyTypes(
+      graphContext.graphApi,
       authentication,
       request,
     );

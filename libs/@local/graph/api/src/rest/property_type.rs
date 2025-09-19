@@ -17,9 +17,9 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     pool::StorePool,
     property_type::{
-        ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-        GetPropertyTypesParams, GetPropertyTypesResponse, HasPermissionForPropertyTypesParams,
-        PropertyTypeQueryToken, PropertyTypeStore, UnarchivePropertyTypeParams,
+        ArchivePropertyTypeParams, CreatePropertyTypeParams, HasPermissionForPropertyTypesParams,
+        PropertyTypeQueryToken, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        QueryPropertyTypesParams, QueryPropertyTypesResponse, UnarchivePropertyTypeParams,
         UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
@@ -56,8 +56,8 @@ use crate::rest::{
 
         create_property_type,
         load_external_property_type,
-        get_property_types,
-        get_property_type_subgraph,
+        query_property_types,
+        query_property_type_subgraph,
         update_property_type,
         update_property_types,
         update_property_type_embeddings,
@@ -77,10 +77,10 @@ use crate::rest::{
             UpdatePropertyTypeRequest,
             UpdatePropertyTypeEmbeddingParams,
             PropertyTypeQueryToken,
-            GetPropertyTypesParams,
-            GetPropertyTypesResponse,
-            GetPropertyTypeSubgraphParams,
-            GetPropertyTypeSubgraphResponse,
+            QueryPropertyTypesParams,
+            QueryPropertyTypesResponse,
+            QueryPropertyTypeSubgraphParams,
+            QueryPropertyTypeSubgraphResponse,
             ArchivePropertyTypeParams,
             UnarchivePropertyTypeParams,
         )
@@ -111,8 +111,8 @@ impl PropertyTypeResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_property_types::<S>))
-                        .route("/subgraph", post(get_property_type_subgraph::<S>)),
+                        .route("/", post(query_property_types::<S>))
+                        .route("/subgraph", post(query_property_type_subgraph::<S>)),
                 )
                 .route("/load", post(load_external_property_type::<S>))
                 .route("/archive", put(archive_property_type::<S>))
@@ -295,7 +295,7 @@ where
 #[utoipa::path(
     post,
     path = "/property-types/query",
-    request_body = GetPropertyTypesParams,
+    request_body = QueryPropertyTypesParams,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -304,20 +304,20 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetPropertyTypesResponse,
+            body = QueryPropertyTypesResponse,
             description = "Gets a a list of property types that satisfy the given query.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_property_types<S>(
+async fn query_property_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetPropertyTypesResponse>, Response>
+) -> Result<Json<QueryPropertyTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -331,11 +331,11 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_property_types(
+        .query_property_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetPropertyTypesParams::deserialize(&request)
+            QueryPropertyTypesParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
@@ -350,7 +350,7 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetPropertyTypeSubgraphResponse {
+struct QueryPropertyTypeSubgraphResponse {
     subgraph: Subgraph,
     cursor: Option<VersionedUrl>,
 }
@@ -358,7 +358,7 @@ struct GetPropertyTypeSubgraphResponse {
 #[utoipa::path(
     post,
     path = "/property-types/query/subgraph",
-    request_body = GetPropertyTypeSubgraphParams,
+    request_body = QueryPropertyTypeSubgraphParams,
     tag = "PropertyType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -367,7 +367,7 @@ struct GetPropertyTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = GetPropertyTypeSubgraphResponse,
+            body = QueryPropertyTypeSubgraphResponse,
             description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
             headers(
                 ("Link" = String, description = "The link to be used to query the next page of property types"),
@@ -379,13 +379,13 @@ struct GetPropertyTypeSubgraphResponse {
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_property_type_subgraph<S>(
+async fn query_property_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetPropertyTypeSubgraphResponse>, Response>
+) -> Result<Json<QueryPropertyTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -399,16 +399,16 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_property_type_subgraph(
+        .query_property_type_subgraph(
             actor_id,
-            GetPropertyTypeSubgraphParams::deserialize(&request)
+            QueryPropertyTypeSubgraphParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
         .map(|response| {
-            Json(GetPropertyTypeSubgraphResponse {
+            Json(QueryPropertyTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
             })

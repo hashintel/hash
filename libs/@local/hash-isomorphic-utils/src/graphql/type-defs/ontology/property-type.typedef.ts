@@ -1,31 +1,22 @@
 import { gql } from "apollo-server-express";
 
 export const propertyTypeTypedef = gql`
+  scalar QueryPropertyTypesParams
+  scalar QueryPropertyTypesResponse
+  scalar QueryPropertyTypeSubgraphParams
+  scalar QueryPropertyTypeSubgraphResponse
   scalar ConstructPropertyTypeParams
   scalar PropertyTypeWithMetadata
   scalar OntologyTemporalMetadata
 
   extend type Query {
-    """
-    Get a subgraph rooted at all property types that match a given filter.
-    """
     queryPropertyTypes(
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      filter: Filter
-      latestOnly: Boolean = true
-      includeArchived: Boolean = false
-    ): GqlSubgraph!
+      request: QueryPropertyTypesParams!
+    ): QueryPropertyTypesResponse!
 
-    """
-    Get a subgraph rooted at an property type resolved by its versioned URL.
-    """
-    getPropertyType(
-      propertyTypeId: VersionedUrl!
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      includeArchived: Boolean = false
-    ): GqlSubgraph!
+    queryPropertyTypeSubgraph(
+      request: QueryPropertyTypeSubgraphParams!
+    ): QueryPropertyTypeSubgraphResponse!
   }
 
   extend type Mutation {

@@ -102,8 +102,8 @@ import {
 import {
   archivePropertyTypeResolver,
   createPropertyTypeResolver,
-  getPropertyTypeResolver,
   queryPropertyTypesResolver,
+  queryPropertyTypeSubgraphResolver,
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
@@ -128,7 +128,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryDataTypeSubgraph: queryDataTypeSubgraphResolver,
     findDataTypeConversionTargets: findDataTypeConversionTargetsResolver,
     queryPropertyTypes: queryPropertyTypesResolver,
-    getPropertyType: getPropertyTypeResolver,
+    queryPropertyTypeSubgraph: queryPropertyTypeSubgraphResolver,
     queryEntityTypes: queryEntityTypesResolver,
     getEntityType: getEntityTypeResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,

@@ -7,12 +7,12 @@ import type { DocumentNode } from "graphql";
 
 import type {
   GetEntityTypeQueryVariables,
-  GetPropertyTypeQueryVariables,
   QueryDataTypeSubgraphQueryVariables,
+  QueryPropertyTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { getPropertyTypeQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
  * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string
@@ -39,7 +39,7 @@ export const generateQueryArgs = (
   variables:
     | QueryDataTypeSubgraphQueryVariables
     | GetEntityTypeQueryVariables
-    | GetPropertyTypeQueryVariables;
+    | QueryPropertyTypeSubgraphQueryVariables;
 } => {
   switch (ontologyType) {
     case "data-type":
@@ -70,12 +70,15 @@ export const generateQueryArgs = (
       };
     case "property-type":
       return {
-        query: queryStringFromNode(getPropertyTypeQuery),
+        query: queryStringFromNode(queryPropertyTypeSubgraphQuery),
         variables: {
-          constrainsValuesOn: zeroDepth,
-          constrainsPropertiesOn: zeroDepth,
-          propertyTypeId: versionedUrl,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            graphResolveDepths: zeroedGraphResolveDepths,
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
   }
