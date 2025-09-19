@@ -227,18 +227,27 @@ impl<'q> EntityQuery<'q> {
         let interner = hashql_hir::intern::Interner::new(heap);
 
         // Reify the HIR from the AST
-        let (hir, diagnostics) = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types);
-        assert!(
-            diagnostics.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
-        let hir = hir.expect(
+        let Success {
+            value: hir,
+            advisories,
+        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types).expect(
             "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+        );
+        assert!(
+            advisories.is_empty(),
+            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
         );
 
         // Lower the HIR
-        let hir = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
+        let Success {
+            value: hir,
+            advisories,
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
             "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+        );
+        assert!(
+            advisories.is_empty(),
+            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
         );
 
         // Evaluate the HIR

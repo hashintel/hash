@@ -1,6 +1,6 @@
 pub mod error;
 
-use core::{convert::Infallible, mem, ops::Try};
+use core::{convert::Infallible, ops::Try};
 
 use hashql_core::{
     collection::{FastHashMap, SmallVec},
@@ -13,6 +13,7 @@ use self::error::{
     SpecializationDiagnostic, invalid_graph_chain, non_graph_intrinsic,
     non_intrinsic_graph_operation, unknown_intrinsic, unsupported_intrinsic,
 };
+use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
@@ -33,25 +34,25 @@ use crate::{
     },
 };
 
-pub struct Specialization<'env, 'heap> {
+pub struct Specialization<'env, 'heap, 'diag> {
     env: &'env Environment<'heap>,
     interner: &'env Interner<'heap>,
 
     types: &'env mut FastHashMap<HirId, TypeId>,
     intrinsics: FastHashMap<HirId, &'static str>,
 
-    nested: bool,
     visited: FastHashMap<HirId, Node<'heap>>,
     locals: FastRealmsMap<Symbol<'heap>, Node<'heap>>,
-    diagnostics: Vec<SpecializationDiagnostic>,
+    diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'env, 'heap> Specialization<'env, 'heap> {
+impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     pub fn new(
         env: &'env Environment<'heap>,
         interner: &'env Interner<'heap>,
         types: &'env mut FastHashMap<HirId, TypeId>,
         intrinsics: FastHashMap<HirId, &'static str>,
+        diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
             env,
@@ -60,11 +61,15 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             types,
             intrinsics,
 
-            nested: false,
             visited: FastHashMap::default(),
             locals: FastRealmsMap::default(),
-            diagnostics: Vec::new(),
+            diagnostics,
         }
+    }
+
+    fn push_diagnostic(&mut self, diagnostic: SpecializationDiagnostic) {
+        self.diagnostics
+            .push(diagnostic.map_category(LoweringDiagnosticCategory::Specialization));
     }
 
     fn fold_call_into_graph_read(
@@ -92,14 +97,13 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             }
 
             let NodeKind::Call(call) = next.kind else {
-                self.diagnostics
-                    .push(invalid_graph_chain(self.env, next.span, next));
+                self.push_diagnostic(invalid_graph_chain(self.env, next.span, next));
 
                 return None;
             };
 
             let Some(&intrinsic) = self.intrinsics.get(&call.function.id) else {
-                self.diagnostics.push(non_intrinsic_graph_operation(
+                self.push_diagnostic(non_intrinsic_graph_operation(
                     self.env,
                     call.span,
                     call.function,
@@ -133,8 +137,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
                     });
                 }
                 _ => {
-                    self.diagnostics
-                        .push(non_graph_intrinsic(call.span, intrinsic));
+                    self.push_diagnostic(non_graph_intrinsic(call.span, intrinsic));
 
                     return None;
                 }
@@ -158,7 +161,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             | "::core::math::div" | "::core::math::rem" | "::core::math::mod"
             | "::core::math::pow" | "::core::math::sqrt" | "::core::math::cbrt"
             | "::core::math::root" => {
-                self.diagnostics.push(unsupported_intrinsic(
+                self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
                     "https://linear.app/hash/issue/H-4728/hashql-enable-math-intrinsics",
@@ -168,7 +171,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             }
             "::core::bits::and" | "::core::bits::or" | "::core::bits::xor"
             | "::core::bits::not" | "::core::bits::shl" | "::core::bits::shr" => {
-                self.diagnostics.push(unsupported_intrinsic(
+                self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
                     "https://linear.app/hash/issue/H-4730/hashql-enable-bitwise-intrinsics",
@@ -183,7 +186,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
             "::core::cmp::eq" => OpKind::Bin(BinOpKind::Eq),
             "::core::cmp::ne" => OpKind::Bin(BinOpKind::Ne),
             "::core::bool::not" => {
-                self.diagnostics.push(unsupported_intrinsic(
+                self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
                     intrinsic,
                     "https://linear.app/hash/issue/H-4729/hashql-enable-unary-operations",
@@ -217,8 +220,7 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
                 })));
             }
             _ => {
-                self.diagnostics
-                    .push(unknown_intrinsic(call.function.span, intrinsic));
+                self.push_diagnostic(unknown_intrinsic(call.function.span, intrinsic));
 
                 return Ok(None);
             }
@@ -260,27 +262,16 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
     }
 }
 
-impl<'heap> Fold<'heap> for Specialization<'_, 'heap> {
+impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
-        = Result<T, Vec<SpecializationDiagnostic>>
+        = Result<T, !>
     where
         T: 'heap;
-    type Residual = Result<Infallible, Vec<SpecializationDiagnostic>>;
+    type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.interner
-    }
-
-    fn fold_nested_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
-        let previous = self.nested;
-        self.nested = true;
-
-        let result = fold::walk_nested_node(self, node);
-
-        self.nested = previous;
-
-        result
     }
 
     fn fold_let(
@@ -356,12 +347,6 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap> {
         }
 
         self.visited.insert(node_id, node);
-
-        if !self.nested && !self.diagnostics.is_empty() {
-            let diagnostics = mem::take(&mut self.diagnostics);
-
-            return Err(diagnostics);
-        }
 
         Ok(node)
     }

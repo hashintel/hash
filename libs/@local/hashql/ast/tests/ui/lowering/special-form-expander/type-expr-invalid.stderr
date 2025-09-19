@@ -1,4 +1,23 @@
 [special-form-expander::invalid-type-expression] Error: Invalid type expression
+    ╭─[ <unknown>:22:3 ]
+    │
+ 22 │   { "#dict": { "a": "b" } }
+    │   ────────────┬────────────  
+    │               ╰────────────── Replace this dictionary with a proper type expression
+    │ 
+    │ Help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
+    │ 
+    │ Note: Valid type expressions include:
+    │       - Type names: String, Int, Float
+    │       - Struct types: {name: String, age: Int}
+    │       - Tuple types: (String, Int, Boolean)
+    │       - Unions: (| String Int)
+    │       - Intersections: (& String Int)
+    │       - Generic types: Array<String>, Option<Int>
+────╯
+
+
+[special-form-expander::invalid-type-expression] Error: Invalid type expression
     ╭─[ <unknown>:16:7 ]
     │
  16 │       { "#literal": 1 }
@@ -25,25 +44,6 @@
     │                ╰───────────── Replace this list with a proper type expression
     │ 
     │ Help: Arrays do not constitute a valid type expression, did you mean to instantiate a tuple type or refer to the `Array<T>` type?
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
-
-
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:22:3 ]
-    │
- 22 │   { "#dict": { "a": "b" } }
-    │   ────────────┬────────────  
-    │               ╰────────────── Replace this dictionary with a proper type expression
-    │ 
-    │ Help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
     │ 
     │ Note: Valid type expressions include:
     │       - Type names: String, Int, Float

@@ -124,7 +124,7 @@ pub struct Diagnostic<C, S, K = Severity> {
     pub help: Vec<Help>,
 }
 
-impl<C, S> Diagnostic<C, S> {
+impl<C, S, K> Diagnostic<C, S, K> {
     /// Creates a new diagnostic with the specified category and severity.
     ///
     /// Initializes an empty diagnostic that can be populated with message, labels, notes, and help
@@ -145,7 +145,7 @@ impl<C, S> Diagnostic<C, S> {
     /// assert!(diagnostic.message.is_none());
     /// assert!(diagnostic.labels.is_empty());
     /// ```
-    pub const fn new(category: C, severity: Severity) -> Self {
+    pub const fn new(category: C, severity: K) -> Self {
         Self {
             category,
             severity,
@@ -155,7 +155,9 @@ impl<C, S> Diagnostic<C, S> {
             help: Vec::new(),
         }
     }
+}
 
+impl<C, S> Diagnostic<C, S> {
     /// Converts a diagnostic to critical severity without runtime checks.
     ///
     /// This is an internal method used when the severity is known to be critical at compile time.

@@ -1,4 +1,4 @@
-use core::{convert::Infallible, mem};
+use core::convert::Infallible;
 
 use hashql_core::{
     collection::FastHashMap,
@@ -17,9 +17,9 @@ use hashql_core::{
     },
 };
 
-use super::error::{GenericArgumentContext, LoweringDiagnostic, generic_argument_mismatch};
+use super::error::{GenericArgumentContext, LoweringDiagnosticIssues, generic_argument_mismatch};
 use crate::{
-    fold::{Fold, nested::Deep, walk_nested_node, walk_node},
+    fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
         HirId, Node, PartialNode,
@@ -32,23 +32,25 @@ use crate::{
     },
 };
 
-pub struct ConvertTypeConstructor<'env, 'heap> {
+pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
     interner: &'env Interner<'heap>,
     locals: &'env TypeLocals<'heap>,
     registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
-    diagnostics: Vec<LoweringDiagnostic>,
+
     cache: FastHashMap<HirId, Node<'heap>>,
-    nested: bool,
+
+    diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
+impl<'env, 'heap, 'diag> ConvertTypeConstructor<'env, 'heap, 'diag> {
     pub fn new(
         interner: &'env Interner<'heap>,
         locals: &'env TypeLocals<'heap>,
         registry: &'env ModuleRegistry<'heap>,
         environment: &'env Environment<'heap>,
+        diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
             interner,
@@ -56,14 +58,15 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
             registry,
             environment,
             instantiate: InstantiateEnvironment::new(environment),
-            diagnostics: Vec::new(),
+
             cache: FastHashMap::default(),
-            nested: false,
+
+            diagnostics,
         }
     }
 }
 
-impl<'heap> ConvertTypeConstructor<'_, 'heap> {
+impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,
@@ -244,27 +247,16 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
     }
 }
 
-impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
+impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
-        = Result<T, Vec<LoweringDiagnostic>>
+        = Result<T, !>
     where
         T: 'heap;
-    type Residual = Result<Infallible, Vec<LoweringDiagnostic>>;
+    type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.interner
-    }
-
-    fn fold_nested_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
-        let previous = self.nested;
-        self.nested = true;
-
-        let result = walk_nested_node(self, node);
-
-        self.nested = previous;
-
-        result
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
@@ -280,12 +272,6 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
             node = converted;
         } else {
             // Node cannot be converted, use the original node as-is
-        }
-
-        if !self.nested && !self.diagnostics.is_empty() {
-            let diagnostics = mem::take(&mut self.diagnostics);
-
-            return Err(diagnostics);
         }
 
         Ok(node)

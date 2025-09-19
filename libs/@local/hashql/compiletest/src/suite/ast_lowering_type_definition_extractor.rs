@@ -18,7 +18,7 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
 
@@ -43,7 +43,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -51,7 +51,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut resolver = ImportResolver::new(heap, namespace);
         resolver.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, resolver.take_diagnostics())?;
+        process_issues(diagnostics, resolver.take_diagnostics())?;
 
         let mut mangler = NameMangler::new(heap);
         mangler.visit_expr(&mut expr);
@@ -61,7 +61,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();
-        process_diagnostics(diagnostics, extractor_diagnostics)?;
+        process_issues(diagnostics, extractor_diagnostics)?;
 
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
