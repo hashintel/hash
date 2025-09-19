@@ -158,7 +158,7 @@ hyper                              = { version = "=1.7.0", default-features = fa
 image                              = { version = "=0.25.6", default-features = false }
 include_dir                        = { version = "=0.7.4", default-features = false }
 include_dir_macros                 = { version = "=0.7.4", default-features = false }
-indexmap                           = { version = "=2.11.0", default-features = false }
+indexmap                           = { version = "=2.11.4", default-features = false }
 indicatif                          = { version = "=0.18.0", default-features = false }
 indoc                              = { version = "=2.0.6", default-features = false }
 inferno                            = { version = "=0.12.3", default-features = false }
