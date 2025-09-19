@@ -496,24 +496,8 @@ where
 }
 
 impl<C, S> DiagnosticIssues<C, S, Severity> {
-    #[expect(
-        clippy::result_large_err,
-        reason = "The error is only used transiently"
-    )]
-    pub(crate) fn merge_into_advisories(
-        &mut self,
-        other: &mut DiagnosticIssues<C, S, Advisory>,
-    ) -> Result<(), (Diagnostic<C, S, Critical>, Self)> {
-        if self.critical == 0 {
-            // We only have non-critical diagnostics, so we can merge them directly
-            other.diagnostics.extend(
-                self.diagnostics
-                    .drain(..)
-                    .map(Diagnostic::into_advisory_unchecked),
-            );
-
-            return Ok(());
-        }
+    fn into_failure_unchecked(mut self) -> Failure<C, S> {
+        debug_assert_ne!(self.critical, 0);
 
         let position = self
             .diagnostics
@@ -525,17 +509,69 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
                 )
             });
 
-        let diagnostic = self.diagnostics.swap_remove(position);
+        let primary = self
+            .diagnostics
+            .swap_remove(position)
+            .into_critical_unchecked();
         self.critical -= 1;
 
-        let failure = diagnostic.into_critical_unchecked();
+        Failure {
+            primary: Box::new(primary),
+            secondary: self,
+        }
+    }
 
-        self.diagnostics
-            .extend(other.diagnostics.drain(..).map(Diagnostic::generalize));
+    pub(crate) fn merge_into_advisories(
+        &mut self,
+        other: &mut DiagnosticIssues<C, S, Advisory>,
+    ) -> Result<(), Failure<C, S>> {
+        if self.critical == 0 {
+            // We only have non-critical diagnostics, so we can merge them directly
+            other.diagnostics.extend(
+                self.diagnostics
+                    .drain(..)
+                    .map(Diagnostic::into_advisory_unchecked),
+            );
+
+            return Ok(());
+        }
 
         let this = mem::take(self);
+        let mut failure = this.into_failure_unchecked();
 
-        Err((failure, this))
+        failure
+            .secondary
+            .extend(other.diagnostics.drain(..).map(Diagnostic::generalize));
+
+        Err(failure)
+    }
+
+    fn into_advisories_unchecked(self) -> DiagnosticIssues<C, S, Advisory> {
+        debug_assert_eq!(self.critical, 0);
+
+        DiagnosticIssues {
+            diagnostics: self
+                .diagnostics
+                .into_iter()
+                .map(Diagnostic::into_advisory_unchecked)
+                .collect(),
+            critical: self.critical,
+        }
+    }
+
+    pub fn into_status<T>(self, value: T) -> Status<T, C, S> {
+        self.into_status_with(|| value)
+    }
+
+    pub fn into_status_with<T>(self, value: impl FnOnce() -> T) -> Status<T, C, S> {
+        if self.critical == 0 {
+            return Ok(Success {
+                value: value(),
+                advisories: self.into_advisories_unchecked(),
+            });
+        }
+
+        Err(self.into_failure_unchecked())
     }
 }
 

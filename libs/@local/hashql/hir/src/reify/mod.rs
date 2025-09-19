@@ -20,10 +20,11 @@ use hashql_core::{
     span::{SpanId, Spanned},
     r#type::{TypeId, environment::Environment},
 };
+use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _};
 
 use self::error::{
-    ReificationDiagnostic, dummy_expression, internal_error, underscore_expression,
-    unprocessed_expression, unsupported_construct,
+    ReificationDiagnosticIssues, ReificationStatus, dummy_expression, internal_error,
+    underscore_expression, unprocessed_expression, unsupported_construct,
 };
 use crate::{
     intern::Interner,
@@ -47,12 +48,12 @@ use crate::{
 
 // TODO: we might want to contemplate moving this into a separate crate, to completely separate
 // HashQL's AST and HIR. (like done in rustc)
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct ReificationContext<'env, 'heap> {
     env: &'env Environment<'heap>,
     interner: &'env Interner<'heap>,
     types: &'env ExtractedTypes<'heap>,
-    diagnostics: Vec<ReificationDiagnostic>,
+    diagnostics: ReificationDiagnosticIssues,
 }
 
 impl<'heap> ReificationContext<'_, 'heap> {
@@ -503,16 +504,37 @@ impl<'heap> Node<'heap> {
         env: &Environment<'heap>,
         interner: &Interner<'heap>,
         types: &ExtractedTypes<'heap>,
-    ) -> (Option<Self>, Vec<ReificationDiagnostic>) {
+    ) -> ReificationStatus<Self> {
+        let expr_span = expr.span;
         let mut context = ReificationContext {
             env,
             interner,
             types,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
         };
 
         let node = context.expr(expr);
 
-        (node, context.diagnostics)
+        let status = context.diagnostics.into_status(());
+        match (node, status) {
+            (Some(node), Ok(success)) => Ok(success.map(|()| node)),
+            (None, Ok(success)) => {
+                let Err(error) = internal_error(
+                    expr_span,
+                    "Reification hasn't produced a node, but no critical diagnostics have been \
+                     reported.",
+                )
+                .specialize() else {
+                    unreachable!("internal error should be an ICE");
+                };
+
+                let mut status = Status::failure(error);
+
+                status.append_diagnostics(&mut success.advisories.generalize());
+                status
+            }
+            // We don't care if we have a value or not critical diagnostics take priority.
+            (Some(_) | None, Err(failure)) => Err(failure),
+        }
     }
 }
