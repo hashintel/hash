@@ -7,6 +7,7 @@ use hashql_core::{
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
 };
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     fold::Fold as _,
     intern::Interner,
@@ -19,7 +20,7 @@ use super::{
     Suite, SuiteDiagnostic,
     common::{Annotated, Header, process_diagnostics},
 };
-use crate::suite::common::process_diagnostic_result;
+use crate::suite::common::{process_issues, process_status};
 
 pub(crate) struct HirLowerTypeInferenceIntrinsicsSuite;
 
@@ -44,13 +45,13 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
             &environment,
             &registry,
         );
-        let types = process_diagnostic_result(diagnostics, result)?;
+        let types = process_status(diagnostics, result)?;
 
         let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let node = process_status(
+            diagnostics,
+            Node::from_ast(expr, &environment, &interner, &types),
+        )?;
 
         let _ = writeln!(
             output,
@@ -59,17 +60,18 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
 
-        let mut converter =
-            ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
+        let mut issues = DiagnosticIssues::new();
 
-        let node = match converter.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
+        let mut converter = ConvertTypeConstructor::new(
+            &interner,
+            &types.locals,
+            &registry,
+            &environment,
+            &mut issues,
+        );
+        let Ok(node) = converter.fold_node(node);
+
+        process_issues(diagnostics, issues)?;
 
         let mut inference = TypeInference::new(&environment, &registry);
         inference.visit_node(&node);
