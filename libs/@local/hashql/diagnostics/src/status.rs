@@ -233,12 +233,12 @@ impl<C, S> Failure<C, S> {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let success: Status<_, (), ()> = StatusExt::ok(42);
+/// let success: Status<_, (), ()> = Status::success(42);
 /// let error_diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
 /// let critical_diagnostic = error_diagnostic
 ///     .specialize()
 ///     .expect_err("should be critical");
-/// let error: Status<i32, _, ()> = StatusExt::err(critical_diagnostic);
+/// let error: Status<i32, _, ()> = Status::failure(critical_diagnostic);
 ///
 /// // Check the results
 /// match success {
@@ -266,7 +266,7 @@ impl<C, S> Failure<C, S> {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut result: Status<_, _, ()> = StatusExt::ok(100);
+/// let mut result: Status<_, _, ()> = Status::success(100);
 ///
 /// // Add a warning - doesn't change the success state
 /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
@@ -308,7 +308,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// ```
     /// use hashql_diagnostics::{Status, StatusExt};
     ///
-    /// let result: Status<_, (), ()> = StatusExt::ok(42);
+    /// let result: Status<_, (), ()> = Status::success(42);
     /// match result {
     ///     Ok(success) => {
     ///         assert_eq!(success.value, 42);
@@ -317,7 +317,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     ///     Err(_) => panic!("should be successful"),
     /// }
     /// ```
-    fn ok(value: T) -> Self;
+    fn success(value: T) -> Self;
 
     /// Creates a failed [`Status`] with the given fatal diagnostic.
     ///
@@ -338,7 +338,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// let critical_diagnostic = error_diagnostic
     ///     .specialize()
     ///     .expect_err("should be critical");
-    /// let result: Status<i32, _, ()> = StatusExt::err(critical_diagnostic);
+    /// let result: Status<i32, _, ()> = Status::failure(critical_diagnostic);
     /// match result {
     ///     Ok(_) => panic!("should be error"),
     ///     Err(error) => {
@@ -346,7 +346,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     ///     }
     /// }
     /// ```
-    fn err(error: Diagnostic<C, S, Critical>) -> Self;
+    fn failure(error: Diagnostic<C, S, Critical>) -> Self;
 
     /// Converts to a result with type-erased diagnostic categories.
     ///
@@ -363,7 +363,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result: Status<_, _, ()> = StatusExt::ok(100);
+    /// let mut result: Status<_, _, ()> = Status::success(100);
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
     ///
     /// let boxed_result = result.boxed();
@@ -397,7 +397,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result: Status<_, _, ()> = StatusExt::ok(42);
+    /// let mut result: Status<_, _, ()> = Status::success(42);
     ///
     /// // Add a warning - still successful
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
@@ -413,7 +413,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result: Status<_, _, ()> = StatusExt::ok(42);
+    /// let mut result: Status<_, _, ()> = Status::success(42);
     /// // Add a fatal error - becomes error
     /// result.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Error));
     /// assert!(result.is_err());
@@ -435,7 +435,7 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut result: Status<_, _, ()> = StatusExt::ok(42);
+    /// let mut result: Status<_, _, ()> = Status::success(42);
     /// let mut additional = DiagnosticIssues::new();
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Warning));
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Error));
@@ -458,14 +458,14 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
     where
         C: 'category;
 
-    fn ok(value: T) -> Self {
+    fn success(value: T) -> Self {
         Self::Ok(Success {
             value,
             advisories: DiagnosticIssues::new(),
         })
     }
 
-    fn err(error: Diagnostic<C, S, Critical>) -> Self {
+    fn failure(error: Diagnostic<C, S, Critical>) -> Self {
         Self::Err(Failure {
             primary: Box::new(error),
             secondary: DiagnosticIssues::new(),
