@@ -1,4 +1,4 @@
-[specialization::non-intrinsic-graph-operation] Error: Non-intrinsic function in graph operation
+[lower::specialization::non-intrinsic-graph-operation] Error: Non-intrinsic function in graph operation
    ╭─[ <unknown>:5:3 ]
    │
  5 │ ╭─▶   [
