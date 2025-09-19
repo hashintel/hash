@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use core::mem::ManuallyDrop;
+extern crate alloc;
+
+use alloc::borrow::Cow;
+use core::{mem::ManuallyDrop, time::Duration};
 use std::{collections::HashMap, path::Path};
 
 use hash_graph_postgres_store::{
@@ -19,7 +22,7 @@ use hash_graph_store::{
     query::ConflictBehavior,
 };
 use hash_repo_chores::benches::generate_path;
-use hash_telemetry::TelemetryRegistry;
+use hash_telemetry::{TelemetryRegistry, profiling::ProfilerConfig};
 use regex::Regex;
 use time::OffsetDateTime;
 use tokio::runtime::Runtime;
@@ -59,8 +62,28 @@ pub fn setup_subscriber(
     function_id: Option<&str>,
     value_str: Option<&str>,
 ) -> impl Drop {
+    let mut labels = HashMap::from([("group", Cow::Owned(group_id.to_owned()))]);
+    if let Some(function_id) = function_id {
+        labels.insert("function", Cow::Owned(function_id.to_owned()));
+    }
+    if let Some(value_str) = value_str {
+        labels.insert("value", Cow::Owned(value_str.to_owned()));
+    }
+
     TelemetryRegistry::default()
-        .with_flamegraph(Path::new("out").join(generate_path(group_id, function_id, value_str)))
+        .with_tracing_profiler(ProfilerConfig {
+            enable_wall: true,
+            enable_cpu: true,
+            pyroscope_endpoint: std::env::var("HASH_PROFILER_ENDPOINT").ok(),
+            folded_path: Some(Path::new("out").join(generate_path(
+                group_id,
+                function_id,
+                value_str,
+            ))),
+            service_name: "graph-benches".to_owned(),
+            labels,
+            flush_interval: Duration::from_secs(10),
+        })
         .init()
         .expect("Failed to initialize tracing")
 }
