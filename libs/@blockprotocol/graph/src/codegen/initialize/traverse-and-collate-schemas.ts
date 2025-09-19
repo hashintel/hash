@@ -5,8 +5,8 @@ import {
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
 } from "@blockprotocol/type-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
 
+import { typedValues } from "../../util/typed-entries.js";
 import type { InitializeContext } from "../context.js";
 import {
   generateDataTypeWithMetadataSchema,

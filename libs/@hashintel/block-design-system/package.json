@@ -1,7 +1,6 @@
 {
   "name": "@hashintel/block-design-system",
-  "version": "0.0.2",
-  "private": true,
+  "version": "0.0.5",
   "description": "Block Design System",
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
@@ -11,7 +10,7 @@
     "url": "git@github.com:hashintel/hash.git",
     "directory": "libs/@hashintel/block-design-system"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
@@ -27,10 +26,9 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@hashintel/design-system": "0.0.9-canary.1",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@blockprotocol/graph": "0.4.0-canary.2",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "lowlight": "2.9.0",
     "react-syntax-highlighter": "15.6.1",
     "react-type-animation": "3.2.0"
