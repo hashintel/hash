@@ -71,7 +71,7 @@ export const getMachineEntityByIdentifier = async (
   const [machineEntity, ...unexpectedEntities] = await backOff(
     () =>
       context.graphApi
-        .getEntities(authentication.actorId, {
+        .queryEntities(authentication.actorId, {
           filter: {
             all: [
               {

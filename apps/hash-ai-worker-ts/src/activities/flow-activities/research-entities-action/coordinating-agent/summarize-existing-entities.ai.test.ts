@@ -16,7 +16,7 @@ test.skip(
   "Test summarizeExistingEntities with user entities",
   async () => {
     const publicUserEntities = await graphApiClient
-      .getEntities(publicUserAccountId, {
+      .queryEntities(publicUserAccountId, {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(

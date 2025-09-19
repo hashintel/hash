@@ -78,7 +78,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     const { createEntitiesAsDraft, userAuthentication, flowEntityId, stepId } =
       await getFlowContext();
 
-    const persistedClaims = await graphApiClient.getEntities(
+    const persistedClaims = await graphApiClient.queryEntities(
       userAuthentication.actorId,
       {
         includeDrafts: createEntitiesAsDraft,

@@ -27,7 +27,7 @@ export const getEntitiesByLinearId = async (params: {
   includeDrafts?: boolean;
 }): Promise<HashEntity[]> =>
   params.graphApiClient
-    .getEntities(params.authentication.actorId, {
+    .queryEntities(params.authentication.actorId, {
       filter: {
         all: [
           params.entityTypeId
@@ -75,7 +75,7 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const { data: response } = await graphApiClient.getEntities(
+  const { data: response } = await graphApiClient.queryEntities(
     authentication.actorId,
     {
       filter: {
@@ -133,7 +133,7 @@ export const getLatestEntityById = async (params: {
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const { data: response } = await graphApiClient.getEntities(
+  const { data: response } = await graphApiClient.queryEntities(
     authentication.actorId,
     {
       filter: {

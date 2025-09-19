@@ -185,7 +185,7 @@ export const getEntities: ImpureGraphFunction<
       );
 
   return await graphApi
-    .getEntities(actorId, params)
+    .queryEntities(actorId, params)
     .then(({ data: response }) =>
       response.entities.map((entity) =>
         mapGraphApiEntityToEntity(entity, actorId, isRequesterAdmin),
@@ -220,46 +220,46 @@ export const getEntitySubgraphResponse: ImpureGraphFunction<
         { userAccountId: actorId },
       );
 
-  return await graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
-    const {
-      subgraph: unfilteredSubgraph,
-      definitions,
-      closedMultiEntityTypes,
-      ...rest
-    } = data;
+  return await graphApi
+    .queryEntitySubgraph(actorId, params)
+    .then(({ data }) => {
+      const {
+        subgraph: unfilteredSubgraph,
+        definitions,
+        closedMultiEntityTypes,
+        ...rest
+      } = data;
 
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType<HashEntity>>(
-      unfilteredSubgraph,
-      actorId,
-      isRequesterAdmin,
-    );
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
-      const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
+      const subgraph = mapGraphApiSubgraphToSubgraph<
+        EntityRootType<HashEntity>
+      >(unfilteredSubgraph, actorId, isRequesterAdmin);
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
+        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
 
-      if (
-        // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
-        //                    the latest revision
-        (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !subgraph.roots.find((root) => root.baseId === entityId)
-      ) {
-        delete subgraph.vertices[entityId];
+        if (
+          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
+          //                    the latest revision
+          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
+            .archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          delete subgraph.vertices[entityId];
+        }
       }
-    }
 
-    return {
-      closedMultiEntityTypes,
-      definitions: definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            definitions,
-          )
-        : undefined,
-      subgraph,
-      ...rest,
-    };
-  });
+      return {
+        closedMultiEntityTypes,
+        definitions: definitions
+          ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+              definitions,
+            )
+          : undefined,
+        subgraph,
+        ...rest,
+      };
+    });
 };
 
 export const countEntities: ImpureGraphFunction<

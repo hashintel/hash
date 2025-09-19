@@ -19,7 +19,7 @@ export const getSubgraphFromFilter = async ({
   graphApiClient: GraphApi;
   traversalDepth: number;
 }) => {
-  const response = await graphApiClient.getEntitySubgraph(
+  const response = await graphApiClient.queryEntitySubgraph(
     authentication.actorId,
     {
       filter,

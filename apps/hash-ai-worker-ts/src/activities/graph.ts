@@ -15,8 +15,8 @@ import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   EntityQueryCursor,
-  GetEntitySubgraphRequest,
   GraphApi,
+  QueryEntitySubgraphRequest,
   UpdateDataTypeEmbeddingParams,
   UpdateEntityEmbeddingsParams,
   UpdateEntityTypeEmbeddingParams,
@@ -69,7 +69,7 @@ export const createGraphActivities = ({
 }) => ({
   async getUserAccountIds(): Promise<ActorEntityUuid[]> {
     return graphApiClient
-      .getEntities(publicUserAccountId, {
+      .queryEntities(publicUserAccountId, {
         filter: {
           all: [
             {
@@ -131,10 +131,10 @@ export const createGraphActivities = ({
     authentication: {
       actorId: ActorEntityUuid;
     };
-    request: GetEntitySubgraphRequest;
+    request: QueryEntitySubgraphRequest;
   }): Promise<EntityQueryResponse> {
     return graphApiClient
-      .getEntitySubgraph(params.authentication.actorId, params.request)
+      .queryEntitySubgraph(params.authentication.actorId, params.request)
       .then(({ data: response }) => ({
         subgraph: serializeSubgraph(
           mapGraphApiSubgraphToSubgraph(

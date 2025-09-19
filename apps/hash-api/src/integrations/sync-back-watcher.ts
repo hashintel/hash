@@ -78,7 +78,7 @@ export const createIntegrationSyncBackWatcher = async ({
 
         const entity = (
           await graphApi
-            .getEntities(linearBotAccountId, {
+            .queryEntities(linearBotAccountId, {
               filter: {
                 equal: [
                   { path: ["editionId"] },

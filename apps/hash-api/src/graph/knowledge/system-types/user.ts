@@ -161,7 +161,7 @@ export const getUserByEmail: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -213,7 +213,7 @@ export const getUserByShortname: ImpureGraphFunction<
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -266,7 +266,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
   Promise<User | null>
 > = async (context, authentication, params) => {
   const [userEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntities(authentication.actorId, {
+    .queryEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(

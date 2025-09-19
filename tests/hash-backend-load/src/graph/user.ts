@@ -1,5 +1,5 @@
 import type { DistributiveField } from "@local/advanced-types/distribute";
-import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
+import type { QueryEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
@@ -14,12 +14,12 @@ import { getGraphApiClient, getSystemAccountId } from "./api";
 
 export const getUser = async (params: {
   authentication: AuthenticationContext;
-  filter: DistributiveField<GetEntitiesRequest, "filter">;
+  filter: DistributiveField<QueryEntitiesRequest, "filter">;
   includeDrafts?: boolean;
 }): Promise<HashEntity<User> | undefined> => {
   const systemAccountId = await getSystemAccountId();
   const [userEntity, ...unexpectedEntities] = await getGraphApiClient()
-    .getEntities(systemAccountId, {
+    .queryEntities(systemAccountId, {
       filter: {
         all: [
           {

@@ -87,7 +87,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
   const { linearOrgId, includeDrafts = false } = params;
 
   const entities = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -132,7 +132,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
   const entities = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           {
@@ -205,7 +205,7 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId, includeDrafts = false },
 ) =>
   graphApi
-    .getEntitySubgraph(actorId, {
+    .queryEntitySubgraph(actorId, {
       filter: {
         all: [
           {
@@ -272,7 +272,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
   } = params;
 
   const existingLinkEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+    .queryEntities(authentication.actorId, {
       filter: {
         all: [
           {

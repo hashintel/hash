@@ -258,7 +258,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read a multi-type entity", async () => {
-    const { data: response } = await graphApi.getEntitySubgraph(
+    const { data: response } = await graphApi.queryEntitySubgraph(
       testUser.accountId,
       {
         filter: {
@@ -375,7 +375,7 @@ describe("Entity CRU", () => {
 
   it("can read all latest person entities", async () => {
     const allEntities = await graphApi
-      .getEntitySubgraph(testUser.accountId, {
+      .queryEntitySubgraph(testUser.accountId, {
         filter: {
           all: [
             {

@@ -200,7 +200,7 @@ export const findExistingEntity = async ({
 
   if (semanticDistanceFilters.length > 0) {
     potentialMatches = await graphApiClient
-      .getEntities(actorId, {
+      .queryEntities(actorId, {
         filter: {
           all: [
             ...existingEntityBaseAllFilter,
@@ -229,7 +229,7 @@ export const findExistingEntity = async ({
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
       potentialMatches = await graphApiClient
-        .getEntities(actorId, {
+        .queryEntities(actorId, {
           filter: {
             all: [
               ...existingEntityBaseAllFilter,
@@ -293,7 +293,7 @@ export const findExistingLinkEntity = async ({
   >;
 }): Promise<MatchedEntityUpdate<HashEntity> | null> => {
   const linksWithOverlappingTypes = await graphApiClient
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           { equal: [{ path: ["archived"] }, { parameter: false }] },

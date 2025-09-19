@@ -42,7 +42,7 @@ export const getFlowRunEntityById = async (params: {
   const { flowRunId, graphApiClient, userAuthentication } = params;
 
   const [existingFlowEntity] = await graphApiClient
-    .getEntities(userAuthentication.actorId, {
+    .queryEntities(userAuthentication.actorId, {
       filter: {
         all: [
           {
@@ -176,7 +176,7 @@ export async function getFlowRuns({
   temporalClient,
 }: GetFlowRunsFnArgs<boolean>): Promise<SparseFlowRun[] | FlowRun[]> {
   const relevantFlows = await graphApiClient
-    .getEntities(authentication.actorId, {
+    .queryEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(

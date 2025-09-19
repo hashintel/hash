@@ -52,7 +52,7 @@ export const getGoogleAccountById = async ({
   graphApiClient: GraphApi;
 }): Promise<HashEntity<GoogleAccount> | undefined> => {
   const entities = await graphApiClient
-    .getEntitySubgraph(userAccountId, {
+    .queryEntitySubgraph(userAccountId, {
       filter: {
         all: [
           {

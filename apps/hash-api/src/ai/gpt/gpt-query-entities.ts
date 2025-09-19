@@ -155,7 +155,7 @@ export const gptQueryEntities: RequestHandler<
     : null;
 
   const queryResponse: GptQueryEntitiesResponseBody = await req.context.graphApi
-    .getEntitySubgraph(user.accountId, {
+    .queryEntitySubgraph(user.accountId, {
       filter: {
         all: [
           ...(types

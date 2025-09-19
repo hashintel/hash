@@ -3,8 +3,8 @@ use alloc::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use hash_graph_store::{
     entity::{
-        EntityQueryPath, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
-        GetEntitySubgraphParams,
+        EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams,
+        QueryEntitySubgraphParams,
     },
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
@@ -39,9 +39,9 @@ pub fn bench_get_entity_by_id(
         },
         |entity_uuid| async move {
             let response = store
-                .get_entities(
+                .query_entities(
                     actor_id,
-                    GetEntitiesParams {
+                    QueryEntitiesParams {
                         filter: Filter::Equal(
                             Some(FilterExpression::Path {
                                 path: EntityQueryPath::Uuid,
@@ -79,7 +79,7 @@ pub fn bench_get_entity_by_id(
     );
 }
 
-pub fn bench_get_entities_by_property(
+pub fn bench_query_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
@@ -101,11 +101,11 @@ pub fn bench_get_entities_by_property(
             }),
         );
         let response = store
-            .get_entity_subgraph(
+            .query_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams::ResolveDepths {
+                QueryEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    request: GetEntitiesParams {
+                    request: QueryEntitiesParams {
                         filter,
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -163,11 +163,11 @@ pub fn bench_get_link_by_target_by_property(
             }),
         );
         let response = store
-            .get_entity_subgraph(
+            .query_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams::ResolveDepths {
+                QueryEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    request: GetEntitiesParams {
+                    request: QueryEntitiesParams {
                         filter,
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),

@@ -76,7 +76,7 @@ export const getHashInstance = async (
   const entities = await backOff(
     () =>
       graphApi
-        .getEntities(actorId, {
+        .queryEntities(actorId, {
           filter: generateVersionedUrlMatchingFilter(
             systemEntityTypes.hashInstance.entityTypeId,
             { ignoreParents: true },

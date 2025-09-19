@@ -71,7 +71,7 @@ export const getWebServiceUsage = async (
   const serviceUsageRecordSubgraph = await backOff(
     () =>
       context.graphApi
-        .getEntitySubgraph(webBotId, {
+        .queryEntitySubgraph(webBotId, {
           filter: {
             all: [
               generateVersionedUrlMatchingFilter(
@@ -210,7 +210,7 @@ export const createUsageRecord = async (
   const authentication = { actorId: userAccountId };
 
   const serviceFeatureEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+    .queryEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(

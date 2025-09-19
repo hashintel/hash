@@ -295,7 +295,7 @@ export const getOrgByShortname: ImpureGraphFunction<
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           {

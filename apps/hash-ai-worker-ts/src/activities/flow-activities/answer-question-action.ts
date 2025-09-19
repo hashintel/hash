@@ -429,7 +429,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
      * This will also always pull the latest version of the entities, which may differ to those passed in.
      */
     const subgraph = await graphApiClient
-      .getEntitySubgraph(userAuthentication.actorId, {
+      .queryEntitySubgraph(userAuthentication.actorId, {
         filter: {
           any: entities.map((entity) => ({
             equal: [

@@ -39,7 +39,7 @@ export const getLatestEntityById = async (params: {
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const response = await graphApiClient.getEntitySubgraph(
+  const response = await graphApiClient.queryEntitySubgraph(
     authentication.actorId,
     {
       filter: {

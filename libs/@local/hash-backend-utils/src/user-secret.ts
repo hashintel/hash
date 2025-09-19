@@ -34,7 +34,7 @@ export const getSecretEntitiesForIntegration = async ({
   }[]
 > => {
   return await graphApiClient
-    .getEntitySubgraph(authentication.actorId, {
+    .queryEntitySubgraph(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(

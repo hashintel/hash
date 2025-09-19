@@ -16,7 +16,7 @@ export const getEntityByFilter = async ({
   includeDrafts: boolean;
 }): Promise<HashEntity | undefined> => {
   const matchedEntities = await graphApiClient
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,

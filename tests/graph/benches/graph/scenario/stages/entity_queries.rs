@@ -2,7 +2,7 @@ use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::{
-    entity::{EntityQuerySorting, EntityStore as _, GetEntitiesParams},
+    entity::{EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
     filter::Filter,
     pool::StorePool as _,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
@@ -103,9 +103,9 @@ impl QueryEntitiesByUserStage {
             .change_context(QueryEntitiesError::Acquire)?;
 
         let entities = store
-            .get_entities(
+            .query_entities(
                 actor_uuid,
-                GetEntitiesParams {
+                QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
                     temporal_axes: QueryTemporalAxesUnresolved::default(),
                     sorting: EntityQuerySorting {

@@ -197,7 +197,7 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
   }
 
   const entities = await graphApiClient
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       includeDrafts: false,
       filter: {
         any: files.fileEntityIds.map((fileEntityId) => ({

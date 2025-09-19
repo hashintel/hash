@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityStore as _, GetEntitiesParams, PatchEntityParams,
+        EntityStore as _, PatchEntityParams, QueryEntitiesParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, Parameter},
@@ -158,9 +158,9 @@ async fn insert() {
     .expect("could not create link");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
                         Some(FilterExpression::Path {
@@ -455,9 +455,9 @@ async fn get_entity_links() {
     .expect("could not create link");
 
     let links_from_source = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::Equal(
                     Some(FilterExpression::Path {
                         path: EntityQueryPath::EntityEdge {

@@ -18,7 +18,7 @@ import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 
 export const getAliceUserAccountId = async () => {
   const [aliceUserEntity] = await graphApiClient
-    .getEntities(publicUserAccountId, {
+    .queryEntities(publicUserAccountId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(

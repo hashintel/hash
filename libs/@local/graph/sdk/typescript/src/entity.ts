@@ -51,10 +51,10 @@ import type {
   CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
-  GetEntitiesRequest as GetEntitiesRequestGraphApi,
-  GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
+  QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
+  QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
@@ -170,14 +170,14 @@ export type ConversionRequest = {
 };
 
 export type GetEntitiesRequest = DistributiveOmit<
-  GetEntitiesRequestGraphApi,
+  QueryEntitiesRequestGraphApi,
   "conversions"
 > & {
   conversions?: ConversionRequest[];
 };
 
 export type GetEntitySubgraphRequest = DistributiveOmit<
-  GetEntitySubgraphRequestGraphApi,
+  QueryEntitySubgraphRequestGraphApi,
   "conversions"
 > & {
   conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];

@@ -102,7 +102,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
 
   const entities = await graphApi
-    .getEntities(actorId, {
+    .queryEntities(actorId, {
       filter: {
         all: [
           {
@@ -186,7 +186,7 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
   const [webId, webUuid] = splitEntityId(hashWebEntityId);
 
   const linearIntegrationEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+    .queryEntities(authentication.actorId, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
