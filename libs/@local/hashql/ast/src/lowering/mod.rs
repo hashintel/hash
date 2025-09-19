@@ -115,7 +115,7 @@ pub struct ExtractedTypes<'heap> {
 ///
 /// This function orchestrates all the transformation passes required to convert a parsed HashQL AST
 /// into a form suitable for type checking and code generation. The lowering process is destructive
-/// - it modifies the provided AST in place while extracting type information and collecting
+/// – it modifies the provided AST in place while extracting type information and collecting
 /// diagnostics.
 ///
 /// The function applies transformations in a specific order to ensure correctness:
