@@ -182,6 +182,13 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         }
     }
 
+    /// Finalizes the type checking process and returns the collected results.
+    ///
+    /// # Errors
+    ///
+    /// This method consolidates all diagnostics from the various type checking environments
+    /// (lattice, simplify, analysis) and packages the inferred types, input types, and
+    /// intrinsic mappings into a [`TypeCheckingResidual`] for use by subsequent compilation phases.
     pub fn finish(mut self) -> LoweringDiagnosticStatus<TypeCheckingResidual<'heap>> {
         let diagnostics = iter::empty()
             .chain(self.lattice.take_diagnostics())
