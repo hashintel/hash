@@ -499,6 +499,25 @@ impl<'heap> ReificationContext<'_, 'heap> {
 }
 
 impl<'heap> Node<'heap> {
+    /// Converts an AST expression into a HIR node through the reification process.
+    ///
+    /// This function is typically called after the AST lowering phase has completed, using the type
+    /// information extracted during lowering to properly construct HIR nodes with accurate type
+    /// annotations.
+    ///
+    /// # Errors
+    ///
+    /// The function returns diagnostic errors for several categories of issues:
+    ///
+    /// - **Unsupported constructs** - Language features not yet implemented (struct literals, if
+    ///   expressions, tuple literals, etc.) with links to tracking issues
+    /// - **Unprocessed expressions** - AST nodes that should have been handled by earlier
+    ///   compilation phases (type declarations, use statements)
+    /// - **Internal errors** - Inconsistent state that indicates bugs in the compiler pipeline
+    /// - **Underscore/dummy expressions** - Invalid placeholder expressions in the AST
+    ///
+    /// Critical errors prevent HIR node creation, while non-critical diagnostics are included
+    /// as advisories in successful results.
     pub fn from_ast(
         expr: Expr<'heap>,
         env: &Environment<'heap>,
