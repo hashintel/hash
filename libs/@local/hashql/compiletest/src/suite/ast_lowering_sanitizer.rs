@@ -11,7 +11,7 @@ use hashql_core::{
     heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringSanitizerSuite;
 
@@ -36,12 +36,12 @@ impl Suite for AstLoweringSanitizerSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut sanitizer = Sanitizer::new();
         sanitizer.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, sanitizer.take_diagnostics())?;
+        process_issues(diagnostics, sanitizer.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }
