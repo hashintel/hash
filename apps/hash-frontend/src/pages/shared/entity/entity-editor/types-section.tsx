@@ -14,18 +14,19 @@ import {
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import {
-  mapGqlSubgraphFieldsFragmentToSubgraph,
+  fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type {
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
@@ -193,19 +194,23 @@ export const TypesSection = () => {
     useEntityEditor();
 
   const { data: latestEntityTypesData } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsLinksOn: { outgoing: 1 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      inheritsFrom: { outgoing: 255 },
-      latestOnly: false,
-      includeArchived: true,
+      request: {
+        filter: { all: [] },
+        temporalAxes: fullTransactionTimeAxis,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 1 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          inheritsFrom: { outgoing: 255 },
+        },
+      },
     },
     skip: readonly,
   });
@@ -217,9 +222,9 @@ export const TypesSection = () => {
     }[]
   >(() => {
     const typedSubgraph = latestEntityTypesData
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(
-          latestEntityTypesData.queryEntityTypes,
-        )
+      ? deserializeQueryEntityTypeSubgraphResponse(
+          latestEntityTypesData.queryEntityTypeSubgraph,
+        ).subgraph
       : null;
 
     const latestEntityTypes = typedSubgraph

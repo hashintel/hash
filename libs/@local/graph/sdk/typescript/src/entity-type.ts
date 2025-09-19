@@ -22,7 +22,10 @@ import type { ActionName } from "@rust/hash-graph-authorization/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 import type { HashEntity, SerializedSubgraph } from "./entity.js";
-import type { EntityTypeResolveDefinitions } from "./ontology.js";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  EntityTypeResolveDefinitions,
+} from "./ontology.js";
 import {
   deserializeGraphVertices,
   mapGraphApiSubgraphToSubgraph,
@@ -201,7 +204,7 @@ export type GetClosedMultiEntityTypesResponse = Omit<
   "entityTypes" | "definitions"
 > & {
   closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
-  definitions?: EntityTypeResolveDefinitions;
+  definitions?: ClosedMultiEntityTypesDefinitions;
 };
 
 export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =

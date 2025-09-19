@@ -385,8 +385,11 @@ export const Outputs = ({
   >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      entityTypeIds: uniqueProposedEntityTypeSets,
-      includeArchived: false,
+      request: {
+        entityTypeIds: uniqueProposedEntityTypeSets,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeResolved: "resolvedWithDataTypeChildren",
+      },
     },
     skip: proposedEntities.length === 0,
   });

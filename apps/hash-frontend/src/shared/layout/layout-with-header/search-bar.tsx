@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getRoots,
@@ -17,6 +13,7 @@ import {
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -33,11 +30,11 @@ import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
@@ -277,13 +274,15 @@ export const SearchBar: FunctionComponent = () => {
   });
 
   const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
     variables: {
-      filter: queryFilter,
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
+      request: {
+        filter: queryFilter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+      },
     },
     skip: !submittedQuery,
   });
@@ -309,9 +308,9 @@ export const SearchBar: FunctionComponent = () => {
      * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
      * H-2489
      */
-    deserializeSubgraph<EntityTypeRootType>(
-      entityTypeResultData.queryEntityTypes,
-    );
+    deserializeQueryEntityTypeSubgraphResponse(
+      entityTypeResultData.queryEntityTypeSubgraph,
+    ).subgraph;
 
   const entityTypeResults = entityTypeSubgraph
     ? getRoots(entityTypeSubgraph)

@@ -35,6 +35,18 @@ export const scalars = {
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
+  QueryEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesParams",
+  QueryEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesResponse",
+  QueryEntityTypeSubgraphParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypeSubgraphParams",
+  QueryEntityTypeSubgraphResponse:
+    "@local/hash-graph-sdk/entity-type#SerializedQueryEntityTypeSubgraphResponse",
+  GetClosedMultiEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesParams",
+  GetClosedMultiEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesResponse",
   ConstructEntityTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructEntityTypeParams",
 
