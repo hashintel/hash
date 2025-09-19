@@ -1,7 +1,7 @@
 use hash_graph_store::{
     entity_type::{
-        CommonGetEntityTypesParams, CreateEntityTypeParams, EntityTypeStore as _,
-        GetEntityTypesParams, UpdateEntityTypesParams,
+        CommonQueryEntityTypesParams, CreateEntityTypeParams, EntityTypeStore as _,
+        QueryEntityTypesParams, UpdateEntityTypesParams,
     },
     filter::Filter,
     query::ConflictBehavior,
@@ -105,10 +105,10 @@ async fn query() {
     .expect("could not create entity type");
 
     let entity_type = api
-        .get_entity_types(
+        .query_entity_types(
             api.account_id,
-            GetEntityTypesParams {
-                request: CommonGetEntityTypesParams {
+            QueryEntityTypesParams {
+                request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&organization_et.id),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -117,7 +117,6 @@ async fn query() {
                             None,
                         ),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -208,10 +207,10 @@ async fn update() {
     .expect("could not update entity type");
 
     let returned_page_et_v1 = api
-        .get_entity_types(
+        .query_entity_types(
             api.account_id,
-            GetEntityTypesParams {
-                request: CommonGetEntityTypesParams {
+            QueryEntityTypesParams {
+                request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v1.id),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -220,7 +219,6 @@ async fn update() {
                             None,
                         ),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -237,10 +235,10 @@ async fn update() {
         .expect("no entity type found");
 
     let returned_page_et_v2 = api
-        .get_entity_types(
+        .query_entity_types(
             api.account_id,
-            GetEntityTypesParams {
-                request: CommonGetEntityTypesParams {
+            QueryEntityTypesParams {
+                request: CommonQueryEntityTypesParams {
                     filter: Filter::for_versioned_url(&page_et_v2.id),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -249,7 +247,6 @@ async fn update() {
                             None,
                         ),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,

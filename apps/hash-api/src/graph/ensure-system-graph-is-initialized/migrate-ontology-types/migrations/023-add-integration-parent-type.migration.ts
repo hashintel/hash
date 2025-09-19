@@ -1,8 +1,10 @@
-import { type EntityType } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
@@ -43,13 +45,23 @@ const migrate: MigrationFunction = async ({
         migrationState,
       });
 
-    const { schema: linearIntegrationEntityTypeSchema } =
-      await getEntityTypeById(context, authentication, {
+    const linearIntegrationEntityType = await getEntityTypeById(
+      context.graphApi,
+      authentication,
+      {
         entityTypeId: currentLinearIntegrationEntityTypeId,
-      });
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+
+    if (!linearIntegrationEntityType) {
+      throw new NotFoundError(
+        `Could not find entity type with ID ${currentLinearIntegrationEntityTypeId}`,
+      );
+    }
 
     const newLinearIntegrationEntityTypeSchema: EntityType = {
-      ...linearIntegrationEntityTypeSchema,
+      ...linearIntegrationEntityType.schema,
       allOf: [
         {
           $ref: integrationEntityType.schema.$id,

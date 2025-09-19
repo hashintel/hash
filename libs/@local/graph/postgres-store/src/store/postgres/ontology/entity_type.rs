@@ -11,13 +11,13 @@ use hash_graph_authorization::policies::{
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
     entity_type::{
-        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonGetEntityTypesParams,
+        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
         CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
         EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypesResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
@@ -436,18 +436,18 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
-    async fn get_entity_types_impl(
+    async fn query_entity_types_impl(
         &self,
-        params: CommonGetEntityTypesParams<'_>,
+        params: CommonQueryEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntityType),
             policy_components.optimization_data(ActionName::ViewEntityType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -574,7 +574,7 @@ where
             (entity_types, cursor)
         };
 
-        Ok(GetEntityTypesResponse {
+        Ok(QueryEntityTypesResponse {
             cursor,
             entity_types,
             closed_entity_types: None,
@@ -585,7 +585,7 @@ where
         })
     }
 
-    pub(crate) async fn get_closed_entity_types(
+    pub(crate) async fn query_closed_entity_types(
         &self,
         filter: &Filter<'_, EntityTypeWithMetadata>,
         temporal_axes: QueryTemporalAxesUnresolved,
@@ -998,10 +998,10 @@ where
             .change_context(InsertionError)?;
 
         transaction
-            .get_entity_types(
+            .query_entity_types(
                 actor_id,
-                GetEntityTypesParams {
-                    request: CommonGetEntityTypesParams {
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
                         filter: Filter::In(
                             FilterExpression::Path {
                                 path: EntityTypeQueryPath::OntologyId,
@@ -1012,7 +1012,6 @@ where
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        include_drafts: false,
                         after: None,
                         limit: None,
                         include_count: false,
@@ -1126,7 +1125,7 @@ where
         );
 
         let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -1152,11 +1151,11 @@ where
             .await)
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        mut params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
@@ -1173,7 +1172,7 @@ where
         let temporal_axes = params.request.temporal_axes;
         let resolved_temporal_axes = temporal_axes.resolve();
         let mut response = self
-            .get_entity_types_impl(params.request, &resolved_temporal_axes, &policy_components)
+            .query_entity_types_impl(params.request, &resolved_temporal_axes, &policy_components)
             .await?;
 
         if let Some(include_entity_types) = params.include_entity_types {
@@ -1184,7 +1183,7 @@ where
                 .collect::<Vec<_>>();
 
             response.closed_entity_types = Some(
-                self.get_closed_entity_types(&Filter::for_entity_type_uuids(&ids), temporal_axes)
+                self.query_closed_entity_types(&Filter::for_entity_type_uuids(&ids), temporal_axes)
                     .await?,
             );
 
@@ -1247,7 +1246,7 @@ where
 
         // Fetch all closed entity types in a single database query for efficiency
         let closed_types = self
-            .get_closed_entity_types(
+            .query_closed_entity_types(
                 &Filter::for_entity_type_uuids(&entity_type_uuids),
                 temporal_axes,
             )
@@ -1338,11 +1337,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -1364,9 +1363,8 @@ where
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
-        let include_drafts = request.include_drafts;
 
-        let GetEntityTypesResponse {
+        let QueryEntityTypesResponse {
             entity_types,
             closed_entity_types: _,
             definitions: _,
@@ -1375,7 +1373,7 @@ where
             web_ids,
             edition_created_by_ids,
         } = self
-            .get_entity_types_impl(request, &temporal_axes, &policy_components)
+            .query_entity_types_impl(request, &temporal_axes, &policy_components)
             .await?;
 
         let (entity_type_ids, entity_type_vertex_ids): (Vec<_>, Vec<_>) = entity_types
@@ -1436,10 +1434,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetEntityTypeSubgraphResponse {
+        Ok(QueryEntityTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
@@ -1568,10 +1566,10 @@ where
             .change_context(UpdateError)?;
 
         transaction
-            .get_entity_types(
+            .query_entity_types(
                 actor_id,
-                GetEntityTypesParams {
-                    request: CommonGetEntityTypesParams {
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
                         filter: Filter::In(
                             FilterExpression::Path {
                                 path: EntityTypeQueryPath::OntologyId,
@@ -1582,7 +1580,6 @@ where
                             pinned: PinnedTemporalAxisUnresolved::new(None),
                             variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        include_drafts: false,
                         after: None,
                         limit: None,
                         include_count: false,

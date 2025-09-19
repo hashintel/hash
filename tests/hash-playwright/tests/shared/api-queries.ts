@@ -7,8 +7,8 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";

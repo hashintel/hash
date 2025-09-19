@@ -6,12 +6,12 @@ import {
 import type { DocumentNode } from "graphql";
 
 import type {
-  GetEntityTypeQueryVariables,
   QueryDataTypeSubgraphQueryVariables,
+  QueryEntityTypeSubgraphQueryVariables,
   QueryPropertyTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
@@ -27,8 +27,6 @@ const queryStringFromNode = (node: DocumentNode) => {
   return string;
 };
 
-const zeroDepth = { outgoing: 0 };
-
 type OntologyType = "data-type" | "entity-type" | "property-type";
 
 export const generateQueryArgs = (
@@ -38,7 +36,7 @@ export const generateQueryArgs = (
   query: string;
   variables:
     | QueryDataTypeSubgraphQueryVariables
-    | GetEntityTypeQueryVariables
+    | QueryEntityTypeSubgraphQueryVariables
     | QueryPropertyTypeSubgraphQueryVariables;
 } => {
   switch (ontologyType) {
@@ -57,15 +55,15 @@ export const generateQueryArgs = (
       };
     case "entity-type":
       return {
-        query: queryStringFromNode(getEntityTypeQuery),
+        query: queryStringFromNode(queryEntityTypeSubgraphQuery),
         variables: {
-          entityTypeId: versionedUrl,
-          constrainsLinkDestinationsOn: zeroDepth,
-          constrainsLinksOn: zeroDepth,
-          constrainsPropertiesOn: zeroDepth,
-          constrainsValuesOn: zeroDepth,
-          inheritsFrom: zeroDepth,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            graphResolveDepths: zeroedGraphResolveDepths,
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
     case "property-type":

@@ -1,4 +1,4 @@
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";

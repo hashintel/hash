@@ -4,13 +4,13 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import { Box } from "@mui/material";
 import { useMemo } from "react";

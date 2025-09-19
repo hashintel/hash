@@ -1,11 +1,13 @@
 import type { EntityType } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
@@ -399,13 +401,20 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const { schema: usageRecordEntityTypeSchema } = await getEntityTypeById(
-    context,
+  const usageRecordEntityType = await getEntityTypeById(
+    context.graphApi,
     authentication,
     {
       entityTypeId: currentUsageRecordEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
+
+  if (!usageRecordEntityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID ${currentUsageRecordEntityTypeId}`,
+    );
+  }
 
   const customMetadataPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -422,15 +431,15 @@ const migrate: MigrationFunction = async ({
   );
 
   const newUsageRecordEntityTypeSchema: EntityType = {
-    ...usageRecordEntityTypeSchema,
+    ...usageRecordEntityType.schema,
     properties: {
-      ...usageRecordEntityTypeSchema.properties,
+      ...usageRecordEntityType.schema.properties,
       [customMetadataPropertyType.metadata.recordId.baseUrl]: {
         $ref: customMetadataPropertyType.schema.$id,
       },
     },
     links: {
-      ...usageRecordEntityTypeSchema.links,
+      ...usageRecordEntityType.schema.links,
       [incurredInLinkEntityType.schema.$id]: {
         type: "array",
         items: {

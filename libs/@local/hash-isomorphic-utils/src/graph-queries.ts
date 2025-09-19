@@ -22,6 +22,7 @@ import type {
   Selector,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -29,7 +30,6 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
-import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },

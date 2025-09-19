@@ -2,7 +2,7 @@ import { isBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityQueryCursor } from "@local/hash-graph-client/api";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { useCallback, useState } from "react";
 
 import { generateTableDataFromRows } from "./entities-table/use-entities-table/generate-table-data-from-rows";

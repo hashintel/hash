@@ -10,12 +10,12 @@ import type {
   EntityQueryCursor,
   Filter,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -403,7 +403,7 @@ export const updateEntityEmbeddings = async (
       // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
       //       just making another request here. We should add the required methods to the library and do this client
       //       side.
-      const subgraph = await graphActivities.getEntityTypesSubgraph({
+      const { subgraph } = await graphActivities.queryEntityTypesSubgraph({
         authentication: params.authentication,
         request: {
           filter: {
@@ -422,7 +422,6 @@ export const updateEntityEmbeddings = async (
             hasRightEntity: { incoming: 0, outgoing: 0 },
           },
           temporalAxes,
-          includeDrafts: false,
         },
       });
 

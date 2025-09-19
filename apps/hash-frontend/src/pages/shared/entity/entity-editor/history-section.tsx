@@ -4,12 +4,12 @@ import type { EntityId } from "@blockprotocol/type-system";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
 import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   fullDecisionTimeAxis,
   fullOntologyResolveDepths,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { useMemo } from "react";
 
 import type {

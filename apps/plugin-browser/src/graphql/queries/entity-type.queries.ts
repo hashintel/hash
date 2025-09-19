@@ -1,19 +1,17 @@
-import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
-import { print } from "graphql";
-
-export const getEntityTypesQuery = /* GraphQL */ `
-  query getEntityTypes {
-    queryEntityTypes(
-      constrainsValuesOn: { outgoing: 255 }
-      constrainsPropertiesOn: { outgoing: 255 }
-      constrainsLinksOn: { outgoing: 0 }
-      constrainsLinkDestinationsOn: { outgoing: 0 }
-      inheritsFrom: { outgoing: 255 }
-      latestOnly: false
-      includeArchived: true
-    ) {
-      ...SubgraphFields
-    }
+export const queryEntityTypesQuery = /* GraphQL */ `
+  query queryEntityTypes($request: QueryEntityTypesParams!) {
+    queryEntityTypes(request: $request)
   }
-  ${print(subgraphFieldsFragment)}
+`;
+
+export const queryEntityTypeSubgraphQuery = /* GraphQL */ `
+  query queryEntityTypeSubgraph($request: QueryEntityTypeSubgraphParams!) {
+    queryEntityTypeSubgraph(request: $request)
+  }
+`;
+
+export const getClosedMultiEntityTypesQuery = /* GraphQL */ `
+  query getClosedMultiEntityTypes($request: GetClosedMultiEntityTypesParams!) {
+    getClosedMultiEntityTypes(request: $request)
+  }
 `;

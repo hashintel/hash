@@ -16,6 +16,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { queryDataTypes } from "@local/hash-graph-sdk/data-type";
+import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { queryPropertyTypes } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -25,10 +26,7 @@ import type {
 } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import {
-  getEntityTypes,
-  isEntityTypeLinkEntityType,
-} from "./graph/ontology/primitive/entity-type";
+import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -235,20 +233,20 @@ const generateOntologyIds = async () => {
   const authentication = { actorId: publicUserAccountId };
 
   const [
-    hashEntityTypes,
+    { entityTypes: hashEntityTypes },
     { propertyTypes: hashPropertyTypes },
     { dataTypes: hashDataTypes },
-    googleEntityTypes,
+    { entityTypes: googleEntityTypes },
     { propertyTypes: googlePropertyTypes },
-    linearEntityTypes,
+    { entityTypes: linearEntityTypes },
     { propertyTypes: linearPropertyTypes },
-    blockProtocolEntityTypes,
+    { entityTypes: blockProtocolEntityTypes },
     { propertyTypes: blockProtocolPropertyTypes },
     { dataTypes: blockProtocolDataTypes },
   ] = await Promise.all([
     // HASH types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
@@ -263,8 +261,8 @@ const generateOntologyIds = async () => {
       getLatestTypesInOrganizationQuery({ organization: hashOrg }),
     ),
     // Google types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
@@ -274,8 +272,8 @@ const generateOntologyIds = async () => {
       getLatestTypesInOrganizationQuery({ organization: googleOrg }),
     ),
     // Linear types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
@@ -285,8 +283,8 @@ const generateOntologyIds = async () => {
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
     // BlockProtocol types
-    getEntityTypes(
-      graphContext,
+    queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       getLatestBlockprotocolTypesQuery,
     ),

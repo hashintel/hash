@@ -16,13 +16,13 @@ import {
   deletePolicyById,
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
+import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import {
   ApolloError,
   ForbiddenError,

@@ -15,7 +15,6 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedMultiEntityTypes,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import type { EntityRootType } from "@blockprotocol/graph";
@@ -30,6 +29,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
@@ -292,7 +292,7 @@ describe("Entity CRU", () => {
         closedMultiEntityTypes: closedTypeMapFromGraph,
         definitions: definitionsFromGraph,
       } = await getClosedMultiEntityTypes(
-        graphContext,
+        graphContext.graphApi,
         { actorId: testUser.accountId },
         {
           entityTypeIds: [entity.metadata.entityTypeIds],

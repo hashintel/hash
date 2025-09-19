@@ -14,17 +14,18 @@ import {
   isExternalOntologyElementMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
+import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import {
-  mapGqlSubgraphFieldsFragmentToSubgraph,
+  currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback, useMemo } from "react";
 
 import type {
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthenticatedUser } from "../auth-info-context";
 
 export type EntityTypeDependent = {
@@ -104,10 +105,10 @@ export const useGetEntityTypeDependents = (): {
   }) => Promise<Record<BaseUrl, EntityTypeDependent>>;
   loading: boolean;
 } => {
-  const [queryEntityTypes, { loading }] = useLazyQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+  const [queryEntityTypeSubgraph, { loading }] = useLazyQuery<
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
     fetchPolicy: "cache-first",
   });
 
@@ -139,21 +140,25 @@ export const useGetEntityTypeDependents = (): {
           nextEntityTypeIds.map(async (nextTypeId) => {
             const { baseUrl } = componentsFromVersionedUrl(nextTypeId);
 
-            const dependentTypesAtLatestVersion = await queryEntityTypes({
-              variables: {
-                filter: generateDependentsFilter(baseUrl),
-                latestOnly: true,
-                ...zeroedGraphResolveDepths,
+            const dependentTypesAtLatestVersion = await queryEntityTypeSubgraph(
+              {
+                variables: {
+                  request: {
+                    filter: generateDependentsFilter(baseUrl),
+                    temporalAxes: currentTimeInstantTemporalAxes,
+                    graphResolveDepths: zeroedGraphResolveDepths,
+                  },
+                },
               },
-            }).then((resp) => {
+            ).then((resp) => {
               if (!resp.data) {
                 throw new Error("No data returned from queryEntityTypes");
               }
 
               const types = getRoots<EntityTypeRootType>(
-                mapGqlSubgraphFieldsFragmentToSubgraph(
-                  resp.data.queryEntityTypes,
-                ),
+                deserializeQueryEntityTypeSubgraphResponse(
+                  resp.data.queryEntityTypeSubgraph,
+                ).subgraph,
               );
 
               return types;
@@ -246,7 +251,7 @@ export const useGetEntityTypeDependents = (): {
 
       return dependentsByBaseUrl;
     },
-    [queryEntityTypes, userWebs],
+    [queryEntityTypeSubgraph, userWebs],
   );
 
   return useMemo(

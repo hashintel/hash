@@ -4,6 +4,7 @@ import type { BaseUrl, WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
@@ -13,7 +14,6 @@ import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ArchivedPropertyValueWithMetadata,
   NoteProperties,

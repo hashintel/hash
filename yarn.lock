@@ -9032,11 +9032,13 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
+    "@temporalio/client": "npm:1.12.1"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
+    uuid: "npm:11.1.0"
     vitest: "npm:3.2.4"
   languageName: unknown
   linkType: soft
@@ -10942,17 +10944,6 @@ __metadata:
   dependencies:
     playwright-core: "npm:1.52.0"
   checksum: 10c0/6cbe1d18550dcbc21279da7bcd65c2c8a94f68f4789ff21525ccb0c60a514ebe137a70843d5da043ba6210806ca845d2a3f52005b80a692801f9f230158a7af4
-  languageName: node
-  linkType: hard
-
-"@playwright/test@npm:1.52.0":
-  version: 1.52.0
-  resolution: "@playwright/test@npm:1.52.0"
-  dependencies:
-    playwright: "npm:1.52.0"
-  bin:
-    playwright: cli.js
-  checksum: 10c0/1c428b421593eb4f79b7c99783a389c3ab3526c9051ec772749f4fca61414dfa9f2344eba846faac5f238084aa96c836364a91d81d3034ac54924f239a93e247
   languageName: node
   linkType: hard
 
