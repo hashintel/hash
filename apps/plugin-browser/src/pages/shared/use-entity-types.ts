@@ -1,6 +1,13 @@
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
+import {
+  deserializeQueryEntityTypeSubgraphResponse,
+  type QueryEntityTypeSubgraphParams,
+} from "@local/hash-graph-sdk/entity-type";
+import {
+  fullTransactionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useEffect } from "react";
 
 import type {
@@ -11,13 +18,13 @@ import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/entity-type.
 import { queryGraphQlApi } from "../../shared/query-graphql-api";
 import { useStorageSync } from "./use-storage-sync";
 
-const queryEntityTypesSubgraph = () => {
+const queryEntityTypeSubgraph = (request: QueryEntityTypeSubgraphParams) => {
   return queryGraphQlApi<
     QueryEntityTypeSubgraphQuery,
     QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery).then(
-    ({ data: { queryEntityTypeSubgraph } }) => queryEntityTypeSubgraph,
-  );
+  >(queryEntityTypeSubgraphQuery, {
+    request,
+  }).then(({ data }) => data.queryEntityTypeSubgraph);
 };
 
 export const useEntityTypes = () => {
@@ -28,7 +35,18 @@ export const useEntityTypes = () => {
   );
 
   useEffect(() => {
-    void queryEntityTypesSubgraph().then((response) => {
+    void queryEntityTypeSubgraph({
+      filter: { all: [] },
+      temporalAxes: fullTransactionTimeAxis,
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        constrainsValuesOn: { outgoing: 255 },
+        constrainsPropertiesOn: { outgoing: 255 },
+        constrainsLinksOn: { outgoing: 0 },
+        constrainsLinkDestinationsOn: { outgoing: 0 },
+        inheritsFrom: { outgoing: 255 },
+      },
+    }).then((response) => {
       const mappedSubgraph =
         deserializeQueryEntityTypeSubgraphResponse(response).subgraph;
 
