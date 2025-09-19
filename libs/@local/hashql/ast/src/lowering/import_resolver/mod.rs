@@ -11,6 +11,7 @@ use hashql_core::{
     },
     symbol::{Ident, IdentKind, Symbol},
 };
+use hashql_diagnostics::severity::SeverityKind as _;
 
 use self::error::{
     ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,
@@ -56,7 +57,7 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
     fn fatal_diagnostics_count(&self) -> usize {
         self.diagnostics
             .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .filter(|diagnostic| diagnostic.severity.is_critical())
             .count()
     }
 

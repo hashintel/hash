@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::borrow::Borrow;
 
 use anstyle::Color;
 use ariadne::ColorGenerator;
@@ -37,7 +38,10 @@ impl<S> Label<S> {
         &self.span
     }
 
-    pub fn message(&self) -> &str {
+    pub const fn message(&self) -> &str
+    where
+        String: [const] Borrow<str>,
+    {
         &self.message
     }
 

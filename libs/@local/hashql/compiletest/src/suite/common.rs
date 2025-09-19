@@ -1,7 +1,7 @@
 use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, severity::SeverityKind as _};
 
 use super::SuiteDiagnostic;
 
@@ -22,7 +22,7 @@ where
     for diagnostic in reported {
         let diagnostic = diagnostic.boxed();
 
-        if fatal.is_none() && diagnostic.severity.is_fatal() {
+        if fatal.is_none() && diagnostic.severity.is_critical() {
             fatal = Some(diagnostic);
             continue;
         }
