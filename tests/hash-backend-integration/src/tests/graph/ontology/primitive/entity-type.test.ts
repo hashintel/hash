@@ -27,11 +27,11 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
-  getClosedEntityTypes,
   getClosedMultiEntityTypes,
   getEntityTypeById,
   getEntityTypeSubgraphById,
   hasPermissionForEntityTypes,
+  queryEntityTypes,
   queryEntityTypeSubgraph,
 } from "@local/hash-graph-sdk/entity-type";
 import type {
@@ -263,7 +263,7 @@ describe("Entity type CRU", () => {
     expect(actorType).not.toBeNull();
     assert(actorType);
 
-    const fetchedEntityType = await getClosedEntityTypes(
+    const fetchedEntityType = await queryEntityTypes(
       graphContext.graphApi,
       authentication,
       {
@@ -274,62 +274,60 @@ describe("Entity type CRU", () => {
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeEntityTypes: "closed",
       },
     );
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
-    for (const entityType of fetchedEntityType) {
-      if (entityType.schema.required) {
-        entityType.schema.required.sort();
+    for (const entityType of fetchedEntityType.closedEntityTypes!) {
+      if (entityType.required) {
+        entityType.required.sort();
       }
     }
 
-    expect(fetchedEntityType).toEqual([
+    expect(fetchedEntityType.closedEntityTypes!).toEqual([
       {
-        metadata: userType.metadata,
-        schema: {
-          $id: userType.schema.$id,
-          title: userType.schema.title,
-          description: userType.schema.description,
-          properties: {
-            ...userType.schema.properties,
-            ...actorType.schema.properties,
+        $id: userType.schema.$id,
+        title: userType.schema.title,
+        description: userType.schema.description,
+        properties: {
+          ...userType.schema.properties,
+          ...actorType.schema.properties,
+        },
+        required: atLeastOne(
+          Array.from(
+            new Set([
+              ...(userType.schema.required ?? []),
+              ...(actorType.schema.required ?? []),
+            ]),
+          ).toSorted(),
+        ),
+        links: {
+          ...(userType.schema.links ?? {}),
+          ...(userType.schema.links ?? {}),
+        },
+        allOf: [
+          {
+            depth: 0,
+            $id: systemEntityTypes.user.entityTypeId,
+            icon: "/icons/types/user.svg",
           },
-          required: atLeastOne(
-            Array.from(
-              new Set([
-                ...(userType.schema.required ?? []),
-                ...(actorType.schema.required ?? []),
-              ]),
-            ).toSorted(),
-          ),
-          links: {
-            ...(userType.schema.links ?? {}),
-            ...(userType.schema.links ?? {}),
+          {
+            depth: 1,
+            $id: systemEntityTypes.actor.entityTypeId,
+            icon: "/icons/types/user.svg",
+            labelProperty:
+              blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
           },
-          allOf: [
-            {
-              depth: 0,
-              $id: systemEntityTypes.user.entityTypeId,
-              icon: "/icons/types/user.svg",
-            },
-            {
-              depth: 1,
-              $id: systemEntityTypes.actor.entityTypeId,
-              icon: "/icons/types/user.svg",
-              labelProperty:
-                blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
-            },
-          ],
-        } satisfies ClosedEntityType,
-      },
+        ],
+      } satisfies ClosedEntityType,
     ]);
   });
 
   it("can read a closed multi-entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const closedEntityTypes = await getClosedEntityTypes(
+    const { entityTypes, closedEntityTypes } = await queryEntityTypes(
       graphContext.graphApi,
       authentication,
       {
@@ -350,10 +348,11 @@ describe("Entity type CRU", () => {
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeEntityTypes: "closed",
       },
     );
     // We don't support sorting for closed types, yet. To consistently compare them we sort them by $id.
-    closedEntityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
+    entityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 
     const { closedMultiEntityTypes, definitions } =
       await getClosedMultiEntityTypes(graphContext.graphApi, authentication, {
@@ -381,13 +380,13 @@ describe("Entity type CRU", () => {
     }
 
     const allOf = atLeastOne(
-      closedEntityTypes.map(
+      closedEntityTypes!.map(
         (closedEntityType) =>
           ({
-            $id: closedEntityType.schema.$id,
-            title: closedEntityType.schema.title,
-            description: closedEntityType.schema.description,
-            allOf: closedEntityType.schema.allOf,
+            $id: closedEntityType.$id,
+            title: closedEntityType.title,
+            description: closedEntityType.description,
+            allOf: closedEntityType.allOf,
           }) as ClosedMultiEntityType["allOf"][0],
       ),
     );
@@ -395,24 +394,24 @@ describe("Entity type CRU", () => {
 
     expect(closedMultiEntityType).toEqual({
       allOf,
-      properties: closedEntityTypes.reduce(
+      properties: closedEntityTypes!.reduce(
         (acc, closedEntityType) => {
-          return { ...acc, ...closedEntityType.schema.properties };
+          return { ...acc, ...closedEntityType.properties };
         },
         {} as ClosedMultiEntityType["properties"],
       ),
       required: atLeastOne(
         Array.from(
           new Set(
-            closedEntityTypes.flatMap(
-              (closedEntityType) => closedEntityType.schema.required ?? [],
+            closedEntityTypes!.flatMap(
+              (closedEntityType) => closedEntityType.required ?? [],
             ),
           ),
         ).toSorted(),
       ),
-      links: closedEntityTypes.reduce(
+      links: closedEntityTypes!.reduce(
         (acc, closedEntityType) => {
-          return { ...acc, ...closedEntityType.schema.links };
+          return { ...acc, ...closedEntityType.links };
         },
         {} as ClosedMultiEntityType["links"],
       ),
