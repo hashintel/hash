@@ -3,7 +3,7 @@ use core::mem;
 
 use hashql_core::{module::Universe, span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -23,6 +23,8 @@ use crate::{
 };
 
 pub(crate) type SanitizerDiagnostic = Diagnostic<SanitizerDiagnosticCategory, SpanId>;
+
+pub(crate) type SanitizerDiagnosticIssues = DiagnosticIssues<SanitizerDiagnosticCategory, SpanId>;
 
 const INVALID_GENERIC_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "invalid-generic-constraint",
@@ -130,7 +132,7 @@ fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagn
 }
 
 pub struct Sanitizer {
-    diagnostics: Vec<SanitizerDiagnostic>,
+    diagnostics: SanitizerDiagnosticIssues,
     universe: Universe,
 
     special_form_diagnostics: usize,
@@ -141,7 +143,7 @@ impl Sanitizer {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            diagnostics: Vec::new(),
+            diagnostics: SanitizerDiagnosticIssues::new(),
             universe: Universe::Value,
 
             special_form_diagnostics: 0,
@@ -149,7 +151,7 @@ impl Sanitizer {
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<SanitizerDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> SanitizerDiagnosticIssues {
         mem::take(&mut self.diagnostics)
     }
 }

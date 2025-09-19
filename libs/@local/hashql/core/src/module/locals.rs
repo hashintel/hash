@@ -147,6 +147,16 @@ impl<'heap, T> Locals<'heap, T> {
         self.lookup.insert(name, index);
     }
 
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.storage.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.storage.is_empty()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Local<'heap, T>> {
         self.storage.iter()
     }

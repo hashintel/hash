@@ -33,6 +33,7 @@ use hashql_core::{
     collection::fast_hash_map, heap::Heap, module::ModuleRegistry, span::storage::SpanStorage,
     r#type::environment::Environment,
 };
+use hashql_diagnostics::Success;
 use hashql_eval::graph::read::FilterSlice;
 use hashql_hir::visit::Visitor as _;
 use serde::Deserialize;
@@ -210,10 +211,16 @@ impl<'q> EntityQuery<'q> {
         let modules = ModuleRegistry::new(&env);
 
         // Lower the AST
-        let (types, diagnostics) =
+        let types =
             hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules);
+        let Success {
+            value: types,
+            advisories,
+        } = types.expect(
+            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+        );
         assert!(
-            diagnostics.is_empty(),
+            advisories.is_empty(),
             "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
         );
 

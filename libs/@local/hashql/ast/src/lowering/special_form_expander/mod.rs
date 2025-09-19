@@ -12,9 +12,10 @@ use hashql_core::{
     span::SpanId,
     symbol::{Ident, IdentKind},
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 use self::error::{
-    BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
+    BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnosticIssues,
     duplicate_closure_generic, duplicate_closure_parameter, duplicate_generic_constraint,
     field_index_out_of_bounds, field_literal_type_annotation, fn_generics_with_type_annotation,
     fn_params_with_type_annotation, invalid_argument_length, invalid_binding_name_not_path,
@@ -103,18 +104,18 @@ impl Display for SpecialFormKind {
 
 pub struct SpecialFormExpander<'heap> {
     heap: &'heap Heap,
-    diagnostics: Vec<SpecialFormExpanderDiagnostic>,
+    diagnostics: SpecialFormExpanderDiagnosticIssues,
 }
 
 impl<'heap> SpecialFormExpander<'heap> {
     pub const fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<SpecialFormExpanderDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> SpecialFormExpanderDiagnosticIssues {
         mem::take(&mut self.diagnostics)
     }
 

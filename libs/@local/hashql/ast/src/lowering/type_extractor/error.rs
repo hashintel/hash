@@ -10,7 +10,7 @@ use hashql_core::{
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -23,6 +23,8 @@ use super::translate::VariableReference;
 use crate::node::path::{Path, PathSegmentArgument};
 
 pub(crate) type TypeExtractorDiagnostic = Diagnostic<TypeExtractorDiagnosticCategory, SpanId>;
+pub(crate) type TypeExtractorDiagnosticIssues =
+    DiagnosticIssues<TypeExtractorDiagnosticCategory, SpanId>;
 
 const DUPLICATE_TYPE_ALIAS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "duplicate-type-alias",

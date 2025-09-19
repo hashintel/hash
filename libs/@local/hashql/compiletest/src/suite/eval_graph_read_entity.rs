@@ -14,7 +14,9 @@ use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{intern::Interner, node::Node, visit::Visitor as _};
 
 use super::{Suite, SuiteDiagnostic};
-use crate::suite::common::{Header, process_diagnostics, process_result};
+use crate::suite::common::{
+    Header, process_diagnostic_result, process_diagnostics, process_result,
+};
 
 pub(crate) struct EvalGraphReadEntitySuite;
 
@@ -33,14 +35,13 @@ impl Suite for EvalGraphReadEntitySuite {
         let registry = ModuleRegistry::new(&environment);
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = hashql_ast::lowering::lower(
+        let result = hashql_ast::lowering::lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
+        let types = process_diagnostic_result(diagnostics, result)?;
 
         let interner = Interner::new(heap);
         let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);

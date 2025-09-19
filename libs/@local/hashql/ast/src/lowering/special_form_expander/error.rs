@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 
 use hashql_core::{similarity::did_you_mean, span::SpanId};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     help::Help,
     label::Label,
@@ -19,6 +19,9 @@ use crate::node::{
 
 pub(crate) type SpecialFormExpanderDiagnostic =
     Diagnostic<SpecialFormExpanderDiagnosticCategory, SpanId>;
+
+pub(crate) type SpecialFormExpanderDiagnosticIssues =
+    DiagnosticIssues<SpecialFormExpanderDiagnosticCategory, SpanId>;
 
 const UNKNOWN_SPECIAL_FORM: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unknown-special-form",
