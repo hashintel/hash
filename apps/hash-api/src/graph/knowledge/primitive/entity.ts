@@ -40,6 +40,7 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
+import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
@@ -71,7 +72,6 @@ import type {
 import { isTestEnv } from "../../../lib/env-config";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";

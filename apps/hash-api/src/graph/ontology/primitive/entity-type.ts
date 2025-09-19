@@ -14,31 +14,22 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
-  GraphApi,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import {
   getEntityTypeById,
   hasPermissionForEntityTypes,
-  queryEntityTypes,
-  type QueryEntityTypesParams,
 } from "@local/hash-graph-sdk/entity-type";
-import type {
-  ClosedEntityTypeWithMetadata,
-  ConstructEntityTypeParams,
-} from "@local/hash-graph-sdk/ontology";
+import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { getWebShortname } from "./util";
 
 export const checkPermissionsOnEntityType: ImpureGraphFunction<
@@ -136,29 +127,6 @@ export const createEntityType: ImpureGraphFunction<
   // TODO: Avoid casting through `unknown` when new codegen is in place
   //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
   return { schema, metadata: metadata as unknown as EntityTypeMetadata };
-};
-
-export const getClosedEntityTypes = async (
-  graphApi: GraphApi,
-  authentication: AuthenticationContext,
-  params: Omit<QueryEntityTypesParams, "includeEntityTypes"> & {
-    temporalClient?: TemporalClient;
-  },
-): Promise<ClosedEntityTypeWithMetadata[]> => {
-  await rewriteSemanticFilter(params.filter, params.temporalClient);
-
-  const { entityTypes, closedEntityTypes } = await queryEntityTypes(
-    graphApi,
-    authentication,
-    {
-      ...params,
-      includeEntityTypes: "closed",
-    },
-  );
-  return closedEntityTypes!.map((schema, idx) => ({
-    schema,
-    metadata: entityTypes[idx]!.metadata,
-  }));
 };
 
 type UpdateEntityTypeParams = {

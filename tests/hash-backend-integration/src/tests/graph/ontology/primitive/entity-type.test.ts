@@ -7,7 +7,6 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedEntityTypes,
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -28,6 +27,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
+  getClosedEntityTypes,
   getClosedMultiEntityTypes,
   getEntityTypeById,
   getEntityTypeSubgraphById,

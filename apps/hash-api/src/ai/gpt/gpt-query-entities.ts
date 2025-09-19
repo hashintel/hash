@@ -9,11 +9,11 @@ import type {
   SimpleLinkWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";

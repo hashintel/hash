@@ -6,16 +6,16 @@ import type {
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
-  Entity as GraphApiEntity,
   EntityQueryCursor,
   Filter,
+  Entity as GraphApiEntity,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {

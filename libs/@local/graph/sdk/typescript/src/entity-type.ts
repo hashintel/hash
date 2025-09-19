@@ -23,10 +23,13 @@ import type {
   QueryEntityTypeSubgraphResponse as QueryEntityTypeSubgraphResponseGraphApi,
 } from "@local/hash-graph-client";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
+import type { Client as TemporalClient } from "@temporalio/client";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+import { rewriteSemanticFilter } from "./embeddings.js";
 import type { HashEntity, SerializedSubgraph } from "./entity.js";
 import type {
+  ClosedEntityTypeWithMetadata,
   ClosedMultiEntityTypesDefinitions,
   EntityTypeResolveDefinitions,
 } from "./ontology.js";
@@ -261,3 +264,26 @@ export const getClosedMultiEntityTypes = (
           )
         : undefined,
     }));
+
+export const getClosedEntityTypes = async (
+  graphApi: GraphApi,
+  authentication: AuthenticationContext,
+  params: Omit<QueryEntityTypesParams, "includeEntityTypes"> & {
+    temporalClient?: TemporalClient;
+  },
+): Promise<ClosedEntityTypeWithMetadata[]> => {
+  await rewriteSemanticFilter(params.filter, params.temporalClient);
+
+  const { entityTypes, closedEntityTypes } = await queryEntityTypes(
+    graphApi,
+    authentication,
+    {
+      ...params,
+      includeEntityTypes: "closed",
+    },
+  );
+  return closedEntityTypes!.map((schema, idx) => ({
+    schema,
+    metadata: entityTypes[idx]!.metadata,
+  }));
+};
