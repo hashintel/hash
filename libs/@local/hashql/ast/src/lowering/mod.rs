@@ -35,18 +35,18 @@
 //!     symbol::Symbol,
 //! };
 //!
-//! # fn example(env: &Environment, registry: &ModuleRegistry, mut expr: hashql_ast::node::expr::Expr) {
-//! let module_name = Symbol::intern("my_module");
+//! # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>) {
+//! let module_name = env.heap.intern_symbol("my_module");
 //! let result = lower(module_name, &mut expr, env, registry);
 //!
-//! match result.into_result() {
+//! match result {
 //!     Ok(extracted_types) => {
 //!         // Use extracted type information for analysis
-//!         println!("Extracted {} local types", extracted_types.locals.len());
+//!         println!("Extracted {} local types", extracted_types.value.locals.len());
 //!     }
 //!     Err(diagnostics) => {
 //!         // Handle lowering errors
-//!         eprintln!("Lowering failed with {} errors", diagnostics.len());
+//!         eprintln!("Lowering failed with {} errors", diagnostics.into_issues().len());
 //!     }
 //! }
 //! # }
@@ -142,21 +142,27 @@ pub struct ExtractedTypes<'heap> {
 ///     module::ModuleRegistry,
 ///     symbol::Symbol,
 /// };
+/// # use hashql_diagnostics::{Success, Failure};
 ///
-/// # fn example(env: &Environment, registry: &ModuleRegistry, mut expr: hashql_ast::node::expr::Expr) {
-/// let module_name = Symbol::intern("my_module");
+/// # fn example<'heap>(env: &Environment<'heap>, registry: &ModuleRegistry<'heap>, mut expr: hashql_ast::node::expr::Expr<'heap>) {
+/// let module_name = env.heap.intern_symbol("my_module");
 /// let result = lower(module_name, &mut expr, env, registry);
 ///
 /// // Check for successful lowering
-/// if result.is_success() {
-///     let types = result.value();
-///     println!("Successfully lowered module with {} local types",
-///              types.locals.len());
-/// }
+/// match result {
+///     Ok(Success {value, advisories}) => {
+///         // Process the successful result
+///         println!("Successfully lowered module with {} local types",
+///                  value.locals.len());
+///     }
+///     Err(Failure {primary, secondary}) => {
+///         // Handle errors
+///         eprintln!("Primary Error: {:?}", primary);
 ///
-/// // Handle any diagnostics (errors or warnings)
-/// for diagnostic in result.diagnostics() {
-///     eprintln!("Diagnostic: {:?}", diagnostic);
+///         for error in secondary {
+///             eprintln!("Secondary Error: {:?}", error);
+///         }
+///     }
 /// }
 /// # }
 /// ```
