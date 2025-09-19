@@ -107,10 +107,8 @@ pub(crate) fn unsupported_construct(
 /// but the error wasn't properly handled.
 #[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ReificationDiagnosticCategory::UnhandledError,
-        Severity::Error,
-    );
+    let mut diagnostic =
+        Diagnostic::new(ReificationDiagnosticCategory::UnhandledError, Severity::Bug);
 
     diagnostic
         .labels

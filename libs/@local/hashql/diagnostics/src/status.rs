@@ -645,6 +645,10 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
         match self {
             Ok(success) => {
                 if let Err(failure) = diagnostics.merge_into_advisories(&mut success.advisories) {
+                    // Overwrite the entire status with failure: when a critical diagnostic is
+                    // encountered, the computation is no longer considered successful, so the
+                    // original value is discarded.
+                    // `merge_into_advisories` merges the advisories into the returned `failure`.
                     *self = Err(failure);
                 }
             }
