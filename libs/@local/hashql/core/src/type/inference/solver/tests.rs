@@ -1,4 +1,5 @@
 use bumpalo::Bump;
+use hashql_diagnostics::Success;
 
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
@@ -585,9 +586,9 @@ fn empty_constraint_set() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
-    let (_, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
         diagnostics[0].category,
@@ -838,8 +839,11 @@ fn simple_equality_constraint() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     let inferred_type = substitution.infer(hole).expect("should have inferred type");
     assert_equiv!(env, [inferred_type], [string]);

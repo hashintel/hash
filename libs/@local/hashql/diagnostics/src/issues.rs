@@ -538,6 +538,11 @@ where
             critical: self.critical,
         }
     }
+
+    #[must_use]
+    pub fn into_vec(self) -> Vec<Diagnostic<C, S, K>> {
+        self.diagnostics
+    }
 }
 
 impl<C, S> DiagnosticIssues<C, S, Severity> {

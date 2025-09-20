@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::fmt::Write as _;
 
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -24,7 +24,10 @@ use crate::{
     symbol::{Ident, Symbol},
 };
 
-pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
+pub type TypeCheckDiagnostic<K = Severity> = Diagnostic<TypeCheckDiagnosticCategory, SpanId, K>;
+pub type TypeCheckDiagnosticIssues<K = Severity> =
+    DiagnosticIssues<TypeCheckDiagnosticCategory, SpanId, K>;
+pub type TypeCheckStatus<T> = Status<T, TypeCheckDiagnosticCategory, SpanId>;
 
 const TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "type-mismatch",

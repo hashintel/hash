@@ -8,11 +8,8 @@ pub mod simplify;
 mod tests;
 
 pub use self::{
-    analysis::AnalysisEnvironment,
-    context::{diagnostics::Diagnostics, variance::Variance},
-    infer::InferenceEnvironment,
-    lattice::LatticeEnvironment,
-    simplify::SimplifyEnvironment,
+    analysis::AnalysisEnvironment, context::variance::Variance, infer::InferenceEnvironment,
+    lattice::LatticeEnvironment, simplify::SimplifyEnvironment,
 };
 use super::{
     PartialType, Type, TypeId, TypeKind,
