@@ -13,7 +13,7 @@ uv             = "0.8.14"
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.13.1"
-java              = "25"
+java              = "25.0.0+36.0.LTS"
 protoc            = "32.0"
 
 # CLI tools
