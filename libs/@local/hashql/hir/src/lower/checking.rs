@@ -1,4 +1,4 @@
-use core::{fmt::Display, iter};
+use core::fmt::Display;
 
 use hashql_core::{
     collection::{FastHashMap, FastHashSet},
@@ -12,9 +12,9 @@ use hashql_core::{
     r#type::{
         TypeBuilder, TypeId,
         environment::{
-            AnalysisEnvironment, Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment,
-            Variance,
+            AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment, Variance,
         },
+        error::TypeCheckDiagnosticIssues,
         kind::generic::GenericArgumentReference,
     },
 };
@@ -69,7 +69,7 @@ pub struct TypeChecking<'env, 'heap> {
     current: HirId,
     visited: FastHashSet<HirId>,
     diagnostics: LoweringDiagnosticIssues,
-    analysis_diagnostics: Diagnostics,
+    analysis_diagnostics: TypeCheckDiagnosticIssues,
 
     types: FastRealmsMap<HirId, TypeId>,
     inputs: FastRealmsMap<Symbol<'heap>, TypeId>,
@@ -105,7 +105,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             current: HirId::PLACEHOLDER,
             visited: FastHashSet::default(),
             diagnostics: DiagnosticIssues::new(),
-            analysis_diagnostics: Diagnostics::new(),
+            analysis_diagnostics: DiagnosticIssues::new(),
 
             types: FastRealmsMap::new(),
             inputs: FastRealmsMap::new(),
@@ -190,14 +190,22 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     /// (lattice, simplify, analysis) and packages the inferred types, input types, and
     /// intrinsic mappings into a [`TypeCheckingResidual`] for use by subsequent compilation phases.
     pub fn finish(mut self) -> LoweringDiagnosticStatus<TypeCheckingResidual<'heap>> {
-        let diagnostics = iter::empty()
-            .chain(self.lattice.take_diagnostics())
-            .chain(self.simplify.take_diagnostics().into_iter().flatten())
-            .chain(self.analysis.take_diagnostics().into_iter().flatten())
-            .chain(self.analysis_diagnostics)
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking));
+        self.analysis_diagnostics
+            .append(&mut self.lattice.take_diagnostics());
 
-        self.diagnostics.extend(diagnostics);
+        if let Some(mut simplify) = self.simplify.take_diagnostics() {
+            self.analysis_diagnostics.append(&mut simplify);
+        }
+
+        if let Some(mut analysis) = self.analysis.take_diagnostics() {
+            self.analysis_diagnostics.append(&mut analysis);
+        }
+
+        self.diagnostics.append(
+            &mut self
+                .analysis_diagnostics
+                .map_category(LoweringDiagnosticCategory::TypeChecking),
+        );
 
         let types = core::mem::take(&mut self.types[Universe::Value]);
         let inputs = core::mem::take(&mut self.inputs[Universe::Value]);

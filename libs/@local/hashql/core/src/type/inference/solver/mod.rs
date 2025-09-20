@@ -1581,7 +1581,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// # Returns
     ///
     /// Substitution mapping variables to inferred types and any diagnostics.
-    #[must_use]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the type inference fails.
     pub fn solve(mut self) -> TypeCheckStatus<Substitution> {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
         // allocation. Each fix-point iteration requires temporary data structures that we can

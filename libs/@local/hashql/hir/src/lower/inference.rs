@@ -15,13 +15,13 @@ use hashql_core::{
         environment::{
             Environment, InferenceEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
-        error::TypeCheckDiagnostic,
         inference::{InferenceSolver, VariableCollector},
         kind::generic::{GenericArgumentReference, GenericSubstitution},
         visit::Visitor as _,
     },
 };
 
+use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     node::{
         HirId, Node,
@@ -121,18 +121,20 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
         type_id
     }
 
-    #[must_use]
     pub fn finish(
         mut self,
     ) -> (
         InferenceSolver<'env, 'heap>,
         TypeInferenceResidual<'heap>,
-        Vec<TypeCheckDiagnostic>,
+        LoweringDiagnosticIssues,
     ) {
         let variables = self.collector.take_variables();
         self.inference.add_variables(variables);
 
-        let diagnostics = self.instantiate.take_diagnostics().into_vec();
+        let diagnostics = self
+            .instantiate
+            .take_diagnostics()
+            .map_category(LoweringDiagnosticCategory::TypeChecking);
         let solver = self.inference.into_solver();
 
         let locals = core::mem::take(&mut self.locals[Universe::Value]);

@@ -55,21 +55,19 @@ pub fn lower<'heap>(
     let mut inference = TypeInference::new(env, registry);
     inference.visit_node(&node);
 
-    let (solver, inference_residual, inference_diagnostics) = inference.finish();
-    let (substitution, solver_diagnostics) = solver.solve();
+    let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
-    diagnostics.extend(
-        inference_diagnostics
-            .into_iter()
-            .chain(solver_diagnostics)
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking)),
-    );
+    let mut result = solver
+        .solve()
+        .map_category(LoweringDiagnosticCategory::TypeChecking);
+    result.append_diagnostics(&mut diagnostics);
+    result.append_diagnostics(&mut inference_diagnostics);
 
     // Type-inference diagnostic boundary
     let Success {
-        value: (),
+        value: substitution,
         advisories,
-    } = diagnostics.into_status(())?;
+    } = result?;
     let mut diagnostics = advisories.generalize();
 
     env.substitution = substitution;
