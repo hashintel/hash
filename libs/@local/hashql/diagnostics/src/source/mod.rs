@@ -6,6 +6,13 @@ pub use self::span::{AbsoluteDiagnosticSpan, DiagnosticSpan};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SourceId(u32);
 
+impl SourceId {
+    #[must_use]
+    pub const fn new_unchecked(id: u32) -> Self {
+        Self(id)
+    }
+}
+
 pub struct Source<'source> {
     pub path: Option<Cow<'source, str>>,
     pub content: Cow<'source, str>,

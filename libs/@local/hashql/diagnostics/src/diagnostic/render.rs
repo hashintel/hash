@@ -53,6 +53,7 @@ pub struct RenderOptions<'sources, 'source> {
 }
 
 impl<'sources, 'source> RenderOptions<'sources, 'source> {
+    #[must_use]
     pub fn new(format: Format, sources: &'sources Sources<'source>) -> Self {
         Self {
             format,
@@ -161,6 +162,8 @@ where
 
     #[cfg(feature = "render")]
     pub fn render(&self, options: &RenderOptions) -> impl Display {
+        use anstream::adapter::strip_str;
+
         const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
 
         let root = self.as_group(options);
@@ -168,11 +171,16 @@ where
         let renderer = options.as_renderer();
         let mut contents = renderer.render(&[root]);
 
-        contents = match options.format {
-            Format::Ansi => contents,
-            Format::Svg => TERM.render_svg(&contents),
-            Format::Html => TERM.render_html(&contents),
-        };
+        match options.format {
+            Format::Ansi => {}
+            Format::Svg => contents = TERM.render_svg(&contents),
+            Format::Html => contents = TERM.render_html(&contents),
+        }
+
+        match options.color_depth {
+            ColorDepth::Ansi16 | ColorDepth::Ansi256 | ColorDepth::Rgb => {}
+            ColorDepth::Monochrome => contents = strip_str(&contents).to_string(),
+        }
 
         contents
     }

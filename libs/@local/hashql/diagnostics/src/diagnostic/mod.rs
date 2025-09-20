@@ -1,7 +1,7 @@
 mod label;
 mod message;
 mod patch;
-mod render;
+pub mod render;
 
 use alloc::borrow::Cow;
 use core::{
@@ -164,7 +164,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// assert!(diagnostic.labels.is_empty());
     /// ```
     #[expect(clippy::new_ret_no_self)]
-    pub const fn new(category: C, severity: Severity) -> DiagnosticHeader<C, Severity> {
+    pub const fn new(category: C, severity: S) -> DiagnosticHeader<C, S> {
         DiagnosticHeader { category, severity }
     }
 }

@@ -3950,6 +3950,7 @@ name = "hashql-diagnostics"
 version = "0.0.0"
 dependencies = [
  "annotate-snippets",
+ "anstream",
  "anstyle",
  "anstyle-lossy",
  "anstyle-svg",

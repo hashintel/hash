@@ -845,8 +845,10 @@ impl<T, C, S> DiagnosticSink<Status<T, C, S>> for DiagnosticIssues<C, S> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
-    use crate::{Diagnostic, Severity, category::TerminalDiagnosticCategory};
+    use crate::{Diagnostic, Label, Severity, category::TerminalDiagnosticCategory};
 
     const TEST_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
         id: "test",
@@ -858,13 +860,15 @@ mod tests {
         name: "Error Category",
     };
 
+    const DEFAULT_LABEL: Label<()> = Label::new((), Cow::Borrowed("example"));
+
     #[test]
     fn map_preserves_fatal_count_correctly() {
-        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        let mut issues = DiagnosticIssues::new();
 
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error));
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Fatal));
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error).primary(DEFAULT_LABEL));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Fatal).primary(DEFAULT_LABEL));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
 
         let transformed = issues.map(|mut diagnostic| {
             diagnostic.severity = Severity::Fatal;
@@ -877,17 +881,17 @@ mod tests {
 
     #[test]
     fn extend_trait_adds_diagnostics_correctly() {
-        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        let mut issues = DiagnosticIssues::new();
 
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
 
         assert_eq!(issues.len(), 1);
         assert_eq!(issues.critical(), 0);
 
         issues.extend([
-            Diagnostic::new(ERROR_CATEGORY, Severity::Error),
-            Diagnostic::new(TEST_CATEGORY, Severity::Note),
-            Diagnostic::new(ERROR_CATEGORY, Severity::Fatal),
+            Diagnostic::new(ERROR_CATEGORY, Severity::Error).primary(DEFAULT_LABEL),
+            Diagnostic::new(TEST_CATEGORY, Severity::Note).primary(DEFAULT_LABEL),
+            Diagnostic::new(ERROR_CATEGORY, Severity::Fatal).primary(DEFAULT_LABEL),
         ]);
 
         assert_eq!(issues.len(), 4);
@@ -897,7 +901,7 @@ mod tests {
     #[test]
     fn extend_trait_handles_empty_iterator() {
         let mut issues = DiagnosticIssues::new();
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
 
         issues.extend([] as [Diagnostic<_, ()>; 0]);
 
@@ -908,9 +912,9 @@ mod tests {
     #[test]
     fn into_iterator_trait_consumes_collection() {
         let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error));
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
-        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error).primary(DEFAULT_LABEL));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
+        issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Note).primary(DEFAULT_LABEL));
 
         let collected: Vec<_> = issues.into_iter().collect();
 
@@ -944,7 +948,7 @@ mod tests {
     fn diagnostic_sink_with_single_diagnostic_error() {
         let mut issues = DiagnosticIssues::new();
         let error: Result<&'static str, Diagnostic<_, ()>> =
-            Err(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
+            Err(Diagnostic::new(ERROR_CATEGORY, Severity::Error).primary(DEFAULT_LABEL));
 
         let value = issues.sink(error);
 
@@ -967,11 +971,11 @@ mod tests {
     #[test]
     fn diagnostic_sink_with_diagnostic_issues_error() {
         let mut primary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-        primary.push(Diagnostic::new(TEST_CATEGORY, Severity::Note));
+        primary.push(Diagnostic::new(TEST_CATEGORY, Severity::Note).primary(DEFAULT_LABEL));
 
         let mut secondary = DiagnosticIssues::new();
-        secondary.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error));
-        secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning));
+        secondary.push(Diagnostic::new(ERROR_CATEGORY, Severity::Error).primary(DEFAULT_LABEL));
+        secondary.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
 
         let error_result: Result<i32, _> = Err(secondary);
         let value = primary.sink(error_result);
@@ -984,7 +988,9 @@ mod tests {
     #[test]
     fn boxed_diagnostic_issues_type_alias() {
         let mut issues: BoxedDiagnosticIssues<()> = DiagnosticIssues::new();
-        let diagnostic = Diagnostic::new(TEST_CATEGORY, Severity::Error).boxed();
+        let diagnostic = Diagnostic::new(TEST_CATEGORY, Severity::Error)
+            .primary(DEFAULT_LABEL)
+            .boxed();
 
         issues.push(diagnostic);
 

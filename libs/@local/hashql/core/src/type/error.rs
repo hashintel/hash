@@ -257,29 +257,23 @@ where
     U: PrettyPrint<'heap>,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error);
-
-    diagnostic.labels.push(
-        Label::new(
-            lhs.span,
-            format!(
-                "This is of type `{}`",
-                lhs.kind.pretty_print(env, PrettyOptions::default())
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
+            Label::new(
+                lhs.span,
+                format!(
+                    "This is of type `{}`",
+                    lhs.kind.pretty_print(env, PrettyOptions::default())
+                ),
             ),
-        )
-        .with_order(0),
-    );
+        );
 
-    diagnostic.labels.push(
-        Label::new(
-            rhs.span,
-            format!(
-                "... and this is of type `{}`",
-                rhs.kind.pretty_print(env, PrettyOptions::default())
-            ),
-        )
-        .with_order(1),
-    );
+    diagnostic.labels.push(Label::new(
+        rhs.span,
+        format!(
+            "... and this is of type `{}`",
+            rhs.kind.pretty_print(env, PrettyOptions::default())
+        ),
+    ));
 
     if let Some(text) = help {
         diagnostic.add_help(Help::new(text.to_owned()));
