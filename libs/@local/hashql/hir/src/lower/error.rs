@@ -9,7 +9,6 @@ use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
-    label::Label,
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;

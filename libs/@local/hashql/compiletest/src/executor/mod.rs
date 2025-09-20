@@ -10,7 +10,7 @@ use ariadne::Source;
 use error_stack::Report;
 use guppy::graph::PackageGraph;
 use hashql_diagnostics::{
-    Diagnostic, category::DiagnosticCategory, config::ReportConfig, span::AbsoluteDiagnosticSpan,
+    Diagnostic, ReportConfig, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan,
 };
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
 

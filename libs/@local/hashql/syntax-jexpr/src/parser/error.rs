@@ -2,10 +2,8 @@ use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Help, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
     severity::Severity,
 };
 

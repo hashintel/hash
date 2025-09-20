@@ -3,8 +3,7 @@ use core::iter;
 use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink};
 use hashql_diagnostics::{
-    category::canonical_category_name, help::Help, label::Label, note::Note,
-    span::AbsoluteDiagnosticSpan,
+    Help, Label, Note, category::canonical_category_name, span::AbsoluteDiagnosticSpan,
 };
 use line_index::{LineCol, LineIndex};
 
@@ -133,9 +132,8 @@ mod tests {
 
     use error_stack::ReportSink;
     use hashql_diagnostics::{
-        Diagnostic,
+        Diagnostic, Label,
         category::{DiagnosticCategory, TerminalDiagnosticCategory},
-        label::Label,
         severity::Severity,
     };
     use line_index::{LineIndex, TextRange};

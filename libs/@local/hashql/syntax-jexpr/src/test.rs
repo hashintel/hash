@@ -1,5 +1,5 @@
 use hashql_core::span::{SpanId, storage::SpanStorage};
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, config::ReportConfig};
+use hashql_diagnostics::{Diagnostic, ReportConfig, category::DiagnosticCategory};
 
 use crate::span::Span;
 

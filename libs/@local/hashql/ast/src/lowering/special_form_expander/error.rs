@@ -5,9 +5,6 @@ use hashql_core::{similarity::did_you_mean, span::SpanId};
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 

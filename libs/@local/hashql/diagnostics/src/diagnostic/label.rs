@@ -1,13 +1,16 @@
 use alloc::borrow::Cow;
 use core::borrow::Borrow;
 
+#[cfg(feature = "render")]
+use annotate_snippets::Annotation;
+use annotate_snippets::AnnotationKind;
 use anstyle::Color;
 use ariadne::ColorGenerator;
 use error_stack::Report;
 
 use crate::{
     error::ResolveError,
-    span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
+    source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
 // See: https://docs.rs/serde_with/3.9.0/serde_with/guide/serde_as/index.html#gating-serde_as-on-features
@@ -134,5 +137,18 @@ impl Label<AbsoluteDiagnosticSpan> {
         }
 
         label
+    }
+
+    #[cfg(feature = "render")]
+    pub(crate) fn as_annotation(&self, primary: bool) -> Annotation<'_> {
+        let kind = if primary {
+            AnnotationKind::Primary
+        } else {
+            AnnotationKind::Context
+        };
+
+        kind.span(self.span.range().into())
+            .label(&*self.message)
+            .highlight_source(self.color.is_some())
     }
 }

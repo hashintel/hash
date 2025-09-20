@@ -13,9 +13,6 @@ use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 

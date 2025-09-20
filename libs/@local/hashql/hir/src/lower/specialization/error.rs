@@ -6,11 +6,8 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Help, Label, Note,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 

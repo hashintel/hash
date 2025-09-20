@@ -1,20 +1,22 @@
 use alloc::borrow::Cow;
 
-use anstyle::Color;
+#[cfg(feature = "render")]
+use annotate_snippets::Message;
+use anstyle::{Color, Style};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Help {
     message: Cow<'static, str>,
-    #[cfg_attr(feature = "serde", serde(with = "crate::encoding::color_option"))]
-    color: Option<Color>,
+    #[cfg_attr(feature = "serde", serde(skip))] // TODO: implement
+    style: Option<Style>,
 }
 
 impl Help {
     pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
         Self {
             message: message.into(),
-            color: None,
+            style: None,
         }
     }
 
@@ -22,7 +24,7 @@ impl Help {
     pub const fn from_static(message: &'static str) -> Self {
         Self {
             message: Cow::Borrowed(message),
-            color: None,
+            style: None,
         }
     }
 
@@ -36,13 +38,15 @@ impl Help {
     }
 
     #[must_use]
-    pub const fn with_color(mut self, color: Color) -> Self {
-        self.color = Some(color);
+    pub fn with_color(mut self, color: Color) -> Self {
+        let style = self.style.get_or_insert_default();
+        style.fg_color(Some(color));
         self
     }
 
-    pub const fn set_color(&mut self, color: Color) -> &mut Self {
-        self.color = Some(color);
+    pub fn set_color(&mut self, color: Color) -> &mut Self {
+        let style = self.style.get_or_insert_default();
+        style.fg_color(Some(color));
         self
     }
 
@@ -71,5 +75,16 @@ impl Help {
             style,
             message: &self.message,
         }
+    }
+
+    #[cfg(feature = "render")]
+    pub(crate) fn as_message(&self) -> Message {
+        use annotate_snippets::Level;
+
+        let Some(style) = self.style else {
+            return Level::NOTE.message(&*self.message);
+        };
+
+        Level::NOTE.message(format!("{style}{}{style:#}", self.message))
     }
 }

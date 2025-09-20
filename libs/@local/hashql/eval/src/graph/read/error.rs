@@ -10,9 +10,6 @@ use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 use hashql_hir::node::{operation::binary::BinOp, variable::QualifiedVariable};

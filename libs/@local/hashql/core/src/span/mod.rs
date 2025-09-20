@@ -6,7 +6,7 @@ use core::{
     ops::Deref,
 };
 
-use hashql_diagnostics::span::DiagnosticSpan;
+use hashql_diagnostics::DiagnosticSpan;
 pub use text_size::{TextRange, TextSize};
 
 use self::storage::SpanStorage;

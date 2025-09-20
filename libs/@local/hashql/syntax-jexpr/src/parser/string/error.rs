@@ -3,11 +3,8 @@ use core::fmt::Write as _;
 
 use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Help, Label, Note,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 use text_size::{TextRange, TextSize};

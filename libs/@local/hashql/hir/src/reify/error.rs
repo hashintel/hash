@@ -4,9 +4,6 @@ use hashql_core::span::SpanId;
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
     severity::Severity,
 };
 

@@ -1,3 +1,8 @@
+mod help;
+mod label;
+mod note;
+mod render;
+
 use alloc::borrow::Cow;
 use core::{
     error::Error,
@@ -7,6 +12,7 @@ use core::{
 use ariadne::ColorGenerator;
 use error_stack::{Report, TryReportIteratorExt as _};
 
+pub use self::{help::Help, label::Label, note::Note};
 use crate::{
     category::{
         CanonicalDiagnosticCategoryId, CanonicalDiagnosticCategoryName, DiagnosticCategory,
@@ -14,11 +20,8 @@ use crate::{
     },
     config::ReportConfig,
     error::ResolveError,
-    help::Help,
-    label::Label,
-    note::Note,
     severity::{Advisory, Critical, Severity, SeverityKind},
-    span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
+    source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
 /// Type alias for [`Diagnostic`] with absolute diagnostic spans.
@@ -500,7 +503,7 @@ where
     /// report.print(sources)?; // Display to user
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn report(&self, config: ReportConfig) -> ariadne::Report<'_, AbsoluteDiagnosticSpan> {
+    pub fn render_(&self, config: ReportConfig) -> ariadne::Report<'_, AbsoluteDiagnosticSpan> {
         // According to the examples, the span given to `Report::build` should be the span of the
         // primary (first) label.
         // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14
