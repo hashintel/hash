@@ -2,7 +2,6 @@ mod label;
 mod message;
 mod patch;
 mod render;
-pub(crate) mod zindex;
 
 use alloc::borrow::Cow;
 use core::{
@@ -10,7 +9,7 @@ use core::{
     fmt::{Debug, Display},
 };
 
-use error_stack::{Report, TryReportTupleExt};
+use error_stack::{Report, TryReportTupleExt as _};
 
 pub use self::{
     label::{Label, Labels},
@@ -164,6 +163,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// assert!(diagnostic.message.is_none());
     /// assert!(diagnostic.labels.is_empty());
     /// ```
+    #[expect(clippy::new_ret_no_self)]
     pub const fn new(category: C, severity: Severity) -> DiagnosticHeader<C, Severity> {
         DiagnosticHeader { category, severity }
     }

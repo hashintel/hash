@@ -102,13 +102,12 @@ where
             .id(CanonicalDiagnosticCategoryId::new(&self.category).to_string());
         let mut group = Group::with_title(title);
 
-        let chunks = self
+        let mut index = 0;
+        for chunk in self
             .labels
             .as_slice()
-            .chunk_by(|a, b| a.span().source() == b.span().source());
-
-        let mut index = 0;
-        for chunk in chunks {
+            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
+        {
             if chunk.is_empty() {
                 // This should never happen, but if it does, we don't want to panic on indexing.
                 continue;
@@ -134,7 +133,7 @@ where
         for chunk in self
             .patches
             .as_slice()
-            .chunk_by(|a, b| a.span().source() == b.span().source())
+            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
         {
             if chunk.is_empty() {
                 // This should never happen, but if it does, we don't want to panic on indexing.
@@ -162,9 +161,19 @@ where
 
     #[cfg(feature = "render")]
     pub fn render(&self, options: &RenderOptions) -> impl Display {
+        const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
+
         let root = self.as_group(options);
 
         let renderer = options.as_renderer();
-        renderer.render(&[root])
+        let mut contents = renderer.render(&[root]);
+
+        contents = match options.format {
+            Format::Ansi => contents,
+            Format::Svg => TERM.render_svg(&contents),
+            Format::Html => TERM.render_html(&contents),
+        };
+
+        contents
     }
 }

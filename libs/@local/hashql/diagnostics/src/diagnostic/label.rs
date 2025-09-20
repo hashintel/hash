@@ -56,7 +56,8 @@ impl<S> Label<S> {
         &self.message
     }
 
-    pub fn with_highlight(mut self, highlight: bool) -> Self {
+    #[must_use]
+    pub const fn with_highlight(mut self, highlight: bool) -> Self {
         self.highlight = highlight;
         self
     }
@@ -98,7 +99,7 @@ pub struct Labels<S> {
 
 impl<S> Labels<S> {
     pub fn new(primary: Label<S>) -> Self {
-        Labels {
+        Self {
             labels: vec![primary],
         }
     }

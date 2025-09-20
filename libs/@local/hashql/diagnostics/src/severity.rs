@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::{
     cmp,
     fmt::{self, Display},
@@ -341,22 +342,22 @@ impl Severity {
             Self::Bug => {
                 const {
                     &[
-                        Message::help(
+                        Message::help(Cow::Borrowed(
                             "This is a bug in the compiler, not an issue with your code.",
-                        )
+                        ))
                         .with_color(Color::Ansi(anstyle::AnsiColor::Green)),
-                        Message::help(
+                        Message::help(Cow::Borrowed(
                             "Please report this issue along with a minimal code example that \
                              reproduces the error.",
-                        )
+                        ))
                         .with_color(Color::Ansi(anstyle::AnsiColor::Blue)),
-                        Message::note(
+                        Message::note(Cow::Borrowed(
                             "Internal compiler errors indicate a bug in the compiler itself that \
                              needs to be fixed.\n\nWe would appreciate if you could file a GitHub \
                              or Linear issue and reference this error.\n\nWhen reporting this \
                              issue, please include your query, any relevant type definitions, and \
                              the complete error message shown above.",
-                        ),
+                        )),
                     ] as &[_]
                 }
             }

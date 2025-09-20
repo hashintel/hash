@@ -21,6 +21,7 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 annotate-snippets = { version = "0.12.4", optional = true }
 anstyle-lossy     = { workspace = true, optional = true }
+anstyle-svg       = "0.1.11"
 anstyle-yansi     = { workspace = true }
 derive_more       = { workspace = true, features = ["display"] }
 simple-mermaid    = { workspace = true }

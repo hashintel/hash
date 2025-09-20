@@ -1,9 +1,8 @@
+use alloc::borrow::Cow;
 use core::borrow::Borrow;
-use std::borrow::Cow;
 
 use error_stack::{Report, TryReportIteratorExt as _};
 
-use super::zindex::ZIndex;
 use crate::{
     error::ResolveError,
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
@@ -14,8 +13,6 @@ use crate::{
 pub struct Patch<S> {
     span: S,
     replacement: Cow<'static, str>,
-
-    z_index: ZIndex,
 }
 
 impl<S> Patch<S> {
@@ -26,7 +23,6 @@ impl<S> Patch<S> {
         Self {
             span,
             replacement: replacement.into(),
-            z_index: ZIndex::Natural,
         }
     }
 
@@ -39,17 +35,6 @@ impl<S> Patch<S> {
         String: [const] Borrow<str>,
     {
         &self.replacement
-    }
-
-    #[must_use]
-    pub const fn with_order(mut self, z_index: i32) -> Self {
-        self.z_index = ZIndex::new(Some(z_index));
-        self
-    }
-
-    pub const fn set_order(&mut self, order: i32) -> &mut Self {
-        self.z_index = ZIndex::new(Some(order));
-        self
     }
 }
 
@@ -66,7 +51,6 @@ impl<S> Patch<S> {
         Ok(Patch {
             span,
             replacement: self.replacement,
-            z_index: self.z_index,
         })
     }
 }
@@ -85,8 +69,9 @@ pub struct Patches<S> {
 }
 
 impl<S> Patches<S> {
-    pub fn new() -> Self {
-        Patches {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
             patches: Vec::new(),
         }
     }
@@ -113,5 +98,11 @@ impl<S> Patches<S> {
             .try_collect_reports()?;
 
         Ok(Patches { patches })
+    }
+}
+
+impl<S> const Default for Patches<S> {
+    fn default() -> Self {
+        Self::new()
     }
 }

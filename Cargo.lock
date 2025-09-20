@@ -3952,6 +3952,7 @@ dependencies = [
  "annotate-snippets",
  "anstyle",
  "anstyle-lossy",
+ "anstyle-svg",
  "anstyle-yansi",
  "ariadne",
  "derive_more 2.0.1",

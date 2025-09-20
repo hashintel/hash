@@ -5,7 +5,7 @@ use anstyle::{Color, Style};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MessageKind {
+enum MessageKind {
     Note,
     Help,
 }
@@ -14,7 +14,8 @@ pub enum MessageKind {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Message {
     kind: MessageKind,
-    message: Cow<'static, str>,
+    contents: Cow<'static, str>,
+
     #[cfg_attr(feature = "serde", serde(skip))] // TODO: implement
     pub style: Option<Style>,
 }
@@ -26,7 +27,7 @@ impl Message {
     {
         Self {
             kind: MessageKind::Note,
-            message: message.into(),
+            contents: message.into(),
             style: None,
         }
     }
@@ -37,7 +38,7 @@ impl Message {
     {
         Self {
             kind: MessageKind::Help,
-            message: message.into(),
+            contents: message.into(),
             style: None,
         }
     }
@@ -47,21 +48,23 @@ impl Message {
     where
         String: [const] Borrow<str>,
     {
-        &self.message
+        &self.contents
     }
 
+    #[must_use]
     pub const fn with_style(mut self, style: Style) -> Self {
         self.style = Some(style);
         self
     }
 
+    #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
         self.style = Some(Style::new().fg_color(Some(color)));
         self
     }
 
     #[cfg(feature = "render")]
-    pub(crate) fn render(&self) -> annotate_snippets::Message {
+    pub(crate) fn render(&self) -> annotate_snippets::Message<'_> {
         use annotate_snippets::Level;
 
         let level = match self.kind {
@@ -70,10 +73,10 @@ impl Message {
         };
 
         let Some(style) = self.style else {
-            return level.message(&*self.message);
+            return level.message(&*self.contents);
         };
 
-        level.message(format!("{style}{}{style:#}", self.message))
+        level.message(format!("{style}{}{style:#}", self.contents))
     }
 }
 
@@ -84,6 +87,7 @@ pub struct Messages {
 }
 
 impl Messages {
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             messages: Vec::new(),
@@ -104,5 +108,11 @@ impl Messages {
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Message> {
         self.messages.iter()
+    }
+}
+
+impl const Default for Messages {
+    fn default() -> Self {
+        Self::new()
     }
 }
