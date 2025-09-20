@@ -257,8 +257,15 @@ impl<'q> EntityQuery<'q> {
 
         compiler.visit_node(&hir);
 
-        let result = compiler.finish().expect(
+        let Success {
+            value: result,
+            advisories,
+        } = compiler.finish().expect(
             "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
+        );
+        assert!(
+            advisories.is_empty(),
+            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
         );
 
         let output = result.output.get(&hir.id).expect(

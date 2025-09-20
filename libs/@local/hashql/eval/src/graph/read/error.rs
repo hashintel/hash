@@ -7,7 +7,7 @@ use hashql_core::{
     value::{FieldAccessError, IndexAccessError},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -19,7 +19,11 @@ use hashql_hir::node::{operation::binary::BinOp, variable::QualifiedVariable};
 
 use super::{FilterCompilerContext, convert::ConversionError};
 
-pub type GraphReadCompilerDiagnostic = Diagnostic<GraphReadCompilerDiagnosticCategory, SpanId>;
+pub type GraphReadCompilerDiagnostic<K = Severity> =
+    Diagnostic<GraphReadCompilerDiagnosticCategory, SpanId, K>;
+pub type GraphReadCompilerIssues<K = Severity> =
+    DiagnosticIssues<GraphReadCompilerDiagnosticCategory, SpanId, K>;
+pub type GraphReadCompilerStatus<T> = Status<T, GraphReadCompilerDiagnosticCategory, SpanId>;
 
 const VALUE_PARAMETER_CONVERSION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "value-parameter-conversion",

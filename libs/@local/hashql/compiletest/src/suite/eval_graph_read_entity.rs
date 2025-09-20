@@ -14,7 +14,7 @@ use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{intern::Interner, node::Node, visit::Visitor as _};
 
 use super::{Suite, SuiteDiagnostic};
-use crate::suite::common::{Header, process_result, process_status};
+use crate::suite::common::{Header, process_status};
 
 pub(crate) struct EvalGraphReadEntitySuite;
 
@@ -91,7 +91,7 @@ impl Suite for EvalGraphReadEntitySuite {
 
         let mut compiler = GraphReadCompiler::new(heap, &inputs);
         compiler.visit_node(&node);
-        let residual = process_result(diagnostics, compiler.finish())?;
+        let residual = process_status(diagnostics, compiler.finish())?;
 
         let FilterSlice::Entity { range } = residual.output[&node.id].clone();
 
