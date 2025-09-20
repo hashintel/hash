@@ -31,7 +31,7 @@ pub use anstyle as color;
 pub use self::{
     category::DiagnosticCategory,
     config::ReportConfig,
-    diagnostic::{Diagnostic, Help, Label, Note},
+    diagnostic::{Diagnostic, Label},
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,
     status::{Failure, Status, StatusExt, Success},

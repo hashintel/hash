@@ -1,7 +1,8 @@
-mod help;
 mod label;
-mod note;
+mod message;
+mod patch;
 mod render;
+pub(crate) mod zindex;
 
 use alloc::borrow::Cow;
 use core::{
@@ -9,16 +10,15 @@ use core::{
     fmt::{Debug, Display},
 };
 
-use ariadne::ColorGenerator;
-use error_stack::{Report, TryReportIteratorExt as _};
+use error_stack::{Report, TryReportTupleExt};
 
-pub use self::{help::Help, label::Label, note::Note};
+pub use self::{
+    label::{Label, Labels},
+    message::{Message, Messages},
+    patch::{Patch, Patches},
+};
 use crate::{
-    category::{
-        CanonicalDiagnosticCategoryId, CanonicalDiagnosticCategoryName, DiagnosticCategory,
-        category_display_name,
-    },
-    config::ReportConfig,
+    category::{CanonicalDiagnosticCategoryName, DiagnosticCategory},
     error::ResolveError,
     severity::{Advisory, Critical, Severity, SeverityKind},
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
@@ -48,6 +48,26 @@ pub type CriticalDiagnostic<C, S> = Diagnostic<C, S, Critical>;
 /// This type ensures compile-time safety by restricting diagnostics to only advisory (non-fatal)
 /// severity levels such as warnings and informational messages.
 pub type AdvisoryDiagnostic<C, S> = Diagnostic<C, S, Advisory>;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[must_use = "A diagnostic header must be materialized"]
+pub struct DiagnosticHeader<C, K> {
+    pub category: C,
+    pub severity: K,
+}
+
+impl<C, K> DiagnosticHeader<C, K> {
+    pub fn primary<S>(self, label: Label<S>) -> Diagnostic<C, S, K> {
+        Diagnostic {
+            category: self.category,
+            severity: self.severity,
+            title: None,
+            labels: Labels::new(label),
+            patches: Patches::new(),
+            messages: Messages::new(),
+        }
+    }
+}
 
 /// A diagnostic message representing an issue found during compilation.
 ///
@@ -108,23 +128,19 @@ pub struct Diagnostic<C, S, K = Severity> {
     /// Optional primary message describing the issue.
     ///
     /// If not provided, the diagnostic will use the category's display name.
-    pub message: Option<Cow<'static, str>>,
+    pub title: Option<Cow<'static, str>>,
 
     /// Labels pointing to specific locations in source code.
     ///
     /// Labels highlight relevant parts of the code and can include explanatory messages about
     /// what's wrong at each location.
-    pub labels: Vec<Label<S>>,
+    pub labels: Labels<S>,
+    pub patches: Patches<S>,
 
     /// Additional explanatory notes about the diagnostic.
     ///
     /// Notes provide extra context or background information to help users understand the issue.
-    pub notes: Vec<Note>,
-
-    /// Suggested fixes or help messages for resolving the issue.
-    ///
-    /// Help messages guide users toward solutions for the reported problem.
-    pub help: Vec<Help>,
+    pub messages: Messages,
 }
 
 impl<C, S, K> Diagnostic<C, S, K> {
@@ -148,15 +164,8 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// assert!(diagnostic.message.is_none());
     /// assert!(diagnostic.labels.is_empty());
     /// ```
-    pub const fn new(category: C, severity: K) -> Self {
-        Self {
-            category,
-            severity,
-            message: None,
-            labels: Vec::new(),
-            notes: Vec::new(),
-            help: Vec::new(),
-        }
+    pub const fn new(category: C, severity: Severity) -> DiagnosticHeader<C, Severity> {
+        DiagnosticHeader { category, severity }
     }
 }
 
@@ -236,7 +245,7 @@ impl<C, S> Diagnostic<C, S> {
 
 impl<C, S, K> Diagnostic<C, S, K>
 where
-    K: Copy + Into<Severity>,
+    K: SeverityKind,
 {
     /// Converts severity-specialized diagnostics to use the general [`Severity`] type.
     ///
@@ -261,14 +270,7 @@ where
     /// assert_eq!(generalized.severity, Severity::Error);
     /// ```
     pub fn generalize(self) -> Diagnostic<C, S, Severity> {
-        Diagnostic {
-            category: self.category,
-            severity: self.severity.into(),
-            message: self.message,
-            labels: self.labels,
-            notes: self.notes,
-            help: self.help,
-        }
+        self.with_severity(Into::into)
     }
 }
 
@@ -304,10 +306,10 @@ impl<C, S, K> Diagnostic<C, S, K> {
         Diagnostic {
             category: func(self.category),
             severity: self.severity,
-            message: self.message,
+            title: self.title,
             labels: self.labels,
-            notes: self.notes,
-            help: self.help,
+            patches: self.patches,
+            messages: self.messages,
         }
     }
 
@@ -366,53 +368,18 @@ impl<C, S, K> Diagnostic<C, S, K> {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
 
-    /// Adds a note to the diagnostic.
-    ///
-    /// Appends the provided [`Note`] to the diagnostic's collection of notes. Notes provide
-    /// additional context or information about the diagnostic that helps users understand
-    /// the issue. This method returns a mutable reference to enable method chaining.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Note, Severity};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let mut diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Warning);
-    /// diagnostic.add_note(Note::new("This is additional context"));
-    ///
-    /// assert_eq!(diagnostic.notes.len(), 1);
-    /// ```
-    pub fn add_note(&mut self, note: Note) -> &mut Self {
-        self.notes.push(note);
+    pub fn add_label(&mut self, label: impl Into<Label<S>>) -> &mut Self {
+        self.labels.push(label.into());
         self
     }
 
-    /// Adds a help message to the diagnostic.
-    ///
-    /// Appends the provided [`Help`] message to the diagnostic's collection of help messages.
-    /// Help messages suggest ways to fix or work around the issue described by the diagnostic.
-    /// This method returns a mutable reference to enable method chaining.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_diagnostics::{Diagnostic, Help, Severity};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let mut diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
-    /// diagnostic.add_help(Help::new("Try using a different syntax"));
-    ///
-    /// assert_eq!(diagnostic.help.len(), 1);
-    /// ```
-    pub fn add_help(&mut self, help: Help) -> &mut Self {
-        self.help.push(help);
+    pub fn add_patch(&mut self, patch: impl Into<Patch<S>>) -> &mut Self {
+        self.patches.push(patch.into());
+        self
+    }
+
+    pub fn add_message(&mut self, message: impl Into<Message>) -> &mut Self {
+        self.messages.push(message.into());
         self
     }
 
@@ -450,104 +417,20 @@ impl<C, S, K> Diagnostic<C, S, K> {
     where
         S: DiagnosticSpan<DiagnosticContext>,
     {
-        let labels: Vec<_> = self
-            .labels
-            .into_iter()
-            .map(|label| label.resolve(context))
-            .try_collect_reports()?;
+        let labels = self.labels.resolve(context);
+        let patches = self.patches.resolve(context);
+
+        let (labels, patches) = (labels, patches).try_collect()?;
 
         Ok(Diagnostic {
             category: self.category,
             severity: self.severity,
-            message: self.message,
+            title: self.title,
 
             labels,
-            notes: self.notes,
-            help: self.help,
+            patches,
+            messages: self.messages,
         })
-    }
-}
-
-impl<C, K> Diagnostic<C, AbsoluteDiagnosticSpan, K>
-where
-    C: DiagnosticCategory,
-    K: SeverityKind,
-{
-    /// Creates a formatted report for displaying the diagnostic to users.
-    ///
-    /// Converts this diagnostic into an ariadne [`Report`] that includes source code context,
-    /// colorized highlighting, and all the diagnostic information (message, labels, notes, and
-    /// help messages). The report can be written to a terminal or other output destination.
-    /// The visual appearance is controlled by the provided [`ReportConfig`].
-    ///
-    /// The generated report includes:
-    /// - Syntax-highlighted source code context
-    /// - Colored labels pointing to problem areas
-    /// - Primary diagnostic message
-    /// - Additional notes and help messages
-    /// - Severity-specific styling and icons
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use hashql_diagnostics::{Diagnostic, ReportConfig, Severity};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
-    /// let resolved = diagnostic.resolve(&mut context)?;
-    ///
-    /// let report = resolved.report(ReportConfig::default());
-    /// report.print(sources)?; // Display to user
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    pub fn render_(&self, config: ReportConfig) -> ariadne::Report<'_, AbsoluteDiagnosticSpan> {
-        // According to the examples, the span given to `Report::build` should be the span of the
-        // primary (first) label.
-        // See: https://github.com/zesterer/ariadne/blob/74c2a7f8881e95629f9fb8d70140c133972d81d3/examples/simple.rs#L14
-        let span = self
-            .labels
-            .first()
-            .map_or_else(AbsoluteDiagnosticSpan::full, |label| *label.span());
-
-        let severity: Severity = self.severity.into();
-
-        let mut generator = ColorGenerator::new();
-
-        let mut builder = ariadne::Report::build(severity.kind(), span)
-            .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
-
-        builder.set_message(
-            self.message
-                .clone()
-                .unwrap_or_else(|| category_display_name(&self.category)),
-        );
-
-        for note in &self.notes {
-            builder.add_note(note.colored(config.color));
-        }
-
-        for note in severity.notes() {
-            builder.add_note(note.colored(config.color));
-        }
-
-        for help in &self.help {
-            builder.add_help(help.colored(config.color));
-        }
-
-        for help in severity.help() {
-            builder.add_help(help.colored(config.color));
-        }
-
-        for label in &self.labels {
-            builder.add_label(label.ariadne(config.color, &mut generator));
-        }
-
-        builder = builder.with_config(config.into());
-
-        builder.finish()
     }
 }
 

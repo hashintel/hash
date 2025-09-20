@@ -2,38 +2,36 @@ use alloc::borrow::Cow;
 use core::borrow::Borrow;
 
 #[cfg(feature = "render")]
-use annotate_snippets::Annotation;
-use annotate_snippets::AnnotationKind;
-use anstyle::Color;
-use ariadne::ColorGenerator;
-use error_stack::Report;
+use annotate_snippets::{Annotation, AnnotationKind};
+use error_stack::{Report, TryReportIteratorExt as _};
 
 use crate::{
     error::ResolveError,
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
-// See: https://docs.rs/serde_with/3.9.0/serde_with/guide/serde_as/index.html#gating-serde_as-on-features
+// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+// pub struct Patch(Cow<'static, str>);
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<S> {
     span: S,
     message: Cow<'static, str>,
 
-    order: Option<i32>,
-    priority: Option<i32>,
-    #[cfg_attr(feature = "serde", serde(with = "crate::encoding::color_option"))]
-    color: Option<Color>,
+    pub highlight: bool,
 }
 
 impl<S> Label<S> {
-    pub fn new(span: S, message: impl Into<Cow<'static, str>>) -> Self {
+    pub const fn new<M>(span: S, message: M) -> Self
+    where
+        M: [const] Into<Cow<'static, str>>,
+    {
         Self {
             span,
             message: message.into(),
-            order: None,
-            priority: None,
-            color: None,
+            highlight: false,
         }
     }
 
@@ -58,36 +56,8 @@ impl<S> Label<S> {
         &self.message
     }
 
-    #[must_use]
-    pub const fn with_order(mut self, order: i32) -> Self {
-        self.order = Some(order);
-        self
-    }
-
-    pub const fn set_order(&mut self, order: i32) -> &mut Self {
-        self.order = Some(order);
-        self
-    }
-
-    #[must_use]
-    pub const fn with_priority(mut self, priority: i32) -> Self {
-        self.priority = Some(priority);
-        self
-    }
-
-    pub const fn set_priority(&mut self, priority: i32) -> &mut Self {
-        self.priority = Some(priority);
-        self
-    }
-
-    #[must_use]
-    pub const fn with_color(mut self, color: Color) -> Self {
-        self.color = Some(color);
-        self
-    }
-
-    pub const fn set_color(&mut self, color: Color) -> &mut Self {
-        self.color = Some(color);
+    pub fn with_highlight(mut self, highlight: bool) -> Self {
+        self.highlight = highlight;
         self
     }
 }
@@ -105,50 +75,55 @@ impl<S> Label<S> {
         Ok(Label {
             span,
             message: self.message,
-            order: self.order,
-            priority: self.priority,
-            color: self.color,
+
+            highlight: self.highlight,
         })
     }
 }
 
 impl Label<AbsoluteDiagnosticSpan> {
-    pub(crate) fn ariadne(
-        &self,
-        enable_color: bool,
-        generator: &mut ColorGenerator,
-    ) -> ariadne::Label<AbsoluteDiagnosticSpan> {
-        let mut label = ariadne::Label::new(self.span).with_message(&self.message);
-
-        let color = self
-            .color
-            .map_or_else(|| generator.next(), anstyle_yansi::to_yansi_color);
-
-        if enable_color {
-            label = label.with_color(color);
-        }
-
-        if let Some(order) = self.order {
-            label = label.with_order(order);
-        }
-
-        if let Some(priority) = self.priority {
-            label = label.with_priority(priority);
-        }
-
-        label
-    }
-
     #[cfg(feature = "render")]
-    pub(crate) fn as_annotation(&self, primary: bool) -> Annotation<'_> {
-        let kind = if primary {
-            AnnotationKind::Primary
-        } else {
-            AnnotationKind::Context
-        };
-
+    pub(crate) fn render(&self, kind: AnnotationKind) -> Annotation<'_> {
         kind.span(self.span.range().into())
             .label(&*self.message)
-            .highlight_source(self.color.is_some())
+            .highlight_source(self.highlight)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Labels<S> {
+    labels: Vec<Label<S>>,
+}
+
+impl<S> Labels<S> {
+    pub fn new(primary: Label<S>) -> Self {
+        Labels {
+            labels: vec![primary],
+        }
+    }
+
+    pub fn push(&mut self, label: impl Into<Label<S>>) {
+        self.labels.push(label.into());
+    }
+
+    pub(crate) fn as_slice(&self) -> &[Label<S>] {
+        &self.labels
+    }
+
+    pub(crate) fn resolve<C>(
+        self,
+        context: &mut C,
+    ) -> Result<Labels<AbsoluteDiagnosticSpan>, Report<[ResolveError]>>
+    where
+        S: DiagnosticSpan<C>,
+    {
+        let labels = self
+            .labels
+            .into_iter()
+            .map(|label| label.resolve(context))
+            .try_collect_reports()?;
+
+        Ok(Labels { labels })
     }
 }

@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use annotate_snippets::{Group, Level, Renderer, Snippet, renderer::DecorStyle};
+use annotate_snippets::{AnnotationKind, Group, Level, Renderer, Snippet, renderer::DecorStyle};
 
 use super::Diagnostic;
 use crate::{
@@ -93,17 +93,18 @@ where
     pub(crate) fn as_group<'this>(&'this self, options: &'this RenderOptions) -> Group<'this> {
         let severity: Severity = self.severity.into();
 
-        let root = severity_to_level(severity)
+        let title = severity_to_level(severity)
             .primary_title(
-                self.message
+                self.title
                     .clone()
                     .unwrap_or_else(|| category_display_name(&self.category)),
             )
             .id(CanonicalDiagnosticCategoryId::new(&self.category).to_string());
-        let mut root = Group::with_title(root);
+        let mut group = Group::with_title(title);
 
         let chunks = self
             .labels
+            .as_slice()
             .chunk_by(|a, b| a.span().source() == b.span().source());
 
         let mut index = 0;
@@ -118,32 +119,45 @@ where
 
             let snippet = Snippet::source(&*source.content)
                 .path(source.path.as_deref())
-                .annotations(
-                    chunk
-                        .iter()
-                        .enumerate()
-                        .map(|(i, label)| label.as_annotation(index + i == 0)),
-                );
-            root = root.element(snippet);
+                .annotations(chunk.iter().enumerate().map(|(i, label)| {
+                    label.render(if index == 0 && i == 0 {
+                        AnnotationKind::Primary
+                    } else {
+                        AnnotationKind::Context
+                    })
+                }));
+            group = group.element(snippet);
 
             index += chunk.len();
         }
 
-        root = root.elements(
-            self.notes
+        for chunk in self
+            .patches
+            .as_slice()
+            .chunk_by(|a, b| a.span().source() == b.span().source())
+        {
+            if chunk.is_empty() {
+                // This should never happen, but if it does, we don't want to panic on indexing.
+                continue;
+            }
+
+            let source = chunk[0].span().source();
+            let source = options.sources.get(source).unwrap();
+
+            let snippet = Snippet::source(&*source.content)
+                .path(source.path.as_deref())
+                .patches(chunk.iter().map(|patch| patch.render()));
+            group = group.element(snippet);
+        }
+
+        group = group.elements(
+            self.messages
                 .iter()
-                .chain(severity.notes())
-                .map(|note| note.as_message()),
+                .chain(severity.messages())
+                .map(|message| message.render()),
         );
 
-        root = root.elements(
-            self.help
-                .iter()
-                .chain(severity.help())
-                .map(|help| help.as_message()),
-        );
-
-        root
+        group
     }
 
     #[cfg(feature = "render")]
