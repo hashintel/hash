@@ -9,7 +9,8 @@ use crate::{
     symbol::Symbol,
     r#type::{
         TypeId,
-        environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
+        environment::{Environment, instantiate::InstantiateEnvironment},
+        error::TypeCheckDiagnosticIssues,
         kind::generic::GenericArgumentReference,
     },
 };
@@ -163,7 +164,7 @@ impl<'heap, T> Locals<'heap, T> {
 }
 
 impl<'heap> Locals<'heap, TypeDef<'heap>> {
-    pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
+    pub fn finish(&mut self, env: &Environment<'heap>) -> TypeCheckDiagnosticIssues {
         // Once finished we need to go over once to instantiate every call (now that everything is
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
