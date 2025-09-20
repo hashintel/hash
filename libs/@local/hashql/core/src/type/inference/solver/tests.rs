@@ -880,8 +880,11 @@ fn anti_symmetry_integration() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Both variables should be inferred to the same type
     let type1 = substitution
@@ -917,9 +920,9 @@ fn conflicting_equality_constraints() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (_, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
         diagnostics[0].category,
@@ -968,8 +971,11 @@ fn disconnected_constraint_graphs() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Group 1 should be resolved to string
     let type1 = substitution
@@ -1033,8 +1039,11 @@ fn propagate() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     // Group 1 should be resolved to string
     let type1 = substitution
@@ -1092,8 +1101,11 @@ fn contract() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     env.substitution = substitution.clone();
 
@@ -1137,8 +1149,8 @@ fn do_not_double_emit_on_unconstrained_variables() {
 
     let solver =
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-    let (_, diagnostics) = solver.solve();
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues().into_vec();
 
     assert_eq!(diagnostics.len(), 2);
 
@@ -1174,8 +1186,11 @@ fn pipeline_environment_to_solver() {
     environment.collect_constraints(Variance::Covariant, union, number);
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1210,8 +1225,11 @@ fn single_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1258,8 +1276,11 @@ fn multi_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1304,8 +1325,11 @@ fn early_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1350,8 +1374,11 @@ fn late_projection() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1382,7 +1409,8 @@ fn unconstrained_projection() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1423,7 +1451,8 @@ fn recursive_projection() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1467,8 +1496,11 @@ fn projection_equality_constraint() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1514,8 +1546,11 @@ fn projection_unify_variables_lower() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1561,8 +1596,11 @@ fn projection_unify_variables_upper() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1609,8 +1647,11 @@ fn projection_unify_variables_equal_is_equivalent() {
     });
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1657,9 +1698,9 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     });
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
 
-    let diagnostics = diagnostics.into_vec();
+    let diagnostics = diagnostics.into_issues().into_vec();
 
     assert_eq!(diagnostics.len(), 1);
     assert_eq!(
@@ -1696,8 +1737,11 @@ fn projection_simplify() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1725,8 +1769,11 @@ fn single_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1775,8 +1822,11 @@ fn multi_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1820,8 +1870,11 @@ fn early_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1865,8 +1918,11 @@ fn late_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1908,7 +1964,8 @@ fn recursive_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
 
     let diagnostics = diagnostics.into_vec();
@@ -1942,7 +1999,8 @@ fn unconstrained_element_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
 
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
@@ -1984,8 +2042,11 @@ fn discharged_element_subscript() {
     );
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2018,8 +2079,11 @@ fn discharged_index_subscript() {
         environment.add_subscript(SpanId::SYNTHETIC, list, instantiate_infer(&env, hole));
 
     let solver = environment.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2067,8 +2131,11 @@ fn multiple_upper_bounds() {
         bound: integer,
     });
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2101,8 +2168,11 @@ fn multiple_lower_bounds() {
         bound: integer,
     });
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -2126,7 +2196,8 @@ fn unconstrained_hole() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 1);
     let diagnostics = diagnostics.into_vec();
     assert_eq!(
@@ -2150,8 +2221,11 @@ fn unconstrained_generic() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: _substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 }
 
 // If we have two different incompatible upper constraints the user should be notified.
@@ -2176,7 +2250,8 @@ fn incompatible_upper_constraints() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
+    let diagnostics = solver.solve().expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 1);
     let diagnostics = diagnostics.into_vec();
     assert_eq!(
@@ -2206,8 +2281,11 @@ fn never_upper_constraints() {
     });
 
     let solver = inference.into_solver();
-    let (_substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: _substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 }
 
 #[test]
@@ -2236,8 +2314,11 @@ fn deferred_lower_constraint() {
     });
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,
@@ -2272,8 +2353,11 @@ fn deferred_upper_constraint() {
     });
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,
@@ -2312,8 +2396,11 @@ fn nested_inference_constraints() {
     );
 
     let solver = inference.into_solver();
-    let (substitution, diagnostics) = solver.solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = solver.solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equivalent(
         &env,
