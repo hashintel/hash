@@ -1,11 +1,7 @@
-[type-extractor::intrinsic-parameter-mismatch] Error: Incorrect intrinsic type parameters
-   ╭─[ <unknown>:6:4 ]
-   │
- 6 │   "Dict<String, Number, String>",
-   │    ──────────────┬─────────────  
-   │                  ╰─────────────── Intrinsic `::kernel::type::Dict` takes 2 parameters, but found 3
-   │ 
-   │ Help: Remove extra parameter(s): `Dict<KeyType, ValueType>`
-   │ 
-   │ Note: Dict is a key-value mapping that requires exactly two type parameters: the key type and the value type. For example, Dict<String, Number> maps string keys to number values.
-───╯
+error[type-extractor::intrinsic-parameter-mismatch]: Incorrect intrinsic type parameters
+  ╭▸ 
+6 │   "Dict<String, Number, String>",
+  │    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Intrinsic `::kernel::type::Dict` takes 2 parameters, but found 3
+  │
+  ├ help: Remove extra parameter(s): `Dict<KeyType, ValueType>`
+  ╰ note: Dict is a key-value mapping that requires exactly two type parameters: the key type and the value type. For example, Dict<String, Number> maps string keys to number values.
