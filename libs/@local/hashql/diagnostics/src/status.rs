@@ -3,7 +3,7 @@ use core::mem;
 use crate::{
     Diagnostic, DiagnosticIssues,
     category::DiagnosticCategory,
-    severity::{Advisory, Critical},
+    severity::{Advisory, Critical, SeverityKind},
 };
 
 /// A successful result combined with any accumulated non-fatal diagnostic messages.
@@ -162,6 +162,13 @@ pub struct Failure<C, S> {
 }
 
 impl<C, S> Failure<C, S> {
+    pub fn new(primary: Diagnostic<C, S, Critical>) -> Self {
+        Self {
+            primary: Box::new(primary),
+            secondary: DiagnosticIssues::new(),
+        }
+    }
+
     /// Converts the error into a collection of diagnostic issues.
     ///
     /// The primary error is inserted at the front of the secondary diagnostics, creating a single
@@ -569,6 +576,16 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// assert!(additional.is_empty()); // Diagnostics were moved
     /// ```
     fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) -> Option<T>;
+
+    #[must_use]
+    fn with_diagnostics<K2>(mut self, diagnostics: DiagnosticIssues<C, S, K2>) -> Self
+    where
+        Self: Sized,
+        K2: SeverityKind,
+    {
+        self.append_diagnostics(&mut diagnostics.generalize());
+        self
+    }
 
     /// Combines two [`Status`] values into a single status containing a tuple of their values.
     ///

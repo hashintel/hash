@@ -74,12 +74,13 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+use super::InteractiveHeader;
 pub use crate::rest::entity_query_request::{
     EntityQuery, EntityQueryOptions, GetEntitiesRequest, GetEntitySubgraphRequest,
 };
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, entity_query_request::CompilationOptions,
+    json::Json, status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -404,6 +405,7 @@ where
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = bool, Header, description = "Whether the request is used interactively"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -420,6 +422,7 @@ where
 )]
 async fn get_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -461,9 +464,7 @@ where
         heap.prime();
     }
 
-    let filter = query.compile(&heap).expect(
-        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-    );
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
     let params = options.into_params(filter);
 
@@ -529,6 +530,7 @@ struct GetEntitySubgraphResponse<'r> {
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = bool, Query, description = "Whether the query is interactive"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -545,6 +547,7 @@ struct GetEntitySubgraphResponse<'r> {
 )]
 async fn get_entity_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -578,9 +581,7 @@ where
         heap.prime();
     }
 
-    let filter = query.compile(&heap).expect(
-        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-    );
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
     let params = options.into_traversal_params(filter, traversal);
 

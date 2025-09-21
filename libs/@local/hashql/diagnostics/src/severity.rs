@@ -1,4 +1,5 @@
 use core::{
+    cmp,
     fmt::{self, Display},
     mem,
 };
@@ -467,6 +468,18 @@ impl const SeverityKind for Severity {
     }
 }
 
+impl Ord for Severity {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.code().cmp(&other.code())
+    }
+}
+
+impl PartialOrd for Severity {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(feature = "serde")]
 impl serde::Serialize for Severity {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -600,6 +613,18 @@ impl Display for Critical {
     }
 }
 
+impl Ord for Critical {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Critical {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl const From<Critical> for Severity {
     fn from(severity: Critical) -> Self {
         severity.0
@@ -723,6 +748,18 @@ impl const SeverityKind for Advisory {
 impl Display for Advisory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl Ord for Advisory {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Advisory {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
