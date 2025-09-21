@@ -1684,7 +1684,7 @@ pub(crate) fn unresolved_selection_constraint<'heap>(
     constraint: SelectionConstraint<'heap>,
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
-    let mut diagnostic = Diagnostic::new(
+    let diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnresolvedSelectionConstraint,
         Severity::Error,
     );

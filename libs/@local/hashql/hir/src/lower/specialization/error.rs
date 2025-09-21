@@ -6,8 +6,9 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
-    Diagnostic, Help, Label, Note,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    diagnostic::Message,
     severity::Severity,
 };
 
@@ -81,24 +82,20 @@ pub(crate) fn unsupported_intrinsic(
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::UnsupportedIntrinsic,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        span,
+        format!("intrinsic `{intrinsic_name}` not supported yet"),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            span,
-            format!("intrinsic `{intrinsic_name}` not supported yet"),
-        )
-        .with_order(0),
-    );
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The intrinsic operation `{intrinsic_name}` is a valid HashQL operation, but support for \
          this operation is still in development during the specialization phase. For now, you'll \
          need to use alternative approaches or wait for this feature to be implemented. Check \
          issue {issue_url} for implementation status and updates."
     )));
 
-    diagnostic.add_note(Note::new(format!(
+    diagnostic.add_message(Message::note(format!(
         "Intrinsic operations are low-level operations that are built into the HashQL language. \
          The specialization phase converts high-level function calls into these optimized \
          operations, but not all intrinsics are currently supported. We're actively working on \
@@ -117,19 +114,19 @@ pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> Specializ
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::UnknownIntrinsic,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(
+        span,
+        format!("unknown intrinsic `{intrinsic_name}`"),
+    ));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, format!("unknown intrinsic `{intrinsic_name}`")).with_order(0));
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The intrinsic `{intrinsic_name}` is missing from the specialization phase mapping. Add \
          this intrinsic to the match statement in the `fold_intrinsic` method to resolve this \
          compiler bug."
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This error indicates that a new intrinsic was added to the standard library but the \
          specialization phase wasn't updated to handle it. The compiler should be kept in sync \
          with stdlib changes.",
@@ -150,13 +147,10 @@ pub(crate) fn invalid_graph_chain<'heap>(
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::InvalidGraphChain,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(span, "Expected a graph operation here"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Expected a graph operation here").with_order(0));
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "{} is not a graph operation. Graph chains can only contain operations that work with \
          graph data, such as filtering, entity selection, or other graph transformations. \
          Operations like math, comparisons, or other non-graph functions cannot be part of a \
@@ -164,7 +158,7 @@ pub(crate) fn invalid_graph_chain<'heap>(
         node.pretty_print(env, PrettyOptions::default().with_max_width(60))
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Graph operation chains work by passing graph objects through a sequence of \
          graph-specific operations. Each operation in the chain must accept a graph and return a \
          modified graph. Non-graph operations like math, comparisons, or boolean logic should be \
@@ -186,22 +180,17 @@ pub(crate) fn non_intrinsic_graph_operation<'heap>(
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::NonIntrinsicGraphOperation,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(span, "This is not a graph intrinsic operation"));
 
-    let label_text = "This is not a graph intrinsic operation";
-
-    diagnostic
-        .labels
-        .push(Label::new(span, label_text).with_order(0));
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "{} is not a valid graph operation. Graph operation chains can only contain intrinsic \
          functions that are part of the HashQL graph API. Higher-order functions (HOFs) and \
          user-defined functions are not supported yet. To track support for user-defined \
          functions see https://linear.app/hash/issue/H-4776/hashql-allow-user-defined-functions-in-graph-pipelines",
          function.pretty_print(env, PrettyOptions::default().with_max_width(60)))));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Graph intrinsics are built-in operations like `::graph::head::entities`, \
          `::graph::body::filter`, and `::graph::tail::collect` that can be optimized during \
          compilation. Only these predefined operations can be used to build graph query chains.",
@@ -218,19 +207,19 @@ pub(crate) fn non_graph_intrinsic(span: SpanId, intrinsic_name: &str) -> Special
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::NonGraphIntrinsic,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(
+        span,
+        format!("unknown graph intrinsic `{intrinsic_name}`"),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(span, format!("unknown graph intrinsic `{intrinsic_name}`")).with_order(0),
-    );
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The graph intrinsic `{intrinsic_name}` is missing from the graph specialization phase \
          mapping. Add this intrinsic to the match statement in the `fold_graph_read` method to \
          resolve this compiler bug."
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This error indicates that a new graph intrinsic was added to the standard library but \
          the graph specialization phase wasn't updated to handle it. The compiler should be kept \
          in sync with stdlib changes.",

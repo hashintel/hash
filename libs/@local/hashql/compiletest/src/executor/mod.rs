@@ -5,12 +5,13 @@ mod trial_group;
 use core::error;
 use std::{self, io, sync::mpsc, thread};
 
-use anstream::StripStream;
-use ariadne::Source;
 use error_stack::Report;
 use guppy::graph::PackageGraph;
 use hashql_diagnostics::{
-    Diagnostic, ReportConfig, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan,
+    Diagnostic,
+    category::DiagnosticCategory,
+    diagnostic::render::{ColorDepth, Format, RenderOptions},
+    source::{AbsoluteDiagnosticSpan, Source, Sources},
 };
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
 
@@ -50,18 +51,13 @@ fn render_diagnostic<C>(source: &str, diagnostic: &Diagnostic<C, AbsoluteDiagnos
 where
     C: DiagnosticCategory,
 {
-    let report = diagnostic.report(ReportConfig {
-        color: false,
-        ..ReportConfig::default()
-    });
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
 
-    let mut writer = StripStream::new(Vec::new());
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
 
-    report
-        .write_for_stdout(Source::from(source), &mut writer)
-        .expect("infallible");
-
-    String::from_utf8(writer.into_inner()).expect("output should be valid UTF-8")
+    diagnostic.render(options)
 }
 
 fn render_stderr<'a, C>(

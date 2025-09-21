@@ -23,7 +23,9 @@ use core::panic::RefUnwindSafe;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{heap::Heap, span::SpanId};
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
+use hashql_diagnostics::{
+    Diagnostic, category::DiagnosticCategory, source::AbsoluteDiagnosticSpan,
+};
 
 use self::{
     ast_lowering_import_resolver::AstLoweringImportResolverSuite,

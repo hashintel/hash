@@ -108,6 +108,10 @@ impl<S> Labels<S> {
         self.labels.push(label.into());
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &Label<S>> {
+        self.labels.iter()
+    }
+
     pub(crate) fn as_slice(&self) -> &[Label<S>] {
         &self.labels
     }

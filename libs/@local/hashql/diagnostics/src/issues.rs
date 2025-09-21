@@ -845,7 +845,7 @@ impl<T, C, S> DiagnosticSink<Status<T, C, S>> for DiagnosticIssues<C, S> {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use alloc::borrow::Cow;
 
     use super::*;
     use crate::{Diagnostic, Label, Severity, category::TerminalDiagnosticCategory};

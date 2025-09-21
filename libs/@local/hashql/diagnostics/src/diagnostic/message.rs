@@ -106,7 +106,7 @@ impl Messages {
         });
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &Message> {
+    pub fn iter(&self) -> impl Iterator<Item = &Message> {
         self.messages.iter()
     }
 }

@@ -1,5 +1,10 @@
 use hashql_core::span::{SpanId, storage::SpanStorage};
-use hashql_diagnostics::{Diagnostic, ReportConfig, category::DiagnosticCategory};
+use hashql_diagnostics::{
+    Diagnostic,
+    category::DiagnosticCategory,
+    diagnostic::render::{ColorDepth, Format, RenderOptions},
+    source::{Source, Sources},
+};
 
 use crate::span::Span;
 
@@ -15,15 +20,11 @@ where
         .resolve(&mut spans)
         .expect("span storage should have a reference to every span");
 
-    let report = resolved.report(ReportConfig {
-        color: false,
-        ..ReportConfig::default()
-    });
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
 
-    let mut output = Vec::new();
-    report
-        .write_for_stdout(ariadne::Source::from(source), &mut output)
-        .expect("infallible");
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
 
-    String::from_utf8(output).expect("output should be valid UTF-8")
+    resolved.render(options)
 }

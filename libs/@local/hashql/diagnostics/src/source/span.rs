@@ -55,6 +55,11 @@ impl AbsoluteDiagnosticSpan {
     }
 
     #[must_use]
+    pub const fn from_parts(source: SourceId, range: TextRange) -> Self {
+        Self { source, range }
+    }
+
+    #[must_use]
     pub const fn source(self) -> SourceId {
         self.source
     }

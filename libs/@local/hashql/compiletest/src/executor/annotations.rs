@@ -3,7 +3,10 @@ use core::iter;
 use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink};
 use hashql_diagnostics::{
-    Help, Label, Note, category::canonical_category_name, span::AbsoluteDiagnosticSpan,
+    Label,
+    category::canonical_category_name,
+    diagnostic::{Labels, Message},
+    source::AbsoluteDiagnosticSpan,
 };
 use line_index::{LineCol, LineIndex};
 
@@ -13,7 +16,7 @@ use crate::{annotation::diagnostic::DiagnosticAnnotation, suite::ResolvedSuiteDi
 fn filter_labels<'label>(
     line_index: &LineIndex,
     line_number: u32,
-    labels: &'label [Label<AbsoluteDiagnosticSpan>],
+    labels: &'label Labels<AbsoluteDiagnosticSpan>,
 ) -> impl IntoIterator<Item = &'label Label<AbsoluteDiagnosticSpan>> {
     labels.iter().filter(move |label| {
         let range = label.span().range();
@@ -77,8 +80,7 @@ pub(crate) fn verify_annotations(
                 let mut sources = labels
                     .iter()
                     .map(|label| label.message())
-                    .chain(diagnostic.help.iter().map(Help::message))
-                    .chain(diagnostic.notes.iter().map(Note::message))
+                    .chain(diagnostic.messages.iter().map(Message::message))
                     .chain(iter::once(canonical_name.as_str()))
                     .map(|value| strip_str(value).to_string());
 
@@ -135,6 +137,7 @@ mod tests {
         Diagnostic, Label,
         category::{DiagnosticCategory, TerminalDiagnosticCategory},
         severity::Severity,
+        source::{AbsoluteDiagnosticSpan, SourceId},
     };
     use line_index::{LineIndex, TextRange};
 
@@ -142,7 +145,10 @@ mod tests {
 
     // Helper to create test spans
     fn make_span(start: u32, end: u32) -> AbsoluteDiagnosticSpan {
-        AbsoluteDiagnosticSpan::from_range(TextRange::new(start.into(), end.into()))
+        AbsoluteDiagnosticSpan::from_parts(
+            SourceId::new_unchecked(0),
+            TextRange::new(start.into(), end.into()),
+        )
     }
 
     // Helper to create a simple diagnostic for testing
@@ -157,14 +163,11 @@ mod tests {
             name: category,
         };
 
-        let mut diagnostic = Diagnostic::new(
+        Diagnostic::new(
             Box::new(mock_category) as Box<dyn DiagnosticCategory>,
             severity,
-        );
-
-        diagnostic.labels.push(Label::new(span, message));
-
-        diagnostic
+        )
+        .primary(Label::new(span, message))
     }
 
     // Helper to create an annotation
@@ -326,14 +329,19 @@ mod tests {
         let source = "line1\nline2\nline3";
         let line_index = LineIndex::new(source);
 
-        let labels = vec![
-            Label::new(make_span(0, 5), "label on line 1"), // line1
-            Label::new(make_span(6, 11), "label on line 2"), // line2
-            Label::new(make_span(12, 17), "label on line 3"), // line3
-        ];
+        let mut diagnostic =
+            make_diagnostic("temp", Severity::Error, "label on line 1", make_span(0, 5));
+        diagnostic
+            .labels
+            .push(Label::new(make_span(6, 11), "label on line 2"));
+        diagnostic
+            .labels
+            .push(Label::new(make_span(12, 17), "label on line 3"));
 
         // Filter for line 1 (1-indexed)
-        let filtered: Vec<_> = filter_labels(&line_index, 1, &labels).into_iter().collect();
+        let filtered: Vec<_> = filter_labels(&line_index, 1, &diagnostic.labels)
+            .into_iter()
+            .collect();
 
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].message(), "label on line 1");

@@ -8,7 +8,7 @@ use hashql_core::{
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
+    diagnostic::Message,
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;
@@ -73,11 +73,6 @@ pub(crate) fn generic_argument_mismatch(
     parameters: &[GenericArgumentReference],
     arguments: &[Spanned<TypeId>],
 ) -> LoweringDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        LoweringDiagnosticCategory::GenericArgumentMismatch,
-        Severity::Error,
-    );
-
     let expected = parameters.len();
     let actual = arguments.len();
 
@@ -89,7 +84,11 @@ pub(crate) fn generic_argument_mismatch(
         GenericArgumentContext::Closure => "closure",
     };
 
-    diagnostic.labels.push(Label::new(
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::GenericArgumentMismatch,
+        Severity::Error,
+    )
+    .primary(Label::new(
         variable_span,
         format!(
             "This {context_name} requires {expected} generic argument{}, but {actual} {} provided",
@@ -98,28 +97,17 @@ pub(crate) fn generic_argument_mismatch(
         ),
     ));
 
-    let mut order = -1;
     for missing in missing {
-        diagnostic.labels.push(
-            Label::new(
-                node_span,
-                format!("Add missing parameter `{}`", missing.name.demangle()),
-            )
-            .with_order(order)
-            .with_color(Color::Ansi(AnsiColor::Yellow)),
-        );
-
-        order -= 1;
+        diagnostic.labels.push(Label::new(
+            node_span,
+            format!("Add missing parameter `{}`", missing.name.demangle()),
+        ));
     }
 
     for &extraneous in extraneous {
-        diagnostic.labels.push(
-            Label::new(extraneous.span, "Remove this argument")
-                .with_order(order)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
-
-        order -= 1;
+        diagnostic
+            .labels
+            .push(Label::new(extraneous.span, "Remove this argument"));
     }
 
     let usage = format!(
@@ -146,7 +134,7 @@ pub(crate) fn generic_argument_mismatch(
         Ordering::Equal => format!("Correct usage: {usage}"),
     };
 
-    diagnostic.add_help(Help::new(help));
+    diagnostic.add_message(Message::help(help));
 
     if !parameters.is_empty() {
         let note_message = match context {
@@ -162,7 +150,7 @@ pub(crate) fn generic_argument_mismatch(
             }
         };
 
-        diagnostic.add_note(Note::new(note_message));
+        diagnostic.add_message(Message::note(note_message));
     }
 
     diagnostic
@@ -175,30 +163,22 @@ pub(crate) fn argument_override<'heap>(
     let mut diagnostic = Diagnostic::new(
         LoweringDiagnosticCategory::ArgumentOverride,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        replacement.span,
+        format!("`{}` was defined with type arguments here", variable.name()),
+    ));
 
     let variable_arguments = variable.arguments();
 
-    diagnostic.labels.push(
-        Label::new(
-            replacement.span,
-            format!("`{}` was defined with type arguments here", variable.name()),
-        )
-        .with_color(Color::Ansi(AnsiColor::Blue)),
-    );
-
     for argument in variable_arguments {
-        diagnostic.labels.push(
-            Label::new(
-                argument.span,
-                "... but additional type arguments are provided here",
-            )
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-        );
+        diagnostic.labels.push(Label::new(
+            argument.span,
+            "... but additional type arguments are provided here",
+        ));
     }
 
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The variable `{}` already represents `{}` with type arguments applied. Use `{}` directly \
          without additional type arguments, or create a new binding if you need different type \
          parameters.",
@@ -207,7 +187,7 @@ pub(crate) fn argument_override<'heap>(
         variable.name()
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Variables that alias parameterized expressions cannot have additional type arguments \
          applied to them, as this would create ambiguous type parameter bindings.",
     ));

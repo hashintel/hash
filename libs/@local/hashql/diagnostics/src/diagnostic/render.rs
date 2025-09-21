@@ -1,5 +1,3 @@
-use core::fmt::Display;
-
 use annotate_snippets::{AnnotationKind, Group, Level, Renderer, Snippet, renderer::DecorStyle};
 
 use super::Diagnostic;
@@ -42,7 +40,7 @@ impl Charset {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct RenderOptions<'sources, 'source> {
     pub format: Format,
     pub charset: Charset,
@@ -91,7 +89,10 @@ where
     C: DiagnosticCategory,
     K: SeverityKind,
 {
-    pub(crate) fn as_group<'this>(&'this self, options: &'this RenderOptions) -> Group<'this> {
+    pub(crate) fn as_group<'group>(
+        &'group self,
+        options: RenderOptions<'group, '_>,
+    ) -> Group<'group> {
         let severity: Severity = self.severity.into();
 
         let title = severity_to_level(severity)
@@ -104,6 +105,7 @@ where
         let mut group = Group::with_title(title);
 
         let mut index = 0;
+        #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
         for chunk in self
             .labels
             .as_slice()
@@ -131,6 +133,7 @@ where
             index += chunk.len();
         }
 
+        #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
         for chunk in self
             .patches
             .as_slice()
@@ -161,7 +164,7 @@ where
     }
 
     #[cfg(feature = "render")]
-    pub fn render(&self, options: &RenderOptions) -> impl Display {
+    pub fn render(&self, options: RenderOptions) -> String {
         use anstream::adapter::strip_str;
 
         const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
