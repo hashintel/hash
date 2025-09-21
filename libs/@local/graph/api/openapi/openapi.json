@@ -1605,9 +1605,10 @@
             "name": "Interactive",
             "in": "header",
             "description": "Whether the request is used interactively",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "boolean"
+              "type": "boolean",
+              "nullable": true
             }
           },
           {
@@ -1730,11 +1731,12 @@
           },
           {
             "name": "Interactive",
-            "in": "query",
+            "in": "header",
             "description": "Whether the query is interactive",
-            "required": true,
+            "required": false,
             "schema": {
-              "type": "boolean"
+              "type": "boolean",
+              "nullable": true
             }
           },
           {

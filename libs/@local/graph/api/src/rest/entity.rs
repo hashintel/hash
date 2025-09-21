@@ -405,7 +405,7 @@ where
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("Interactive" = bool, Header, description = "Whether the request is used interactively"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the request is used interactively"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -530,7 +530,7 @@ struct GetEntitySubgraphResponse<'r> {
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("Interactive" = bool, Query, description = "Whether the query is interactive"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the query is interactive"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
