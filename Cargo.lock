@@ -3388,6 +3388,7 @@ dependencies = [
  "hash-temporal-client",
  "hashql-ast",
  "hashql-core",
+ "hashql-diagnostics",
  "hashql-eval",
  "hashql-hir",
  "hashql-syntax-jexpr",

@@ -11,10 +11,10 @@ use hashql_core::{
     },
     symbol::{Ident, IdentKind, Symbol},
 };
-use hashql_diagnostics::severity::SeverityKind as _;
+use hashql_diagnostics::DiagnosticIssues;
 
 use self::error::{
-    ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,
+    ImportResolverDiagnosticIssues, empty_path, from_resolution_error, generic_arguments_in_module,
     generic_arguments_in_use_path, unresolved_variable,
 };
 use super::super::node::path::PathSegmentArgument;
@@ -35,7 +35,7 @@ pub struct ImportResolver<'env, 'heap> {
     heap: &'heap Heap,
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
-    diagnostics: Vec<ImportResolverDiagnostic>,
+    diagnostics: ImportResolverDiagnosticIssues,
     handled_diagnostics: usize,
 }
 
@@ -45,20 +45,17 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
             heap,
             namespace,
             current_universe: Universe::Value,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             handled_diagnostics: 0,
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<ImportResolverDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> ImportResolverDiagnosticIssues {
         mem::take(&mut self.diagnostics)
     }
 
-    fn fatal_diagnostics_count(&self) -> usize {
-        self.diagnostics
-            .iter()
-            .filter(|diagnostic| diagnostic.severity.is_critical())
-            .count()
+    const fn critical_diagnostics_count(&self) -> usize {
+        self.diagnostics.critical()
     }
 
     fn enter<T>(
@@ -311,7 +308,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             }
             // Replace any path, which has had diagnostics emitted with a dummy expression
             kind @ ExprKind::Path(_) => {
-                let fatal = self.fatal_diagnostics_count();
+                let fatal = self.critical_diagnostics_count();
                 if self.handled_diagnostics < fatal {
                     *kind = ExprKind::Dummy;
                     self.handled_diagnostics = fatal;
@@ -346,7 +343,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
 
         // Replace any path, which has had diagnostics emitted with a dummy expression
         if matches!(r#type.kind, TypeKind::Path(_)) {
-            let fatal = self.fatal_diagnostics_count();
+            let fatal = self.critical_diagnostics_count();
             if self.handled_diagnostics < fatal {
                 r#type.kind = TypeKind::Dummy;
                 self.handled_diagnostics = fatal;

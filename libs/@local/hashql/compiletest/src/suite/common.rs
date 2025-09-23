@@ -1,7 +1,9 @@
 use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, severity::SeverityKind as _};
+use hashql_diagnostics::{
+    Diagnostic, Failure, Status, Success, category::DiagnosticCategory, severity::SeverityKind as _,
+};
 
 use super::SuiteDiagnostic;
 
@@ -31,6 +33,25 @@ where
     }
 
     fatal.map_or(Ok(()), Err)
+}
+
+pub(crate) fn process_diagnostic_result<T, C>(
+    output: &mut Vec<SuiteDiagnostic>,
+    result: Status<T, C, SpanId>,
+) -> Result<T, SuiteDiagnostic>
+where
+    C: DiagnosticCategory + 'static,
+{
+    match result {
+        Ok(Success { value, advisories }) => {
+            output.extend(advisories.generalize().boxed());
+            Ok(value)
+        }
+        Err(Failure { primary, secondary }) => {
+            output.extend(secondary.boxed());
+            Err(primary.generalize().boxed())
+        }
+    }
 }
 
 #[track_caller]
