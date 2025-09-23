@@ -577,6 +577,71 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// ```
     fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) -> Option<T>;
 
+    /// Adds all diagnostics from a collection to this status and returns the modified status.
+    ///
+    /// This is a convenience method that consumes a collection of diagnostics and adds them to
+    /// the current status. If the status is currently successful and any of the added diagnostics
+    /// are fatal (critical), the status is converted to an error state using the first fatal
+    /// diagnostic found.
+    ///
+    /// The method accepts diagnostics with any severity kind.
+    ///
+    /// # Examples
+    ///
+    /// Adding non-fatal diagnostics to a successful status:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let result: Status<_, _, ()> = Status::success(42);
+    /// let mut warnings = DiagnosticIssues::new();
+    /// warnings.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// warnings.push(Diagnostic::new(CATEGORY, Severity::Note));
+    ///
+    /// let result = result.with_diagnostics(warnings);
+    /// assert!(result.is_ok()); // Still successful with warnings
+    /// ```
+    ///
+    /// Adding fatal diagnostics converts success to failure:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let result: Status<_, _, ()> = Status::success(42);
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error)); // Fatal
+    ///
+    /// let result = result.with_diagnostics(issues);
+    /// assert!(result.is_err()); // Now failed due to error
+    /// ```
+    ///
+    /// Chaining multiple diagnostic collections:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let result: Status<_, _, ()> = Status::success(42);
+    /// let mut warnings = DiagnosticIssues::new();
+    /// warnings.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut infos = DiagnosticIssues::new();
+    /// infos.push(Diagnostic::new(CATEGORY, Severity::Note));
+    ///
+    /// let result = result.with_diagnostics(warnings).with_diagnostics(infos);
+    /// assert!(result.is_ok());
+    /// ```
     #[must_use]
     fn with_diagnostics<K2>(mut self, diagnostics: DiagnosticIssues<C, S, K2>) -> Self
     where
