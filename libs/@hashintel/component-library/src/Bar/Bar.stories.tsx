@@ -30,6 +30,38 @@ how each parameter affects the final appearance.
       },
     },
   },
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "12px",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          position: "relative",
+          overflow: "hidden",
+          backgroundImage: `
+            linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px),
+          `,
+          backgroundSize: "15px 15px, 15px 15px, 100% 100%, 100% 100%",
+          backgroundPosition: "0 0, 0 0, 0 0, 0 0",
+        }}
+      >
+        {/* Background texture */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: "none",
+          }}
+        />
+        <Story />
+      </div>
+    ),
+  ],
   argTypes: {
     width: {
       control: {
@@ -283,6 +315,138 @@ export const Large: Story = {
       description: {
         story:
           "A large, prominent variant suitable for hero sections, main call-to-action elements, or feature highlights.",
+      },
+    },
+  },
+};
+
+/**
+ * Bar displayed on a dark background to showcase contrast.
+ */
+export const OnDarkBackground: Story = {
+  args: {
+    width: 250,
+    height: 70,
+    radius: 18,
+    blur: 8,
+    specularOpacity: 0.7,
+    specularSaturation: 20,
+    scaleRatio: 1.1,
+  },
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "12px",
+          background:
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `
+              radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03) 0%, transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 0%, transparent 50%)
+            `,
+            pointerEvents: "none",
+          }}
+        />
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates how the Bar component appears on dark backgrounds with enhanced specular effects.",
+      },
+    },
+  },
+};
+
+/**
+ * Bar on a textured background showing the glass effect more prominently.
+ */
+export const OnTexturedBackground: Story = {
+  args: {
+    width: 300,
+    height: 60,
+    radius: 15,
+    blur: 12,
+    specularOpacity: 0.6,
+    specularSaturation: 15,
+    scaleRatio: 0.9,
+  },
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "12px",
+          background: `
+            linear-gradient(45deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%),
+            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")
+          `,
+          backgroundBlendMode: "overlay",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Shows the Bar on a textured background to highlight the glass-like blur and refraction effects.",
+      },
+    },
+  },
+};
+
+/**
+ * Minimal background to focus on the component itself.
+ */
+export const OnMinimalBackground: Story = {
+  args: {
+    width: 200,
+    height: 50,
+    radius: 12,
+    blur: 3,
+    specularOpacity: 0.4,
+    specularSaturation: 8,
+    scaleRatio: 0.7,
+  },
+  decorators: [
+    (Story) => (
+      <div
+        style={{
+          padding: "40px",
+          borderRadius: "8px",
+          background: "#f8f9fa",
+          border: "1px solid #e9ecef",
+        }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Clean, minimal background to focus attention on the component's intrinsic visual qualities.",
       },
     },
   },
