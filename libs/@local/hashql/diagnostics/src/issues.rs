@@ -349,6 +349,24 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     }
 
     /// Returns a mutable iterator over the diagnostics in the collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    ///
+    /// for diagnostic in issues.iter_mut() {
+    ///     // Modify diagnostics in place
+    /// }
+    /// ```
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Diagnostic<C, S, K>> {
         self.diagnostics.iter_mut()
     }
@@ -483,6 +501,33 @@ where
         diagnostic
     }
 
+    /// Converts this collection to one that accepts any severity type.
+    ///
+    /// This is useful when you need to combine diagnostics with different severity type parameters
+    /// into a single collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// // Create a collection with specific severity type
+    /// let mut issues: DiagnosticIssues<_, (), _> = DiagnosticIssues::new();
+    /// let error_diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
+    /// match error_diagnostic.specialize() {
+    ///     Err(critical) => issues.push(critical),
+    ///     Ok(_) => panic!("Error should be critical"),
+    /// }
+    ///
+    /// // Convert to general collection that accepts any severity
+    /// let general_issues: DiagnosticIssues<_, ()> = issues.generalize();
+    /// assert_eq!(general_issues.len(), 1);
+    /// assert_eq!(general_issues.critical(), 1);
+    /// ```
     pub fn generalize(self) -> DiagnosticIssues<C, S, Severity> {
         DiagnosticIssues {
             diagnostics: self
@@ -496,24 +541,8 @@ where
 }
 
 impl<C, S> DiagnosticIssues<C, S, Severity> {
-    #[expect(
-        clippy::result_large_err,
-        reason = "The error is only used transiently"
-    )]
-    pub(crate) fn merge_into_advisories(
-        &mut self,
-        other: &mut DiagnosticIssues<C, S, Advisory>,
-    ) -> Result<(), (Diagnostic<C, S, Critical>, Self)> {
-        if self.critical == 0 {
-            // We only have non-critical diagnostics, so we can merge them directly
-            other.diagnostics.extend(
-                self.diagnostics
-                    .drain(..)
-                    .map(Diagnostic::into_advisory_unchecked),
-            );
-
-            return Ok(());
-        }
+    fn into_failure_unchecked(mut self) -> Failure<C, S> {
+        debug_assert_ne!(self.critical, 0);
 
         let position = self
             .diagnostics
@@ -525,17 +554,138 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
                 )
             });
 
-        let diagnostic = self.diagnostics.swap_remove(position);
+        let primary = self
+            .diagnostics
+            .swap_remove(position)
+            .into_critical_unchecked();
         self.critical -= 1;
 
-        let failure = diagnostic.into_critical_unchecked();
+        Failure {
+            primary: Box::new(primary),
+            secondary: self,
+        }
+    }
 
-        self.diagnostics
-            .extend(other.diagnostics.drain(..).map(Diagnostic::generalize));
+    pub(crate) fn merge_into_advisories(
+        &mut self,
+        other: &mut DiagnosticIssues<C, S, Advisory>,
+    ) -> Result<(), Failure<C, S>> {
+        if self.critical == 0 {
+            // We only have non-critical diagnostics, so we can merge them directly
+            other.diagnostics.extend(
+                self.diagnostics
+                    .drain(..)
+                    .map(Diagnostic::into_advisory_unchecked),
+            );
+
+            return Ok(());
+        }
 
         let this = mem::take(self);
+        let mut failure = this.into_failure_unchecked();
 
-        Err((failure, this))
+        failure
+            .secondary
+            .extend(other.diagnostics.drain(..).map(Diagnostic::generalize));
+
+        Err(failure)
+    }
+
+    fn into_advisories_unchecked(self) -> DiagnosticIssues<C, S, Advisory> {
+        debug_assert_eq!(self.critical, 0);
+
+        DiagnosticIssues {
+            diagnostics: self
+                .diagnostics
+                .into_iter()
+                .map(Diagnostic::into_advisory_unchecked)
+                .collect(),
+            critical: self.critical,
+        }
+    }
+
+    /// Converts this collection into a [`Status`] with the provided value.
+    ///
+    /// If the collection contains no critical diagnostics, returns [`Ok`] containing a [`Success`]
+    /// with the value and any advisory diagnostics. If critical diagnostics are present, returns
+    /// [`Err`] containing a [`Failure`] with the primary error and remaining diagnostics.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// // Success case with warnings
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let status = issues.into_status(42);
+    /// assert!(status.is_ok());
+    ///
+    /// // Failure case with errors
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let status = issues.into_status(42);
+    /// assert!(status.is_err());
+    /// ```
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "doc comment explains what is happening"
+    )]
+    pub fn into_status<T>(self, value: T) -> Status<T, C, S> {
+        self.into_status_with(|| value)
+    }
+
+    /// Converts this collection into a [`Status`] using a closure to provide the value.
+    ///
+    /// This is useful when the value is expensive to compute and should only be created
+    /// if no critical diagnostics are present. The closure is only called if the status
+    /// will be successful.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// // Success case - closure is called
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let status = issues.into_status_with(|| {
+    ///     // Expensive computation only runs on success
+    ///     expensive_computation()
+    /// });
+    /// assert!(status.is_ok());
+    ///
+    /// // Failure case - closure is NOT called
+    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let status = issues.into_status_with(|| {
+    ///     panic!("This should not be called!");
+    /// });
+    /// assert!(status.is_err());
+    ///
+    /// # fn expensive_computation() -> i32 { 42 }
+    /// ```
+    #[expect(
+        clippy::missing_errors_doc,
+        reason = "doc comment explains what is happening"
+    )]
+    pub fn into_status_with<T>(self, value: impl FnOnce() -> T) -> Status<T, C, S> {
+        if self.critical == 0 {
+            return Ok(Success {
+                value: value(),
+                advisories: self.into_advisories_unchecked(),
+            });
+        }
+
+        Err(self.into_failure_unchecked())
     }
 }
 

@@ -1,11 +1,11 @@
-use core::{convert::Infallible, mem};
+use core::convert::Infallible;
 
 use hashql_core::{
     module::{Universe, universe::FastRealmsMap},
     symbol::Symbol,
 };
 
-use super::error::{LoweringDiagnostic, argument_override};
+use super::error::{LoweringDiagnosticIssues, argument_override};
 use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
@@ -18,28 +18,27 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct AliasReplacement<'env, 'heap> {
+pub struct AliasReplacement<'env, 'heap, 'diag> {
     scope: FastRealmsMap<Symbol<'heap>, Variable<'heap>>,
     interner: &'env Interner<'heap>,
-    diagnostics: Vec<LoweringDiagnostic>,
+    diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'env, 'heap> AliasReplacement<'env, 'heap> {
+impl<'env, 'heap, 'diag> AliasReplacement<'env, 'heap, 'diag> {
     #[must_use]
-    pub fn new(interner: &'env Interner<'heap>) -> Self {
+    pub fn new(
+        interner: &'env Interner<'heap>,
+        diagnostics: &'diag mut LoweringDiagnosticIssues,
+    ) -> Self {
         Self {
             scope: FastRealmsMap::new(),
             interner,
-            diagnostics: Vec::new(),
+            diagnostics,
         }
-    }
-
-    pub fn take_diagnostics(&mut self) -> Vec<LoweringDiagnostic> {
-        mem::take(&mut self.diagnostics)
     }
 }
 
-impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
+impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
