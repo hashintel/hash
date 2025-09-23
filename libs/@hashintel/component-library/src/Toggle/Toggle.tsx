@@ -27,11 +27,11 @@ export const Toggle: React.FC<ToggleProps> = ({
   //
   // CONSTANTS (layout + optics)
   //
-  const sliderHeight = 67;
-  const sliderWidth = 160;
-  const thumbWidth = 146;
-  const thumbHeight = 92;
-  const thumbRadius = thumbHeight / 2;
+  const sliderHeight = 20;
+  const sliderWidth = 34;
+  const restThumbWidth = 16;
+  const restThumbHeight = 16;
+  const restThumbRadius = restThumbHeight / 2;
   const sliderRef = React.useRef<HTMLDivElement>(null);
   const blur = useMotionValue(blurLevelProp);
   const specularOpacity = useMotionValue(specularOpacityProp);
@@ -39,8 +39,12 @@ export const Toggle: React.FC<ToggleProps> = ({
   const refractionBase = useMotionValue(refractionLevelProp);
   const xDragRatio = useMotionValue(0);
 
-  const THUMB_REST_SCALE = 0.65;
-  const THUMB_ACTIVE_SCALE = 0.9;
+  const THUMB_REST_SCALE = 1;
+  const THUMB_ACTIVE_SCALE = 2;
+
+  const thumbWidth = restThumbWidth / THUMB_REST_SCALE;
+  const thumbHeight = restThumbHeight / THUMB_REST_SCALE;
+  const thumbRadius = restThumbRadius / THUMB_REST_SCALE;
 
   const THUMB_REST_OFFSET = ((1 - THUMB_REST_SCALE) * thumbWidth) / 2;
 
@@ -54,7 +58,7 @@ export const Toggle: React.FC<ToggleProps> = ({
   const pointerDown = useMotionValue(0);
   const forceActive = useMotionValue(forceActiveProp);
   const active = useTransform(() =>
-    forceActive.get() || pointerDown.get() > 0.5 ? 1 : 0,
+    forceActive.get() || pointerDown.get() > 0.5 ? 1 : 0
   );
 
   //
@@ -74,7 +78,6 @@ export const Toggle: React.FC<ToggleProps> = ({
         checked.set(shouldBeChecked ? 1 : 0);
       }
     };
-
     window.addEventListener("mouseup", onPointerUp);
     window.addEventListener("touchend", onPointerUp);
     return () => {
@@ -120,21 +123,21 @@ export const Toggle: React.FC<ToggleProps> = ({
         return c ? 1 : 0;
       }
     }),
-    { damping: 80, stiffness: 1000 },
+    { damping: 80, stiffness: 1000 }
   );
   const backgroundOpacity = useSpring(
     useTransform(active, (v) => 1 - 0.9 * v),
-    { damping: 80, stiffness: 2000 },
+    { damping: 80, stiffness: 2000 }
   );
   const thumbScale = useSpring(
     useTransform(
       active,
-      (v) => THUMB_REST_SCALE + (THUMB_ACTIVE_SCALE - THUMB_REST_SCALE) * v,
+      (v) => THUMB_REST_SCALE + (THUMB_ACTIVE_SCALE - THUMB_REST_SCALE) * v
     ),
-    { damping: 80, stiffness: 2000 },
+    { damping: 80, stiffness: 2000 }
   );
   const scaleRatio = useSpring(
-    useTransform(() => (0.4 + 0.5 * active.get()) * refractionBase.get()),
+    useTransform(() => (0.4 + 0.5 * active.get()) * refractionBase.get())
   );
   const considerChecked = useTransform(() => {
     const x = xDragRatio.get();
@@ -144,7 +147,7 @@ export const Toggle: React.FC<ToggleProps> = ({
 
   const backgroundColor = useTransform(
     useSpring(considerChecked, { damping: 80, stiffness: 1000 }),
-    mix("#94949F77", "#3BBF4EEE"),
+    mix("#94949F77", "#3BBF4EEE")
   );
 
   const initialPointerX = useMotionValue(0);
@@ -203,11 +206,11 @@ export const Toggle: React.FC<ToggleProps> = ({
           scaleRatio={scaleRatio}
           specularOpacity={specularOpacity}
           specularSaturation={specularSaturation}
-          width={146}
-          height={92}
-          radius={46}
-          bezelWidth={19}
-          glassThickness={47}
+          width={thumbWidth}
+          height={thumbHeight}
+          radius={thumbRadius}
+          bezelWidth={thumbRadius * 0.42}
+          glassThickness={12}
           bezelHeightFn={LIP}
           refractiveIndex={1.5}
         />
@@ -239,7 +242,7 @@ export const Toggle: React.FC<ToggleProps> = ({
             scale: thumbScale,
             backgroundColor: useTransform(
               backgroundOpacity,
-              (op) => `rgba(255, 255, 255, ${op})`,
+              (op) => `rgba(255, 255, 255, ${op})`
             ),
             boxShadow: useTransform(() => {
               const isPressed = pointerDown.get() > 0.5;
