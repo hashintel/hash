@@ -124,10 +124,10 @@ pub struct ExtractedTypes<'heap> {
 ///
 /// # Arguments
 ///
-/// * `module_name` - The symbolic name of the module being lowered, used for type resolution.
-/// * `expr` - The root expression of the AST to be lowered (modified in place).
-/// * `env` - The type environment containing heap allocation and type system context.
-/// * `registry` - Registry of available modules for import and name resolution.
+/// - `module_name` - The symbolic name of the module being lowered, used for type resolution.
+/// - `expr` - The root expression of the AST to be lowered (modified in place).
+/// - `env` - The type environment containing heap allocation and type system context.
+/// - `registry` - Registry of available modules for import and name resolution.
 ///
 /// Returns a [`Status`] containing either the extracted type information on success, or diagnostic
 /// issues if the lowering process encounters errors. Even on success, the status may
@@ -157,10 +157,10 @@ pub struct ExtractedTypes<'heap> {
 ///     }
 ///     Err(Failure {primary, secondary}) => {
 ///         // Handle errors
-///         eprintln!("Primary Error: {:?}", primary);
+///         eprintln!("Primary Error: {primary:?}");
 ///
 ///         for error in secondary {
-///             eprintln!("Secondary Error: {:?}", error);
+///             eprintln!("Secondary Error: {error:?}");
 ///         }
 ///     }
 /// }
