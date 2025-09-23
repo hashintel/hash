@@ -1,6 +1,6 @@
 import { definePreset } from "@pandacss/dev";
 
-export const uiPreset = definePreset({
+export default definePreset({
   name: "@hashintel/ui-preset",
   theme: {
     extend: {
