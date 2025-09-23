@@ -39,6 +39,7 @@
     "motion": "12.23.19"
   },
   "devDependencies": {
+    "@hashintel/styled-system": "workspace:*",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@storybook/react-vite": "9.1.8",

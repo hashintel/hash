@@ -7616,6 +7616,7 @@ __metadata:
   resolution: "@hashintel/component-library@workspace:libs/@hashintel/component-library"
   dependencies:
     "@ark-ui/react": "npm:5.25.0"
+    "@hashintel/styled-system": "workspace:*"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@pandacss/dev": "npm:1.3.1"
@@ -7704,7 +7705,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/styled-system@workspace:libs/@hashintel/styled-system":
+"@hashintel/styled-system@workspace:*, @hashintel/styled-system@workspace:libs/@hashintel/styled-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/styled-system@workspace:libs/@hashintel/styled-system"
   dependencies:
