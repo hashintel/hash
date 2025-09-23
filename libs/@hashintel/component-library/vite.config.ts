@@ -24,6 +24,12 @@ export default defineConfig({
           "react-dom": "ReactDOM",
         },
       },
+      onwarn(warning, warn) {
+        // Skip warnings for "use client". Will be fixed in future Vite/Rollup versions
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE") return;
+        // Use default for everything else
+        warn(warning);
+      },
     },
     sourcemap: true,
   },
