@@ -21,6 +21,9 @@ for creating glass-like UI elements with customizable dimensions and visual prop
 - ⚙️ Configurable visual parameters
 - 🌟 Glass-like appearance with realistic lighting
 - 🔧 Flexible scale ratio for dynamic effects
+- 🖼️ Adjustable bezel width for frame customization
+- 🔍 Variable glass thickness for refraction depth control
+- ⚗️ Configurable refractive index for different material simulation
 
 ## Usage
 The Bar component accepts props to control its dimensions and visual appearance.
@@ -94,6 +97,33 @@ how each parameter affects the final appearance.
       },
       description: "Scale ratio for the refraction effect",
     },
+    bezelWidth: {
+      control: {
+        type: "range",
+        min: 1,
+        max: 50,
+        step: 1,
+      },
+      description: "Width of the bezel frame around the glass element",
+    },
+    glassThickness: {
+      control: {
+        type: "range",
+        min: 20,
+        max: 200,
+        step: 5,
+      },
+      description: "Thickness of the glass material affecting refraction depth",
+    },
+    refractiveIndex: {
+      control: {
+        type: "range",
+        min: 1.0,
+        max: 2.5,
+        step: 0.01,
+      },
+      description: "Refractive index of the glass material (1.0 = air, 1.5 = typical glass)",
+    },
   },
   args: {
     width: 200,
@@ -103,6 +133,9 @@ how each parameter affects the final appearance.
     specularOpacity: 0.5,
     specularSaturation: 10,
     scaleRatio: 0.8,
+    bezelWidth: 16,
+    glassThickness: 80,
+    refractiveIndex: 1.45,
   },
 } satisfies Meta<typeof Bar>;
 
@@ -283,6 +316,40 @@ export const Large: Story = {
       description: {
         story:
           "A large, prominent variant suitable for hero sections, main call-to-action elements, or feature highlights.",
+      },
+    },
+  },
+};
+
+/**
+ * Demonstrates advanced optical properties with customized bezel, glass thickness, and refractive index.
+ * This story showcases how the new optical parameters affect the visual appearance of the component.
+ */
+export const OpticalProperties: Story = {
+  args: {
+    width: 250,
+    height: 80,
+    radius: 20,
+    blur: 10,
+    specularOpacity: 0.8,
+    specularSaturation: 20,
+    scaleRatio: 1.3,
+    bezelWidth: 25,
+    glassThickness: 120,
+    refractiveIndex: 1.8,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+This variant demonstrates the new optical properties:
+- **Bezel Width**: Wider bezel frame (25px) for more pronounced edge effects
+- **Glass Thickness**: Increased thickness (120px) creates deeper refraction
+- **Refractive Index**: Higher index (1.8) simulates dense optical glass or crystal
+        
+These parameters allow fine-tuning of the optical behavior to simulate different 
+materials from standard window glass to high-index optical crystals.
+        `,
       },
     },
   },

@@ -11,6 +11,9 @@ export type BarProps = React.PropsWithChildren<{
   specularOpacity: number;
   specularSaturation: number;
   scaleRatio: number;
+  bezelWidth: number;
+  glassThickness: number;
+  refractiveIndex: number;
 }>;
 
 export const Bar: React.FC<BarProps> = ({
@@ -21,6 +24,9 @@ export const Bar: React.FC<BarProps> = ({
   specularOpacity,
   specularSaturation,
   scaleRatio: scaleRatioProp,
+  bezelWidth,
+  glassThickness,
+  refractiveIndex,
 }) => {
   const scaleRatio = useMotionValue(scaleRatioProp);
   useLayoutEffect(() => {
@@ -38,9 +44,9 @@ export const Bar: React.FC<BarProps> = ({
         width={width}
         height={height}
         radius={radius}
-        bezelWidth={16}
-        glassThickness={80}
-        refractiveIndex={1.45}
+        bezelWidth={bezelWidth}
+        glassThickness={glassThickness}
+        refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
       />
       <div
