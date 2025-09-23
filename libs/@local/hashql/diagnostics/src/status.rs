@@ -665,8 +665,9 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
                     // original value is discarded.
                     // `merge_into_advisories` merges the advisories into the returned `failure`.
 
-                    let success = mem::replace(self, Err(failure))
-                        .unwrap_or_else(|_err| unreachable!("Match arm has matched `Ok`"));
+                    let Ok(success) = mem::replace(self, Err(failure)) else {
+                        unreachable!("Match arm has matched `Ok`");
+                    };
 
                     Some(success.value)
                 } else {
