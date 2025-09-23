@@ -3,6 +3,19 @@ import React, { useEffect, useRef } from "react";
 import { Filter } from "../lib/Filter";
 import { CONVEX } from "../lib/surfaceEquations";
 
+const SLIDER_WIDTH = 330;
+const SLIDER_HEIGHT = 4;
+const THUMB_WIDTH = 25;
+const THUMB_HEIGHT = 25;
+const THUMB_RADIUS = THUMB_HEIGHT / 2;
+
+const SCALE_REST = 0.6;
+const SCALE_DRAG = 1;
+
+const TRACK_COLOR = "#89898F66";
+const TRACK_ACTIVE = "#000000";
+const THUMB_COLOR = TRACK_ACTIVE;
+
 export interface SliderProps {
   min?: number;
   max?: number;
@@ -26,10 +39,12 @@ export const Slider: React.FC<SliderProps> = ({
   forceActive: forceActiveProp = false,
   onChange,
 }) => {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
   const value = useMotionValue(defaultValue);
 
-  const sliderHeight = 14;
-  const sliderWidth = 330;
+  const sliderHeight = SLIDER_HEIGHT;
+  const sliderWidth = SLIDER_WIDTH;
 
   // Use numeric MotionValue (0/1) instead of boolean for compatibility with transforms
   const pointerDown = useMotionValue(0);
@@ -39,9 +54,9 @@ export const Slider: React.FC<SliderProps> = ({
     forceActive.get() || pointerDown.get() > 0.5 ? 1 : 0
   );
 
-  const thumbWidth = 90;
-  const thumbHeight = 60;
-  const thumbRadius = 30;
+  const thumbWidth = THUMB_WIDTH;
+  const thumbHeight = THUMB_HEIGHT;
+  const thumbRadius = THUMB_RADIUS;
   // MotionValue-based controls
   const blur = useMotionValue(blurLevelProp); // 0..40
   const specularOpacity = useMotionValue(specularOpacityProp); // 0..1
@@ -55,11 +70,6 @@ export const Slider: React.FC<SliderProps> = ({
     )
   );
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLDivElement>(null);
-
-  const SCALE_REST = 0.6;
-  const SCALE_DRAG = 1;
   const thumbWidthRest = thumbWidth * SCALE_REST;
 
   const scaleSpring = useSpring(
@@ -139,7 +149,7 @@ export const Slider: React.FC<SliderProps> = ({
           height: sliderHeight,
           left: 0,
           top: (thumbHeight - sliderHeight) / 2,
-          backgroundColor: "#89898F66",
+          backgroundColor: TRACK_COLOR,
           borderRadius: sliderHeight / 2,
           position: "absolute",
           cursor: "pointer",
@@ -159,7 +169,7 @@ export const Slider: React.FC<SliderProps> = ({
               height: sliderHeight,
               width: useTransform(value, (v) => `${v}%`),
               borderRadius: 6,
-              backgroundColor: "#0377F7",
+              backgroundColor: TRACK_ACTIVE,
             }}
           />
         </div>
@@ -171,12 +181,12 @@ export const Slider: React.FC<SliderProps> = ({
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
         specularSaturation={specularSaturation}
-        width={90}
-        height={60}
-        radius={30}
-        bezelWidth={16}
-        glassThickness={80}
-        refractiveIndex={1.45}
+        width={thumbWidth}
+        height={thumbHeight}
+        radius={thumbRadius}
+        bezelWidth={thumbRadius * 1}
+        glassThickness={22}
+        refractiveIndex={1.5}
         bezelHeightFn={CONVEX}
       />
 
