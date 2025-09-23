@@ -3,7 +3,7 @@ import React, { useLayoutEffect } from "react";
 import { Filter } from "../lib/Filter";
 import { CONVEX } from "../lib/surfaceEquations";
 
-type BarProps = React.PropsWithChildren<{
+export type BarProps = React.PropsWithChildren<{
   width: number;
   height: number;
   radius: number;
