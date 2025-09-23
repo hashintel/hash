@@ -2,39 +2,10 @@ use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Failure, Status, Success, category::DiagnosticCategory,
-    severity::SeverityKind as _,
+    DiagnosticIssues, Failure, Status, Success, category::DiagnosticCategory,
 };
 
 use super::SuiteDiagnostic;
-
-/// Process diagnostics from a lowering step.
-///
-/// This will scan through all the reported diagnostics and
-/// push them into the output vector. If a fatal diagnostic is found,
-/// it will be returned as an error.
-pub(crate) fn process_diagnostics<C>(
-    output: &mut Vec<SuiteDiagnostic>,
-    reported: impl IntoIterator<Item = Diagnostic<C, SpanId>>,
-) -> Result<(), SuiteDiagnostic>
-where
-    C: DiagnosticCategory + 'static,
-{
-    let mut fatal = None;
-
-    for diagnostic in reported {
-        let diagnostic = diagnostic.boxed();
-
-        if fatal.is_none() && diagnostic.severity.is_critical() {
-            fatal = Some(diagnostic);
-            continue;
-        }
-
-        output.push(diagnostic);
-    }
-
-    fatal.map_or(Ok(()), Err)
-}
 
 pub(crate) fn process_status<T, C>(
     output: &mut Vec<SuiteDiagnostic>,
@@ -63,26 +34,6 @@ where
     C: DiagnosticCategory + 'static,
 {
     process_status(output, issues.into_status(()))
-}
-
-#[track_caller]
-pub(crate) fn process_result<C, T, I>(
-    output: &mut Vec<SuiteDiagnostic>,
-    result: Result<T, I>,
-) -> Result<T, SuiteDiagnostic>
-where
-    I: IntoIterator<Item = Diagnostic<C, SpanId>>,
-    C: DiagnosticCategory + 'static,
-{
-    match result {
-        Ok(value) => Ok(value),
-        Err(diagnostics) => {
-            let diagnostic = process_diagnostics(output, diagnostics)
-                .expect_err("reported diagnostics should always be fatal");
-
-            Err(diagnostic)
-        }
-    }
 }
 
 pub(crate) struct Header(&'static str);

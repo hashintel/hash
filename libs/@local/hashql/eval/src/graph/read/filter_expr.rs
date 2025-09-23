@@ -28,7 +28,7 @@ use super::{
     CompilationError, FilterCompilerContext, GraphReadCompiler,
     convert::convert_value_to_parameter,
     error::{
-        GraphReadCompilerDiagnostic, call_unsupported, closure_unsupported,
+        GraphReadCompilerIssues, call_unsupported, closure_unsupported,
         field_access_internal_error, nested_graph_read_unsupported, path_conversion_error,
         path_indexing_unsupported, path_traversal_internal_error, qualified_variable_unsupported,
         value_parameter_conversion_error,
@@ -54,7 +54,7 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
     pub(crate) fn finish<R>(
         self,
         context: FilterCompilerContext<'heap>,
-        diagnostics: &mut Vec<GraphReadCompilerDiagnostic>,
+        diagnostics: &mut GraphReadCompilerIssues,
     ) -> Result<FilterExpression<'heap, R>, CompilationError>
     where
         R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath = P>>,
