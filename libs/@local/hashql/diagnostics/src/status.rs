@@ -394,6 +394,8 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     ///
     /// # Examples
     ///
+    /// Success case - value is transformed:
+    ///
     /// ```
     /// use hashql_diagnostics::{Diagnostic, Severity, Status, StatusExt};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
@@ -401,7 +403,6 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// // Success case - value is transformed
     /// let mut success: Status<_, _, ()> = Status::success(42);
     /// success.push_diagnostic(Diagnostic::new(CATEGORY, Severity::Warning));
     /// let doubled = success.map_value(|x| x * 2);
@@ -413,8 +414,17 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     ///     }
     ///     Err(_) => panic!("should be successful"),
     /// }
+    /// ```
     ///
-    /// // Error case - error is preserved
+    /// Error case - error is preserved:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Severity, Status, StatusExt};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
     /// let error_diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
     /// let critical = error_diagnostic
     ///     .specialize()
@@ -504,6 +514,10 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// is converted to an error state using the first fatal diagnostic found. All diagnostics
     /// are consumed from the source collection.
     ///
+    /// Returns `Some(value)` if the status transitions from success to failure (containing the
+    /// previous success value), or `None` if the status remains unchanged (either stays successful
+    /// or was already failed).
+    ///
     /// # Examples
     ///
     /// ```
@@ -518,13 +532,14 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Warning));
     /// additional.push(Diagnostic::new(CATEGORY, Severity::Error));
     ///
-    /// result.append_diagnostics(&mut additional);
+    /// let previous_value = result.append_diagnostics(&mut additional);
     ///
     /// // Result became an error due to the fatal diagnostic
     /// assert!(result.is_err());
+    /// assert_eq!(previous_value, Some(42)); // Returns the previous success value
     /// assert!(additional.is_empty()); // Diagnostics were moved
     /// ```
-    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>);
+    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) -> Option<T>;
 
     /// Combines two [`Status`] values into a single status containing a tuple of their values.
     ///
@@ -641,7 +656,7 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
         }
     }
 
-    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) {
+    fn append_diagnostics(&mut self, diagnostics: &mut DiagnosticIssues<C, S>) -> Option<T> {
         match self {
             Ok(success) => {
                 if let Err(failure) = diagnostics.merge_into_advisories(&mut success.advisories) {
@@ -649,11 +664,18 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
                     // encountered, the computation is no longer considered successful, so the
                     // original value is discarded.
                     // `merge_into_advisories` merges the advisories into the returned `failure`.
-                    *self = Err(failure);
+
+                    let success = mem::replace(self, Err(failure))
+                        .unwrap_or_else(|_err| unreachable!("Match arm has matched `Ok`"));
+
+                    Some(success.value)
+                } else {
+                    None
                 }
             }
             Err(failure) => {
                 failure.secondary.append(diagnostics);
+                None
             }
         }
     }
