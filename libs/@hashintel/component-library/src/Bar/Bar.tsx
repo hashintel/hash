@@ -48,10 +48,8 @@ export const Bar: React.FC<BarProps> = ({
           width,
           height,
           borderRadius: radius,
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
           boxShadow: "0 3px 14px rgba(0,0,0,0.1)",
           backdropFilter: `url(#bar-filter)`,
-          filter: "url(#thumb-filter-slider)",
         }}
       ></div>
     </>
