@@ -1,3 +1,4 @@
+import { css } from "@hashintel/styled-system/css";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import React, { useEffect, useRef } from "react";
 import { Filter } from "../lib/Filter";
@@ -143,16 +144,18 @@ export const Slider: React.FC<SliderProps> = ({
     >
       <motion.div
         ref={trackRef}
-        style={{
+        className={css({
           display: "inline-block",
-          width: sliderWidth,
-          height: sliderHeight,
           left: 0,
-          top: (thumbHeight - sliderHeight) / 2,
           backgroundColor: TRACK_COLOR,
-          borderRadius: sliderHeight / 2,
           position: "absolute",
           cursor: "pointer",
+        })}
+        style={{
+          width: sliderWidth,
+          height: sliderHeight,
+          top: (thumbHeight - sliderHeight) / 2,
+          borderRadius: sliderHeight / 2,
         }}
         onMouseDown={() => {
           pointerDown.set(1);
