@@ -3,14 +3,13 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{
-    AnalysisEnvironment, Diagnostics, Environment, Variance, context::provision::ProvisionedGuard,
-};
+use super::{AnalysisEnvironment, Environment, Variance, context::provision::ProvisionedGuard};
 use crate::{
     intern::Provisioned,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::{
         PartialType, Type, TypeId,
+        error::TypeCheckDiagnosticIssues,
         inference::{Substitution, VariableKind, VariableLookup},
         lattice::Lattice as _,
         recursion::RecursionBoundary,
@@ -60,7 +59,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+    pub fn take_diagnostics(&mut self) -> Option<TypeCheckDiagnosticIssues> {
         self.analysis.take_diagnostics()
     }
 

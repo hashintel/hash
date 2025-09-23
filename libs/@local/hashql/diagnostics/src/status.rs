@@ -436,6 +436,35 @@ pub trait StatusExt<T, C, S>: sealed::Sealed {
     #[expect(clippy::missing_errors_doc, reason = "This is a trait on Result")]
     fn map_value<U>(self, func: impl FnOnce(T) -> U) -> Status<U, C, S>;
 
+    /// Transforms the category of all diagnostics in the status.
+    ///
+    /// This is useful when moving diagnostics between compilation phases that
+    /// use different category types, or when combining diagnostics from multiple
+    /// phases that need to be unified under a common category type.
+    ///
+    /// The transformation function is applied to all diagnostic categories in both
+    /// the success case (advisories) and failure case (primary and secondary diagnostics).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Severity, Status, StatusExt as _};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const PARSER_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "parser", name: "Parser"
+    /// # };
+    /// # const LOWERING_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "lowering", name: "Lowering"
+    /// # };
+    /// # type ParserStatus<T> = Status<T, TerminalDiagnosticCategory, ()>;
+    /// # type LoweringStatus<T> = Status<T, TerminalDiagnosticCategory, ()>;
+    ///
+    /// let parser_status: ParserStatus<String> = Status::success("parsed".to_string());
+    /// let lowering_status: LoweringStatus<String> = parser_status.map_category(|_| LOWERING_CATEGORY);
+    /// ```
+    #[expect(clippy::missing_errors_doc, reason = "This is a trait on Result")]
+    fn map_category<C2>(self, func: impl FnMut(C) -> C2) -> Status<T, C2, S>;
+
     /// Converts to a result with type-erased diagnostic categories.
     ///
     /// When combining diagnostics from different compilation phases that use different category
@@ -625,6 +654,19 @@ impl<T, C, S> StatusExt<T, C, S> for Status<T, C, S> {
             value: func(value),
             advisories,
         })
+    }
+
+    fn map_category<C2>(self, mut func: impl FnMut(C) -> C2) -> Status<T, C2, S> {
+        match self {
+            Ok(Success { value, advisories }) => Ok(Success {
+                value,
+                advisories: advisories.map_category(func),
+            }),
+            Err(Failure { primary, secondary }) => Err(Failure {
+                primary: Box::new(primary.map_category(&mut func)),
+                secondary: secondary.map_category(func),
+            }),
+        }
     }
 
     fn boxed<'category>(self) -> Self::Boxed<'category>

@@ -19,10 +19,7 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{
-    Suite, SuiteDiagnostic,
-    common::{Header, process_diagnostics},
-};
+use super::{Suite, SuiteDiagnostic, common::Header};
 use crate::suite::common::{process_issues, process_status};
 
 pub(crate) struct HirLowerSpecializationSuite;
@@ -82,10 +79,9 @@ impl Suite for HirLowerSpecializationSuite {
         inference.visit_node(&node);
 
         let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_diagnostics(diagnostics, inference_diagnostics)?;
+        process_issues(diagnostics, inference_diagnostics)?;
 
-        let (substitution, solver_diagnostics) = solver.solve();
-        process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
+        let substitution = process_status(diagnostics, solver.solve())?;
 
         environment.substitution = substitution;
 

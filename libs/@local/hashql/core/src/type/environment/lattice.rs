@@ -1,13 +1,17 @@
-use core::ops::Deref;
+use core::{mem, ops::Deref};
 
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
+use super::{Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
 use crate::{
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        error::{circular_type_reference, recursive_type_projection, recursive_type_subscript},
+        error::{
+            TypeCheckDiagnosticIssues, circular_type_reference, recursive_type_projection,
+            recursive_type_subscript,
+        },
         inference::{Substitution, VariableKind, VariableLookup},
         kind::{IntersectionType, TypeKind, UnionType},
         lattice::{Lattice as _, Projection, Subscript},
@@ -18,7 +22,7 @@ use crate::{
 #[derive(Debug)]
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    pub diagnostics: Diagnostics,
+    pub diagnostics: TypeCheckDiagnosticIssues,
 
     boundary: RecursionBoundary<'heap>,
 
@@ -33,7 +37,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            diagnostics: Diagnostics::new(),
+            diagnostics: DiagnosticIssues::new(),
             simplify_lattice: true,
             inference: false,
             simplify: SimplifyEnvironment::new(environment),
@@ -75,12 +79,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Diagnostics {
-        let mut this = core::mem::take(&mut self.diagnostics);
+    pub fn take_diagnostics(&mut self) -> TypeCheckDiagnosticIssues {
+        let mut this = mem::take(&mut self.diagnostics);
         let simplify = self.simplify.take_diagnostics();
 
-        if let Some(simplify) = simplify {
-            this.merge(simplify);
+        if let Some(mut simplify) = simplify {
+            this.append(&mut simplify);
         }
 
         this
