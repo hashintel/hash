@@ -1,6 +1,7 @@
 {
   "name": "@hashintel/ui-preset",
-  "version": "0.0.1",
+  "version": "0.0.0-private",
+  "private": true,
   "description": "HASH UI Preset",
   "main": "src/index.ts",
   "repository": {

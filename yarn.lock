@@ -7704,6 +7704,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hashintel/styled-system@workspace:libs/@hashintel/styled-system":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/styled-system@workspace:libs/@hashintel/styled-system"
+  dependencies:
+    "@hashintel/ui-preset": "npm:0.0.0-private"
+    "@pandacss/dev": "npm:1.3.1"
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/type-editor@npm:0.0.25, @hashintel/type-editor@workspace:libs/@hashintel/type-editor":
   version: 0.0.0-use.local
   resolution: "@hashintel/type-editor@workspace:libs/@hashintel/type-editor"
@@ -7737,6 +7746,12 @@ __metadata:
     react: ^19.0.0
     react-dom: ^19.0.0
     react-hook-form: 7.61.1
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/ui-preset@npm:0.0.0-private, @hashintel/ui-preset@workspace:libs/@hashintel/ui-preset":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/ui-preset@workspace:libs/@hashintel/ui-preset"
   languageName: unknown
   linkType: soft
 
