@@ -24,7 +24,6 @@
     "README.md"
   ],
   "scripts": {
-    "prepare": "panda codegen",
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
