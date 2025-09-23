@@ -1,0 +1,15 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declarationDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "ES2021"],
+    "noEmit": false,
+    "isolatedModules": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]
+}
