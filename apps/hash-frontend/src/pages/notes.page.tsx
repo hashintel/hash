@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Container } from "@mui/material";
@@ -74,16 +75,14 @@ const NotesPage: NextPageWithLayout = () => {
   });
 
   const quickNotesSubgraph = useMemo(() => {
-    const subgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-      ?.queryEntitySubgraph.subgraph;
+    const response = (quickNotesData ?? previouslyFetchedQuickNotesData)
+      ?.queryEntitySubgraph;
 
-    if (!subgraph) {
+    if (!response) {
       return undefined;
     }
 
-    return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-      subgraph,
-    );
+    return deserializeQueryEntitySubgraphResponse(response).subgraph;
   }, [quickNotesData, previouslyFetchedQuickNotesData]);
 
   const latestQuickNoteEntities = useMemo<HashEntity[] | undefined>(() => {

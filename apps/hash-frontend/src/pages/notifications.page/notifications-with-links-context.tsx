@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import type {
-  EntityRootType,
   EntityVertex,
   LinkEntityAndRightEntity,
 } from "@blockprotocol/graph";
@@ -10,13 +9,15 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type { TextWithTokens } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   pageOrNotificationNotArchivedFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -28,8 +29,8 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Block as BlockProperties,
-  Comment as CommentProperties,
   CommentNotification as CommentNotificationProperties,
+  Comment as CommentProperties,
   Notification as NotificationProperties,
   OccurredInEntity as OccurredInEntityProperties,
   Page as PageProperties,
@@ -168,9 +169,9 @@ export const useNotificationsWithLinksContextValue =
     const notificationsSubgraph = useMemo(
       () =>
         notificationsWithOutgoingLinksData
-          ? mapGqlSubgraphFieldsFragmentToSubgraph<
-              EntityRootType<HashEntity<NotificationProperties>>
-            >(notificationsWithOutgoingLinksData.queryEntitySubgraph.subgraph)
+          ? deserializeQueryEntitySubgraphResponse<NotificationProperties>(
+              notificationsWithOutgoingLinksData.queryEntitySubgraph,
+            ).subgraph
           : undefined,
       [notificationsWithOutgoingLinksData],
     );

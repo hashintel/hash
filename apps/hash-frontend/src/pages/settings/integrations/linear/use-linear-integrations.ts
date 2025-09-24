@@ -1,14 +1,12 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { Entity } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -99,14 +97,12 @@ export const useLinearIntegrations = (): {
       return [];
     }
 
-    const subgraph = linearIntegrationsData.queryEntitySubgraph.subgraph;
+    const subgraph =
+      deserializeQueryEntitySubgraphResponse<LinearIntegrationType>(
+        linearIntegrationsData.queryEntitySubgraph,
+      ).subgraph;
 
-    const mappedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<LinearIntegrationType>>
-      >(subgraph);
-
-    const linearIntegrationEntities = getRoots(mappedSubgraph);
+    const linearIntegrationEntities = getRoots(subgraph);
 
     return linearIntegrationEntities.map((entity) => {
       return {

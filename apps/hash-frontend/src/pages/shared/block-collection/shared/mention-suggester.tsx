@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -17,12 +16,14 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -191,9 +192,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   });
 
   const entitiesSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.queryEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
     : undefined;
 
   const searchedEntities = useMemo(

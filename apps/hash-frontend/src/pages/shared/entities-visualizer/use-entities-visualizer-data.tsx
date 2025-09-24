@@ -8,9 +8,9 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ConversionRequest,
+  deserializeQueryEntitySubgraphResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
 import type { QueryEntitySubgraphQuery } from "../../../graphql/api-types.gen";
@@ -131,9 +131,9 @@ export const useEntitiesVisualizerData = (params: {
         return;
       }
 
-      const newSubgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.queryEntitySubgraph.subgraph);
+      const newSubgraph = deserializeQueryEntitySubgraphResponse(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
       const newEntities = getRoots(newSubgraph);
 

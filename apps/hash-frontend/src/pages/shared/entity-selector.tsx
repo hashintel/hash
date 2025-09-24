@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, EntityType } from "@blockprotocol/type-system";
 import {
@@ -15,6 +14,7 @@ import type {
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
+  deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
@@ -23,7 +23,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo, useState } from "react";
@@ -92,9 +91,8 @@ export const EntitySelector = <Multiple extends boolean>({
   });
 
   const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        entitiesData.queryEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(entitiesData.queryEntitySubgraph)
+        .subgraph
     : undefined;
 
   const closedMultiEntityTypesRootMap =

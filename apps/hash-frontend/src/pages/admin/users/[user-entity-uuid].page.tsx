@@ -1,8 +1,6 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
@@ -39,15 +37,11 @@ const AdminUserPage: NextPageWithLayout = () => {
 
   const refetchUser = useCallback(async () => {
     const {
-      data: {
-        queryEntitySubgraph: { subgraph: refetchedSubgraph },
-      },
+      data: { queryEntitySubgraph },
     } = await refetch();
 
     const [rootEntity] = getRoots(
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        refetchedSubgraph,
-      ),
+      deserializeQueryEntitySubgraphResponse(queryEntitySubgraph).subgraph,
     );
 
     if (!rootEntity || !isEntityUserEntity(rootEntity)) {

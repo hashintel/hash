@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type {
   DataTypeRootType,
-  EntityRootType,
   EntityTypeRootType,
   PropertyTypeRootType,
 } from "@blockprotocol/graph";
@@ -17,14 +16,13 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -347,9 +345,9 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        pinnedEntityTypesData.queryEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(
+        pinnedEntityTypesData.queryEntitySubgraph,
+      ).subgraph
     : undefined;
 
   const allPinnedEntities = useMemo(

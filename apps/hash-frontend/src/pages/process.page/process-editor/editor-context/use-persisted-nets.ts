@@ -1,15 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { Entity, LinkEntity } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -36,9 +34,9 @@ import type {
 export const getPersistedNetsFromSubgraph = (
   data: QueryEntitySubgraphQuery,
 ): PersistedNet[] => {
-  const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-    EntityRootType<HashEntity<PetriNet>>
-  >(data.queryEntitySubgraph.subgraph);
+  const subgraph = deserializeQueryEntitySubgraphResponse<PetriNet>(
+    data.queryEntitySubgraph,
+  ).subgraph;
 
   const nets = getRoots(subgraph);
 

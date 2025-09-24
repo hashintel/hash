@@ -1,10 +1,12 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
@@ -94,10 +96,10 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const draftEntitiesSubgraph = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        ? deserializeQueryEntitySubgraphResponse(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .queryEntitySubgraph.subgraph,
-          )
+              .queryEntitySubgraph,
+          ).subgraph
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
   );

@@ -1,14 +1,11 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -57,20 +54,17 @@ export const useAccountPages = (
   });
 
   const pages = useMemo<SimplePage[]>(() => {
-    const subgraph = data?.queryEntitySubgraph.subgraph;
+    const response = data?.queryEntitySubgraph;
 
-    if (!subgraph) {
+    if (!response) {
       return [];
     }
 
-    const typedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        subgraph,
-      );
+    const subgraph = deserializeQueryEntitySubgraphResponse(response).subgraph;
 
-    return getRoots(typedSubgraph).map((latestPage) => {
+    return getRoots(subgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
-        deserializeSubgraph(subgraph),
+        subgraph,
         latestPage.metadata.recordId.entityId,
       );
 

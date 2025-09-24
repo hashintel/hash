@@ -1,11 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -19,8 +17,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import type {
@@ -101,14 +99,11 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     }
 
     const { entityPermissions, subgraph } =
-      linearIntegrationSyncLinksData.queryEntitySubgraph;
+      deserializeQueryEntitySubgraphResponse<SyncLinearDataWith>(
+        linearIntegrationSyncLinksData.queryEntitySubgraph,
+      );
 
-    const mappedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<SyncLinearDataWith>>
-      >(subgraph);
-
-    const links = getRoots(mappedSubgraph);
+    const links = getRoots(subgraph);
 
     return links.map(({ metadata, entityId }) => {
       const canEdit = !!entityPermissions?.[entityId]?.edit;

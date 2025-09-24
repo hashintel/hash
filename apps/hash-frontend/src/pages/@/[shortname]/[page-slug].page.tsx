@@ -1,21 +1,19 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { SxProps } from "@mui/material";
 import { Box } from "@mui/material";
-import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import { Router, useRouter } from "next/router";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -44,15 +42,15 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../../shared/routing/route-page-info";
-import { BlockCollection } from "../../shared/block-collection/block-collection";
-import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
-import { PageContextProvider } from "../../shared/block-collection/page-context";
-import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import {
   getBlockCollectionContents,
   getBlockCollectionContentsStructuralQueryVariables,
 } from "../../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { BlockCollection } from "../../shared/block-collection/block-collection";
+import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
+import { PageContextProvider } from "../../shared/block-collection/page-context";
+import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import { NotFound } from "../../shared/not-found";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
@@ -239,13 +237,10 @@ const Page: NextPageWithLayout<PageProps> = () => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { subgraph, entityPermissions } = data?.queryEntitySubgraph ?? {};
-
-  const pageSubgraph = subgraph
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        subgraph,
-      )
+  const response = data
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
     : undefined;
+  const { subgraph: pageSubgraph, entityPermissions } = response ?? {};
 
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
 

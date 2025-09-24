@@ -20,21 +20,21 @@ import {
   sortBlockCollectionLinks,
 } from "./block-collection.js";
 import type { ComponentIdHashBlockMap } from "./blocks.js";
-import type { BlockEntity } from "./entity.js";
 import type { DraftEntity, EntityStore } from "./entity-store.js";
 import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "./entity-store.js";
+import type { BlockEntity } from "./entity.js";
 import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "./graph-queries.js";
 import type {
-  Block as GqlBlock,
   GetEntityQuery,
   GetEntityQueryVariables,
+  Block as GqlBlock,
   UpdateBlockCollectionAction,
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,

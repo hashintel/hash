@@ -5,6 +5,7 @@ import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
+  deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
   HashEntity,
   mergePropertyObjectAndMetadata,
@@ -13,7 +14,6 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -257,9 +257,9 @@ export const Entity = ({
   >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.queryEntitySubgraph.subgraph);
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
       const { definitions, closedMultiEntityTypes } = data.queryEntitySubgraph;
 
