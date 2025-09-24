@@ -1602,6 +1602,16 @@
             }
           },
           {
+            "name": "Interactive",
+            "in": "header",
+            "description": "Whether the request is used interactively",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
             "name": "after",
             "in": "query",
             "description": "The cursor to start reading from",
@@ -1717,6 +1727,16 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "Whether the query is interactive",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
             }
           },
           {

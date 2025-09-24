@@ -133,6 +133,33 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
     }
 }
 
+pub struct InteractiveHeader(pub bool);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for InteractiveHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Some(value) = parts.headers.get("Interactive") else {
+            return Ok(Self(false));
+        };
+
+        let bytes = value.as_ref();
+        if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
+            return Ok(Self(true));
+        }
+
+        if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
+            return Ok(Self(false));
+        }
+
+        Err((
+            StatusCode::BAD_REQUEST,
+            Cow::Borrowed("`Interactive` header must be either `true` (`1`) or `false` (`0`)"),
+        ))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PermissionResponse {
     pub has_permission: bool,

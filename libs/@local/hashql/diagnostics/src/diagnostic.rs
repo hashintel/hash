@@ -169,14 +169,7 @@ impl<C, S> Diagnostic<C, S> {
     pub(crate) fn into_critical_unchecked(self) -> Diagnostic<C, S, Critical> {
         debug_assert!(self.severity.is_critical());
 
-        Diagnostic {
-            category: self.category,
-            severity: Critical::new_unchecked(self.severity),
-            message: self.message,
-            labels: self.labels,
-            notes: self.notes,
-            help: self.help,
-        }
+        self.map_severity(Critical::new_unchecked)
     }
 
     /// Converts a diagnostic to advisory severity without runtime checks.
@@ -190,14 +183,7 @@ impl<C, S> Diagnostic<C, S> {
     pub(crate) fn into_advisory_unchecked(self) -> Diagnostic<C, S, Advisory> {
         debug_assert!(self.severity.is_advisory());
 
-        Diagnostic {
-            category: self.category,
-            severity: Advisory::new_unchecked(self.severity),
-            message: self.message,
-            labels: self.labels,
-            notes: self.notes,
-            help: self.help,
-        }
+        self.map_severity(Advisory::new_unchecked)
     }
 
     /// Specializes the diagnostic based on its severity level.
@@ -237,26 +223,11 @@ impl<C, S> Diagnostic<C, S> {
         reason = "not an actual error, but instead categorization into error or okay"
     )]
     pub fn specialize(self) -> Result<Diagnostic<C, S, Advisory>, Diagnostic<C, S, Critical>> {
-        let Some(severity) = Advisory::try_new(self.severity) else {
-            return Err(Diagnostic {
-                category: self.category,
-                // critical and advisory are mutually exclusive
-                severity: Critical::new_unchecked(self.severity),
-                message: self.message,
-                labels: self.labels,
-                notes: self.notes,
-                help: self.help,
-            });
-        };
+        if self.severity.is_critical() {
+            return Err(self.into_critical_unchecked());
+        }
 
-        Ok(Diagnostic {
-            category: self.category,
-            severity,
-            message: self.message,
-            labels: self.labels,
-            notes: self.notes,
-            help: self.help,
-        })
+        Ok(self.into_advisory_unchecked())
     }
 }
 
@@ -332,6 +303,32 @@ impl<C, S, K> Diagnostic<C, S, K> {
             severity: self.severity,
             message: self.message,
             labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        }
+    }
+
+    pub fn map_severity<K2>(self, func: impl FnOnce(K) -> K2) -> Diagnostic<C, S, K2> {
+        Diagnostic {
+            category: self.category,
+            severity: func(self.severity),
+            message: self.message,
+            labels: self.labels,
+            notes: self.notes,
+            help: self.help,
+        }
+    }
+
+    pub fn map_spans<S2>(self, mut func: impl FnMut(S) -> S2) -> Diagnostic<C, S2, K> {
+        Diagnostic {
+            category: self.category,
+            severity: self.severity,
+            message: self.message,
+            labels: self
+                .labels
+                .into_iter()
+                .map(|label| label.map_span(&mut func))
+                .collect(),
             notes: self.notes,
             help: self.help,
         }

@@ -14,8 +14,16 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
+use core::{cmp, ops::Range};
 
+use anstyle_svg::Term;
+use ariadne::Source;
+use axum::{
+    Json,
+    response::{Html, IntoResponse as _, Response},
+};
+use error_stack::TryReportIteratorExt as _;
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
@@ -29,17 +37,33 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collection::fast_hash_map, heap::Heap, module::ModuleRegistry, span::storage::SpanStorage,
+    collection::fast_hash_map,
+    heap::Heap,
+    module::ModuleRegistry,
+    span::{SpanId, storage::SpanStorage},
     r#type::environment::Environment,
 };
-use hashql_diagnostics::Success;
-use hashql_eval::graph::read::FilterSlice;
-use hashql_hir::visit::Visitor as _;
+use hashql_diagnostics::{
+    DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
+    category::{DiagnosticCategory, canonical_category_id},
+    config::ReportConfig,
+    severity::Critical,
+};
+use hashql_eval::{
+    error::EvalDiagnosticCategory,
+    graph::{error::GraphCompilerDiagnosticCategory, read::FilterSlice},
+};
+use hashql_hir::{error::HirDiagnosticCategory, visit::Visitor as _};
+use hashql_syntax_jexpr::{error::JExprDiagnosticCategory, span::Span};
+use http::StatusCode;
 use serde::Deserialize;
 use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
+
+use super::status::report_to_response;
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -185,6 +209,147 @@ struct FlatEntitiesRequestData<'q, 's, 'p> {
     traversal_paths: Option<Vec<TraversalPath>>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct CompilationOptions {
+    pub interactive: bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum HashQLDiagnosticCategory {
+    JExpr(JExprDiagnosticCategory),
+    Ast(AstDiagnosticCategory),
+    Hir(HirDiagnosticCategory),
+    Eval(EvalDiagnosticCategory),
+}
+
+impl serde::Serialize for HashQLDiagnosticCategory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(&canonical_category_id(self))
+    }
+}
+
+impl DiagnosticCategory for HashQLDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("hashql")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("HashQL")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::JExpr(jexpr) => Some(jexpr),
+            Self::Ast(ast) => Some(ast),
+            Self::Hir(hir) => Some(hir),
+            Self::Eval(eval) => Some(eval),
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ResolvedSpan {
+    pub range: Range<usize>,
+    pub pointer: Option<String>,
+}
+
+fn resolve_span(id: SpanId, spans: &SpanStorage<Span>) -> Option<ResolvedSpan> {
+    let ancestors = spans.ancestors(id);
+
+    let mut base = spans.get_cloned(id)?;
+
+    for ancestor in ancestors {
+        let parent = spans.get(ancestor)?;
+        base.range += parent.map(|parent| parent.range.start());
+
+        if base.pointer.is_none()
+            && let Some(pointer) = parent.cloned().pointer
+        {
+            base.pointer = Some(pointer);
+        }
+    }
+
+    Some(ResolvedSpan {
+        range: base.range.into(),
+        pointer: base.pointer.map(|ptr| ptr.to_string()),
+    })
+}
+
+fn issues_to_response(
+    issues: DiagnosticIssues<HashQLDiagnosticCategory, SpanId>,
+    severity: Severity,
+    source: &str,
+    mut spans: &SpanStorage<Span>,
+    options: CompilationOptions,
+) -> Response {
+    const TERM: Term = anstyle_svg::Term::new();
+
+    let status_code = match severity {
+        Severity::Bug | Severity::Fatal => StatusCode::INTERNAL_SERVER_ERROR,
+        Severity::Error => StatusCode::BAD_REQUEST,
+        Severity::Warning | Severity::Note | Severity::Debug => StatusCode::CONFLICT,
+    };
+
+    let mut response = if options.interactive {
+        let diagnostics: Vec<_> = match issues
+            .into_iter()
+            .map(|diagnostic| diagnostic.resolve(&mut spans))
+            .try_collect_reports()
+        {
+            Ok(diagnostics) => diagnostics,
+            Err(error) => return report_to_response(error),
+        };
+
+        let reports = diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.report(ReportConfig::default()));
+
+        let mut stdout = Vec::new();
+        for report in reports {
+            report
+                .write(Source::from(source), &mut stdout)
+                .unwrap_or_else(|_err| unreachable!("writing to a buffer cannot panic"));
+        }
+
+        let output = TERM.render_html(&String::from_utf8_lossy(&stdout));
+
+        Html(output).into_response()
+    } else {
+        let diagnostics: Vec<_> = issues
+            .into_iter()
+            .map(|diagnostic| diagnostic.map_spans(|span| resolve_span(span, spans)))
+            .collect();
+
+        Json(diagnostics).into_response()
+    };
+
+    *response.status_mut() = status_code;
+    response
+}
+
+fn failure_to_response(
+    failure: Failure<HashQLDiagnosticCategory, SpanId>,
+    source: &str,
+    spans: &SpanStorage<Span>,
+    options: CompilationOptions,
+) -> Response {
+    // Find the highest diagnostic level
+    let severity = cmp::max(
+        failure
+            .secondary
+            .iter()
+            .map(|diagnostic| diagnostic.severity)
+            .max()
+            .unwrap_or(Severity::Debug),
+        failure.primary.severity.into(),
+    );
+
+    issues_to_response(failure.into_issues(), severity, source, spans, options)
+}
+
 #[derive(Debug, Clone)]
 #[expect(clippy::large_enum_variant)]
 pub enum EntityQuery<'q> {
@@ -193,36 +358,42 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    #[expect(
-        clippy::unnecessary_wraps,
-        clippy::panic_in_result_fn,
-        reason = "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-    )]
-    fn compile_query<'h>(heap: &'h Heap, query: &RawJsonValue) -> Result<Filter<'h, Entity>, !> {
-        let spans = Arc::new(SpanStorage::new());
-
+    fn compile_query<'h>(
+        heap: &'h Heap,
+        spans: Arc<SpanStorage<Span>>,
+        query: &RawJsonValue,
+    ) -> Status<Filter<'h, Entity>, HashQLDiagnosticCategory, SpanId> {
         // Parse the query
-        let parser = hashql_syntax_jexpr::Parser::new(heap, Arc::clone(&spans));
-        let mut ast = parser.parse_expr(query.get().as_bytes()).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+        let mut ast = parser
+            .parse_expr(query.get().as_bytes())
+            .map_err(|diagnostic| {
+                Failure::new(
+                    diagnostic
+                        .map_category(HashQLDiagnosticCategory::JExpr)
+                        .map_severity(|severity| {
+                            Critical::try_new(severity).unwrap_or_else(|| {
+                                tracing::error!(
+                                    ?severity,
+                                    "JExpr returned an error of non-critical severity"
+                                );
+                                Critical::ERROR
+                            })
+                        }),
+                )
+            })?;
 
         let mut env = Environment::new(ast.span, heap);
         let modules = ModuleRegistry::new(&env);
 
         // Lower the AST
-        let types =
-            hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules);
         let Success {
             value: types,
             advisories,
-        } = types.expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-        assert!(
-            advisories.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
+        } = hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
+            })?;
 
         let interner = hashql_hir::intern::Interner::new(heap);
 
@@ -230,25 +401,21 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-        assert!(
-            advisories.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
+        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
+            })
+            .with_diagnostics(advisories)?;
 
         // Lower the HIR
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-        assert!(
-            advisories.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
+            })
+            .with_diagnostics(advisories)?;
 
         // Evaluate the HIR
         // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
@@ -260,17 +427,16 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: result,
             advisories,
-        } = compiler.finish().expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
-        assert!(
-            advisories.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
+        } = compiler
+            .finish()
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Eval(EvalDiagnosticCategory::Graph(
+                    GraphCompilerDiagnosticCategory::Read(category),
+                ))
+            })
+            .with_diagnostics(advisories)?;
 
-        let output = result.output.get(&hir.id).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let output = result.output.get(&hir.id).expect("TODO");
 
         // Compile the Filter into one
         let filters = match output {
@@ -283,7 +449,10 @@ impl<'q> EntityQuery<'q> {
             _ => Filter::All(filters.to_vec()),
         };
 
-        Ok(filter)
+        Ok(Success {
+            value: filter,
+            advisories,
+        })
     }
 
     /// Compiles a query into an executable entity filter.
@@ -296,10 +465,39 @@ impl<'q> EntityQuery<'q> {
     /// # Errors
     ///
     /// Returns an error if the HashQL query cannot be compiled.
-    pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
+    #[expect(clippy::result_large_err, reason = "precompiled response")]
+    pub(crate) fn compile(
+        self,
+        heap: &'q Heap,
+        options: CompilationOptions,
+    ) -> Result<Filter<'q, Entity>, Response> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
-            EntityQuery::Query { query } => Self::compile_query(heap, query),
+            EntityQuery::Query { query } => {
+                let spans = Arc::new(SpanStorage::new());
+
+                let Success {
+                    value: filter,
+                    advisories,
+                } = Self::compile_query(heap, Arc::clone(&spans), query).map_err(|failure| {
+                    failure_to_response(failure, query.get(), &spans, options)
+                })?;
+                if !advisories.is_empty() {
+                    // This isn't perfect, what we'd want instead is to return it alongside the
+                    // response, the problem with that approach is just how: we'd need to adjust the
+                    // return type, and respect interactive. Returning warnings before so that user
+                    // can fix them before trying again seems to be the best approach for now.
+                    return Err(issues_to_response(
+                        advisories.generalize(),
+                        Severity::Warning,
+                        query.get(),
+                        &spans,
+                        options,
+                    ));
+                }
+
+                Ok(filter)
+            }
         }
     }
 }

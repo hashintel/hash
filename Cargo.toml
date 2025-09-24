@@ -98,6 +98,7 @@ ansi-to-html   = { version = "=0.2.2", default-features = false }
 anstream       = { version = "=0.6.20", default-features = false }
 anstyle        = { version = "=1.0.11", default-features = false }
 anstyle-lossy  = { version = "=1.1.4", default-features = false }
+anstyle-svg    = { version = "=0.1.11", default-features = false }
 anstyle-yansi  = { version = "=2.0.3", default-features = false }
 approx         = { version = "=0.5.1", default-features = false }
 ariadne        = { version = "=0.5.1", default-features = false }
