@@ -1,7 +1,8 @@
 mod label;
 mod message;
-mod patch;
+#[cfg(feature = "render")]
 pub mod render;
+mod suggestion;
 
 use alloc::borrow::Cow;
 use core::{
@@ -14,7 +15,7 @@ use error_stack::{Report, TryReportTupleExt as _};
 pub use self::{
     label::{Label, Labels},
     message::{Message, Messages},
-    patch::{Patch, Patches},
+    suggestion::{Patch, Suggestions},
 };
 use crate::{
     category::{CanonicalDiagnosticCategoryName, DiagnosticCategory},
@@ -62,7 +63,6 @@ impl<C, K> DiagnosticHeader<C, K> {
             severity: self.severity,
             title: None,
             labels: Labels::new(label),
-            patches: Patches::new(),
             messages: Messages::new(),
         }
     }
@@ -134,12 +134,11 @@ pub struct Diagnostic<C, S, K = Severity> {
     /// Labels highlight relevant parts of the code and can include explanatory messages about
     /// what's wrong at each location.
     pub labels: Labels<S>,
-    pub patches: Patches<S>,
 
     /// Additional explanatory notes about the diagnostic.
     ///
     /// Notes provide extra context or background information to help users understand the issue.
-    pub messages: Messages,
+    pub messages: Messages<S>,
 }
 
 impl<C, K> Diagnostic<C, !, K> {
@@ -308,7 +307,6 @@ impl<C, S, K> Diagnostic<C, S, K> {
             severity: self.severity,
             title: self.title,
             labels: self.labels,
-            patches: self.patches,
             messages: self.messages,
         }
     }
@@ -319,7 +317,6 @@ impl<C, S, K> Diagnostic<C, S, K> {
             severity: func(self.severity),
             title: self.title,
             labels: self.labels,
-            patches: self.patches,
             messages: self.messages,
         }
     }
@@ -329,9 +326,12 @@ impl<C, S, K> Diagnostic<C, S, K> {
             category: self.category,
             severity: self.severity,
             title: self.title,
-            labels: self.labels.map_labels(|label| label.map_span(&mut func)),
-            patches: self.patches.map_patches(|patch| patch.map_span(&mut func)),
-            messages: self.messages,
+            labels: self.labels.map(|label| label.map_span(&mut func)),
+            messages: self.messages.map(|message| {
+                message.map_suggestions(|suggestion| {
+                    suggestion.map_patches(|patch| patch.map_span(&mut func))
+                })
+            }),
         }
     }
 
@@ -369,12 +369,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
         self
     }
 
-    pub fn add_patch(&mut self, patch: impl Into<Patch<S>>) -> &mut Self {
-        self.patches.push(patch.into());
-        self
-    }
-
-    pub fn add_message(&mut self, message: impl Into<Message>) -> &mut Self {
+    pub fn add_message(&mut self, message: impl Into<Message<S>>) -> &mut Self {
         self.messages.push(message.into());
         self
     }
@@ -414,9 +409,9 @@ impl<C, S, K> Diagnostic<C, S, K> {
         S: DiagnosticSpan<DiagnosticContext>,
     {
         let labels = self.labels.resolve(context);
-        let patches = self.patches.resolve(context);
+        let messages = self.messages.resolve(context);
 
-        let (labels, patches) = (labels, patches).try_collect()?;
+        let (labels, messages) = (labels, messages).try_collect()?;
 
         Ok(Diagnostic {
             category: self.category,
@@ -424,8 +419,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
             title: self.title,
 
             labels,
-            patches,
-            messages: self.messages,
+            messages,
         })
     }
 }

@@ -163,7 +163,6 @@ where
         group
     }
 
-    #[cfg(feature = "render")]
     pub fn render(&self, options: RenderOptions) -> String {
         use anstream::adapter::strip_str;
 

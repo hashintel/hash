@@ -60,9 +60,7 @@ impl<S> Label<S> {
         self.highlight = highlight;
         self
     }
-}
 
-impl<S> Label<S> {
     pub(crate) fn resolve<C>(
         self,
         context: &mut C,
@@ -131,7 +129,7 @@ impl<S> Labels<S> {
         Ok(Labels { labels })
     }
 
-    pub(crate) fn map_labels<T>(self, func: impl FnMut(Label<S>) -> Label<T>) -> Labels<T> {
+    pub(crate) fn map<T>(self, func: impl FnMut(Label<S>) -> Label<T>) -> Labels<T> {
         Labels {
             labels: self.labels.into_iter().map(func).collect(),
         }
