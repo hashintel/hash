@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Status,
+    Diagnostic, DiagnosticIssues, Label, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,

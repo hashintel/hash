@@ -3,7 +3,7 @@ use core::mem;
 
 use hashql_core::{module::Universe, span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,

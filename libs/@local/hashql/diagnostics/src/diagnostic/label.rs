@@ -43,9 +43,8 @@ impl<S> Label<S> {
         Label {
             span: func(self.span),
             message: self.message,
-            order: self.order,
-            priority: self.priority,
-            color: self.color,
+
+            highlight: self.highlight,
         }
     }
 
@@ -130,5 +129,11 @@ impl<S> Labels<S> {
             .try_collect_reports()?;
 
         Ok(Labels { labels })
+    }
+
+    pub(crate) fn map_labels<T>(self, func: impl FnMut(Label<S>) -> Label<T>) -> Labels<T> {
+        Labels {
+            labels: self.labels.into_iter().map(func).collect(),
+        }
     }
 }

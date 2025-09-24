@@ -6,7 +6,7 @@ use hashql_core::{
     r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
+    Diagnostic, DiagnosticIssues, Label, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
 };

@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 
 use hashql_core::{similarity::did_you_mean, span::SpanId};
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,

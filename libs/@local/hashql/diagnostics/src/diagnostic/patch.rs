@@ -30,6 +30,13 @@ impl<S> Patch<S> {
         &self.span
     }
 
+    pub(crate) fn map_span<S2>(self, func: impl FnOnce(S) -> S2) -> Patch<S2> {
+        Patch {
+            span: func(self.span),
+            replacement: self.replacement,
+        }
+    }
+
     pub const fn replacement(&self) -> &str
     where
         String: [const] Borrow<str>,
@@ -98,6 +105,12 @@ impl<S> Patches<S> {
             .try_collect_reports()?;
 
         Ok(Patches { patches })
+    }
+
+    pub(crate) fn map_patches<T>(self, func: impl FnMut(Patch<S>) -> Patch<T>) -> Patches<T> {
+        Patches {
+            patches: self.patches.into_iter().map(func).collect(),
+        }
     }
 }
 

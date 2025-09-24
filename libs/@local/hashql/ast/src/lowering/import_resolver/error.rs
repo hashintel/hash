@@ -17,7 +17,7 @@ use hashql_core::{
     symbol::{Ident, Symbol},
 };
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,

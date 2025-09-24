@@ -10,7 +10,7 @@ use hashql_core::{
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,

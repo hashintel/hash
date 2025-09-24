@@ -142,7 +142,7 @@ pub struct Diagnostic<C, S, K = Severity> {
     pub messages: Messages,
 }
 
-impl<C, S, K> Diagnostic<C, S, K> {
+impl<C, K> Diagnostic<C, !, K> {
     /// Creates a new diagnostic with the specified category and severity.
     ///
     /// Initializes an empty diagnostic that can be populated with message, labels, notes, and help
@@ -164,7 +164,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// assert!(diagnostic.labels.is_empty());
     /// ```
     #[expect(clippy::new_ret_no_self)]
-    pub const fn new(category: C, severity: S) -> DiagnosticHeader<C, S> {
+    pub const fn new(category: C, severity: K) -> DiagnosticHeader<C, K> {
         DiagnosticHeader { category, severity }
     }
 }
@@ -270,7 +270,7 @@ where
     /// assert_eq!(generalized.severity, Severity::Error);
     /// ```
     pub fn generalize(self) -> Diagnostic<C, S, Severity> {
-        self.with_severity(Into::into)
+        self.map_severity(Into::into)
     }
 }
 
@@ -317,10 +317,10 @@ impl<C, S, K> Diagnostic<C, S, K> {
         Diagnostic {
             category: self.category,
             severity: func(self.severity),
-            message: self.message,
+            title: self.title,
             labels: self.labels,
-            notes: self.notes,
-            help: self.help,
+            patches: self.patches,
+            messages: self.messages,
         }
     }
 
@@ -328,14 +328,10 @@ impl<C, S, K> Diagnostic<C, S, K> {
         Diagnostic {
             category: self.category,
             severity: self.severity,
-            message: self.message,
-            labels: self
-                .labels
-                .into_iter()
-                .map(|label| label.map_span(&mut func))
-                .collect(),
-            notes: self.notes,
-            help: self.help,
+            title: self.title,
+            labels: self.labels.map_labels(|label| label.map_span(&mut func)),
+            patches: self.patches.map_patches(|patch| patch.map_span(&mut func)),
+            messages: self.messages,
         }
     }
 

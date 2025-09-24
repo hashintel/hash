@@ -7,7 +7,7 @@ use hashql_core::{
     value::{FieldAccessError, IndexAccessError},
 };
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Status,
+    Diagnostic, DiagnosticIssues, Label, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,
