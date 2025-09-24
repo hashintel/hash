@@ -109,25 +109,6 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    """
-    Implementation of the Block Protocol queryEntities hook
-    """
-    queryEntities(
-      """
-      Filter root entities by their entity type ID (optional)
-      """
-      operation: QueryOperationInput!
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      isOfType: OutgoingEdgeResolveDepthInput!
-      hasLeftEntity: EdgeResolveDepthsInput!
-      hasRightEntity: EdgeResolveDepthsInput!
-      includeDrafts: Boolean
-    ): SubgraphAndPermissions!
-
     countEntities(request: CountEntitiesParams!): Int!
 
     queryEntitySubgraph(

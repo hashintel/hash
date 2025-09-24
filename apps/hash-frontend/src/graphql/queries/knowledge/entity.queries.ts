@@ -1,5 +1,4 @@
 import { gql } from "@apollo/client";
-import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const createEntityMutation = gql`
   mutation createEntity(
@@ -20,39 +19,6 @@ export const createEntityMutation = gql`
       relationships: $relationships
     )
   }
-`;
-
-export const queryEntitiesQuery = gql`
-  query queryEntities(
-    $operation: QueryOperationInput!
-    $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-    $constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-    $includePermissions: Boolean!
-    $inheritsFrom: OutgoingEdgeResolveDepthInput!
-    $isOfType: OutgoingEdgeResolveDepthInput!
-    $hasLeftEntity: EdgeResolveDepthsInput!
-    $hasRightEntity: EdgeResolveDepthsInput!
-  ) {
-    queryEntities(
-      operation: $operation
-      constrainsValuesOn: $constrainsValuesOn
-      constrainsPropertiesOn: $constrainsPropertiesOn
-      constrainsLinksOn: $constrainsLinksOn
-      constrainsLinkDestinationsOn: $constrainsLinkDestinationsOn
-      inheritsFrom: $inheritsFrom
-      isOfType: $isOfType
-      hasLeftEntity: $hasLeftEntity
-      hasRightEntity: $hasRightEntity
-    ) {
-      userPermissionsOnEntities @include(if: $includePermissions)
-      subgraph {
-        ...SubgraphFields
-      }
-    }
-  }
-  ${subgraphFieldsFragment}
 `;
 
 export const queryEntitySubgraphQuery = gql`

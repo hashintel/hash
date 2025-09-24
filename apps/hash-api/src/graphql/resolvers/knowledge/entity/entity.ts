@@ -4,7 +4,6 @@ import {
   mustHaveAtLeastOne,
   splitEntityId,
 } from "@blockprotocol/type-system";
-import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Filter,
@@ -58,7 +57,6 @@ import type {
   QueryGetEntityArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitySubgraphArgs,
-  QueryResolvers,
   QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
@@ -123,78 +121,6 @@ export const createEntityResolver: ResolverFn<
   }
 
   return entity;
-};
-
-export const queryEntitiesResolver: NonNullable<
-  QueryResolvers<GraphQLContext>["queryEntities"]
-> = async (
-  _,
-  {
-    operation,
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    constrainsLinksOn,
-    constrainsLinkDestinationsOn,
-    inheritsFrom,
-    isOfType,
-    hasLeftEntity,
-    hasRightEntity,
-    includeDrafts,
-  },
-  graphQLContext,
-  info,
-) => {
-  const { authentication, logger } = graphQLContext;
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  if (operation.multiSort !== undefined && operation.multiSort !== null) {
-    throw new ApolloError(
-      "Sorting on queryEntities  results is not currently supported",
-    );
-  }
-
-  const filter = operation.multiFilter
-    ? convertBpFilterToGraphFilter(operation.multiFilter)
-    : { any: [] };
-
-  if ("any" in filter && filter.any.length === 0) {
-    logger.warn(
-      "QueryEntities called with empty filter and OR operator, which means returning an empty subgraph. This is probably not what you want. Use multiFilter: { filters: [], operator: AND } to return all entities.",
-    );
-  }
-
-  const { subgraph: entitySubgraph } = await queryEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: includeDrafts ?? false,
-      includePermissions: false,
-    },
-  );
-
-  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
-    graphQLContext,
-    info,
-    entitySubgraph,
-  );
-
-  return {
-    subgraph: serializeSubgraph(entitySubgraph),
-    userPermissionsOnEntities,
-  };
 };
 
 export const countEntitiesResolver: ResolverFn<

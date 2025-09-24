@@ -2,16 +2,20 @@ import { useQuery } from "@apollo/client";
 import type { EntityRootType, GraphResolveDepths } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import {
+  currentTimeInstantTemporalAxes,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-export const useQueryEntities = ({
+export const useQueryEntitySubgraph = ({
   excludeEntityTypeIds,
   includeEntityTypeIds,
   graphResolveDepths,
@@ -28,49 +32,53 @@ export const useQueryEntities = ({
     );
   }
 
-  const response = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
-    queryEntitiesQuery,
-    {
-      variables: {
-        includePermissions,
-        operation: {
-          multiFilter: {
-            filters: [
-              ...(excludeEntityTypeIds ?? []).map((entityTypeId) => ({
-                field: ["metadata", "entityTypeId"],
-                operator: "DOES_NOT_EQUAL" as const,
-                value: entityTypeId,
-              })),
-              ...(includeEntityTypeIds ?? []).map((entityTypeId) => ({
-                field: ["metadata", "entityTypeId"],
-                operator: "EQUALS" as const,
-                value: entityTypeId,
-              })),
-            ],
-            operator:
-              (excludeEntityTypeIds ?? !includeEntityTypeIds?.length)
-                ? "AND"
-                : "OR",
-          },
+  const response = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    variables: {
+      request: {
+        filter: convertBpFilterToGraphFilter({
+          filters: [
+            ...(excludeEntityTypeIds ?? []).map((entityTypeId) => ({
+              field: ["metadata", "entityTypeId"],
+              operator: "DOES_NOT_EQUAL" as const,
+              value: entityTypeId,
+            })),
+            ...(includeEntityTypeIds ?? []).map((entityTypeId) => ({
+              field: ["metadata", "entityTypeId"],
+              operator: "EQUALS" as const,
+              value: entityTypeId,
+            })),
+          ],
+          operator:
+            (excludeEntityTypeIds ?? !includeEntityTypeIds?.length)
+              ? "AND"
+              : "OR",
+        }),
+        graphResolveDepths: {
+          constrainsValuesOn: { outgoing: 0 },
+          constrainsPropertiesOn: { outgoing: 0 },
+          constrainsLinksOn: { outgoing: 0 },
+          constrainsLinkDestinationsOn: { outgoing: 0 },
+          inheritsFrom: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+          ...graphResolveDepths,
         },
-        constrainsValuesOn: { outgoing: 0 },
-        constrainsPropertiesOn: { outgoing: 0 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        inheritsFrom: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-        ...graphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions,
       },
-      fetchPolicy: "cache-and-network",
     },
-  );
+    fetchPolicy: "cache-and-network",
+  });
 
   return useMemo(() => {
     const subgraph = response.data
       ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-          response.data.queryEntities.subgraph,
+          response.data.queryEntitySubgraph.subgraph,
         )
       : undefined;
 

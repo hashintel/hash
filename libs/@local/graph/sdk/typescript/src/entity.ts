@@ -313,10 +313,7 @@ export type QueryEntitySubgraphResponse<
   | "typeIds"
   | "typeTitles"
 > & {
-  subgraph: Subgraph<
-    EntityRootType<HashEntity<PropertyMap>>,
-    HashEntity<PropertyMap>
-  >;
+  subgraph: Subgraph<EntityRootType<HashEntity<PropertyMap>>, HashEntity>;
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
   webIds?: Record<WebId, number>;

@@ -24,10 +24,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import {
-  queryEntitiesQuery,
-  queryEntitySubgraphQuery,
-} from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 /**
  * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
@@ -233,7 +230,8 @@ export const useEntityTypeEntities = (
   });
 
   const hadCachedContent = useMemo(
-    () => !!apolloClient.readQuery({ query: queryEntitiesQuery, variables }),
+    () =>
+      !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
     [variables],
   );
 

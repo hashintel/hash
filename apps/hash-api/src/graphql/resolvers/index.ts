@@ -41,7 +41,6 @@ import {
   createEntityResolver,
   getEntityResolver,
   isEntityPublicResolver,
-  queryEntitiesResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
@@ -139,7 +138,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
-    queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
       throw new Error(

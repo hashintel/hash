@@ -6,10 +6,10 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import type {
-  ConversionRequest,
+import {
+  type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
-  HashEntity,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { useMemo } from "react";
 
