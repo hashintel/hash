@@ -30,7 +30,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
-    "@temporalio/client": "1.12.1",
+    "@temporalio/client": "1.13.0",
     "effect": "3.13.11",
     "uuid": "11.1.0"
   },
