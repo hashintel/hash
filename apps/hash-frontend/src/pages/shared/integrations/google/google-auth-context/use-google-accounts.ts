@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
@@ -61,7 +60,9 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
 
   return useMemo(() => {
     const subgraph = data
-      ? deserializeQueryEntitySubgraphResponse<GoogleAccount>(>(data.queryEntitySubgraph).subgraph
+      ? deserializeQueryEntitySubgraphResponse<GoogleAccount>(
+          data.queryEntitySubgraph,
+        ).subgraph
       : undefined;
 
     const accounts = subgraph ? getRoots(subgraph) : [];
