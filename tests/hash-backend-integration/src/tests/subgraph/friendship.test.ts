@@ -8,9 +8,6 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import {
   archiveEntityType,
-  getEntityTypeById,
-  getEntityTypes,
-  getEntityTypeSubgraph,
   unarchiveEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import {
@@ -41,7 +38,6 @@ import type {
 import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   GetEntitySubgraphRequest,
-  GetEntityTypesParams,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import {
@@ -49,6 +45,12 @@ import {
   type QueryDataTypesParams,
   queryDataTypeSubgraph,
 } from "@local/hash-graph-sdk/data-type";
+import {
+  getEntityTypeById,
+  queryEntityTypes,
+  type QueryEntityTypesParams,
+  queryEntityTypeSubgraph,
+} from "@local/hash-graph-sdk/entity-type";
 import {
   queryPropertyTypes,
   type QueryPropertyTypesParams,
@@ -164,8 +166,18 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  friendshipEntityType = await getEntityTypeById(graphContext, authentication, {
-    entityTypeId: `${friendshipTypeBaseId}v/1`,
+  friendshipEntityType = await getEntityTypeById(
+    graphContext.graphApi,
+    authentication,
+    {
+      entityTypeId: `${friendshipTypeBaseId}v/1`,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  ).then((entityType) => {
+    if (!entityType) {
+      throw new Error("Failed to retrieve friendship entity type");
+    }
+    return entityType;
   });
 
   aliceEntities = await getEntitySubgraphResponse(
@@ -445,13 +457,17 @@ describe("Ontology queries", () => {
       constrainsLinkDestinationsOn: { outgoing: 255 },
     },
   ])("read entity types %#", async (resolve_depths) => {
-    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
-      filter: {
-        all: [],
+    const { subgraph } = await queryEntityTypeSubgraph(
+      graphContext.graphApi,
+      authentication,
+      {
+        filter: {
+          all: [],
+        },
+        graphResolveDepths: resolve_depths,
+        temporalAxes: fullDecisionTimeAxis,
       },
-      graphResolveDepths: resolve_depths,
-      temporalAxes: fullDecisionTimeAxis,
-    });
+    );
     expect(subgraph.roots.length).toEqual(4);
 
     const entityTypes = getRoots(subgraph);
@@ -484,7 +500,7 @@ it("archives/unarchives entity types", async () => {
   const entityTypeId: VersionedUrl =
     "http://localhost:3000/@alice/types/entity-type/person/v/1";
 
-  const request: GetEntityTypesParams = {
+  const request: QueryEntityTypesParams = {
     filter: {
       equal: [
         {
@@ -496,11 +512,10 @@ it("archives/unarchives entity types", async () => {
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
   };
 
-  const initialEntityTypes = await getEntityTypes(
-    graphContext,
+  const { entityTypes: initialEntityTypes } = await queryEntityTypes(
+    graphContext.graphApi,
     authentication,
     request,
   );
@@ -517,8 +532,8 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const emptyEntityTypes = await getEntityTypes(
-    graphContext,
+  const { entityTypes: emptyEntityTypes } = await queryEntityTypes(
+    graphContext.graphApi,
     authentication,
     request,
   );
@@ -532,8 +547,8 @@ it("archives/unarchives entity types", async () => {
     },
   );
 
-  const nonEmptyEntityTypes = await getEntityTypes(
-    graphContext,
+  const { entityTypes: nonEmptyEntityTypes } = await queryEntityTypes(
+    graphContext.graphApi,
     authentication,
     request,
   );

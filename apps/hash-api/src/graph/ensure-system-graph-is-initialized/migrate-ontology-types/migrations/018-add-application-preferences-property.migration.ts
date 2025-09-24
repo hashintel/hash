@@ -1,8 +1,10 @@
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   createSystemPropertyTypeIfNotExists,
@@ -47,18 +49,25 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const { schema: userEntityTypeSchema } = await getEntityTypeById(
-    context,
+  const userEntityType = await getEntityTypeById(
+    context.graphApi,
     authentication,
     {
       entityTypeId: currentUserEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
+  if (!userEntityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID ${currentUserEntityTypeId}`,
+    );
+  }
+
   const newUserEntityTypeSchema: EntityType = {
-    ...userEntityTypeSchema,
+    ...userEntityType.schema,
     properties: {
-      ...userEntityTypeSchema.properties,
+      ...userEntityType.schema.properties,
       [extractBaseUrl(applicationPreferencesPropertyType.schema.$id)]: {
         $ref: applicationPreferencesPropertyType.schema.$id,
       },

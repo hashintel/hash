@@ -40,6 +40,7 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
+import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
@@ -48,6 +49,7 @@ import {
   HashEntity,
   HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
+import { mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions } from "@local/hash-graph-sdk/entity-type";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import {
   mapGraphApiEntityToEntity,
@@ -58,7 +60,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import { ApolloError } from "apollo-server-errors";
 import { Predicate } from "effect";
@@ -71,7 +72,6 @@ import type {
 import { isTestEnv } from "../../../lib/env-config";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";

@@ -7,12 +7,6 @@ import {
   archiveEntityType,
   checkPermissionsOnEntityType,
   createEntityType,
-  getClosedEntityTypes,
-  getClosedMultiEntityTypes,
-  getEntityTypeById,
-  getEntityTypes,
-  getEntityTypeSubgraph,
-  getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
@@ -32,7 +26,14 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import {
+  getClosedMultiEntityTypes,
+  getEntityTypeById,
+  getEntityTypeSubgraphById,
+  hasPermissionForEntityTypes,
+  queryEntityTypes,
+  queryEntityTypeSubgraph,
+} from "@local/hash-graph-sdk/entity-type";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -226,28 +227,44 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedEntityType = await getEntityTypeById(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         entityTypeId: createdEntityType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
 
-    expect(fetchedEntityType.schema).toEqual(createdEntityType.schema);
+    expect(fetchedEntityType?.schema).toEqual(createdEntityType.schema);
   });
 
   it("can read a closed entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const userType = await getEntityTypeById(graphContext, authentication, {
-      entityTypeId: systemEntityTypes.user.entityTypeId,
-    });
-    const actorType = await getEntityTypeById(graphContext, authentication, {
-      entityTypeId: systemEntityTypes.actor.entityTypeId,
-    });
+    const userType = await getEntityTypeById(
+      graphContext.graphApi,
+      authentication,
+      {
+        entityTypeId: systemEntityTypes.user.entityTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+    expect(userType).not.toBeNull();
+    assert(userType);
 
-    const fetchedEntityType = await getClosedEntityTypes(
-      graphContext,
+    const actorType = await getEntityTypeById(
+      graphContext.graphApi,
+      authentication,
+      {
+        entityTypeId: systemEntityTypes.actor.entityTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+    );
+    expect(actorType).not.toBeNull();
+    assert(actorType);
+
+    const fetchedEntityType = await queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       {
         filter: {
@@ -257,63 +274,61 @@ describe("Entity type CRU", () => {
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeEntityTypes: "closed",
       },
     );
 
     // It's not specified how `required` is ordered, so we need to sort it before comparing
-    for (const entityType of fetchedEntityType) {
-      if (entityType.schema.required) {
-        entityType.schema.required.sort();
+    for (const entityType of fetchedEntityType.closedEntityTypes!) {
+      if (entityType.required) {
+        entityType.required.sort();
       }
     }
 
-    expect(fetchedEntityType).toEqual([
+    expect(fetchedEntityType.closedEntityTypes!).toEqual([
       {
-        metadata: userType.metadata,
-        schema: {
-          $id: userType.schema.$id,
-          title: userType.schema.title,
-          description: userType.schema.description,
-          properties: {
-            ...userType.schema.properties,
-            ...actorType.schema.properties,
+        $id: userType.schema.$id,
+        title: userType.schema.title,
+        description: userType.schema.description,
+        properties: {
+          ...userType.schema.properties,
+          ...actorType.schema.properties,
+        },
+        required: atLeastOne(
+          Array.from(
+            new Set([
+              ...(userType.schema.required ?? []),
+              ...(actorType.schema.required ?? []),
+            ]),
+          ).toSorted(),
+        ),
+        links: {
+          ...(userType.schema.links ?? {}),
+          ...(userType.schema.links ?? {}),
+        },
+        allOf: [
+          {
+            depth: 0,
+            $id: systemEntityTypes.user.entityTypeId,
+            icon: "/icons/types/user.svg",
           },
-          required: atLeastOne(
-            Array.from(
-              new Set([
-                ...(userType.schema.required ?? []),
-                ...(actorType.schema.required ?? []),
-              ]),
-            ).toSorted(),
-          ),
-          links: {
-            ...(userType.schema.links ?? {}),
-            ...(userType.schema.links ?? {}),
+          {
+            depth: 1,
+            $id: systemEntityTypes.actor.entityTypeId,
+            icon: "/icons/types/user.svg",
+            labelProperty:
+              blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
           },
-          allOf: [
-            {
-              depth: 0,
-              $id: systemEntityTypes.user.entityTypeId,
-              icon: "/icons/types/user.svg",
-            },
-            {
-              depth: 1,
-              $id: systemEntityTypes.actor.entityTypeId,
-              icon: "/icons/types/user.svg",
-              labelProperty:
-                blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
-            },
-          ],
-        } satisfies ClosedEntityType,
-      },
+        ],
+      } satisfies ClosedEntityType,
     ]);
   });
 
   it("can read a closed multi-entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const closedEntityTypes = await getClosedEntityTypes(
-      graphContext,
+    const { entityTypes, closedEntityTypes } = await queryEntityTypes(
+      graphContext.graphApi,
       authentication,
       {
         filter: {
@@ -333,13 +348,14 @@ describe("Entity type CRU", () => {
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeEntityTypes: "closed",
       },
     );
     // We don't support sorting for closed types, yet. To consistently compare them we sort them by $id.
-    closedEntityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
+    entityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 
     const { closedMultiEntityTypes, definitions } =
-      await getClosedMultiEntityTypes(graphContext, authentication, {
+      await getClosedMultiEntityTypes(graphContext.graphApi, authentication, {
         entityTypeIds: [
           [
             systemEntityTypes.user.entityTypeId,
@@ -364,13 +380,13 @@ describe("Entity type CRU", () => {
     }
 
     const allOf = atLeastOne(
-      closedEntityTypes.map(
+      closedEntityTypes!.map(
         (closedEntityType) =>
           ({
-            $id: closedEntityType.schema.$id,
-            title: closedEntityType.schema.title,
-            description: closedEntityType.schema.description,
-            allOf: closedEntityType.schema.allOf,
+            $id: closedEntityType.$id,
+            title: closedEntityType.title,
+            description: closedEntityType.description,
+            allOf: closedEntityType.allOf,
           }) as ClosedMultiEntityType["allOf"][0],
       ),
     );
@@ -378,53 +394,57 @@ describe("Entity type CRU", () => {
 
     expect(closedMultiEntityType).toEqual({
       allOf,
-      properties: closedEntityTypes.reduce(
+      properties: closedEntityTypes!.reduce(
         (acc, closedEntityType) => {
-          return { ...acc, ...closedEntityType.schema.properties };
+          return { ...acc, ...closedEntityType.properties };
         },
         {} as ClosedMultiEntityType["properties"],
       ),
       required: atLeastOne(
         Array.from(
           new Set(
-            closedEntityTypes.flatMap(
-              (closedEntityType) => closedEntityType.schema.required ?? [],
+            closedEntityTypes!.flatMap(
+              (closedEntityType) => closedEntityType.required ?? [],
             ),
           ),
         ).toSorted(),
       ),
-      links: closedEntityTypes.reduce(
+      links: closedEntityTypes!.reduce(
         (acc, closedEntityType) => {
-          return { ...acc, ...closedEntityType.schema.links };
+          return { ...acc, ...closedEntityType.links };
         },
         {} as ClosedMultiEntityType["links"],
       ),
     } satisfies ClosedMultiEntityType);
 
-    const subgraph = await getEntityTypeSubgraph(graphContext, authentication, {
-      filter: {
-        any: [
-          {
-            equal: [
-              { path: ["versionedUrl"] },
-              { parameter: systemEntityTypes.user.entityTypeId },
-            ],
-          },
-          {
-            equal: [
-              { path: ["versionedUrl"] },
-              { parameter: systemEntityTypes.actor.entityTypeId },
-            ],
-          },
-        ],
+    const { subgraph } = await queryEntityTypeSubgraph(
+      graphContext.graphApi,
+      authentication,
+      {
+        filter: {
+          any: [
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.user.entityTypeId },
+              ],
+            },
+            {
+              equal: [
+                { path: ["versionedUrl"] },
+                { parameter: systemEntityTypes.actor.entityTypeId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 255 },
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-    });
+    );
 
     for (const propertyType of getPropertyTypes(subgraph)) {
       expect(propertyType.schema).toEqual(
@@ -496,50 +516,34 @@ describe("Entity type CRU", () => {
       entityTypeId: createdEntityType.schema.$id,
     });
 
-    const [archivedEntityType] = await getEntityTypes(
-      graphContext,
+    const archivedEntityType = await getEntityTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
+        entityTypeId: createdEntityType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
-
-    expect(
-      await getEntityTypes(graphContext, authentication, {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      }),
-    ).toHaveLength(0);
-
     expect(
       archivedEntityType?.metadata.temporalVersioning.transactionTime.end.kind,
     ).toBe("exclusive");
+
+    expect(
+      await getEntityTypeById(graphContext.graphApi, authentication, {
+        entityTypeId: createdEntityType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).toBeNull();
 
     await unarchiveEntityType(graphContext, authentication, {
       entityTypeId: createdEntityType.schema.$id,
     });
 
-    const [unarchivedEntityType] = await getEntityTypes(
-      graphContext,
+    const unarchivedEntityType = await getEntityTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdEntityType.schema.$id },
-          ],
-        },
+        entityTypeId: createdEntityType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
@@ -556,20 +560,20 @@ describe("Entity type CRU", () => {
     const entityTypeId =
       "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1";
 
-    await expect(
-      getEntityTypeById(
-        graphContext,
+    expect(
+      await getEntityTypeById(
+        graphContext.graphApi,
         { actorId: publicUserAccountId },
-        { entityTypeId },
+        { entityTypeId, temporalAxes: currentTimeInstantTemporalAxes },
       ),
-    ).rejects.toThrow("Could not find entity type with ID");
+    ).toBeNull();
 
-    await expect(
-      getEntityTypeSubgraphById(graphContext, authentication, {
+    expect(
+      await getEntityTypeSubgraphById(graphContext.graphApi, authentication, {
         entityTypeId,
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
-    ).resolves.not.toThrow();
+    ).not.toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -10,7 +11,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
