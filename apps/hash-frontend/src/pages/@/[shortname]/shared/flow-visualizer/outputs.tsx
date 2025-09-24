@@ -398,9 +398,9 @@ export const Outputs = ({
     if (!proposedEntitiesTypesData) {
       return previousProposedEntitiesTypesData
         ? {
-            closedMultiEntityTypes:
+            entityTypes:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
-                .closedMultiEntityTypes,
+                .entityTypes,
             definitions:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
                 .definitions,
@@ -409,9 +409,8 @@ export const Outputs = ({
     }
 
     return {
-      closedMultiEntityTypes:
-        proposedEntitiesTypesData.getClosedMultiEntityTypes
-          .closedMultiEntityTypes,
+      entityTypes:
+        proposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
       definitions:
         proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
     };
@@ -457,7 +456,7 @@ export const Outputs = ({
 
   const persistedEntitiesTypesInfo = useMemo<
     | {
-        closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+        entityTypes: ClosedMultiEntityTypesRootMap;
         definitions: ClosedMultiEntityTypesDefinitions;
       }
     | undefined
@@ -479,7 +478,7 @@ export const Outputs = ({
     }
 
     return {
-      closedMultiEntityTypes: data.getEntitySubgraph.closedMultiEntityTypes,
+      entityTypes: data.getEntitySubgraph.closedMultiEntityTypes,
       definitions: data.getEntitySubgraph.definitions,
     };
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
@@ -713,8 +712,8 @@ export const Outputs = ({
           ) : (
             <EntityResultGraph
               closedMultiEntityTypesRootMap={
-                persistedEntitiesTypesInfo?.closedMultiEntityTypes ??
-                proposedEntitiesTypesInfo?.closedMultiEntityTypes
+                persistedEntitiesTypesInfo?.entityTypes ??
+                proposedEntitiesTypesInfo?.entityTypes
               }
               entities={entitiesForGraph}
             />

@@ -453,7 +453,7 @@ type EntityResultTableProps = {
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   persistedEntitiesTypesInfo?: {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+    entityTypes: ClosedMultiEntityTypesRootMap;
     definitions: ClosedMultiEntityTypesDefinitions;
   };
   proposedEntities: ProposedEntityOutput[];
@@ -669,10 +669,7 @@ export const EntityResultTable = memo(
 
         const closedMultiEntityType =
           closedTypesByKey[typeKey] ??
-          getClosedMultiEntityTypeFromMap(
-            typeInfo.closedMultiEntityTypes,
-            entityTypeIds,
-          );
+          getClosedMultiEntityTypeFromMap(typeInfo.entityTypes, entityTypeIds);
 
         closedTypesByKey[typeKey] ??= closedMultiEntityType;
 

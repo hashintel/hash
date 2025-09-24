@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -12,7 +11,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -39,8 +38,9 @@ export const getLatestEntityById = async (params: {
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const response = await graphApiClient.queryEntitySubgraph(
-    authentication.actorId,
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
+    { graphApi: graphApiClient },
+    authentication,
     {
       filter: {
         all: [
@@ -57,11 +57,6 @@ export const getLatestEntityById = async (params: {
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
     },
-  );
-
-  const entitiesSubgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-    response.data.subgraph,
-    authentication.actorId,
   );
 
   const [entity, ...unexpectedEntities] = getRoots(entitiesSubgraph);

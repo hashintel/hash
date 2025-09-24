@@ -10,7 +10,7 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   createPolicy,
   deletePolicyById,
@@ -34,7 +34,6 @@ import {
   checkEntityPermission,
   countEntities,
   createEntityWithLinks,
-  getEntitySubgraphResponse,
   getLatestEntityById,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
@@ -160,7 +159,7 @@ export const queryEntitiesResolver: NonNullable<
     );
   }
 
-  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitySubgraph } = await queryEntitySubgraph(
     context,
     authentication,
     {
@@ -214,7 +213,7 @@ export const getEntitySubgraphResolver: ResolverFn<
   GraphQLContext,
   QueryGetEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
-  const { subgraph, ...rest } = await getEntitySubgraphResponse(
+  const { subgraph, ...rest } = await queryEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
@@ -292,7 +291,7 @@ export const getEntityResolver: ResolverFn<
       }
     : currentTimeInstantTemporalAxes;
 
-  const { subgraph: entitySubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitySubgraph } = await queryEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     {

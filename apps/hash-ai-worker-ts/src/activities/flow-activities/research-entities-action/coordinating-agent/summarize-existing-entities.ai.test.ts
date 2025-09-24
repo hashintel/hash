@@ -1,7 +1,7 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -15,8 +15,10 @@ import { summarizeExistingEntities } from "./summarize-existing-entities.js";
 test.skip(
   "Test summarizeExistingEntities with user entities",
   async () => {
-    const publicUserEntities = await graphApiClient
-      .queryEntities(publicUserAccountId, {
+    const { entities: publicUserEntities } = await queryEntities(
+      { graphApi: graphApiClient },
+      { actorId: publicUserAccountId },
+      {
         filter: {
           all: [
             generateVersionedUrlMatchingFilter(
@@ -27,12 +29,8 @@ test.skip(
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-      })
-      .then(({ data: response }) =>
-        response.entities.map((entity) =>
-          mapGraphApiEntityToEntity(entity, publicUserAccountId),
-        ),
-      );
+      },
+    );
 
     const { existingEntitySummaries } = await summarizeExistingEntities({
       existingEntities: publicUserEntities,

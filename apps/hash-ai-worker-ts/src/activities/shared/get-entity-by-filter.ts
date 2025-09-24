@@ -1,7 +1,6 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Filter, GraphApi } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const getEntityByFilter = async ({
@@ -15,17 +14,15 @@ export const getEntityByFilter = async ({
   filter: Filter;
   includeDrafts: boolean;
 }): Promise<HashEntity | undefined> => {
-  const matchedEntities = await graphApiClient
-    .queryEntities(actorId, {
+  const { entities: matchedEntities } = await queryEntities(
+    { graphApi: graphApiClient },
+    { actorId },
+    {
       filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+    },
+  );
 
   return matchedEntities[0];
 };

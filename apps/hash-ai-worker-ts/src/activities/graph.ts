@@ -11,7 +11,6 @@ import type {
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   EntityQueryCursor,
@@ -35,13 +34,14 @@ import type {
   SerializedEntityRootType,
   SerializedSubgraph,
 } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   queryEntityTypeSubgraph,
   type QueryEntityTypeSubgraphParams,
   type SerializedQueryEntityTypeSubgraphResponse,
   serializeQueryEntityTypeSubgraphResponse,
 } from "@local/hash-graph-sdk/entity-type";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   queryPropertyTypeSubgraph,
   type QueryPropertyTypeSubgraphParams,
@@ -50,7 +50,6 @@ import {
 } from "@local/hash-graph-sdk/property-type";
 import {
   deserializeSubgraph,
-  mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-graph-sdk/subgraph";
@@ -68,8 +67,10 @@ export const createGraphActivities = ({
   graphApiClient: GraphApi;
 }) => ({
   async getUserAccountIds(): Promise<ActorEntityUuid[]> {
-    return graphApiClient
-      .queryEntities(publicUserAccountId, {
+    return queryEntities(
+      { graphApi: graphApiClient },
+      { actorId: publicUserAccountId },
+      {
         filter: {
           all: [
             {
@@ -82,16 +83,15 @@ export const createGraphActivities = ({
         },
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data: response }) =>
-        response.entities.map((entity) => {
-          const mappedEntity = mapGraphApiEntityToEntity(entity, null, true);
-          const entity_uuid = extractEntityUuidFromEntityId(
-            mappedEntity.metadata.recordId.entityId,
-          );
-          return entity_uuid as ActorEntityUuid;
-        }),
-      );
+      },
+    ).then(({ entities }) =>
+      entities.map((entity) => {
+        const entity_uuid = extractEntityUuidFromEntityId(
+          entity.metadata.recordId.entityId,
+        );
+        return entity_uuid as ActorEntityUuid;
+      }),
+    );
   },
 
   async queryDataTypesSubgraph(params: {

@@ -1,8 +1,7 @@
 import type { DistributiveField } from "@local/advanced-types/distribute";
 import type { QueryEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -18,8 +17,12 @@ export const getUser = async (params: {
   includeDrafts?: boolean;
 }): Promise<HashEntity<User> | undefined> => {
   const systemAccountId = await getSystemAccountId();
-  const [userEntity, ...unexpectedEntities] = await getGraphApiClient()
-    .queryEntities(systemAccountId, {
+  const {
+    entities: [userEntity, ...unexpectedEntities],
+  } = await queryEntities<User>(
+    { graphApi: getGraphApiClient() },
+    { actorId: systemAccountId },
+    {
       filter: {
         all: [
           {
@@ -46,10 +49,8 @@ export const getUser = async (params: {
         },
       },
       includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data: { entities } }) =>
-      entities.map((entity) => mapGraphApiEntityToEntity<User>(entity, null)),
-    );
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(`Critical: More than one user entity found in the graph.`);

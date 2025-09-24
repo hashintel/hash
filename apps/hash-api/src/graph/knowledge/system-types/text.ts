@@ -1,7 +1,7 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -22,7 +22,7 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { getEntities, getLatestEntityById } from "../primitive/entity";
+import { getLatestEntityById } from "../primitive/entity";
 import { isEntityLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
 import { getBlockById } from "./block";
@@ -103,7 +103,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     matchingBlockDataLinksWithTextAtDepthOne,
     matchingBlockDataLinksWithTextAtDepthTwo,
   ] = await Promise.all([
-    getEntities(context, authentication, {
+    queryEntities(context, authentication, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -120,8 +120,8 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    }).then((entities) => entities.filter(isEntityLinkEntity)),
-    getEntities(context, authentication, {
+    }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
+    queryEntities(context, authentication, {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -140,7 +140,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    }).then((entities) => entities.filter(isEntityLinkEntity)),
+    }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
   ]);
 
   /** @todo: unify these in a single structural query when it becomes possible */
@@ -149,7 +149,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     ...matchingBlockDataLinksWithTextAtDepthTwo,
   ];
 
-  const matchingContainsLinks = await getEntities(context, authentication, {
+  const matchingContainsLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
         contentLinkTypeFilter,
@@ -167,9 +167,9 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) => entities.filter(isEntityLinkEntity));
+  }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
-  const pageEntities = await getEntities(context, authentication, {
+  const pageEntities = await queryEntities(context, authentication, {
     filter: {
       all: [
         pageEntityTypeFilter,
@@ -189,7 +189,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) =>
+  }).then(({ entities }) =>
     entities.map((entity) => getPageFromEntity({ entity })),
   );
 
@@ -224,7 +224,7 @@ export const getCommentByText: ImpureGraphFunction<
     text.entity.metadata.recordId.entityId,
   );
 
-  const matchingHasTextLinks = await getEntities(context, authentication, {
+  const matchingHasTextLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
         generateVersionedUrlMatchingFilter(
@@ -245,7 +245,7 @@ export const getCommentByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) => entities.filter(isEntityLinkEntity));
+  }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
   if (matchingHasTextLinks.length > 1) {
     throw new Error("Text entity is in more than one comment");

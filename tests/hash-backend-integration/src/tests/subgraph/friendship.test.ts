@@ -1,7 +1,6 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import { getEntitySubgraphResponse } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import {
   archiveDataType,
   unarchiveDataType,
@@ -45,6 +44,7 @@ import {
   type QueryDataTypesParams,
   queryDataTypeSubgraph,
 } from "@local/hash-graph-sdk/data-type";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   getEntityTypeById,
   queryEntityTypes,
@@ -182,16 +182,12 @@ beforeAll(async () => {
     return entityType;
   });
 
-  aliceEntities = await getEntitySubgraphResponse(
-    graphContext,
-    authentication,
-    {
-      filter: aliceFilter,
-      temporalAxes: fullDecisionTimeAxis,
-      traversalPaths: [],
-      includeDrafts: false,
-    },
-  )
+  aliceEntities = await queryEntitySubgraph(graphContext, authentication, {
+    filter: aliceFilter,
+    temporalAxes: fullDecisionTimeAxis,
+    traversalPaths: [],
+    includeDrafts: false,
+  })
     .then(({ subgraph }) => getRoots(subgraph))
     .then((entities) =>
       entities.sort((a, b) =>
@@ -201,7 +197,7 @@ beforeAll(async () => {
       ),
     );
 
-  bobEntities = await getEntitySubgraphResponse(graphContext, authentication, {
+  bobEntities = await queryEntitySubgraph(graphContext, authentication, {
     filter: bobFilter,
     temporalAxes: fullDecisionTimeAxis,
     traversalPaths: [],
@@ -216,7 +212,7 @@ beforeAll(async () => {
       ),
     );
 
-  linkEntities = await getEntitySubgraphResponse(graphContext, authentication, {
+  linkEntities = await queryEntitySubgraph(graphContext, authentication, {
     filter: linkFilter,
     temporalAxes: fullDecisionTimeAxis,
     traversalPaths: [],
@@ -559,7 +555,7 @@ it("archives/unarchives entity types", async () => {
 
 describe("Simple queries", () => {
   it("read all entities", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -580,7 +576,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2000-01-01 as of now", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -604,7 +600,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2001-01-01 as of now", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -628,7 +624,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2001-01-01 as of 2001-01-01", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -652,7 +648,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2001-01-01 as of 2001-01-20", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -676,7 +672,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2002-01-01 as of 2001-01-01", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -700,7 +696,7 @@ describe("Simple queries", () => {
   });
 
   it("read entities at 2002-02-01 as of now", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -728,7 +724,7 @@ describe("Simple queries", () => {
   });
 
   it("read latest alice entity", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -748,7 +744,7 @@ describe("Simple queries", () => {
   });
 
   it("read latest friendship entity", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -769,7 +765,7 @@ describe("Simple queries", () => {
 
 describe("non-zero, simple resolve depths", () => {
   it("read persons based on the friendship (as of now)", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -835,7 +831,7 @@ describe("non-zero, simple resolve depths", () => {
   });
 
   it("read persons based on the friendship (all time)", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -927,7 +923,7 @@ describe("non-zero, simple resolve depths", () => {
   });
 
   it("read friendship type based on the friendship", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -959,7 +955,7 @@ describe("non-zero, simple resolve depths", () => {
   });
 
   it("read friendship from left entity (as of now)", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -1005,7 +1001,7 @@ describe("non-zero, simple resolve depths", () => {
   });
 
   it("read friendship from right entity", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -1040,7 +1036,7 @@ describe("non-zero, simple resolve depths", () => {
   });
 
   it("read person through a link", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {
@@ -1088,7 +1084,7 @@ describe("non-zero, simple resolve depths", () => {
 
 describe("complex resolve depths", () => {
   it("read person, include friendship link and their types (as of now)", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       {

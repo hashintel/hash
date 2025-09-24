@@ -244,6 +244,8 @@ pub struct ClosedMultiEntityTypeMap {
 pub struct QueryEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]

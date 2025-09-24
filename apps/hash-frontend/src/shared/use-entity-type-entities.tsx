@@ -10,8 +10,8 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   ConversionRequest,
-  GetEntitySubgraphRequest,
   HashEntity,
+  QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -60,7 +60,7 @@ export const generateUseEntityTypeEntitiesFilter = ({
   "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
   excludeWebIds?: WebId[];
-}): DistributiveField<GetEntitySubgraphRequest, "filter"> => {
+}): DistributiveField<QueryEntitySubgraphRequest, "filter"> => {
   return {
     // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
     //   @see https://linear.app/hash/issue/H-1207

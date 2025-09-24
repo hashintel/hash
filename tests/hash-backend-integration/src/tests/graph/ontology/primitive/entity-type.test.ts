@@ -354,7 +354,7 @@ describe("Entity type CRU", () => {
     // We don't support sorting for closed types, yet. To consistently compare them we sort them by $id.
     entityTypes.sort((a, b) => a.schema.$id.localeCompare(b.schema.$id));
 
-    const { closedMultiEntityTypes, definitions } =
+    const { entityTypes: closedMultiEntityTypes, definitions } =
       await getClosedMultiEntityTypes(graphContext.graphApi, authentication, {
         entityTypeIds: [
           [

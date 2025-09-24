@@ -15,7 +15,10 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
+import {
+  propertyObjectToPatches,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
@@ -28,10 +31,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { ImpureGraphContext } from "../../../context-types";
-import {
-  getEntitySubgraphResponse,
-  updateEntity,
-} from "../../../knowledge/primitive/entity";
+import { updateEntity } from "../../../knowledge/primitive/entity";
 import type { MigrationState } from "../types";
 
 export const upgradeWebEntities = async ({
@@ -65,7 +65,7 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId as ActorEntityUuid };
 
-  const { subgraph } = await getEntitySubgraphResponse(
+  const { subgraph } = await queryEntitySubgraph(
     context,
     webBotAuthentication,
     {

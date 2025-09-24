@@ -16993,6 +16993,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-graphql-request": "npm:4.5.9"
     "@graphql-codegen/typescript-resolvers": "npm:2.7.13"
+    "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"

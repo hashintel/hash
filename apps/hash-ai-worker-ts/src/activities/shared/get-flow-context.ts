@@ -11,7 +11,7 @@ import {
 } from "@blockprotocol/type-system";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -196,8 +196,10 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
     return cachedFiles;
   }
 
-  const entities = await graphApiClient
-    .queryEntities(actorId, {
+  const { entities } = await queryEntities<File>(
+    { graphApi: graphApiClient },
+    { actorId },
+    {
       includeDrafts: false,
       filter: {
         any: files.fileEntityIds.map((fileEntityId) => ({
@@ -219,10 +221,8 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
         })),
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) => new HashEntity<File>(entity)),
-    );
+    },
+  );
 
   await cache.set(filesCacheKey, entities);
   return entities;

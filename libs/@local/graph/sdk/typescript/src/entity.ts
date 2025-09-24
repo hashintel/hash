@@ -2,10 +2,12 @@ import type {
   DataTypeRootType,
   Edges,
   EntityRevisionId,
+  EntityRootType,
   EntityTypeRootType,
   EntityVertexId,
   OntologyVertices,
   PropertyTypeRootType,
+  Subgraph,
   SubgraphTemporalAxes,
 } from "@blockprotocol/graph";
 import type {
@@ -48,22 +50,40 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
+  ClosedMultiEntityTypeMap,
   CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
+  QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
   QueryEntitySubgraphRequest as QueryEntitySubgraphRequestGraphApi,
+  QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
 import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
+import type { Client as TemporalClient } from "@temporalio/client";
+import { Predicate } from "effect";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+import { rewriteSemanticFilter } from "./embeddings.js";
+import {
+  mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
+  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
+} from "./entity-type.js";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
+  EntityTypeResolveDefinitions,
 } from "./ontology.js";
+import { isUserHashInstanceAdmin } from "./principal/hash-instance-admins.js";
+import {
+  deserializeGraphVertices,
+  mapGraphApiEntityToEntity,
+  mapGraphApiSubgraphToSubgraph,
+  serializeGraphVertices,
+} from "./subgraph.js";
 import type { EntityValidationReport } from "./validation.js";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
@@ -169,19 +189,243 @@ export type ConversionRequest = {
   dataTypeId: VersionedUrl;
 };
 
-export type GetEntitiesRequest = DistributiveOmit<
+export type QueryEntitiesRequest = DistributiveOmit<
   QueryEntitiesRequestGraphApi,
   "conversions"
 > & {
   conversions?: ConversionRequest[];
 };
 
-export type GetEntitySubgraphRequest = DistributiveOmit<
+export type QueryEntitiesResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  QueryEntitiesResponseGraphApi,
+  | "entities"
+  | "closedMultiEntityTypes"
+  | "definitions"
+  | "webIds"
+  | "createdByIds"
+  | "editionCreatedByIds"
+  | "typeIds"
+  | "typeTitles"
+> & {
+  entities: HashEntity<PropertyMap>[];
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+  definitions?: EntityTypeResolveDefinitions;
+  webIds?: Record<VersionedUrl, number>;
+  createdByIds?: Record<ActorEntityUuid, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
+};
+
+export const queryEntities = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: {
+    graphApi: GraphApi;
+    temporalClient?: TemporalClient;
+  },
+  authentication: AuthenticationContext,
+  params: QueryEntitiesRequest,
+  options?: { preserveProperties?: boolean },
+): Promise<QueryEntitiesResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  const { preserveProperties = false } = options ?? {};
+
+  const isRequesterAdmin = preserveProperties
+    ? true
+    : process.env.NODE_ENV === "test"
+      ? false
+      : await isUserHashInstanceAdmin(context, authentication, {
+          userAccountId: authentication.actorId,
+        });
+
+  return context.graphApi
+    .queryEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(
+          entity,
+          authentication.actorId,
+          isRequesterAdmin,
+        ),
+      ),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      createdByIds: response.createdByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+      typeTitles: response.typeTitles as
+        | Record<VersionedUrl, string>
+        | undefined,
+    }));
+};
+
+export type QueryEntitySubgraphRequest = DistributiveOmit<
   QueryEntitySubgraphRequestGraphApi,
   "conversions"
 > & {
   conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
 };
+
+export type QueryEntitySubgraphResponse<
+  PropertyMap extends TypeIdsAndPropertiesForEntity,
+> = DistributiveOmit<
+  QueryEntitySubgraphResponseGraphApi,
+  | "subgraph"
+  | "closedMultiEntityTypes"
+  | "definitions"
+  | "webIds"
+  | "createdByIds"
+  | "editionCreatedByIds"
+  | "typeIds"
+  | "typeTitles"
+> & {
+  subgraph: Subgraph<
+    EntityRootType<HashEntity<PropertyMap>>,
+    HashEntity<PropertyMap>
+  >;
+  closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+  definitions?: EntityTypeResolveDefinitions;
+  webIds?: Record<VersionedUrl, number>;
+  createdByIds?: Record<ActorEntityUuid, number>;
+  editionCreatedByIds?: Record<ActorEntityUuid, number>;
+  typeIds?: Record<VersionedUrl, number>;
+  typeTitles?: Record<VersionedUrl, string>;
+};
+
+export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
+  QueryEntitySubgraphResponse<TypeIdsAndPropertiesForEntity>,
+  "subgraph"
+> & {
+  subgraph: SerializedSubgraph<SerializedEntityRootType>;
+};
+
+/**
+ * Get entities by a structural query.
+ *
+ * @param params.query the structural query to filter entities by.
+ */
+export const queryEntitySubgraph = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: { graphApi: GraphApi; temporalClient?: TemporalClient },
+  authentication: AuthenticationContext,
+  params: QueryEntitySubgraphRequest,
+): Promise<QueryEntitySubgraphResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  const isRequesterAdmin =
+    process.env.NODE_ENV === "test"
+      ? false
+      : await isUserHashInstanceAdmin(context, authentication, {
+          userAccountId: authentication.actorId,
+        });
+
+  return await context.graphApi
+    .queryEntitySubgraph(authentication.actorId, params)
+    .then(({ data }) => {
+      const { subgraph: unfilteredSubgraph, ...response } = data;
+
+      const subgraph = mapGraphApiSubgraphToSubgraph<
+        EntityRootType<HashEntity<PropertyMap>>,
+        PropertyMap
+      >(unfilteredSubgraph, authentication.actorId, isRequesterAdmin);
+      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
+      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
+        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
+
+        if (
+          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
+          //                    the latest revision
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
+            .archived &&
+          // if the vertex is in the roots of the query, then it is intentionally included
+          !subgraph.roots.find((root) => root.baseId === entityId)
+        ) {
+          delete subgraph.vertices[entityId];
+        }
+      }
+
+      return {
+        ...response,
+        subgraph,
+        closedMultiEntityTypes: response.closedMultiEntityTypes
+          ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+              response.closedMultiEntityTypes,
+            )
+          : undefined,
+        definitions: response.definitions
+          ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+              response.definitions,
+            )
+          : undefined,
+        webIds: response.webIds as Record<WebId, number> | undefined,
+        createdByIds: response.createdByIds as
+          | Record<ActorEntityUuid, number>
+          | undefined,
+        editionCreatedByIds: response.editionCreatedByIds as
+          | Record<ActorEntityUuid, number>
+          | undefined,
+        typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+        typeTitles: response.typeTitles as
+          | Record<VersionedUrl, string>
+          | undefined,
+      };
+    });
+};
+
+export const serializeQueryEntitySubgraphResponse = (
+  response: QueryEntitySubgraphResponse<TypeIdsAndPropertiesForEntity>,
+): SerializedQueryEntitySubgraphResponse => ({
+  ...response,
+  subgraph: {
+    roots: response.subgraph.roots,
+    vertices: serializeGraphVertices(response.subgraph.vertices),
+    edges: response.subgraph.edges,
+    temporalAxes: response.subgraph.temporalAxes,
+  },
+});
+
+export const deserializeQueryEntitySubgraphResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedQueryEntitySubgraphResponse,
+): QueryEntitySubgraphResponse<PropertyMap> => ({
+  ...response,
+  subgraph: {
+    roots: response.subgraph.roots,
+    vertices: deserializeGraphVertices(response.subgraph.vertices),
+    edges: response.subgraph.edges,
+    temporalAxes: response.subgraph.temporalAxes,
+  },
+});
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",

@@ -17,20 +17,20 @@ import {
   createEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
+  queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -258,8 +258,9 @@ describe("Entity CRU", () => {
   });
 
   it("can read a multi-type entity", async () => {
-    const { data: response } = await graphApi.queryEntitySubgraph(
-      testUser.accountId,
+    const response = await queryEntitySubgraph(
+      { graphApi },
+      { actorId: testUser.accountId },
       {
         filter: {
           // We have quite a few entities seeded and above we inserted a multi-type entity as well.
@@ -273,12 +274,7 @@ describe("Entity CRU", () => {
       },
     );
 
-    const entities = getRoots(
-      mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        response.subgraph,
-        testUser.accountId,
-      ),
-    );
+    const entities = getRoots(response.subgraph);
 
     // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
     for (const entity of entities) {
@@ -289,7 +285,7 @@ describe("Entity CRU", () => {
       expect(entityTypeFromResponse).toBeDefined();
 
       const {
-        closedMultiEntityTypes: closedTypeMapFromGraph,
+        entityTypes: closedTypeMapFromGraph,
         definitions: definitionsFromGraph,
       } = await getClosedMultiEntityTypes(
         graphContext.graphApi,
@@ -313,17 +309,17 @@ describe("Entity CRU", () => {
         entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
 
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.dataTypes,
       )) {
         expect(response.definitions?.dataTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.propertyTypes,
       )) {
         expect(response.definitions?.propertyTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of Object.entries(
+      for (const [id, schema] of typedEntries(
         definitionsFromGraph!.entityTypes,
       )) {
         expect(response.definitions?.entityTypes[id]).toEqual(schema);
@@ -374,8 +370,10 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest person entities", async () => {
-    const allEntities = await graphApi
-      .queryEntitySubgraph(testUser.accountId, {
+    const allEntities = await queryEntitySubgraph(
+      { graphApi },
+      { actorId: testUser.accountId },
+      {
         filter: {
           all: [
             {
@@ -394,15 +392,8 @@ describe("Entity CRU", () => {
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
-      })
-      .then(({ data }) =>
-        getRoots(
-          mapGraphApiSubgraphToSubgraph<EntityRootType>(
-            data.subgraph,
-            testUser.accountId,
-          ),
-        ),
-      );
+      },
+    ).then(({ subgraph }) => getRoots(subgraph));
 
     const newlyUpdated = allEntities.find(
       (ent) =>

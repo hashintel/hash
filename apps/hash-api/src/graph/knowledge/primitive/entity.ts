@@ -24,10 +24,8 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
   CountEntitiesParams,
@@ -40,21 +38,15 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
-import { rewriteSemanticFilter } from "@local/hash-graph-sdk/embeddings";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
-  type GetEntitiesRequest,
-  type GetEntitySubgraphRequest,
   HashEntity,
   HashLinkEntity,
+  queryEntities,
+  queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions } from "@local/hash-graph-sdk/entity-type";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -62,14 +54,11 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import { ApolloError } from "apollo-server-errors";
-import { Predicate } from "effect";
 
 import type {
   EntityDefinition,
-  GetEntitySubgraphResponse,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { isTestEnv } from "../../../lib/env-config";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
@@ -167,101 +156,6 @@ export const createEntity = async <
   return entity;
 };
 
-export const getEntities: ImpureGraphFunction<
-  GetEntitiesRequest & { temporalClient?: TemporalClient },
-  Promise<HashEntity[]>
-> = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, temporalClient);
-  }
-
-  const isRequesterAdmin = isTestEnv
-    ? false
-    : await isUserHashInstanceAdmin(
-        { graphApi },
-        { actorId },
-        { userAccountId: actorId },
-      );
-
-  return await graphApi
-    .queryEntities(actorId, params)
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId, isRequesterAdmin),
-      ),
-    );
-};
-
-/**
- * Get entities by a structural query.
- *
- * @param params.query the structural query to filter entities by.
- */
-export const getEntitySubgraphResponse: ImpureGraphFunction<
-  GetEntitySubgraphRequest,
-  Promise<
-    Omit<
-      GetEntitySubgraphResponse,
-      "userPermissionsOnEntities" | "subgraph"
-    > & { subgraph: Subgraph<EntityRootType<HashEntity>> }
-  >
-> = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, temporalClient);
-  }
-
-  const isRequesterAdmin = isTestEnv
-    ? false
-    : await isUserHashInstanceAdmin(
-        { graphApi },
-        { actorId },
-        { userAccountId: actorId },
-      );
-
-  return await graphApi
-    .queryEntitySubgraph(actorId, params)
-    .then(({ data }) => {
-      const {
-        subgraph: unfilteredSubgraph,
-        definitions,
-        closedMultiEntityTypes,
-        ...rest
-      } = data;
-
-      const subgraph = mapGraphApiSubgraphToSubgraph<
-        EntityRootType<HashEntity>
-      >(unfilteredSubgraph, actorId, isRequesterAdmin);
-      // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-      for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
-        const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
-
-        if (
-          // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
-          //                    the latest revision
-          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
-            .archived &&
-          // if the vertex is in the roots of the query, then it is intentionally included
-          !subgraph.roots.find((root) => root.baseId === entityId)
-        ) {
-          delete subgraph.vertices[entityId];
-        }
-      }
-
-      return {
-        closedMultiEntityTypes,
-        definitions: definitions
-          ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-              definitions,
-            )
-          : undefined,
-        subgraph,
-        ...rest,
-      };
-    });
-};
-
 export const countEntities: ImpureGraphFunction<
   CountEntitiesParams,
   Promise<number>
@@ -335,17 +229,15 @@ export const getLatestEntityById: ImpureGraphFunction<
     });
   }
 
-  const [entity, ...unexpectedEntities] = await getEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: allFilter,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!draftId,
+  const {
+    entities: [entity, ...unexpectedEntities],
+  } = await queryEntities(context, authentication, {
+    filter: {
+      all: allFilter,
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: !!draftId,
+  });
 
   if (unexpectedEntities.length > 0) {
     const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
@@ -661,11 +553,11 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  return await getEntities(context, authentication, {
+  return await queryEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) =>
+  }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
@@ -756,11 +648,11 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  return await getEntities(context, authentication, {
+  return await queryEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) =>
+  }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
@@ -789,39 +681,35 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { entityId, graphResolveDepths } = params;
 
-  const { subgraph } = await getEntitySubgraphResponse(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["webId"] },
-              {
-                parameter: extractWebIdFromEntityId(entityId),
-              },
-            ],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        ...graphResolveDepths,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const { subgraph } = await queryEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["uuid"] },
+            {
+              parameter: extractEntityUuidFromEntityId(entityId),
+            },
+          ],
+        },
+        {
+          equal: [
+            { path: ["webId"] },
+            {
+              parameter: extractWebIdFromEntityId(entityId),
+            },
+          ],
+        },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
     },
-  );
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      ...graphResolveDepths,
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+  });
 
   return subgraph;
 };

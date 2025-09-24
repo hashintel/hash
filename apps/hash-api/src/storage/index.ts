@@ -12,6 +12,7 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -25,7 +26,6 @@ import type { Express } from "express";
 import { getActorIdFromRequest } from "../auth/get-actor-id";
 import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
-import { getEntities } from "../graph/knowledge/primitive/entity";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
@@ -99,31 +99,35 @@ const getFileEntity = async (
   const { entityId, key, includeDrafts = false } = params;
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const fileEntityRevisions = await getEntities(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-        },
-        {
-          equal: [{ path: ["webId"] }, { parameter: webId }],
-        },
-        {
-          equal: [
-            {
-              path: [
-                "properties",
-                systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
-              ],
-            },
-            { parameter: key },
-          ],
-        },
-      ],
+  const { entities: fileEntityRevisions } = await queryEntities(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["webId"] }, { parameter: webId }],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: key },
+            ],
+          },
+        ],
+      },
+      temporalAxes: fullDecisionTimeAxis,
+      includeDrafts,
     },
-    temporalAxes: fullDecisionTimeAxis,
-    includeDrafts,
-  });
+  );
 
   const latestFileEntityRevision = fileEntityRevisions.reduce<
     Entity | undefined

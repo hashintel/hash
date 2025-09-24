@@ -4,7 +4,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -17,8 +17,12 @@ import {
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 
 export const getAliceUserAccountId = async () => {
-  const [aliceUserEntity] = await graphApiClient
-    .queryEntities(publicUserAccountId, {
+  const {
+    entities: [aliceUserEntity],
+  } = await queryEntities(
+    { graphApi: graphApiClient },
+    { actorId: publicUserAccountId },
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -40,12 +44,8 @@ export const getAliceUserAccountId = async () => {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, publicUserAccountId),
-      ),
-    );
+    },
+  );
 
   if (!aliceUserEntity) {
     throw new Error("Could not find a user entity with shortname 'alice'");

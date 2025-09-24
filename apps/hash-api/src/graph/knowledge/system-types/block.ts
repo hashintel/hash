@@ -4,9 +4,10 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type {
-  CreateEntityParameters,
-  HashEntity,
+import {
+  type CreateEntityParameters,
+  type HashEntity,
+  queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -29,7 +30,6 @@ import type {
 } from "../../context-types";
 import {
   createEntity,
-  getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -276,7 +276,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     block.entity.metadata.recordId.entityId,
   );
 
-  const matchingContainsLinks = await getEntities(context, authentication, {
+  const matchingContainsLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
         contentLinkTypeFilter,
@@ -294,7 +294,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) => entities.filter(isEntityLinkEntity));
+  }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
   /** @todo: account for blocks that are in multiple pages */
 

@@ -1,7 +1,6 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
@@ -428,8 +427,10 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
      * rather than a list of entities, to allow for more flexibility in the data provided.
      * This will also always pull the latest version of the entities, which may differ to those passed in.
      */
-    const subgraph = await graphApiClient
-      .queryEntitySubgraph(userAuthentication.actorId, {
+    const { subgraph } = await queryEntitySubgraph(
+      { graphApi: graphApiClient },
+      userAuthentication,
+      {
         filter: {
           any: entities.map((entity) => ({
             equal: [
@@ -455,13 +456,8 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
         },
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data }) =>
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(
-          data.subgraph,
-          userAuthentication.actorId,
-        ),
-      );
+      },
+    );
 
     const { entities: simpleEntities, entityTypes: simpleTypes } =
       getSimpleGraph(subgraph);

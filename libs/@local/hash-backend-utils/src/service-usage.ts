@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -12,11 +11,11 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-graph-sdk/subgraph";
+  HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -68,10 +67,12 @@ export const getWebServiceUsage = async (
     throw new Error(`Web bot for web ${webId} not found`);
   }
 
-  const serviceUsageRecordSubgraph = await backOff(
+  const { subgraph: serviceUsageRecordSubgraph } = await backOff(
     () =>
-      context.graphApi
-        .queryEntitySubgraph(webBotId, {
+      queryEntitySubgraph<UsageRecord>(
+        context,
+        { actorId: webBotId },
+        {
           filter: {
             all: [
               generateVersionedUrlMatchingFilter(
@@ -107,12 +108,8 @@ export const getWebServiceUsage = async (
               }
             : currentTimeInstantTemporalAxes,
           includeDrafts: false,
-        })
-        .then(({ data }) => {
-          return mapGraphApiSubgraphToSubgraph<
-            EntityRootType<HashEntity<UsageRecord>>
-          >(data.subgraph, userAccountId);
-        }),
+        },
+      ),
     {
       numOfAttempts: 3,
       startingDelay: 500,
@@ -209,8 +206,10 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const serviceFeatureEntities = await context.graphApi
-    .queryEntities(authentication.actorId, {
+  const { entities: serviceFeatureEntities } = await queryEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -243,12 +242,8 @@ export const createUsageRecord = async (
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
-    );
+    },
+  );
 
   if (serviceFeatureEntities.length !== 1) {
     throw new Error(
