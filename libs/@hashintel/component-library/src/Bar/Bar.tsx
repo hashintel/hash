@@ -1,5 +1,6 @@
 import { useMotionValue } from "motion/react";
-import React, { useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
+
 import { Filter } from "../lib/Filter";
 import { CONVEX } from "../lib/surfaceEquations";
 
@@ -31,7 +32,7 @@ export const Bar: React.FC<BarProps> = ({
   const scaleRatio = useMotionValue(scaleRatioProp);
   useLayoutEffect(() => {
     scaleRatio.set(scaleRatioProp);
-  }, [scaleRatioProp]);
+  }, [scaleRatio, scaleRatioProp]);
 
   return (
     <>
@@ -57,7 +58,7 @@ export const Bar: React.FC<BarProps> = ({
           boxShadow: "0 3px 14px rgba(0,0,0,0.1)",
           backdropFilter: `url(#bar-filter)`,
         }}
-      ></div>
+      />
     </>
   );
 };

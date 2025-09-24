@@ -1,6 +1,7 @@
 import { css } from "@hashintel/styled-system/css";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+
 import { Filter } from "../lib/Filter";
 import { CONVEX } from "../lib/surfaceEquations";
 
@@ -15,7 +16,6 @@ const SCALE_DRAG = 1;
 
 const TRACK_COLOR = "#89898F66";
 const TRACK_ACTIVE = "#000000";
-const THUMB_COLOR = TRACK_ACTIVE;
 
 export interface SliderProps {
   min?: number;
@@ -52,7 +52,7 @@ export const Slider: React.FC<SliderProps> = ({
   const forceActive = useMotionValue(forceActiveProp);
 
   const isUp = useTransform((): number =>
-    forceActive.get() || pointerDown.get() > 0.5 ? 1 : 0
+    forceActive.get() || pointerDown.get() > 0.5 ? 1 : 0,
   );
 
   const thumbWidth = THUMB_WIDTH;
@@ -67,8 +67,8 @@ export const Slider: React.FC<SliderProps> = ({
   const scaleRatio = useSpring(
     useTransform(
       [pressMultiplier, refractionBase],
-      ([m, base]) => (Number(m) || 0) * (Number(base) || 0)
-    )
+      ([multiplier, base]) => (Number(multiplier) || 0) * (Number(base) || 0),
+    ),
   );
 
   const thumbWidthRest = thumbWidth * SCALE_REST;
@@ -78,7 +78,7 @@ export const Slider: React.FC<SliderProps> = ({
     {
       damping: 80,
       stiffness: 2000,
-    }
+    },
   );
 
   const backgroundOpacity = useSpring(useTransform(isUp, [0, 1], [1, 0.1]), {
@@ -99,7 +99,7 @@ export const Slider: React.FC<SliderProps> = ({
       window.removeEventListener("mouseup", onPointerUp);
       window.removeEventListener("touchend", onPointerUp);
     };
-  }, []);
+  }, [pointerDown]);
 
   // UPDATE MOTION VALUES WHEN PROPS CHANGE
   useEffect(() => {
@@ -128,8 +128,8 @@ export const Slider: React.FC<SliderProps> = ({
 
   // CALL ONCHANGE WHEN VALUE CHANGES
   useEffect(() => {
-    const unsubscribe = value.on("change", (v) => {
-      onChange?.(v);
+    const unsubscribe = value.on("change", (val) => {
+      onChange?.(val);
     });
     return unsubscribe;
   }, [value, onChange]);
@@ -170,7 +170,7 @@ export const Slider: React.FC<SliderProps> = ({
               top: 0,
               left: 0,
               height: sliderHeight,
-              width: useTransform(value, (v) => `${v}%`),
+              width: useTransform(value, (val) => `${val}%`),
               borderRadius: 6,
               backgroundColor: TRACK_ACTIVE,
             }}
@@ -242,7 +242,7 @@ export const Slider: React.FC<SliderProps> = ({
 
           backgroundColor: useTransform(
             backgroundOpacity,
-            (op) => `rgba(255, 255, 255, ${op})`
+            (op) => `rgba(255, 255, 255, ${op})`,
           ),
           boxShadow: "0 3px 14px rgba(0,0,0,0.1)",
         }}

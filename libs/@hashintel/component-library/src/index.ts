@@ -1,3 +1,3 @@
-export { Bar, type BarProps } from "./Bar/Bar";
-export { Slider, type SliderProps } from "./Slider/Slider";
+export { Bar, type BarProps } from "./Bar/bar";
+export { Slider, type SliderProps } from "./Slider/slider";
 export { Toggle, type ToggleProps } from "./Toggle/Toggle";

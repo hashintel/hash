@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Bar } from "./Bar";
+import { Bar } from "./bar";
 
 const meta = {
   title: "Component Library/Bar",
@@ -122,7 +122,8 @@ how each parameter affects the final appearance.
         max: 2.5,
         step: 0.01,
       },
-      description: "Refractive index of the glass material (1.0 = air, 1.5 = typical glass)",
+      description:
+        "Refractive index of the glass material (1.0 = air, 1.5 = typical glass)",
     },
   },
   args: {
@@ -140,6 +141,7 @@ how each parameter affects the final appearance.
 } satisfies Meta<typeof Bar>;
 
 export default meta;
+
 type Story = StoryObj<typeof meta>;
 
 /**

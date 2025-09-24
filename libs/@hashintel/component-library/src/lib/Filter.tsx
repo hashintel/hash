@@ -1,10 +1,11 @@
 import { createCanvas, type ImageData } from "canvas";
-import { motion, MotionValue, useTransform } from "motion/react";
-import React from "react";
+import type { MotionValue } from "motion/react";
+import { motion, useTransform } from "motion/react";
+
 import {
   calculateDisplacementMap,
   calculateDisplacementMap2,
-} from "../lib/displacementMap";
+} from "./displacementMap";
 import { calculateRefractionSpecular } from "./specular";
 import { CONVEX } from "./surfaceEquations";
 import { getValueOrMotion } from "./useValueOrMotion";
@@ -12,9 +13,6 @@ import { getValueOrMotion } from "./useValueOrMotion";
 function imageDataToUrl(imageData: ImageData): string {
   const canvas = createCanvas(imageData.width, imageData.height);
   const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("Failed to get canvas context");
-  }
   ctx.putImageData(imageData, 0, 0);
   return canvas.toDataURL();
 }
@@ -64,7 +62,7 @@ export const Filter: React.FC<FilterProps> = ({
   });
 
   const maximumDisplacement = useTransform(() =>
-    Math.max(...map.get().map((v) => Math.abs(v))),
+    Math.max(...map.get().map(Math.abs)),
   );
 
   const displacementMap = useTransform(() => {
@@ -131,11 +129,10 @@ export const Filter: React.FC<FilterProps> = ({
       <motion.feColorMatrix
         in="displaced"
         type="saturate"
-        values={
-          useTransform(() =>
-            getValueOrMotion(specularSaturation).toString(),
-          ) as any
-        }
+        // @ts-expect-error Fix `feColorMatrix` type, or use real matrix instead of type="saturate"
+        values={useTransform(() =>
+          getValueOrMotion(specularSaturation).toString(),
+        )}
         result="displaced_saturated"
       />
 
