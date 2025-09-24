@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Bar } from "./bar";
+import { Bar } from "./Bar_";
 
 const meta = {
   title: "Component Library/Bar",

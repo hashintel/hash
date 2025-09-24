@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Toggle } from "./toggle";
+import { Toggle } from "./Toggle_";
 
 const meta = {
   title: "Component Library/Toggle",
