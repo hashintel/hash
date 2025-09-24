@@ -553,13 +553,13 @@ pub trait EntityStore {
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Count the number of entities that would be returned in [`get_entity`].
+    /// Count the number of entities that would be returned in [`query_entities`].
     ///
     /// # Errors
     ///
     /// - if the request to the database fails
     ///
-    /// [`get_entity`]: Self::get_entity_subgraph
+    /// [`query_entities`]: Self::query_entities
     fn count_entities(
         &self,
         actor_id: ActorEntityUuid,
