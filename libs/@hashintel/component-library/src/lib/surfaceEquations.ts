@@ -2,8 +2,7 @@ export type SurfaceFnDef = (x: number) => number;
 
 export const CONVEX_CIRCLE: SurfaceFnDef = (x) => Math.sqrt(1 - (1 - x) ** 2);
 
-export const CONVEX: SurfaceFnDef = (x) =>
-  Math.pow(1 - Math.pow(1 - x, 4), 1 / 4);
+export const CONVEX: SurfaceFnDef = (x) => (1 - (1 - x) ** 4) ** (1 / 4);
 
 export const CONCAVE: SurfaceFnDef = (x) => 1 - CONVEX_CIRCLE(x);
 
