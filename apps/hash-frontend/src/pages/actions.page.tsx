@@ -31,10 +31,10 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -84,12 +84,12 @@ const ActionsPage = () => {
   const [
     previouslyFetchedDraftEntitiesWithLinkedDataResponse,
     setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<QueryEntitySubgraphQuery>();
 
   const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: getDraftEntitiesFilter,
@@ -101,8 +101,8 @@ const ActionsPage = () => {
           hasRightEntity: { outgoing: 1, incoming: 1 },
         },
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     skip: !draftEntities,
     onCompleted: (data) =>
@@ -130,14 +130,14 @@ const ActionsPage = () => {
       EntityRootType<HashEntity>
     >(
       (draftEntitiesWithLinkedDataResponse ??
-        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.getEntitySubgraph
-        .subgraph,
+        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
+        .queryEntitySubgraph.subgraph,
     );
 
     const roots = getRoots(subgraph);
 
     const closedTypeMap = (draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.getEntitySubgraph
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph
       .closedMultiEntityTypes;
 
     return {

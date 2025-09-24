@@ -55,28 +55,10 @@ export const queryEntitiesQuery = gql`
   ${subgraphFieldsFragment}
 `;
 
-export const getEntitySubgraphQuery = gql`
-  query getEntitySubgraph(
-    $request: GetEntitySubgraphRequest!
-    $includePermissions: Boolean!
-  ) {
-    getEntitySubgraph(request: $request) {
-      closedMultiEntityTypes
-      count
-      cursor
-      createdByIds
-      editionCreatedByIds
-      definitions
-      userPermissionsOnEntities @include(if: $includePermissions)
-      subgraph {
-        ...SubgraphFields
-      }
-      typeIds
-      typeTitles
-      webIds
-    }
+export const queryEntitySubgraphQuery = gql`
+  query queryEntitySubgraph($request: QueryEntitySubgraphRequest!) {
+    queryEntitySubgraph(request: $request)
   }
-  ${subgraphFieldsFragment}
 `;
 
 export const countEntitiesQuery = gql`

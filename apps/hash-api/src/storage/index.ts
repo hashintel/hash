@@ -126,6 +126,7 @@ const getFileEntity = async (
       },
       temporalAxes: fullDecisionTimeAxis,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

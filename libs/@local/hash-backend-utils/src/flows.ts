@@ -58,6 +58,7 @@ export const getFlowRunEntityById = async (params: {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   );
 
@@ -202,6 +203,7 @@ export async function getFlowRuns({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   ).then(({ entities }) => {
     const flowRunIdToOwnedByAndName: Record<

@@ -24,13 +24,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
-  getEntitySubgraphQuery,
+  queryEntitySubgraphQuery,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { EditBarEntityEditor } from "./entity/edit-bar";
@@ -251,17 +251,17 @@ export const Entity = ({
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
-  const { data: getEntitySubgraphData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+  const { data: queryEntitySubgraphData, refetch } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
       const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
         EntityRootType<HashEntity>
-      >(data.getEntitySubgraph.subgraph);
+      >(data.queryEntitySubgraph.subgraph);
 
-      const { definitions, closedMultiEntityTypes } = data.getEntitySubgraph;
+      const { definitions, closedMultiEntityTypes } = data.queryEntitySubgraph;
 
       if (!definitions || !closedMultiEntityTypes) {
         throw new Error(
@@ -332,8 +332,8 @@ export const Entity = ({
         },
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
+        includePermissions: true,
       },
-      includePermissions: true,
     },
     skip: !!draftLocalEntity || !!proposedEntitySubgraph,
   });
@@ -366,7 +366,7 @@ export const Entity = ({
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
-      !getEntitySubgraphData?.getEntitySubgraph.userPermissionsOnEntities?.[
+      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
         entityId
       ]?.edit);
 

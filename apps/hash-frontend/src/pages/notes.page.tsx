@@ -21,10 +21,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -41,14 +41,13 @@ const NotesPage: NextPageWithLayout = () => {
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
   const [previouslyFetchedQuickNotesData, setPreviouslyFetchedQuickNotesData] =
-    useState<GetEntitySubgraphQuery>();
+    useState<QueryEntitySubgraphQuery>();
 
   const { data: quickNotesData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: true,
       request: {
         filter: {
           all: [
@@ -67,6 +66,7 @@ const NotesPage: NextPageWithLayout = () => {
         graphResolveDepths: blockCollectionContentsDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: true,
       },
     },
     onCompleted: (data) => setPreviouslyFetchedQuickNotesData(data),
@@ -75,7 +75,7 @@ const NotesPage: NextPageWithLayout = () => {
 
   const quickNotesSubgraph = useMemo(() => {
     const subgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-      ?.getEntitySubgraph.subgraph;
+      ?.queryEntitySubgraph.subgraph;
 
     if (!subgraph) {
       return undefined;
@@ -216,7 +216,7 @@ const NotesPage: NextPageWithLayout = () => {
             <BlockCollectionContextProvider
               blockCollectionSubgraph={quickNotesSubgraph}
               userPermissionsOnEntities={
-                quickNotesData?.getEntitySubgraph.userPermissionsOnEntities
+                quickNotesData?.queryEntitySubgraph.entityPermissions
               }
             >
               <TodaySection

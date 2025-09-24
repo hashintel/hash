@@ -49,6 +49,7 @@ export const getUser = async (params: {
         },
       },
       includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 

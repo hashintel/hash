@@ -264,6 +264,7 @@ export const getMentionNotification: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

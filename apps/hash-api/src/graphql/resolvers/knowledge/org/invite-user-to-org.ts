@@ -230,7 +230,6 @@ export const inviteUserToOrgResolver: ResolverFn<
     context,
     authentication,
     {
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: generateExistingInvitationFilter(
         orgWebId,
@@ -255,6 +254,8 @@ export const inviteUserToOrgResolver: ResolverFn<
           outgoing: 0,
         },
       },
+      includeDrafts: false,
+      includePermissions: false,
     },
   ).then(({ subgraph }) =>
     getPendingOrgInvitationsFromSubgraph(context, authentication, subgraph),

@@ -27,13 +27,13 @@ import type {
 import { useEffect, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
@@ -52,9 +52,9 @@ export const useLinearIntegrations = (): {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { data: linearIntegrationsData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -79,10 +79,10 @@ export const useLinearIntegrations = (): {
           hasLeftEntity: { outgoing: 0, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 0 },
         },
-        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
   });
 
@@ -99,7 +99,7 @@ export const useLinearIntegrations = (): {
       return [];
     }
 
-    const subgraph = linearIntegrationsData.getEntitySubgraph.subgraph;
+    const subgraph = linearIntegrationsData.queryEntitySubgraph.subgraph;
 
     const mappedSubgraph =
       mapGqlSubgraphFieldsFragmentToSubgraph<

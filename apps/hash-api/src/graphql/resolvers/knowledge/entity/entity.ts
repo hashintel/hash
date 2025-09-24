@@ -10,7 +10,11 @@ import type {
   Filter,
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
-import { HashEntity, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import {
+  HashEntity,
+  queryEntitySubgraph,
+  serializeQueryEntitySubgraphResponse,
+} from "@local/hash-graph-sdk/entity";
 import {
   createPolicy,
   deletePolicyById,
@@ -52,8 +56,8 @@ import type {
   Query,
   QueryCountEntitiesArgs,
   QueryGetEntityArgs,
-  QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
+  QueryQueryEntitySubgraphArgs,
   QueryResolvers,
   QueryValidateEntityArgs,
   ResolverFn,
@@ -177,6 +181,7 @@ export const queryEntitiesResolver: NonNullable<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 
@@ -207,29 +212,30 @@ export const countEntitiesResolver: ResolverFn<
   return count;
 };
 
-export const getEntitySubgraphResolver: ResolverFn<
-  Query["getEntitySubgraph"],
+export const queryEntitySubgraphResolver: ResolverFn<
+  Query["queryEntitySubgraph"],
   Record<string, never>,
   GraphQLContext,
-  QueryGetEntitySubgraphArgs
+  QueryQueryEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
-  const { subgraph, ...rest } = await queryEntitySubgraph(
+  const includePermissions = request.includePermissions;
+  const { subgraph, ...response } = await queryEntitySubgraph(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
-    request,
+    { ...request, includePermissions: false },
   );
 
-  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
-    graphQLContext,
-    info,
+  // TODO: Move this logic into the Graph
+  //   see https://linear.app/hash/issue/BE-127/allow-including-permission-in-entity-query-responses
+  const entityPermissions = includePermissions
+    ? await getUserPermissionsOnSubgraph(graphQLContext, info, subgraph)
+    : undefined;
+
+  return serializeQueryEntitySubgraphResponse({
     subgraph,
-  );
-
-  return {
-    subgraph: serializeSubgraph(subgraph),
-    userPermissionsOnEntities,
-    ...rest,
-  };
+    ...response,
+    entityPermissions,
+  });
 };
 
 export const getEntityResolver: ResolverFn<
@@ -309,6 +315,7 @@ export const getEntityResolver: ResolverFn<
       },
       temporalAxes,
       includeDrafts: includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 

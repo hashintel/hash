@@ -108,6 +108,7 @@ export const getWebServiceUsage = async (
               }
             : currentTimeInstantTemporalAxes,
           includeDrafts: false,
+          includePermissions: false,
         },
       ),
     {
@@ -242,6 +243,7 @@ export const createUsageRecord = async (
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   );
 

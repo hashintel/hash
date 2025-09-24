@@ -29,10 +29,10 @@ import {
 import { useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   SelectorAutocompleteProps<HashEntity, Multiple>,
@@ -66,9 +66,9 @@ export const EntitySelector = <Multiple extends boolean>({
   const [query, setQuery] = useState("");
 
   const { data: entitiesData, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter:
@@ -85,20 +85,20 @@ export const EntitySelector = <Multiple extends boolean>({
         graphResolveDepths: zeroedGraphResolveDepths,
         includeDrafts,
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     fetchPolicy: "cache-and-network",
   });
 
   const entitiesSubgraph = entitiesData
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        entitiesData.getEntitySubgraph.subgraph,
+        entitiesData.queryEntitySubgraph.subgraph,
       )
     : undefined;
 
   const closedMultiEntityTypesRootMap =
-    entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+    entitiesData?.queryEntitySubgraph.closedMultiEntityTypes;
 
   const sortedAndFilteredEntities = useMemo(() => {
     if (!entitiesSubgraph) {
@@ -187,7 +187,8 @@ export const EntitySelector = <Multiple extends boolean>({
       onInputChange={(_, value) => setQuery(value)}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => {
-        const typesMap = entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+        const typesMap =
+          entitiesData?.queryEntitySubgraph.closedMultiEntityTypes;
 
         if (!typesMap) {
           throw new Error(
@@ -232,7 +233,7 @@ export const EntitySelector = <Multiple extends boolean>({
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => {
           const typesMap =
-            entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+            entitiesData?.queryEntitySubgraph.closedMultiEntityTypes;
 
           if (!typesMap) {
             throw new Error(

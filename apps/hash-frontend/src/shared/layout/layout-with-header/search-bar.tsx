@@ -28,12 +28,12 @@ import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   QueryEntityTypeSubgraphQuery,
   QueryEntityTypeSubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
@@ -254,9 +254,9 @@ export const SearchBar: FunctionComponent = () => {
   );
 
   const { data: entityResultData, loading: entitiesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: queryFilter,
@@ -267,8 +267,8 @@ export const SearchBar: FunctionComponent = () => {
           isOfType: { outgoing: 1 },
         },
         includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     skip: !submittedQuery,
   });
@@ -289,7 +289,7 @@ export const SearchBar: FunctionComponent = () => {
 
   const deserializedEntitySubgraph = entityResultData
     ? deserializeSubgraph<EntityRootType<HashEntity>>(
-        entityResultData.getEntitySubgraph.subgraph,
+        entityResultData.queryEntitySubgraph.subgraph,
       )
     : undefined;
 

@@ -220,7 +220,6 @@ export const gptQueryEntities: RequestHandler<
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
-      includeDrafts: includeDrafts ?? false,
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
         inheritsFrom: { outgoing: 255 },
@@ -232,6 +231,8 @@ export const gptQueryEntities: RequestHandler<
         hasLeftEntity: { incoming: depth, outgoing: depth },
         hasRightEntity: { incoming: depth, outgoing: depth },
       },
+      includeDrafts: includeDrafts ?? false,
+      includePermissions: false,
     },
   ).then(async ({ subgraph }) => {
     const webs: SimpleWeb[] = await getUserSimpleWebs(

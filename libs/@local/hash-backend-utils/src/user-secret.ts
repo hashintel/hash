@@ -68,6 +68,7 @@ export const getSecretEntitiesForIntegration = async ({
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   }).then(({ subgraph }) => {
     const linkEntities = getRoots(subgraph);
 

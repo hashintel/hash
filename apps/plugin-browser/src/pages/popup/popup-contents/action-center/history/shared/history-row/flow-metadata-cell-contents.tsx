@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   ArrowDownRegularIcon,
@@ -6,11 +5,10 @@ import {
   AsteriskRegularIcon,
   ClockRegularIcon,
 } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -23,10 +21,10 @@ import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../../../graphql/queries/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../../../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "../../../../../../../shared/query-graphql-api";
 import type { MinimalFlowRun } from "../../../../../../../shared/storage";
 import { iconSx } from "./styles";
@@ -52,8 +50,8 @@ type TotalUsage = {
 };
 
 const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
-  queryGraphQlApi<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  queryGraphQlApi<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       request: {
         filter: {
@@ -73,19 +71,20 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
           ],
         },
         graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       },
     },
   ).then(({ data }) => {
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(data.getEntitySubgraph.subgraph);
+    const subgraph = deserializeQueryEntitySubgraphResponse(
+      data.queryEntitySubgraph,
+    ).subgraph;
 
     const usageRecords = getRoots(subgraph);
 
-    let inputTokens: number = 0;
-    let outputTokens: number = 0;
+    let inputTokens = 0;
+    let outputTokens = 0;
     for (const record of usageRecords) {
       const { inputUnitCount, outputUnitCount } =
         simplifyProperties<UsageRecordProperties>(record.properties);

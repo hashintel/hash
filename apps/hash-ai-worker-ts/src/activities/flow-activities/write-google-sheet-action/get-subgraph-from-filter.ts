@@ -33,4 +33,5 @@ export const getSubgraphFromFilter = async ({
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   }).then(({ subgraph }) => subgraph);

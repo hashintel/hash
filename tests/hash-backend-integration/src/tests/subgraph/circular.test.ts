@@ -69,6 +69,7 @@ const createRequest = ({
       },
     },
     includeDrafts: false,
+    includePermissions: false,
   };
 };
 let graphContext: ImpureGraphContext;
@@ -102,6 +103,7 @@ beforeAll(async () => {
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   });
 
   expect(entities.length).toBe(12);

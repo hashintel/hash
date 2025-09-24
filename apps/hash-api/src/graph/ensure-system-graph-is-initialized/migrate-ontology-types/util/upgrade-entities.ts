@@ -103,8 +103,9 @@ export const upgradeWebEntities = async ({
         ...zeroedGraphResolveDepths,
         ...fullOntologyResolveDepths,
       },
-      includeDrafts: true,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: true,
+      includePermissions: false,
     },
   );
 

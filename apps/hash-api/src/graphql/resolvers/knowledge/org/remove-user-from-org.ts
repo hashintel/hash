@@ -47,7 +47,6 @@ export const removeUserFromOrgResolver: ResolverFn<
   }
 
   const membershipLink = await queryEntities(context, authentication, {
-    includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
     filter: {
       all: [
@@ -93,6 +92,8 @@ export const removeUserFromOrgResolver: ResolverFn<
         },
       ],
     },
+    includeDrafts: false,
+    includePermissions: false,
   }).then(({ entities }) => entities[0]);
 
   if (!membershipLink) {

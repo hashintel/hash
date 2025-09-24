@@ -237,6 +237,7 @@ export const getLatestEntityById: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: !!draftId,
+    includePermissions: false,
   });
 
   if (unexpectedEntities.length > 0) {
@@ -557,6 +558,7 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
@@ -652,6 +654,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
@@ -709,6 +712,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   });
 
   return subgraph;

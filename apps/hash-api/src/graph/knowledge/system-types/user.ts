@@ -190,6 +190,7 @@ export const getUserByEmail: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   });
 
   if (unexpectedEntities.length > 0) {
@@ -238,6 +239,7 @@ export const getUserByShortname: ImpureGraphFunction<
     //   see https://linear.app/hash/issue/H-757
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
   });
 
   if (unexpectedEntities.length > 0) {
@@ -286,6 +288,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
     {
       /**
@@ -614,7 +617,6 @@ export const getUserPendingInvitations: ImpureGraphFunction<
     context,
     systemAccountAuthentication,
     {
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
@@ -675,6 +677,8 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           outgoing: 0,
         },
       },
+      includeDrafts: false,
+      includePermissions: false,
     },
   );
 

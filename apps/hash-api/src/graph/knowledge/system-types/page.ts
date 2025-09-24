@@ -284,6 +284,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   });
 
   const pages = pageEntities.map((entity) => getPageFromEntity({ entity }));

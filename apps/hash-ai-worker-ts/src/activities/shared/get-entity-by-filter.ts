@@ -21,6 +21,7 @@ export const getEntityByFilter = async ({
       filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

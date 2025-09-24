@@ -187,6 +187,7 @@ beforeAll(async () => {
     temporalAxes: fullDecisionTimeAxis,
     traversalPaths: [],
     includeDrafts: false,
+    includePermissions: false,
   })
     .then(({ subgraph }) => getRoots(subgraph))
     .then((entities) =>
@@ -202,6 +203,7 @@ beforeAll(async () => {
     temporalAxes: fullDecisionTimeAxis,
     traversalPaths: [],
     includeDrafts: false,
+    includePermissions: false,
   })
     .then(({ subgraph }) => getRoots(subgraph))
     .then((entities) =>
@@ -217,6 +219,7 @@ beforeAll(async () => {
     temporalAxes: fullDecisionTimeAxis,
     traversalPaths: [],
     includeDrafts: false,
+    includePermissions: false,
   })
     .then(({ subgraph }) => getRoots(subgraph))
     .then((entities) =>
@@ -565,6 +568,7 @@ describe("Simple queries", () => {
         traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(5);
@@ -589,6 +593,7 @@ describe("Simple queries", () => {
           null,
         ),
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(0);
@@ -613,6 +618,7 @@ describe("Simple queries", () => {
           null,
         ),
         includeDrafts: true,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -637,6 +643,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
         ),
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(0);
@@ -661,6 +668,7 @@ describe("Simple queries", () => {
           "2001-01-20T00:00Z" as Timestamp,
         ),
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -685,6 +693,7 @@ describe("Simple queries", () => {
           "2001-01-01T00:00Z" as Timestamp,
         ),
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(0);
@@ -709,6 +718,7 @@ describe("Simple queries", () => {
           null,
         ),
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -732,6 +742,7 @@ describe("Simple queries", () => {
         traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -752,6 +763,7 @@ describe("Simple queries", () => {
         traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -790,6 +802,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -856,6 +869,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -940,6 +954,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -972,6 +987,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -1018,6 +1034,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -1057,6 +1074,7 @@ describe("non-zero, simple resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);
@@ -1113,6 +1131,7 @@ describe("complex resolve depths", () => {
         ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     );
     expect(subgraph.roots.length).toEqual(1);

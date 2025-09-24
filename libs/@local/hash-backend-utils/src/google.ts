@@ -82,6 +82,7 @@ export const getGoogleAccountById = async ({
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   ).then(({ subgraph }) => {
     return getRoots(subgraph);

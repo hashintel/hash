@@ -200,7 +200,6 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
     { graphApi: graphApiClient },
     { actorId },
     {
-      includeDrafts: false,
       filter: {
         any: files.fileEntityIds.map((fileEntityId) => ({
           all: [
@@ -221,6 +220,8 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
         })),
       },
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
   );
 

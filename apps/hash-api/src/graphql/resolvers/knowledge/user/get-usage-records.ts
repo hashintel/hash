@@ -53,6 +53,7 @@ export const getUsageRecordsResolver: ResolverFn<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   );
 

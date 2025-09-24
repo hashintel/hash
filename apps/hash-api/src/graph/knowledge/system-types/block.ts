@@ -294,6 +294,7 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
   /** @todo: account for blocks that are in multiple pages */

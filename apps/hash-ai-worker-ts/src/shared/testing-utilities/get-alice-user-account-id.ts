@@ -44,6 +44,7 @@ export const getAliceUserAccountId = async () => {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
+      includePermissions: false,
     },
   );
 

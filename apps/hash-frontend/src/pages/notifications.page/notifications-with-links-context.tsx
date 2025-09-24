@@ -41,10 +41,10 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import { constructMinimalUser } from "../../lib/user-and-org";
 import { usePollInterval } from "../../shared/use-poll-interval";
@@ -127,11 +127,10 @@ export const useNotificationsWithLinksContextValue =
     const pollInterval = usePollInterval();
 
     const { data: notificationsWithOutgoingLinksData, refetch } = useQuery<
-      GetEntitySubgraphQuery,
-      GetEntitySubgraphQueryVariables
-    >(getEntitySubgraphQuery, {
+      QueryEntitySubgraphQuery,
+      QueryEntitySubgraphQueryVariables
+    >(queryEntitySubgraphQuery, {
       variables: {
-        includePermissions: false,
         request: {
           filter: {
             all: [
@@ -158,6 +157,7 @@ export const useNotificationsWithLinksContextValue =
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
+          includePermissions: false,
         },
       },
       skip: !authenticatedUser,
@@ -170,7 +170,7 @@ export const useNotificationsWithLinksContextValue =
         notificationsWithOutgoingLinksData
           ? mapGqlSubgraphFieldsFragmentToSubgraph<
               EntityRootType<HashEntity<NotificationProperties>>
-            >(notificationsWithOutgoingLinksData.getEntitySubgraph.subgraph)
+            >(notificationsWithOutgoingLinksData.queryEntitySubgraph.subgraph)
           : undefined,
       [notificationsWithOutgoingLinksData],
     );

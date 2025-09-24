@@ -60,6 +60,7 @@ export const getHashInstance = async (
         ),
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       }),
     {
       numOfAttempts: 3,

@@ -929,8 +929,9 @@ export const getEntitiesByType: ImpureGraphFunction<
         }),
       ],
     },
-    includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
   }).then(({ entities }) => entities);
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
@@ -949,8 +950,9 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
     queryEntities(context, authentication, {
       filter: {
@@ -963,8 +965,9 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
   ]);
 

@@ -11,10 +11,10 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
 import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
@@ -49,7 +49,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const [
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<QueryEntitySubgraphQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -61,8 +61,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch: refetchFullData,
     loading,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       variables: {
         request: {
@@ -96,7 +96,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .getEntitySubgraph.subgraph,
+              .queryEntitySubgraph.subgraph,
           )
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],

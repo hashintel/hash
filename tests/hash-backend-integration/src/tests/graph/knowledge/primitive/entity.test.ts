@@ -271,6 +271,7 @@ describe("Entity CRU", () => {
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
     );
 
@@ -392,6 +393,7 @@ describe("Entity CRU", () => {
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     ).then(({ subgraph }) => getRoots(subgraph));
 

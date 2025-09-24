@@ -89,6 +89,7 @@ export const createIntegrationSyncBackWatcher = async ({
             },
             temporalAxes: fullDecisionTimeAxis,
             includeDrafts: false,
+            includePermissions: false,
           },
         );
 

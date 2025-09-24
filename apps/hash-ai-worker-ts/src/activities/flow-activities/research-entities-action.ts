@@ -113,6 +113,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             },
           ],
         },
+        includePermissions: false,
       },
     );
 

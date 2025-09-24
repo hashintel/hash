@@ -23,10 +23,10 @@ import type {
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type {
   PersistedNet,
   PetriNetDefinitionObject,
@@ -34,11 +34,11 @@ import type {
 } from "../types";
 
 export const getPersistedNetsFromSubgraph = (
-  data: GetEntitySubgraphQuery,
+  data: QueryEntitySubgraphQuery,
 ): PersistedNet[] => {
   const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
     EntityRootType<HashEntity<PetriNet>>
-  >(data.getEntitySubgraph.subgraph);
+  >(data.queryEntitySubgraph.subgraph);
 
   const nets = getRoots(subgraph);
 
@@ -150,7 +150,7 @@ export const getPersistedNetsFromSubgraph = (
     const parentProcess = outgoingLinkAndRightEntities[0]?.rightEntity[0];
 
     const userEditable =
-      !!data.getEntitySubgraph.userPermissionsOnEntities?.[net.entityId]?.edit;
+      !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.edit;
 
     return {
       entityId: net.entityId,
@@ -172,9 +172,9 @@ export const getPersistedNetsFromSubgraph = (
 
 export const usePersistedNets = () => {
   const { data, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: {
@@ -200,8 +200,8 @@ export const usePersistedNets = () => {
         },
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includePermissions: true,
       },
-      includePermissions: true,
     },
   });
 

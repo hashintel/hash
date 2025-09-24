@@ -140,6 +140,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   });
 
   if (entities.length > 1) {
@@ -212,6 +213,7 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

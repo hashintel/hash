@@ -323,6 +323,7 @@ export const getOrgByShortname: ImpureGraphFunction<
     //   see https://linear.app/hash/issue/H-757
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   });
 
   if (unexpectedEntities.length > 0) {

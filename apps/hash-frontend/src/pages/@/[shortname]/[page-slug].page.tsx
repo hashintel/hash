@@ -29,10 +29,10 @@ import { PageIcon } from "../../../components/page-icon";
 import { PageLoadingState } from "../../../components/page-loading-state";
 import { CollabPositionProvider } from "../../../contexts/collab-position-context";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { constructPageRelativeUrl } from "../../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../../lib/user-and-org";
 import { iconVariantSizes } from "../../../shared/edit-emoji-icon-button";
@@ -203,9 +203,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
 
   const { data, error, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables:
       getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
     fetchPolicy: "cache-and-network",
@@ -239,7 +239,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     pageHeaderRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
-  const { subgraph, userPermissionsOnEntities } = data?.getEntitySubgraph ?? {};
+  const { subgraph, entityPermissions } = data?.queryEntitySubgraph ?? {};
 
   const pageSubgraph = subgraph
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
@@ -299,7 +299,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     !pageSubgraph ||
     !pageEntityId ||
     !pageWebId ||
-    !userPermissionsOnEntities ||
+    !entityPermissions ||
     !contents
   ) {
     return (
@@ -321,7 +321,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     systemEntityTypes.document.entityTypeId,
   );
 
-  const canUserEdit = userPermissionsOnEntities[pageEntityId]?.edit ?? false;
+  const canUserEdit = entityPermissions[pageEntityId]?.edit ?? false;
 
   const readonly = !(
     (isDocumentPage && enabledFeatureFlags.documents && canUserEdit) ||
@@ -456,7 +456,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
             <BlockLoadedProvider routeHash={routeHash}>
               <BlockCollectionContextProvider
                 blockCollectionSubgraph={pageSubgraph}
-                userPermissionsOnEntities={userPermissionsOnEntities}
+                userPermissionsOnEntities={entityPermissions}
               >
                 {isCanvasPage ? (
                   <CanvasPageBlock contents={contents} />

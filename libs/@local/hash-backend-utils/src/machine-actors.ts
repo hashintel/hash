@@ -99,6 +99,7 @@ export const getMachineEntityByIdentifier = async (
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       }),
     {
       numOfAttempts: 3,

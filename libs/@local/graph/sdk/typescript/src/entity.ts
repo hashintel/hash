@@ -67,6 +67,7 @@ import type { Client as TemporalClient } from "@temporalio/client";
 import { Predicate } from "effect";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+import type { UserPermissionsOnEntities } from "./authorization.js";
 import { rewriteSemanticFilter } from "./embeddings.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
@@ -194,10 +195,12 @@ export type QueryEntitiesRequest = DistributiveOmit<
   "conversions"
 > & {
   conversions?: ConversionRequest[];
+  includePermissions: boolean;
 };
 
 export type QueryEntitiesResponse<
-  PropertyMap extends TypeIdsAndPropertiesForEntity,
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitiesResponseGraphApi,
   | "entities"
@@ -212,11 +215,12 @@ export type QueryEntitiesResponse<
   entities: HashEntity<PropertyMap>[];
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
-  webIds?: Record<VersionedUrl, number>;
+  webIds?: Record<WebId, number>;
   createdByIds?: Record<ActorEntityUuid, number>;
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
+  entityPermissions?: UserPermissionsOnEntities;
 };
 
 export const queryEntities = async <
@@ -234,6 +238,12 @@ export const queryEntities = async <
   if (Predicate.hasProperty(params, "filter")) {
     // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  if (params.includePermissions === true) {
+    throw new Error(
+      "Including permissions is not supported in the Graph yet: https://linear.app/hash/issue/BE-127",
+    );
   }
 
   const { preserveProperties = false } = options ?? {};
@@ -286,10 +296,12 @@ export type QueryEntitySubgraphRequest = DistributiveOmit<
   "conversions"
 > & {
   conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+  includePermissions: boolean;
 };
 
 export type QueryEntitySubgraphResponse<
-  PropertyMap extends TypeIdsAndPropertiesForEntity,
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
   | "subgraph"
@@ -307,11 +319,12 @@ export type QueryEntitySubgraphResponse<
   >;
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: EntityTypeResolveDefinitions;
-  webIds?: Record<VersionedUrl, number>;
+  webIds?: Record<WebId, number>;
   createdByIds?: Record<ActorEntityUuid, number>;
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
+  entityPermissions?: UserPermissionsOnEntities;
 };
 
 export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
@@ -337,6 +350,12 @@ export const queryEntitySubgraph = async <
   if (Predicate.hasProperty(params, "filter")) {
     // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  if (params.includePermissions === true) {
+    throw new Error(
+      "Including permissions is not supported in the Graph yet: https://linear.app/hash/issue/BE-127",
+    );
   }
 
   const isRequesterAdmin =

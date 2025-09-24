@@ -456,6 +456,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
         },
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includePermissions: false,
       },
     );
 

@@ -56,6 +56,7 @@ export const getLatestEntityById = async (params: {
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 

@@ -120,6 +120,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
     queryEntities(context, authentication, {
       filter: {
@@ -140,6 +141,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
   ]);
 
@@ -167,6 +169,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
   const pageEntities = await queryEntities(context, authentication, {
@@ -189,6 +192,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) =>
     entities.map((entity) => getPageFromEntity({ entity })),
   );
@@ -245,6 +249,7 @@ export const getCommentByText: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ entities }) => entities.filter(isEntityLinkEntity));
 
   if (matchingHasTextLinks.length > 1) {

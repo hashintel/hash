@@ -93,7 +93,7 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -109,6 +109,7 @@ export const updateDataTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     dataTypes = await graphActivities.getSubgraphDataTypes({
@@ -178,7 +179,7 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -194,6 +195,7 @@ export const updatePropertyTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     propertyTypes = await graphActivities.getSubgraphPropertyTypes({
@@ -263,7 +265,7 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -279,6 +281,7 @@ export const updateEntityTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     entityTypes = await graphActivities.getSubgraphEntityTypes({
@@ -353,7 +356,7 @@ export const updateEntityEmbeddings = async (
         new HashEntity(entity).toJSON(),
       );
     } else {
-      const queryResponse = await graphActivities.getEntitySubgraph({
+      const queryResponse = await graphActivities.queryEntitySubgraph({
         authentication: params.authentication,
         request: {
           filter: params.filter,
@@ -369,6 +372,7 @@ export const updateEntityEmbeddings = async (
           },
           temporalAxes,
           includeDrafts: true,
+          includePermissions: false,
           cursor,
           limit: 100,
         },

@@ -33,16 +33,16 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   QueryEntityTypeSubgraphQuery,
   QueryEntityTypeSubgraphQueryVariables,
   QueryPropertyTypeSubgraphQuery,
   QueryPropertyTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
@@ -300,11 +300,10 @@ const ProfilePage: NextPageWithLayout = () => {
   );
 
   const { data: pinnedEntityTypesData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -340,6 +339,7 @@ const ProfilePage: NextPageWithLayout = () => {
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -348,7 +348,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   const entitiesSubgraph = pinnedEntityTypesData
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        pinnedEntityTypesData.getEntitySubgraph.subgraph,
+        pinnedEntityTypesData.queryEntitySubgraph.subgraph,
       )
     : undefined;
 

@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { DistributiveField } from "@local/advanced-types/distribute";
@@ -8,27 +7,26 @@ import type {
   EntityQuerySortingRecord,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
-import type {
-  ConversionRequest,
-  HashEntity,
-  QueryEntitySubgraphRequest,
+import {
+  type ConversionRequest,
+  deserializeQueryEntitySubgraphResponse,
+  type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
 import {
-  getEntitySubgraphQuery,
   queryEntitiesQuery,
+  queryEntitySubgraphQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 /**
@@ -152,7 +150,7 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
   webId,
 }: {
   webId: WebId;
-}): GetEntitySubgraphQueryVariables => {
+}): QueryEntitySubgraphQueryVariables => {
   return {
     request: {
       /**
@@ -169,10 +167,10 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
         includeArchived: false,
       }),
       graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-    includePermissions: false,
   };
 };
 
@@ -184,7 +182,7 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
   includeArchived,
   sort,
   ...rest
-}: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => {
+}: UseEntityTypeEntitiesQueryParams): QueryEntitySubgraphQueryVariables => {
   return {
     request: {
       ...rest,
@@ -204,31 +202,31 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
         ...zeroedGraphResolveDepths,
         ...graphResolveDepths,
       },
-      includeDrafts: false,
-      includeEntityTypes: "resolvedWithDataTypeChildren",
       sortingPaths: sort ? [sort] : undefined,
       /**
        * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities
        */
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includeEntityTypes: "resolvedWithDataTypeChildren",
+      includePermissions: false,
     },
-    includePermissions: false,
-  } satisfies GetEntitySubgraphQueryVariables;
+  } satisfies QueryEntitySubgraphQueryVariables;
 };
 
 export const useEntityTypeEntities = (
   params: UseEntityTypeEntitiesQueryParams,
-  onCompleted?: (data: GetEntitySubgraphQuery) => void,
+  onCompleted?: (data: QueryEntitySubgraphQuery) => void,
 ): Omit<EntitiesVisualizerData, "tableData" | "updateTableData"> => {
-  const variables = useMemo<GetEntitySubgraphQueryVariables>(
+  const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => generateUseEntityTypeEntitiesQueryVariables(params),
     [params],
   );
 
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted,
     variables,
@@ -241,12 +239,11 @@ export const useEntityTypeEntities = (
 
   const subgraph = useMemo(
     () =>
-      data?.getEntitySubgraph.subgraph
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-            data.getEntitySubgraph.subgraph,
-          )
+      data?.queryEntitySubgraph
+        ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
+            .subgraph
         : undefined,
-    [data?.getEntitySubgraph.subgraph],
+    [data?.queryEntitySubgraph],
   );
 
   const entities = useMemo(
@@ -255,7 +252,7 @@ export const useEntityTypeEntities = (
   );
 
   return {
-    ...data?.getEntitySubgraph,
+    ...data?.queryEntitySubgraph,
     entities,
     hadCachedContent,
     loading,

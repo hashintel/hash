@@ -40,6 +40,6 @@ export const getAccountPagesVariables = ({
      * H-2430
      */
     includeDrafts: false,
+    includePermissions: false,
   },
-  includePermissions: false,
 });

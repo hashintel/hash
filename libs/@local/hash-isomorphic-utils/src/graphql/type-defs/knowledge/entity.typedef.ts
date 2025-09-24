@@ -11,7 +11,11 @@ export const entityTypedef = gql`
   scalar EntityRecordId
   scalar EntityRelationAndSubject
   scalar EntityValidationReport
-  scalar GetEntitySubgraphRequest
+  scalar QueryEntitiesRequest
+  scalar QueryEntitiesResponse
+  scalar QueryEntitySubgraphRequest
+  scalar QueryEntitySubgraphResponse
+  scalar TypeIdsAndPropertiesForEntity
   scalar LinkData
   scalar PropertyObject
   scalar PropertyObjectWithMetadata
@@ -30,20 +34,6 @@ export const entityTypedef = gql`
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
     subgraph: GqlSubgraph!
-  }
-
-  type GetEntitySubgraphResponse {
-    count: Int
-    createdByIds: CreatedByIdsMap
-    editionCreatedByIds: CreatedByIdsMap
-    cursor: EntityQueryCursor
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
-    definitions: ClosedMultiEntityTypesDefinitions
-    userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: GqlSubgraph!
-    typeIds: TypeIdsMap
-    typeTitles: TypeTitlesMap
-    webIds: WebIdsMap
   }
 
   input LinkedEntityDefinition {
@@ -140,9 +130,9 @@ export const entityTypedef = gql`
 
     countEntities(request: CountEntitiesParams!): Int!
 
-    getEntitySubgraph(
-      request: GetEntitySubgraphRequest!
-    ): GetEntitySubgraphResponse!
+    queryEntitySubgraph(
+      request: QueryEntitySubgraphRequest!
+    ): QueryEntitySubgraphResponse!
 
     """
     Get a subgraph rooted at an entity resolved by its id.

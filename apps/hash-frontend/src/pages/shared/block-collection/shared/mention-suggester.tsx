@@ -46,10 +46,10 @@ import {
 import { useKey } from "rooks";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
@@ -142,11 +142,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   );
 
   const { data, loading: loadingEntities } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -185,6 +184,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -192,7 +192,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
   const entitiesSubgraph = data
     ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.getEntitySubgraph.subgraph,
+        data.queryEntitySubgraph.subgraph,
       )
     : undefined;
 

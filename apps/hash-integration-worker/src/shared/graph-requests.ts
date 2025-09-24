@@ -60,6 +60,7 @@ export const getEntitiesByLinearId = async (params: {
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
   }).then(({ entities }) => entities);
 
 export const getEntityOutgoingLinks = async (params: {
@@ -99,6 +100,7 @@ export const getEntityOutgoingLinks = async (params: {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 
@@ -145,6 +147,7 @@ export const getLatestEntityById = async (params: {
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
   });
 
   if (unexpectedEntities.length > 0) {

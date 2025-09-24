@@ -16,10 +16,10 @@ import { TransitionGroup } from "react-transition-group";
 
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
@@ -83,9 +83,9 @@ export const AccountEntitiesList: FunctionComponent<
   } = useLatestEntityTypesOptional();
 
   const { data: userEntitiesData, loading: userEntitiesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: generateSidebarEntityTypeEntitiesQueryVariables({
       webId,
     }),
@@ -111,7 +111,7 @@ export const AccountEntitiesList: FunctionComponent<
           ((isOwnedOntologyElementMetadata(root.metadata) &&
             root.metadata.webId === webId) ||
             Object.keys(
-              userEntitiesData?.getEntitySubgraph.typeIds ?? {},
+              userEntitiesData?.queryEntitySubgraph.typeIds ?? {},
             ).includes(root.schema.$id)) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||

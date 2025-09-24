@@ -69,12 +69,12 @@ export const scalars = {
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
-  QueryEntitiesParams: "@local/hash-graph-sdk/entity#QueryEntitiesParams",
+  QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
   QueryEntitiesResponse: "@local/hash-graph-sdk/entity#QueryEntitiesResponse",
-  QueryEntitiesSubgraphParams:
-    "@local/hash-graph-sdk/entity#QueryEntitiesSubgraphParams",
-  QueryEntitiesSubgraphResponse:
-    "@local/hash-graph-sdk/entity#SerializedQueryEntitiesSubgraphResponse",
+  QueryEntitySubgraphRequest:
+    "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
+  QueryEntitySubgraphResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitySubgraphResponse",
   EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
   PropertyObject: "@blockprotocol/type-system#PropertyObject",
   PropertyArray: "@blockprotocol/type-system#PropertyArray",

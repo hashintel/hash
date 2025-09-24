@@ -17,13 +17,13 @@ import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   GetWaitlistPositionQuery,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   SubmitEarlyAccessFormMutation,
   SubmitEarlyAccessFormMutationVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import {
   getWaitlistPositionQuery,
   submitEarlyAccessFormMutation,
@@ -64,8 +64,8 @@ export const Waitlisted = () => {
     "closed" | "open" | "submitted"
   >("closed");
 
-  useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       variables: {
         request: {
@@ -75,12 +75,12 @@ export const Waitlisted = () => {
           graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
+          includePermissions: false,
         },
-        includePermissions: false,
       },
       fetchPolicy: "cache-and-network",
       onCompleted: (data) => {
-        if (data.getEntitySubgraph.subgraph.roots.length) {
+        if (data.queryEntitySubgraph.subgraph.roots.length) {
           setEarlyAccessFormState("submitted");
         }
       },

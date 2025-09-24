@@ -110,6 +110,7 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 
@@ -153,6 +154,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   });
 
   if (entities.length > 1) {
@@ -223,6 +225,7 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
+    includePermissions: false,
   }).then(({ subgraph }) => {
     const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
@@ -289,6 +292,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     });
 
   const properties: SyncLinearDataWith["propertiesWithMetadata"] = {

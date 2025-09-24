@@ -21,13 +21,9 @@ export const updateEntityMutation = /* GraphQL */ `
   }
 `;
 
-export const getEntitySubgraphQuery = /* GraphQL */ `
-  query getEntitySubgraph($request: GetEntitySubgraphRequest!) {
-    getEntitySubgraph(request: $request) {
-      subgraph {
-        ...SubgraphFields
-      }
-    }
+export const queryEntitySubgraphQuery = /* GraphQL */ `
+  query queryEntitySubgraph($request: QueryEntitySubgraphRequest!) {
+    queryEntitySubgraph(request: $request)
   }
   ${print(subgraphFieldsFragment)}
 `;

@@ -213,6 +213,7 @@ export const findExistingEntity = async ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
+        includePermissions: false,
       },
     ).then(({ entities }) =>
       entities
@@ -250,6 +251,7 @@ export const findExistingEntity = async ({
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts,
+          includePermissions: false,
         },
       ).then(({ entities }) =>
         entities
@@ -365,6 +367,7 @@ export const findExistingLinkEntity = async ({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 
