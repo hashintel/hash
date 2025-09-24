@@ -29,8 +29,8 @@ import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-pro
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Block as BlockProperties,
-  CommentNotification as CommentNotificationProperties,
   Comment as CommentProperties,
+  CommentNotification as CommentNotificationProperties,
   Notification as NotificationProperties,
   OccurredInEntity as OccurredInEntityProperties,
   Page as PageProperties,

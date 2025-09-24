@@ -17,8 +17,8 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 
 import type {

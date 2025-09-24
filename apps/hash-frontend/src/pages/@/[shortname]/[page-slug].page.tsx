@@ -12,8 +12,8 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { SxProps } from "@mui/material";
 import { Box } from "@mui/material";
-import { NextSeo } from "next-seo";
 import { Router, useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 import type { PropsWithChildren } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -42,15 +42,15 @@ import {
   isPageParsedUrlQuery,
   parsePageUrlQueryParams,
 } from "../../../shared/routing/route-page-info";
+import { BlockCollection } from "../../shared/block-collection/block-collection";
+import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
+import { PageContextProvider } from "../../shared/block-collection/page-context";
+import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import {
   getBlockCollectionContents,
   getBlockCollectionContentsStructuralQueryVariables,
 } from "../../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
-import { BlockCollection } from "../../shared/block-collection/block-collection";
-import { CommentThread } from "../../shared/block-collection/comments/comment-thread";
-import { PageContextProvider } from "../../shared/block-collection/page-context";
-import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import { NotFound } from "../../shared/not-found";
 import {
   TOP_CONTEXT_BAR_HEIGHT,

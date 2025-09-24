@@ -39,12 +39,12 @@ import { getLayoutWithSidebar } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
 import type { SortOrder } from "./actions.page/draft-entities";
 import { DraftEntities } from "./actions.page/draft-entities";
+import type { EntityTypeDisplayInfoByBaseUrl } from "./actions.page/draft-entities/types";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
 import {
   DraftEntitiesContextProvider,
   useDraftEntities,
 } from "./actions.page/draft-entities-context";
-import type { EntityTypeDisplayInfoByBaseUrl } from "./actions.page/draft-entities/types";
 import { InlineSelect } from "./shared/inline-select";
 import { TopContextBar } from "./shared/top-context-bar";
 
