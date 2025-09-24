@@ -337,7 +337,7 @@ impl Severity {
     ///
     /// Some severity levels provide built-in help messages that offer guidance on how to address or
     /// understand issues at that level.
-    pub(crate) const fn messages(self) -> &'static [Message] {
+    pub(crate) const fn messages<S>(self) -> &'static [Message<S>] {
         match self {
             Self::Bug => {
                 const {
