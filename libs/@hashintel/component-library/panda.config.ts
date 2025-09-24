@@ -16,4 +16,5 @@ export default defineConfig({
   },
 
   importMap: "@hashintel/styled-system",
+  presets: ["@hashintel/ui-preset"],
 });
