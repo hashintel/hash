@@ -31,7 +31,9 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@ark-ui/react": "5.25.0",
@@ -42,6 +44,7 @@
     "@hashintel/styled-system": "workspace:*",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@storybook/addon-docs": "^9.1.8",
     "@storybook/react-vite": "9.1.8",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.1",
@@ -49,6 +52,7 @@
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "eslint": "9.36.0",
+    "eslint-plugin-storybook": "^9.1.8",
     "jsdom": "27.0.0",
     "lucide": "0.544.0",
     "storybook": "9.1.8",
