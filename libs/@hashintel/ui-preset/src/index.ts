@@ -476,18 +476,7 @@ export default definePreset({
     // Semantic tokens are tokens that are designed to be used in a specific context.
     // In most cases, the value of a semantic token references to an existing token.
     // https://panda-css.com/docs/theming/tokens#semantic-tokens
-    semanticTokens: {
-      colors: {
-        semanticBrand: {
-          50: {
-            value: {
-              base: "{colors.brand.50}",
-              _dark: "{colors.brand.dark.50}",
-            },
-          },
-        },
-      },
-    },
+    semanticTokens: {},
 
     // Text styles combine typography tokens into reusable text styles
     textStyles: {
