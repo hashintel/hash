@@ -5,7 +5,8 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import React, { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
 import { Filter } from "../lib/Filter";
 import { LIP } from "../lib/surfaceEquations";
 
@@ -32,7 +33,7 @@ export const Toggle: React.FC<ToggleProps> = ({
   const restThumbWidth = 16;
   const restThumbHeight = 16;
   const restThumbRadius = restThumbHeight / 2;
-  const sliderRef = React.useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const blur = useMotionValue(blurLevelProp);
   const specularOpacity = useMotionValue(specularOpacityProp);
   const specularSaturation = useMotionValue(specularSaturationProp);
@@ -155,7 +156,9 @@ export const Toggle: React.FC<ToggleProps> = ({
   return (
     <div
       onMouseMove={(e) => {
-        if (!sliderRef.current) return;
+        if (!sliderRef.current) {
+          return;
+        }
         e.stopPropagation();
         const baseRatio = checked.get();
         const clientX = e.clientX;
@@ -167,7 +170,9 @@ export const Toggle: React.FC<ToggleProps> = ({
         xDragRatio.set(Math.min(1, Math.max(0, ratio)) + dampedOverflow);
       }}
       onTouchMove={(e) => {
-        if (!sliderRef.current) return;
+        if (!sliderRef.current) {
+          return;
+        }
         e.stopPropagation();
         const baseRatio = checked.get();
         const clientX = e.touches[0]!.clientX;
@@ -185,7 +190,7 @@ export const Toggle: React.FC<ToggleProps> = ({
           display: "inline-block",
           width: sliderWidth,
           height: sliderHeight,
-          backgroundColor: backgroundColor,
+          backgroundColor,
           borderRadius: sliderHeight / 2,
           position: "relative",
           cursor: "pointer",
@@ -246,12 +251,11 @@ export const Toggle: React.FC<ToggleProps> = ({
             ),
             boxShadow: useTransform(() => {
               const isPressed = pointerDown.get() > 0.5;
-              return (
-                "0 4px 22px rgba(0,0,0,0.1)" +
-                (isPressed
+              return `0 4px 22px rgba(0,0,0,0.1)${
+                isPressed
                   ? ", inset 2px 7px 24px rgba(0,0,0,0.09), inset -2px -7px 24px rgba(255,255,255,0.09)"
-                  : "")
-              );
+                  : ""
+              }`;
             }),
           }}
         />

@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Toggle } from "./Toggle";
+import { Toggle } from "./toggle";
 
 const meta = {
   title: "Component Library/Toggle",
@@ -8,27 +8,6 @@ const meta = {
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
-    docs: {
-      description: {
-        component: `
-A sophisticated toggle component with advanced visual effects including motion animations, 
-blur effects, specular highlights, and refraction. Features smooth spring animations and 
-interactive visual parameter controls.
-
-## Features
-- ✨ Smooth spring-based animations
-- 🎨 Advanced visual effects (blur, specular highlights, refraction)
-- 📱 Touch and mouse interaction support
-- ⚙️ Real-time visual parameter adjustment
-- 🎯 Accessible with proper ARIA labels
-- 🌙 Dark mode support
-
-## Usage
-The Toggle component accepts props to control various visual parameters.
-Use the Storybook controls panel to experiment with different settings.
-        `,
-      },
-    },
   },
   argTypes: {
     specularOpacity: {
