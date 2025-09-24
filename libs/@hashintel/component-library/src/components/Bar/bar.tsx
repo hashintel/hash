@@ -1,8 +1,8 @@
 import { useMotionValue } from "motion/react";
 import { useLayoutEffect } from "react";
 
-import { Filter } from "../lib/Filter";
-import { CONVEX } from "../lib/surfaceEquations";
+import { Filter } from "../../lib/Filter";
+import { CONVEX } from "../../lib/surfaceEquations";
 
 export type BarProps = React.PropsWithChildren<{
   width: number;

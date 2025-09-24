@@ -7,8 +7,8 @@ import {
 } from "motion/react";
 import { useEffect, useRef } from "react";
 
-import { Filter } from "../lib/Filter";
-import { LIP } from "../lib/surfaceEquations";
+import { Filter } from "../../lib/Filter";
+import { LIP } from "../../lib/surfaceEquations";
 
 export interface ToggleProps {
   specularOpacity?: number;
