@@ -9,9 +9,3 @@ export const queryEntityTypeSubgraphQuery = /* GraphQL */ `
     queryEntityTypeSubgraph(request: $request)
   }
 `;
-
-export const getClosedMultiEntityTypesQuery = /* GraphQL */ `
-  query getClosedMultiEntityTypes($request: GetClosedMultiEntityTypesParams!) {
-    getClosedMultiEntityTypes(request: $request)
-  }
-`;
