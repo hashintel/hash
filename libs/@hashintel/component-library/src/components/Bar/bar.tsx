@@ -1,6 +1,3 @@
-import { useMotionValue } from "motion/react";
-import { useLayoutEffect } from "react";
-
 import { Filter } from "../../lib/filter";
 import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
@@ -25,13 +22,12 @@ export const Bar: React.FC<BarProps> = ({
   blur,
   specularOpacity,
   specularSaturation,
-  scaleRatio: scaleRatioProp,
+  scaleRatio,
   bezelWidth,
   glassThickness,
   refractiveIndex,
   children,
 }) => {
-  const scaleRatio = useMotionValue(scaleRatioProp);
   const {
     ref: divRef,
     width: trackedMotionWidth,
@@ -40,10 +36,6 @@ export const Bar: React.FC<BarProps> = ({
     initialWidth: 10,
     initialHeight: 10,
   });
-
-  useLayoutEffect(() => {
-    scaleRatio.set(scaleRatioProp);
-  }, [scaleRatio, scaleRatioProp]);
 
   return (
     <>
