@@ -8,6 +8,24 @@ use annotate_snippets::Group;
 use super::render::{RenderContext, RenderError};
 use crate::source::{DiagnosticSpan, SourceSpan};
 
+/// A code patch that replaces a span of source code with new text.
+///
+/// Patches represent concrete code changes that can be applied to fix issues
+/// identified by diagnostics. They specify exactly what text should replace
+/// a particular location in the source code, which enable automated fixes or
+/// providing clear suggestions for manual corrections.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::Patch;
+///
+/// // Fix a typo
+/// let typo_fix = Patch::new(20..25, "function");
+///
+/// // Add missing punctuation
+/// let punctuation = Patch::new(30..30, ";");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Patch<S> {
@@ -16,6 +34,17 @@ pub struct Patch<S> {
 }
 
 impl<S> Patch<S> {
+    /// Creates a new patch that replaces the given span with the specified text.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Patch;
+    ///
+    /// let patch = Patch::new(10..15, "corrected_value");
+    /// assert_eq!(patch.span(), &(10..15));
+    /// assert_eq!(patch.replacement(), "corrected_value");
+    /// ```
     pub const fn new<M>(span: S, replacement: M) -> Self
     where
         M: [const] Into<Cow<'static, str>>,
@@ -26,10 +55,30 @@ impl<S> Patch<S> {
         }
     }
 
+    /// Returns a reference to the span that this patch will replace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Patch;
+    ///
+    /// let patch = Patch::new(15..20, "new_text");
+    /// assert_eq!(patch.span(), &(15..20));
+    /// ```
     pub const fn span(&self) -> &S {
         &self.span
     }
 
+    /// Returns the replacement text that should replace the span.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Patch;
+    ///
+    /// let patch = Patch::new(10..15, "fixed_code");
+    /// assert_eq!(patch.replacement(), "fixed_code");
+    /// ```
     pub const fn replacement(&self) -> &str
     where
         String: [const] Borrow<str>,
@@ -37,6 +86,19 @@ impl<S> Patch<S> {
         &self.replacement
     }
 
+    /// Transforms the span type of this patch using the provided function.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Patch;
+    ///
+    /// let patch = Patch::new(10..15, "replacement");
+    /// let absolute = patch.map_span(|range| (range.start, range.end));
+    ///
+    /// assert_eq!(absolute.span(), &(10, 15));
+    /// assert_eq!(absolute.replacement(), "replacement");
+    /// ```
     pub fn map_span<S2>(self, func: impl FnOnce(S) -> S2) -> Patch<S2> {
         Patch {
             span: func(self.span),
@@ -64,6 +126,26 @@ impl<S> Patch<S> {
     }
 }
 
+/// A collection of code patches with optional trailing message.
+///
+/// Suggestions group related patches and may indicate related patches that should be applied
+/// together to fix or alternative ways of addressing the diagnostic issue. They
+/// can include an optional trailer message that provides additional context or instructions.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Patch, Suggestions};
+///
+/// // Create suggestions with a single patch
+/// let patch = Patch::new(10..15, "corrected");
+/// let suggestions = Suggestions::patch(patch);
+///
+/// // Build complex suggestions with multiple patches
+/// let main_fix = Patch::new(20..25, "new_function");
+/// let mut suggestions = Suggestions::patch(main_fix);
+/// suggestions.push(Patch::new(30..35, "updated_param"));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Suggestions<S> {
@@ -72,6 +154,16 @@ pub struct Suggestions<S> {
 }
 
 impl<S> Suggestions<S> {
+    /// Creates a suggestions collection containing a single patch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Patch, Suggestions};
+    ///
+    /// let patch = Patch::new(10..15, "corrected");
+    /// let suggestions = Suggestions::patch(patch);
+    /// ```
     pub fn patch(patch: Patch<S>) -> Self {
         Self {
             patches: vec![patch],
@@ -79,16 +171,41 @@ impl<S> Suggestions<S> {
         }
     }
 
+    /// Adds an additional patch to this suggestions collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Patch, Suggestions};
+    ///
+    /// let first_patch = Patch::new(10..15, "new_name");
+    /// let mut suggestions = Suggestions::patch(first_patch);
+    ///
+    /// suggestions.push(Patch::new(25..30, "updated_call"));
+    /// suggestions.push(Patch::new(40..50, "fixed_reference"));
+    /// ```
     pub fn push(&mut self, patch: Patch<S>) {
         self.patches.push(patch);
     }
 
-    pub const fn with_trailer<T>(trailer: T) -> Self
-    where
-        T: [const] Into<Cow<'static, str>>,
-    {
+    /// Adds a trailer message to existing suggestions.
+    ///
+    /// The trailer message provides additional context or instructions that will
+    /// be displayed after any code suggestions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Patch, Suggestions};
+    ///
+    /// let patch = Patch::new(10..15, "fixed_code");
+    /// let suggestions =
+    ///     Suggestions::patch(patch).with_trailer("Remember to run tests after applying this fix");
+    /// ```
+    #[must_use]
+    pub fn with_trailer(self, trailer: impl Into<Cow<'static, str>>) -> Self {
         Self {
-            patches: Vec::new(),
+            patches: self.patches,
             trailer: Some(trailer.into()),
         }
     }

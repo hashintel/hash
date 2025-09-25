@@ -18,6 +18,29 @@ enum MessageKind {
     Help,
 }
 
+/// A diagnostic message providing additional context, explanation, or guidance.
+///
+/// Messages are used to give users more information about diagnostic issues beyond
+/// the primary error message and code labels. There are two types of messages:
+///
+/// - **Note messages**: Provide background information, context, or explanations about why
+///   something is problematic
+/// - **Help messages**: Offer actionable guidance and suggestions for resolving the diagnostic
+///   issue
+///
+/// Messages can be styled with colors and can include code suggestions.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::Message;
+///
+/// // Create informational context
+/// let note = Message::note("Variables must be initialized before use");
+///
+/// // Create actionable guidance
+/// let help = Message::help("Try initializing the variable with a default value");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Message<S> {
@@ -31,6 +54,19 @@ pub struct Message<S> {
 }
 
 impl<S> Message<S> {
+    /// Creates a note message providing background information or context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Message;
+    ///
+    /// let note = Message::note("Variables must be initialized before use in this context");
+    /// assert_eq!(
+    ///     note.message(),
+    ///     "Variables must be initialized before use in this context"
+    /// );
+    /// ```
     pub const fn note<M>(message: M) -> Self
     where
         M: [const] Into<Cow<'static, str>>,
@@ -43,6 +79,19 @@ impl<S> Message<S> {
         }
     }
 
+    /// Creates a help message offering actionable guidance for resolving the issue.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Message;
+    ///
+    /// let help = Message::help("Try initializing the variable with a default value");
+    /// assert_eq!(
+    ///     help.message(),
+    ///     "Try initializing the variable with a default value"
+    /// );
+    /// ```
     pub const fn help<M>(message: M) -> Self
     where
         M: [const] Into<Cow<'static, str>>,
@@ -55,6 +104,22 @@ impl<S> Message<S> {
         }
     }
 
+    /// Returns the text content of this message.
+    ///
+    /// This method provides access to the actual message text that will be displayed to
+    /// the user, without any styling or formatting information.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Message;
+    ///
+    /// let note = Message::note("This is a note message");
+    /// assert_eq!(note.message(), "This is a note message");
+    ///
+    /// let help = Message::help("This is a help message");
+    /// assert_eq!(help.message(), "This is a help message");
+    /// ```
     #[must_use]
     pub const fn message(&self) -> &str
     where
@@ -63,18 +128,52 @@ impl<S> Message<S> {
         &self.contents
     }
 
+    /// Attaches code suggestions to this message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Message, Patch, Suggestions};
+    ///
+    /// let patch = Patch::new(10..15, "new_value");
+    /// let suggestions = Suggestions::patch(patch);
+    /// let help = Message::help("Consider using a different value").with_suggestions(suggestions);
+    /// ```
     #[must_use]
     pub fn with_suggestions(mut self, suggestions: Suggestions<S>) -> Self {
         self.suggestions = Some(suggestions);
         self
     }
 
+    /// Applies visual styling to this message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use anstyle::{Color, Style};
+    /// use hashql_diagnostics::Message;
+    ///
+    /// let style = Style::new().bold().fg_color(Some(Color::Ansi256(196))); // Bold red
+    /// let important_note =
+    ///     Message::note("Critical: This operation is irreversible").with_style(style);
+    /// ```
     #[must_use]
     pub const fn with_style(mut self, style: Style) -> Self {
         self.style = Some(style);
         self
     }
 
+    /// Sets the text color for this message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use anstyle::Color;
+    /// use hashql_diagnostics::Message;
+    ///
+    /// let warning = Message::note("This feature is deprecated")
+    ///     .with_color(Color::Ansi256(214)); // Orange
+    /// ```
     #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
         self.style = Some(Style::new().fg_color(Some(color)));
@@ -146,6 +245,21 @@ impl<S> Message<S> {
     }
 }
 
+/// A collection of diagnostic messages (notes and help messages).
+///
+/// Messages are displayed after the main diagnostic and code labels to provide
+/// additional context, explanations, and guidance to users. The collection can
+/// be reordered so that notes appear before help messages for logical flow.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Message, Messages};
+///
+/// let mut messages: Messages<()> = Messages::new();
+/// messages.push(Message::note("Variables should be camelCase"));
+/// messages.push(Message::help("Consider renaming to 'userName'"));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Messages<S> {
@@ -153,6 +267,20 @@ pub struct Messages<S> {
 }
 
 impl<S> Messages<S> {
+    /// Creates a new empty collection of messages.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Message, Messages};
+    ///
+    /// let mut messages: Messages<()> = Messages::new();
+    /// assert_eq!(messages.iter().count(), 0);
+    ///
+    /// messages.push(Message::note("This is a note"));
+    /// messages.push(Message::help("This is helpful advice"));
+    /// assert_eq!(messages.iter().count(), 2);
+    /// ```
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -160,10 +288,40 @@ impl<S> Messages<S> {
         }
     }
 
+    /// Adds a message to the collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Message, Messages};
+    ///
+    /// let mut messages: Messages<()> = Messages::new();
+    /// messages.push(Message::note("Variables should be camelCase"));
+    /// messages.push(Message::help("Consider renaming to 'userName'"));
+    ///
+    /// assert_eq!(messages.iter().count(), 2);
+    /// ```
     pub fn push(&mut self, message: Message<S>) {
         self.messages.push(message);
     }
 
+    /// Reorders messages by type, placing notes before help messages.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Message, Messages};
+    ///
+    /// let mut messages: Messages<()> = Messages::new();
+    /// messages.push(Message::help("Try using a different approach"));
+    /// messages.push(Message::note("This pattern is discouraged"));
+    /// messages.push(Message::help("Consider using method X instead"));
+    /// messages.push(Message::note("Method Y has been deprecated"));
+    ///
+    /// // Before ordering: help, note, help, note
+    /// messages.order_by_type();
+    /// // After ordering: note, note, help, help
+    /// ```
     pub fn order_by_type(&mut self) {
         // Order the messages so that we first have notes and then help messages
         self.messages.sort_by_key(|message| match message.kind {
@@ -172,6 +330,20 @@ impl<S> Messages<S> {
         });
     }
 
+    /// Returns an iterator over all messages in the collection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Message, Messages};
+    ///
+    /// let mut messages: Messages<()> = Messages::new();
+    /// messages.push(Message::note("Background information"));
+    /// messages.push(Message::help("Actionable advice"));
+    ///
+    /// let texts: Vec<&str> = messages.iter().map(|msg| msg.message()).collect();
+    /// assert_eq!(texts, vec!["Background information", "Actionable advice"]);
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item = &Message<S>> {
         self.messages.iter()
     }

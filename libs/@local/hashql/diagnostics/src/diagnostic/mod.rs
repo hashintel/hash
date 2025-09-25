@@ -39,6 +39,31 @@ pub type CriticalDiagnostic<C, S> = Diagnostic<C, S, Critical>;
 /// severity levels such as warnings and informational messages.
 pub type AdvisoryDiagnostic<C, S> = Diagnostic<C, S, Advisory>;
 
+/// A partially constructed diagnostic containing category and severity information.
+///
+/// [`DiagnosticHeader`] is created by [`Diagnostic::new`] and represents the first step
+/// in building a complete diagnostic. It contains the diagnostic category (identifying
+/// the type of issue) and severity level, but lacks the primary label that points to
+/// the specific source location where the issue occurs.
+///
+/// To complete the diagnostic construction, call [`primary`](DiagnosticHeader::primary)
+/// with a label that identifies the main location of the issue.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Diagnostic, Label, Severity};
+/// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+/// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+/// #     id: "syntax_error", name: "Syntax Error"
+/// # };
+///
+/// // Create a diagnostic header
+/// let header = Diagnostic::new(CATEGORY, Severity::Error);
+///
+/// // Complete it with a primary label
+/// let diagnostic = header.primary(Label::new(10..15, "unexpected token"));
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[must_use = "A diagnostic header must be materialized"]
 pub struct DiagnosticHeader<C, K> {
@@ -47,6 +72,49 @@ pub struct DiagnosticHeader<C, K> {
 }
 
 impl<C, K> DiagnosticHeader<C, K> {
+    /// Creates a [`Diagnostic`] with the given label as the primary label.
+    ///
+    /// The primary label is the main focus of the diagnostic, pointing to the exact
+    /// location where the issue occurs. Additional secondary labels and messages
+    /// can be added to provide context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "type_error", name: "Type Error"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let label = Label::new(42..45, "expected integer, found string");
+    /// let diagnostic = header.primary(label);
+    ///
+    /// assert_eq!(diagnostic.severity, Severity::Error);
+    /// assert_eq!(diagnostic.labels.iter().count(), 1);
+    /// assert!(diagnostic.messages.iter().count() == 0);
+    /// ```
+    ///
+    /// Building a diagnostic with additional context:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Message, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "undefined_var", name: "Undefined Variable"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let primary_label = Label::new(10..15, "undefined variable");
+    /// let mut diagnostic = header.primary(primary_label);
+    ///
+    /// diagnostic.add_label(Label::new(5..8, "similar variable defined here"));
+    /// diagnostic.add_message(Message::help("Did you mean to use this variable instead?"));
+    ///
+    /// assert_eq!(diagnostic.labels.iter().count(), 2);
+    /// assert_eq!(diagnostic.messages.iter().count(), 1);
+    /// ```
     pub fn primary<S>(self, label: Label<S>) -> Diagnostic<C, S, K> {
         Diagnostic {
             category: self.category,
@@ -301,6 +369,45 @@ impl<C, S, K> Diagnostic<C, S, K> {
         }
     }
 
+    /// Transforms the severity type of the diagnostic using the provided function.
+    ///
+    /// This method applies a transformation function to convert the diagnostic's severity from
+    /// one type to another while preserving all other diagnostic information.
+    ///
+    /// # Examples
+    ///
+    /// Converting from a specialized severity to a general severity:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Severity, severity::Critical};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let diagnostic: Diagnostic<_, (), Severity> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let critical = diagnostic.specialize().expect_err("should be critical");
+    ///
+    /// // Convert back to general severity
+    /// let general = critical.map_severity(|severity| severity.into());
+    /// assert_eq!(general.severity, Severity::Error);
+    /// ```
+    ///
+    /// Custom severity transformations:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum CustomSeverity { Low, High }
+    ///
+    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let custom = diagnostic.map_severity(|_| CustomSeverity::Low);
+    /// assert_eq!(custom.severity, CustomSeverity::Low);
+    /// ```
     pub fn map_severity<K2>(self, func: impl FnOnce(K) -> K2) -> Diagnostic<C, S, K2> {
         Diagnostic {
             category: self.category,
@@ -311,6 +418,53 @@ impl<C, S, K> Diagnostic<C, S, K> {
         }
     }
 
+    /// Transforms all spans in the diagnostic using the provided function.
+    ///
+    /// This method applies a transformation function to convert all span references in the
+    /// diagnostic from one type to another.
+    ///
+    /// This is particularly useful when moving diagnostics between different compilation
+    /// phases that use different span representations, or when converting from relative
+    /// to absolute spans for rendering.
+    ///
+    /// # Examples
+    ///
+    /// Converting span types:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let label = Label::new(10..15, "error here");
+    /// let diagnostic = header.primary(label);
+    ///
+    /// // Convert Range<usize> spans to absolute positions
+    /// let converted = diagnostic.map_spans(|range| (range.start, range.end));
+    /// // All spans in labels, suggestions, and patches are now (usize, usize) tuples
+    /// ```
+    ///
+    /// Adding offset to all spans:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "example", name: "Example"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let label = Label::new(5..8, "issue here");
+    /// let diagnostic = header.primary(label);
+    ///
+    /// // Add a base offset to all spans
+    /// let offset = 100;
+    /// let offset_diagnostic =
+    ///     diagnostic.map_spans(|range| (range.start + offset)..(range.end + offset));
+    /// ```
     pub fn map_spans<S2>(self, mut func: impl FnMut(S) -> S2) -> Diagnostic<C, S2, K> {
         Diagnostic {
             category: self.category,
@@ -354,11 +508,108 @@ impl<C, S, K> Diagnostic<C, S, K> {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
 
+    /// Adds a secondary label to the diagnostic.
+    ///
+    /// Labels point to specific locations in source code to provide context about the
+    /// diagnostic issue. While the diagnostic has one primary label (set when created),
+    /// additional secondary labels can be added to show related locations, similar
+    /// identifiers, or provide additional context.
+    ///
+    /// # Examples
+    ///
+    /// Adding context labels to show related code locations:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "redefinition", name: "Variable Redefinition"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let primary = Label::new(50..55, "variable redefined here");
+    /// let mut diagnostic = header.primary(primary);
+    ///
+    /// diagnostic
+    ///     .add_label(Label::new(10..15, "first definition here"))
+    ///     .add_label(Label::new(25..30, "also used here"));
+    ///
+    /// assert_eq!(diagnostic.labels.iter().count(), 3);
+    /// ```
+    ///
+    /// Adding highlighted labels for emphasis:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "type_mismatch", name: "Type Mismatch"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let primary = Label::new(20..25, "expected integer");
+    /// let mut diagnostic = header.primary(primary);
+    ///
+    /// let highlighted_label = Label::new(15..18, "this is a string").with_highlight(true);
+    /// diagnostic.add_label(highlighted_label);
+    ///
+    /// assert_eq!(diagnostic.labels.iter().count(), 2);
+    /// ```
     pub fn add_label(&mut self, label: impl Into<Label<S>>) -> &mut Self {
         self.labels.push(label.into());
         self
     }
 
+    /// Adds an explanatory message to the diagnostic.
+    ///
+    /// Messages provide additional context, explanations, or suggestions to help users
+    /// understand and resolve the diagnostic issue. They can be notes (providing background
+    /// information) or help messages (offering specific guidance or suggestions).
+    ///
+    /// # Examples
+    ///
+    /// Adding explanatory notes and help messages:
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Diagnostic, Label, Message, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "unused_var", name: "Unused Variable"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let primary = Label::new(10..15, "unused variable");
+    /// let mut diagnostic = header.primary(primary);
+    ///
+    /// diagnostic
+    ///     .add_message(Message::note("Variables should be used after declaration"))
+    ///     .add_message(Message::help(
+    ///         "Consider removing this variable or using it in your code",
+    ///     ));
+    ///
+    /// assert_eq!(diagnostic.messages.iter().count(), 2);
+    /// ```
+    ///
+    /// Adding styled messages for visual emphasis:
+    ///
+    /// ```
+    /// use anstyle::Color;
+    /// use hashql_diagnostics::{Diagnostic, Label, Message, Severity};
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "deprecation", name: "Deprecation Warning"
+    /// # };
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let primary = Label::new(5..12, "deprecated function");
+    /// let mut diagnostic = header.primary(primary);
+    ///
+    /// let styled_message = Message::help("Use the new `calculate_v2` function instead")
+    ///     .with_color(Color::Ansi256(208)); // Orange color
+    /// diagnostic.add_message(styled_message);
+    ///
+    /// assert_eq!(diagnostic.messages.iter().count(), 1);
+    /// ```
     pub fn add_message(&mut self, message: impl Into<Message<S>>) -> &mut Self {
         self.messages.push(message.into());
         self

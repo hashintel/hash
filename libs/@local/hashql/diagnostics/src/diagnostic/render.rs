@@ -14,25 +14,147 @@ use crate::{
     source::{DiagnosticSpan, ResolvedSource, SourceId, SourceSpan, Sources},
 };
 
+/// Output format for rendered diagnostics.
+///
+/// Controls how the final diagnostic output is formatted and what type of
+/// content is generated. The format determines both the visual presentation
+/// and the target medium for the diagnostic display.
+///
+/// # Examples
+///
+/// ```
+/// # #[cfg(feature = "render")] {
+/// use hashql_diagnostics::diagnostic::render::Format;
+///
+/// // For terminal output with ANSI colors and formatting
+/// let terminal_format = Format::Ansi;
+///
+/// // For web documentation or HTML reports
+/// let web_format = Format::Html;
+///
+/// // For vector graphics that can be embedded or displayed
+/// let vector_format = Format::Svg;
+/// # }
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Format {
+    /// ANSI terminal format with color codes and text styling.
+    ///
+    /// Produces output suitable for display in terminals and consoles that
+    /// support ANSI escape sequences. This format includes color highlighting,
+    /// text styling (bold, underline), and proper formatting for command-line
+    /// interfaces.
     Ansi,
+
+    /// Scalable Vector Graphics (SVG) format.
+    ///
+    /// Generates diagnostic output as SVG markup, suitable for embedding in
+    /// web pages, documentation, or any application that can display vector
+    /// graphics. The output maintains high quality at any scale and preserves
+    /// all visual formatting.
     Svg,
+
+    /// Hypertext Markup Language (HTML) format.
+    ///
+    /// Produces diagnostic output as HTML markup with embedded CSS styling.
+    /// This format is ideal for web-based diagnostic viewers, documentation
+    /// generation, or integration with HTML-based reporting systems.
     Html,
 }
 
+/// Color depth capabilities for diagnostic rendering.
+///
+/// Determines the color support level for the output terminal or display medium.
+/// This affects how colors and visual styling are applied to diagnostic output,
+/// allowing the renderer to adapt to different terminal capabilities and user
+/// preferences.
+///
+/// # Examples
+///
+/// ```
+/// # #[cfg(feature = "render")] {
+/// use hashql_diagnostics::diagnostic::render::ColorDepth;
+///
+/// // For modern terminals with full color support
+/// let full_color = ColorDepth::Rgb;
+///
+/// // For older terminals or when colors should be disabled
+/// let no_color = ColorDepth::Monochrome;
+///
+/// // For terminals with limited color palettes
+/// let basic_color = ColorDepth::Ansi16;
+/// # }
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum ColorDepth {
+    /// 16-color ANSI palette.
+    ///
+    /// Uses the standard 16 ANSI colors (8 basic colors plus bright variants).
+    /// This mode is compatible with most terminals and provides basic color
+    /// highlighting for different diagnostic elements while maintaining broad
+    /// compatibility.
     Ansi16,
+
+    /// 256-color extended ANSI palette.
+    ///
+    /// Supports the extended 256-color ANSI palette, providing much richer
+    /// color options for diagnostic highlighting. This includes the standard
+    /// 16 colors plus 216 RGB colors and 24 grayscale colors.
     Ansi256,
+
+    /// Full RGB color support (24-bit color).
+    ///
+    /// Enables true color support with the full RGB spectrum. This provides
+    /// the highest quality color rendering for diagnostics, allowing precise
+    /// color matching and smooth gradients. This is the default setting for
+    /// modern terminals.
     #[default]
     Rgb,
+
+    /// No color output (monochrome).
+    ///
+    /// Disables all color output, producing plain text diagnostics suitable
+    /// for environments where color is not supported or desired. This mode
+    /// relies on text formatting (bold, underline) and spacing for visual
+    /// emphasis.
     Monochrome,
 }
 
+/// Character set used for diagnostic rendering decorations and symbols.
+///
+/// Controls which character set is used for drawing diagnostic decorations
+/// such as lines, arrows, and other visual elements. This allows the renderer
+/// to adapt to different terminal capabilities and font support.
+///
+/// # Examples
+///
+/// ```
+/// # #[cfg(feature = "render")] {
+/// use hashql_diagnostics::diagnostic::render::Charset;
+///
+/// // For terminals that support Unicode box-drawing characters
+/// let unicode_charset = Charset::Unicode;
+///
+/// // For older terminals or systems with limited font support
+/// let ascii_charset = Charset::Ascii;
+/// # }
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum Charset {
+    /// ASCII-only character set for maximum compatibility.
+    ///
+    /// Uses only basic ASCII characters for diagnostic decorations. This mode
+    /// ensures compatibility with older terminals, systems with limited font
+    /// support, or environments where Unicode rendering may be problematic.
+    /// Decorations use characters like `-`, `|`, `^`, and `~` for visual elements.
     Ascii,
+
+    /// Unicode character set with box-drawing characters.
+    ///
+    /// Uses Unicode box-drawing characters and symbols for enhanced visual
+    /// presentation. This provides cleaner, more professional-looking diagnostic
+    /// output with proper lines, arrows, and decorative elements. This is the
+    /// default setting for modern terminals with Unicode support.
     #[default]
     Unicode,
 }
@@ -46,17 +168,122 @@ impl Charset {
     }
 }
 
+/// Configuration options for rendering diagnostics to various output formats.
+///
+/// [`RenderOptions`] controls all aspects of how diagnostics are visually presented,
+/// from the output format and color scheme to terminal-specific settings like width
+/// and character set support.
+///
+/// # Examples
+///
+/// ```
+/// # #[cfg(feature = "render")] {
+/// use hashql_diagnostics::{
+///     Sources,
+///     diagnostic::render::{Charset, ColorDepth, Format, RenderOptions},
+/// };
+///
+/// let sources = Sources::new();
+/// let mut options = RenderOptions::new(Format::Ansi, &sources);
+///
+/// // Customize for a specific environment
+/// options.color_depth = ColorDepth::Ansi16;
+/// options.charset = Charset::Ascii;
+/// options.term_width = 80;
+/// options.abbreviate = true;
+/// # }
+/// ```
 #[derive(Debug, Copy, Clone)]
 pub struct RenderOptions<'sources, 'source> {
+    /// The output format for the rendered diagnostic.
+    ///
+    /// Controls whether the diagnostic is rendered as ANSI terminal output,
+    /// HTML markup, or SVG graphics. This determines the structure and
+    /// styling of the final output.
     pub format: Format,
+
+    /// Character set used for decorative elements and symbols.
+    ///
+    /// Determines whether Unicode box-drawing characters or ASCII-only
+    /// characters are used for visual elements like lines and arrows.
+    /// Choose [`Charset::Ascii`] for maximum compatibility or
+    /// [`Charset::Unicode`] for enhanced visual presentation.
     pub charset: Charset,
+
+    /// Color depth and support level for the output.
+    ///
+    /// Controls the color palette and capabilities used for syntax highlighting
+    /// and visual emphasis. Ranges from full RGB color support to monochrome
+    /// output for different terminal capabilities.
     pub color_depth: ColorDepth,
+
+    /// Terminal or display width in characters.
+    ///
+    /// Used to determine line wrapping, spacing, and layout of the diagnostic
+    /// output. The renderer uses this to format content appropriately for
+    /// the target display width.
     pub term_width: usize,
+
+    /// Whether to use abbreviated/shortened diagnostic messages.
+    ///
+    /// When `true`, produces more concise diagnostic output suitable for
+    /// environments where space is limited. When `false` (default), provides full
+    /// detailed diagnostic information with complete context.
     pub abbreviate: bool,
+
+    /// Source code repository for resolving file content and paths.
+    ///
+    /// Provides access to the original source files referenced by diagnostic
+    /// spans. The renderer uses this to extract and display relevant code
+    /// snippets with proper syntax highlighting and line numbering.
     pub sources: &'sources Sources<'source>,
 }
 
 impl<'sources, 'source> RenderOptions<'sources, 'source> {
+    /// Creates new rendering options with the specified format and sources.
+    ///
+    /// This method initializes rendering options with sensible defaults for displaying
+    /// diagnostics to users. The format controls the overall rendering style, while the
+    /// sources provide access to the original source code that diagnostics reference.
+    ///
+    /// These defaults can be customized by modifying the returned [`RenderOptions`] struct.
+    ///
+    /// # Examples
+    ///
+    /// Creating basic rendering options:
+    ///
+    /// ```
+    /// # #[cfg(feature = "render")] {
+    /// use hashql_diagnostics::{
+    ///     Sources,
+    ///     diagnostic::render::{Format, RenderOptions},
+    /// };
+    ///
+    /// let sources = Sources::new();
+    /// let options = RenderOptions::new(Format::Rich, &sources);
+    /// # }
+    /// ```
+    ///
+    /// Customizing rendering options:
+    ///
+    /// ```
+    /// # #[cfg(feature = "render")] {
+    /// use annotate_snippets::{Charset, ColorDepth};
+    /// use hashql_diagnostics::{
+    ///     Sources,
+    ///     diagnostic::render::{Format, RenderOptions},
+    /// };
+    ///
+    /// let sources = Sources::new();
+    /// let mut options = RenderOptions::new(Format::Short, &sources);
+    ///
+    /// // Customize for different terminal capabilities
+    /// options.charset = Charset::Ascii;
+    /// options.color_depth = ColorDepth::Monochrome;
+    /// options.term_width = 80;
+    /// options.abbreviate = true;
+    /// # }
+    /// ```
     #[must_use]
     pub fn new(format: Format, sources: &'sources Sources<'source>) -> Self {
         Self {
@@ -279,6 +506,86 @@ where
         context.groups
     }
 
+    /// Renders the diagnostic as a formatted string for display to users.
+    ///
+    /// This method converts the diagnostic into a human-readable format using the provided
+    /// rendering options and span resolver. The output includes the diagnostic message,
+    /// source code context with highlighted spans, labels pointing to specific locations,
+    /// and any additional notes or suggestions.
+    ///
+    /// The resolver is used to convert diagnostic spans into actual source code locations. The
+    /// rendering options control the visual presentation, including color depth, terminal
+    /// width, and formatting style.
+    ///
+    /// # Examples
+    ///
+    /// Rendering a diagnostic with rich formatting:
+    ///
+    /// ```
+    /// # #[cfg(feature = "render")] {
+    /// use hashql_diagnostics::{
+    ///     Diagnostic, Label, Severity, Sources,
+    ///     diagnostic::render::{Format, RenderOptions},
+    /// };
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "syntax_error", name: "Syntax Error"
+    /// # };
+    /// # struct DummyResolver;
+    /// # impl hashql_diagnostics::source::DiagnosticSpanResolver for DummyResolver {
+    /// #     fn resolve(&mut self, _: &std::ops::Range<usize>) -> Option<(usize, std::ops::Range<usize>)> {
+    /// #         Some((0, 0..5))
+    /// #     }
+    /// # }
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let label = Label::new(10..15, "unexpected token");
+    /// let diagnostic = header.primary(label);
+    ///
+    /// let sources = Sources::new();
+    /// let options = RenderOptions::new(Format::Rich, &sources);
+    /// let mut resolver = DummyResolver;
+    ///
+    /// let output = diagnostic.render(options, &mut resolver);
+    /// // Output contains formatted diagnostic with source code context
+    /// # }
+    /// ```
+    ///
+    /// Rendering with custom options for different terminals:
+    ///
+    /// ```
+    /// # #[cfg(feature = "render")] {
+    /// use annotate_snippets::{Charset, ColorDepth};
+    /// use hashql_diagnostics::{
+    ///     Diagnostic, Label, Severity, Sources,
+    ///     diagnostic::render::{Format, RenderOptions},
+    /// };
+    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
+    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    /// #     id: "warning", name: "Warning"
+    /// # };
+    /// # struct DummyResolver;
+    /// # impl hashql_diagnostics::source::DiagnosticSpanResolver for DummyResolver {
+    /// #     fn resolve(&mut self, _: &std::ops::Range<usize>) -> Option<(usize, std::ops::Range<usize>)> {
+    /// #         Some((0, 0..5))
+    /// #     }
+    /// # }
+    ///
+    /// let header = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let label = Label::new(5..10, "deprecated usage");
+    /// let diagnostic = header.primary(label);
+    ///
+    /// let sources = Sources::new();
+    /// let mut options = RenderOptions::new(Format::Short, &sources);
+    /// options.charset = Charset::Ascii;
+    /// options.color_depth = ColorDepth::Monochrome;
+    /// options.term_width = 80;
+    ///
+    /// let mut resolver = DummyResolver;
+    /// let output = diagnostic.render(options, &mut resolver);
+    /// // Output formatted for ASCII-only terminals without color
+    /// # }
+    /// ```
     pub fn render<R>(&self, options: RenderOptions, resolver: &mut R) -> String
     where
         S: DiagnosticSpan<R>,
