@@ -126,6 +126,15 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+// Extended args type for stories that include child control properties
+type ExtendedArgs = typeof meta.args & {
+  childWidth: number;
+  childHeight: number;
+  childContent: string;
+  width: number;
+  height: number;
+};
+
 /**
  * The default Bar component with standard settings.
  * This demonstrates the basic glass-like appearance of the bar.
@@ -263,16 +272,16 @@ as you change the child element's size using the controls panel.
       </div>
     ),
   ],
-  render: (args: Record<string, unknown>) => {
-    const childWidth = args.childWidth as number;
-    const childHeight = args.childHeight as number;
-    const childContent = args.childContent as string;
+  render: (args: ExtendedArgs) => {
+    const childWidth = args.childWidth;
+    const childHeight = args.childHeight;
+    const childContent = args.childContent;
 
     return (
       <Bar
         style={{
-          minWidth: args.width as number,
-          minHeight: args.height as number,
+          minWidth: args.width,
+          minHeight: args.height,
         }}
         className={css({
           shadow: "md",
@@ -286,14 +295,14 @@ as you change the child element's size using the controls panel.
             backgroundColor: "grayAlpha.40",
           },
         })}
-        radius={args.radius as number}
-        blur={args.blur as number}
-        specularOpacity={args.specularOpacity as number}
-        specularSaturation={args.specularSaturation as number}
-        scaleRatio={args.scaleRatio as number}
-        bezelWidth={args.bezelWidth as number}
-        glassThickness={args.glassThickness as number}
-        refractiveIndex={args.refractiveIndex as number}
+        radius={args.radius}
+        blur={args.blur}
+        specularOpacity={args.specularOpacity}
+        specularSaturation={args.specularSaturation}
+        scaleRatio={args.scaleRatio}
+        bezelWidth={args.bezelWidth}
+        glassThickness={args.glassThickness}
+        refractiveIndex={args.refractiveIndex}
       >
         <div
           style={{
@@ -572,7 +581,7 @@ the component's optical effects.
             position: "fixed",
             top: "50%",
             left: "50%",
-            transform: "translate(-50%, -50%)",
+            transform: "translate(-50%, 100px)",
             zIndex: 10,
           }}
         >
@@ -581,4 +590,14 @@ the component's optical effects.
       </div>
     ),
   ],
+  render: (args: typeof meta.args) => (
+    <Bar
+      className={css({
+        padding: "9",
+      })}
+      {...args}
+    >
+      Hello World
+    </Bar>
+  ),
 };
