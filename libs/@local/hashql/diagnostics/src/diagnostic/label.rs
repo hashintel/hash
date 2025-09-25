@@ -67,22 +67,17 @@ impl<S> Label<S> {
         self
     }
 
-    pub(crate) fn resolve<C>(
-        self,
-        context: &mut C,
-    ) -> Result<Label<AbsoluteDiagnosticSpan>, Report<ResolveError>>
+    pub(crate) fn resolve<C>(self, context: &mut C) -> Label<AbsoluteDiagnosticSpan>
     where
         S: DiagnosticSpan<C>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context)?;
-
-        Ok(Label {
-            span,
+        Label {
+            span: AbsoluteDiagnosticSpan::new(&self.span, context),
             kind: self.kind,
             message: self.message,
 
             highlight: self.highlight,
-        })
+        }
     }
 }
 
@@ -127,20 +122,11 @@ impl<S> Labels<S> {
         &self.labels
     }
 
-    pub(crate) fn resolve<C>(
-        self,
-        context: &mut C,
-    ) -> Result<Labels<AbsoluteDiagnosticSpan>, Report<[ResolveError]>>
+    pub(crate) fn resolve<C>(self, context: &mut C) -> Labels<AbsoluteDiagnosticSpan>
     where
         S: DiagnosticSpan<C>,
     {
-        let labels = self
-            .labels
-            .into_iter()
-            .map(|label| label.resolve(context))
-            .try_collect_reports()?;
-
-        Ok(Labels { labels })
+        self.map(|label| label.resolve(context))
     }
 
     pub(crate) fn map<T>(self, func: impl FnMut(Label<S>) -> Label<T>) -> Labels<T> {

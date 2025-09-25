@@ -1,10 +1,8 @@
 use core::fmt::Display;
 
-use error_stack::Report;
 use text_size::TextRange;
 
 use super::SourceId;
-use crate::error::ResolveError;
 
 pub trait DiagnosticSpan<Context>: Display {
     fn source(&self) -> SourceId;
@@ -18,10 +16,13 @@ pub trait DiagnosticSpan<Context>: Display {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AbsoluteDiagnosticSpan {
+struct AbsoluteDiagnosticSpanInner {
     source: SourceId,
     range: TextRange,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct AbsoluteDiagnosticSpan(Option<AbsoluteDiagnosticSpanInner>);
 
 impl AbsoluteDiagnosticSpan {
     /// Creates a new `AbsoluteDiagnosticSpan` from a diagnostic span and its context.
@@ -30,42 +31,45 @@ impl AbsoluteDiagnosticSpan {
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub fn new<S, C>(span: &S, context: &mut C) -> Result<Self, Report<ResolveError>>
+    pub fn new<S, C>(span: &S, context: &mut C) -> Self
     where
         S: DiagnosticSpan<C>,
     {
         let source = span.source();
 
-        let mut range = span
-            .span(context)
-            .ok_or_else(|| ResolveError::UnknownSpan {
-                span: span.to_string(),
-            })?;
+        let Some(mut range) = span.span(context) else {
+            return Self(None);
+        };
 
         for ancestor in span.ancestors(context) {
-            range += ancestor
-                .span(context)
-                .ok_or_else(|| ResolveError::UnknownSpan {
-                    span: span.to_string(),
-                })?
-                .start();
+            let Some(ancestor_range) = ancestor.span(context) else {
+                return Self(None);
+            };
+
+            range += ancestor_range.start();
         }
 
-        Ok(Self { source, range })
+        Self(Some(AbsoluteDiagnosticSpanInner { source, range }))
     }
 
     #[must_use]
     pub const fn from_parts(source: SourceId, range: TextRange) -> Self {
-        Self { source, range }
+        Self(Some(AbsoluteDiagnosticSpanInner { source, range }))
     }
 
     #[must_use]
-    pub const fn source(self) -> SourceId {
-        self.source
+    pub const fn source(self) -> Option<SourceId> {
+        match self.0 {
+            Some(inner) => Some(inner.source),
+            None => None,
+        }
     }
 
     #[must_use]
-    pub const fn range(self) -> TextRange {
-        self.range
+    pub const fn range(self) -> Option<TextRange> {
+        match self.0 {
+            Some(inner) => Some(inner.range),
+            None => None,
+        }
     }
 }

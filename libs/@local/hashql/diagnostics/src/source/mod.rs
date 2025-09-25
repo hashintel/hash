@@ -1,5 +1,6 @@
 mod span;
 use alloc::borrow::Cow;
+use core::fmt;
 
 pub use self::span::{AbsoluteDiagnosticSpan, DiagnosticSpan};
 
@@ -10,6 +11,12 @@ impl SourceId {
     #[must_use]
     pub const fn new_unchecked(id: u32) -> Self {
         Self(id)
+    }
+}
+
+impl fmt::Display for SourceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
     }
 }
 

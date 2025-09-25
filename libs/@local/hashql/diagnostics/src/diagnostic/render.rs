@@ -3,9 +3,12 @@ use annotate_snippets::{Group, Level, Renderer, Snippet, renderer::DecorStyle};
 use super::{Diagnostic, Label};
 use crate::{
     DiagnosticCategory, Severity,
-    category::{CanonicalDiagnosticCategoryId, category_display_name},
+    category::{
+        CanonicalDiagnosticCategoryId, CanonicalDiagnosticCategoryName, category_display_name,
+    },
+    diagnostic::Message,
     severity::SeverityKind,
-    source::{AbsoluteDiagnosticSpan, Sources},
+    source::{AbsoluteDiagnosticSpan, SourceId, Sources},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -89,6 +92,26 @@ where
     C: DiagnosticCategory,
     K: SeverityKind,
 {
+    pub(crate) fn source_not_found(&self, source: SourceId) -> Group<'_> {
+        // We cannot go the "normal" route here, because there is an error with the diagnostic
+        // itself
+
+        // Try to see if we can salvage any of the span information
+
+        let mut group = severity_to_level(Severity::Bug)
+            .primary_title(format!("Unable to find source {source}"))
+            .id("internal::render::source-not-found")
+            .element(Level::NOTE.message(format!(
+                "when trying to render {} ({})",
+                CanonicalDiagnosticCategoryName::new(&self.category),
+                CanonicalDiagnosticCategoryId::new(&self.category)
+            )));
+
+        group = group.elements(Severity::Bug.messages().iter().map(Message::render_plain));
+
+        group
+    }
+
     #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
     pub(crate) fn as_group<'group>(
         &'group self,
@@ -117,7 +140,10 @@ where
             assert!(!chunk.is_empty());
 
             let source = chunk[0].span().source();
-            let source = options.sources.get(source).unwrap();
+            let Some(source) = options.sources.get(source) else {
+                groups.push(self.source_not_found(source));
+                continue;
+            };
 
             let snippet = Snippet::source(&*source.content)
                 .path(source.path.as_deref())

@@ -3,14 +3,10 @@ use std::borrow::Cow;
 
 #[cfg(feature = "render")]
 use annotate_snippets::Group;
-use error_stack::{Report, TryReportIteratorExt as _};
 
 #[cfg(feature = "render")]
 use crate::source::Sources;
-use crate::{
-    error::ResolveError,
-    source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
-};
+use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -48,19 +44,14 @@ impl<S> Patch<S> {
         }
     }
 
-    pub(crate) fn resolve<C>(
-        self,
-        context: &mut C,
-    ) -> Result<Patch<AbsoluteDiagnosticSpan>, Report<ResolveError>>
+    pub(crate) fn resolve<C>(self, context: &mut C) -> Patch<AbsoluteDiagnosticSpan>
     where
         S: DiagnosticSpan<C>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context)?;
-
-        Ok(Patch {
-            span,
+        Patch {
+            span: AbsoluteDiagnosticSpan::new(&self.span, context),
             replacement: self.replacement,
-        })
+        }
     }
 }
 
@@ -100,23 +91,11 @@ impl<S> Suggestions<S> {
         }
     }
 
-    pub(crate) fn resolve<C>(
-        self,
-        context: &mut C,
-    ) -> Result<Suggestions<AbsoluteDiagnosticSpan>, Report<[ResolveError]>>
+    pub(crate) fn resolve<C>(self, context: &mut C) -> Suggestions<AbsoluteDiagnosticSpan>
     where
         S: DiagnosticSpan<C>,
     {
-        let patches = self
-            .patches
-            .into_iter()
-            .map(|patch| patch.resolve(context))
-            .try_collect_reports()?;
-
-        Ok(Suggestions {
-            patches,
-            trailer: self.trailer,
-        })
+        self.map_patches(|patch| patch.resolve(context))
     }
 
     pub(crate) fn map_patches<T>(self, func: impl FnMut(Patch<S>) -> Patch<T>) -> Suggestions<T> {
