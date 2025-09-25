@@ -101,15 +101,16 @@ export const Switch: React.FC<SwitchProps> = ({
                   })}
                 >
                   <div
-                    style={{
+                    className={css({
                       display: "block",
-                      width: THUMB_WIDTH,
-                      height: THUMB_HEIGHT,
-                      borderRadius: THUMB_RADIUS,
-                      backdropFilter: `url(#${filterId})`,
-                      boxShadow: "0 4px 22px rgba(0,0,0,0.1)",
-                      transition: "all 0.2s ease",
-                    }}
+                      width: `[${THUMB_WIDTH}px]`,
+                      height: `[${THUMB_HEIGHT}px]`,
+                      borderRadius: `[${THUMB_RADIUS}px]`,
+                      boxShadow: "[0 4px 22px rgba(0,0,0,0.1)]",
+                      transition:
+                        "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
+                    })}
+                    style={{ backdropFilter: `url(#${filterId})` }}
                   />
                 </BaseSwitch.Thumb>
               </BaseSwitch.Control>
