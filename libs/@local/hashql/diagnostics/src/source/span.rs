@@ -42,7 +42,7 @@ use super::SourceId;
 ///         Some(self.range)
 ///     }
 ///
-///     fn ancestors(&self, _resolver: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R> {
+///     fn ancestors(&self, _resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
 ///         [] // No ancestors for this simple span
 ///     }
 /// }
@@ -126,7 +126,7 @@ impl SourceSpan {
     /// # impl<R> DiagnosticSpan<R> for SimpleSpan {
     /// #     fn source(&self) -> SourceId { self.source_id }
     /// #     fn span(&self, _: &mut R) -> Option<TextRange> { Some(self.range) }
-    /// #     fn ancestors(&self, _: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R> { [] }
+    /// #     fn ancestors(&self, _: &mut R) -> impl IntoIterator<Item = Self> + use<R> { [] }
     /// # }
     /// # struct DummyResolver;
     ///

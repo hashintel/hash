@@ -112,6 +112,10 @@ impl<'source> Source<'source> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(
+    not(feature = "render"),
+    expect(dead_code, reason = "used during rendering")
+)]
 pub(crate) struct ResolvedSource<'source> {
     pub path: Option<Cow<'source, str>>,
     pub content: Cow<'source, str>,
@@ -186,6 +190,7 @@ impl<'source> Sources<'source> {
         id
     }
 
+    #[cfg(feature = "render")]
     pub(crate) fn get(&self, id: SourceId) -> Option<&ResolvedSource<'source>> {
         self.sources.get(id.0 as usize)
     }

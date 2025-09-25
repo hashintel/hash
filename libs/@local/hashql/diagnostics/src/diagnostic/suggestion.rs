@@ -6,6 +6,7 @@ use annotate_snippets::Group;
 
 #[cfg(feature = "render")]
 use super::render::{RenderContext, RenderError};
+#[cfg(feature = "render")]
 use crate::source::{DiagnosticSpan, SourceSpan};
 
 /// A code patch that replaces a span of source code with new text.

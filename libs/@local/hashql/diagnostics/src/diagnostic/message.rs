@@ -8,6 +8,7 @@ use anstyle::{Color, Style};
 use super::Suggestions;
 #[cfg(feature = "render")]
 use super::render::{RenderContext, RenderError};
+#[cfg(feature = "render")]
 use crate::source::DiagnosticSpan;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -35,10 +36,10 @@ enum MessageKind {
 /// use hashql_diagnostics::Message;
 ///
 /// // Create informational context
-/// let note = Message::note("Variables must be initialized before use");
+/// let note: Message<()> = Message::note("Variables must be initialized before use");
 ///
 /// // Create actionable guidance
-/// let help = Message::help("Try initializing the variable with a default value");
+/// let help: Message<()> = Message::help("Try initializing the variable with a default value");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -60,7 +61,8 @@ impl<S> Message<S> {
     /// ```
     /// use hashql_diagnostics::Message;
     ///
-    /// let note = Message::note("Variables must be initialized before use in this context");
+    /// let note: Message<()> =
+    ///     Message::note("Variables must be initialized before use in this context");
     /// assert_eq!(
     ///     note.message(),
     ///     "Variables must be initialized before use in this context"
@@ -85,7 +87,7 @@ impl<S> Message<S> {
     /// ```
     /// use hashql_diagnostics::Message;
     ///
-    /// let help = Message::help("Try initializing the variable with a default value");
+    /// let help: Message<()> = Message::help("Try initializing the variable with a default value");
     /// assert_eq!(
     ///     help.message(),
     ///     "Try initializing the variable with a default value"
@@ -113,10 +115,10 @@ impl<S> Message<S> {
     /// ```
     /// use hashql_diagnostics::Message;
     ///
-    /// let note = Message::note("This is a note message");
+    /// let note: Message<()> = Message::note("This is a note message");
     /// assert_eq!(note.message(), "This is a note message");
     ///
-    /// let help = Message::help("This is a help message");
+    /// let help: Message<()> = Message::help("This is a help message");
     /// assert_eq!(help.message(), "This is a help message");
     /// ```
     #[must_use]
@@ -149,11 +151,13 @@ impl<S> Message<S> {
     /// # Examples
     ///
     /// ```
-    /// use anstyle::{Color, Style};
+    /// use anstyle::{Ansi256Color, Color, Style};
     /// use hashql_diagnostics::Message;
     ///
-    /// let style = Style::new().bold().fg_color(Some(Color::Ansi256(196))); // Bold red
-    /// let important_note =
+    /// let style = Style::new()
+    ///     .bold()
+    ///     .fg_color(Some(Color::Ansi256(Ansi256Color(196)))); // Bold red
+    /// let important_note: Message<()> =
     ///     Message::note("Critical: This operation is irreversible").with_style(style);
     /// ```
     #[must_use]
@@ -167,11 +171,11 @@ impl<S> Message<S> {
     /// # Examples
     ///
     /// ```
-    /// use anstyle::Color;
+    /// use anstyle::{Color, Ansi256Color};
     /// use hashql_diagnostics::Message;
     ///
-    /// let warning = Message::note("This feature is deprecated")
-    ///     .with_color(Color::Ansi256(214)); // Orange
+    /// let warning: Message<()> =
+    ///     Message::note("This feature is deprecated").with_color(Color::Ansi256(Ansi256Color(214))); // Orange
     /// ```
     #[must_use]
     pub const fn with_color(mut self, color: Color) -> Self {
@@ -253,7 +257,7 @@ impl<S> Message<S> {
 /// # Examples
 ///
 /// ```
-/// use hashql_diagnostics::{Message, Messages};
+/// use hashql_diagnostics::{Message, diagnostic::Messages};
 ///
 /// let mut messages: Messages<()> = Messages::new();
 /// messages.push(Message::note("Variables should be camelCase"));
@@ -271,7 +275,7 @@ impl<S> Messages<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Message, Messages};
+    /// use hashql_diagnostics::{Message, diagnostic::Messages};
     ///
     /// let mut messages: Messages<()> = Messages::new();
     /// assert_eq!(messages.iter().count(), 0);
@@ -292,7 +296,7 @@ impl<S> Messages<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Message, Messages};
+    /// use hashql_diagnostics::{Message, diagnostic::Messages};
     ///
     /// let mut messages: Messages<()> = Messages::new();
     /// messages.push(Message::note("Variables should be camelCase"));
@@ -309,7 +313,7 @@ impl<S> Messages<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Message, Messages};
+    /// use hashql_diagnostics::{Message, diagnostic::Messages};
     ///
     /// let mut messages: Messages<()> = Messages::new();
     /// messages.push(Message::help("Try using a different approach"));
@@ -334,14 +338,14 @@ impl<S> Messages<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Message, Messages};
+    /// use hashql_diagnostics::{Message, diagnostic::Messages};
     ///
     /// let mut messages: Messages<()> = Messages::new();
     /// messages.push(Message::note("Background information"));
     /// messages.push(Message::help("Actionable advice"));
     ///
     /// let texts: Vec<&str> = messages.iter().map(|msg| msg.message()).collect();
-    /// assert_eq!(texts, vec!["Background information", "Actionable advice"]);
+    /// assert_eq!(texts, ["Background information", "Actionable advice"]);
     /// ```
     pub fn iter(&self) -> impl Iterator<Item = &Message<S>> {
         self.messages.iter()

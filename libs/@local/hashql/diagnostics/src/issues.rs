@@ -42,15 +42,18 @@ pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 /// Basic usage:
 ///
 /// ```
-/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
 /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
 /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-/// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-/// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+/// let mut issues = DiagnosticIssues::new();
+/// issues
+///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+/// issues.push(
+///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+/// );
 ///
 /// assert_eq!(issues.len(), 2);
 /// assert_eq!(issues.critical(), 1);
@@ -59,22 +62,24 @@ pub type AdvisoryDiagnosticIssues<C, S> = DiagnosticIssues<C, S, Advisory>;
 /// Working with the [`DiagnosticSink`] trait to process results:
 ///
 /// ```
-/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, DiagnosticSink, Severity};
+/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, DiagnosticSink, Label, Severity};
 /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
 /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+/// let mut issues = DiagnosticIssues::new();
 ///
 /// // Success case - value is extracted
-/// let success: Result<i32, Diagnostic<_, ()>> = Ok(42);
+/// let success: Result<i32, Diagnostic<_, _>> = Ok(42);
 /// if let Some(value) = issues.sink(success) {
 ///     assert_eq!(value, 42);
 /// }
 ///
 /// // Error case - diagnostic is collected
-/// let error = Result::<i32, _>::Err(Diagnostic::new(CATEGORY, Severity::Error));
+/// let error = Result::<i32, _>::Err(
+///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")),
+/// );
 /// assert!(issues.sink(error).is_none());
 /// assert_eq!(issues.len(), 1);
 /// ```
@@ -113,7 +118,7 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const PARSER_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "parser", name: "Parser"
@@ -122,8 +127,10 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// #     id: "lowering", name: "Lowering"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(PARSER_CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(PARSER_CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")),
+    /// );
     ///
     /// let lowering_issues = issues.map_category(|_| LOWERING_CATEGORY);
     /// ```
@@ -146,14 +153,15 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     ///
     /// let boxed_issues = issues.boxed();
     /// ```
@@ -176,14 +184,15 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     /// assert_eq!(issues.len(), 1);
     ///
     /// issues.clear();
@@ -204,19 +213,22 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// let mut issues = DiagnosticIssues::new();
     /// assert_eq!(issues.critical(), 0);
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     /// assert_eq!(issues.critical(), 1);
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// assert_eq!(issues.critical(), 1); // Warnings are not critical
     /// ```
     #[must_use]
@@ -232,19 +244,22 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// let mut issues = DiagnosticIssues::new();
     /// assert_eq!(issues.advisory(), 0);
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// assert_eq!(issues.advisory(), 1);
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     /// assert_eq!(issues.advisory(), 1); // Errors are not advisory
     /// assert_eq!(issues.critical(), 1);
     /// ```
@@ -258,17 +273,20 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// let mut issues = DiagnosticIssues::new();
     /// assert_eq!(issues.len(), 0);
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// assert_eq!(issues.len(), 2);
     /// ```
     #[must_use]
@@ -281,16 +299,18 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+    /// let mut issues = DiagnosticIssues::new();
     /// assert!(issues.is_empty());
     ///
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// assert!(!issues.is_empty());
     /// ```
     #[must_use]
@@ -306,17 +326,20 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut main_issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// main_issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut main_issues = DiagnosticIssues::new();
+    /// main_issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     ///
-    /// let mut other_issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// other_issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut other_issues = DiagnosticIssues::new();
+    /// other_issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     ///
     /// main_issues.append(&mut other_issues);
     ///
@@ -335,15 +358,18 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     ///
     /// for diagnostic in issues.iter() {
     ///     println!("Severity: {:?}", diagnostic.severity);
@@ -358,15 +384,18 @@ impl<C, S, K> DiagnosticIssues<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     ///
     /// for diagnostic in issues.iter_mut() {
     ///     // Modify diagnostics in place
@@ -386,7 +415,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const OLD_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "old", name: "Old"
@@ -395,11 +424,14 @@ where
     /// #     id: "new", name: "New"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(OLD_CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(OLD_CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")),
+    /// );
     ///
-    /// let transformed: DiagnosticIssues<_, ()> =
-    ///     issues.map(|diagnostic| Diagnostic::new(NEW_CATEGORY, diagnostic.severity));
+    /// let transformed = issues.map(|diagnostic| {
+    ///     Diagnostic::new(NEW_CATEGORY, diagnostic.severity).primary(Label::new(10..15, "error here"))
+    /// });
     /// ```
     pub fn map<C2, S2, K2>(
         self,
@@ -427,15 +459,19 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
-    /// issues.insert_front(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
+    /// issues.insert_front(
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")),
+    /// );
     ///
     /// // The error is now first
     /// let first = issues.iter().next().expect("should have diagnostics");
@@ -451,15 +487,18 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     ///
     /// assert_eq!(issues.len(), 2);
     /// assert_eq!(issues.critical(), 1);
@@ -476,15 +515,18 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     ///
     /// let last = issues.pop().expect("should have diagnostic");
     /// assert_eq!(last.severity, Severity::Warning);
@@ -514,22 +556,23 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
     /// // Create a collection with specific severity type
-    /// let mut issues: DiagnosticIssues<_, (), _> = DiagnosticIssues::new();
-    /// let error_diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let mut issues = DiagnosticIssues::new();
+    /// let error_diagnostic =
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
     /// match error_diagnostic.specialize() {
     ///     Err(critical) => issues.push(critical),
     ///     Ok(_) => panic!("Error should be critical"),
     /// }
     ///
     /// // Convert to general collection that accepts any severity
-    /// let general_issues: DiagnosticIssues<_, ()> = issues.generalize();
+    /// let general_issues = issues.generalize();
     /// assert_eq!(general_issues.len(), 1);
     /// assert_eq!(general_issues.critical(), 1);
     /// ```
@@ -623,21 +666,24 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
     /// // Success case with warnings
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// let status = issues.into_status(42);
     /// assert!(status.is_ok());
     ///
     /// // Failure case with errors
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     /// let status = issues.into_status(42);
     /// assert!(status.is_err());
     /// ```
@@ -658,15 +704,17 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity};
+    /// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
     /// // Success case - closure is called
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Warning));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues.push(
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here")),
+    /// );
     /// let status = issues.into_status_with(|| {
     ///     // Expensive computation only runs on success
     ///     expensive_computation()
@@ -674,8 +722,9 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
     /// assert!(status.is_ok());
     ///
     /// // Failure case - closure is NOT called
-    /// let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
-    /// issues.push(Diagnostic::new(CATEGORY, Severity::Error));
+    /// let mut issues = DiagnosticIssues::new();
+    /// issues
+    ///     .push(Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")));
     /// let status = issues.into_status_with(|| {
     ///     panic!("This should not be called!");
     /// });
@@ -771,7 +820,7 @@ impl<C, S, K> Default for DiagnosticIssues<C, S, K> {
 /// # Examples
 ///
 /// ```
-/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, DiagnosticSink, Severity};
+/// use hashql_diagnostics::{Diagnostic, DiagnosticIssues, DiagnosticSink, Label, Severity};
 /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
 /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 /// #     id: "example", name: "Example"
@@ -780,13 +829,15 @@ impl<C, S, K> Default for DiagnosticIssues<C, S, K> {
 /// let mut issues = DiagnosticIssues::new();
 ///
 /// // Process successful operations
-/// let success: Result<i32, Diagnostic<_, ()>> = Ok(42);
+/// let success: Result<i32, Diagnostic<_, _>> = Ok(42);
 /// if let Some(value) = issues.sink(success) {
 ///     println!("Got value: {}", value);
 /// }
 ///
 /// // Process failed operations - diagnostics are collected
-/// let error = Result::<i32, _>::Err(Diagnostic::new(CATEGORY, Severity::Error));
+/// let error = Result::<i32, _>::Err(
+///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here")),
+/// );
 /// assert!(issues.sink(error).is_none());
 /// assert_eq!(issues.len(), 1);
 /// ```
@@ -943,7 +994,7 @@ mod tests {
 
     #[test]
     fn into_iterator_trait_consumes_collection() {
-        let mut issues: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        let mut issues = DiagnosticIssues::new();
         issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Error).primary(DEFAULT_LABEL));
         issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Warning).primary(DEFAULT_LABEL));
         issues.push(Diagnostic::new(TEST_CATEGORY, Severity::Note).primary(DEFAULT_LABEL));
@@ -1002,7 +1053,7 @@ mod tests {
 
     #[test]
     fn diagnostic_sink_with_diagnostic_issues_error() {
-        let mut primary: DiagnosticIssues<_, ()> = DiagnosticIssues::new();
+        let mut primary = DiagnosticIssues::new();
         primary.push(Diagnostic::new(TEST_CATEGORY, Severity::Note).primary(DEFAULT_LABEL));
 
         let mut secondary = DiagnosticIssues::new();

@@ -4,6 +4,7 @@ use core::fmt::Display;
 pub(crate) struct CanonicalDiagnosticCategoryId<C>(C);
 
 impl<C> CanonicalDiagnosticCategoryId<C> {
+    #[cfg(feature = "render")]
     pub(crate) const fn new(category: C) -> Self {
         Self(category)
     }
@@ -69,6 +70,7 @@ where
     CanonicalDiagnosticCategoryName(category)
 }
 
+#[cfg(feature = "render")]
 pub(crate) fn category_display_name(mut category: &dyn DiagnosticCategory) -> Cow<'_, str> {
     while let Some(child) = category.subcategory() {
         category = child;

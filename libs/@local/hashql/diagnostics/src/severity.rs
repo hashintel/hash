@@ -1,3 +1,4 @@
+#[cfg(feature = "render")]
 use alloc::borrow::Cow;
 use core::{
     cmp,
@@ -7,6 +8,7 @@ use core::{
 
 use anstyle::Color;
 
+#[cfg(feature = "render")]
 use crate::diagnostic::Message;
 
 /// Trait for types that represent diagnostic severity levels.
@@ -337,6 +339,7 @@ impl Severity {
     ///
     /// Some severity levels provide built-in help messages that offer guidance on how to address or
     /// understand issues at that level.
+    #[cfg(feature = "render")]
     pub(crate) const fn messages<'this, S>(self) -> &'this [Message<S>] {
         match self {
             Self::Bug => {

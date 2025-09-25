@@ -131,7 +131,7 @@ impl<C, K> DiagnosticHeader<C, K> {
 /// [`Diagnostic`] is the core type for representing compilation errors, warnings, and other
 /// messages. It contains all the information needed to display a helpful diagnostic to the user,
 /// including the issue category, severity level, descriptive message, source code labels,
-/// explanatory notes, and suggested fixes.
+/// and explanatory messages.
 ///
 /// The diagnostic system uses a three-parameter design:
 /// - `C`: The category type, identifying what kind of issue this is
@@ -143,35 +143,35 @@ impl<C, K> DiagnosticHeader<C, K> {
 /// Creating a basic diagnostic:
 ///
 /// ```
-/// use hashql_diagnostics::{Diagnostic, Severity};
+/// use hashql_diagnostics::{Diagnostic, Label, Severity};
 /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
 /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
+/// let diagnostic =
+///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
 /// assert_eq!(diagnostic.severity, Severity::Error);
-/// assert!(diagnostic.labels.is_empty());
-/// assert!(diagnostic.notes.is_empty());
-/// assert!(diagnostic.help.is_empty());
+/// assert_eq!(diagnostic.labels.iter().count(), 1);
+/// assert_eq!(diagnostic.messages.iter().count(), 0);
 /// ```
 ///
 /// Adding additional information:
 ///
 /// ```
-/// use hashql_diagnostics::{Diagnostic, Help, Note, Severity};
+/// use hashql_diagnostics::{Diagnostic, Label, Message, Severity};
 /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
 /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 /// #     id: "example", name: "Example"
 /// # };
 ///
-/// let mut diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Warning);
+/// let mut diagnostic =
+///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here"));
 /// diagnostic
-///     .add_note(Note::new("This might cause issues"))
-///     .add_help(Help::new("Consider using a different approach"));
+///     .add_message(Message::note("This might cause issues"))
+///     .add_message(Message::help("Consider using a different approach"));
 ///
-/// assert_eq!(diagnostic.notes.len(), 1);
-/// assert_eq!(diagnostic.help.len(), 1);
+/// assert_eq!(diagnostic.messages.iter().count(), 2);
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -200,25 +200,33 @@ pub struct Diagnostic<C, S, K = Severity> {
 }
 
 impl<C, K> Diagnostic<C, !, K> {
-    /// Creates a new diagnostic with the specified category and severity.
+    /// Creates a new diagnostic header with the specified category and severity.
     ///
-    /// Initializes an empty diagnostic that can be populated with message, labels, notes, and help
-    /// messages through the appropriate methods. The category and severity determine how the
-    /// diagnostic will be classified and displayed.
+    /// Returns a [`DiagnosticHeader`] that serves as the starting point for building
+    /// a diagnostic. To create a complete [`Diagnostic`], you must call
+    /// [`DiagnosticHeader::primary`] with a primary label that identifies the main issue
+    /// location.
+    ///
+    /// The `category` identifies the type of diagnostic issue, while `severity` determines
+    /// how the diagnostic will be classified and displayed to users.
     ///
     /// # Examples
     ///
+    /// Creating a diagnostic header and converting it to a full diagnostic:
+    ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "syntax_error", name: "Syntax Error"
     /// # };
     ///
-    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let header = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let label = Label::new(10..15, "unexpected token");
+    /// let diagnostic = header.primary(label);
+    ///
     /// assert_eq!(diagnostic.severity, Severity::Error);
-    /// assert!(diagnostic.message.is_none());
-    /// assert!(diagnostic.labels.is_empty());
+    /// assert_eq!(diagnostic.category, CATEGORY);
     /// ```
     #[expect(clippy::new_ret_no_self)]
     pub const fn new(category: C, severity: K) -> DiagnosticHeader<C, K> {
@@ -267,21 +275,23 @@ impl<C, S> Diagnostic<C, S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
     /// // Advisory diagnostic
-    /// let warning: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let warning =
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here"));
     /// match warning.specialize() {
     ///     Ok(advisory) => println!("Got advisory diagnostic"),
     ///     Err(_) => panic!("Should be advisory"),
     /// }
     ///
     /// // Critical diagnostic
-    /// let error: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let error =
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
     /// match error.specialize() {
     ///     Ok(_) => panic!("Should be critical"),
     ///     Err(critical) => println!("Got critical diagnostic"),
@@ -313,13 +323,14 @@ where
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let diagnostic =
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
     /// let critical = diagnostic.specialize().expect_err("should be critical");
     /// let generalized = critical.generalize();
     ///
@@ -344,7 +355,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, category::DiagnosticCategory};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity, category::DiagnosticCategory};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const OLD_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "old", name: "Old"
@@ -353,7 +364,8 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// #     id: "new", name: "New"
     /// # };
     ///
-    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(OLD_CATEGORY, Severity::Warning);
+    /// let diagnostic = Diagnostic::new(OLD_CATEGORY, Severity::Warning)
+    ///     .primary(Label::new(10..15, "warning here"));
     /// let transformed = diagnostic.map_category(|_| NEW_CATEGORY);
     ///
     /// assert_eq!(transformed.category.id(), "new");
@@ -379,24 +391,25 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// Converting from a specialized severity to a general severity:
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, severity::Critical};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity, severity::Critical};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let diagnostic: Diagnostic<_, (), Severity> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let diagnostic =
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
     /// let critical = diagnostic.specialize().expect_err("should be critical");
     ///
     /// // Convert back to general severity
-    /// let general = critical.map_severity(|severity| severity.into());
+    /// let general = critical.map_severity(Severity::from);
     /// assert_eq!(general.severity, Severity::Error);
     /// ```
     ///
     /// Custom severity transformations:
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
@@ -404,7 +417,8 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// # #[derive(Debug, PartialEq)]
     /// # enum CustomSeverity { Low, High }
     ///
-    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Warning);
+    /// let diagnostic =
+    ///     Diagnostic::new(CATEGORY, Severity::Warning).primary(Label::new(10..15, "warning here"));
     /// let custom = diagnostic.map_severity(|_| CustomSeverity::Low);
     /// assert_eq!(custom.severity, CustomSeverity::Low);
     /// ```
@@ -488,13 +502,14 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Diagnostic, Severity, category::DiagnosticCategory};
+    /// use hashql_diagnostics::{Diagnostic, Label, Severity, category::DiagnosticCategory};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "example", name: "Example"
     /// # };
     ///
-    /// let diagnostic: Diagnostic<_, ()> = Diagnostic::new(CATEGORY, Severity::Error);
+    /// let diagnostic =
+    ///     Diagnostic::new(CATEGORY, Severity::Error).primary(Label::new(10..15, "error here"));
     /// let boxed = diagnostic.boxed();
     ///
     /// // Can now be stored alongside diagnostics with different category types
@@ -593,7 +608,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// Adding styled messages for visual emphasis:
     ///
     /// ```
-    /// use anstyle::Color;
+    /// use anstyle::{Ansi256Color, Color};
     /// use hashql_diagnostics::{Diagnostic, Label, Message, Severity};
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -605,7 +620,7 @@ impl<C, S, K> Diagnostic<C, S, K> {
     /// let mut diagnostic = header.primary(primary);
     ///
     /// let styled_message = Message::help("Use the new `calculate_v2` function instead")
-    ///     .with_color(Color::Ansi256(208)); // Orange color
+    ///     .with_color(Color::Ansi256(Ansi256Color(208))); // Orange color
     /// diagnostic.add_message(styled_message);
     ///
     /// assert_eq!(diagnostic.messages.iter().count(), 1);

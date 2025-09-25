@@ -6,6 +6,7 @@ use annotate_snippets::{Annotation, AnnotationKind};
 
 #[cfg(feature = "render")]
 use super::render::{RenderContext, RenderError};
+#[cfg(feature = "render")]
 use crate::source::{DiagnosticSpan, SourceSpan};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -217,7 +218,7 @@ impl<S> Label<S> {
 /// # Examples
 ///
 /// ```
-/// use hashql_diagnostics::{Label, Labels};
+/// use hashql_diagnostics::{Label, diagnostic::Labels};
 ///
 /// // Create labels collection with a primary label
 /// let primary = Label::new(25..30, "undefined variable");
@@ -242,7 +243,7 @@ impl<S> Labels<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Label, Labels};
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
     ///
     /// let primary_label = Label::new(15..20, "syntax error here");
     /// let labels = Labels::new(primary_label);
@@ -265,7 +266,7 @@ impl<S> Labels<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Label, Labels};
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
     ///
     /// let primary = Label::new(25..30, "variable redefined");
     /// let mut labels = Labels::new(primary);
@@ -285,7 +286,7 @@ impl<S> Labels<S> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_diagnostics::{Label, Labels};
+    /// use hashql_diagnostics::{Label, diagnostic::Labels};
     ///
     /// let primary = Label::new(10..15, "main error");
     /// let mut labels = Labels::new(primary);
@@ -299,6 +300,7 @@ impl<S> Labels<S> {
         self.labels.iter()
     }
 
+    #[cfg(feature = "render")]
     pub(crate) fn as_slice(&self) -> &[Label<S>] {
         &self.labels
     }
