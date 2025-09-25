@@ -76,10 +76,18 @@ export function useMotionResizeObserver<T extends HTMLElement = HTMLElement>(
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width: observedWidth, height: observedHeight } =
-          entry.contentRect;
-        width.set(observedWidth);
-        height.set(observedHeight);
+        // Use borderBoxSize for more accurate dimensions including padding and border
+        const borderBoxSize = entry.borderBoxSize[0];
+        if (borderBoxSize) {
+          width.set(borderBoxSize.inlineSize);
+          height.set(borderBoxSize.blockSize);
+        } else {
+          // Fallback to contentRect for older browsers
+          const { width: observedWidth, height: observedHeight } =
+            entry.contentRect;
+          width.set(observedWidth);
+          height.set(observedHeight);
+        }
       }
     });
 
