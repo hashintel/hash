@@ -3,10 +3,11 @@ import { useLayoutEffect } from "react";
 
 import { Filter } from "../../lib/filter";
 import { CONVEX } from "../../lib/surface-equations";
+import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
 export type BarProps = React.PropsWithChildren<{
-  width: number;
-  height: number;
+  className?: string;
+  style?: React.CSSProperties;
   radius: number;
   blur: number;
   specularOpacity: number;
@@ -18,8 +19,8 @@ export type BarProps = React.PropsWithChildren<{
 }>;
 
 export const Bar: React.FC<BarProps> = ({
-  width,
-  height,
+  className,
+  style,
   radius,
   blur,
   specularOpacity,
@@ -28,8 +29,18 @@ export const Bar: React.FC<BarProps> = ({
   bezelWidth,
   glassThickness,
   refractiveIndex,
+  children,
 }) => {
   const scaleRatio = useMotionValue(scaleRatioProp);
+  const {
+    ref: divRef,
+    width: trackedMotionWidth,
+    height: trackedMotionHeight,
+  } = useMotionResizeObserver<HTMLDivElement>({
+    initialWidth: 10,
+    initialHeight: 10,
+  });
+
   useLayoutEffect(() => {
     scaleRatio.set(scaleRatioProp);
   }, [scaleRatio, scaleRatioProp]);
@@ -42,8 +53,8 @@ export const Bar: React.FC<BarProps> = ({
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
         specularSaturation={specularSaturation}
-        width={width}
-        height={height}
+        width={trackedMotionWidth}
+        height={trackedMotionHeight}
         radius={radius}
         bezelWidth={bezelWidth}
         glassThickness={glassThickness}
@@ -51,14 +62,16 @@ export const Bar: React.FC<BarProps> = ({
         bezelHeightFn={CONVEX}
       />
       <div
+        ref={divRef}
+        className={className}
         style={{
-          width,
-          height,
+          ...style,
           borderRadius: radius,
-          boxShadow: "0 3px 14px rgba(0,0,0,0.1)",
           backdropFilter: `url(#bar-filter)`,
         }}
-      />
+      >
+        {children}
+      </div>
     </>
   );
 };

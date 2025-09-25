@@ -358,13 +358,158 @@ materials from standard window glass to high-index optical crystals.
 };
 
 /**
+ * Bar component with dynamically sized children that can be resized via controls.
+ * This story demonstrates how the Bar adapts to its children's dimensions and tracks them with MotionValues.
+ */
+export const WithDynamicallySizedChildren = {
+  args: {
+    radius: 15,
+    blur: 8,
+    specularOpacity: 0.6,
+    specularSaturation: 12,
+    scaleRatio: 0.9,
+    bezelWidth: 16,
+    glassThickness: 80,
+    refractiveIndex: 1.45,
+    // These are minimum dimensions - actual size will be determined by children
+    width: 200,
+    height: 60,
+    // Child control properties
+    childWidth: 250,
+    childHeight: 100,
+    childContent:
+      "Resizable Content\nUse Storybook controls to change my size!",
+  },
+  argTypes: {
+    ...meta.argTypes,
+    childWidth: {
+      control: {
+        type: "range",
+        min: 100,
+        max: 600,
+        step: 10,
+      },
+      description: "Width of the child content in pixels",
+      table: { category: "Child Content" },
+    },
+    childHeight: {
+      control: {
+        type: "range",
+        min: 50,
+        max: 300,
+        step: 10,
+      },
+      description: "Height of the child content in pixels",
+      table: { category: "Child Content" },
+    },
+    childContent: {
+      control: "text",
+      description:
+        "Text content for the child element (use \\n for line breaks)",
+      table: { category: "Child Content" },
+    },
+  },
+  parameters: {
+    layout: "fullscreen",
+    docs: {
+      description: {
+        story: `
+This story demonstrates how the Bar component adapts to dynamically sized children.
+The Bar will resize to fit its content, and the MotionValues will track these changes
+in real-time. Use the Storybook controls panel to adjust the child element's 
+dimensions and content to see how the Bar responds.
+
+**Key Features Demonstrated:**
+- **Dynamic Sizing**: Bar adapts to content size
+- **MotionValue Tracking**: Real-time dimension tracking (check browser console)
+- **Flexible Layout**: Content-driven dimensions
+- **Storybook Controls**: Use the controls panel to resize child content
+- **Background Integration**: Shows how the Bar interacts with background content
+
+Open your browser's console to see the MotionValue dimension tracking in action
+as you change the child element's size using the controls panel.
+        `,
+      },
+    },
+  },
+  decorators: [
+    (Story: React.ComponentType) => (
+      <div
+        style={{
+          position: "relative",
+          height: "100vh",
+          width: "100vw",
+          backgroundImage:
+            "url(https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=3270&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2rem",
+        }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
+  render: (args: Record<string, unknown>) => {
+    const childWidth = args.childWidth as number;
+    const childHeight = args.childHeight as number;
+    const childContent = args.childContent as string;
+
+    return (
+      <Bar
+        style={{
+          minWidth: args.width as number,
+          minHeight: args.height as number,
+        }}
+        radius={args.radius as number}
+        blur={args.blur as number}
+        specularOpacity={args.specularOpacity as number}
+        specularSaturation={args.specularSaturation as number}
+        scaleRatio={args.scaleRatio as number}
+        bezelWidth={args.bezelWidth as number}
+        glassThickness={args.glassThickness as number}
+        refractiveIndex={args.refractiveIndex as number}
+      >
+        <div
+          style={{
+            width: childWidth,
+            height: childHeight,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "8px",
+            padding: "16px",
+            fontSize: "14px",
+            fontWeight: "500",
+            textAlign: "center",
+            whiteSpace: "pre-line",
+            color: "#ffffff",
+            textShadow: "0 1px 2px rgba(0, 0, 0, 0.5)",
+            transition: "all 0.3s ease",
+          }}
+        >
+          <div>
+            <div>{childContent}</div>
+            <div style={{ marginTop: "8px", fontSize: "12px", opacity: 0.8 }}>
+              {childWidth} × {childHeight}px
+            </div>
+          </div>
+        </div>
+      </Bar>
+    );
+  },
+};
+
+/**
  * Bar component with scrollable content behind it demonstrating the refraction and blur effects.
  * Scroll the background content to see how the bar interacts with different content underneath.
  */
 export const WithScrollableContent: Story = {
   args: {
-    width: 300,
-    height: 80,
     radius: 20,
     blur: 12,
     specularOpacity: 0.7,
