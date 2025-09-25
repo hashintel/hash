@@ -36,9 +36,9 @@ use hash_graph_store::{
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
@@ -1601,20 +1601,20 @@ where
         self.store.validate_entities(actor_id, params).await
     }
 
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        self.store.get_entities(actor_id, params).await
+        params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+        self.store.query_entities(actor_id, params).await
     }
 
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        self.store.get_entity_subgraph(actor_id, params).await
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        self.store.query_entity_subgraph(actor_id, params).await
     }
 
     async fn get_entity_by_id(

@@ -2,6 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -78,8 +79,9 @@ export const researchEntitiesAction: FlowActionActivity<{
     const { createEntitiesAsDraft, userAuthentication, flowEntityId, stepId } =
       await getFlowContext();
 
-    const persistedClaims = await graphApiClient.getEntities(
-      userAuthentication.actorId,
+    const { entities: persistedClaims } = await queryEntities(
+      { graphApi: graphApiClient },
+      userAuthentication,
       {
         includeDrafts: createEntitiesAsDraft,
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -111,6 +113,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             },
           ],
         },
+        includePermissions: false,
       },
     );
 
@@ -124,7 +127,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     };
 
     await Promise.all(
-      persistedClaims.data.entities
+      persistedClaims
         .filter(
           (claim) =>
             !state.inferredClaims.some(

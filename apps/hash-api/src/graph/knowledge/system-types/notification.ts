@@ -9,7 +9,10 @@ import type {
   CreateEntityParameters,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  HashLinkEntity,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -40,11 +43,7 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import {
-  createEntity,
-  getEntitySubgraphResponse,
-  updateEntity,
-} from "../primitive/entity";
+import { createEntity, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
 import type { Comment } from "./comment";
@@ -242,7 +241,7 @@ export const getMentionNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
     context,
     authentication,
     {
@@ -265,6 +264,7 @@ export const getMentionNotification: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 
@@ -495,7 +495,7 @@ export const getCommentNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
     context,
     authentication,
     {

@@ -7,7 +7,7 @@ use either::Either;
 use error_stack::Report;
 use hash_graph_api::rest::{
     self,
-    entity::{EntityQueryOptions, GetEntitiesRequest, GetEntitySubgraphRequest},
+    entity::{EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -34,16 +34,16 @@ use crate::util::setup_subscriber;
 #[serde(tag = "type", rename_all = "camelCase")]
 enum GraphQuery<'q, 's, 'p> {
     #[serde(borrow)]
-    GetEntities(GetEntitiesQuery<'q, 's, 'p>),
+    QueryEntities(QueryEntitiesQuery<'q, 's, 'p>),
     #[serde(borrow)]
-    GetEntitySubgraph(GetEntitySubgraphQuery<'q, 's, 'p>),
+    QueryEntitySubgraph(QueryEntitySubgraphQuery<'q, 's, 'p>),
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum GraphQueryType {
-    GetEntities,
-    GetEntitySubgraph,
+    QueryEntities,
+    QueryEntitySubgraph,
 }
 
 impl fmt::Display for GraphQueryType {
@@ -55,23 +55,23 @@ impl fmt::Display for GraphQueryType {
 impl GraphQuery<'_, '_, '_> {
     const fn query_type(&self) -> GraphQueryType {
         match self {
-            Self::GetEntities(_) => GraphQueryType::GetEntities,
-            Self::GetEntitySubgraph(_) => GraphQueryType::GetEntitySubgraph,
+            Self::QueryEntities(_) => GraphQueryType::QueryEntities,
+            Self::QueryEntitySubgraph(_) => GraphQueryType::QueryEntitySubgraph,
         }
     }
 
     fn sample_size(&self) -> usize {
         match self {
-            Self::GetEntities(query) => query.settings.sample_size,
-            Self::GetEntitySubgraph(query) => query.settings.sample_size,
+            Self::QueryEntities(query) => query.settings.sample_size,
+            Self::QueryEntitySubgraph(query) => query.settings.sample_size,
         }
         .unwrap_or(100)
     }
 
     const fn sampling_mode(&self) -> criterion::SamplingMode {
         let sampling_mode = match self {
-            Self::GetEntities(query) => query.settings.sampling_mode,
-            Self::GetEntitySubgraph(query) => query.settings.sampling_mode,
+            Self::QueryEntities(query) => query.settings.sampling_mode,
+            Self::QueryEntitySubgraph(query) => query.settings.sampling_mode,
         };
         match sampling_mode {
             SamplingMode::Auto => criterion::SamplingMode::Auto,
@@ -82,15 +82,15 @@ impl GraphQuery<'_, '_, '_> {
 
     fn prepare_request(self) -> impl Iterator<Item = (Self, String)> {
         match self {
-            Self::GetEntities(query) => Either::Left(
+            Self::QueryEntities(query) => Either::Left(
                 query
                     .prepare_request()
-                    .map(|(request, parameter)| (Self::GetEntities(request), parameter)),
+                    .map(|(request, parameter)| (Self::QueryEntities(request), parameter)),
             ),
-            Self::GetEntitySubgraph(query) => Either::Right(
+            Self::QueryEntitySubgraph(query) => Either::Right(
                 query
                     .prepare_request()
-                    .map(|(request, parameter)| (Self::GetEntitySubgraph(request), parameter)),
+                    .map(|(request, parameter)| (Self::QueryEntitySubgraph(request), parameter)),
             ),
         }
     }
@@ -117,7 +117,7 @@ struct Settings<P> {
 
 #[derive(Debug, Default, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntitiesQueryParameters {
+struct QueryEntitiesQueryParameters {
     #[serde(default)]
     actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
@@ -128,15 +128,15 @@ struct GetEntitiesQueryParameters {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntitiesQuery<'q, 's, 'p> {
+struct QueryEntitiesQuery<'q, 's, 'p> {
     actor_id: ActorEntityUuid,
     #[serde(borrow)]
-    request: GetEntitiesRequest<'q, 's, 'p>,
+    request: QueryEntitiesRequest<'q, 's, 'p>,
     #[serde(default)]
-    settings: Settings<GetEntitiesQueryParameters>,
+    settings: Settings<QueryEntitiesQueryParameters>,
 }
 
-impl GetEntitiesQuery<'_, '_, '_> {
+impl QueryEntitiesQuery<'_, '_, '_> {
     fn prepare_request(mut self) -> impl Iterator<Item = (Self, String)> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
@@ -175,7 +175,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
             (
                 Self {
                     actor_id,
-                    request: GetEntitiesRequest::from_parts(
+                    request: QueryEntitiesRequest::from_parts(
                         query.clone(),
                         EntityQueryOptions {
                             limit,
@@ -193,7 +193,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
 
 #[derive(Debug, Default, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntitySubgraphQueryParameters {
+struct QueryEntitySubgraphQueryParameters {
     #[serde(default)]
     actor_id: Vec<ActorEntityUuid>,
     #[serde(default)]
@@ -206,12 +206,12 @@ struct GetEntitySubgraphQueryParameters {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct GetEntitySubgraphQuery<'q, 's, 'p> {
+struct QueryEntitySubgraphQuery<'q, 's, 'p> {
     actor_id: ActorEntityUuid,
     #[serde(borrow)]
-    request: GetEntitySubgraphRequest<'q, 's, 'p>,
+    request: QueryEntitySubgraphRequest<'q, 's, 'p>,
     #[serde(default)]
-    settings: Settings<GetEntitySubgraphQueryParameters>,
+    settings: Settings<QueryEntitySubgraphQueryParameters>,
 }
 
 fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
@@ -250,7 +250,7 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
     }
 }
 
-impl GetEntitySubgraphQuery<'_, '_, '_> {
+impl QueryEntitySubgraphQuery<'_, '_, '_> {
     fn prepare_request(mut self) -> impl Iterator<Item = (Self, String)> {
         let modifies_actor_id = !self.settings.parameters.actor_id.is_empty();
         let modifies_limit = !self.settings.parameters.limit.is_empty();
@@ -296,7 +296,7 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
                 (
                     Self {
                         actor_id,
-                        request: GetEntitySubgraphRequest::from_parts(
+                        request: QueryEntitySubgraphRequest::from_parts(
                             query.clone(),
                             EntityQueryOptions {
                                 limit,
@@ -341,25 +341,25 @@ where
     S: EntityStore + Sync,
 {
     match request {
-        GraphQuery::GetEntities(request) => {
+        GraphQuery::QueryEntities(request) => {
             let (query, options) = request.request.into_parts();
             let rest::entity::EntityQuery::Filter { filter } = query else {
                 panic!("unsupported query type")
             };
 
             let _response = store
-                .get_entities(request.actor_id, options.into_params(filter))
+                .query_entities(request.actor_id, options.into_params(filter))
                 .await
                 .expect("failed to read entities from store");
         }
-        GraphQuery::GetEntitySubgraph(request) => {
+        GraphQuery::QueryEntitySubgraph(request) => {
             let (query, options, traversal) = request.request.into_parts();
             let rest::entity::EntityQuery::Filter { filter } = query else {
                 panic!("unsupported query type")
             };
 
             let _response = store
-                .get_entity_subgraph(
+                .query_entity_subgraph(
                     request.actor_id,
                     options.into_traversal_params(filter, traversal),
                 )

@@ -163,11 +163,12 @@ export const mapGraphApiVerticesToVertices = (
  */
 export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
+  PropertyMap extends TypeIdsAndPropertiesForEntity,
 >(
   subgraph: GraphApiSubgraph,
   userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
-): Subgraph<RootType, HashEntity> => {
+): Subgraph<RootType, HashEntity<PropertyMap>> => {
   return {
     ...subgraph,
     vertices: mapGraphApiVerticesToVertices(
@@ -175,7 +176,7 @@ export const mapGraphApiSubgraphToSubgraph = <
       userAccountId,
       preserveProperties,
     ),
-  } as Subgraph<RootType, HashEntity>;
+  } as Subgraph<RootType, HashEntity<PropertyMap>>;
 };
 
 const serializeKnowledgeGraphVertex = (
@@ -211,9 +212,12 @@ export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
     ]),
   ) as SerializedVertices;
 
-export const deserializeGraphVertices = (
+export const deserializeGraphVertices = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
   vertices: SerializedVertices,
-): Vertices<HashEntity> =>
+): Vertices<HashEntity<PropertyMap>> =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -226,7 +230,7 @@ export const deserializeGraphVertices = (
         ]),
       ),
     ]),
-  ) as Vertices<HashEntity>;
+  ) as Vertices<HashEntity<PropertyMap>>;
 
 export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   roots: subgraph.roots,

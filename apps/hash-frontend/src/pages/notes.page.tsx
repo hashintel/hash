@@ -1,11 +1,12 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Container } from "@mui/material";
@@ -21,10 +22,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -41,14 +42,13 @@ const NotesPage: NextPageWithLayout = () => {
   const sectionRefs = useRef<Array<HTMLDivElement>>([]);
 
   const [previouslyFetchedQuickNotesData, setPreviouslyFetchedQuickNotesData] =
-    useState<GetEntitySubgraphQuery>();
+    useState<QueryEntitySubgraphQuery>();
 
   const { data: quickNotesData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: true,
       request: {
         filter: {
           all: [
@@ -67,6 +67,7 @@ const NotesPage: NextPageWithLayout = () => {
         graphResolveDepths: blockCollectionContentsDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: true,
       },
     },
     onCompleted: (data) => setPreviouslyFetchedQuickNotesData(data),
@@ -74,16 +75,14 @@ const NotesPage: NextPageWithLayout = () => {
   });
 
   const quickNotesSubgraph = useMemo(() => {
-    const subgraph = (quickNotesData ?? previouslyFetchedQuickNotesData)
-      ?.getEntitySubgraph.subgraph;
+    const response = (quickNotesData ?? previouslyFetchedQuickNotesData)
+      ?.queryEntitySubgraph;
 
-    if (!subgraph) {
+    if (!response) {
       return undefined;
     }
 
-    return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-      subgraph,
-    );
+    return deserializeQueryEntitySubgraphResponse(response).subgraph;
   }, [quickNotesData, previouslyFetchedQuickNotesData]);
 
   const latestQuickNoteEntities = useMemo<HashEntity[] | undefined>(() => {
@@ -216,7 +215,7 @@ const NotesPage: NextPageWithLayout = () => {
             <BlockCollectionContextProvider
               blockCollectionSubgraph={quickNotesSubgraph}
               userPermissionsOnEntities={
-                quickNotesData?.getEntitySubgraph.userPermissionsOnEntities
+                quickNotesData?.queryEntitySubgraph.entityPermissions
               }
             >
               <TodaySection

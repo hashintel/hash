@@ -10,7 +10,11 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  type HashEntity,
+  HashLinkEntity,
+  queryEntities,
+} from "@local/hash-graph-sdk/entity";
 import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
@@ -26,46 +30,38 @@ export const getEntitiesByLinearId = async (params: {
   webWebId?: WebId;
   includeDrafts?: boolean;
 }): Promise<HashEntity[]> =>
-  params.graphApiClient
-    .getEntities(params.authentication.actorId, {
-      filter: {
-        all: [
-          params.entityTypeId
-            ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
-                ignoreParents: true,
-              })
-            : [],
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  linearPropertyTypes.id.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.linearId },
-            ],
-          },
-          params.webWebId
-            ? {
-                equal: [
-                  {
-                    path: ["webId"],
-                  },
-                  { parameter: params.webWebId },
-                ],
-              }
-            : [],
-        ].flat(),
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, params.authentication.actorId),
-      ),
-    );
+  queryEntities({ graphApi: params.graphApiClient }, params.authentication, {
+    filter: {
+      all: [
+        params.entityTypeId
+          ? generateVersionedUrlMatchingFilter(params.entityTypeId, {
+              ignoreParents: true,
+            })
+          : [],
+        {
+          equal: [
+            {
+              path: ["properties", linearPropertyTypes.id.propertyTypeBaseUrl],
+            },
+            { parameter: params.linearId },
+          ],
+        },
+        params.webWebId
+          ? {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: params.webWebId },
+              ],
+            }
+          : [],
+      ].flat(),
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
+  }).then(({ entities }) => entities);
 
 export const getEntityOutgoingLinks = async (params: {
   graphApiClient: GraphApi;
@@ -75,8 +71,9 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const { data: response } = await graphApiClient.getEntities(
-    authentication.actorId,
+  const response = await queryEntities(
+    { graphApi: graphApiClient },
+    authentication,
     {
       filter: {
         all: [
@@ -103,6 +100,7 @@ export const getEntityOutgoingLinks = async (params: {
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
   );
 
@@ -133,28 +131,24 @@ export const getLatestEntityById = async (params: {
 
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const { data: response } = await graphApiClient.getEntities(
-    authentication.actorId,
-    {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["webId"] }, { parameter: webId }],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
+  const {
+    entities: [entity, ...unexpectedEntities],
+  } = await queryEntities({ graphApi: graphApiClient }, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+        },
+        {
+          equal: [{ path: ["webId"] }, { parameter: webId }],
+        },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
     },
-  );
-
-  const [entity, ...unexpectedEntities] = response.entities.map((graphEntity) =>
-    mapGraphApiEntityToEntity(graphEntity, authentication.actorId),
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

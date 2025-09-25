@@ -13,7 +13,7 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-graph-sdk/embeddings";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -154,8 +154,10 @@ export const gptQueryEntities: RequestHandler<
         .then(({ embeddings }) => embeddings[0])
     : null;
 
-  const queryResponse: GptQueryEntitiesResponseBody = await req.context.graphApi
-    .getEntitySubgraph(user.accountId, {
+  const queryResponse: GptQueryEntitiesResponseBody = await queryEntitySubgraph(
+    req.context,
+    { actorId: user.accountId },
+    {
       filter: {
         all: [
           ...(types
@@ -218,7 +220,6 @@ export const gptQueryEntities: RequestHandler<
           { equal: [{ path: ["archived"] }, { parameter: false }] },
         ],
       },
-      includeDrafts: includeDrafts ?? false,
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
         inheritsFrom: { outgoing: 255 },
@@ -230,103 +231,100 @@ export const gptQueryEntities: RequestHandler<
         hasLeftEntity: { incoming: depth, outgoing: depth },
         hasRightEntity: { incoming: depth, outgoing: depth },
       },
-    })
-    .then(async ({ data: response }) => {
-      const webs: SimpleWeb[] = await getUserSimpleWebs(
-        req.context,
-        {
-          actorId: user.accountId,
-        },
-        { user },
-      );
+      includeDrafts: includeDrafts ?? false,
+      includePermissions: false,
+    },
+  ).then(async ({ subgraph }) => {
+    const webs: SimpleWeb[] = await getUserSimpleWebs(
+      req.context,
+      {
+        actorId: user.accountId,
+      },
+      { user },
+    );
 
-      const subgraph = mapGraphApiSubgraphToSubgraph(
-        response.subgraph,
-        user.accountId,
-      );
+    const { entities: entitiesWithoutHrefs, entityTypes } =
+      getSimpleGraph(subgraph);
 
-      const { entities: entitiesWithoutHrefs, entityTypes } =
-        getSimpleGraph(subgraph);
+    const resolveEntityWeb = async (simpleEntity: {
+      entityId: EntityId;
+    }): Promise<SimpleWeb> => {
+      /**
+       * Resolve details of the web that the entity belongs to
+       */
+      const webWebId = extractWebIdFromEntityId(simpleEntity.entityId);
 
-      const resolveEntityWeb = async (simpleEntity: {
-        entityId: EntityId;
-      }): Promise<SimpleWeb> => {
-        /**
-         * Resolve details of the web that the entity belongs to
-         */
-        const webWebId = extractWebIdFromEntityId(simpleEntity.entityId);
+      let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webWebId);
 
-        let web = webs.find((resolvedWeb) => resolvedWeb.uuid === webWebId);
+      if (!web) {
+        const owningEntity = await getLatestEntityById(
+          req.context,
+          { actorId: user.accountId },
+          {
+            entityId: entityIdFromComponents(
+              webWebId,
+              webWebId as string as EntityUuid,
+            ),
+          },
+        );
 
-        if (!web) {
-          const owningEntity = await getLatestEntityById(
-            req.context,
-            { actorId: user.accountId },
-            {
-              entityId: entityIdFromComponents(
-                webWebId,
-                webWebId as string as EntityUuid,
-              ),
-            },
-          );
+        const isUser =
+          owningEntity.metadata.entityTypeIds[0].includes("/user/");
 
-          const isUser =
-            owningEntity.metadata.entityTypeIds[0].includes("/user/");
+        web = {
+          type: isUser ? "User" : "Organization",
+          name: (
+            owningEntity.properties as UserProperties | OrganizationProperties
+          )["https://hash.ai/@h/types/property-type/shortname/"]!,
+          uuid: webWebId,
+        };
 
-          web = {
-            type: isUser ? "User" : "Organization",
-            name: (
-              owningEntity.properties as UserProperties | OrganizationProperties
-            )["https://hash.ai/@h/types/property-type/shortname/"]!,
-            uuid: webWebId,
-          };
-
-          webs.push(web);
-        }
-
-        return web;
-      };
-
-      const entities: SimpleEntity[] = [];
-      for (const simpleEntity of entitiesWithoutHrefs) {
-        const entityWeb = await resolveEntityWeb(simpleEntity);
-
-        entities.push({
-          ...simpleEntity,
-          entityHref: `${frontendUrl}${generateEntityPath({
-            entityId: simpleEntity.entityId,
-            includeDraftId: simpleEntity.draft,
-            shortname: entityWeb.name,
-          })}`,
-          links: await Promise.all(
-            simpleEntity.links.map(async (link) => {
-              const linkWeb = await resolveEntityWeb(link);
-              return {
-                ...link,
-                entityHref: `${frontendUrl}${generateEntityPath({
-                  entityId: link.entityId,
-                  includeDraftId: link.draft,
-                  shortname: linkWeb.name,
-                })}`,
-              };
-            }),
-          ),
-          webUuid: entityWeb.uuid,
-        });
+        webs.push(web);
       }
 
-      return {
-        entities: `
+      return web;
+    };
+
+    const entities: SimpleEntity[] = [];
+    for (const simpleEntity of entitiesWithoutHrefs) {
+      const entityWeb = await resolveEntityWeb(simpleEntity);
+
+      entities.push({
+        ...simpleEntity,
+        entityHref: `${frontendUrl}${generateEntityPath({
+          entityId: simpleEntity.entityId,
+          includeDraftId: simpleEntity.draft,
+          shortname: entityWeb.name,
+        })}`,
+        links: await Promise.all(
+          simpleEntity.links.map(async (link) => {
+            const linkWeb = await resolveEntityWeb(link);
+            return {
+              ...link,
+              entityHref: `${frontendUrl}${generateEntityPath({
+                entityId: link.entityId,
+                includeDraftId: link.draft,
+                shortname: linkWeb.name,
+              })}`,
+            };
+          }),
+        ),
+        webUuid: entityWeb.uuid,
+      });
+    }
+
+    return {
+      entities: `
           ---- Entities returned by the query ----
         ${stringifyResults(entities)}`,
-        entityTypes: `
+      entityTypes: `
           ---- Entity Types ----
         ${stringifyResults(entityTypes)}`,
-        webs: `
+      webs: `
           ---- Webs ----
           ${stringifyResults(webs)}`,
-      };
-    });
+    };
+  });
 
   res.status(200).json(queryResponse);
 };

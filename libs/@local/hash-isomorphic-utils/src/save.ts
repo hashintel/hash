@@ -4,9 +4,15 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import {
+  type EntityId,
+  splitEntityId,
+  type VersionedUrl,
+  type WebId,
+} from "@blockprotocol/type-system";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
+  deserializeQueryEntitySubgraphResponse,
   HashEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
@@ -28,20 +34,19 @@ import {
 } from "./entity-store.js";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "./graph-queries.js";
 import type {
   Block as GqlBlock,
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   UpdateBlockCollectionAction,
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
   UpdateBlockCollectionContentsResultPlaceholder,
 } from "./graphql/api-types.gen.js";
 import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
-import { getEntityQuery } from "./graphql/queries/entity.queries.js";
+import { queryEntitySubgraphQuery } from "./graphql/queries/entity.queries.js";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -480,35 +485,55 @@ const mapEntityToGqlBlock = (
 
 export const save = async ({
   apolloClient,
-  webId,
   blockCollectionEntityId,
   doc,
   store,
   getBlocksMap,
 }: {
   apolloClient: ApolloClient<unknown>;
-  webId: WebId;
   blockCollectionEntityId: EntityId;
   doc: Node;
   store: EntityStore;
   getBlocksMap: () => ComponentIdHashBlockMap;
 }) => {
+  const [webId, entityUuid, draftId] = splitEntityId(blockCollectionEntityId);
   const blockAndLinkList = await apolloClient
-    .query<GetEntityQuery, GetEntityQueryVariables>({
-      query: getEntityQuery,
+    .query<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>({
+      query: queryEntitySubgraphQuery,
       variables: {
-        includePermissions: false,
-        entityId: blockCollectionEntityId,
-        ...zeroedGraphResolveDepths,
-        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
-        ...currentTimeInstantTemporalAxes,
+        request: {
+          filter: {
+            all: [
+              {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              {
+                equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+              },
+              ...(draftId
+                ? [
+                    {
+                      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                    },
+                  ]
+                : []),
+            ],
+          },
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: !!draftId,
+          includePermissions: false,
+        },
       },
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.getEntity.subgraph);
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
       const [blockCollectionEntity] = getRoots(subgraph);
 

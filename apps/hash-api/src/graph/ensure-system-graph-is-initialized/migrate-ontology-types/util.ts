@@ -41,6 +41,7 @@ import {
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
@@ -66,7 +67,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-types";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { getEntities } from "../../knowledge/primitive/entity";
 import { createDataType } from "../../ontology/primitive/data-type";
 import { createEntityType } from "../../ontology/primitive/entity-type";
 import { createPropertyType } from "../../ontology/primitive/property-type";
@@ -921,7 +921,7 @@ export const getEntitiesByType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
   Promise<Entity[]>
 > = async (context, authentication, { entityTypeId }) =>
-  getEntities(context, authentication, {
+  queryEntities(context, authentication, {
     filter: {
       all: [
         generateVersionedUrlMatchingFilter(entityTypeId, {
@@ -929,16 +929,17 @@ export const getEntitiesByType: ImpureGraphFunction<
         }),
       ],
     },
-    includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
-  });
+    includeDrafts: false,
+    includePermissions: false,
+  }).then(({ entities }) => entities);
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
-  const [users, orgs] = await Promise.all([
-    getEntities(context, authentication, {
+  const [{ entities: users }, { entities: orgs }] = await Promise.all([
+    queryEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -949,10 +950,11 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
-    getEntities(context, authentication, {
+    queryEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -963,8 +965,9 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
   ]);
 

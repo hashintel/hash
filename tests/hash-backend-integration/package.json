@@ -15,6 +15,7 @@
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
     "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",

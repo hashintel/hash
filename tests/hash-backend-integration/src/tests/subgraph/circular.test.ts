@@ -1,10 +1,6 @@
 import path from "node:path";
 
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import {
-  getEntities,
-  getEntitySubgraphResponse,
-} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type {
   EntityRootType,
   KnowledgeGraphEdgeKind,
@@ -21,7 +17,11 @@ import type {
   Timestamp,
 } from "@blockprotocol/type-system";
 import { ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
-import type { GetEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
+import {
+  queryEntities,
+  queryEntitySubgraph,
+  type QueryEntitySubgraphRequest,
+} from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ const createRequest = ({
 }: {
   traversalPaths: TraversalPath[];
   timestamp: Timestamp;
-}): GetEntitySubgraphRequest => {
+}): QueryEntitySubgraphRequest => {
   return {
     filter: {
       equal: [
@@ -69,6 +69,7 @@ const createRequest = ({
       },
     },
     includeDrafts: false,
+    includePermissions: false,
   };
 };
 let graphContext: ImpureGraphContext;
@@ -96,12 +97,13 @@ beforeAll(async () => {
 
   graphContext = createTestImpureGraphContext();
 
-  const entities = await getEntities(graphContext, authentication, {
+  const { entities } = await queryEntities(graphContext, authentication, {
     filter: {
       all: [],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
+    includePermissions: false,
   });
 
   expect(entities.length).toBe(12);
@@ -204,7 +206,7 @@ describe("Single linked list", () => {
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
   it("finds AB", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -237,7 +239,7 @@ describe("Single linked list", () => {
   });
 
   it("finds AB and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -284,7 +286,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -331,7 +333,7 @@ describe("Single linked list", () => {
   });
 
   it("finds B and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -405,7 +407,7 @@ describe("Single linked list", () => {
   });
 
   it("finds D", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -545,7 +547,7 @@ describe("Double linked list", () => {
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
   it("finds AB/AD", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -579,7 +581,7 @@ describe("Double linked list", () => {
   });
 
   it("finds AD/DA and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -637,7 +639,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -703,7 +705,7 @@ describe("Double linked list", () => {
   });
 
   it("finds B/D and travels back", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({
@@ -849,7 +851,7 @@ describe("Double linked list", () => {
   });
 
   it("finds D/A", async () => {
-    const { subgraph } = await getEntitySubgraphResponse(
+    const { subgraph } = await queryEntitySubgraph(
       graphContext,
       authentication,
       createRequest({

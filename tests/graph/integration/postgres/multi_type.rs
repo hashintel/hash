@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use hash_graph_store::{
     entity::{
-        CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
-        PatchEntityParams,
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
+        QueryEntitiesParams,
     },
     error::InsertionError,
     filter::Filter,
@@ -142,9 +142,9 @@ async fn initial_person() {
     );
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -207,9 +207,9 @@ async fn initial_person() {
     );
 
     let updated_person_entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -236,9 +236,9 @@ async fn initial_person() {
         .entities;
 
     let updated_org_entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -319,9 +319,9 @@ async fn create_multi() {
     );
 
     let person_entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -348,9 +348,9 @@ async fn create_multi() {
         .entities;
 
     let org_entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -408,9 +408,9 @@ async fn create_multi() {
     );
 
     let updated_person_entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_entity_type_id()),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),

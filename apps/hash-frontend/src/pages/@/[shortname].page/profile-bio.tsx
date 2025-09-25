@@ -1,14 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import type { WebId } from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Skeleton, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
@@ -35,26 +34,46 @@ export const ProfileBio: FunctionComponent<{
   refetchProfile: () => Promise<void>;
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => {
-  const webId = (
-    profile.kind === "user" ? profile.accountId : profile.webId
-  ) as WebId;
-
+  const [webId, entityUuid, draftId] = splitEntityId(
+    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- potential crash otherwise
+    profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
+  );
+  const { includePermissions, ...graphResolveDepths } =
+    blockCollectionContentsGetEntityVariables;
   const { data, loading, refetch } = useQuery<
-    GetEntityQuery,
-    GetEntityQueryVariables
-  >(getEntityQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- potential crash otherwise
-      entityId: profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
-      ...blockCollectionContentsGetEntityVariables,
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["webId"] }, { parameter: webId }],
+            },
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            ...(draftId
+              ? [
+                  {
+                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                  },
+                ]
+              : []),
+          ],
+        },
+        graphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: !!draftId,
+        includePermissions,
+      },
     },
     skip: !profile.hasBio,
   });
 
-  const profileBioSubgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.getEntity.subgraph,
-      )
+  const response = data
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
     : undefined;
 
   const profileBioEntityId =
@@ -64,9 +83,9 @@ export const ProfileBio: FunctionComponent<{
   const [isTogglingEdit, setIsTogglingEdit] = useState(false);
 
   const profileBioContents =
-    profileBioEntityId && profileBioSubgraph
+    profileBioEntityId && response
       ? getBlockCollectionContents({
-          blockCollectionSubgraph: profileBioSubgraph,
+          blockCollectionSubgraph: response.subgraph,
           blockCollectionEntityId: profileBioEntityId,
         })
       : undefined;
@@ -168,10 +187,8 @@ export const ProfileBio: FunctionComponent<{
                 }}
               >
                 <BlockCollectionContextProvider
-                  blockCollectionSubgraph={profileBioSubgraph}
-                  userPermissionsOnEntities={
-                    data?.getEntity.userPermissionsOnEntities
-                  }
+                  blockCollectionSubgraph={response?.subgraph}
+                  userPermissionsOnEntities={response?.entityPermissions}
                 >
                   <BlockCollection
                     contents={profileBioContents}
