@@ -18,7 +18,6 @@
 extern crate alloc;
 
 pub mod category;
-mod config;
 pub mod diagnostic;
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
@@ -32,7 +31,6 @@ pub use anstyle as color;
 
 pub use self::{
     category::DiagnosticCategory,
-    config::ReportConfig,
     diagnostic::{Diagnostic, Label},
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,

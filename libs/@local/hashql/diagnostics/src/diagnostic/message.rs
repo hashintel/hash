@@ -26,7 +26,7 @@ pub struct Message<S> {
 
     pub suggestions: Option<Suggestions<S>>,
 
-    #[cfg_attr(feature = "serde", serde(skip))] // TODO: implement
+    #[cfg_attr(feature = "serde", serde(with = "crate::encoding::style_opt"))]
     pub style: Option<Style>,
 }
 

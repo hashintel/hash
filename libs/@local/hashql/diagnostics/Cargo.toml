@@ -31,9 +31,8 @@ rstest     = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
-default = ["serde", "render"]
-serde   = ["dep:serde", "dep:anstyle-lossy"]
-render  = ["dep:annotate-snippets"]
+serde  = ["dep:serde", "dep:anstyle-lossy"]
+render = ["dep:annotate-snippets"]
 
 [lints]
 workspace = true
