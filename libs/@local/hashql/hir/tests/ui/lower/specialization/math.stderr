@@ -1,4 +1,4 @@
-error[specialization::unsupported-intrinsic]: Unsupported intrinsic operation
+error[lower::specialization::unsupported-intrinsic]: Unsupported intrinsic operation
   ╭▸ 
 3 │ ["+", { "#literal": 1 }, { "#literal": 2 }]
   │   ━ intrinsic `::core::math::add` not supported yet

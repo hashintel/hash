@@ -1,5 +1,19 @@
 error[special-form-expander::invalid-type-expression]: Invalid type expression
    ╭▸ 
+22 │   { "#dict": { "a": "b" } }
+   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this dictionary with a proper type expression
+   │
+   ├ help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
+   ╰ note: Valid type expressions include:
+           - Type names: String, Int, Float
+           - Struct types: {name: String, age: Int}
+           - Tuple types: (String, Int, Boolean)
+           - Unions: (| String Int)
+           - Intersections: (& String Int)
+           - Generic types: Array<String>, Option<Int>
+
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+   ╭▸ 
 16 │       { "#literal": 1 }
    │       ━━━━━━━━━━━━━━━━━ Replace this literal with a type name
    │
@@ -18,20 +32,6 @@ error[special-form-expander::invalid-type-expression]: Invalid type expression
    │     ━━━━━━━━━━━━━━━━━━━━━━━ Replace this list with a proper type expression
    │
    ├ help: Arrays do not constitute a valid type expression, did you mean to instantiate a tuple type or refer to the `Array<T>` type?
-   ╰ note: Valid type expressions include:
-           - Type names: String, Int, Float
-           - Struct types: {name: String, age: Int}
-           - Tuple types: (String, Int, Boolean)
-           - Unions: (| String Int)
-           - Intersections: (& String Int)
-           - Generic types: Array<String>, Option<Int>
-
-error[special-form-expander::invalid-type-expression]: Invalid type expression
-   ╭▸ 
-22 │   { "#dict": { "a": "b" } }
-   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this dictionary with a proper type expression
-   │
-   ├ help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
    ╰ note: Valid type expressions include:
            - Type names: String, Int, Float
            - Struct types: {name: String, age: Int}

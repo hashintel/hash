@@ -1,4 +1,4 @@
-error[specialization::non-intrinsic-graph-operation]: Non-intrinsic function in graph operation
+error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic function in graph operation
   ╭▸ 
 5 │ ┏   [
 6 │ ┃     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", "graph"],

@@ -17,7 +17,7 @@ hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hashql-ast                     = { workspace = true }
 hashql-core                    = { workspace = true }
-hashql-diagnostics             = { workspace = true }
+hashql-diagnostics             = { workspace = true, features = ["render"] }
 hashql-eval                    = { workspace = true, features = ["graph"] }
 hashql-hir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
