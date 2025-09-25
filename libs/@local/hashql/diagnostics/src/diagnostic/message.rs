@@ -1,9 +1,8 @@
 use alloc::borrow::Cow;
 use core::borrow::Borrow;
 
-use annotate_snippets::Group;
 #[cfg(feature = "render")]
-use annotate_snippets::Level;
+use annotate_snippets::{Group, Level};
 use anstyle::{Color, Style};
 
 use super::Suggestions;
