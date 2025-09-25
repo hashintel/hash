@@ -19,7 +19,7 @@ const TRAVEL = SLIDER_WIDTH - THUMB_WIDTH - PADDING * 2;
 
 const THUMB_SCALE_ACTIVE = 2.5;
 
-export interface ToggleProps {
+export interface SwitchProps {
   specularOpacity?: number;
   specularSaturation?: number;
   blurLevel?: number;
@@ -29,7 +29,7 @@ export interface ToggleProps {
   onCheckedChange?: (checked: boolean) => void;
 }
 
-export const Toggle: React.FC<ToggleProps> = ({
+export const Switch: React.FC<SwitchProps> = ({
   specularOpacity = 0.5,
   specularSaturation = 6,
   blurLevel = 0.2,

@@ -1,3 +1,6 @@
 export { Bar, type BarProps } from "./components/Bar/bar";
 export { Slider, type SliderProps } from "./components/Slider/slider";
-export { Toggle, type ToggleProps } from "./components/Toggle/toggle";
+export {
+  Switch as Toggle,
+  type SwitchProps as ToggleProps,
+} from "./components/Switch/switch";

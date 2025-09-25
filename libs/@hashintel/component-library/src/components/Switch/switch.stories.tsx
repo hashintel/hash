@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Toggle } from "./toggle";
+import { Switch } from "./switch";
 
 const meta = {
-  title: "Component Library/Toggle",
-  component: Toggle,
+  title: "Component Library/Switch",
+  component: Switch,
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
@@ -46,7 +46,7 @@ const meta = {
     specularSaturation: 6,
     blurLevel: 0.2,
   },
-} satisfies Meta<typeof Toggle>;
+} satisfies Meta<typeof Switch>;
 
 // eslint-disable-next-line import/no-default-export
 export default meta;
@@ -54,14 +54,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * The default Toggle component with standard settings.
- * Try dragging the toggle thumb or clicking to switch states.
+ * The default Switch component with standard settings.
+ * Try dragging the Switch thumb or clicking to switch states.
  * Use the Controls panel below to adjust visual parameters.
  */
 export const Default: Story = {};
 
 /**
- * Interactive demo showcasing the Toggle component with enhanced effects.
+ * Interactive demo showcasing the Switch component with enhanced effects.
  * This variant demonstrates higher visual impact settings.
  */
 export const Enhanced: Story = {
