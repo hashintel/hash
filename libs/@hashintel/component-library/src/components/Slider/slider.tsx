@@ -3,7 +3,7 @@ import { css } from "@hashintel/styled-system/css";
 import { motion } from "motion/react";
 import { useId } from "react";
 
-import { Filter } from "../../lib/filter_";
+import { Filter } from "../../lib/filter";
 import { CONVEX } from "../../lib/surface-equations";
 
 const BaseSliderThumb = motion(BaseSlider.Thumb);

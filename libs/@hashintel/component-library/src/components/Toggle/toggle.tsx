@@ -2,7 +2,7 @@ import { Switch as BaseSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/styled-system/css";
 import { useId } from "react";
 
-import { Filter } from "../../lib/filter_";
+import { Filter } from "../../lib/filter";
 import { LIP } from "../../lib/surface-equations";
 
 // Layout constants
