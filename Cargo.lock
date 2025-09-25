@@ -204,16 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstyle-yansi"
-version = "2.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4acb1a62104c1b155ca5066ec3db53aa0cbafb932ae3dc6120e4b6a3f383049"
-dependencies = [
- "anstyle",
- "yansi",
-]
-
-[[package]]
 name = "antsi"
 version = "0.0.0-reserved"
 dependencies = [
@@ -3954,8 +3944,6 @@ dependencies = [
  "anstyle",
  "anstyle-lossy",
  "anstyle-svg",
- "anstyle-yansi",
- "ariadne",
  "derive_more 2.0.1",
  "error-stack",
  "jsonptr",

@@ -117,9 +117,10 @@ where
         S: Display,
     {
         let mut group = severity_to_level(Severity::Bug)
-            .primary_title(format!("unable to find span {span}"))
+            .primary_title("diagnostic rendering failed due to invalid source location")
+            .id("internal::render::span-not-found")
             .element(Level::NOTE.message(format!(
-                "when trying to render {} ({})",
+                "failed to locate span `{span}` while rendering {} ({})",
                 CanonicalDiagnosticCategoryName::new(&self.category),
                 CanonicalDiagnosticCategoryId::new(&self.category)
             )));
@@ -147,10 +148,10 @@ where
         // We cannot go the "normal" route here, because there is an error with the diagnostic
         // itself
         let mut group = severity_to_level(Severity::Bug)
-            .primary_title(format!("unable to find source {source}"))
+            .primary_title("diagnostic rendering failed due to missing source file")
             .id("internal::render::source-not-found")
             .element(Level::NOTE.message(format!(
-                "when trying to render {} ({})",
+                "source `{source}` not found while rendering {} ({})",
                 CanonicalDiagnosticCategoryName::new(&self.category),
                 CanonicalDiagnosticCategoryId::new(&self.category)
             )));
@@ -163,8 +164,10 @@ where
             .find_map(|label| AbsoluteDiagnosticSpan::new(label.span(), span_context));
 
         if let Some(span) = span {
-            group = group
-                .element(Level::NOTE.message(format!("The error occured at: {:?}", span.range())));
+            group = group.element(Level::NOTE.message(format!(
+                "the error occurred at byte range {:?}",
+                span.range()
+            )));
         }
 
         group = group.elements(
