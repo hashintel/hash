@@ -203,6 +203,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_single_category() {
         let category = TestCategory {
             id: "parser",
@@ -215,6 +216,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_nested_categories() {
         let nested_category = TestCategory {
             id: "syntax",
@@ -233,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "render")]
     fn canonical_id_deeply_nested_categories() {
         let inner_category = TestCategory {
             id: "unexpected",
