@@ -69,7 +69,7 @@ impl<'sources, 'source> RenderOptions<'sources, 'source> {
         }
     }
 
-    const fn as_renderer(&self) -> Renderer {
+    pub(crate) const fn as_renderer(&self) -> Renderer {
         let renderer = match self.color_depth {
             ColorDepth::Monochrome => Renderer::plain(),
             ColorDepth::Ansi16 | ColorDepth::Ansi256 | ColorDepth::Rgb => Renderer::styled(),
@@ -101,6 +101,27 @@ const fn severity_to_level(severity: Severity) -> Level<'static> {
         Severity::Warning => Level::WARNING,
         Severity::Note | Severity::Debug => Level::NOTE,
     }
+}
+
+pub(crate) fn format_contents(
+    format: Format,
+    color_depth: ColorDepth,
+    mut contents: String,
+) -> String {
+    const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
+
+    match format {
+        Format::Ansi => {}
+        Format::Svg => contents = TERM.render_svg(&contents),
+        Format::Html => contents = TERM.render_html(&contents),
+    }
+
+    match color_depth {
+        ColorDepth::Ansi16 | ColorDepth::Ansi256 | ColorDepth::Rgb => {}
+        ColorDepth::Monochrome => contents = strip_str(&contents).to_string(),
+    }
+
+    contents
 }
 
 impl<C, S, K> Diagnostic<C, S, K>
@@ -181,7 +202,7 @@ where
     }
 
     #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
-    pub(crate) fn as_group<'group, R>(
+    pub(crate) fn to_annotation_groups<'group, R>(
         &'group self,
         options: RenderOptions<'group, '_>,
         resolver: &mut R,
@@ -262,24 +283,11 @@ where
     where
         S: DiagnosticSpan<R>,
     {
-        const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
-
-        let groups = self.as_group(options, resolver);
+        let groups = self.to_annotation_groups(options, resolver);
 
         let renderer = options.as_renderer();
-        let mut contents = renderer.render(&groups);
+        let contents = renderer.render(&groups);
 
-        match options.format {
-            Format::Ansi => {}
-            Format::Svg => contents = TERM.render_svg(&contents),
-            Format::Html => contents = TERM.render_html(&contents),
-        }
-
-        match options.color_depth {
-            ColorDepth::Ansi16 | ColorDepth::Ansi256 | ColorDepth::Rgb => {}
-            ColorDepth::Monochrome => contents = strip_str(&contents).to_string(),
-        }
-
-        contents
+        format_contents(options.format, options.color_depth, contents)
     }
 }

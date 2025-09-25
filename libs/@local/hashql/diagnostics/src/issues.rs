@@ -6,6 +6,11 @@ use crate::{
     severity::{Advisory, Critical, SeverityKind},
     status::Status,
 };
+#[cfg(feature = "render")]
+use crate::{
+    diagnostic::render::{RenderOptions, format_contents},
+    source::DiagnosticSpan,
+};
 
 /// Type alias for [`DiagnosticIssues`] with type-erased diagnostic categories.
 ///
@@ -691,6 +696,33 @@ impl<C, S> DiagnosticIssues<C, S, Severity> {
         }
 
         Err(self.into_failure_unchecked())
+    }
+}
+
+#[cfg(feature = "render")]
+impl<C, S, K> DiagnosticIssues<C, S, K>
+where
+    C: DiagnosticCategory,
+    K: SeverityKind,
+{
+    pub fn render<R>(&self, options: RenderOptions, resolver: &mut R) -> String
+    where
+        S: DiagnosticSpan<R>,
+    {
+        let mut contents = String::new();
+        let renderer = options.as_renderer();
+
+        for (index, diagnostic) in self.diagnostics.iter().enumerate() {
+            let group = diagnostic.to_annotation_groups(options, resolver);
+
+            if index > 0 {
+                contents.push_str("\n\n");
+            }
+
+            contents.push_str(&renderer.render(&group));
+        }
+
+        format_contents(options.format, options.color_depth, contents)
     }
 }
 

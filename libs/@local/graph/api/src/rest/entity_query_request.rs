@@ -17,13 +17,10 @@
 use alloc::{borrow::Cow, sync::Arc};
 use core::{cmp, ops::Range};
 
-use anstyle_svg::Term;
-use ariadne::Source;
 use axum::{
     Json,
     response::{Html, IntoResponse as _, Response},
 };
-use error_stack::TryReportIteratorExt as _;
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
@@ -48,7 +45,9 @@ use hashql_core::{
 use hashql_diagnostics::{
     DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
     category::{DiagnosticCategory, canonical_category_id},
+    diagnostic::render::{Format, RenderOptions},
     severity::Critical,
+    source::{Source, Sources},
 };
 use hashql_eval::{
     error::EvalDiagnosticCategory,
@@ -61,8 +60,6 @@ use serde::Deserialize;
 use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
-
-use super::status::report_to_response;
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -284,36 +281,17 @@ fn issues_to_response(
     mut spans: &SpanStorage<Span>,
     options: CompilationOptions,
 ) -> Response {
-    const TERM: Term = anstyle_svg::Term::new();
-
     let status_code = match severity {
         Severity::Bug | Severity::Fatal => StatusCode::INTERNAL_SERVER_ERROR,
         Severity::Error => StatusCode::BAD_REQUEST,
         Severity::Warning | Severity::Note | Severity::Debug => StatusCode::CONFLICT,
     };
 
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
+
     let mut response = if options.interactive {
-        let diagnostics: Vec<_> = match issues
-            .into_iter()
-            .map(|diagnostic| diagnostic.resolve(&mut spans))
-            .try_collect_reports()
-        {
-            Ok(diagnostics) => diagnostics,
-            Err(error) => return report_to_response(error),
-        };
-
-        let reports = diagnostics
-            .iter()
-            .map(|diagnostic| diagnostic.report(ReportConfig::default()));
-
-        let mut stdout = Vec::new();
-        for report in reports {
-            report
-                .write(Source::from(source), &mut stdout)
-                .unwrap_or_else(|_err| unreachable!("writing to a buffer cannot panic"));
-        }
-
-        let output = TERM.render_html(&String::from_utf8_lossy(&stdout));
+        let output = issues.render(RenderOptions::new(Format::Html, &sources), &mut spans);
 
         Html(output).into_response()
     } else {

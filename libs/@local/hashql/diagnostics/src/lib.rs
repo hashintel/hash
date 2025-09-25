@@ -34,5 +34,6 @@ pub use self::{
     diagnostic::{Diagnostic, Label},
     issues::{DiagnosticIssues, DiagnosticSink},
     severity::Severity,
+    source::{Source, Sources},
     status::{Failure, Status, StatusExt, Success},
 };
