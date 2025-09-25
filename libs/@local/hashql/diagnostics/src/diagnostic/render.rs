@@ -11,7 +11,7 @@ use crate::{
     },
     diagnostic::Message,
     severity::SeverityKind,
-    source::{AbsoluteDiagnosticSpan, DiagnosticSpan, ResolvedSource, SourceId, Sources},
+    source::{DiagnosticSpan, ResolvedSource, SourceId, SourceSpan, Sources},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -161,13 +161,12 @@ where
         let span = self
             .labels
             .iter()
-            .find_map(|label| AbsoluteDiagnosticSpan::new(label.span(), resolver));
+            .find_map(|label| SourceSpan::resolve(label.span(), resolver));
 
         if let Some(span) = span {
-            group = group.element(Level::NOTE.message(format!(
-                "the error occurred at byte range {:?}",
-                span.range()
-            )));
+            group = group.element(
+                Level::NOTE.message(format!("the error occurred at byte range {:?}", span.range)),
+            );
         }
 
         group = group.elements(

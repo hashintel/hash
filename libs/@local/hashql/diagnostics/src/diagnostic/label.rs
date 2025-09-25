@@ -6,7 +6,7 @@ use annotate_snippets::{Annotation, AnnotationKind};
 
 #[cfg(feature = "render")]
 use super::render::{RenderContext, RenderError};
-use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
+use crate::source::{DiagnosticSpan, SourceSpan};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -75,7 +75,7 @@ impl<S> Label<S> {
     where
         S: DiagnosticSpan<R>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context.resolver)
+        let span = SourceSpan::resolve(&self.span, context.resolver)
             .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
         let kind = match self.kind {
@@ -84,7 +84,7 @@ impl<S> Label<S> {
         };
 
         Ok(kind
-            .span(span.range().into())
+            .span(span.range.into())
             .label(&*self.message)
             .highlight_source(self.highlight))
     }

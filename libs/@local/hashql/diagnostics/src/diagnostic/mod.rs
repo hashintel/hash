@@ -18,14 +18,7 @@ pub use self::{
 use crate::{
     category::{CanonicalDiagnosticCategoryName, DiagnosticCategory},
     severity::{Advisory, Critical, Severity, SeverityKind},
-    source::AbsoluteDiagnosticSpan,
 };
-
-/// Type alias for [`Diagnostic`] with absolute diagnostic spans.
-///
-/// This convenience type is used when working with diagnostics that have already been resolved to
-/// absolute source positions, making them ready for display.
-pub type AbsoluteDiagnostic<C, F = Severity> = Diagnostic<C, AbsoluteDiagnosticSpan, F>;
 
 /// Type alias for [`Diagnostic`] with type-erased diagnostic categories.
 ///

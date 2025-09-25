@@ -9,49 +9,35 @@ pub trait DiagnosticSpan<R>: Display {
 
     fn span(&self, resolver: &mut R) -> Option<TextRange>;
 
+    #[expect(clippy::min_ident_chars, reason = "false-positive")]
     fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AbsoluteDiagnosticSpan {
-    source: SourceId,
-    range: TextRange,
+pub(crate) struct SourceSpan {
+    pub source: SourceId,
+    pub range: TextRange,
 }
 
-impl AbsoluteDiagnosticSpan {
+impl SourceSpan {
     /// Creates a new `AbsoluteDiagnosticSpan` from a diagnostic span and its context.
     ///
     /// # Errors
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub fn new<S, R>(span: &S, context: &mut R) -> Option<Self>
+    pub(crate) fn resolve<S, R>(span: &S, resolver: &mut R) -> Option<Self>
     where
         S: DiagnosticSpan<R>,
     {
         let source = span.source();
 
-        let mut range = span.span(context)?;
+        let mut range = span.span(resolver)?;
 
-        for ancestor in span.ancestors(context) {
-            range += ancestor.span(context)?.start();
+        for ancestor in span.ancestors(resolver) {
+            range += ancestor.span(resolver)?.start();
         }
 
         Some(Self { source, range })
-    }
-
-    #[must_use]
-    pub const fn from_parts(source: SourceId, range: TextRange) -> Self {
-        Self { source, range }
-    }
-
-    #[must_use]
-    pub const fn source(self) -> SourceId {
-        self.source
-    }
-
-    #[must_use]
-    pub const fn range(self) -> TextRange {
-        self.range
     }
 }

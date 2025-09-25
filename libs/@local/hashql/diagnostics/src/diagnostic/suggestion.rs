@@ -6,7 +6,7 @@ use annotate_snippets::Group;
 
 #[cfg(feature = "render")]
 use super::render::{RenderContext, RenderError};
-use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
+use crate::source::{DiagnosticSpan, SourceSpan};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -54,11 +54,11 @@ impl<S> Patch<S> {
     where
         S: DiagnosticSpan<R>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context.resolver)
+        let span = SourceSpan::resolve(&self.span, context.resolver)
             .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
         Ok(annotate_snippets::Patch::new(
-            span.range().into(),
+            span.range.into(),
             &*self.replacement,
         ))
     }
