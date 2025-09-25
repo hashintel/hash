@@ -1,10 +1,13 @@
 use alloc::borrow::Cow;
 use core::borrow::Borrow;
 
+use annotate_snippets::Group;
 use anstyle::{Color, Style};
 use error_stack::{Report, TryReportIteratorExt};
 
 use super::Suggestions;
+#[cfg(feature = "render")]
+use crate::source::Sources;
 use crate::{
     error::ResolveError,
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
@@ -80,22 +83,6 @@ impl<S> Message<S> {
         self
     }
 
-    #[cfg(feature = "render")]
-    pub(crate) fn render(&self) -> annotate_snippets::Message<'_> {
-        use annotate_snippets::Level;
-
-        let level = match self.kind {
-            MessageKind::Help => Level::HELP,
-            MessageKind::Note => Level::NOTE,
-        };
-
-        let Some(style) = self.style else {
-            return level.message(&*self.contents);
-        };
-
-        level.message(format!("{style}{}{style:#}", self.contents))
-    }
-
     pub(crate) fn map_suggestions<S2>(
         self,
         func: impl FnOnce(Suggestions<S>) -> Suggestions<S2>,
@@ -106,6 +93,50 @@ impl<S> Message<S> {
             suggestions: self.suggestions.map(func),
             style: self.style,
         }
+    }
+}
+
+#[cfg(feature = "render")]
+impl Message<AbsoluteDiagnosticSpan> {
+    fn render_message(&self) -> Cow<'_, str> {
+        match self.style {
+            Some(style) => Cow::Owned(format!("{style}{}{style:#}", self.contents)),
+            None => Cow::Borrowed(&*self.contents),
+        }
+    }
+
+    fn render_suggestions<'this>(
+        &'this self,
+        sources: &'this Sources,
+        level: annotate_snippets::Level<'this>,
+        suggestions: &'this Suggestions<AbsoluteDiagnosticSpan>,
+        groups: &mut Vec<annotate_snippets::Group<'this>>,
+    ) {
+        let mut group = Group::with_title(level.secondary_title(self.render_message()));
+
+        group = suggestions.render(sources, group);
+        groups.push(group);
+    }
+
+    pub(crate) fn render<'this>(
+        &'this self,
+        sources: &'this Sources,
+        groups: &mut Vec<annotate_snippets::Group<'this>>,
+        messages: &mut Vec<annotate_snippets::Message<'this>>,
+    ) {
+        use annotate_snippets::Level;
+
+        let level = match self.kind {
+            MessageKind::Help => Level::HELP,
+            MessageKind::Note => Level::NOTE,
+        };
+
+        if let Some(suggestions) = &self.suggestions {
+            self.render_suggestions(sources, level, suggestions, groups);
+            return;
+        }
+
+        messages.push(level.message(self.render_message()));
     }
 }
 

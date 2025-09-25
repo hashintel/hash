@@ -10,14 +10,18 @@ use crate::{
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
 };
 
-// #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-// pub struct Patch(Cow<'static, str>);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub(crate) enum LabelKind {
+    Primary,
+    Secondary,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<S> {
     span: S,
+    kind: LabelKind,
     message: Cow<'static, str>,
 
     pub highlight: bool,
@@ -30,6 +34,7 @@ impl<S> Label<S> {
     {
         Self {
             span,
+            kind: LabelKind::Secondary,
             message: message.into(),
             highlight: false,
         }
@@ -42,6 +47,7 @@ impl<S> Label<S> {
     pub fn map_span<S2>(self, func: impl FnOnce(S) -> S2) -> Label<S2> {
         Label {
             span: func(self.span),
+            kind: self.kind,
             message: self.message,
 
             highlight: self.highlight,
@@ -72,6 +78,7 @@ impl<S> Label<S> {
 
         Ok(Label {
             span,
+            kind: self.kind,
             message: self.message,
 
             highlight: self.highlight,
@@ -81,7 +88,12 @@ impl<S> Label<S> {
 
 impl Label<AbsoluteDiagnosticSpan> {
     #[cfg(feature = "render")]
-    pub(crate) fn render(&self, kind: AnnotationKind) -> Annotation<'_> {
+    pub(crate) fn render(&self) -> Annotation<'_> {
+        let kind = match self.kind {
+            LabelKind::Primary => AnnotationKind::Primary,
+            LabelKind::Secondary => AnnotationKind::Context,
+        };
+
         kind.span(self.span.range().into())
             .label(&*self.message)
             .highlight_source(self.highlight)
@@ -95,7 +107,9 @@ pub struct Labels<S> {
 }
 
 impl<S> Labels<S> {
-    pub fn new(primary: Label<S>) -> Self {
+    pub fn new(mut primary: Label<S>) -> Self {
+        primary.kind = LabelKind::Primary;
+
         Self {
             labels: vec![primary],
         }

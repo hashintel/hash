@@ -1,6 +1,6 @@
-use annotate_snippets::{AnnotationKind, Group, Level, Renderer, Snippet, renderer::DecorStyle};
+use annotate_snippets::{Group, Level, Renderer, Snippet, renderer::DecorStyle};
 
-use super::Diagnostic;
+use super::{Diagnostic, Label};
 use crate::{
     DiagnosticCategory, Severity,
     category::{CanonicalDiagnosticCategoryId, category_display_name},
@@ -89,11 +89,16 @@ where
     C: DiagnosticCategory,
     K: SeverityKind,
 {
+    #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
     pub(crate) fn as_group<'group>(
         &'group self,
         options: RenderOptions<'group, '_>,
-    ) -> Group<'group> {
+    ) -> Vec<Group<'group>> {
         let severity: Severity = self.severity.into();
+
+        // The first group is always the main group, and here is a stand-in for the actual group.
+        // The placeholder does not allocate.
+        let mut groups = vec![Group::with_level(Level::ERROR)];
 
         let title = severity_to_level(severity)
             .primary_title(
@@ -104,63 +109,29 @@ where
             .id(CanonicalDiagnosticCategoryId::new(&self.category).to_string());
         let mut group = Group::with_title(title);
 
-        let mut index = 0;
-        #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
         for chunk in self
             .labels
             .as_slice()
             .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
         {
-            if chunk.is_empty() {
-                // This should never happen, but if it does, we don't want to panic on indexing.
-                continue;
-            }
+            assert!(!chunk.is_empty());
 
             let source = chunk[0].span().source();
             let source = options.sources.get(source).unwrap();
 
             let snippet = Snippet::source(&*source.content)
                 .path(source.path.as_deref())
-                .annotations(chunk.iter().enumerate().map(|(i, label)| {
-                    label.render(if index == 0 && i == 0 {
-                        AnnotationKind::Primary
-                    } else {
-                        AnnotationKind::Context
-                    })
-                }));
-            group = group.element(snippet);
-
-            index += chunk.len();
-        }
-
-        #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
-        for chunk in self
-            .patches
-            .as_slice()
-            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
-        {
-            if chunk.is_empty() {
-                // This should never happen, but if it does, we don't want to panic on indexing.
-                continue;
-            }
-
-            let source = chunk[0].span().source();
-            let source = options.sources.get(source).unwrap();
-
-            let snippet = Snippet::source(&*source.content)
-                .path(source.path.as_deref())
-                .patches(chunk.iter().map(|patch| patch.render()));
+                .annotations(chunk.iter().map(Label::render));
             group = group.element(snippet);
         }
 
-        group = group.elements(
-            self.messages
-                .iter()
-                .chain(severity.messages())
-                .map(|message| message.render()),
-        );
+        let mut messages = Vec::new();
+        for message in self.messages.iter().chain(severity.messages()) {
+            message.render(options.sources, &mut groups, &mut messages);
+        }
 
-        group
+        groups[0] = group;
+        groups
     }
 
     pub fn render(&self, options: RenderOptions) -> String {
@@ -168,10 +139,10 @@ where
 
         const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
 
-        let root = self.as_group(options);
+        let groups = self.as_group(options);
 
         let renderer = options.as_renderer();
-        let mut contents = renderer.render(&[root]);
+        let mut contents = renderer.render(&groups);
 
         match options.format {
             Format::Ansi => {}

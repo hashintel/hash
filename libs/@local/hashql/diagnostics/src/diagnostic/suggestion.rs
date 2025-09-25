@@ -1,8 +1,12 @@
 use core::borrow::Borrow;
 use std::borrow::Cow;
 
+#[cfg(feature = "render")]
+use annotate_snippets::Group;
 use error_stack::{Report, TryReportIteratorExt as _};
 
+#[cfg(feature = "render")]
+use crate::source::Sources;
 use crate::{
     error::ResolveError,
     source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
@@ -70,7 +74,7 @@ impl Patch<AbsoluteDiagnosticSpan> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Suggestions<S> {
-    pub patches: Vec<Patch<S>>,
+    patches: Vec<Patch<S>>,
     pub trailer: Option<Cow<'static, str>>,
 }
 
@@ -80,6 +84,10 @@ impl<S> Suggestions<S> {
             patches: vec![patch],
             trailer: None,
         }
+    }
+
+    pub fn push(&mut self, patch: Patch<S>) {
+        self.patches.push(patch);
     }
 
     pub const fn with_trailer<T>(trailer: T) -> Self
@@ -116,5 +124,38 @@ impl<S> Suggestions<S> {
             patches: self.patches.into_iter().map(func).collect(),
             trailer: self.trailer,
         }
+    }
+}
+
+#[cfg(feature = "render")]
+impl Suggestions<AbsoluteDiagnosticSpan> {
+    pub(crate) fn render<'this>(
+        &'this self,
+        sources: &'this Sources,
+        mut group: Group<'this>,
+    ) -> Group<'this> {
+        use annotate_snippets::{Level, Snippet};
+
+        for chunk in self
+            .patches
+            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
+        {
+            assert!(!chunk.is_empty());
+
+            let source = chunk[0].span().source();
+            let source = sources.get(source).unwrap();
+
+            let snippet = Snippet::source(&*source.content)
+                .path(source.path.as_deref())
+                .patches(chunk.iter().map(Patch::render));
+
+            group = group.element(snippet);
+        }
+
+        if let Some(trailer) = self.trailer.as_deref() {
+            group = group.element(Level::NOTE.no_name().message(trailer));
+        }
+
+        group
     }
 }
