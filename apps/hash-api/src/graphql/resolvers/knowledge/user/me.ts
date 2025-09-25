@@ -50,7 +50,7 @@ export const meResolver: ResolverFn<
         hasRightEntity,
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+      includeDrafts: !!draftId,
       includePermissions: false,
     },
   ).then(serializeQueryEntitySubgraphResponse);
