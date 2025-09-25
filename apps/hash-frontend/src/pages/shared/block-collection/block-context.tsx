@@ -1,5 +1,5 @@
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
+import type { EntityPermissionsMap } from "@local/hash-graph-sdk/entity";
 import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
@@ -12,8 +12,8 @@ export type BlockContextType = {
   setBlockSubgraph: Dispatch<
     SetStateAction<Subgraph<EntityRootType> | undefined>
   >;
-  userPermissions: UserPermissionsOnEntities | undefined;
-  setUserPermissions: (permissions: UserPermissionsOnEntities) => void;
+  userPermissions: EntityPermissionsMap | undefined;
+  setUserPermissions: (permissions: EntityPermissionsMap) => void;
 };
 
 export const BlockContext = createContext<BlockContextType | null>(null);
@@ -34,7 +34,7 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
     Subgraph<EntityRootType> | undefined
   >();
   const [userPermissions, setUserPermissions] = useState<
-    UserPermissionsOnEntities | undefined
+    EntityPermissionsMap | undefined
   >();
   const [blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen] =
     useState(false);

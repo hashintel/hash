@@ -62,12 +62,14 @@ import type {
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
+import type {
+  CreateEntityPolicyParams,
+  EntityPermissions,
+} from "@rust/hash-graph-store/types";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { Predicate } from "effect";
 
 import type { AuthenticationContext } from "./authentication-context.js";
-import type { UserPermissionsOnEntities } from "./authorization.js";
 import { rewriteSemanticFilter } from "./embeddings.js";
 import {
   mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
@@ -198,6 +200,8 @@ export type QueryEntitiesRequest = DistributiveOmit<
   includePermissions: boolean;
 };
 
+export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
+
 export type QueryEntitiesResponse<
   PropertyMap extends
     TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
@@ -211,6 +215,7 @@ export type QueryEntitiesResponse<
   | "editionCreatedByIds"
   | "typeIds"
   | "typeTitles"
+  | "permissions"
 > & {
   entities: HashEntity<PropertyMap>[];
   closedMultiEntityTypes?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
@@ -220,7 +225,7 @@ export type QueryEntitiesResponse<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
-  entityPermissions?: UserPermissionsOnEntities;
+  permissions?: EntityPermissionsMap;
 };
 
 export const queryEntities = async <
@@ -238,12 +243,6 @@ export const queryEntities = async <
   if (Predicate.hasProperty(params, "filter")) {
     // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
-  if (params.includePermissions === true) {
-    throw new Error(
-      "Including permissions is not supported in the Graph yet: https://linear.app/hash/issue/BE-127",
-    );
   }
 
   const { preserveProperties = false } = options ?? {};
@@ -288,6 +287,7 @@ export const queryEntities = async <
       typeTitles: response.typeTitles as
         | Record<VersionedUrl, string>
         | undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
     }));
 };
 
@@ -321,7 +321,7 @@ export type QueryEntitySubgraphResponse<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
-  entityPermissions?: UserPermissionsOnEntities;
+  entityPermissions?: EntityPermissionsMap;
 };
 
 export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
@@ -347,12 +347,6 @@ export const queryEntitySubgraph = async <
   if (Predicate.hasProperty(params, "filter")) {
     // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
     await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
-  if (params.includePermissions === true) {
-    throw new Error(
-      "Including permissions is not supported in the Graph yet: https://linear.app/hash/issue/BE-127",
-    );
   }
 
   const isRequesterAdmin =
@@ -411,6 +405,9 @@ export const queryEntitySubgraph = async <
         typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
         typeTitles: response.typeTitles as
           | Record<VersionedUrl, string>
+          | undefined,
+        entityPermissions: response.entityPermissions as
+          | EntityPermissionsMap
           | undefined,
       };
     });
