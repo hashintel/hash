@@ -87,9 +87,11 @@ export function useMotionResizeObserver<T extends HTMLElement = HTMLElement>(
     resizeObserver.observe(element);
 
     // Set initial dimensions if the element is already rendered
-    const rect = element.getBoundingClientRect();
-    width.set(rect.width);
-    height.set(rect.height);
+    requestAnimationFrame(() => {
+      const rect = element.getBoundingClientRect();
+      width.set(rect.width);
+      height.set(rect.height);
+    });
 
     // Cleanup function
     return () => {

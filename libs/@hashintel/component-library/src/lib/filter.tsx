@@ -46,7 +46,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     refractiveIndex,
     scaleRatio,
     specularOpacity,
-    specularSaturation = 4,
+    specularSaturation,
     bezelHeightFn = CONVEX,
     dpr = 2,
   }) => {
@@ -80,23 +80,22 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
 
     const specularLayer = useTransform(() => {
       return calculateRefractionSpecular(
-        getValueOrMotion(imageWidth),
-        getValueOrMotion(imageHeight),
-        getValueOrMotion(radius),
+        imageWidth.get(),
+        imageHeight.get(),
+        radius.get(),
         50,
         undefined,
         dpr
       );
     });
 
-    const displacementMapDataUrl = useTransform(() => {
-      return imageDataToUrl(displacementMap.get());
-    });
-    const specularLayerDataUrl = useTransform(() => {
-      return imageDataToUrl(specularLayer.get());
-    });
+    const displacementMapDataUrl = useTransform(
+      displacementMap,
+      imageDataToUrl
+    );
+    const specularLayerDataUrl = useTransform(specularLayer, imageDataToUrl);
     const scale = useTransform(
-      () => maximumDisplacement.get() * (scaleRatio.get() ?? 1)
+      () => maximumDisplacement.get() * scaleRatio.get()
     );
 
     const content = (
@@ -130,9 +129,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           in="displaced"
           type="saturate"
           // @ts-expect-error Fix `feColorMatrix` type, or use real matrix instead of type="saturate"
-          values={useTransform(() =>
-            getValueOrMotion(specularSaturation).toString()
-          )}
+          values={useTransform(() => specularSaturation.get().toString())}
           result="displaced_saturated"
         />
 
