@@ -4,11 +4,11 @@ import { motion, useTransform } from "motion/react";
 
 import {
   calculateDisplacementMap,
-  calculateDisplacementMap2,
-} from "./displacementMap";
+  calculateDisplacementMapRadius,
+} from "./displacement-map";
 import { calculateRefractionSpecular } from "./specular";
-import { CONVEX } from "./surfaceEquations";
-import { getValueOrMotion } from "./useValueOrMotion";
+import { CONVEX } from "./surface-equations";
+import { getValueOrMotion } from "./use-value-or-motion";
 
 function imageDataToUrl(imageData: ImageData): string {
   const canvas = createCanvas(imageData.width, imageData.height);
@@ -53,20 +53,20 @@ export const Filter: React.FC<FilterProps> = ({
   dpr,
 }) => {
   const map = useTransform(() => {
-    return calculateDisplacementMap(
+    return calculateDisplacementMapRadius(
       getValueOrMotion(glassThickness),
       getValueOrMotion(bezelWidth),
       bezelHeightFn,
-      getValueOrMotion(refractiveIndex),
+      getValueOrMotion(refractiveIndex)
     );
   });
 
   const maximumDisplacement = useTransform(() =>
-    Math.max(...map.get().map(Math.abs)),
+    Math.max(...map.get().map(Math.abs))
   );
 
   const displacementMap = useTransform(() => {
-    return calculateDisplacementMap2(
+    return calculateDisplacementMap(
       getValueOrMotion(canvasWidth ?? width),
       getValueOrMotion(canvasHeight ?? height),
       getValueOrMotion(width),
@@ -75,7 +75,7 @@ export const Filter: React.FC<FilterProps> = ({
       getValueOrMotion(bezelWidth),
       getValueOrMotion(maximumDisplacement),
       getValueOrMotion(map),
-      dpr,
+      dpr
     );
   });
 
@@ -86,7 +86,7 @@ export const Filter: React.FC<FilterProps> = ({
       getValueOrMotion(radius),
       50,
       undefined,
-      dpr,
+      dpr
     );
   });
 
@@ -97,7 +97,7 @@ export const Filter: React.FC<FilterProps> = ({
     return imageDataToUrl(specularLayer.get());
   });
   const scale = useTransform(
-    () => maximumDisplacement.get() * (scaleRatio?.get() ?? 1),
+    () => maximumDisplacement.get() * (scaleRatio?.get() ?? 1)
   );
 
   const content = (
@@ -131,7 +131,7 @@ export const Filter: React.FC<FilterProps> = ({
         type="saturate"
         // @ts-expect-error Fix `feColorMatrix` type, or use real matrix instead of type="saturate"
         values={useTransform(() =>
-          getValueOrMotion(specularSaturation).toString(),
+          getValueOrMotion(specularSaturation).toString()
         )}
         result="displaced_saturated"
       />

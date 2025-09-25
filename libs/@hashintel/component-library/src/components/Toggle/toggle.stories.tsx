@@ -11,6 +11,7 @@ const meta = {
   },
   argTypes: {
     specularOpacity: {
+      name: "Specular Opacity",
       control: {
         type: "range",
         min: 0,
@@ -20,6 +21,7 @@ const meta = {
       description: "Controls the intensity of specular highlights",
     },
     specularSaturation: {
+      name: "Specular Saturation",
       control: {
         type: "range",
         min: 0,
@@ -28,16 +30,8 @@ const meta = {
       },
       description: "Adjusts the color saturation of highlights",
     },
-    refractionLevel: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 1,
-        step: 0.01,
-      },
-      description: "Controls the glass-like refraction effect",
-    },
     blurLevel: {
+      name: "Blur",
       control: {
         type: "range",
         min: 0,
@@ -46,21 +40,17 @@ const meta = {
       },
       description: "Adjusts the blur intensity of the backdrop filter",
     },
-    forceActive: {
-      control: "boolean",
-      description: "Forces the toggle to remain in an active state",
-    },
   },
   args: {
     specularOpacity: 0.5,
     specularSaturation: 6,
-    refractionLevel: 1,
     blurLevel: 0.2,
-    forceActive: false,
   },
 } satisfies Meta<typeof Toggle>;
 
+// eslint-disable-next-line import/no-default-export
 export default meta;
+
 type Story = StoryObj<typeof meta>;
 
 /**
@@ -78,7 +68,6 @@ export const Enhanced: Story = {
   args: {
     specularOpacity: 0.8,
     specularSaturation: 25,
-    refractionLevel: 0.8,
     blurLevel: 5,
   },
   parameters: {
@@ -106,7 +95,6 @@ export const Minimal: Story = {
   args: {
     specularOpacity: 0.2,
     specularSaturation: 2,
-    refractionLevel: 0.3,
     blurLevel: 0,
   },
   parameters: {
@@ -114,23 +102,6 @@ export const Minimal: Story = {
       description: {
         story:
           "A subtle version with minimal visual effects for more conservative designs.",
-      },
-    },
-  },
-};
-
-/**
- * Forced active state for demonstrating the toggle's active appearance.
- */
-export const ForceActive: Story = {
-  args: {
-    forceActive: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Shows the toggle in a permanently active state to demonstrate active styling and animations.",
       },
     },
   },

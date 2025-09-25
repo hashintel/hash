@@ -1,11 +1,12 @@
+/* eslint-disable id-length */
 import { createImageData } from "canvas";
 
-export function calculateDisplacementMap(
+export function calculateDisplacementMapRadius(
   glassThickness: number = 200,
   bezelWidth: number = 50,
   bezelHeightFn: (x: number) => number = (x) => x,
   refractiveIndex: number = 1.5,
-  samples: number = 128,
+  samples: number = 128
 ): number[] {
   // Pre-calculate the distance the ray will be deviated
   // given the distance to border (ratio of bezel)
@@ -51,7 +52,7 @@ export function calculateDisplacementMap(
   });
 }
 
-export function calculateDisplacementMap2(
+export function calculateDisplacementMap(
   canvasWidth: number,
   canvasHeight: number,
   objectWidth: number,
@@ -60,10 +61,11 @@ export function calculateDisplacementMap2(
   bezelWidth: number,
   maximumDisplacement: number,
   precomputedDisplacementMap: number[] = [],
-  dpr?: number,
+  dpr?: number
 ) {
   const devicePixelRatio =
-    dpr ?? (typeof window !== "undefined" ? (window.devicePixelRatio ?? 1) : 1);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
   const bufferWidth = canvasWidth * devicePixelRatio;
   const bufferHeight = canvasHeight * devicePixelRatio;
   const imageData = createImageData(bufferWidth, bufferHeight);
@@ -99,14 +101,14 @@ export function calculateDisplacementMap2(
       const x = isOnLeftSide
         ? x1 - radius_
         : isOnRightSide
-          ? x1 - radius_ - widthBetweenRadiuses
-          : 0;
+        ? x1 - radius_ - widthBetweenRadiuses
+        : 0;
 
       const y = isOnTopSide
         ? y1 - radius_
         : isOnBottomSide
-          ? y1 - radius_ - heightBetweenRadiuses
-          : 0;
+        ? y1 - radius_ - heightBetweenRadiuses
+        : 0;
 
       const distanceToCenterSquared = x * x + y * y;
 
