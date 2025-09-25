@@ -1,0 +1,6 @@
+{
+  "name": "@rust/hashql-mir",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3"
+}
