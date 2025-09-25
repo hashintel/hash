@@ -6,12 +6,12 @@ export function calculateRefractionSpecular(
   radius: number,
   bezelWidth: number,
   specularAngle = Math.PI / 3,
-  dpr?: number,
+  dpr?: number
 ) {
   const devicePixelRatio =
-    dpr ?? (typeof window !== "undefined" ? (window.devicePixelRatio ?? 1) : 1);
-  const bufferWidth = objectWidth * devicePixelRatio;
-  const bufferHeight = objectHeight * devicePixelRatio;
+    dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
+  const bufferWidth = Math.round(objectWidth * devicePixelRatio);
+  const bufferHeight = Math.round(objectHeight * devicePixelRatio);
   const imageData = createImageData(bufferWidth, bufferHeight);
 
   const radius_ = radius * devicePixelRatio;
@@ -46,14 +46,14 @@ export function calculateRefractionSpecular(
       const x = isOnLeftSide
         ? x1 - radius_
         : isOnRightSide
-          ? x1 - radius_ - widthBetweenRadiuses
-          : 0;
+        ? x1 - radius_ - widthBetweenRadiuses
+        : 0;
 
       const y = isOnTopSide
         ? y1 - radius_
         : isOnBottomSide
-          ? y1 - radius_ - heightBetweenRadiuses
-          : 0;
+        ? y1 - radius_ - heightBetweenRadiuses
+        : 0;
 
       const distanceToCenterSquared = x * x + y * y;
 
@@ -79,7 +79,7 @@ export function calculateRefractionSpecular(
 
         // Dot product of orientation
         const dotProduct = Math.abs(
-          cos * specular_vector[0] + sin * specular_vector[1],
+          cos * specular_vector[0] + sin * specular_vector[1]
         );
 
         const coefficient =

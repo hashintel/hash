@@ -64,8 +64,8 @@ export function calculateDisplacementMap(
   const devicePixelRatio =
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
-  const bufferWidth = objectWidth * devicePixelRatio;
-  const bufferHeight = objectHeight * devicePixelRatio;
+  const bufferWidth = Math.round(objectWidth * devicePixelRatio);
+  const bufferHeight = Math.round(objectHeight * devicePixelRatio);
   const imageData = createImageData(bufferWidth, bufferHeight);
 
   // Fill neutral color using buffer
@@ -79,8 +79,8 @@ export function calculateDisplacementMap(
   const radiusPlusOneSquared = (radius_ + 1) ** 2;
   const radiusMinusBezelSquared = (radius_ - bezel) ** 2;
 
-  const objectWidth_ = objectWidth * devicePixelRatio;
-  const objectHeight_ = objectHeight * devicePixelRatio;
+  const objectWidth_ = Math.round(objectWidth * devicePixelRatio);
+  const objectHeight_ = Math.round(objectHeight * devicePixelRatio);
   const widthBetweenRadiuses = objectWidth_ - radius_ * 2;
   const heightBetweenRadiuses = objectHeight_ - radius_ * 2;
 
