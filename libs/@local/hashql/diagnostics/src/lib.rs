@@ -21,7 +21,6 @@ pub mod category;
 pub mod diagnostic;
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
-pub mod error;
 pub mod issues;
 pub mod severity;
 pub mod source;

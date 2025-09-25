@@ -3932,7 +3932,6 @@ dependencies = [
  "anstyle-lossy",
  "anstyle-svg",
  "derive_more 2.0.1",
- "error-stack",
  "rstest",
  "serde",
  "serde_json",
