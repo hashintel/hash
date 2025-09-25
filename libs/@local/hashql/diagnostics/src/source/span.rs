@@ -52,6 +52,8 @@ pub trait DiagnosticSpan<R>: Display {
     ///
     /// The returned [`SourceId`] identifies which source file this span
     /// references within a [`Sources`] collection.
+    ///
+    /// [`Sources`]: super::Sources
     fn source(&self) -> SourceId;
 
     /// Resolves this span to a text range within its source file.
