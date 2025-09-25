@@ -118,6 +118,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8ee2f071d418442e50c643c4e7a4051ce3abd9dba11713cc6cdf4f4a3f3cca5"
 dependencies = [
  "anstyle",
+ "memchr",
  "unicode-width 0.2.1",
 ]
 
@@ -240,16 +241,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
-]
-
-[[package]]
-name = "ariadne"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36f5e3dca4e09a6f340a61a0e9c7b61e030c69fc27bf29d73218f7e5e3b7638f"
-dependencies = [
- "unicode-width 0.1.14",
- "yansi",
 ]
 
 [[package]]
@@ -3340,8 +3331,6 @@ dependencies = [
 name = "hash-graph-api"
 version = "0.0.0"
 dependencies = [
- "anstyle-svg",
- "ariadne",
  "async-trait",
  "axum",
  "axum-core 0.5.0",

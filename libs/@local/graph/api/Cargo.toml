@@ -49,8 +49,6 @@ hashql-syntax-jexpr            = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 
 # Private third-party dependencies
-anstyle-svg                        = { workspace = true }
-ariadne                            = { workspace = true }
 async-trait                        = { workspace = true }
 bytes                              = { workspace = true }
 derive-where                       = { workspace = true }

@@ -18,7 +18,7 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-annotate-snippets = { version = "0.12.4", optional = true }
+annotate-snippets = { workspace = true, optional = true, features = ["simd"] }
 anstream          = { workspace = true }
 anstyle-lossy     = { workspace = true, optional = true }
 anstyle-svg       = { workspace = true }
