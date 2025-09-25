@@ -264,7 +264,7 @@ pub(crate) fn trailing_commas(spans: &[SpanId]) -> ObjectDiagnostic {
     let (&first, rest) = spans.split_first().expect("Should have at least one span");
 
     let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Severity::Error)
-        .primary(Label::new(first, "Remove this trailing  comma"));
+        .primary(Label::new(first, "Remove this trailing comma"));
 
     for &span in rest {
         diagnostic
