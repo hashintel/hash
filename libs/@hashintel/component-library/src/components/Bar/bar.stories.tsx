@@ -1,3 +1,4 @@
+import { css } from "@hashintel/styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Bar } from "./bar";
@@ -273,6 +274,18 @@ as you change the child element's size using the controls panel.
           minWidth: args.width as number,
           minHeight: args.height as number,
         }}
+        className={css({
+          shadow: "md",
+          transition: "all",
+          transitionDuration: "0.3s",
+          transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+          backgroundColor: "whiteAlpha.10",
+          _hover: {
+            shadow: "2xl",
+            transform: "scale(1.02)",
+            backgroundColor: "grayAlpha.40",
+          },
+        })}
         radius={args.radius as number}
         blur={args.blur as number}
         specularOpacity={args.specularOpacity as number}
