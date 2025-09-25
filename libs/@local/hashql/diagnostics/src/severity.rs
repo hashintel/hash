@@ -337,7 +337,7 @@ impl Severity {
     ///
     /// Some severity levels provide built-in help messages that offer guidance on how to address or
     /// understand issues at that level.
-    pub(crate) const fn messages<S>(self) -> &'static [Message<S>] {
+    pub(crate) const fn messages<'this, S>(self) -> &'this [Message<S>] {
         match self {
             Self::Bug => {
                 const {
@@ -433,13 +433,6 @@ impl Severity {
     #[must_use]
     pub const fn color(self) -> Color {
         self.info().color
-    }
-
-    /// Returns the ariadne report kind for this severity level.
-    ///
-    /// Used internally when generating diagnostic reports for display.
-    pub(crate) fn kind(self) -> ariadne::ReportKind<'static> {
-        ariadne::ReportKind::Custom(self.name(), anstyle_yansi::to_yansi_color(self.color()))
     }
 }
 

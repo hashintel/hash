@@ -3,12 +3,10 @@ use core::borrow::Borrow;
 
 #[cfg(feature = "render")]
 use annotate_snippets::{Annotation, AnnotationKind};
-use error_stack::{Report, TryReportIteratorExt as _};
 
-use crate::{
-    error::ResolveError,
-    source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
-};
+#[cfg(feature = "render")]
+use super::render::{RenderContext, RenderError};
+use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -66,32 +64,29 @@ impl<S> Label<S> {
         self.highlight = highlight;
         self
     }
+}
 
-    pub(crate) fn resolve<C>(self, context: &mut C) -> Label<AbsoluteDiagnosticSpan>
+#[cfg(feature = "render")]
+impl<S> Label<S> {
+    pub(crate) fn render<C>(
+        &self,
+        context: &mut RenderContext<C>,
+    ) -> Result<Annotation<'_>, RenderError<'_, S>>
     where
         S: DiagnosticSpan<C>,
     {
-        Label {
-            span: AbsoluteDiagnosticSpan::new(&self.span, context),
-            kind: self.kind,
-            message: self.message,
+        let span = AbsoluteDiagnosticSpan::new(&self.span, context.span_context)
+            .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
-            highlight: self.highlight,
-        }
-    }
-}
-
-impl Label<AbsoluteDiagnosticSpan> {
-    #[cfg(feature = "render")]
-    pub(crate) fn render(&self) -> Annotation<'_> {
         let kind = match self.kind {
             LabelKind::Primary => AnnotationKind::Primary,
             LabelKind::Secondary => AnnotationKind::Context,
         };
 
-        kind.span(self.span.range().into())
+        Ok(kind
+            .span(span.range().into())
             .label(&*self.message)
-            .highlight_source(self.highlight)
+            .highlight_source(self.highlight))
     }
 }
 
@@ -120,13 +115,6 @@ impl<S> Labels<S> {
 
     pub(crate) fn as_slice(&self) -> &[Label<S>] {
         &self.labels
-    }
-
-    pub(crate) fn resolve<C>(self, context: &mut C) -> Labels<AbsoluteDiagnosticSpan>
-    where
-        S: DiagnosticSpan<C>,
-    {
-        self.map(|label| label.resolve(context))
     }
 
     pub(crate) fn map<T>(self, func: impl FnMut(Label<S>) -> Label<T>) -> Labels<T> {

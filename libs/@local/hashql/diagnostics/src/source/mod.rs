@@ -45,6 +45,7 @@ impl<'source> Source<'source> {
 
 #[derive(Debug)]
 pub(crate) struct ResolvedSource<'source> {
+    pub id: SourceId,
     pub path: Option<Cow<'source, str>>,
     pub content: Cow<'source, str>,
 }
@@ -69,6 +70,7 @@ impl<'source> Sources<'source> {
         let id = SourceId(self.sources.len() as u32);
 
         self.sources.push(ResolvedSource {
+            id,
             path: source.path,
             content: source.content,
         });

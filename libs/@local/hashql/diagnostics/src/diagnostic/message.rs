@@ -8,8 +8,8 @@ use anstyle::{Color, Style};
 
 use super::Suggestions;
 #[cfg(feature = "render")]
-use crate::source::Sources;
-use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
+use super::render::{RenderContext, RenderError};
+use crate::source::DiagnosticSpan;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -95,7 +95,7 @@ impl<S> Message<S> {
 }
 
 #[cfg(feature = "render")]
-impl Message<AbsoluteDiagnosticSpan> {
+impl<S> Message<S> {
     const fn render_level(&self) -> Level<'_> {
         match self.kind {
             MessageKind::Help => Level::HELP,
@@ -104,41 +104,45 @@ impl Message<AbsoluteDiagnosticSpan> {
     }
 
     fn render_message(&self) -> Cow<'_, str> {
-        match self.style {
-            Some(style) => Cow::Owned(format!("{style}{}{style:#}", self.contents)),
-            None => Cow::Borrowed(&*self.contents),
-        }
+        self.style.map_or_else(
+            || Cow::Borrowed(&*self.contents),
+            |style| Cow::Owned(format!("{style}{}{style:#}", self.contents)),
+        )
     }
 
-    fn render_suggestions<'this>(
+    fn render_suggestions<'this, C>(
         &'this self,
-        sources: &'this Sources,
-        suggestions: &'this Suggestions<AbsoluteDiagnosticSpan>,
-        groups: &mut Vec<annotate_snippets::Group<'this>>,
-    ) {
+        suggestions: &'this Suggestions<S>,
+        context: &mut RenderContext<'this, '_, '_, C>,
+    ) -> Result<Group<'this>, RenderError<'this, S>>
+    where
+        S: DiagnosticSpan<C>,
+    {
         let mut group =
             Group::with_title(self.render_level().secondary_title(self.render_message()));
 
-        group = suggestions.render(sources, group);
-        groups.push(group);
+        group = suggestions.render(group, context)?;
+        Ok(group)
     }
 
     pub(crate) fn render_plain(&self) -> annotate_snippets::Message<'_> {
         self.render_level().message(self.render_message())
     }
 
-    pub(crate) fn render<'this>(
+    pub(crate) fn render<'this, C>(
         &'this self,
-        sources: &'this Sources,
-        groups: &mut Vec<annotate_snippets::Group<'this>>,
-        messages: &mut Vec<annotate_snippets::Message<'this>>,
-    ) {
+        context: &mut RenderContext<'this, '_, '_, C>,
+    ) -> Result<Option<annotate_snippets::Message<'this>>, RenderError<'this, S>>
+    where
+        S: DiagnosticSpan<C>,
+    {
         if let Some(suggestions) = &self.suggestions {
-            self.render_suggestions(sources, suggestions, groups);
-            return;
+            let group = self.render_suggestions(suggestions, context)?;
+            context.groups.push(group);
+            Ok(None)
+        } else {
+            Ok(Some(self.render_plain()))
         }
-
-        messages.push(self.render_plain());
     }
 }
 
@@ -170,13 +174,6 @@ impl<S> Messages<S> {
 
     pub fn iter(&self) -> impl Iterator<Item = &Message<S>> {
         self.messages.iter()
-    }
-
-    pub(crate) fn resolve<C>(self, context: &mut C) -> Messages<AbsoluteDiagnosticSpan>
-    where
-        S: DiagnosticSpan<C>,
-    {
-        self.map(|message| message.map_suggestions(|suggestions| suggestions.resolve(context)))
     }
 
     pub(crate) fn map<T>(self, func: impl FnMut(Message<S>) -> Message<T>) -> Messages<T> {

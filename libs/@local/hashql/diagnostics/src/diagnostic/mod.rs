@@ -10,8 +10,6 @@ use core::{
     fmt::{Debug, Display},
 };
 
-use error_stack::{Report, TryReportTupleExt as _};
-
 pub use self::{
     label::{Label, Labels},
     message::{Message, Messages},
@@ -19,9 +17,8 @@ pub use self::{
 };
 use crate::{
     category::{CanonicalDiagnosticCategoryName, DiagnosticCategory},
-    error::ResolveError,
     severity::{Advisory, Critical, Severity, SeverityKind},
-    source::{AbsoluteDiagnosticSpan, DiagnosticSpan},
+    source::AbsoluteDiagnosticSpan,
 };
 
 /// Type alias for [`Diagnostic`] with absolute diagnostic spans.
@@ -372,55 +369,6 @@ impl<C, S, K> Diagnostic<C, S, K> {
     pub fn add_message(&mut self, message: impl Into<Message<S>>) -> &mut Self {
         self.messages.push(message.into());
         self
-    }
-
-    /// Resolves the diagnostic by converting span references to absolute positions.
-    ///
-    /// Takes a diagnostic with potentially unresolved span references and converts all labels to
-    /// use absolute diagnostic spans that can be displayed to users. This process looks up span
-    /// identifiers in the provided context to get their actual source locations.
-    ///
-    /// # Errors
-    ///
-    /// - [`ResolveError`] if any span identifier cannot be found in the span storage or if span
-    ///   resolution fails for any other reason
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use hashql_diagnostics::{Diagnostic, Label, Severity};
-    /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
-    /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    /// #     id: "example", name: "Example"
-    /// # };
-    ///
-    /// let mut diagnostic = Diagnostic::new(CATEGORY, Severity::Error);
-    /// // Add labels with span references...
-    ///
-    /// let resolved = diagnostic.resolve(&mut context)?;
-    /// // Now has absolute spans ready for display
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
-    /// ```
-    pub fn resolve<DiagnosticContext>(
-        self,
-        context: &mut DiagnosticContext,
-    ) -> Result<Diagnostic<C, AbsoluteDiagnosticSpan, K>, Report<[ResolveError]>>
-    where
-        S: DiagnosticSpan<DiagnosticContext>,
-    {
-        let labels = self.labels.resolve(context);
-        let messages = self.messages.resolve(context);
-
-        let (labels, messages) = (labels, messages).try_collect()?;
-
-        Ok(Diagnostic {
-            category: self.category,
-            severity: self.severity,
-            title: self.title,
-
-            labels,
-            messages,
-        })
     }
 }
 

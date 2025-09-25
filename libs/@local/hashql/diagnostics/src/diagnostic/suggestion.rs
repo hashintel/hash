@@ -1,11 +1,11 @@
+use alloc::borrow::Cow;
 use core::borrow::Borrow;
-use std::borrow::Cow;
 
 #[cfg(feature = "render")]
 use annotate_snippets::Group;
 
 #[cfg(feature = "render")]
-use crate::source::Sources;
+use super::render::{RenderContext, RenderError};
 use crate::source::{AbsoluteDiagnosticSpan, DiagnosticSpan};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -43,22 +43,24 @@ impl<S> Patch<S> {
             replacement: self.replacement,
         }
     }
+}
 
-    pub(crate) fn resolve<C>(self, context: &mut C) -> Patch<AbsoluteDiagnosticSpan>
+#[cfg(feature = "render")]
+impl<S> Patch<S> {
+    pub(crate) fn render<C>(
+        &self,
+        context: &mut RenderContext<C>,
+    ) -> Result<annotate_snippets::Patch<'_>, RenderError<'_, S>>
     where
         S: DiagnosticSpan<C>,
     {
-        Patch {
-            span: AbsoluteDiagnosticSpan::new(&self.span, context),
-            replacement: self.replacement,
-        }
-    }
-}
+        let span = AbsoluteDiagnosticSpan::new(&self.span, context.span_context)
+            .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
-impl Patch<AbsoluteDiagnosticSpan> {
-    #[cfg(feature = "render")]
-    pub(crate) fn render(&self) -> annotate_snippets::Patch {
-        annotate_snippets::Patch::new(self.span.range().into(), &*self.replacement)
+        Ok(annotate_snippets::Patch::new(
+            span.range().into(),
+            &*self.replacement,
+        ))
     }
 }
 
@@ -91,13 +93,6 @@ impl<S> Suggestions<S> {
         }
     }
 
-    pub(crate) fn resolve<C>(self, context: &mut C) -> Suggestions<AbsoluteDiagnosticSpan>
-    where
-        S: DiagnosticSpan<C>,
-    {
-        self.map_patches(|patch| patch.resolve(context))
-    }
-
     pub(crate) fn map_patches<T>(self, func: impl FnMut(Patch<S>) -> Patch<T>) -> Suggestions<T> {
         Suggestions {
             patches: self.patches.into_iter().map(func).collect(),
@@ -107,12 +102,20 @@ impl<S> Suggestions<S> {
 }
 
 #[cfg(feature = "render")]
-impl Suggestions<AbsoluteDiagnosticSpan> {
-    pub(crate) fn render<'this>(
+impl<S> Suggestions<S> {
+    #[expect(
+        clippy::panic_in_result_fn,
+        clippy::indexing_slicing,
+        reason = "chunks are always non-empty"
+    )]
+    pub(crate) fn render<'this, C>(
         &'this self,
-        sources: &'this Sources,
         mut group: Group<'this>,
-    ) -> Group<'this> {
+        context: &mut RenderContext<'this, '_, '_, C>,
+    ) -> Result<Group<'this>, RenderError<'this, S>>
+    where
+        S: DiagnosticSpan<C>,
+    {
         use annotate_snippets::{Level, Snippet};
 
         for chunk in self
@@ -121,12 +124,23 @@ impl Suggestions<AbsoluteDiagnosticSpan> {
         {
             assert!(!chunk.is_empty());
 
-            let source = chunk[0].span().source();
-            let source = sources.get(source).unwrap();
+            let source_id = chunk[0].span().source();
+            let source = context
+                .sources
+                .get(source_id)
+                .ok_or(RenderError::SourceNotFound(source_id))?;
 
-            let snippet = Snippet::source(&*source.content)
-                .path(source.path.as_deref())
-                .patches(chunk.iter().map(Patch::render));
+            let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
+
+            for patch in chunk {
+                let patch = patch.render(context).map_err(|error| match error {
+                    RenderError::SpanNotFound(None, span) => {
+                        RenderError::SpanNotFound(Some(source_id), span)
+                    }
+                    RenderError::SourceNotFound(_) | RenderError::SpanNotFound(Some(_), _) => error,
+                })?;
+                snippet = snippet.patch(patch);
+            }
 
             group = group.element(snippet);
         }
@@ -135,6 +149,6 @@ impl Suggestions<AbsoluteDiagnosticSpan> {
             group = group.element(Level::NOTE.no_name().message(trailer));
         }
 
-        group
+        Ok(group)
     }
 }

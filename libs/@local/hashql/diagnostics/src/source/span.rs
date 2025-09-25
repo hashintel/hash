@@ -16,13 +16,10 @@ pub trait DiagnosticSpan<Context>: Display {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct AbsoluteDiagnosticSpanInner {
+pub struct AbsoluteDiagnosticSpan {
     source: SourceId,
     range: TextRange,
 }
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AbsoluteDiagnosticSpan(Option<AbsoluteDiagnosticSpanInner>);
 
 impl AbsoluteDiagnosticSpan {
     /// Creates a new `AbsoluteDiagnosticSpan` from a diagnostic span and its context.
@@ -31,45 +28,33 @@ impl AbsoluteDiagnosticSpan {
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub fn new<S, C>(span: &S, context: &mut C) -> Self
+    pub fn new<S, C>(span: &S, context: &mut C) -> Option<Self>
     where
         S: DiagnosticSpan<C>,
     {
         let source = span.source();
 
-        let Some(mut range) = span.span(context) else {
-            return Self(None);
-        };
+        let mut range = span.span(context)?;
 
         for ancestor in span.ancestors(context) {
-            let Some(ancestor_range) = ancestor.span(context) else {
-                return Self(None);
-            };
-
-            range += ancestor_range.start();
+            range += ancestor.span(context)?.start();
         }
 
-        Self(Some(AbsoluteDiagnosticSpanInner { source, range }))
+        Some(Self { source, range })
     }
 
     #[must_use]
     pub const fn from_parts(source: SourceId, range: TextRange) -> Self {
-        Self(Some(AbsoluteDiagnosticSpanInner { source, range }))
+        Self { source, range }
     }
 
     #[must_use]
-    pub const fn source(self) -> Option<SourceId> {
-        match self.0 {
-            Some(inner) => Some(inner.source),
-            None => None,
-        }
+    pub const fn source(self) -> SourceId {
+        self.source
     }
 
     #[must_use]
-    pub const fn range(self) -> Option<TextRange> {
-        match self.0 {
-            Some(inner) => Some(inner.range),
-            None => None,
-        }
+    pub const fn range(self) -> TextRange {
+        self.range
     }
 }

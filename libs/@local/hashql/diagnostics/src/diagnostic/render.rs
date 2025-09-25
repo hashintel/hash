@@ -1,6 +1,9 @@
-use annotate_snippets::{Group, Level, Renderer, Snippet, renderer::DecorStyle};
+use core::fmt::Display;
 
-use super::{Diagnostic, Label};
+use annotate_snippets::{Group, Level, Origin, Renderer, Snippet, renderer::DecorStyle};
+use anstream::adapter::strip_str;
+
+use super::Diagnostic;
 use crate::{
     DiagnosticCategory, Severity,
     category::{
@@ -8,7 +11,7 @@ use crate::{
     },
     diagnostic::Message,
     severity::SeverityKind,
-    source::{AbsoluteDiagnosticSpan, SourceId, Sources},
+    source::{AbsoluteDiagnosticSpan, DiagnosticSpan, ResolvedSource, SourceId, Sources},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -79,6 +82,19 @@ impl<'sources, 'source> RenderOptions<'sources, 'source> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum RenderError<'this, S> {
+    SourceNotFound(SourceId),
+    SpanNotFound(Option<SourceId>, &'this S),
+}
+
+pub(crate) struct RenderContext<'group, 'ctx, 'sources, C> {
+    pub sources: &'group Sources<'sources>,
+    pub span_context: &'ctx mut C,
+
+    pub groups: Vec<Group<'group>>,
+}
+
 const fn severity_to_level(severity: Severity) -> Level<'static> {
     match severity {
         Severity::Bug | Severity::Fatal | Severity::Error => Level::ERROR,
@@ -87,19 +103,51 @@ const fn severity_to_level(severity: Severity) -> Level<'static> {
     }
 }
 
-impl<C, K> Diagnostic<C, AbsoluteDiagnosticSpan, K>
+impl<C, S, K> Diagnostic<C, S, K>
 where
     C: DiagnosticCategory,
     K: SeverityKind,
 {
-    pub(crate) fn source_not_found(&self, source: SourceId) -> Group<'_> {
+    pub(crate) fn span_not_found<'group>(
+        &'group self,
+        span: &S,
+        source: Option<&'group ResolvedSource>,
+    ) -> Group<'group>
+    where
+        S: Display,
+    {
+        let mut group = severity_to_level(Severity::Bug)
+            .primary_title(format!("unable to find span {span}"))
+            .element(Level::NOTE.message(format!(
+                "when trying to render {} ({})",
+                CanonicalDiagnosticCategoryName::new(&self.category),
+                CanonicalDiagnosticCategoryId::new(&self.category)
+            )));
+
+        if let Some(source) = source
+            && let Some(path) = source.path.as_deref()
+        {
+            group = group.element(Origin::path(path));
+        }
+
+        group = group.elements(
+            Severity::Bug
+                .messages::<!>()
+                .iter()
+                .map(Message::render_plain),
+        );
+
+        group
+    }
+
+    pub(crate) fn source_not_found<D>(&self, source: SourceId, span_context: &mut D) -> Group<'_>
+    where
+        S: DiagnosticSpan<D>,
+    {
         // We cannot go the "normal" route here, because there is an error with the diagnostic
         // itself
-
-        // Try to see if we can salvage any of the span information
-
         let mut group = severity_to_level(Severity::Bug)
-            .primary_title(format!("Unable to find source {source}"))
+            .primary_title(format!("unable to find source {source}"))
             .id("internal::render::source-not-found")
             .element(Level::NOTE.message(format!(
                 "when trying to render {} ({})",
@@ -107,21 +155,46 @@ where
                 CanonicalDiagnosticCategoryId::new(&self.category)
             )));
 
-        group = group.elements(Severity::Bug.messages().iter().map(Message::render_plain));
+        // Try to see if we can salvage any of the span information to point to the user to the
+        // offending input
+        let span = self
+            .labels
+            .iter()
+            .find_map(|label| AbsoluteDiagnosticSpan::new(label.span(), span_context));
+
+        if let Some(span) = span {
+            group = group
+                .element(Level::NOTE.message(format!("The error occured at: {:?}", span.range())));
+        }
+
+        group = group.elements(
+            Severity::Bug
+                .messages::<!>()
+                .iter()
+                .map(Message::render_plain),
+        );
 
         group
     }
 
     #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
-    pub(crate) fn as_group<'group>(
+    pub(crate) fn as_group<'group, D>(
         &'group self,
         options: RenderOptions<'group, '_>,
-    ) -> Vec<Group<'group>> {
-        let severity: Severity = self.severity.into();
+        span_context: &mut D,
+    ) -> Vec<Group<'group>>
+    where
+        S: DiagnosticSpan<D>,
+    {
+        let mut context = RenderContext {
+            sources: options.sources,
+            span_context,
+            // The first group is always the main group, and here is a stand-in for the actual
+            // group. The placeholder does not allocate.
+            groups: vec![Group::with_level(Level::ERROR)],
+        };
 
-        // The first group is always the main group, and here is a stand-in for the actual group.
-        // The placeholder does not allocate.
-        let mut groups = vec![Group::with_level(Level::ERROR)];
+        let severity: Severity = self.severity.into();
 
         let title = severity_to_level(severity)
             .primary_title(
@@ -130,6 +203,7 @@ where
                     .unwrap_or_else(|| category_display_name(&self.category)),
             )
             .id(CanonicalDiagnosticCategoryId::new(&self.category).to_string());
+
         let mut group = Group::with_title(title);
 
         for chunk in self
@@ -141,31 +215,53 @@ where
 
             let source = chunk[0].span().source();
             let Some(source) = options.sources.get(source) else {
-                groups.push(self.source_not_found(source));
+                context
+                    .groups
+                    .push(self.source_not_found(source, context.span_context));
                 continue;
             };
 
-            let snippet = Snippet::source(&*source.content)
-                .path(source.path.as_deref())
-                .annotations(chunk.iter().map(Label::render));
+            let mut snippet = Snippet::source(&*source.content).path(source.path.as_deref());
+
+            for label in chunk {
+                match label.render(&mut context) {
+                    Ok(annotation) => snippet = snippet.annotation(annotation),
+                    Err(RenderError::SourceNotFound(source)) => context
+                        .groups
+                        .push(self.source_not_found(source, context.span_context)),
+                    Err(RenderError::SpanNotFound(_, span)) => {
+                        context.groups.push(self.span_not_found(span, Some(source)));
+                    }
+                }
+            }
+
             group = group.element(snippet);
         }
 
-        let mut messages = Vec::new();
         for message in self.messages.iter().chain(severity.messages()) {
-            message.render(options.sources, &mut groups, &mut messages);
+            match message.render(&mut context) {
+                Ok(Some(message)) => group = group.element(message),
+                Ok(None) => {}
+                Err(RenderError::SourceNotFound(source)) => context
+                    .groups
+                    .push(self.source_not_found(source, context.span_context)),
+                Err(RenderError::SpanNotFound(source, span)) => context
+                    .groups
+                    .push(self.span_not_found(span, source.and_then(|id| options.sources.get(id)))),
+            }
         }
 
-        groups[0] = group;
-        groups
+        context.groups[0] = group;
+        context.groups
     }
 
-    pub fn render(&self, options: RenderOptions) -> String {
-        use anstream::adapter::strip_str;
-
+    pub fn render<D>(&self, options: RenderOptions, span_context: &mut D) -> String
+    where
+        S: DiagnosticSpan<D>,
+    {
         const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
 
-        let groups = self.as_group(options);
+        let groups = self.as_group(options, span_context);
 
         let renderer = options.as_renderer();
         let mut contents = renderer.render(&groups);
