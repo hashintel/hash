@@ -20,8 +20,6 @@ function imageDataToUrl(imageData: ImageData): string {
 type FilterProps = {
   id: string;
   scaleRatio?: MotionValue<number>;
-  canvasWidth?: number;
-  canvasHeight?: number;
   blur: number | MotionValue<number>;
   width: number | MotionValue<number>;
   height: number | MotionValue<number>;
@@ -37,8 +35,6 @@ type FilterProps = {
 
 export const Filter: React.FC<FilterProps> = ({
   id,
-  canvasWidth,
-  canvasHeight,
   width,
   height,
   radius,
@@ -67,8 +63,6 @@ export const Filter: React.FC<FilterProps> = ({
 
   const displacementMap = useTransform(() => {
     return calculateDisplacementMap(
-      getValueOrMotion(canvasWidth ?? width),
-      getValueOrMotion(canvasHeight ?? height),
       getValueOrMotion(width),
       getValueOrMotion(height),
       getValueOrMotion(radius),
@@ -112,8 +106,8 @@ export const Filter: React.FC<FilterProps> = ({
         href={displacementMapDataUrl}
         x={0}
         y={0}
-        width={canvasWidth ?? width}
-        height={canvasHeight ?? height}
+        width={width}
+        height={height}
         result="displacement_map"
       />
 
@@ -140,8 +134,8 @@ export const Filter: React.FC<FilterProps> = ({
         href={specularLayerDataUrl}
         x={0}
         y={0}
-        width={canvasWidth ?? width}
-        height={canvasHeight ?? height}
+        width={width}
+        height={height}
         result="specular_layer"
       />
 

@@ -53,8 +53,6 @@ export function calculateDisplacementMapRadius(
 }
 
 export function calculateDisplacementMap(
-  canvasWidth: number,
-  canvasHeight: number,
   objectWidth: number,
   objectHeight: number,
   radius: number,
@@ -66,8 +64,8 @@ export function calculateDisplacementMap(
   const devicePixelRatio =
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
-  const bufferWidth = canvasWidth * devicePixelRatio;
-  const bufferHeight = canvasHeight * devicePixelRatio;
+  const bufferWidth = objectWidth * devicePixelRatio;
+  const bufferHeight = objectHeight * devicePixelRatio;
   const imageData = createImageData(bufferWidth, bufferHeight);
 
   // Fill neutral color using buffer
