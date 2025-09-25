@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
@@ -281,7 +280,7 @@ impl Trial {
         }
 
         let (received_stdout, fatal_diagnostic) = match result {
-            Ok(stdout) => (Some(strip_str(&stdout).to_string()), None),
+            Ok(stdout) => (Some(stdout), None),
             Err(error) => (None, Some(error)),
         };
 

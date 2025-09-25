@@ -3869,8 +3869,6 @@ name = "hashql-compiletest"
 version = "0.0.0"
 dependencies = [
  "anstream",
- "anstyle",
- "ariadne",
  "camino",
  "clap",
  "derive_more 2.0.1",
