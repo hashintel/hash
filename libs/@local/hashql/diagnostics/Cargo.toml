@@ -26,7 +26,6 @@ derive_more       = { workspace = true, features = ["display"] }
 simple-mermaid    = { workspace = true }
 
 [dev-dependencies]
-jsonptr    = { workspace = true, features = ["json"] }
 rstest     = { workspace = true }
 serde_json = { workspace = true }
 
