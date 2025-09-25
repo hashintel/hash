@@ -1,12 +1,10 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -52,17 +50,16 @@ export const useOrgs = (): {
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntitySubgraph: subgraphAndPermissions } = data ?? {};
+  const { queryEntitySubgraph } = data ?? {};
 
   const orgs = useMemoCompare(
     () => {
-      if (!subgraphAndPermissions) {
+      if (!queryEntitySubgraph) {
         return undefined;
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(subgraphAndPermissions.subgraph);
+      const subgraph =
+        deserializeQueryEntitySubgraphResponse(queryEntitySubgraph).subgraph;
 
       return getRoots(subgraph).map((orgEntity) => {
         if (!isEntityOrgEntity(orgEntity)) {
@@ -73,7 +70,7 @@ export const useOrgs = (): {
         return constructMinimalOrg({ orgEntity });
       });
     },
-    [subgraphAndPermissions],
+    [queryEntitySubgraph],
     /**
      * Check if the previous and new orgs are the same.
      * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.

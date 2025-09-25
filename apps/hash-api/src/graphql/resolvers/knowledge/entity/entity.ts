@@ -35,6 +35,7 @@ import {
 import {
   canUserReadEntity,
   checkEntityPermission,
+  checkPermissionsOnEntitiesInSubgraph,
   countEntities,
   createEntityWithLinks,
   getLatestEntityById,
@@ -144,17 +145,22 @@ export const queryEntitySubgraphResolver: ResolverFn<
   GraphQLContext,
   QueryQueryEntitySubgraphArgs
 > = async (_, { request }, graphQLContext, info) => {
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+  const { authentication } = graphQLContext;
+
   const includePermissions = request.includePermissions;
   const { subgraph, ...response } = await queryEntitySubgraph(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
+    context,
+    authentication,
     { ...request, includePermissions: false },
   );
 
   // TODO: Move this logic into the Graph
   //   see https://linear.app/hash/issue/BE-127/allow-including-permission-in-entity-query-responses
   const entityPermissions = includePermissions
-    ? await getUserPermissionsOnSubgraph(graphQLContext, info, subgraph)
+    ? await checkPermissionsOnEntitiesInSubgraph(context, authentication, {
+        subgraph,
+      })
     : undefined;
 
   return serializeQueryEntitySubgraphResponse({

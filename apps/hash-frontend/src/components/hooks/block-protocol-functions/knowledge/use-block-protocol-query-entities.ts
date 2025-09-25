@@ -28,7 +28,7 @@ export const useBlockProtocolQueryEntities = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "'data' must be provided for queryEntitySubgraph",
+              message: "'data' must be provided for queryEntities",
             },
           ],
         };
@@ -77,7 +77,7 @@ export const useBlockProtocolQueryEntities = (): {
           errors: [
             {
               code: "INVALID_INPUT",
-              message: "Error calling queryEntitySubgraph",
+              message: "Error calling queryEntities",
             },
           ],
         };

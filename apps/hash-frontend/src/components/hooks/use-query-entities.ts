@@ -1,12 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType, GraphResolveDepths } from "@blockprotocol/graph";
+import type { GraphResolveDepths } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
-import {
-  currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
 import type {
@@ -77,9 +74,9 @@ export const useQueryEntitySubgraph = ({
 
   return useMemo(() => {
     const subgraph = response.data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-          response.data.queryEntitySubgraph.subgraph,
-        )
+      ? deserializeQueryEntitySubgraphResponse(
+          response.data.queryEntitySubgraph,
+        ).subgraph
       : undefined;
 
     return { entitiesSubgraph: subgraph, ...response };
