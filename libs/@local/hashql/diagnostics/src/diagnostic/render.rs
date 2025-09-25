@@ -68,23 +68,6 @@ pub enum Format {
 /// This affects how colors and visual styling are applied to diagnostic output,
 /// allowing the renderer to adapt to different terminal capabilities and user
 /// preferences.
-///
-/// # Examples
-///
-/// ```
-/// # #[cfg(feature = "render")] {
-/// use hashql_diagnostics::diagnostic::render::ColorDepth;
-///
-/// // For modern terminals with full color support
-/// let full_color = ColorDepth::Rgb;
-///
-/// // For older terminals or when colors should be disabled
-/// let no_color = ColorDepth::Monochrome;
-///
-/// // For terminals with limited color palettes
-/// let basic_color = ColorDepth::Ansi16;
-/// # }
-/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum ColorDepth {
     /// 16-color ANSI palette.
@@ -125,20 +108,6 @@ pub enum ColorDepth {
 /// Controls which character set is used for drawing diagnostic decorations
 /// such as lines, arrows, and other visual elements. This allows the renderer
 /// to adapt to different terminal capabilities and font support.
-///
-/// # Examples
-///
-/// ```
-/// # #[cfg(feature = "render")] {
-/// use hashql_diagnostics::diagnostic::render::Charset;
-///
-/// // For terminals that support Unicode box-drawing characters
-/// let unicode_charset = Charset::Unicode;
-///
-/// // For older terminals or systems with limited font support
-/// let ascii_charset = Charset::Ascii;
-/// # }
-/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum Charset {
     /// ASCII-only character set for maximum compatibility.
@@ -173,26 +142,6 @@ impl Charset {
 /// [`RenderOptions`] controls all aspects of how diagnostics are visually presented,
 /// from the output format and color scheme to terminal-specific settings like width
 /// and character set support.
-///
-/// # Examples
-///
-/// ```
-/// # #[cfg(feature = "render")] {
-/// use hashql_diagnostics::{
-///     Sources,
-///     diagnostic::render::{Charset, ColorDepth, Format, RenderOptions},
-/// };
-///
-/// let sources = Sources::new();
-/// let mut options = RenderOptions::new(Format::Ansi, &sources);
-///
-/// // Customize for a specific environment
-/// options.color_depth = ColorDepth::Ansi16;
-/// options.charset = Charset::Ascii;
-/// options.term_width = 80;
-/// options.abbreviate = true;
-/// # }
-/// ```
 #[derive(Debug, Copy, Clone)]
 pub struct RenderOptions<'sources, 'source> {
     /// The output format for the rendered diagnostic.
@@ -247,43 +196,6 @@ impl<'sources, 'source> RenderOptions<'sources, 'source> {
     /// sources provide access to the original source code that diagnostics reference.
     ///
     /// These defaults can be customized by modifying the returned [`RenderOptions`] struct.
-    ///
-    /// # Examples
-    ///
-    /// Creating basic rendering options:
-    ///
-    /// ```
-    /// # #[cfg(feature = "render")] {
-    /// use hashql_diagnostics::{
-    ///     Sources,
-    ///     diagnostic::render::{Format, RenderOptions},
-    /// };
-    ///
-    /// let sources = Sources::new();
-    /// let options = RenderOptions::new(Format::Rich, &sources);
-    /// # }
-    /// ```
-    ///
-    /// Customizing rendering options:
-    ///
-    /// ```
-    /// # #[cfg(feature = "render")] {
-    /// use annotate_snippets::{Charset, ColorDepth};
-    /// use hashql_diagnostics::{
-    ///     Sources,
-    ///     diagnostic::render::{Format, RenderOptions},
-    /// };
-    ///
-    /// let sources = Sources::new();
-    /// let mut options = RenderOptions::new(Format::Short, &sources);
-    ///
-    /// // Customize for different terminal capabilities
-    /// options.charset = Charset::Ascii;
-    /// options.color_depth = ColorDepth::Monochrome;
-    /// options.term_width = 80;
-    /// options.abbreviate = true;
-    /// # }
-    /// ```
     #[must_use]
     pub fn new(format: Format, sources: &'sources Sources<'source>) -> Self {
         Self {
@@ -522,7 +434,6 @@ where
     /// Rendering a diagnostic with rich formatting:
     ///
     /// ```
-    /// # #[cfg(feature = "render")] {
     /// use hashql_diagnostics::{
     ///     Diagnostic, Label, Severity, Sources,
     ///     diagnostic::render::{Format, RenderOptions},
@@ -531,60 +442,90 @@ where
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "syntax_error", name: "Syntax Error"
     /// # };
-    /// # struct DummyResolver;
-    /// # impl hashql_diagnostics::source::DiagnosticSpanResolver for DummyResolver {
-    /// #     fn resolve(&mut self, _: &std::ops::Range<usize>) -> Option<(usize, std::ops::Range<usize>)> {
-    /// #         Some((0, 0..5))
-    /// #     }
+    /// # struct Span(core::ops::Range<u32>);
+    /// # impl core::fmt::Display for Span {
+    /// #    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    /// #        write!(f, "{}..{}", self.0.start, self.0.end)
+    /// #    }
     /// # }
+    /// # impl<R> hashql_diagnostics::source::DiagnosticSpan<R> for Span {
+    /// #    fn source(&self) -> hashql_diagnostics::source::SourceId {
+    /// #        hashql_diagnostics::source::SourceId::new_unchecked(0)
+    /// #    }
+    /// #
+    /// #    fn span(&self, resolver: &mut R) -> Option<text_size::TextRange> {
+    /// #        Some(text_size::TextRange::new(
+    /// #            self.0.start.into(),
+    /// #            self.0.end.into(),
+    /// #        ))
+    /// #    }
+    /// #
+    /// #    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
+    /// #        []
+    /// #    }
+    /// # }
+    /// # fn make_resolver() { }
     ///
     /// let header = Diagnostic::new(CATEGORY, Severity::Error);
-    /// let label = Label::new(10..15, "unexpected token");
+    /// let label = Label::new(Span(10..15), "unexpected token");
     /// let diagnostic = header.primary(label);
     ///
     /// let sources = Sources::new();
-    /// let options = RenderOptions::new(Format::Rich, &sources);
-    /// let mut resolver = DummyResolver;
+    /// let options = RenderOptions::new(Format::Ansi, &sources);
+    /// let mut resolver = make_resolver();
     ///
     /// let output = diagnostic.render(options, &mut resolver);
     /// // Output contains formatted diagnostic with source code context
-    /// # }
     /// ```
     ///
     /// Rendering with custom options for different terminals:
     ///
     /// ```
-    /// # #[cfg(feature = "render")] {
-    /// use annotate_snippets::{Charset, ColorDepth};
     /// use hashql_diagnostics::{
     ///     Diagnostic, Label, Severity, Sources,
-    ///     diagnostic::render::{Format, RenderOptions},
+    ///     diagnostic::render::{Charset, ColorDepth, Format, RenderOptions},
     /// };
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "warning", name: "Warning"
     /// # };
-    /// # struct DummyResolver;
-    /// # impl hashql_diagnostics::source::DiagnosticSpanResolver for DummyResolver {
-    /// #     fn resolve(&mut self, _: &std::ops::Range<usize>) -> Option<(usize, std::ops::Range<usize>)> {
-    /// #         Some((0, 0..5))
-    /// #     }
+    /// # struct Span(core::ops::Range<u32>);
+    /// # impl core::fmt::Display for Span {
+    /// #    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    /// #        write!(f, "{}..{}", self.0.start, self.0.end)
+    /// #    }
     /// # }
+    /// # impl<R> hashql_diagnostics::source::DiagnosticSpan<R> for Span {
+    /// #    fn source(&self) -> hashql_diagnostics::source::SourceId {
+    /// #        hashql_diagnostics::source::SourceId::new_unchecked(0)
+    /// #    }
+    /// #
+    /// #    fn span(&self, resolver: &mut R) -> Option<text_size::TextRange> {
+    /// #        Some(text_size::TextRange::new(
+    /// #            self.0.start.into(),
+    /// #            self.0.end.into(),
+    /// #        ))
+    /// #    }
+    /// #
+    /// #    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
+    /// #        []
+    /// #    }
+    /// # }
+    /// # fn make_resolver() { }
     ///
     /// let header = Diagnostic::new(CATEGORY, Severity::Warning);
-    /// let label = Label::new(5..10, "deprecated usage");
+    /// let label = Label::new(Span(5..10), "deprecated usage");
     /// let diagnostic = header.primary(label);
     ///
     /// let sources = Sources::new();
-    /// let mut options = RenderOptions::new(Format::Short, &sources);
+    /// let mut options = RenderOptions::new(Format::Ansi, &sources);
     /// options.charset = Charset::Ascii;
     /// options.color_depth = ColorDepth::Monochrome;
     /// options.term_width = 80;
     ///
-    /// let mut resolver = DummyResolver;
+    /// let mut resolver = make_resolver();
     /// let output = diagnostic.render(options, &mut resolver);
     /// // Output formatted for ASCII-only terminals without color
-    /// # }
     /// ```
     pub fn render<R>(&self, options: RenderOptions, resolver: &mut R) -> String
     where
