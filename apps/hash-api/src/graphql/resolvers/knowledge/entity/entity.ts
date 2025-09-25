@@ -144,7 +144,7 @@ export const queryEntitySubgraphResolver: ResolverFn<
   Record<string, never>,
   GraphQLContext,
   QueryQueryEntitySubgraphArgs
-> = async (_, { request }, graphQLContext, info) => {
+> = async (_, { request }, graphQLContext, __) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
