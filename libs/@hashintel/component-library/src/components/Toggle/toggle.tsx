@@ -8,9 +8,16 @@ import { LIP } from "../../lib/surface-equations";
 // Layout constants
 const SLIDER_HEIGHT = 20;
 const SLIDER_WIDTH = 34;
-const THUMB_WIDTH = 16;
-const THUMB_HEIGHT = 16;
+const SLIDER_RADIUS = SLIDER_HEIGHT / 2;
+
+const THUMB_WIDTH = 14;
+const THUMB_HEIGHT = 14;
 const THUMB_RADIUS = THUMB_HEIGHT / 2;
+
+const PADDING = SLIDER_RADIUS - THUMB_RADIUS;
+const TRAVEL = SLIDER_WIDTH - THUMB_WIDTH - PADDING * 2;
+
+const THUMB_SCALE_ACTIVE = 2.5;
 
 export interface ToggleProps {
   specularOpacity?: number;
@@ -75,9 +82,10 @@ export const Toggle: React.FC<ToggleProps> = ({
                   className={css({
                     position: "absolute",
                     top: "[50%]",
+                    left: `[${PADDING}px]`,
                     transition: "[all 0.2s ease]",
                     "&[data-state='checked']": {
-                      transform: `translateY(-50%)`,
+                      transform: `translateY(-50%) translateX(${TRAVEL}px)`,
                     },
                     "&[data-state='unchecked']": {
                       top: "[50%]",
@@ -87,7 +95,7 @@ export const Toggle: React.FC<ToggleProps> = ({
                       backgroundColor: "[rgba(255, 255, 255, 1)]",
                     },
                     "&[data-active] > div": {
-                      transform: "scale(2)",
+                      transform: `scale(${THUMB_SCALE_ACTIVE})`,
                       backgroundColor: "[rgba(255, 255, 255, 0.1)]",
                     },
                   })}
@@ -95,11 +103,9 @@ export const Toggle: React.FC<ToggleProps> = ({
                   <div
                     style={{
                       display: "block",
-
                       width: THUMB_WIDTH,
                       height: THUMB_HEIGHT,
                       borderRadius: THUMB_RADIUS,
-
                       backdropFilter: `url(#${filterId})`,
                       boxShadow: "0 4px 22px rgba(0,0,0,0.1)",
                       transition: "all 0.2s ease",
