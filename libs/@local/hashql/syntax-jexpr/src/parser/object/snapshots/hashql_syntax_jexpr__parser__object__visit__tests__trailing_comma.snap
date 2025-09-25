@@ -6,6 +6,6 @@ expression: "{\"a\": 1, \"b\": 2,}"
 error[object::trailing-comma]: Unexpected trailing comma in object
   ╭▸ 
 1 │ {"a": 1, "b": 2,}
-  │                ━ Remove this trailing  comma
+  │                ━ Remove this trailing comma
   │
   ╰ help: J-Expr does not support trailing commas in objects. Use `{"key": value}` instead of `{"key": value,}`
