@@ -39,7 +39,6 @@ import {
   archiveEntityResolver,
   countEntitiesResolver,
   createEntityResolver,
-  getEntityResolver,
   isEntityPublicResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
@@ -134,7 +133,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Knowledge
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
-    getEntity: getEntityResolver,
     getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),

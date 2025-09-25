@@ -115,29 +115,6 @@ export const entityTypedef = gql`
       request: QueryEntitySubgraphRequest!
     ): QueryEntitySubgraphResponse!
 
-    """
-    Get a subgraph rooted at an entity resolved by its id.
-    """
-    getEntity(
-      """
-      The id of the entity.
-      """
-      entityId: EntityId!
-      """
-      The version of the entity. Defaults to the latest version.
-      """
-      entityVersion: String
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      isOfType: OutgoingEdgeResolveDepthInput!
-      hasLeftEntity: EdgeResolveDepthsInput!
-      hasRightEntity: EdgeResolveDepthsInput!
-      includeDrafts: Boolean
-    ): SubgraphAndPermissions!
-
     isEntityPublic(entityId: EntityId!): Boolean!
 
     getEntityAuthorizationRelationships(

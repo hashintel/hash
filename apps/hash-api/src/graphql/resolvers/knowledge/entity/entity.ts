@@ -2,13 +2,8 @@ import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   mustHaveAtLeastOne,
-  splitEntityId,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  Filter,
-  QueryTemporalAxesUnresolved,
-} from "@local/hash-graph-client";
 import {
   HashEntity,
   queryEntitySubgraph,
@@ -19,12 +14,7 @@ import {
   deletePolicyById,
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
-import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   ApolloError,
@@ -55,7 +45,6 @@ import type {
   MutationUpdateEntityArgs,
   Query,
   QueryCountEntitiesArgs,
-  QueryGetEntityArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitySubgraphArgs,
   QueryValidateEntityArgs,
@@ -64,7 +53,6 @@ import type {
 import { AuthorizationSubjectKind } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,
@@ -168,99 +156,6 @@ export const queryEntitySubgraphResolver: ResolverFn<
     ...response,
     entityPermissions,
   });
-};
-
-export const getEntityResolver: ResolverFn<
-  Query["getEntity"],
-  Record<string, never>,
-  GraphQLContext,
-  QueryGetEntityArgs
-> = async (
-  _,
-  {
-    entityId,
-    entityVersion,
-    constrainsValuesOn,
-    constrainsPropertiesOn,
-    constrainsLinksOn,
-    constrainsLinkDestinationsOn,
-    inheritsFrom,
-    isOfType,
-    hasLeftEntity,
-    hasRightEntity,
-    includeDrafts,
-  },
-  graphQLContext,
-  info,
-) => {
-  const [webId, entityUuid, draftId] = splitEntityId(entityId);
-
-  const filter: Filter = {
-    all: [
-      {
-        equal: [{ path: ["webId"] }, { parameter: webId }],
-      },
-      {
-        equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-      },
-    ],
-  };
-  if (draftId) {
-    filter.all.push({
-      equal: [{ path: ["draftId"] }, { parameter: draftId }],
-    });
-  }
-
-  // If an entity version is specified, the result is constrained to that version.
-  // This is done by providing a time interval with the same start and end as given by the version.
-  const temporalAxes: QueryTemporalAxesUnresolved = entityVersion
-    ? {
-        pinned: {
-          axis: "transactionTime",
-          timestamp: null,
-        },
-        variable: {
-          axis: "decisionTime",
-          interval: {
-            start: { kind: "inclusive", limit: entityVersion },
-            end: { kind: "inclusive", limit: entityVersion },
-          },
-        },
-      }
-    : currentTimeInstantTemporalAxes;
-
-  const { subgraph: entitySubgraph } = await queryEntitySubgraph(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    {
-      filter,
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn,
-        constrainsPropertiesOn,
-        constrainsLinksOn,
-        constrainsLinkDestinationsOn,
-        inheritsFrom,
-        isOfType,
-        hasLeftEntity,
-        hasRightEntity,
-      },
-      temporalAxes,
-      includeDrafts: includeDrafts ?? false,
-      includePermissions: false,
-    },
-  );
-
-  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
-    graphQLContext,
-    info,
-    entitySubgraph,
-  );
-
-  return {
-    subgraph: serializeSubgraph(entitySubgraph),
-    userPermissionsOnEntities,
-  };
 };
 
 export const updateEntityResolver: ResolverFn<
