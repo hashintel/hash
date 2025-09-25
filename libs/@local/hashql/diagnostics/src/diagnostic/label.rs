@@ -84,7 +84,7 @@ impl<S> Label<S> {
         };
 
         Ok(kind
-            .span(span.range.into())
+            .span(span.range().into())
             .label(&*self.message)
             .highlight_source(self.highlight))
     }

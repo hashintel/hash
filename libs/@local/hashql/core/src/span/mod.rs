@@ -117,19 +117,19 @@ where
         SourceId::new_unchecked(0)
     }
 
-    fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+    fn span(&self, resolver: &mut &SpanStorage<S>) -> Option<TextRange> {
         if *self == Self::SYNTHETIC {
             return Some(TextRange::empty(TextSize::new(0)));
         }
 
-        let entry = context.get(*self)?;
+        let entry = resolver.get(*self)?;
 
         Some(entry.map(Span::range))
     }
 
     #[expect(refining_impl_trait_reachable, reason = "false positive")]
-    fn ancestors(&self, context: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
-        context.ancestors(*self)
+    fn ancestors(&self, resolver: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
+        resolver.ancestors(*self)
     }
 }
 

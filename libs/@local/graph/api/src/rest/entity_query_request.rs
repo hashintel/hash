@@ -48,7 +48,6 @@ use hashql_core::{
 use hashql_diagnostics::{
     DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
     category::{DiagnosticCategory, canonical_category_id},
-    config::ReportConfig,
     severity::Critical,
 };
 use hashql_eval::{

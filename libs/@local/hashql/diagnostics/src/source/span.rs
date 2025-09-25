@@ -14,9 +14,9 @@ pub trait DiagnosticSpan<R>: Display {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct SourceSpan {
-    pub source: SourceId,
-    pub range: TextRange,
+pub struct SourceSpan {
+    source: SourceId,
+    range: TextRange,
 }
 
 impl SourceSpan {
@@ -26,7 +26,7 @@ impl SourceSpan {
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub(crate) fn resolve<S, R>(span: &S, resolver: &mut R) -> Option<Self>
+    pub fn resolve<S, R>(span: &S, resolver: &mut R) -> Option<Self>
     where
         S: DiagnosticSpan<R>,
     {
@@ -39,5 +39,20 @@ impl SourceSpan {
         }
 
         Some(Self { source, range })
+    }
+
+    #[must_use]
+    pub const fn from_parts(source: SourceId, range: TextRange) -> Self {
+        Self { source, range }
+    }
+
+    #[must_use]
+    pub const fn source(&self) -> SourceId {
+        self.source
+    }
+
+    #[must_use]
+    pub const fn range(&self) -> TextRange {
+        self.range
     }
 }

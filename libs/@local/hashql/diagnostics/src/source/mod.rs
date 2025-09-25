@@ -2,8 +2,7 @@ mod span;
 use alloc::borrow::Cow;
 use core::fmt;
 
-pub use self::span::DiagnosticSpan;
-pub(crate) use self::span::SourceSpan;
+pub use self::span::{DiagnosticSpan, SourceSpan};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SourceId(u32);

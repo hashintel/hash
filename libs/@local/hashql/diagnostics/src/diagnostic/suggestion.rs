@@ -58,7 +58,7 @@ impl<S> Patch<S> {
             .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
         Ok(annotate_snippets::Patch::new(
-            span.range.into(),
+            span.range().into(),
             &*self.replacement,
         ))
     }

@@ -164,9 +164,10 @@ where
             .find_map(|label| SourceSpan::resolve(label.span(), resolver));
 
         if let Some(span) = span {
-            group = group.element(
-                Level::NOTE.message(format!("the error occurred at byte range {:?}", span.range)),
-            );
+            group = group.element(Level::NOTE.message(format!(
+                "the error occurred at byte range {:?}",
+                span.range()
+            )));
         }
 
         group = group.elements(

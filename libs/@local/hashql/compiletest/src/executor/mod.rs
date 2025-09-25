@@ -7,11 +7,12 @@ use std::{self, io, sync::mpsc, thread};
 
 use error_stack::Report;
 use guppy::graph::PackageGraph;
+use hashql_core::span::{Span, SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
     Diagnostic,
     category::DiagnosticCategory,
     diagnostic::render::{ColorDepth, Format, RenderOptions},
-    source::{AbsoluteDiagnosticSpan, Source, Sources},
+    source::{DiagnosticSpan, Source, Sources},
 };
 use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
 
@@ -21,8 +22,6 @@ use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation, reporter::S
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub(crate) enum TrialError {
-    #[display("could not resolve diagnostic: failed to map spans to source positions")]
-    DiagnosticResolution,
     #[display("io")]
     Io,
     #[display("annotation parsing: failed to process test annotations")]
@@ -47,9 +46,14 @@ pub(crate) enum TrialError {
 
 impl error::Error for TrialError {}
 
-fn render_diagnostic<C>(source: &str, diagnostic: &Diagnostic<C, AbsoluteDiagnosticSpan>) -> String
+fn render_diagnostic<C, S, R>(
+    source: &str,
+    resolver: &mut R,
+    diagnostic: &Diagnostic<C, S>,
+) -> String
 where
     C: DiagnosticCategory,
+    S: DiagnosticSpan<R>,
 {
     let mut sources = Sources::new();
     sources.push(Source::new(source));
@@ -57,20 +61,22 @@ where
     let mut options = RenderOptions::new(Format::Ansi, &sources);
     options.color_depth = ColorDepth::Monochrome;
 
-    diagnostic.render(options)
+    diagnostic.render(options, resolver)
 }
 
-fn render_stderr<'a, C>(
+fn render_stderr<'a, C, S>(
     source: &str,
-    diagnostics: impl IntoIterator<Item = &'a Diagnostic<C, AbsoluteDiagnosticSpan>>,
+    mut spans: &SpanStorage<S>,
+    diagnostics: impl IntoIterator<Item = &'a Diagnostic<C, SpanId>>,
 ) -> Option<String>
 where
     C: DiagnosticCategory + 'a,
+    S: Span,
 {
     let mut output = Vec::new();
 
     for diagnostic in diagnostics {
-        output.push(render_diagnostic(source, diagnostic));
+        output.push(render_diagnostic(source, &mut spans, diagnostic));
     }
 
     if output.is_empty() {
