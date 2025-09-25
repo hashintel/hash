@@ -90,7 +90,7 @@ pub(crate) enum RenderError<'this, S> {
 
 pub(crate) struct RenderContext<'group, 'ctx, 'sources, C> {
     pub sources: &'group Sources<'sources>,
-    pub span_context: &'ctx mut C,
+    pub resolver: &'ctx mut C,
 
     pub groups: Vec<Group<'group>>,
 }
@@ -141,9 +141,9 @@ where
         group
     }
 
-    pub(crate) fn source_not_found<D>(&self, source: SourceId, span_context: &mut D) -> Group<'_>
+    pub(crate) fn source_not_found<R>(&self, source: SourceId, resolver: &mut R) -> Group<'_>
     where
-        S: DiagnosticSpan<D>,
+        S: DiagnosticSpan<R>,
     {
         // We cannot go the "normal" route here, because there is an error with the diagnostic
         // itself
@@ -161,7 +161,7 @@ where
         let span = self
             .labels
             .iter()
-            .find_map(|label| AbsoluteDiagnosticSpan::new(label.span(), span_context));
+            .find_map(|label| AbsoluteDiagnosticSpan::new(label.span(), resolver));
 
         if let Some(span) = span {
             group = group.element(Level::NOTE.message(format!(
@@ -181,17 +181,17 @@ where
     }
 
     #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
-    pub(crate) fn as_group<'group, D>(
+    pub(crate) fn as_group<'group, R>(
         &'group self,
         options: RenderOptions<'group, '_>,
-        span_context: &mut D,
+        resolver: &mut R,
     ) -> Vec<Group<'group>>
     where
-        S: DiagnosticSpan<D>,
+        S: DiagnosticSpan<R>,
     {
         let mut context = RenderContext {
             sources: options.sources,
-            span_context,
+            resolver,
             // The first group is always the main group, and here is a stand-in for the actual
             // group. The placeholder does not allocate.
             groups: vec![Group::with_level(Level::ERROR)],
@@ -220,7 +220,7 @@ where
             let Some(source) = options.sources.get(source) else {
                 context
                     .groups
-                    .push(self.source_not_found(source, context.span_context));
+                    .push(self.source_not_found(source, context.resolver));
                 continue;
             };
 
@@ -231,7 +231,7 @@ where
                     Ok(annotation) => snippet = snippet.annotation(annotation),
                     Err(RenderError::SourceNotFound(source)) => context
                         .groups
-                        .push(self.source_not_found(source, context.span_context)),
+                        .push(self.source_not_found(source, context.resolver)),
                     Err(RenderError::SpanNotFound(_, span)) => {
                         context.groups.push(self.span_not_found(span, Some(source)));
                     }
@@ -247,7 +247,7 @@ where
                 Ok(None) => {}
                 Err(RenderError::SourceNotFound(source)) => context
                     .groups
-                    .push(self.source_not_found(source, context.span_context)),
+                    .push(self.source_not_found(source, context.resolver)),
                 Err(RenderError::SpanNotFound(source, span)) => context
                     .groups
                     .push(self.span_not_found(span, source.and_then(|id| options.sources.get(id)))),
@@ -258,13 +258,13 @@ where
         context.groups
     }
 
-    pub fn render<D>(&self, options: RenderOptions, span_context: &mut D) -> String
+    pub fn render<R>(&self, options: RenderOptions, resolver: &mut R) -> String
     where
-        S: DiagnosticSpan<D>,
+        S: DiagnosticSpan<R>,
     {
         const TERM: anstyle_svg::Term = anstyle_svg::Term::new();
 
-        let groups = self.as_group(options, span_context);
+        let groups = self.as_group(options, resolver);
 
         let renderer = options.as_renderer();
         let mut contents = renderer.render(&groups);

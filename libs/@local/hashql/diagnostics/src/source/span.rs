@@ -4,15 +4,12 @@ use text_size::TextRange;
 
 use super::SourceId;
 
-pub trait DiagnosticSpan<Context>: Display {
+pub trait DiagnosticSpan<R>: Display {
     fn source(&self) -> SourceId;
 
-    fn span(&self, context: &mut Context) -> Option<TextRange>;
+    fn span(&self, resolver: &mut R) -> Option<TextRange>;
 
-    fn ancestors(
-        &self,
-        context: &mut Context,
-    ) -> impl IntoIterator<Item = Self> + use<Self, Context>;
+    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R>;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -28,9 +25,9 @@ impl AbsoluteDiagnosticSpan {
     ///
     /// Returns `ResolveError::UnknownSpan` if either the span or any of its ancestors
     /// cannot be resolved in the provided context.
-    pub fn new<S, C>(span: &S, context: &mut C) -> Option<Self>
+    pub fn new<S, R>(span: &S, context: &mut R) -> Option<Self>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
         let source = span.source();
 

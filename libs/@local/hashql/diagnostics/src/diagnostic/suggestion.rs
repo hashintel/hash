@@ -47,14 +47,14 @@ impl<S> Patch<S> {
 
 #[cfg(feature = "render")]
 impl<S> Patch<S> {
-    pub(crate) fn render<C>(
+    pub(crate) fn render<R>(
         &self,
-        context: &mut RenderContext<C>,
+        context: &mut RenderContext<R>,
     ) -> Result<annotate_snippets::Patch<'_>, RenderError<'_, S>>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context.span_context)
+        let span = AbsoluteDiagnosticSpan::new(&self.span, context.resolver)
             .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
         Ok(annotate_snippets::Patch::new(
@@ -108,13 +108,13 @@ impl<S> Suggestions<S> {
         clippy::indexing_slicing,
         reason = "chunks are always non-empty"
     )]
-    pub(crate) fn render<'this, C>(
+    pub(crate) fn render<'this, R>(
         &'this self,
         mut group: Group<'this>,
-        context: &mut RenderContext<'this, '_, '_, C>,
+        context: &mut RenderContext<'this, '_, '_, R>,
     ) -> Result<Group<'this>, RenderError<'this, S>>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
         use annotate_snippets::{Level, Snippet};
 

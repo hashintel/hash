@@ -68,14 +68,14 @@ impl<S> Label<S> {
 
 #[cfg(feature = "render")]
 impl<S> Label<S> {
-    pub(crate) fn render<C>(
+    pub(crate) fn render<R>(
         &self,
-        context: &mut RenderContext<C>,
+        context: &mut RenderContext<R>,
     ) -> Result<Annotation<'_>, RenderError<'_, S>>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
-        let span = AbsoluteDiagnosticSpan::new(&self.span, context.span_context)
+        let span = AbsoluteDiagnosticSpan::new(&self.span, context.resolver)
             .ok_or(RenderError::SpanNotFound(None, &self.span))?;
 
         let kind = match self.kind {

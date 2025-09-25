@@ -110,13 +110,13 @@ impl<S> Message<S> {
         )
     }
 
-    fn render_suggestions<'this, C>(
+    fn render_suggestions<'this, R>(
         &'this self,
         suggestions: &'this Suggestions<S>,
-        context: &mut RenderContext<'this, '_, '_, C>,
+        context: &mut RenderContext<'this, '_, '_, R>,
     ) -> Result<Group<'this>, RenderError<'this, S>>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
         let mut group =
             Group::with_title(self.render_level().secondary_title(self.render_message()));
@@ -129,12 +129,12 @@ impl<S> Message<S> {
         self.render_level().message(self.render_message())
     }
 
-    pub(crate) fn render<'this, C>(
+    pub(crate) fn render<'this, R>(
         &'this self,
-        context: &mut RenderContext<'this, '_, '_, C>,
+        context: &mut RenderContext<'this, '_, '_, R>,
     ) -> Result<Option<annotate_snippets::Message<'this>>, RenderError<'this, S>>
     where
-        S: DiagnosticSpan<C>,
+        S: DiagnosticSpan<R>,
     {
         if let Some(suggestions) = &self.suggestions {
             let group = self.render_suggestions(suggestions, context)?;
