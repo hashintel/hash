@@ -180,7 +180,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             if definition.branded {
                 if !self.has_branded_types {
                     self.has_branded_types = true;
-                    self.add_import_declaration("@local/advanced-types/brand", ["Brand"]);
+                    self.add_import_declaration("@blockprotocol/type-system", ["Brand"]);
                 }
 
                 // This extends the `UserId` type by intersecting it with the `WebId` type. We
