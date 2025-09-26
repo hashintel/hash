@@ -197,7 +197,6 @@ export type QueryEntitiesRequest = DistributiveOmit<
   "conversions"
 > & {
   conversions?: ConversionRequest[];
-  includePermissions: boolean;
 };
 
 export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
@@ -296,7 +295,6 @@ export type QueryEntitySubgraphRequest = DistributiveOmit<
   "conversions"
 > & {
   conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
-  includePermissions: boolean;
 };
 
 export type QueryEntitySubgraphResponse<

@@ -6,9 +6,9 @@ import type {
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
-  Entity as GraphApiEntity,
   EntityQueryCursor,
   Filter,
+  Entity as GraphApiEntity,
 } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
