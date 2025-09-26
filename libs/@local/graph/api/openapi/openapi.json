@@ -5100,6 +5100,18 @@
           },
           {
             "type": "object",
+            "title": "ExistsFilter",
+            "required": [
+              "exists"
+            ],
+            "properties": {
+              "exists": {
+                "$ref": "#/components/schemas/PathExpression"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "GreaterFilter",
             "required": [
               "notEqual"
@@ -5239,72 +5251,10 @@
       "FilterExpression": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "PathExpression",
-            "required": [
-              "path"
-            ],
-            "properties": {
-              "path": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/DataTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/PropertyTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/EntityTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/EntityQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Selector"
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "convert"
-                      ]
-                    },
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PathExpression"
           },
           {
-            "type": "object",
-            "title": "ParameterExpression",
-            "required": [
-              "parameter"
-            ],
-            "properties": {
-              "convert": {
-                "type": "object",
-                "required": [
-                  "from",
-                  "to"
-                ],
-                "properties": {
-                  "from": {
-                    "$ref": "#/components/schemas/VersionedUrl"
-                  },
-                  "to": {
-                    "$ref": "#/components/schemas/VersionedUrl"
-                  }
-                }
-              },
-              "parameter": {}
-            }
+            "$ref": "#/components/schemas/ParameterExpression"
           }
         ]
       },
@@ -6959,6 +6909,31 @@
         },
         "additionalProperties": false
       },
+      "ParameterExpression": {
+        "type": "object",
+        "title": "ParameterExpression",
+        "required": [
+          "parameter"
+        ],
+        "properties": {
+          "convert": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              },
+              "to": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            }
+          },
+          "parameter": {}
+        }
+      },
       "PartialEntityType": {
         "$ref": "./models/partial_entity_type.json"
       },
@@ -7009,6 +6984,49 @@
           }
         },
         "additionalProperties": false
+      },
+      "PathExpression": {
+        "type": "object",
+        "title": "PathExpression",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DataTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/PropertyTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/EntityTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/EntityQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/Selector"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "convert"
+                  ]
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        }
       },
       "PermissionResponse": {
         "type": "object",

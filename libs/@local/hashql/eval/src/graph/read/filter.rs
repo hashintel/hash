@@ -108,8 +108,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                         return Ok(());
                     }
-                    BinOpKind::Eq => |left, right| Filter::Equal(Some(left), Some(right)),
-                    BinOpKind::Ne => |left, right| Filter::NotEqual(Some(left), Some(right)),
+                    BinOpKind::Eq => |left, right| Filter::Equal(left, right),
+                    BinOpKind::Ne => |left, right| Filter::NotEqual(left, right),
                     BinOpKind::Lt => Filter::Less,
                     BinOpKind::Lte => Filter::LessOrEqual,
                     BinOpKind::Gt => Filter::Greater,
@@ -159,14 +159,12 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             | NodeKind::Closure(_)
             | NodeKind::Graph(_) => {
                 sink.push(Filter::Equal(
-                    Some(
-                        self.compile_filter_expr(context, node)?
-                            .finish(context, &mut self.diagnostics)?,
-                    ),
-                    Some(FilterExpression::Parameter {
+                    self.compile_filter_expr(context, node)?
+                        .finish(context, &mut self.diagnostics)?,
+                    FilterExpression::Parameter {
                         parameter: Parameter::Boolean(true),
                         convert: None,
-                    }),
+                    },
                 ));
 
                 Ok(())

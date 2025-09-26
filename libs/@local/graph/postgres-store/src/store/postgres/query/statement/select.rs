@@ -184,15 +184,15 @@ mod tests {
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::VersionedUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     )),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
         test_compilation(
@@ -217,13 +217,13 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
@@ -248,13 +248,13 @@ mod tests {
     fn full_temporal() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
         test_compilation(
@@ -278,24 +278,24 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -327,13 +327,13 @@ mod tests {
 
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("latest")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -361,13 +361,13 @@ mod tests {
 
         compiler
             .add_filter(&Filter::NotEqual(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("latest")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -395,16 +395,16 @@ mod tests {
 
         compiler
             .add_filter(&Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::Title,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("Text")),
                     convert: None,
-                }),
+                },
             ))
             .expect("Failed to add filter");
 
@@ -428,30 +428,30 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::BaseUrl,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::Version,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -496,17 +496,17 @@ mod tests {
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(PropertyTypeQueryPath::Title),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Text")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -537,17 +537,17 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: PropertyTypeQueryPath::Title,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Name")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -579,7 +579,7 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                     path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
@@ -591,11 +591,11 @@ mod tests {
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Friend Of")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -634,20 +634,20 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(EntityTypeQueryPath::BaseUrl),
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
                 )),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -681,13 +681,13 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("12345678-ABCD-4321-5678-ABCD5555DCBA")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -727,13 +727,13 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::DraftId,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -772,13 +772,13 @@ mod tests {
         ))]);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Properties(Some(json_path.clone())),
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Bob")),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -812,12 +812,9 @@ mod tests {
             r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
         ))]);
 
-        let filter = Filter::Equal(
-            Some(FilterExpression::Path {
-                path: EntityQueryPath::Properties(Some(json_path.clone())),
-            }),
-            None,
-        );
+        let filter = Filter::Exists {
+            path: EntityQueryPath::Properties(Some(json_path.clone())),
+        };
         compiler.add_filter(&filter).expect("Failed to add filter");
 
         test_compilation(
@@ -847,7 +844,7 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::EntityEdge {
@@ -857,11 +854,11 @@ mod tests {
                     }),
                     direction: EdgeDirection::Incoming,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -908,7 +905,7 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::EntityEdge {
@@ -918,11 +915,11 @@ mod tests {
                     }),
                     direction: EdgeDirection::Incoming,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
-            }),
+            },
         );
         compiler.add_filter(&filter).expect("Failed to add filter");
 
@@ -970,56 +967,56 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::Uuid),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::Uuid),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::WebId),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");
@@ -1064,31 +1061,31 @@ mod tests {
         let entity_b_uuid = Uuid::new_v4();
 
         let filter_a = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Uuid),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_a_uuid),
                 convert: None,
-            }),
+            },
         );
 
         let filter_b = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Uuid),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_b_uuid),
                 convert: None,
-            }),
+            },
         );
 
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
@@ -1163,7 +1160,7 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                         path: Box::new(EntityQueryPath::EntityTypeEdge {
@@ -1173,16 +1170,16 @@ mod tests {
                         }),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/address",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityEdge {
                         edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                         path: Box::new(EntityQueryPath::EntityTypeEdge {
@@ -1192,13 +1189,13 @@ mod tests {
                         }),
                         direction: EdgeDirection::Outgoing,
                     },
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/name",
                     )),
                     convert: None,
-                }),
+                },
             ),
         ]);
         compiler.add_filter(&filter).expect("Failed to add filter");

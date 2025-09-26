@@ -57,8 +57,6 @@ export const generateUseEntityTypeEntitiesFilter = ({
   excludeWebIds?: WebId[];
 }): DistributiveField<QueryEntitySubgraphRequest, "filter"> => {
   return {
-    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-    //   @see https://linear.app/hash/issue/H-1207
     all: [
       ...(!includeArchived
         ? [
@@ -68,15 +66,12 @@ export const generateUseEntityTypeEntitiesFilter = ({
             {
               any: [
                 {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        systemPropertyTypes.archived.propertyTypeBaseUrl,
-                      ],
-                    },
-                    null,
-                  ],
+                  exists: {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.archived.propertyTypeBaseUrl,
+                    ],
+                  },
                 },
                 {
                   equal: [
