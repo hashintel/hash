@@ -352,11 +352,11 @@ as you change the child element's size using the controls panel.
  */
 export const WithScrollableContent: Story = {
   args: {
-    radius: 15,
+    radius: 17,
     blur: 1.5,
     specularOpacity: 0.83,
     specularSaturation: 18,
-    scaleRatio: 1.1,
+    scaleRatio: 1.2,
     bezelWidth: 14,
     glassThickness: 85,
   },
@@ -447,7 +447,7 @@ interact with dynamic background content.
           </p>
 
           <img
-            src="https://images.unsplash.com/photo-1497178398528-7ff4a4bad7ab?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
             alt="Scientific equipment demonstrating optical phenomena"
             style={{
               width: "100%",
