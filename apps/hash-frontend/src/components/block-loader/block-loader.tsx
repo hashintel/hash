@@ -1,10 +1,10 @@
 import type {
   BlockGraphProperties,
-  Subgraph as BpSubgraph,
   EntityRevisionId,
   EntityRootType,
   EntityVertex,
   GraphEmbedderMessageCallbacks,
+  Subgraph as BpSubgraph,
   Subgraph,
 } from "@blockprotocol/graph";
 import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
