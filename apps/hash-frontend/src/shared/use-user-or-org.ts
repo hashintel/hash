@@ -138,10 +138,9 @@ export const useUserOrOrg = (
     return {
       canUserEdit: !!(
         rootEntity &&
-        (
-          response?.entityPermissions?.[rootEntity.metadata.recordId.entityId]
-            ?.update ?? []
-        ).length > 0
+        response?.entityPermissions?.update[
+          rootEntity.metadata.recordId.entityId
+        ]
       ),
       userOrOrgSubgraph,
       userOrOrg: rootEntity,

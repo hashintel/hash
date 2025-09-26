@@ -1330,34 +1330,26 @@ where
                 response.permissions.is_none(),
                 "Should not be populated yet"
             );
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect();
 
-            response.permissions = Some(
-                self.has_permission_for_entities(
-                    policy_components.actor_id().into(),
-                    HasPermissionForEntitiesParams {
-                        action: ActionName::UpdateEntity,
-                        entity_ids: response
-                            .entities
-                            .iter()
-                            .map(|entity| entity.metadata.record_id.entity_id)
-                            .collect(),
-                        temporal_axes: params.temporal_axes,
-                        include_drafts: params.include_drafts,
-                    },
-                )
-                .await
-                .change_context(QueryError)?
-                .into_iter()
-                .map(|(entity_id, permissions)| {
-                    (
-                        entity_id,
-                        EntityPermissions {
-                            update: permissions,
+            response.permissions = Some(EntityPermissions {
+                update: self
+                    .has_permission_for_entities(
+                        policy_components.actor_id().into(),
+                        HasPermissionForEntitiesParams {
+                            action: ActionName::UpdateEntity,
+                            entity_ids,
+                            temporal_axes: params.temporal_axes,
+                            include_drafts: params.include_drafts,
                         },
                     )
-                })
-                .collect(),
-            );
+                    .await
+                    .change_context(QueryError)?,
+            });
         }
 
         Ok(response)
@@ -1546,34 +1538,25 @@ where
                 )]
                 entity_permissions: if request.include_permissions {
                     debug_assert!(permissions.is_none(), "Should not be populated yet");
-                    Some(
-                        self.has_permission_for_entities(
-                            actor.into(),
-                            HasPermissionForEntitiesParams {
-                                action: ActionName::UpdateEntity,
-                                entity_ids: subgraph
-                                    .vertices
-                                    .entities
-                                    .keys()
-                                    .map(|vertex_id| vertex_id.base_id)
-                                    .collect(),
-                                temporal_axes: request.temporal_axes,
-                                include_drafts: request.include_drafts,
-                            },
-                        )
-                        .await
-                        .change_context(QueryError)?
-                        .into_iter()
-                        .map(|(entity_id, permissions)| {
-                            (
-                                entity_id,
-                                EntityPermissions {
-                                    update: permissions,
+                    Some(EntityPermissions {
+                        update: self
+                            .has_permission_for_entities(
+                                actor.into(),
+                                HasPermissionForEntitiesParams {
+                                    action: ActionName::UpdateEntity,
+                                    entity_ids: subgraph
+                                        .vertices
+                                        .entities
+                                        .keys()
+                                        .map(|vertex_id| vertex_id.base_id)
+                                        .collect(),
+                                    temporal_axes: request.temporal_axes,
+                                    include_drafts: request.include_drafts,
                                 },
                             )
-                        })
-                        .collect(),
-                    )
+                            .await
+                            .change_context(QueryError)?,
+                    })
                 } else {
                     None
                 },

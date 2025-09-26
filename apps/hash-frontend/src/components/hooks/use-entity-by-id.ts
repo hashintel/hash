@@ -7,7 +7,7 @@ import type {
 import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
 import {
   deserializeQueryEntitySubgraphResponse,
-  type EntityPermissionsMap,
+  type EntityPermissions,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -34,7 +34,7 @@ export const useEntityById = ({
 }): {
   loading: boolean;
   entitySubgraph?: Subgraph<EntityRootType>;
-  permissions?: EntityPermissionsMap;
+  permissions?: EntityPermissions;
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
   const { data, loading } = useQuery<

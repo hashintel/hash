@@ -8,9 +8,6 @@ export interface CreateEntityPolicyParams {
 	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
 }
-export interface EntityPermissions {
-	update: EntityEditionId[];
-}
 export type EntityTraversalEdgeDirection = "incoming" | "outgoing";
 export type OntologyTraversalEdgeDirection = "outgoing";
 export type TraversalEdge = {

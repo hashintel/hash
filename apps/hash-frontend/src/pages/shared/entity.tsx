@@ -366,11 +366,9 @@ export const Entity = ({
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
-      (
-        queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
-          entityId
-        ]?.update ?? []
-      ).length === 0);
+      !!queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.update[
+        entityId
+      ]);
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),

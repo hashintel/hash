@@ -316,8 +316,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     systemEntityTypes.document.entityTypeId,
   );
 
-  const canUserEdit =
-    (entityPermissions[pageEntityId]?.update ?? []).length > 0;
+  const canUserEdit = !!entityPermissions.update[pageEntityId];
 
   const readonly = !(
     (isDocumentPage && enabledFeatureFlags.documents && canUserEdit) ||

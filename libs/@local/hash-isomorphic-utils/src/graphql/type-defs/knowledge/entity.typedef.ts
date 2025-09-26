@@ -7,7 +7,7 @@ export const entityTypedef = gql`
   scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
-  scalar EntityPermissionsMap
+  scalar EntityPermissions
   scalar EntityQueryCursor
   scalar EntityRecordId
   scalar EntityRelationAndSubject
@@ -33,7 +33,7 @@ export const entityTypedef = gql`
   scalar RoleUnassignmentStatus
 
   type SubgraphAndPermissions {
-    userPermissionsOnEntities: EntityPermissionsMap!
+    userPermissionsOnEntities: EntityPermissions!
     subgraph: GqlSubgraph!
   }
 

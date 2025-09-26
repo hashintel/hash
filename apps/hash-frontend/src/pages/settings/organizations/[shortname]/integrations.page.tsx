@@ -106,7 +106,7 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     const links = getRoots(subgraph);
 
     return links.map(({ metadata, entityId }) => {
-      const canEdit = (entityPermissions?.[entityId]?.update ?? []).length > 0;
+      const canEdit = !!entityPermissions?.update[entityId];
 
       return {
         createdById: metadata.provenance.createdById,

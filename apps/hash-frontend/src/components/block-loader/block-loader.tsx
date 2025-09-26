@@ -20,7 +20,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
-  type EntityPermissionsMap,
+  type EntityPermissions,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
@@ -74,7 +74,7 @@ export type BlockLoaderProps = {
    */
   fallbackBlockProperties?: PropertyObject;
   onBlockLoaded: () => void;
-  userPermissionsOnEntities?: EntityPermissionsMap;
+  userPermissionsOnEntities?: EntityPermissions;
   wrappingEntityId: string;
   readonly: boolean;
   // shouldSandbox?: boolean;
@@ -541,10 +541,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
                * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
                */
-              !!(
-                blockEntityId &&
-                (userPermissions?.[blockEntityId]?.update ?? []).length === 0
-              ),
+              !!(blockEntityId && userPermissions?.update[blockEntityId]),
             blockEntitySubgraph:
               blockSubgraph as unknown as BpSubgraph<EntityRootType>,
           }
