@@ -1,5 +1,16 @@
 import { css } from "@hashintel/styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import {
+  ArrowUpRight,
+  Box,
+  ChevronDown,
+  Edit3,
+  Hand,
+  MessageCircle,
+  MousePointer2Icon,
+  Square,
+} from "lucide-react";
+import { useState } from "react";
 
 import { Bar } from "./bar";
 
@@ -335,26 +346,37 @@ as you change the child element's size using the controls panel.
 };
 
 /**
- * Bar component with scrollable content behind it demonstrating the refraction and blur effects.
+ * Bar component used as a toolbar with interactive buttons and Lucide icons.
+ * The toolbar is positioned over scrollable content to demonstrate the refraction and blur effects.
  * Scroll the background content to see how the bar interacts with different content underneath.
  */
 export const WithScrollableContent: Story = {
   args: {
-    radius: 20,
-    blur: 12,
-    specularOpacity: 0.7,
+    radius: 15,
+    blur: 1.5,
+    specularOpacity: 0.83,
     specularSaturation: 18,
     scaleRatio: 1.1,
+    bezelWidth: 14,
+    glassThickness: 85,
   },
   parameters: {
     layout: "fullscreen",
     docs: {
       description: {
         story: `
-This story demonstrates the Bar component positioned over scrollable content, 
-showcasing how the blur and refraction effects interact with background content. 
-The article content provides varied colors and textures that help visualize 
-the component's optical effects.
+This story demonstrates the Bar component used as an interactive toolbar with Lucide icons.
+The toolbar contains buttons for common design tools (select, hand, 3D box, comment, edit, etc.)
+and is positioned over scrollable content to showcase how the blur and refraction effects 
+interact with dynamic background content. 
+
+**Key Features:**
+- **Selectable Buttons**: Click any button to select it (only one can be selected at a time)
+- **Visual Feedback**: Selected buttons show a blue background with white icons
+- **Interactive States**: Hover and active states provide responsive feedback
+- **Lucide Icons**: Modern, consistent iconography
+- **Glass Effect**: The toolbar maintains the signature glass-like appearance
+- **Background Interaction**: Scroll to see how the optical effects work with varied content
         `,
       },
     },
@@ -579,9 +601,9 @@ the component's optical effects.
         <div
           style={{
             position: "fixed",
-            top: "50%",
+            bottom: "0%",
             left: "50%",
-            transform: "translate(-50%, 100px)",
+            transform: "translate(-50%, -25px)",
             zIndex: 10,
           }}
         >
@@ -590,14 +612,83 @@ the component's optical effects.
       </div>
     ),
   ],
-  render: (args: typeof meta.args) => (
-    <Bar
-      className={css({
-        padding: "9",
-      })}
-      {...args}
-    >
-      Hello World
-    </Bar>
-  ),
+  render: (args: typeof meta.args) => {
+    const [selectedButton, setSelectedButton] = useState<string>("select");
+
+    const getButtonStyle = (isSelected: boolean) =>
+      css({
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "2",
+        borderRadius: "lg",
+        border: "none",
+        cursor: "pointer",
+        transition: "all",
+        transitionDuration: "200ms",
+        backgroundColor: isSelected ? "blue.60" : undefined,
+        _hover: {
+          transform: "scale(1.05)",
+          backgroundColor: isSelected ? "blue.70" : "whiteAlpha.20",
+        },
+        _active: {
+          transform: "scale(0.95)",
+          backgroundColor: isSelected ? "blue.80" : "whiteAlpha.30",
+        },
+      });
+
+    const getIconStyle = (isSelected: boolean) =>
+      css({
+        color: isSelected ? "neutral.white" : "neutral.black",
+        textShadow: isSelected
+          ? undefined
+          : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",
+      });
+
+    const buttons = [
+      { icon: MousePointer2Icon, title: "Select Tool", id: "select" },
+      { icon: Hand, title: "Hand Tool", id: "hand" },
+      { icon: Box, title: "3D Box", id: "box" },
+      { icon: MessageCircle, title: "Comment", id: "comment" },
+      { icon: Edit3, title: "Edit Tool", id: "edit" },
+      { icon: ArrowUpRight, title: "External Link", id: "link" },
+      { icon: Square, title: "Rectangle", id: "rectangle" },
+      { icon: ChevronDown, title: "More Options", id: "more" },
+    ];
+
+    return (
+      <Bar
+        className={css({
+          padding: "2",
+          display: "flex",
+          alignItems: "center",
+          gap: "1",
+          shadow: "md",
+          backgroundColor: "whiteAlpha.30",
+          transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
+          _hover: {
+            transform: "scale(1.03)",
+            shadow: "lg",
+            backgroundColor: "whiteAlpha.50",
+          },
+        })}
+        {...args}
+      >
+        {buttons.map(({ icon: Icon, title, id }) => {
+          const isSelected = selectedButton === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              className={getButtonStyle(isSelected)}
+              title={title}
+              onClick={() => setSelectedButton(id)}
+            >
+              <Icon size={18} className={getIconStyle(isSelected)} />
+            </button>
+          );
+        })}
+      </Bar>
+    );
+  },
 };
