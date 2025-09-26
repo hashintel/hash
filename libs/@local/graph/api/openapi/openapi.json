@@ -4525,17 +4525,11 @@
       },
       "EntityPermissions": {
         "type": "object",
-        "required": [
-          "update"
-        ],
         "properties": {
           "update": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/EntityEditionId"
-              }
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEditionId"
             }
           }
         }
@@ -8011,11 +8005,10 @@
             }
           },
           "permissions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityPermissions"
-              }
-            ]
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
+            }
           },
           "typeIds": {
             "type": "object",
@@ -8179,11 +8172,10 @@
             }
           },
           "entityPermissions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityPermissions"
-              }
-            ]
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
+            }
           },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"

@@ -16,7 +16,6 @@ import type {
   ClosedEntityType,
   ClosedMultiEntityType,
   Entity,
-  EntityEditionId,
   EntityId,
   EntityMetadata,
   EntityUuid,
@@ -55,7 +54,6 @@ import type {
   CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
-  EntityPermissions as EntityPermissionsGraphApi,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
@@ -64,7 +62,10 @@ import type {
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
+import type {
+  CreateEntityPolicyParams,
+  EntityPermissions,
+} from "@rust/hash-graph-store/types";
 import type { Client as TemporalClient } from "@temporalio/client";
 import { Predicate } from "effect";
 
@@ -198,9 +199,7 @@ export type QueryEntitiesRequest = DistributiveOmit<
   conversions?: ConversionRequest[];
 };
 
-export type EntityPermissions = Omit<EntityPermissionsGraphApi, "update"> & {
-  update: Record<EntityId, EntityEditionId[]>;
-};
+export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
 
 export type QueryEntitiesResponse<
   PropertyMap extends
@@ -225,7 +224,7 @@ export type QueryEntitiesResponse<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
-  permissions?: EntityPermissions;
+  permissions?: EntityPermissionsMap;
 };
 
 export const queryEntities = async <
@@ -287,7 +286,7 @@ export const queryEntities = async <
       typeTitles: response.typeTitles as
         | Record<VersionedUrl, string>
         | undefined,
-      permissions: response.permissions as EntityPermissions | undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
     }));
 };
 
@@ -320,7 +319,7 @@ export type QueryEntitySubgraphResponse<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
   typeIds?: Record<VersionedUrl, number>;
   typeTitles?: Record<VersionedUrl, string>;
-  entityPermissions?: EntityPermissions;
+  entityPermissions?: EntityPermissionsMap;
 };
 
 export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
@@ -406,7 +405,7 @@ export const queryEntitySubgraph = async <
           | Record<VersionedUrl, string>
           | undefined,
         entityPermissions: response.entityPermissions as
-          | EntityPermissions
+          | EntityPermissionsMap
           | undefined,
       };
     });

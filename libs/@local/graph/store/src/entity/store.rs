@@ -239,11 +239,13 @@ pub struct ClosedMultiEntityTypeMap {
     pub inner: HashMap<VersionedUrl, Self>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub struct EntityPermissions {
-    pub update: HashMap<EntityId, Vec<EntityEditionId>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub update: Vec<EntityEditionId>,
 }
 
 #[derive(Debug, Serialize)]
@@ -278,7 +280,7 @@ pub struct QueryEntitiesResponse<'r> {
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub permissions: Option<EntityPermissions>,
+    pub permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug)]
@@ -390,7 +392,7 @@ pub struct QueryEntitySubgraphResponse<'r> {
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
-    pub entity_permissions: Option<EntityPermissions>,
+    pub entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug, Deserialize)]

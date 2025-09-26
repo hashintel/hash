@@ -1326,30 +1326,37 @@ where
         }
 
         if params.include_permissions {
-            debug_assert!(
-                response.permissions.is_none(),
-                "Should not be populated yet"
-            );
             let entity_ids = response
                 .entities
                 .iter()
                 .map(|entity| entity.metadata.record_id.entity_id)
-                .collect();
+                .collect::<Vec<_>>();
 
-            response.permissions = Some(EntityPermissions {
-                update: self
-                    .has_permission_for_entities(
-                        policy_components.actor_id().into(),
-                        HasPermissionForEntitiesParams {
-                            action: ActionName::UpdateEntity,
-                            entity_ids,
-                            temporal_axes: params.temporal_axes,
-                            include_drafts: params.include_drafts,
-                        },
-                    )
-                    .await
-                    .change_context(QueryError)?,
-            });
+            let update_permissions = self
+                .has_permission_for_entities(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
         }
 
         Ok(response)
@@ -1415,7 +1422,7 @@ where
             let mut traversal_context = TraversalContext::default();
 
             // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow
-            // the       vertices and have to `.collect()` the keys.
+            //       the vertices and have to `.collect()` the keys.
             self.traverse_entities(
                 subgraph
                     .vertices
@@ -1532,31 +1539,37 @@ where
                 edition_created_by_ids,
                 type_ids,
                 type_titles,
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, this is async"
-                )]
                 entity_permissions: if request.include_permissions {
                     debug_assert!(permissions.is_none(), "Should not be populated yet");
-                    Some(EntityPermissions {
-                        update: self
-                            .has_permission_for_entities(
-                                actor.into(),
-                                HasPermissionForEntitiesParams {
-                                    action: ActionName::UpdateEntity,
-                                    entity_ids: subgraph
-                                        .vertices
-                                        .entities
-                                        .keys()
-                                        .map(|vertex_id| vertex_id.base_id)
-                                        .collect(),
-                                    temporal_axes: request.temporal_axes,
-                                    include_drafts: request.include_drafts,
-                                },
-                            )
-                            .await
-                            .change_context(QueryError)?,
-                    })
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
                 } else {
                     None
                 },

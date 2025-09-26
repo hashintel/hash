@@ -145,7 +145,7 @@ export const useFetchBlockSubgraph = (): ((
 
         return {
           subgraph: blockEntitySubgraph,
-          userPermissionsOnEntities: { update: {} },
+          userPermissionsOnEntities: {},
         } satisfies SubgraphAndPermissions;
       }
 

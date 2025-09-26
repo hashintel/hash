@@ -514,7 +514,7 @@ struct QueryEntitySubgraphResponse<'r> {
     type_titles: Option<HashMap<VersionedUrl, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
-    entity_permissions: Option<EntityPermissions>,
+    entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[utoipa::path(

@@ -99,7 +99,7 @@ export const scalars = {
 
   UserPermissionsOnEntities:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntities",
-  EntityPermissions: "@local/hash-graph-sdk/entity#EntityPermissions",
+  EntityPermissionsMap: "@local/hash-graph-sdk/entity#EntityPermissionsMap",
   UserPermissions: "@local/hash-graph-sdk/authorization#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntityType",
