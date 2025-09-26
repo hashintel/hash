@@ -129,9 +129,9 @@ export const SimulationContextProvider = ({
       return;
     }
 
-    const updatedMarkings: PlaceMarkingsById = JSON.parse(
+    const updatedMarkings = JSON.parse(
       JSON.stringify(placeMarkingsById),
-    );
+    ) as PlaceMarkingsById;
 
     for (const transition of enabledTransitions) {
       const transitionNode = petriNetDefinition.nodes.find(

@@ -141,6 +141,7 @@ export const ProcessEditorWrapper = () => {
         <Petrinaut
           createNewNet={createNewNet}
           existingNets={childProcessOptions}
+          hideNetManagementControls={false}
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}
           parentNet={parentNet}
           petriNetDefinition={petriNetDefinition}

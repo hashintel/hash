@@ -62,8 +62,8 @@ export const useLayoutGraph = () => {
               height: nodeDimensions[node.data.type].height,
             })),
           ),
-        ),
-        edges: JSON.parse(JSON.stringify(arcs)),
+        ) as ElkNode["children"],
+        edges: JSON.parse(JSON.stringify(arcs)) as ElkNode["edges"],
         layoutOptions: elkLayoutOptions,
       };
 
