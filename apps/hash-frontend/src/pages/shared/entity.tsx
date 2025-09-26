@@ -366,7 +366,7 @@ export const Entity = ({
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
-      !!queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
+      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
         entityId
       ]?.update);
 
