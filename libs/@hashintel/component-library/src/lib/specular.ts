@@ -1,21 +1,25 @@
 import { createImageData } from "canvas";
 
+import { getDevicePixelRatio } from "./get-device-pixel-ratio";
+
 export function calculateRefractionSpecular(
   objectWidth: number,
   objectHeight: number,
   radius: number,
   bezelWidth: number,
   specularAngle = Math.PI / 3,
-  dpr?: number
+  devicePixelRatio = getDevicePixelRatio()
 ) {
-  const devicePixelRatio =
-    dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
   const bufferWidth = Math.round(objectWidth * devicePixelRatio);
   const bufferHeight = Math.round(objectHeight * devicePixelRatio);
   const imageData = createImageData(bufferWidth, bufferHeight);
 
-  const radius_ = radius * devicePixelRatio;
-  const bezel_ = bezelWidth * devicePixelRatio;
+  const radius_ = Math.min(
+    radius * devicePixelRatio,
+    objectWidth / 2,
+    objectHeight / 2
+  );
+  const bezel_ = Math.min(bezelWidth * devicePixelRatio, radius_);
 
   // Vector along which we should see specular
   const specular_vector = [
@@ -28,7 +32,7 @@ export function calculateRefractionSpecular(
   new Uint32Array(imageData.data.buffer).fill(neutral);
 
   const radiusSquared = radius_ ** 2;
-  const radiusPlusOneSquared = (radius_ + devicePixelRatio) ** 2;
+  const radiusPlusOneSquared = (radius_ + 1) ** 2;
   const radiusMinusBezelSquared = (radius_ - bezel_) ** 2;
 
   const widthBetweenRadiuses = bufferWidth - radius_ * 2;
@@ -67,7 +71,7 @@ export function calculateRefractionSpecular(
         const distanceFromSide = radius_ - distanceFromCenter;
 
         const opacity =
-          distanceToCenterSquared < radiusSquared
+          distanceToCenterSquared <= radiusSquared
             ? 1
             : 1 -
               (distanceFromCenter - Math.sqrt(radiusSquared)) /

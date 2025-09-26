@@ -1,6 +1,8 @@
 /* eslint-disable id-length */
 import { createImageData } from "canvas";
 
+import { getDevicePixelRatio } from "./get-device-pixel-ratio";
+
 export function calculateDisplacementMapRadius(
   glassThickness: number = 200,
   bezelWidth: number = 50,
@@ -59,11 +61,8 @@ export function calculateDisplacementMap(
   bezelWidth: number,
   maximumDisplacement: number,
   precomputedDisplacementMap: number[] = [],
-  dpr?: number
+  devicePixelRatio = getDevicePixelRatio()
 ) {
-  const devicePixelRatio =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    dpr ?? (typeof window !== "undefined" ? window.devicePixelRatio ?? 1 : 1);
   const bufferWidth = Math.round(objectWidth * devicePixelRatio);
   const bufferHeight = Math.round(objectHeight * devicePixelRatio);
   const imageData = createImageData(bufferWidth, bufferHeight);
@@ -72,8 +71,12 @@ export function calculateDisplacementMap(
   const neutral = 0xff008080;
   new Uint32Array(imageData.data.buffer).fill(neutral);
 
-  const radius_ = radius * devicePixelRatio;
-  const bezel = bezelWidth * devicePixelRatio;
+  const radius_ = Math.min(
+    radius * devicePixelRatio,
+    objectWidth / 2,
+    objectHeight / 2
+  );
+  const bezel = Math.min(bezelWidth * devicePixelRatio, radius_);
 
   const radiusSquared = radius_ ** 2;
   const radiusPlusOneSquared = (radius_ + 1) ** 2;
