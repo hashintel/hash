@@ -7631,7 +7631,7 @@ __metadata:
     eslint: "npm:9.36.0"
     eslint-plugin-storybook: "npm:^9.1.8"
     jsdom: "npm:27.0.0"
-    lucide: "npm:0.544.0"
+    lucide-react: "npm:0.544.0"
     motion: "npm:12.23.19"
     storybook: "npm:9.1.8"
     typescript: "npm:5.9.2"
@@ -36321,10 +36321,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide@npm:0.544.0":
+"lucide-react@npm:0.544.0":
   version: 0.544.0
-  resolution: "lucide@npm:0.544.0"
-  checksum: 10c0/1dae80991ebc420943c46bd40d023c1858513ebe07ca478a4d702ef6242ca7b98d5814686d050752e0aa0083addb1343f76767c2ad2034cdf9f16660190b8eed
+  resolution: "lucide-react@npm:0.544.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/2503f8cf65e62915997073b6053423bf8091b9470cb397560b417ef2f1628ea162c49e821b787cf153afb86828482d941f051c3f2aa642a1fa58c3de227e0113
   languageName: node
   linkType: hard
 

@@ -55,7 +55,7 @@
     "eslint": "9.36.0",
     "eslint-plugin-storybook": "^9.1.8",
     "jsdom": "27.0.0",
-    "lucide": "0.544.0",
+    "lucide-react": "0.544.0",
     "storybook": "9.1.8",
     "typescript": "5.9.2",
     "vite": "7.1.7",
