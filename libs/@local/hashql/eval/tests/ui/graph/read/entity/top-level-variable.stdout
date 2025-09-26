@@ -20,21 +20,17 @@ _1«Boolean» ->
 
 [
     Equal(
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
+        Parameter {
+            parameter: Boolean(
+                true,
+            ),
+            convert: None,
+        },
+        Parameter {
+            parameter: Boolean(
+                true,
+            ),
+            convert: None,
+        },
     ),
 ]

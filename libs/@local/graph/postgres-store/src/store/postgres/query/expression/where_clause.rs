@@ -145,13 +145,13 @@ mod tests {
         assert_eq!(where_clause.transpile_to_string(), "");
 
         let filter_a = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: DataTypeQueryPath::Version,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("latest")),
                 convert: None,
-            }),
+            },
         );
         where_clause.add_condition(
             compiler
@@ -166,24 +166,24 @@ mod tests {
 
         let filter_b = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
-                }),
+                },
             ),
         ]);
         where_clause.add_condition(
@@ -201,12 +201,9 @@ mod tests {
             )
         );
 
-        let filter_c = Filter::NotEqual(
-            Some(FilterExpression::Path {
-                path: DataTypeQueryPath::Description,
-            }),
-            None,
-        );
+        let filter_c = Filter::Not(Box::new(Filter::Exists {
+            path: DataTypeQueryPath::Description,
+        }));
         where_clause.add_condition(
             compiler
                 .compile_filter(&filter_c)
@@ -225,22 +222,22 @@ mod tests {
 
         let filter_d = Filter::Any(vec![
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Title,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("some title")),
                     convert: None,
-                }),
+                },
             ),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Description,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("some description")),
                     convert: None,
-                }),
+                },
             ),
         ]);
         where_clause.add_condition(
