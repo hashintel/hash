@@ -71,9 +71,11 @@ export const DraftEntitiesContextProvider: FunctionComponent<
           filter: {
             all: [
               {
-                // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-                //                     @see https://linear.app/hash/issue/H-1207
-                notEqual: [{ path: ["draftId"] }, null],
+                not: {
+                  exists: {
+                    path: ["draftId"],
+                  },
+                },
               },
               {
                 equal: [{ path: ["archived"] }, { parameter: false }],
@@ -83,8 +85,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
           temporalAxes: currentTimeInstantTemporalAxes,
           graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: true,
+          includePermissions: false,
         },
-        includePermissions: false,
       },
       onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
       pollInterval,

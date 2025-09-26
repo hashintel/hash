@@ -473,9 +473,7 @@ export const updateAllDataTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -493,9 +491,7 @@ export const updateAllPropertyTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -513,9 +509,7 @@ export const updateAllEntityTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -539,12 +533,7 @@ export const updateAllEntityEmbeddings =
         filter: {
           all: [
             {
-              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-              //                     see https://linear.app/hash/issue/H-1207
-              // We can skip entities for which the embeddings were already generated.
-              // If a full regeneration is desired, either the database should be wiped manually or the
-              // `updateEntityEmbeddings` workflow should be called manually.
-              equal: [{ path: ["embedding"] }, null],
+              exists: { path: ["embedding"] },
             },
             {
               // Only embeddings for non-empty properties are generated

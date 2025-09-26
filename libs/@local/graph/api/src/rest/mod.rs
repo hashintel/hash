@@ -694,6 +694,12 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("ExistsFilter"))
+                                .property("exists", Ref::from_schema_name("PathExpression"))
+                                .required("exists"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("GreaterFilter"))
                                 .property(
                                     "greater",
@@ -793,45 +799,47 @@ impl Modify for FilterSchemaAddon {
                 .into(),
             );
             components.schemas.insert(
+                "PathExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("PathExpression"))
+                    .property(
+                        "path",
+                        ArrayBuilder::new().items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityQueryToken"))
+                                .item(Ref::from_schema_name("Selector"))
+                                .item(
+                                    ObjectBuilder::new()
+                                        .schema_type(SchemaType::String)
+                                        .enum_values(Some(["convert"])),
+                                )
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
+                        ),
+                    )
+                    .required("path")
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
+                "ParameterExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("ParameterExpression"))
+                    .property("parameter", Any::schema().1)
+                    .required("parameter")
+                    .property("convert", ParameterConversion::schema().1)
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
                 "FilterExpression".to_owned(),
                 schema::Schema::OneOf(
                     OneOfBuilder::new()
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("PathExpression"))
-                                .property(
-                                    "path",
-                                    ArrayBuilder::new().items(
-                                        OneOfBuilder::new()
-                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
-                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector"))
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String)
-                                                    .enum_values(Some(["convert"])),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::Number),
-                                            ),
-                                    ),
-                                )
-                                .required("path"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema().1)
-                                .required("parameter")
-                                .property("convert", ParameterConversion::schema().1),
-                        )
+                        .item(Ref::from_schema_name("PathExpression"))
+                        .item(Ref::from_schema_name("ParameterExpression"))
                         .build(),
                 )
                 .into(),
