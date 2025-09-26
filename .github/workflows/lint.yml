@@ -64,10 +64,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Prune repository
-      #   uses: ./.github/actions/prune-repository
-      #   with:
-      #     scope: ${{ matrix.name }}
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.name }}
 
       - name: Find lint steps to run
         id: lints
