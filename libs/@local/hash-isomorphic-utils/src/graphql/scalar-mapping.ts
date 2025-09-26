@@ -15,6 +15,13 @@ export const scalars = {
     "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@blockprotocol/type-system#DataTypeWithMetadata",
+  QueryDataTypesParams: "@local/hash-graph-sdk/data-type#QueryDataTypesParams",
+  QueryDataTypesResponse:
+    "@local/hash-graph-sdk/data-type#QueryDataTypesResponse",
+  QueryDataTypeSubgraphParams:
+    "@local/hash-graph-sdk/data-type#QueryDataTypeSubgraphParams",
+  QueryDataTypeSubgraphResponse:
+    "@local/hash-graph-sdk/data-type#SerializedQueryDataTypeSubgraphResponse",
   ConstructDataTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructDataTypeParams",
   DataTypeFullConversionTargetsMap:
@@ -28,11 +35,31 @@ export const scalars = {
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
+  QueryEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesParams",
+  QueryEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesResponse",
+  QueryEntityTypeSubgraphParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypeSubgraphParams",
+  QueryEntityTypeSubgraphResponse:
+    "@local/hash-graph-sdk/entity-type#SerializedQueryEntityTypeSubgraphResponse",
+  GetClosedMultiEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesParams",
+  GetClosedMultiEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesResponse",
   ConstructEntityTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata:
     "@blockprotocol/type-system#PropertyTypeWithMetadata",
+  QueryPropertyTypesParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesParams",
+  QueryPropertyTypesResponse:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesResponse",
+  QueryPropertyTypeSubgraphParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypeSubgraphParams",
+  QueryPropertyTypeSubgraphResponse:
+    "@local/hash-graph-sdk/property-type#SerializedQueryPropertyTypeSubgraphResponse",
   ConstructPropertyTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 
@@ -42,8 +69,12 @@ export const scalars = {
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
-  GetEntitySubgraphRequest:
-    "@local/hash-graph-sdk/entity#GetEntitySubgraphRequest",
+  QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
+  QueryEntitiesResponse: "@local/hash-graph-sdk/entity#QueryEntitiesResponse",
+  QueryEntitySubgraphRequest:
+    "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
+  QueryEntitySubgraphResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitySubgraphResponse",
   EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
   PropertyObject: "@blockprotocol/type-system#PropertyObject",
   PropertyArray: "@blockprotocol/type-system#PropertyArray",

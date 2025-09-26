@@ -20,24 +20,102 @@ mod scenario;
 #[path = "../util.rs"]
 mod util;
 
+use std::{
+    collections::HashMap,
+    fs::{self},
+    path::Path,
+};
+
 use criterion::Criterion;
 use criterion_macro::criterion;
+use hash_graph_store::entity::EntityValidationReport;
+use hash_repo_chores::benches::generate_path;
+use hash_telemetry::{
+    OtlpConfig, TelemetryRegistry,
+    logging::{ColorOption, ConsoleConfig, ConsoleStream, LogFormat},
+};
+
+use self::scenario::run_scenario_file;
+
+fn init_tracing(scenario: &str, bench: &str) -> impl Drop {
+    TelemetryRegistry::default()
+        .with_error_layer()
+        .with_console_logging(ConsoleConfig {
+            enabled: true,
+            format: LogFormat::Pretty,
+            level: None,
+            color: ColorOption::Auto,
+            stream: ConsoleStream::Stderr,
+        })
+        .with_otlp(
+            OtlpConfig {
+                endpoint: Some("http://localhost:4317".to_owned()),
+            },
+            "Graph Benches",
+        )
+        .with_flamegraph(Path::new("out").join(generate_path(
+            "scenarios",
+            Some(scenario),
+            Some(bench),
+        )))
+        .init()
+        .expect("Failed to initialize tracing")
+}
 
 #[criterion]
-fn bench_resolve_policies(_crit: &mut Criterion) {
-    let rt = tokio::runtime::Runtime::new().expect("runtime");
-    // Run JSON scenario (users -> web-catalog -> data-types)
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("config")
-        .join("scenarios")
-        .join("user_catalog_then_datatypes.json");
+fn scenarios(criterion: &mut Criterion) {
+    error_stack::Report::install_debug_hook::<HashMap<usize, EntityValidationReport>>(
+        |validation_report, context| {
+            context.push_appendix(format!(
+                "First validation error: {:#}",
+                serde_json::json!(validation_report[&0])
+            ));
+        },
+    );
 
-    #[expect(
-        clippy::print_stderr,
-        reason = "Bench output is printed to console intentionally"
-    )]
-    match rt.block_on(async move { scenario::run_scenario_file(&path).await }) {
-        Ok(result) => eprintln!("Scenario passed: {:#}", serde_json::json!(result)),
-        Err(err) => eprintln!("Scenario failed: {err:#}"),
+    let runtime = tokio::runtime::Runtime::new().expect("Should be able to create runtime");
+
+    let _runtime_enter = runtime.enter();
+
+    let _telemetry_guard = TelemetryRegistry::default()
+        .with_error_layer()
+        .with_console_logging(ConsoleConfig {
+            enabled: true,
+            format: LogFormat::Pretty,
+            level: None,
+            color: ColorOption::Auto,
+            stream: ConsoleStream::Stderr,
+        })
+        .with_otlp(
+            OtlpConfig {
+                endpoint: Some("http://localhost:4317".to_owned()),
+            },
+            "Graph Benches",
+        )
+        .init_global()
+        .expect("Failed to initialize tracing");
+
+    // TODO: Add resource usage monitoring (memory, CPU, database metrics) during benchmarks
+    //   see https://linear.app/hashintel/issue/BE-32
+
+    let dir_entries = fs::read_dir(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("config")
+            .join("scenarios"),
+    )
+    .expect("Should be able to read scenarios");
+
+    let mut group = criterion.benchmark_group("scenarios");
+    for entry in dir_entries {
+        let entry = entry.expect("Should be able to read scenario path");
+        if entry
+            .file_type()
+            .expect("Should be able to read file type")
+            .is_dir()
+        {
+            continue;
+        }
+
+        run_scenario_file(entry.path(), &runtime, &mut group);
     }
 }

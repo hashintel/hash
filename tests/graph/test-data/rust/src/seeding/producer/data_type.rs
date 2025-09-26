@@ -1,26 +1,25 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::collections::BTreeSet;
 use core::error::Error;
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
 use hash_graph_store::{data_type::CreateDataTypeParams, query::ConflictBehavior};
-use rand::distr::{Distribution as _, weighted::WeightedIndex};
-use time::OffsetDateTime;
-use type_system::{
-    ontology::{
-        BaseUrl, VersionedUrl,
-        data_type::{
-            DataType,
-            schema::{DataTypeReference, DataTypeSchemaTag, DataTypeTag, ValueLabel},
-        },
-        id::{OntologyTypeVersion, ParseBaseUrlError},
-        json_schema::{SingleValueConstraints, ValueConstraints},
-        provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
+use rand::{distr::Distribution as _, seq::IndexedRandom as _};
+use type_system::ontology::{
+    BaseUrl, VersionedUrl,
+    data_type::{
+        DataType,
+        schema::{DataTypeReference, DataTypeSchemaTag, DataTypeTag, ValueLabel},
     },
-    principal::actor_group::WebId,
+    id::{OntologyTypeVersion, ParseBaseUrlError},
+    json_schema::{SingleValueConstraints, ValueConstraints},
+    provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
 };
 
-use super::{Producer, user::UserCreation};
+use super::{
+    Producer,
+    ontology::{BoundDomainSampler, DomainPolicy, SampledDomain, WebCatalog},
+};
 use crate::{
     data_type::{
         BOOLEAN_V1_TYPE, NULL_V1_TYPE, NUMBER_V1_TYPE, OBJECT_V1_TYPE, TEXT_V1_TYPE, VALUE_V1_TYPE,
@@ -30,14 +29,18 @@ use crate::{
         distributions::{
             DistributionConfig,
             adaptors::{ConstDistribution, ConstDistributionConfig, WordDistributionConfig},
-            ontology::{
-                DomainDistribution, DomainDistributionConfig,
-                data_type::constraints::ValueConstraintsDistributionConfig,
-            },
+            ontology::data_type::constraints::ValueConstraintsDistributionConfig,
         },
         producer::slug_from_title,
     },
 };
+
+/// Dependencies for data type producers that need web catalogs for domain resolution.
+#[derive(Debug, Copy, Clone)]
+pub struct DataTypeProducerDeps<U: WebCatalog, O: WebCatalog> {
+    pub user_catalog: Option<U>,
+    pub org_catalog: Option<O>,
+}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Invalid {_variant} distribution")]
@@ -85,378 +88,20 @@ pub struct ConfigSection {
     pub conflict_behavior: ConstDistributionConfig<ConflictBehavior>,
 }
 
-/// Domain policy allowing remote and/or local (web-catalog) sources with optional mixing.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DomainPolicy {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remote: Option<RemoteSourceConfig>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub local: Option<LocalSourceConfig>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RemoteSourceConfig {
-    pub domain: DomainDistributionConfig,
-    #[serde(with = "hash_codec::serde::time")]
-    pub fetched_at: OffsetDateTime,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub weight: Option<u32>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalSourceConfig {
-    pub index: IndexSamplerConfig,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub web_type_weights: Option<LocalWebTypeWeights>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub weight: Option<u32>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "sampling", rename_all = "camelCase")]
-pub enum IndexSamplerConfig {
-    Uniform,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct LocalWebTypeWeights {
-    pub user: u32,
-    pub org: u32,
-}
-
-#[derive(Debug, derive_more::Display)]
-pub enum DomainBindingError {
-    #[display("No source configured")]
-    NoSource,
-    #[display("Missing web catalog for local source")]
-    MissingCatalog,
-    #[display("Local web catalog is empty")]
-    EmptyCatalog,
-    #[display("Invalid weights")]
-    InvalidWeights,
-    #[display("Remote config creation failed")]
-    Remote,
-    #[display("Local web type weights are not supported by this catalog type")]
-    WebTypeWeightsUnsupported,
-}
-
-impl Error for DomainBindingError {}
-
-pub struct ProducerDeps<'c, U: WebCatalog, O: WebCatalog> {
-    pub user_catalog: Option<&'c U>,
-    pub org_catalog: Option<&'c O>,
-}
-
-pub trait WebCatalog: Sync + Send {
-    fn len(&self) -> usize;
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)>;
-}
-
-#[derive(Debug, Clone)]
-pub struct InMemoryWebCatalog {
-    items: Vec<(Arc<str>, Arc<str>, WebId)>,
-}
-
-impl InMemoryWebCatalog {
-    #[must_use]
-    pub const fn from_tuples(items: Vec<(Arc<str>, Arc<str>, WebId)>) -> Self {
-        Self { items }
-    }
-
-    #[must_use]
-    pub fn from_users(users: &[UserCreation], domain: &Arc<str>) -> Self {
-        let mut items = Vec::with_capacity(users.len());
-        for user in users {
-            items.push((
-                Arc::clone(domain),
-                Arc::<str>::from(user.shortname.as_str()),
-                WebId::from(user.id),
-            ));
-        }
-        Self { items }
-    }
-}
-
-impl WebCatalog for InMemoryWebCatalog {
-    fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    fn get_entry(&self, index: usize) -> Option<(Arc<str>, Arc<str>, WebId)> {
-        self.items.get(index).cloned()
-    }
-}
-
-#[derive(Debug)]
-enum BoundDomainSampler<'a, U: WebCatalog, O: WebCatalog> {
-    Remote {
-        domain: DomainDistribution,
-        fetched_at: OffsetDateTime,
-    },
-    Local(LocalChoiceSampler<'a, U, O>),
-    Mixed {
-        chooser: WeightedIndex<u32>,
-        remote: DomainDistribution,
-        fetched_at: OffsetDateTime,
-        local: LocalChoiceSampler<'a, U, O>,
-    },
-}
-
-#[derive(Debug)]
-enum SampledDomain {
-    Remote {
-        domain: Arc<str>,
-        shortname: Arc<str>,
-        fetched_at: OffsetDateTime,
-    },
-    Local {
-        domain: Arc<str>,
-        shortname: Arc<str>,
-        web_id: WebId,
-    },
-}
-
-impl<U: WebCatalog, O: WebCatalog> BoundDomainSampler<'_, U, O> {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> SampledDomain {
-        match self {
-            BoundDomainSampler::Remote { domain, fetched_at } => {
-                let (domain, shortname) = domain.sample(rng);
-                SampledDomain::Remote {
-                    domain,
-                    shortname,
-                    fetched_at: *fetched_at,
-                }
-            }
-            BoundDomainSampler::Local(local) => {
-                let (domain, shortname, web_id) = local.sample(rng);
-                SampledDomain::Local {
-                    domain,
-                    shortname,
-                    web_id,
-                }
-            }
-            BoundDomainSampler::Mixed {
-                chooser,
-                remote,
-                fetched_at,
-                local,
-            } => {
-                if chooser.sample(rng) == 0 {
-                    let (domain, shortname) = remote.sample(rng);
-                    SampledDomain::Remote {
-                        domain,
-                        shortname,
-                        fetched_at: *fetched_at,
-                    }
-                } else {
-                    let (domain, shortname, web_id) = local.sample(rng);
-                    SampledDomain::Local {
-                        domain,
-                        shortname,
-                        web_id,
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[derive(Clone, derive_more::Debug)]
-struct LocalUniform<'a, C: WebCatalog> {
-    #[debug(skip)]
-    catalog: &'a C,
-}
-
-impl<C: WebCatalog> LocalUniform<'_, C> {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
-        let count = self.catalog.len();
-        let index = rand::Rng::random_range(rng, 0..count);
-        let (domain, shortname, web_id) = self
-            .catalog
-            .get_entry(index)
-            .expect("should return Some for existing index");
-        (domain, shortname, web_id)
-    }
-}
-
-#[derive(Clone)]
-struct LocalChoiceSampler<'a, U: WebCatalog, O: WebCatalog> {
-    inner: LocalChoiceSamplerInner<'a, U, O>,
-}
-
-#[derive(Clone)]
-enum LocalChoiceSamplerInner<'a, U: WebCatalog, O: WebCatalog> {
-    User(LocalUniform<'a, U>),
-    Org(LocalUniform<'a, O>),
-    Mixed {
-        chooser: WeightedIndex<u32>,
-        user: LocalUniform<'a, U>,
-        org: LocalUniform<'a, O>,
-    },
-}
-
-impl<U: WebCatalog, O: WebCatalog> core::fmt::Debug for LocalChoiceSampler<'_, U, O> {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("LocalChoiceSampler").finish()
-    }
-}
-
-impl<U: WebCatalog, O: WebCatalog> LocalChoiceSampler<'_, U, O> {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
-        match &self.inner {
-            LocalChoiceSamplerInner::User(user_sampler) => user_sampler.sample(rng),
-            LocalChoiceSamplerInner::Org(org_sampler) => org_sampler.sample(rng),
-            LocalChoiceSamplerInner::Mixed { chooser, user, org } => match chooser.sample(rng) {
-                0 => user.sample(rng),
-                _ => org.sample(rng),
-            },
-        }
-    }
-}
-
-impl DomainPolicy {
-    fn bind<'deps, U: WebCatalog, O: WebCatalog>(
-        &self,
-        deps: &ProducerDeps<'deps, U, O>,
-    ) -> Result<BoundDomainSampler<'deps, U, O>, Report<DomainBindingError>> {
-        match (&self.remote, &self.local) {
-            (None, None) => Err(Report::new(DomainBindingError::NoSource)),
-            (Some(remote), None) => {
-                let (domain, fetched_at) = bind_remote(remote)?;
-                Ok(BoundDomainSampler::Remote { domain, fetched_at })
-            }
-            (None, Some(local)) => {
-                let local_sampler = bind_local(deps, local)?;
-                Ok(BoundDomainSampler::Local(local_sampler))
-            }
-            (Some(remote), Some(local)) => {
-                let (remote_weight, local_weight) = match (remote.weight, local.weight) {
-                    (Some(remote_weight), Some(local_weight)) => (remote_weight, local_weight),
-                    (None, None) => (1, 1),
-                    _ => return Err(Report::new(DomainBindingError::InvalidWeights)),
-                };
-
-                if remote_weight == 0 && local_weight == 0 {
-                    return Err(Report::new(DomainBindingError::InvalidWeights));
-                }
-                if local_weight == 0 {
-                    let (domain, fetched_at) = bind_remote(remote)?;
-                    return Ok(BoundDomainSampler::Remote { domain, fetched_at });
-                }
-                if remote_weight == 0 {
-                    let local_sampler = bind_local(deps, local)?;
-                    return Ok(BoundDomainSampler::Local(local_sampler));
-                }
-
-                let (remote_domain, fetched_at) = bind_remote(remote)?;
-                let local_sampler = bind_local(deps, local)?;
-
-                #[expect(
-                    clippy::tuple_array_conversions,
-                    reason = "constructing WeightedIndex from a fixed-size array is concise and \
-                              intentional here"
-                )]
-                let chooser = WeightedIndex::new([remote_weight, local_weight])
-                    .change_context(DomainBindingError::InvalidWeights)?;
-                Ok(BoundDomainSampler::Mixed {
-                    chooser,
-                    remote: remote_domain,
-                    fetched_at,
-                    local: local_sampler,
-                })
-            }
-        }
-    }
-}
-
-fn bind_remote(
-    remote: &RemoteSourceConfig,
-) -> Result<(DomainDistribution, OffsetDateTime), Report<DomainBindingError>> {
-    let domain =
-        DomainDistribution::new(&remote.domain).change_context(DomainBindingError::Remote)?;
-    Ok((domain, remote.fetched_at))
-}
-
-fn bind_local<'deps, U: WebCatalog, O: WebCatalog>(
-    deps: &ProducerDeps<'deps, U, O>,
-    local: &LocalSourceConfig,
-) -> Result<LocalChoiceSampler<'deps, U, O>, Report<DomainBindingError>> {
-    let (user_sampler, org_sampler) = match local.index {
-        IndexSamplerConfig::Uniform => (
-            deps.user_catalog.map(|catalog| LocalUniform { catalog }),
-            deps.org_catalog.map(|catalog| LocalUniform { catalog }),
-        ),
-    };
-
-    match (user_sampler, org_sampler) {
-        (Some(user), None) => {
-            if user.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::User(user),
-            })
-        }
-        (None, Some(org)) => {
-            if org.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::Org(org),
-            })
-        }
-        (Some(user), Some(org)) => {
-            if user.catalog.is_empty() && org.catalog.is_empty() {
-                return Err(Report::new(DomainBindingError::EmptyCatalog));
-            }
-            if user.catalog.is_empty() {
-                return Ok(LocalChoiceSampler {
-                    inner: LocalChoiceSamplerInner::Org(org),
-                });
-            }
-            if org.catalog.is_empty() {
-                return Ok(LocalChoiceSampler {
-                    inner: LocalChoiceSamplerInner::User(user),
-                });
-            }
-            let weights = local
-                .web_type_weights
-                .as_ref()
-                .map_or([1, 1], |weights| [weights.user, weights.org]);
-
-            let chooser =
-                WeightedIndex::new(weights).change_context(DomainBindingError::InvalidWeights)?;
-            Ok(LocalChoiceSampler {
-                inner: LocalChoiceSamplerInner::Mixed { chooser, user, org },
-            })
-        }
-        _ => Err(Report::new(DomainBindingError::MissingCatalog)),
-    }
-}
-
 impl DataTypeProducerConfig {
     /// Create a data type producer from the configuration.
     ///
     /// # Errors
     ///
     /// Returns an error if the producer cannot be created.
-    pub fn create_producer<'deps, U: WebCatalog, O: WebCatalog>(
+    pub fn create_producer<U: WebCatalog, O: WebCatalog>(
         &self,
-        deps: &ProducerDeps<'deps, U, O>,
-    ) -> Result<DataTypeProducer<'deps, U, O>, Report<[DataTypeProducerConfigError]>> {
+        deps: DataTypeProducerDeps<U, O>,
+    ) -> Result<DataTypeProducer<U, O>, Report<[DataTypeProducerConfigError]>> {
         let domain = self
             .schema
             .domain
-            .bind(deps)
+            .bind(deps.user_catalog, deps.org_catalog)
             .change_context(DataTypeProducerConfigError::Domain);
         let title = self
             .schema
@@ -506,9 +151,9 @@ impl DataTypeProducerConfig {
 }
 
 #[derive(Debug)]
-pub struct DataTypeProducer<'c, U: WebCatalog, O: WebCatalog> {
+pub struct DataTypeProducer<U: WebCatalog, O: WebCatalog> {
     local_id: LocalId,
-    domain: BoundDomainSampler<'c, U, O>,
+    domain: BoundDomainSampler<U, O>,
     title: <WordDistributionConfig as DistributionConfig>::Distribution,
     description: <WordDistributionConfig as DistributionConfig>::Distribution,
     constraints: <ValueConstraintsDistributionConfig as DistributionConfig>::Distribution,
@@ -516,18 +161,18 @@ pub struct DataTypeProducer<'c, U: WebCatalog, O: WebCatalog> {
     provenance: ConstDistribution<ProvidedOntologyEditionProvenance>,
 }
 
-impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypeProducer<'_, U, O> {
+impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypeProducer<U, O> {
     type Error = Report<ParseBaseUrlError>;
 
     const ID: ProducerId = ProducerId::DataType;
 
-    fn generate(&mut self, context: &ProduceContext) -> Result<CreateDataTypeParams, Self::Error> {
+    fn generate(&mut self, context: ProduceContext) -> Result<CreateDataTypeParams, Self::Error> {
         let local_id = self.local_id.take_and_advance();
 
         let domain_gid = context.global_id(local_id, Scope::Schema, SubScope::Domain);
         let title_gid = context.global_id(local_id, Scope::Schema, SubScope::Title);
         let description_gid = context.global_id(local_id, Scope::Schema, SubScope::Description);
-        let constraints_gid = context.global_id(local_id, Scope::Schema, SubScope::Constraint);
+        let constraints_gid = context.global_id(local_id, Scope::Schema, SubScope::ValueConstraint);
 
         let constraints = self.constraints.sample(&mut constraints_gid.rng());
 
@@ -599,11 +244,50 @@ impl<U: WebCatalog, O: WebCatalog> Producer<CreateDataTypeParams> for DataTypePr
     }
 }
 
+/// Catalogs that provide [`DataTypeReference`]s.
+///
+/// This trait enables [`DataType`]s or [`PropertyType`]s to reference existing [`DataType`]s when
+/// defining their structures. Implementations should provide efficient access to
+/// [`DataTypeReference`]s for random sampling during generation.
+///
+/// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+pub trait DataTypeCatalog {
+    /// Returns all available [`DataTypeReference`]s in this catalog.
+    ///
+    /// The returned slice should contain all [`DataType`]s that can be referenced when
+    /// generating [`DataType`]s or [`PropertyType`]s.
+    ///
+    /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
+    fn data_type_references(&self) -> &[DataTypeReference];
+
+    /// Sample a random [`DataType`] reference from this catalog.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the catalog is empty.
+    fn sample_data_type<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+        self.data_type_references()
+            .choose(rng)
+            .expect("catalog should not be empty")
+    }
+}
+
+impl<C> DataTypeCatalog for &C
+where
+    C: DataTypeCatalog,
+{
+    fn data_type_references(&self) -> &[DataTypeReference] {
+        (*self).data_type_references()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use alloc::sync::Arc;
-    use core::iter;
+    use core::fmt::Debug;
 
+    use rand::Rng;
+    use time::OffsetDateTime;
     use type_system::{
         ontology::json_schema::StringFormat,
         provenance::{OriginProvenance, OriginType},
@@ -611,13 +295,15 @@ pub(crate) mod tests {
 
     use super::*;
     use crate::seeding::{
+        context::{Provenance, RunId, ShardId, StageId},
         distributions::{
             adaptors::{
                 ConstDistributionConfig, ConstInlineDistributionConfig, DistributionWeight,
                 OptionalDistributionConfig, UniformDistributionConfig, WeightedDistributionConfig,
             },
             ontology::{
-                ShortnameDistributionConfig, WeightedDomainListDistributionConfig,
+                DomainDistributionConfig, ShortnameDistributionConfig,
+                WeightedDomainListDistributionConfig,
                 data_type::constraints::{
                     FormatDistributionConfig, MaxLengthDistributionConfig,
                     MinLengthDistributionConfig, PatternDistributionConfig,
@@ -627,40 +313,15 @@ pub(crate) mod tests {
             },
         },
         producer::{
+            ProducerExt as _,
+            ontology::{
+                IndexSamplerConfig, WeightedLocalSourceConfig, WeightedRemoteSourceConfig,
+                domain::LocalSourceConfig, tests::EmptyTestCatalog,
+            },
             tests::assert_producer_is_deterministic,
-            user::{UserProducer, tests::sample_user_producer_config},
+            user::tests::create_test_user_web_catalog,
         },
     };
-
-    fn create_test_web_catalog() -> InMemoryWebCatalog {
-        InMemoryWebCatalog::from_tuples(vec![
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("hash"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://hash.ai"),
-                Arc::<str>::from("alice"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("blockprotocol"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("hash"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-            (
-                Arc::<str>::from("https://blockprotocol.org"),
-                Arc::<str>::from("alice"),
-                WebId::new(uuid::Uuid::new_v4()),
-            ),
-        ])
-    }
 
     #[expect(
         clippy::too_many_lines,
@@ -670,7 +331,7 @@ pub(crate) mod tests {
         DataTypeProducerConfig {
             schema: SchemaSection {
                 domain: DomainPolicy {
-                    remote: Some(RemoteSourceConfig {
+                    remote: Some(WeightedRemoteSourceConfig {
                         domain: DomainDistributionConfig::Weighted {
                             distribution: vec![
                                 WeightedDomainListDistributionConfig {
@@ -731,10 +392,12 @@ pub(crate) mod tests {
                         weight: Some(1),
                         fetched_at: OffsetDateTime::now_utc(),
                     }),
-                    local: Some(LocalSourceConfig {
-                        index: IndexSamplerConfig::Uniform,
+                    local: Some(WeightedLocalSourceConfig {
+                        source: LocalSourceConfig {
+                            index: IndexSamplerConfig::Uniform,
+                            web_type_weights: None,
+                        },
                         weight: Some(1),
-                        web_type_weights: None,
                     }),
                 },
                 title: WordDistributionConfig { length: (4, 8) },
@@ -835,17 +498,61 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn create_test_data_type_catalog() -> impl DataTypeCatalog + Debug {
+        #[derive(Debug)]
+        struct TestCatalog(Vec<DataTypeReference>);
+
+        impl DataTypeCatalog for TestCatalog {
+            fn data_type_references(&self) -> &[DataTypeReference] {
+                &self.0
+            }
+
+            fn sample_data_type<R: Rng + ?Sized>(&self, rng: &mut R) -> &DataTypeReference {
+                // Uniform selection from available data types using SliceRandom::choose
+                self.0.choose(rng).expect("catalog should not be empty")
+            }
+        }
+
+        let mut producer = sample_data_type_producer_config()
+            .create_producer(DataTypeProducerDeps {
+                user_catalog: Some(create_test_user_web_catalog()),
+                org_catalog: None::<EmptyTestCatalog>,
+            })
+            .expect("should be able to sample data type generator");
+
+        let data_types = producer
+            .iter_mut(ProduceContext {
+                run_id: RunId::new(0),
+                stage_id: StageId::new(0),
+                shard_id: ShardId::new(0),
+                provenance: Provenance::Integration,
+                producer: ProducerId::DataType,
+            })
+            .take(100)
+            .collect::<Result<Vec<_>, _>>()
+            .expect("should be able to generate data types");
+
+        TestCatalog(
+            data_types
+                .into_iter()
+                .map(|data_type| DataTypeReference {
+                    url: data_type.schema.id,
+                })
+                .collect(),
+        )
+    }
+
     #[test]
     fn deterministic_constraints_producer() {
         let config = sample_data_type_producer_config();
-        let catalog = create_test_web_catalog();
-        let deps: ProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> = ProducerDeps {
+        let catalog = create_test_user_web_catalog();
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None,
+            org_catalog: None::<EmptyTestCatalog>,
         };
         let make_producer = || {
             config
-                .create_producer(&deps)
+                .create_producer(deps)
                 .expect("should be able to sample data type generator")
         };
         assert_producer_is_deterministic(make_producer);
@@ -881,13 +588,13 @@ pub(crate) mod tests {
         }))
         .expect("should parse remote-only domain policy");
 
-        let deps = ProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
-            user_catalog: None,
-            org_catalog: None,
+        let deps = DataTypeProducerDeps {
+            user_catalog: None::<EmptyTestCatalog>,
+            org_catalog: None::<EmptyTestCatalog>,
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with remote-only domain policy")
         };
 
@@ -908,14 +615,14 @@ pub(crate) mod tests {
         }))
         .expect("should parse local-only domain policy");
 
-        let catalog = create_test_web_catalog();
-        let deps = ProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let catalog = create_test_user_web_catalog();
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None,
+            org_catalog: None::<EmptyTestCatalog>,
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with local-only domain policy")
         };
 
@@ -950,14 +657,14 @@ pub(crate) mod tests {
         }))
         .expect("should parse mixed domain policy");
 
-        let catalog = create_test_web_catalog();
-        let deps = ProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let catalog = create_test_user_web_catalog();
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
             org_catalog: Some(&catalog),
         };
 
         let make_producer = || {
-            cfg.create_producer(&deps)
+            cfg.create_producer(deps)
                 .expect("should build with mixed domain policy")
         };
 
@@ -985,13 +692,13 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let catalog = create_test_web_catalog();
-        let deps = ProducerDeps::<InMemoryWebCatalog, InMemoryWebCatalog> {
+        let catalog = create_test_user_web_catalog();
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&catalog),
-            org_catalog: None,
+            org_catalog: None::<&EmptyTestCatalog>,
         };
         cfg_ok
-            .create_producer(&deps)
+            .create_producer(deps)
             .expect("should bind defaults 1:1");
 
         // Error when only one side specifies weight
@@ -1013,7 +720,7 @@ pub(crate) mod tests {
         .expect("should parse config");
 
         let _: Report<_> = cfg_err
-            .create_producer(&deps)
+            .create_producer(deps)
             .expect_err("should error on one-sided weight");
     }
 
@@ -1031,12 +738,12 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let deps: ProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> = ProducerDeps {
+        let deps: DataTypeProducerDeps<EmptyTestCatalog, EmptyTestCatalog> = DataTypeProducerDeps {
             user_catalog: None,
             org_catalog: None,
         };
 
-        let result = cfg.create_producer(&deps);
+        let result = cfg.create_producer(deps);
         assert!(
             result.is_err(),
             "should error without catalog for local config"
@@ -1057,37 +764,26 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let empty_catalog = InMemoryWebCatalog::from_tuples(Vec::new());
-        let deps: ProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> = ProducerDeps {
-            user_catalog: Some(&empty_catalog),
-            org_catalog: None,
+        let deps = DataTypeProducerDeps {
+            user_catalog: Some(EmptyTestCatalog),
+            org_catalog: None::<EmptyTestCatalog>,
         };
 
-        let result = cfg.create_producer(&deps);
+        let result = cfg.create_producer(deps);
+        assert!(result.is_err(), "should error with empty local catalog");
+
+        let deps = DataTypeProducerDeps {
+            user_catalog: None::<EmptyTestCatalog>,
+            org_catalog: Some(EmptyTestCatalog),
+        };
+
+        let result = cfg.create_producer(deps);
         assert!(result.is_err(), "should error with empty local catalog");
     }
 
     #[test]
     fn datatype_from_user_catalog() {
-        // Prepare a small user catalog via UserProducer
-        let user_cfg = sample_user_producer_config();
-        let mut user_prod = user_cfg
-            .create_producer()
-            .expect("should build user producer");
-        let ctx = crate::seeding::context::ProduceContext {
-            run_id: crate::seeding::context::RunId::new(1),
-            stage_id: crate::seeding::context::StageId::new(0),
-            shard_id: crate::seeding::context::ShardId::new(0),
-            provenance: crate::seeding::context::Provenance::Integration,
-            producer: UserProducer::ID,
-        };
-        let users: Vec<UserCreation> =
-            iter::repeat_with(|| user_prod.generate(&ctx).expect("should generate user"))
-                .take(10)
-                .collect();
-
-        let domain = Arc::<str>::from("https://example.org");
-        let user_catalog = InMemoryWebCatalog::from_users(&users, &domain);
+        let user_catalog = create_test_user_web_catalog();
 
         // Build datatype producer using local-only with this catalog
         let cfg = DataTypeProducerConfig::deserialize(serde_json::json!({
@@ -1100,11 +796,11 @@ pub(crate) mod tests {
         }))
         .expect("should parse config");
 
-        let deps: ProducerDeps<InMemoryWebCatalog, InMemoryWebCatalog> = ProducerDeps {
+        let deps = DataTypeProducerDeps {
             user_catalog: Some(&user_catalog),
-            org_catalog: None,
+            org_catalog: None::<EmptyTestCatalog>,
         };
-        let make_producer = || cfg.create_producer(&deps).expect("should build data type");
+        let make_producer = || cfg.create_producer(deps).expect("should build data type");
 
         assert_producer_is_deterministic(make_producer);
     }

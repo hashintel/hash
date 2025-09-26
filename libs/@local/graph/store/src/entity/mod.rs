@@ -5,11 +5,10 @@ pub use self::{
     },
     store::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityStore, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityError,
-        ValidateEntityParams,
+        DiffEntityResult, EntityStore, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityError, ValidateEntityParams,
     },
     validation_report::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,

@@ -83,6 +83,7 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "0.57.2",
     "@opentelemetry/exporter-trace-otlp-http": "0.57.2",
     "@opentelemetry/exporter-trace-otlp-proto": "0.57.2",
+    "@playwright/test": "1.54.1",
     "@tldraw/editor@npm:2.0.0-alpha.12": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch",
     "@tldraw/tlschema@npm:2.0.0-alpha.12": "patch:@tldraw/tlschema@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-tlschema-npm-2.0.0-alpha.12-13bf88407b.patch",
     "@types/express": "4.17.23",

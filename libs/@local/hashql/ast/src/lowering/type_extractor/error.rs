@@ -10,7 +10,7 @@ use hashql_core::{
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     help::Help,
@@ -23,6 +23,8 @@ use super::translate::VariableReference;
 use crate::node::path::{Path, PathSegmentArgument};
 
 pub(crate) type TypeExtractorDiagnostic = Diagnostic<TypeExtractorDiagnosticCategory, SpanId>;
+pub(crate) type TypeExtractorDiagnosticIssues =
+    DiagnosticIssues<TypeExtractorDiagnosticCategory, SpanId>;
 
 const DUPLICATE_TYPE_ALIAS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "duplicate-type-alias",
@@ -84,6 +86,11 @@ const UNUSED_GENERIC_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Generic parameter not used in type definition",
 };
 
+const NON_CONTRACTIVE_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "non-contractive-type",
+    name: "Invalid recursive type definition",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
@@ -98,6 +105,7 @@ pub enum TypeExtractorDiagnosticCategory {
     DuplicateStructField,
     GenericConstraintNotAllowed,
     UnusedGenericParameter,
+    NonContractiveType,
     TypeCheck(TypeCheckDiagnosticCategory),
 }
 
@@ -124,6 +132,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
             Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
             Self::UnusedGenericParameter => Some(&UNUSED_GENERIC_PARAMETER),
+            Self::NonContractiveType => Some(&NON_CONTRACTIVE_TYPE),
             Self::TypeCheck(category) => Some(category),
         }
     }
@@ -701,6 +710,52 @@ pub(crate) fn unused_generic_parameter(
          parameters can make code harder to understand and may indicate a design oversight or \
          incomplete implementation. They are unconstrained variables, and therefore considered \
          erroneous.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a non-contractive recursive type.
+///
+/// This diagnostic is generated when a recursive type definition violates the contractive
+/// constraint, which could lead to non-termination during type checking. A recursive type
+/// is contractive if every recursive reference is protected by at least one type constructor.
+pub(crate) fn non_contractive_recursive_type(
+    type_span: SpanId,
+    recursive_ref_span: SpanId,
+    type_name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::NonContractiveType,
+        Severity::Error,
+    );
+
+    let type_name = demangle_unwrap(type_name);
+
+    diagnostic.labels.extend([
+        Label::new(
+            recursive_ref_span,
+            format!("Type `{type_name}` cannot reference itself directly"),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(type_span, "... in this recursive type definition")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    ]);
+
+    diagnostic.add_help(Help::new(format!(
+        "Add structure around the recursive reference. Such as, but not limited to, a struct, \
+         tuple, or union with at least one non-recursive alternative:\n- `type {type_name} = \
+         {type_name} | Null`\n- `type {type_name} = (value: {type_name})`\n- `type {type_name} = \
+         ({type_name}, String)`"
+    )));
+
+    diagnostic.add_note(Note::new(
+        "Recursive types need some 'structure' between the type and itself (be 'contractive') to \
+         ensure type checking terminates. This means every recursive reference must be protected \
+         by at least one type constructor (struct, tuple, etc.). Direct self-references like \
+         `type T = T` are not allowed as they do not guarantee progression during type checking.",
     ));
 
     diagnostic

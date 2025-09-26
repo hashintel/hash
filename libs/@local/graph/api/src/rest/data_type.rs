@@ -17,9 +17,9 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
-        DataTypeStore, GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
-        HasPermissionForDataTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        DataTypeStore, FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams, QueryDataTypesParams,
+        QueryDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
     entity_type::ClosedDataTypeDefinition,
@@ -60,9 +60,9 @@ use crate::rest::{
 
         create_data_type,
         load_external_data_type,
-        get_data_types,
-        get_data_type_subgraph,
-        get_data_type_conversion_targets,
+        query_data_types,
+        query_data_type_subgraph,
+        find_data_type_conversion_targets,
         update_data_type,
         update_data_types,
         update_data_type_embeddings,
@@ -79,12 +79,12 @@ use crate::rest::{
             UpdateDataTypeRequest,
             UpdateDataTypeEmbeddingParams,
             DataTypeQueryToken,
-            GetDataTypesParams,
-            GetDataTypesResponse,
-            GetDataTypeSubgraphParams,
-            GetDataTypeSubgraphResponse,
-            GetDataTypeConversionTargetsParams,
-            GetDataTypeConversionTargetsResponse,
+            QueryDataTypesParams,
+            QueryDataTypesResponse,
+            QueryDataTypeSubgraphParams,
+            QueryDataTypeSubgraphResponse,
+            FindDataTypeConversionTargetsParams,
+            FindDataTypeConversionTargetsResponse,
             DataTypeConversionTargets,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
@@ -122,9 +122,13 @@ impl DataTypeResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_data_types::<S>))
-                        .route("/subgraph", post(get_data_type_subgraph::<S>))
-                        .route("/conversions", post(get_data_type_conversion_targets::<S>)),
+                        .route("/", post(query_data_types::<S>))
+                        .route("/subgraph", post(query_data_type_subgraph::<S>)),
+                )
+                .nest(
+                    "/find",
+                    Router::new()
+                        .route("/conversions", post(find_data_type_conversion_targets::<S>)),
                 )
                 .route("/load", post(load_external_data_type::<S>))
                 .route("/archive", put(archive_data_type::<S>))
@@ -316,7 +320,7 @@ where
 #[utoipa::path(
     post,
     path = "/data-types/query",
-    request_body = GetDataTypesParams,
+    request_body = QueryDataTypesParams,
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -325,7 +329,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetDataTypesResponse,
+            body = QueryDataTypesResponse,
             description = "Gets a a list of data types that satisfy the given query.",
         ),
 
@@ -333,13 +337,13 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_data_types<S>(
+async fn query_data_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetDataTypesResponse>, Response>
+) -> Result<Json<QueryDataTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -353,11 +357,11 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_data_types(
+        .query_data_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetDataTypesParams::deserialize(&request)
+            QueryDataTypesParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
@@ -372,7 +376,7 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetDataTypeSubgraphResponse {
+struct QueryDataTypeSubgraphResponse {
     subgraph: Subgraph,
     cursor: Option<VersionedUrl>,
 }
@@ -380,7 +384,7 @@ struct GetDataTypeSubgraphResponse {
 #[utoipa::path(
     post,
     path = "/data-types/query/subgraph",
-    request_body = GetDataTypeSubgraphParams,
+    request_body = QueryDataTypeSubgraphParams,
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -389,7 +393,7 @@ struct GetDataTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = GetDataTypeSubgraphResponse,
+            body = QueryDataTypeSubgraphResponse,
             description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
         ),
 
@@ -397,13 +401,13 @@ struct GetDataTypeSubgraphResponse {
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_data_type_subgraph<S>(
+async fn query_data_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetDataTypeSubgraphResponse>, Response>
+) -> Result<Json<QueryDataTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -417,18 +421,18 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_data_type_subgraph(
+        .query_data_type_subgraph(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetDataTypeSubgraphParams::deserialize(&request)
+            QueryDataTypeSubgraphParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
         .map(|response| {
-            Json(GetDataTypeSubgraphResponse {
+            Json(QueryDataTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
             })
@@ -441,8 +445,8 @@ where
 
 #[utoipa::path(
     post,
-    path = "/data-types/query/conversions",
-    request_body = GetDataTypeConversionTargetsParams,
+    path = "/data-types/find/conversions",
+    request_body = FindDataTypeConversionTargetsParams,
     tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -451,17 +455,17 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetDataTypeConversionTargetsResponse,
+            body = FindDataTypeConversionTargetsResponse,
         ),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_data_type_conversion_targets<S>(
+async fn find_data_type_conversion_targets<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(request): Json<GetDataTypeConversionTargetsParams>,
-) -> Result<Json<GetDataTypeConversionTargetsResponse>, Response>
+    Json(request): Json<FindDataTypeConversionTargetsParams>,
+) -> Result<Json<FindDataTypeConversionTargetsResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -469,7 +473,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .get_data_type_conversion_targets(actor_id, request)
+        .find_data_type_conversion_targets(actor_id, request)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -626,7 +630,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UpdateDataTypeEmbeddingParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -669,7 +673,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = ArchiveDataTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -682,10 +686,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })
@@ -721,7 +725,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UnarchiveDataTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -734,10 +738,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })

@@ -1,0 +1,21 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Field then index access
+expression: "foo[bar.0]"
+info:
+  kind: Ok
+---
+Expr#4294967040@9
+  ExprKind (Index)
+    IndexExpr#4294967040@9
+      Expr#4294967040@3
+        ExprKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: foo)
+      Expr#4294967040@8
+        ExprKind (Field)
+          FieldExpr#4294967040@8 (field: 0)
+            Expr#4294967040@6
+              ExprKind (Path)
+                Path#4294967040@6 (rooted: false)
+                  PathSegment#4294967040@5 (name: bar)

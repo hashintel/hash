@@ -3,8 +3,8 @@ use alloc::borrow::Cow;
 use criterion::{BatchSize::SmallInput, Bencher};
 use hash_graph_store::{
     entity::{
-        EntityQueryPath, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
-        GetEntitySubgraphParams,
+        EntityQueryPath, EntityQuerySorting, EntityStore as _, QueryEntitiesParams,
+        QueryEntitySubgraphParams,
     },
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
@@ -39,17 +39,17 @@ pub fn bench_get_entity_by_id(
         },
         |entity_uuid| async move {
             let response = store
-                .get_entities(
+                .query_entities(
                     actor_id,
-                    GetEntitiesParams {
+                    QueryEntitiesParams {
                         filter: Filter::Equal(
-                            Some(FilterExpression::Path {
+                            FilterExpression::Path {
                                 path: EntityQueryPath::Uuid,
-                            }),
-                            Some(FilterExpression::Parameter {
+                            },
+                            FilterExpression::Parameter {
                                 parameter: Parameter::Uuid(entity_uuid.into()),
                                 convert: None,
-                            }),
+                            },
                         ),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -79,7 +79,7 @@ pub fn bench_get_entity_by_id(
     );
 }
 
-pub fn bench_get_entities_by_property(
+pub fn bench_query_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
@@ -88,45 +88,47 @@ pub fn bench_get_entities_by_property(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
                     PathToken::Field(Cow::Borrowed(
                         "https://blockprotocol.org/@alice/types/property-type/name/",
                     )),
                 ]))),
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
                 convert: None,
-            }),
+            },
         );
         let response = store
-            .get_entity_subgraph(
+            .query_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams {
-                    filter,
+                QueryEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                    request: QueryEntitiesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
+                        conversions: Vec::new(),
+                        include_count: false,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    conversions: Vec::new(),
-                    include_count: false,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                 },
             )
             .await
@@ -144,7 +146,7 @@ pub fn bench_get_link_by_target_by_property(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Properties(Some(
@@ -154,39 +156,41 @@ pub fn bench_get_link_by_target_by_property(
                     ))),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
                 convert: None,
-            }),
+            },
         );
         let response = store
-            .get_entity_subgraph(
+            .query_entity_subgraph(
                 actor_id,
-                GetEntitySubgraphParams {
-                    filter,
+                QueryEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
+                    request: QueryEntitiesParams {
+                        filter,
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(
+                                Some(TemporalBound::Unbounded),
+                                None,
+                            ),
+                        },
+                        sorting: EntityQuerySorting {
+                            paths: Vec::new(),
+                            cursor: None,
+                        },
+                        limit: None,
+                        conversions: Vec::new(),
+                        include_count: false,
+                        include_entity_types: None,
+                        include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
+                        include_type_titles: false,
                     },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    conversions: Vec::new(),
-                    include_count: false,
-                    include_entity_types: None,
-                    include_drafts: false,
-                    include_web_ids: false,
-                    include_created_by_ids: false,
-                    include_edition_created_by_ids: false,
-                    include_type_ids: false,
-                    include_type_titles: false,
                 },
             )
             .await

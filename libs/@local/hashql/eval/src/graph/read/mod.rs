@@ -3,6 +3,7 @@ pub mod error;
 mod filter;
 mod filter_expr;
 mod path;
+mod sink;
 
 use core::{fmt::Debug, ops::Range};
 
@@ -10,6 +11,7 @@ use hash_graph_store::filter::{Filter, QueryRecord};
 use hashql_core::{
     collection::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
 };
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     node::{
         HirId, Node,
@@ -21,7 +23,11 @@ use hashql_hir::{
 };
 use type_system::knowledge::Entity;
 
-use self::{error::GraphReadCompilerDiagnostic, path::CompleteQueryPath};
+use self::{
+    error::{GraphReadCompilerIssues, GraphReadCompilerStatus},
+    path::CompleteQueryPath,
+    sink::FilterSink,
+};
 
 // The FilterSlice is an indirect approach to allow us to easily copy a filter between different
 // nodes.
@@ -81,7 +87,7 @@ pub struct GraphReadCompiler<'env, 'heap> {
     heap: &'heap Heap,
     filters: Filters<'heap>,
 
-    diagnostics: Vec<GraphReadCompilerDiagnostic>,
+    diagnostics: GraphReadCompilerIssues,
 
     locals: FastHashMap<Symbol<'heap>, &'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
@@ -94,7 +100,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             current: HirId::PLACEHOLDER,
             heap,
             filters: Filters::default(),
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             locals: FastHashMap::default(),
             inputs,
             output: FastHashMap::default(),
@@ -106,14 +112,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     /// # Errors
     ///
     /// Returns an error if any diagnostics were collected during compilation.
-    pub fn finish(
-        self,
-    ) -> Result<GraphReadCompilerResidual<'heap>, Vec<GraphReadCompilerDiagnostic>> {
-        if !self.diagnostics.is_empty() {
-            return Err(self.diagnostics);
-        }
-
-        Ok(GraphReadCompilerResidual {
+    pub fn finish(self) -> GraphReadCompilerStatus<GraphReadCompilerResidual<'heap>> {
+        self.diagnostics.into_status(GraphReadCompilerResidual {
             filters: self.filters,
             output: self.output,
         })
@@ -135,6 +135,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                         unreachable!()
                     };
 
+                    let mut sink = FilterSink::from_result(&mut filters);
+
                     let filter = self.compile_filter::<R>(
                         FilterCompilerContext {
                             span: closure.body.span,
@@ -142,15 +144,11 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                             param_name: closure.signature.params[0].name.value,
                         },
                         &closure.body,
+                        &mut sink,
                     );
 
-                    match (&mut filters, filter) {
-                        (Ok(filters), Ok(filter)) => filters.push(filter),
-                        (filters @ Ok(_), Err(error)) => *filters = Err(error),
-
-                        // There is no point in pushing it, if we already errored out, we still
-                        // process it to collect more diagnostics
-                        (Err(_), _) => {}
+                    if let Err(error) = filter {
+                        filters = Err(error);
                     }
                 }
             }

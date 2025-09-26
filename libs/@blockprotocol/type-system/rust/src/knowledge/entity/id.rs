@@ -27,7 +27,7 @@ use crate::principal::actor_group::WebId;
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityUuid(Uuid);
+pub struct EntityUuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityUuid {
     #[must_use]
@@ -57,7 +57,7 @@ impl From<EntityUuid> for Uuid {
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct DraftId(Uuid);
+pub struct DraftId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl DraftId {
     #[must_use]
@@ -166,7 +166,7 @@ mod patch {
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityEditionId(Uuid);
+pub struct EntityEditionId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityEditionId {
     #[must_use]

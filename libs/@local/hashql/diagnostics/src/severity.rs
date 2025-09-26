@@ -1,8 +1,61 @@
-use core::{fmt::Display, mem};
+use core::{
+    cmp,
+    fmt::{self, Display},
+    mem,
+};
 
 use anstyle::Color;
 
 use crate::{Help, Note};
+
+/// Trait for types that represent diagnostic severity levels.
+///
+/// [`SeverityKind`] provides a common interface for working with different
+/// severity representations, whether they are the general [`Severity`] enum
+/// or specialized types like [`Critical`] and [`Advisory`].
+///
+/// The trait defines two core methods that determine the behavioral category
+/// of a severity level: critical severities prevent successful compilation,
+/// while advisory severities provide warnings and informational messages.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Severity, severity::SeverityKind};
+///
+/// // Critical severities
+/// assert!(Severity::Bug.is_critical());
+/// assert!(Severity::Fatal.is_critical());
+/// assert!(Severity::Error.is_critical());
+///
+/// // Non-critical severities
+/// assert!(Severity::Warning.is_advisory());
+/// assert!(Severity::Note.is_advisory());
+/// assert!(Severity::Debug.is_advisory());
+/// ```
+pub const trait SeverityKind: Copy + const Into<Severity> {
+    /// Returns whether this severity level is critical.
+    ///
+    /// Critical severities represent issues that prevent successful compilation
+    /// and require immediate attention. These correspond to severity codes >= 400.
+    ///
+    /// # Implementation Note
+    ///
+    /// This method is mutually exclusive with [`Self::is_advisory`].
+    fn is_critical(self) -> bool;
+
+    /// Returns whether this severity level is advisory.
+    ///
+    /// Advisory severities represent non-fatal issues like warnings, informational messages, or
+    /// debugging output. These correspond to severity codes < 400.
+    ///
+    /// # Implementation Note
+    ///
+    /// This method is mutually exclusive with [`Self::is_critical`].
+    fn is_advisory(self) -> bool {
+        !self.is_critical()
+    }
+}
 
 #[cfg(feature = "serde")]
 #[derive(Debug, serde::Deserialize)]
@@ -17,80 +70,111 @@ struct OwnedSeverityInfo {
     color: Color,
 }
 
-/// Internal information about a severity level.
+/// Static information about a severity level.
 ///
-/// This struct contains all the static information associated with a
-/// severity level, including its identifier, code, name, description, and display color.
-/// It provides the backing data for the public [`Severity`] enum.
+/// Contains all the metadata associated with a particular severity level, including its identifier,
+/// numeric code, human-readable name and description, and display color. This information is used
+/// throughout the diagnostic system to provide consistent presentation and behavior.
 ///
-/// The information in this struct is used to provide consistent metadata across
-/// all severity levels and is not intended to be used directly by consumers.
+/// The severity code determines the behavioral category:
+/// - Codes >= 400: Critical severities that prevent compilation
+/// - Codes < 400: Advisory severities that provide warnings/information
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(deny_unknown_fields))]
 pub struct SeverityInfo {
-    /// Unique (human readable) identifier of the severity.
+    /// Unique string identifier of the severity level.
+    ///
+    /// Used for serialization and programmatic identification.
     pub id: &'static str,
-    /// Unique numeric code of the severity.
+
+    /// Numeric severity code determining priority and category.
     ///
-    /// Higher codes indicate more severe diagnostics. Any code >= `400` is considered fatal.
+    /// Higher codes indicate more severe issues. Codes >= 400 are considered critical and prevent
+    /// successful compilation.
     pub code: u16,
-    /// Human-readable name of the severity.
+
+    /// Human-readable display name of the severity level.
     pub name: &'static str,
-    /// Human-readable description of the severity.
+
+    /// Detailed description explaining what this severity level represents.
     pub description: &'static str,
-    /// Color used to display the severity.
+
+    /// ANSI color used for terminal display of this severity level.
     ///
-    /// Should be used to colorize the severity in any human readable output.
-    // default color is fine here as during deserialization we only care about the id and none of
-    // the other fields
+    /// Should be used to colorize severity indicators in diagnostic output.
     #[cfg_attr(feature = "serde", serde(with = "crate::encoding::color"))]
     pub color: Color,
 }
 
-/// Severity of a diagnostic.
+/// Diagnostic severity levels indicating the importance and impact of issues.
 ///
-/// Indicates the severity of a diagnostic, such as an error or warning.
-/// Severity levels are ordered by their importance:
+/// [`Severity`] represents the different levels of diagnostic messages that can be reported during
+/// compilation. Each severity level has an associated numeric code, display properties, and
+/// behavioral implications.
 ///
-/// | Variant  | Code | Identifier | Description                   |
-/// |----------|------|------------|-------------------------------|
-/// | `Bug`    | 600  | `"ice"`    | Internal compiler error       |
-/// | `Fatal`  | 500  | `"fatal"`  | Immediate abort               |
-/// | `Error`  | 400  | `"error"`  | Prevents compilation          |
-/// | `Warning`| 300  | `"warning"`| Potential issues              |
-/// | `Note`   | 200  | `"note"`   | Additional information        |
-/// | `Debug`  | 100  | `"debug"`  | Low-level debug information   |
+/// ## Severity Hierarchy
 ///
-/// Any severity level with code >= `400` (i.e., `Error`, `Fatal`, or `Bug`) is considered
-/// fatal and should stop program execution.
+/// | Variant  | Code | Identifier | Critical | Description                   |
+/// |----------|------|------------|----------|-------------------------------|
+/// | `Bug`    | 600  | `"ice"`    | Yes      | Internal compiler error       |
+/// | `Fatal`  | 500  | `"fatal"`  | Yes      | Immediate abort               |
+/// | `Error`  | 400  | `"error"`  | Yes      | Prevents compilation          |
+/// | `Warning`| 300  | `"warning"`| No       | Potential issues              |
+/// | `Note`   | 200  | `"note"`   | No       | Additional information        |
+/// | `Debug`  | 100  | `"debug"`  | No       | Low-level debug information   |
+///
+/// - **Critical** (code >= 400): Prevent successful compilation
+/// - **Advisory** (code < 400): Provide warnings and information
 ///
 /// # Examples
+///
+/// Basic usage and severity checking:
+///
+/// ```
+/// use hashql_diagnostics::{Severity, severity::SeverityKind};
+///
+/// // Critical severity levels
+/// let bug = Severity::Bug; // Code: 600
+/// let fatal = Severity::Fatal; // Code: 500
+/// let error = Severity::Error; // Code: 400
+/// assert!(bug.is_critical());
+/// assert!(fatal.is_critical());
+/// assert!(error.is_critical());
+///
+/// // Non-critical severity levels
+/// let warning = Severity::Warning; // Code: 300
+/// let note = Severity::Note; // Code: 200
+/// let debug = Severity::Debug; // Code: 100
+/// assert!(!warning.is_critical());
+/// assert!(!note.is_critical());
+/// assert!(!debug.is_critical());
+/// ```
+///
+/// Accessing severity metadata:
 ///
 /// ```
 /// use hashql_diagnostics::Severity;
 ///
-/// // Fatal severity levels
-/// let bug = Severity::Bug; // Code: 600
-/// let fatal = Severity::Fatal; // Code: 500
-/// let error = Severity::Error; // Code: 400
-/// assert!(bug.is_fatal());
-/// assert!(fatal.is_fatal());
-/// assert!(error.is_fatal());
-///
-/// // Non-fatal severity levels
-/// let warning = Severity::Warning; // Code: 300
-/// let note = Severity::Note; // Code: 200
-/// let debug = Severity::Debug; // Code: 100
-/// assert!(!warning.is_fatal());
-/// assert!(!note.is_fatal());
-/// assert!(!debug.is_fatal());
+/// let error = Severity::Error;
+/// assert_eq!(error.id(), "error");
+/// assert_eq!(error.code(), 400);
+/// assert_eq!(error.name(), "Error");
 /// ```
+///
+/// [`Bug`]: Severity::Bug
+/// [`Fatal`]: Severity::Fatal
+/// [`Error`]: Severity::Error
+/// [`Warning`]: Severity::Warning
+/// [`Note`]: Severity::Note
+/// [`Debug`]: Severity::Debug
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Severity {
-    /// For bugs in the compiler. Manifests as an ICE (internal compiler error).
+    /// Internal compiler error indicating a bug in the compiler itself.
     ///
-    /// These represent problems in the compiler itself, not in the code being compiled.
+    /// These represent problems in the compiler implementation rather than in the code being
+    /// compiled. They manifest as ICEs (Internal Compiler Errors) and should be reported as
+    /// compiler bugs.
     ///
     /// * Code: `600`
     /// * Identifier: `"ice"`
@@ -98,9 +182,10 @@ pub enum Severity {
     /// * Color: Red
     Bug,
 
-    /// An error that causes an immediate abort, such as configuration errors.
+    /// Fatal error requiring immediate termination.
     ///
-    /// These errors prevent any further processing.
+    /// Represents unrecoverable errors where the compiler cannot continue processing. These
+    /// indicate severe problems that make further compilation impossible or meaningless.
     ///
     /// * Code: `500`
     /// * Identifier: `"fatal"`
@@ -108,9 +193,10 @@ pub enum Severity {
     /// * Color: Red
     Fatal,
 
-    /// An error in the code being compiled, which prevents compilation from finishing.
+    /// Compilation error that prevents successful compilation.
     ///
-    /// These are problems in the source code that make it impossible to produce a valid output.
+    /// Standard compilation errors that indicate problems in the source code
+    /// that must be fixed before the program can be successfully compiled.
     ///
     /// * Code: `400`
     /// * Identifier: `"error"`
@@ -118,10 +204,10 @@ pub enum Severity {
     /// * Color: Red
     Error,
 
-    /// A warning about the code being compiled. Does not prevent compilation from finishing.
+    /// Warning about potential issues that don't prevent compilation.
     ///
-    /// These indicate potential problems or code smells that should be addressed but don't
-    /// prevent successful compilation.
+    /// Indicates potentially problematic code patterns or suspicious constructs that might lead to
+    /// bugs or unexpected behavior, but don't prevent the program from compiling.
     ///
     /// * Code: `300`
     /// * Identifier: `"warning"`
@@ -129,10 +215,10 @@ pub enum Severity {
     /// * Color: Yellow
     Warning,
 
-    /// A note about the code being compiled. Does not prevent compilation from finishing.
+    /// Informational note providing additional context.
     ///
-    /// These provide additional information about the code being compiled.
-    /// Often used alongside other diagnostic messages to provide context.
+    /// Provides supplementary information, context, or explanations that help users understand
+    /// other diagnostics or the compilation process.
     ///
     /// * Code: `200`
     /// * Identifier: `"note"`
@@ -140,7 +226,7 @@ pub enum Severity {
     /// * Color: Purple (Ansi256 color 147)
     Note,
 
-    /// A debug message about the code being compiled. Does not prevent compilation from finishing.
+    /// Low-level debugging information for development and troubleshooting.
     ///
     /// These provide low-level information that is typically only useful for debugging
     /// the compiler itself.
@@ -153,6 +239,21 @@ pub enum Severity {
 }
 
 impl Severity {
+    /// Returns an array of all severity variants.
+    ///
+    /// Provides access to all possible severity levels in a consistent order, typically used for
+    /// iteration, validation, or exhaustiveness checking.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::Severity;
+    ///
+    /// let all_severities = Severity::variants();
+    /// assert_eq!(all_severities.len(), 6);
+    /// assert_eq!(all_severities[0], Severity::Bug);
+    /// assert_eq!(all_severities[5], Severity::Debug);
+    /// ```
     #[must_use]
     pub const fn variants() -> &'static [Self] {
         const LEN: usize = mem::variant_count::<Severity>();
@@ -165,38 +266,20 @@ impl Severity {
             Severity::Debug,
         ];
 
-        const {
-            // assert that the variants are in the correct order
-            let mut index = 0;
-
-            while index < LEN {
-                let variant = VARIANTS[index] as usize;
-
-                assert!(
-                    variant == index,
-                    "Expected consistent ordering between variant and index"
-                );
-
-                index += 1;
-            }
-        }
-
         &VARIANTS
     }
 
-    /// Returns static information about this severity level.
+    /// Returns the complete metadata information for this severity level.
     ///
-    /// This method provides access to the identifier, code, name, description, and display color
-    /// associated with this severity level.
+    /// Provides access to all static information associated with the severity, including
+    /// identifier, code, name, description, and display color.
     ///
     /// # Examples
     ///
     /// ```
     /// use hashql_diagnostics::Severity;
     ///
-    /// let error = Severity::Error;
-    /// let info = error.info();
-    ///
+    /// let info = Severity::Error.info();
     /// assert_eq!(info.id, "error");
     /// assert_eq!(info.code, 400);
     /// assert_eq!(info.name, "Error");
@@ -229,7 +312,7 @@ impl Severity {
                 id: "warning",
                 code: 300,
                 name: "Warning",
-                description: "A warning about potential issues that doesn't prevent compilation.",
+                description: "A warning about potentially problematic code.",
                 color: Color::Ansi(anstyle::AnsiColor::Yellow),
             },
             Self::Note => &SeverityInfo {
@@ -249,6 +332,10 @@ impl Severity {
         }
     }
 
+    /// Returns any help messages associated with this severity level.
+    ///
+    /// Some severity levels provide built-in help messages that offer guidance on how to address or
+    /// understand issues at that level.
     pub(crate) const fn help(self) -> &'static [Help] {
         match self {
             Self::Bug => {
@@ -270,6 +357,10 @@ impl Severity {
         }
     }
 
+    /// Returns any notes associated with this severity level.
+    ///
+    /// Some severity levels provide built-in explanatory notes that give additional context about
+    /// what the severity level means.
     pub(crate) const fn notes(self) -> &'static [Note] {
         match self {
             Self::Bug => {
@@ -289,7 +380,10 @@ impl Severity {
         }
     }
 
-    /// Returns the unique identifier for this severity level.
+    /// Returns the string identifier for this severity level.
+    ///
+    /// The identifier is a short, unique string used for programmatic identification and
+    /// serialization.
     ///
     /// # Examples
     ///
@@ -298,7 +392,7 @@ impl Severity {
     ///
     /// assert_eq!(Severity::Error.id(), "error");
     /// assert_eq!(Severity::Warning.id(), "warning");
-    /// assert_eq!(Severity::Note.id(), "note");
+    /// assert_eq!(Severity::Bug.id(), "ice");
     /// ```
     #[must_use]
     pub const fn id(self) -> &'static str {
@@ -307,7 +401,8 @@ impl Severity {
 
     /// Returns the numeric code for this severity level.
     ///
-    /// Higher codes indicate more severe diagnostics.
+    /// Higher codes indicate more severe issues. Codes >= 400 are considered
+    /// critical and prevent successful compilation.
     ///
     /// # Examples
     ///
@@ -323,7 +418,7 @@ impl Severity {
         self.info().code
     }
 
-    /// Returns the human-readable name for this severity level.
+    /// Returns the human-readable display name for this severity level.
     ///
     /// # Examples
     ///
@@ -339,49 +434,49 @@ impl Severity {
         self.info().name
     }
 
-    /// Returns whether this severity level is fatal.
-    ///
-    /// A severity is considered fatal if its code is >= 400.
-    /// Fatal severities are `Error`, `Fatal`, and `Bug`.
+    /// Returns the ANSI color used for displaying this severity level.
     ///
     /// # Examples
     ///
     /// ```
+    /// use anstyle::{AnsiColor, Color};
     /// use hashql_diagnostics::Severity;
     ///
-    /// // Fatal severities
-    /// assert!(Severity::Bug.is_fatal());
-    /// assert!(Severity::Fatal.is_fatal());
-    /// assert!(Severity::Error.is_fatal());
-    ///
-    /// // Non-fatal severities
-    /// assert!(!Severity::Warning.is_fatal());
-    /// assert!(!Severity::Note.is_fatal());
-    /// assert!(!Severity::Debug.is_fatal());
-    /// ```
-    #[must_use]
-    pub const fn is_fatal(self) -> bool {
-        self.code() >= 400
-    }
-
-    /// Returns the display color for this severity level.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use anstyle::Color;
-    /// use hashql_diagnostics::Severity;
-    ///
-    /// let error_color = Severity::Error.color();
-    /// let warning_color = Severity::Warning.color();
+    /// assert_eq!(Severity::Error.color(), Color::Ansi(AnsiColor::Red));
+    /// assert_eq!(Severity::Warning.color(), Color::Ansi(AnsiColor::Yellow));
     /// ```
     #[must_use]
     pub const fn color(self) -> Color {
         self.info().color
     }
 
+    /// Returns the ariadne report kind for this severity level.
+    ///
+    /// Used internally when generating diagnostic reports for display.
     pub(crate) fn kind(self) -> ariadne::ReportKind<'static> {
         ariadne::ReportKind::Custom(self.name(), anstyle_yansi::to_yansi_color(self.color()))
+    }
+}
+
+impl const SeverityKind for Severity {
+    fn is_critical(self) -> bool {
+        self.code() >= 400
+    }
+
+    fn is_advisory(self) -> bool {
+        !self.is_critical()
+    }
+}
+
+impl Ord for Severity {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.code().cmp(&other.code())
+    }
+}
+
+impl PartialOrd for Severity {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -414,7 +509,282 @@ impl<'de> serde::Deserialize<'de> for Severity {
 }
 
 impl Display for Severity {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(self.name(), fmt)
+    }
+}
+
+/// A severity level that is guaranteed to be critical (fatal).
+///
+/// [`Critical`] is a wrapper around [`Severity`] that provides compile-time guarantees that the
+/// contained severity represents a critical issue that prevents successful compilation. This type
+/// safety helps prevent bugs where non-critical severities are treated as critical.
+///
+/// Critical severities correspond to severity codes >= 400 and include:
+/// - [`Critical::BUG`] (Internal Compiler Error)
+/// - [`Critical::FATAL`] (Fatal Error)
+/// - [`Critical::ERROR`] (Compilation Error)
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Severity, severity::Critical};
+///
+/// // Create from known critical severities
+/// let critical_error = Critical::ERROR;
+/// let critical_bug = Critical::BUG;
+///
+/// // Try to create from arbitrary severity
+/// let maybe_critical = Critical::try_new(Severity::Error);
+/// assert!(maybe_critical.is_some());
+///
+/// let not_critical = Critical::try_new(Severity::Warning);
+/// assert!(not_critical.is_none());
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct Critical(Severity);
+
+impl Critical {
+    /// Pre-constructed critical severity for internal compiler errors.
+    pub const BUG: Self = Self(Severity::Bug);
+    /// Pre-constructed critical severity for compilation errors.
+    pub const ERROR: Self = Self(Severity::Error);
+    /// Pre-constructed critical severity for fatal errors.
+    pub const FATAL: Self = Self(Severity::Fatal);
+
+    /// Creates a critical severity without runtime checks.
+    ///
+    /// This is an internal method used when the severity is known to be critical
+    /// at compile time. Debug builds will assert that the severity is actually critical.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `severity.is_critical()` returns `true`.
+    pub(crate) const fn new_unchecked(severity: Severity) -> Self {
+        debug_assert!(severity.is_critical());
+
+        Self(severity)
+    }
+
+    /// Attempts to create a critical severity from a general severity.
+    ///
+    /// Returns [`Some`] if the provided severity is critical (code >= 400),
+    /// or [`None`] if it's advisory.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Severity, severity::Critical};
+    ///
+    /// // Critical severities succeed
+    /// assert!(Critical::try_new(Severity::Error).is_some());
+    /// assert!(Critical::try_new(Severity::Fatal).is_some());
+    /// assert!(Critical::try_new(Severity::Bug).is_some());
+    ///
+    /// // Advisory severities fail
+    /// assert!(Critical::try_new(Severity::Warning).is_none());
+    /// assert!(Critical::try_new(Severity::Note).is_none());
+    /// assert!(Critical::try_new(Severity::Debug).is_none());
+    /// ```
+    #[must_use]
+    pub const fn try_new(severity: Severity) -> Option<Self> {
+        if severity.is_critical() {
+            Some(Self(severity))
+        } else {
+            None
+        }
+    }
+}
+
+impl const SeverityKind for Critical {
+    fn is_critical(self) -> bool {
+        true
+    }
+
+    fn is_advisory(self) -> bool {
+        false
+    }
+}
+
+impl Display for Critical {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Ord for Critical {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Critical {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl const From<Critical> for Severity {
+    fn from(severity: Critical) -> Self {
+        severity.0
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Critical {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Critical {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Severity::deserialize(deserializer).map(Self)
+    }
+}
+
+/// A severity level that is guaranteed to be advisory (non-fatal).
+///
+/// [`Advisory`] is a wrapper around [`Severity`] that provides compile-time guarantees that the
+/// contained severity represents a non-critical issue that doesn't prevent successful compilation.
+/// This type safety helps organize diagnostic handling and ensures critical issues are handled
+/// appropriately.
+///
+/// Advisory severities correspond to severity codes < 400 and include:
+/// - [`Advisory::WARNING`] (Warning)
+/// - [`Advisory::NOTE`] (Informational Note)
+/// - [`Advisory::DEBUG`] (Debug Information)
+///
+/// # Examples
+///
+/// ```
+/// use hashql_diagnostics::{Severity, severity::Advisory};
+///
+/// // Create from known advisory severities
+/// let advisory_warning = Advisory::WARNING;
+/// let advisory_note = Advisory::NOTE;
+///
+/// // Try to create from arbitrary severity
+/// let maybe_advisory = Advisory::try_new(Severity::Warning);
+/// assert!(maybe_advisory.is_some());
+///
+/// let not_advisory = Advisory::try_new(Severity::Error);
+/// assert!(not_advisory.is_none());
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct Advisory(Severity);
+
+impl Advisory {
+    /// Pre-constructed advisory severity for debug information.
+    pub const DEBUG: Self = Self(Severity::Debug);
+    /// Pre-constructed advisory severity for informational notes.
+    pub const NOTE: Self = Self(Severity::Note);
+    /// Pre-constructed advisory severity for warnings.
+    pub const WARNING: Self = Self(Severity::Warning);
+
+    /// Creates an advisory severity without runtime checks.
+    ///
+    /// This is an internal method used when the severity is known to be advisory
+    /// at compile time. Debug builds will assert that the severity is actually advisory.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `severity.is_advisory()` returns `true`.
+    pub(crate) const fn new_unchecked(severity: Severity) -> Self {
+        debug_assert!(severity.is_advisory());
+
+        Self(severity)
+    }
+
+    /// Attempts to create an advisory severity from a general severity.
+    ///
+    /// Returns [`Some`] if the provided severity is advisory (code < 400),
+    /// or [`None`] if it's critical.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_diagnostics::{Severity, severity::Advisory};
+    ///
+    /// // Advisory severities succeed
+    /// assert!(Advisory::try_new(Severity::Warning).is_some());
+    /// assert!(Advisory::try_new(Severity::Note).is_some());
+    /// assert!(Advisory::try_new(Severity::Debug).is_some());
+    ///
+    /// // Critical severities fail
+    /// assert!(Advisory::try_new(Severity::Error).is_none());
+    /// assert!(Advisory::try_new(Severity::Fatal).is_none());
+    /// assert!(Advisory::try_new(Severity::Bug).is_none());
+    /// ```
+    #[must_use]
+    pub const fn try_new(severity: Severity) -> Option<Self> {
+        if severity.is_advisory() {
+            Some(Self(severity))
+        } else {
+            None
+        }
+    }
+}
+
+impl const SeverityKind for Advisory {
+    fn is_critical(self) -> bool {
+        false
+    }
+
+    fn is_advisory(self) -> bool {
+        true
+    }
+}
+
+impl Display for Advisory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Ord for Advisory {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl PartialOrd for Advisory {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl const From<Advisory> for Severity {
+    fn from(severity: Advisory) -> Self {
+        severity.0
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Advisory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Advisory {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Severity::deserialize(deserializer).map(Self)
     }
 }

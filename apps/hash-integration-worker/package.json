@@ -15,7 +15,7 @@
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-integration ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-integration ./dist",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
-    "start:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health",
+    "start:healthcheck": "wait-on --timeout 1200000 http-get://localhost:4300/health",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./dist/main.js",
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health"
   },
@@ -33,7 +33,7 @@
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",
     "agentkeepalive": "4.6.0",
-    "axios": "1.11.0",
+    "axios": "1.12.0",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.3",
     "typescript": "5.7.3",

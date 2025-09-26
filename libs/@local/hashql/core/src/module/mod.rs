@@ -15,13 +15,13 @@ pub mod universe;
 use core::slice;
 use std::sync::RwLock;
 
-pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
     item::{Item, ItemKind},
     resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
+pub use self::{resolver::Reference, universe::Universe};
 use crate::{
     collection::{FastHashMap, FastHashSet},
     heap::Heap,
@@ -193,7 +193,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
-            Ok(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Ok(item),
+            }
         }
     }
 
@@ -235,7 +240,12 @@ impl<'heap> ModuleRegistry<'heap> {
         if iter.next().is_some() {
             None
         } else {
-            Some(item)
+            match item {
+                Reference::Binding(_) => {
+                    unreachable!("Absolute path cannot point to a local binding")
+                }
+                Reference::Item(item) => Some(item),
+            }
         }
     }
 
@@ -268,7 +278,6 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    #[expect(clippy::iter_on_empty_collections)]
     pub fn search_by_name(
         &self,
         name: Symbol<'heap>,

@@ -15,65 +15,64 @@ graph TD
     class 3 root
     4[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
     5[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
-    6[<a href="../hash_graph_postgres_queries/index.html">hash-graph-postgres-queries</a>]
-    7[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
-    8[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
-    9[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    10[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    11[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
-    12[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    13[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    14[<a href="../harpc_client/index.html">harpc-client</a>]
-    15[<a href="../harpc_net/index.html">harpc-net</a>]
-    16[<a href="../harpc_server/index.html">harpc-server</a>]
-    17[<a href="../harpc_system/index.html">harpc-system</a>]
-    18[<a href="../harpc_tower/index.html">harpc-tower</a>]
-    19[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    20[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    21[<a href="../hashql_core/index.html">hashql-core</a>]
-    22[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    23[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    24[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    25[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    26[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    27[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    28[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
-    0 --> 10
-    1 --> 9
-    1 -.-> 28
+    6[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    7[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    8[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    9[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
+    10[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    11[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    12[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    13[<a href="../harpc_client/index.html">harpc-client</a>]
+    14[<a href="../harpc_net/index.html">harpc-net</a>]
+    15[<a href="../harpc_server/index.html">harpc-server</a>]
+    16[<a href="../harpc_system/index.html">harpc-system</a>]
+    17[<a href="../harpc_tower/index.html">harpc-tower</a>]
+    18[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    19[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    20[<a href="../hashql_core/index.html">hashql-core</a>]
+    21[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    22[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    23[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    24[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    25[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    26[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    27[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 9
+    1 --> 8
+    1 -.-> 27
     2 -.-> 3
-    4 --> 7
-    4 --> 11
-    4 --> 16
+    4 --> 6
+    4 --> 10
+    4 --> 15
+    4 --> 21
+    4 --> 23
     5 --> 1
-    6 --> 5
-    7 --> 6
-    7 --> 13
-    8 --> 5
-    8 --> 12
-    8 --> 25
-    9 --> 2
-    10 --> 4
-    11 --> 8
-    12 -.-> 28
-    13 -.-> 28
-    14 --> 17
-    15 --> 2
-    16 -.-> 1
-    16 -.-> 14
-    17 --> 18
-    18 -.-> 15
-    18 --> 15
-    19 -.-> 20
-    20 --> 22
-    20 --> 24
-    21 --> 2
-    22 --> 8
-    22 --> 23
-    23 -.-> 20
-    24 --> 19
-    24 --> 21
-    25 --> 1
-    26 -.-> 4
-    27 -.-> 7
-    28 --> 8
+    6 --> 12
+    7 --> 5
+    7 --> 11
+    7 --> 24
+    8 --> 2
+    9 --> 4
+    10 --> 7
+    11 -.-> 27
+    12 -.-> 27
+    13 --> 16
+    14 --> 2
+    15 -.-> 1
+    15 -.-> 13
+    16 --> 17
+    17 -.-> 14
+    17 --> 14
+    18 -.-> 19
+    19 --> 21
+    19 --> 23
+    20 --> 2
+    21 --> 7
+    21 --> 22
+    22 -.-> 19
+    23 --> 18
+    23 --> 20
+    24 --> 1
+    25 -.-> 4
+    26 -.-> 6
+    27 --> 7

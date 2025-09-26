@@ -154,6 +154,8 @@ module "otel_collector" {
   grafana_port                     = module.grafana.grafana_port
   tempo_api_dns                    = module.tempo.api_dns
   tempo_api_port                   = module.tempo.api_port
+  pyroscope_http_dns               = module.pyroscope.http_dns
+  pyroscope_http_port              = module.pyroscope.http_port
   alloy_dns                        = module.alloy.http_port_dns
   alloy_port                       = module.alloy.http_port
 
@@ -210,6 +212,22 @@ module "mimir" {
   ssl_config = local.aws_ca_ssl_config
 }
 
+# Pyroscope service for metrics storage
+module "pyroscope" {
+  source                           = "./pyroscope"
+  prefix                           = var.prefix
+  cluster_arn                      = aws_ecs_cluster.observability.arn
+  vpc                              = var.vpc
+  subnets                          = var.subnets
+  config_bucket                    = aws_s3_bucket.configs
+  log_group_name                   = aws_cloudwatch_log_group.observability.name
+  region                           = var.region
+  service_discovery_namespace_arn  = aws_service_discovery_private_dns_namespace.observability.arn
+  service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
+
+  ssl_config = local.aws_ca_ssl_config
+}
+
 # Grafana service for distributed tracing visualization
 module "grafana" {
   source                            = "./grafana"
@@ -220,7 +238,7 @@ module "grafana" {
   config_bucket                     = aws_s3_bucket.configs
   log_group_name                    = aws_cloudwatch_log_group.observability.name
   region                            = var.region
-  root_url                          = cloudflare_record.cname_grafana_internal.hostname
+  root_url                          = "https://${cloudflare_dns_record.cname_grafana_internal.name}.hash.ai"
   service_discovery_namespace_arn   = aws_service_discovery_private_dns_namespace.observability.arn
   service_discovery_namespace_name  = aws_service_discovery_private_dns_namespace.observability.name
   grafana_database_host             = var.grafana_database_host
@@ -233,6 +251,8 @@ module "grafana" {
   loki_http_port                    = module.loki.http_port
   mimir_http_dns                    = module.mimir.http_dns
   mimir_http_port                   = module.mimir.http_port
+  pyroscope_http_dns                = module.pyroscope.http_dns
+  pyroscope_http_port               = module.pyroscope.http_port
   external_load_balancer_arn_suffix = aws_lb.observability_external.arn_suffix
   critical_alerts_topic_arn         = var.critical_alerts_topic_arn
 
@@ -253,6 +273,8 @@ module "alloy" {
   service_discovery_namespace_name = aws_service_discovery_private_dns_namespace.observability.name
   mimir_http_dns                   = module.mimir.http_dns
   mimir_http_port                  = module.mimir.http_port
+  pyroscope_http_dns               = module.pyroscope.http_dns
+  pyroscope_http_port              = module.pyroscope.http_port
 
   ssl_config = local.aws_ca_ssl_config
 }

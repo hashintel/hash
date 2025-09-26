@@ -1,11 +1,12 @@
 use hashql_ast::lowering::ExtractedTypes;
 use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
+use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 
 use self::{
     alias::AliasReplacement,
     checking::TypeChecking,
     ctor::ConvertTypeConstructor,
-    error::{LoweringDiagnostic, LoweringDiagnosticCategory},
+    error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
     inference::TypeInference,
     specialization::Specialization,
 };
@@ -33,51 +34,66 @@ pub fn lower<'heap>(
     env: &mut Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
     interner: &Interner<'heap>,
-) -> Result<Node<'heap>, Vec<LoweringDiagnostic>> {
-    let mut replacement = AliasReplacement::new(interner);
+) -> LoweringDiagnosticStatus<Node<'heap>> {
+    let mut diagnostics = DiagnosticIssues::new();
+    let mut replacement = AliasReplacement::new(interner, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
 
-    let mut converter = ConvertTypeConstructor::new(interner, &types.locals, registry, env);
-    let node = converter.fold_node(node)?;
+    let mut converter =
+        ConvertTypeConstructor::new(interner, &types.locals, registry, env, &mut diagnostics);
+    let Ok(node) = converter.fold_node(node);
+
+    let Success {
+        value: node,
+        advisories,
+    } = diagnostics.into_status(node)?;
+
+    // Pre type-checking diagnostic boundary
+
+    let mut diagnostics = advisories.generalize();
 
     let mut inference = TypeInference::new(env, registry);
     inference.visit_node(&node);
 
-    let (solver, inference_residual, inference_diagnostics) = inference.finish();
-    let (substitution, solver_diagnostics) = solver.solve();
+    let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
-    // Diagnostic checkpoint, if an error happened during the inference phase, then we cannot
-    // continue
-    let diagnostics: Vec<_> = inference_diagnostics
-        .into_iter()
-        .chain(solver_diagnostics)
-        .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking))
-        .collect();
-    if !diagnostics.is_empty() {
-        return Err(diagnostics);
-    }
+    let mut result = solver
+        .solve()
+        .map_category(LoweringDiagnosticCategory::TypeChecking);
+    result.append_diagnostics(&mut diagnostics);
+    result.append_diagnostics(&mut inference_diagnostics);
+
+    // Type-inference diagnostic boundary
+    let Success {
+        value: substitution,
+        advisories,
+    } = result?;
+    let mut diagnostics = advisories.generalize();
 
     env.substitution = substitution;
 
     let mut checking = TypeChecking::new(env, registry, inference_residual);
     checking.visit_node(&node);
 
-    let (mut residual, checking_diagnostics) = checking.finish();
+    let mut result = checking.finish();
+    result.append_diagnostics(&mut diagnostics);
 
-    // Diagnostic checkpoint, if an error happened during the type checking phase, then we cannot
-    // continue
-    if !checking_diagnostics.is_empty() {
-        return Err(checking_diagnostics);
-    }
+    let Success {
+        value: mut residual,
+        advisories,
+    } = result?;
 
-    let mut specialization =
-        Specialization::new(env, interner, &mut residual.types, residual.intrinsics);
-    let node = specialization.fold_node(node).map_err(|diagnostics| {
-        diagnostics
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Specialization))
-            .collect::<Vec<_>>()
-    })?;
+    // Post type-checking diagnostic boundary
+    let mut diagnostics = advisories.generalize();
 
-    Ok(node)
+    let mut specialization = Specialization::new(
+        env,
+        interner,
+        &mut residual.types,
+        residual.intrinsics,
+        &mut diagnostics,
+    );
+    let Ok(node) = specialization.fold_node(node);
+
+    diagnostics.into_status(node)
 }

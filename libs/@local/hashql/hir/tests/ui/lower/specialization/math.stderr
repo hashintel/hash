@@ -1,4 +1,4 @@
-[specialization::unsupported-intrinsic] Error: Unsupported intrinsic operation
+[lower::specialization::unsupported-intrinsic] Error: Unsupported intrinsic operation
    ╭─[ <unknown>:3:3 ]
    │
  3 │ ["+", { "#literal": 1 }, { "#literal": 2 }]

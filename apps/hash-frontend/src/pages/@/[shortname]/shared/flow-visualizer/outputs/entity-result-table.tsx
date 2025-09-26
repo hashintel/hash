@@ -20,6 +20,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import type { GetClosedMultiEntityTypesResponse } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
@@ -452,14 +453,11 @@ type EntityResultTableProps = {
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   persistedEntitiesTypesInfo?: {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+    entityTypes: ClosedMultiEntityTypesRootMap;
     definitions: ClosedMultiEntityTypesDefinitions;
   };
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesInfo?: {
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
-    definitions: ClosedMultiEntityTypesDefinitions;
-  };
+  proposedEntitiesTypesInfo?: GetClosedMultiEntityTypesResponse;
   relevantEntityIds: EntityId[];
 };
 
@@ -671,10 +669,7 @@ export const EntityResultTable = memo(
 
         const closedMultiEntityType =
           closedTypesByKey[typeKey] ??
-          getClosedMultiEntityTypeFromMap(
-            typeInfo.closedMultiEntityTypes,
-            entityTypeIds,
-          );
+          getClosedMultiEntityTypeFromMap(typeInfo.entityTypes, entityTypeIds);
 
         closedTypesByKey[typeKey] ??= closedMultiEntityType;
 
@@ -773,7 +768,7 @@ export const EntityResultTable = memo(
           for (const linkTypeId of typedKeys(
             closedMultiEntityType.links ?? {},
           )) {
-            const linkType = typeInfo.definitions.entityTypes[linkTypeId];
+            const linkType = typeInfo.definitions?.entityTypes[linkTypeId];
 
             if (!linkType) {
               throw new Error(
@@ -833,7 +828,7 @@ export const EntityResultTable = memo(
               "$ref" in schema ? schema.$ref : schema.items.$ref;
 
             const propertyType =
-              typeInfo.definitions.propertyTypes[propertyTypeId];
+              typeInfo.definitions?.propertyTypes[propertyTypeId];
 
             if (!propertyType) {
               throw new Error(

@@ -11,10 +11,12 @@
 
     // Library Features
     iterator_try_collect,
+    push_mut
 )]
 
 extern crate alloc;
 
+pub mod error;
 #[cfg(feature = "graph")]
 pub mod graph;
 

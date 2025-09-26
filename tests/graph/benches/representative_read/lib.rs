@@ -326,7 +326,7 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             &graph_resolve_depth,
             |bencher, graph_resolve_depth| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                knowledge::entity::bench_get_entities_by_property(
+                knowledge::entity::bench_query_entities_by_property(
                     bencher,
                     &runtime,
                     &store_wrapper.store,

@@ -6,7 +6,6 @@ import type {
 } from "@blockprotocol/type-system";
 
 import type { Edges } from "./subgraph/edges.js";
-import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
 import type {
   EntityVertexId,
@@ -54,6 +53,5 @@ export type Subgraph<
   roots: RootType["vertexId"][];
   vertices: Vertices<EntityImpl>;
   edges: Edges;
-  depths: GraphResolveDepths;
   temporalAxes: SubgraphTemporalAxes;
 };

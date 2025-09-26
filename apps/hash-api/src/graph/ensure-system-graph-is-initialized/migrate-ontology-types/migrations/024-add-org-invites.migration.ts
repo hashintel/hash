@@ -1,10 +1,12 @@
-import { type BaseUrl, type EntityType } from "@blockprotocol/type-system";
+import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
@@ -118,18 +120,25 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const { schema: organizationEntityTypeSchema } = await getEntityTypeById(
-    context,
+  const organizationEntityType = await getEntityTypeById(
+    context.graphApi,
     authentication,
     {
       entityTypeId: currentOrganizationEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
     },
   );
 
+  if (!organizationEntityType) {
+    throw new NotFoundError(
+      `Could not find entity type with ID ${currentOrganizationEntityTypeId}`,
+    );
+  }
+
   const newOrganizationEntityTypeSchema: EntityType = {
-    ...organizationEntityTypeSchema,
+    ...organizationEntityType.schema,
     links: {
-      ...organizationEntityTypeSchema.links,
+      ...organizationEntityType.schema.links,
       [hasIssuedInvitationLinkType.schema.$id]: {
         type: "array",
         items: {

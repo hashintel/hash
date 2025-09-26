@@ -16,10 +16,10 @@ import produce from "immer";
 import { useEffect, useRef, useState } from "react";
 
 import type {
-  GetDataTypeConversionTargetsQuery,
-  GetDataTypeConversionTargetsQueryVariables,
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
 } from "../../../../../../../../graphql/api-types.gen";
-import { getDataTypeConversionTargetsQuery } from "../../../../../../../../graphql/queries/ontology/data-type.queries";
+import { findDataTypeConversionTargetsQuery } from "../../../../../../../../graphql/queries/ontology/data-type.queries";
 import { NumberOrTextInput } from "../../../../../../number-or-text-input";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { getEditorSpecs } from "./editor-specs";
@@ -112,9 +112,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   });
 
   const { data } = useQuery<
-    GetDataTypeConversionTargetsQuery,
-    GetDataTypeConversionTargetsQueryVariables
-  >(getDataTypeConversionTargetsQuery, {
+    FindDataTypeConversionTargetsQuery,
+    FindDataTypeConversionTargetsQueryVariables
+  >(findDataTypeConversionTargetsQuery, {
     fetchPolicy: "cache-first",
     variables: {
       dataTypeIds: chosenDataType ? [chosenDataType.dataType.$id] : [],
@@ -124,7 +124,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
   const conversionTargetsById =
     chosenDataType &&
-    data?.getDataTypeConversionTargets[chosenDataType.dataType.$id];
+    data?.findDataTypeConversionTargets[chosenDataType.dataType.$id];
 
   useEffect(() => {
     if (

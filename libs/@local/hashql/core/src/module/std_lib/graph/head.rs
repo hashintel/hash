@@ -1,0 +1,59 @@
+use crate::{
+    heap::Heap,
+    module::{
+        StandardLibrary,
+        locals::TypeDef,
+        std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
+    },
+    symbol::Symbol,
+};
+
+pub(in crate::module::std_lib) struct Head {
+    _dependencies: (
+        std_lib::graph::Graph,
+        std_lib::graph::types::knowledge::entity::Entity,
+    ),
+}
+
+impl<'heap> StandardLibraryModule<'heap> for Head {
+    type Children = ();
+
+    fn name(heap: &'heap Heap) -> Symbol<'heap> {
+        heap.intern_symbol("head")
+    }
+
+    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
+        let mut def = ModuleDef::new();
+        let heap = lib.heap;
+
+        let graph = lib.manifest::<std_lib::graph::Graph>();
+
+        let query_temporal_axes_ty = graph.expect_type(heap.intern_symbol("QueryTemporalAxes"));
+        let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
+        graph_ty.instantiate(&mut lib.instantiate);
+
+        let mut entity = lib
+            .manifest::<std_lib::graph::types::knowledge::entity::Entity>()
+            .expect_newtype(heap.intern_symbol("Entity"));
+        entity.instantiate(&mut lib.instantiate);
+
+        // ::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;
+        let entities_returns = lib.ty.apply(
+            [(
+                graph_ty.arguments[0].id,
+                lib.ty
+                    .apply([(entity.arguments[0].id, lib.ty.unknown())], entity.id),
+            )],
+            graph_ty.id,
+        );
+        func(
+            lib,
+            &mut def,
+            "::graph::head::entities",
+            &[],
+            decl!(lib; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
+        );
+
+        def
+    }
+}

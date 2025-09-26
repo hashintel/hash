@@ -8,22 +8,21 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
+    self,
     entity::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore,
-        EntityTypesError, EntityValidationReport, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, HasPermissionForEntitiesParams,
-        LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
-        LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
-        PropertyMetadataValidationReport, QueryConversion, UnexpectedEntityType,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        DiffEntityResult, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
+        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
+        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
+        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
+        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
+        PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
+        UnexpectedEntityType, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
-    entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    filter::Filter,
+    entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
     query::{NullOrdering, Ordering},
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use hash_graph_types::{
     Embedding,
@@ -41,7 +40,9 @@ use hash_graph_types::{
     },
 };
 use hash_temporal_client::TemporalClient;
-use serde::{Deserialize, Serialize};
+use hashql_core::heap::Heap;
+use serde::{Deserialize as _, Serialize};
+use serde_json::value::RawValue as RawJsonvalue;
 use type_system::{
     knowledge::{
         Confidence, Entity, Property,
@@ -74,9 +75,13 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+use super::InteractiveHeader;
+pub use crate::rest::entity_query_request::{
+    EntityQuery, EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest,
+};
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, entity_query_request::CompilationOptions,
+    json::Json, status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -86,8 +91,8 @@ use crate::rest::{
         create_entities,
         validate_entity,
         has_permission_for_entities,
-        get_entities,
-        get_entity_subgraph,
+        query_entities,
+        query_entity_subgraph,
         count_entities,
         patch_entity,
         update_entity_embeddings,
@@ -114,15 +119,16 @@ use crate::rest::{
 
             HasPermissionForEntitiesParams,
 
-            GetEntitiesRequest,
-            GetEntitySubgraphRequest,
+            EntityQueryOptions,
+            QueryEntitiesRequest,
+            QueryEntitySubgraphRequest,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
-            GetEntitiesResponse,
-            GetEntitySubgraphResponse,
+            QueryEntitiesResponse,
+            QueryEntitySubgraphResponse,
             ClosedMultiEntityTypeMap,
             QueryConversion,
 
@@ -219,8 +225,8 @@ impl EntityResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entities::<S>))
-                        .route("/subgraph", post(get_entity_subgraph::<S>))
+                        .route("/", post(query_entities::<S>))
+                        .route("/subgraph", post(query_entity_subgraph::<S>))
                         .route("/count", post(count_entities::<S>)),
                 ),
         )
@@ -393,163 +399,14 @@ where
         .map_err(report_to_response)
 }
 
-#[tracing::instrument(level = "info", skip_all)]
-fn generate_sorting_paths(
-    paths: Option<Vec<EntityQuerySortingRecord<'_>>>,
-    limit: Option<usize>,
-    cursor: Option<EntityQueryCursor<'_>>,
-    temporal_axes: &QueryTemporalAxesUnresolved,
-) -> EntityQuerySorting<'static> {
-    let temporal_axes_sorting_path = match temporal_axes {
-        QueryTemporalAxesUnresolved::TransactionTime { .. } => &EntityQueryPath::TransactionTime,
-        QueryTemporalAxesUnresolved::DecisionTime { .. } => &EntityQueryPath::DecisionTime,
-    };
-
-    let sorting = paths
-        .map_or_else(
-            || {
-                if limit.is_some() || cursor.is_some() {
-                    vec![
-                        EntityQuerySortingRecord {
-                            path: temporal_axes_sorting_path.clone(),
-                            ordering: Ordering::Descending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::Uuid,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                        EntityQuerySortingRecord {
-                            path: EntityQueryPath::WebId,
-                            ordering: Ordering::Ascending,
-                            nulls: None,
-                        },
-                    ]
-                } else {
-                    Vec::new()
-                }
-            },
-            |mut paths| {
-                let mut has_temporal_axis = false;
-                let mut has_uuid = false;
-                let mut has_web_id = false;
-
-                for path in &paths {
-                    if path.path == EntityQueryPath::TransactionTime
-                        || path.path == EntityQueryPath::DecisionTime
-                    {
-                        has_temporal_axis = true;
-                    }
-                    if path.path == EntityQueryPath::Uuid {
-                        has_uuid = true;
-                    }
-                    if path.path == EntityQueryPath::WebId {
-                        has_web_id = true;
-                    }
-                }
-
-                if !has_temporal_axis {
-                    paths.push(EntityQuerySortingRecord {
-                        path: temporal_axes_sorting_path.clone(),
-                        ordering: Ordering::Descending,
-                        nulls: None,
-                    });
-                }
-                if !has_uuid {
-                    paths.push(EntityQuerySortingRecord {
-                        path: EntityQueryPath::Uuid,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    });
-                }
-                if !has_web_id {
-                    paths.push(EntityQuerySortingRecord {
-                        path: EntityQueryPath::WebId,
-                        ordering: Ordering::Ascending,
-                        nulls: None,
-                    });
-                }
-
-                paths
-            },
-        )
-        .into_iter()
-        .map(EntityQuerySortingRecord::into_owned)
-        .collect();
-
-    EntityQuerySorting {
-        paths: sorting,
-        cursor: cursor.map(EntityQueryCursor::into_owned),
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
-pub struct GetEntitiesRequest<'q, 's, 'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'q, Entity>,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    pub limit: Option<usize>,
-    #[serde(borrow, default)]
-    pub conversions: Vec<QueryConversion<'p>>,
-    #[serde(borrow)]
-    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
-    #[serde(borrow)]
-    pub cursor: Option<EntityQueryCursor<'s>>,
-    #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
-}
-
-impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<'q> {
-    fn from(request: GetEntitiesRequest<'q, 's, 'p>) -> Self {
-        Self {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-            include_type_titles: request.include_type_titles,
-        }
-    }
-}
-
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = GetEntitiesRequest,
+    request_body = QueryEntitiesRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the request is used interactively"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -557,20 +414,21 @@ impl<'q, 's, 'p: 'q> From<GetEntitiesRequest<'q, 's, 'p>> for GetEntitiesParams<
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntitiesResponse,
+            body = QueryEntitiesResponse,
             description = "A list of entities that satisfy the given query.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entities<S>(
+async fn query_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
-    Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntitiesResponse<'static>>, Response>
+    Json(request): Json<Box<RawJsonvalue>>,
+) -> Result<Json<QueryEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -583,22 +441,39 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitiesRequest::deserialize(&request)
+    let request = QueryEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
-    if request.limit == Some(0) {
+    let (query, options) = request.into_parts();
+
+    if options.limit == Some(0) {
         tracing::warn!(
             %actor_id,
             "The limit is set to zero, so no entities will be returned."
         );
     }
 
+    // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
+    let mut heap = Heap::uninitialized();
+
+    if matches!(query, EntityQuery::Query { .. }) {
+        // The heap is going to be used in the compilation of the query and therefore needs to be
+        // primed.
+        // Doing this in a separate step allows us to be allocation free when not using HashQL
+        // queries.
+        heap.prime();
+    }
+
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
+
+    let params = options.into_params(filter);
+
     let response = store
-        .get_entities(actor_id, request.into())
+        .query_entities(actor_id, params)
         .await
         .map(|response| {
-            Json(GetEntitiesResponse {
+            Json(QueryEntitiesResponse {
                 entities: response.entities,
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
@@ -612,79 +487,21 @@ where
             })
         })
         .map_err(report_to_response);
+
     if let Some(query_logger) = &mut query_logger {
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
 }
 
-#[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "Parameter struct deserialized from JSON"
-)]
-pub struct GetEntitySubgraphRequest<'q, 's, 'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'q, Entity>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    pub limit: Option<usize>,
-    #[serde(borrow, default)]
-    pub conversions: Vec<QueryConversion<'p>>,
-    #[serde(borrow)]
-    pub sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
-    #[serde(borrow)]
-    pub cursor: Option<EntityQueryCursor<'s>>,
-    #[serde(default)]
-    pub include_count: bool,
-    #[serde(default)]
-    pub include_entity_types: Option<IncludeEntityTypeOption>,
-    #[serde(default)]
-    pub include_web_ids: bool,
-    #[serde(default)]
-    pub include_created_by_ids: bool,
-    #[serde(default)]
-    pub include_edition_created_by_ids: bool,
-    #[serde(default)]
-    pub include_type_ids: bool,
-    #[serde(default)]
-    pub include_type_titles: bool,
-}
-
-impl<'q, 's, 'p: 'q> From<GetEntitySubgraphRequest<'q, 's, 'p>> for GetEntitySubgraphParams<'q> {
-    fn from(request: GetEntitySubgraphRequest<'q, 's, 'p>) -> Self {
-        Self {
-            filter: request.filter,
-            sorting: generate_sorting_paths(
-                request.sorting_paths,
-                request.limit,
-                request.cursor,
-                &request.temporal_axes,
-            ),
-            limit: request.limit,
-            conversions: request.conversions,
-            graph_resolve_depths: request.graph_resolve_depths,
-            include_drafts: request.include_drafts,
-            include_count: request.include_count,
-            include_entity_types: request.include_entity_types,
-            temporal_axes: request.temporal_axes,
-            include_web_ids: request.include_web_ids,
-            include_created_by_ids: request.include_created_by_ids,
-            include_edition_created_by_ids: request.include_edition_created_by_ids,
-            include_type_ids: request.include_type_ids,
-            include_type_titles: request.include_type_titles,
-        }
-    }
-}
-
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntitySubgraphResponse<'r> {
+struct QueryEntitySubgraphResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -712,10 +529,11 @@ struct GetEntitySubgraphResponse<'r> {
 #[utoipa::path(
     post,
     path = "/entities/query/subgraph",
-    request_body = GetEntitySubgraphRequest,
+    request_body = QueryEntitySubgraphRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the query is interactive"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -723,20 +541,21 @@ struct GetEntitySubgraphResponse<'r> {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntitySubgraphResponse,
+            body = QueryEntitySubgraphResponse,
             description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_subgraph<S>(
+async fn query_entity_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
+) -> Result<Json<QueryEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -749,22 +568,31 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitySubgraphRequest::deserialize(&request)
+    let request = QueryEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
+    let (query, options, traversal) = request.into_parts();
 
-    if request.limit == Some(0) {
-        tracing::warn!(
-            %actor_id,
-            "The limit is set to zero, so no entities will be returned"
-        );
+    // TODO: https://linear.app/hash/issue/H-5351/reuse-parts-between-compilation-units
+    let mut heap = Heap::uninitialized();
+
+    if matches!(query, EntityQuery::Query { .. }) {
+        // The heap is going to be used in the compilation of the query and therefore needs to be
+        // primed.
+        // Doing this in a separate step allows us to be allocation free when not using HashQL
+        // queries.
+        heap.prime();
     }
 
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
+
+    let params = options.into_traversal_params(filter, traversal);
+
     let response = store
-        .get_entity_subgraph(actor_id, request.into())
+        .query_entity_subgraph(actor_id, params)
         .await
         .map(|response| {
-            Json(GetEntitySubgraphResponse {
+            Json(QueryEntitySubgraphResponse {
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
@@ -874,9 +702,9 @@ where
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
-                report.attach(hash_status::StatusCode::NotFound)
+                report.attach_opaque(hash_status::StatusCode::NotFound)
             } else if report.contains::<RaceConditionOnUpdate>() {
-                report.attach(hash_status::StatusCode::Cancelled)
+                report.attach_opaque(hash_status::StatusCode::Cancelled)
             } else {
                 report
             }
@@ -912,7 +740,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UpdateEntityEmbeddingsParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -966,7 +794,7 @@ where
         .await
         .map_err(|report| {
             if report.contains::<EntityDoesNotExist>() {
-                report.attach(hash_status::StatusCode::NotFound)
+                report.attach_opaque(hash_status::StatusCode::NotFound)
             } else {
                 report
             }

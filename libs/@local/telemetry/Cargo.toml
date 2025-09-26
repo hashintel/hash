@@ -32,6 +32,7 @@ sentry                         = { workspace = true }
 simple-mermaid                 = { workspace = true }
 tracing                        = { workspace = true }
 tracing-error                  = { workspace = true }
+tracing-flame                  = { workspace = true }
 tracing-opentelemetry          = { workspace = true }
 
 [features]

@@ -29,6 +29,10 @@ use error_stack::IntoReport;
 use super::context::{ProduceContext, ProducerId};
 
 pub mod data_type;
+pub mod entity;
+pub mod entity_type;
+pub mod ontology;
+pub mod property_type;
 pub mod user;
 
 /// Stateful producer of complex values composed from one or more distributions.
@@ -54,11 +58,11 @@ pub trait Producer<T> {
     /// Returns an error when a value cannot be produced while respecting the implementor's
     /// invariants, for example due to invalid identifiers, URL construction failures, schema
     /// violations, or exhausted retries during deduplication.
-    fn generate(&mut self, context: &ProduceContext) -> Result<T, Self::Error>;
+    fn generate(&mut self, context: ProduceContext) -> Result<T, Self::Error>;
 }
 
 pub trait ProducerExt<T>: Producer<T> {
-    fn iter_mut<'c>(&mut self, context: &'c ProduceContext) -> ProducerIter<'_, 'c, Self, T>
+    fn iter_mut(&mut self, context: ProduceContext) -> ProducerIter<'_, Self, T>
     where
         Self: Sized;
 }
@@ -67,7 +71,7 @@ impl<P, T> ProducerExt<T> for P
 where
     P: Producer<T> + Sized,
 {
-    fn iter_mut<'c>(&mut self, context: &'c ProduceContext) -> ProducerIter<'_, 'c, Self, T> {
+    fn iter_mut<'c>(&mut self, context: ProduceContext) -> ProducerIter<'_, Self, T> {
         ProducerIter {
             producer: self,
             context,
@@ -77,13 +81,13 @@ where
 }
 
 #[derive(Debug)]
-pub struct ProducerIter<'p, 'c, P: ?Sized, T> {
+pub struct ProducerIter<'p, P: ?Sized, T> {
     producer: &'p mut P,
-    context: &'c ProduceContext,
+    context: ProduceContext,
     _marker: PhantomData<fn() -> T>,
 }
 
-impl<P, T> Iterator for ProducerIter<'_, '_, P, T>
+impl<P, T> Iterator for ProducerIter<'_, P, T>
 where
     P: Producer<T> + ?Sized,
 {
@@ -98,7 +102,7 @@ where
     }
 }
 
-impl<P, T> iter::FusedIterator for ProducerIter<'_, '_, P, T> where P: Producer<T> + ?Sized {}
+impl<P, T> iter::FusedIterator for ProducerIter<'_, P, T> where P: Producer<T> + ?Sized {}
 
 fn slug_from_title(title: &str) -> String {
     // Use iterator methods for better performance
@@ -150,7 +154,7 @@ mod tests {
                 };
 
                 make_producer()
-                    .iter_mut(&context)
+                    .iter_mut(context)
                     .take(per_shard)
                     .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
                     .collect::<Vec<_>>()
@@ -169,7 +173,7 @@ mod tests {
                 };
 
                 make_producer()
-                    .iter_mut(&context)
+                    .iter_mut(context)
                     .take(per_shard)
                     .filter_map(|data_type| serde_json::to_value(data_type.ok()?).ok())
                     .collect::<Vec<_>>()

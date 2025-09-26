@@ -1,4 +1,23 @@
 [special-form-expander::invalid-type-expression] Error: Invalid type expression
+    ╭─[ <unknown>:22:3 ]
+    │
+ 22 │   { "#dict": { "a": "b" } }
+    │   ────────────┬────────────  
+    │               ╰────────────── Replace this dictionary with a proper type expression
+    │ 
+    │ Help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
+    │ 
+    │ Note: Valid type expressions include:
+    │       - Type names: String, Int, Float
+    │       - Struct types: {name: String, age: Int}
+    │       - Tuple types: (String, Int, Boolean)
+    │       - Unions: (| String Int)
+    │       - Intersections: (& String Int)
+    │       - Generic types: Array<String>, Option<Int>
+────╯
+
+
+[special-form-expander::invalid-type-expression] Error: Invalid type expression
     ╭─[ <unknown>:16:7 ]
     │
  16 │       { "#literal": 1 }
@@ -37,30 +56,11 @@
 
 
 [special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:22:3 ]
-    │
- 22 │   { "#dict": { "a": "b" } }
-    │   ────────────┬────────────  
-    │               ╰────────────── Replace this dictionary with a proper type expression
-    │ 
-    │ Help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
-
-
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
     ╭─[ <unknown>:13:9 ]
     │
- 13 │         ["::kernel::special_form::is", "x", "X"]
+ 13 │         ["::kernel::special_form::as", "x", "X"]
     │         ────────────────────┬───────────────────  
-    │                             ╰───────────────────── Replace this is with a proper type expression
+    │                             ╰───────────────────── Replace this as with a proper type expression
     │ 
     │ Help: Replace this expression with a valid type reference, struct type, or tuple type
     │ 

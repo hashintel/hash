@@ -6,24 +6,34 @@ use hashql_core::{
     r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic, Help, Note, Severity,
+    Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     label::Label,
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;
+use crate::node::variable::Variable;
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
     name: "Incorrect number of type arguments",
 };
 
-pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
+const ARGUMENT_OVERRIDE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "argument-override",
+    name: "Cannot apply type arguments to already-parameterized variable",
+};
+
+pub type LoweringDiagnostic<K = Severity> = Diagnostic<LoweringDiagnosticCategory, SpanId, K>;
+pub type LoweringDiagnosticIssues<K = Severity> =
+    DiagnosticIssues<LoweringDiagnosticCategory, SpanId, K>;
+pub type LoweringDiagnosticStatus<T> = Status<T, LoweringDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LoweringDiagnosticCategory {
     GenericArgumentMismatch,
+    ArgumentOverride,
     TypeChecking(TypeCheckDiagnosticCategory),
     Specialization(SpecializationDiagnosticCategory),
 }
@@ -40,6 +50,7 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
+            Self::ArgumentOverride => Some(&ARGUMENT_OVERRIDE),
             Self::TypeChecking(category) => Some(category),
             Self::Specialization(category) => Some(category),
         }
@@ -154,6 +165,53 @@ pub(crate) fn generic_argument_mismatch(
 
         diagnostic.add_note(Note::new(note_message));
     }
+
+    diagnostic
+}
+
+pub(crate) fn argument_override<'heap>(
+    variable: &Variable<'heap>,
+    replacement: &Variable<'heap>,
+) -> LoweringDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::ArgumentOverride,
+        Severity::Error,
+    );
+
+    let variable_arguments = variable.arguments();
+
+    diagnostic.labels.push(
+        Label::new(
+            replacement.span,
+            format!("`{}` was defined with type arguments here", variable.name()),
+        )
+        .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    for argument in variable_arguments {
+        diagnostic.labels.push(
+            Label::new(
+                argument.span,
+                "... but additional type arguments are provided here",
+            )
+            .with_order(1)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+    }
+
+    diagnostic.add_help(Help::new(format!(
+        "The variable `{}` already represents `{}` with type arguments applied. Use `{}` directly \
+         without additional type arguments, or create a new binding if you need different type \
+         parameters.",
+        variable.name(),
+        replacement.name(),
+        variable.name()
+    )));
+
+    diagnostic.add_note(Note::new(
+        "Variables that alias parameterized expressions cannot have additional type arguments \
+         applied to them, as this would create ambiguous type parameter bindings.",
+    ));
 
     diagnostic
 }

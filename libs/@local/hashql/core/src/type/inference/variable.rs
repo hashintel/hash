@@ -61,7 +61,7 @@ pub(crate) enum VariableProvenance {
 /// During type inference, the system works with both concrete types and variables that
 /// need to be solved through constraint satisfaction. These variables can represent
 /// either unknown types or generic parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, derive_more::From)]
 pub enum VariableKind {
     /// A type variable that needs to be solved through constraint satisfaction.
     Hole(HoleId),

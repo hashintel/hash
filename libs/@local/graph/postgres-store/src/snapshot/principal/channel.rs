@@ -44,25 +44,25 @@ impl Sink<Principal> for PrincipalSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.users.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll user sender")?;
+            .attach("could not poll user sender")?;
         ready!(self.machines.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll machine sender")?;
+            .attach("could not poll machine sender")?;
         ready!(self.ais.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll ai sender")?;
+            .attach("could not poll ai sender")?;
         ready!(self.actor_roles.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll actor role sender")?;
+            .attach("could not poll actor role sender")?;
         ready!(self.webs.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll web sender")?;
+            .attach("could not poll web sender")?;
         ready!(self.teams.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll team sender")?;
+            .attach("could not poll team sender")?;
         ready!(self.roles.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll role sender")?;
+            .attach("could not poll role sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -77,14 +77,14 @@ impl Sink<Principal> for PrincipalSender {
                             role_id: role.into(),
                         })
                         .change_context(SnapshotRestoreError::Read)
-                        .attach_printable("could not send user role")?;
+                        .attach("could not send user role")?;
                 }
                 match actor {
                     Actor::User(user) => self
                         .users
                         .start_send_unpin(UserActorRow { id: user.id })
                         .change_context(SnapshotRestoreError::Read)
-                        .attach_printable("could not send user"),
+                        .attach("could not send user"),
                     Actor::Machine(machine) => self
                         .machines
                         .start_send_unpin(MachineActorRow {
@@ -92,7 +92,7 @@ impl Sink<Principal> for PrincipalSender {
                             identifier: machine.identifier,
                         })
                         .change_context(SnapshotRestoreError::Read)
-                        .attach_printable("could not send machine"),
+                        .attach("could not send machine"),
                     Actor::Ai(ai) => self
                         .ais
                         .start_send_unpin(AiActorRow {
@@ -100,7 +100,7 @@ impl Sink<Principal> for PrincipalSender {
                             identifier: ai.identifier,
                         })
                         .change_context(SnapshotRestoreError::Read)
-                        .attach_printable("could not send AI"),
+                        .attach("could not send AI"),
                 }
             }
             Principal::ActorGroup(ActorGroup::Web(web)) => self
@@ -110,7 +110,7 @@ impl Sink<Principal> for PrincipalSender {
                     shortname: web.shortname,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send web"),
+                .attach("could not send web"),
             Principal::ActorGroup(ActorGroup::Team(team)) => self
                 .teams
                 .start_send_unpin(TeamRow {
@@ -119,7 +119,7 @@ impl Sink<Principal> for PrincipalSender {
                     name: team.name,
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send team"),
+                .attach("could not send team"),
             Principal::Role(role) => self
                 .roles
                 .start_send_unpin(RoleRow {
@@ -129,7 +129,7 @@ impl Sink<Principal> for PrincipalSender {
                     name: role.name(),
                 })
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send role"),
+                .attach("could not send role"),
         }
     }
 
@@ -139,25 +139,25 @@ impl Sink<Principal> for PrincipalSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.users.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush user sender")?;
+            .attach("could not flush user sender")?;
         ready!(self.machines.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush machine sender")?;
+            .attach("could not flush machine sender")?;
         ready!(self.ais.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush ai sender")?;
+            .attach("could not flush ai sender")?;
         ready!(self.actor_roles.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush actor role sender")?;
+            .attach("could not flush actor role sender")?;
         ready!(self.webs.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush web sender")?;
+            .attach("could not flush web sender")?;
         ready!(self.teams.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush team sender")?;
+            .attach("could not flush team sender")?;
         ready!(self.roles.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush role sender")?;
+            .attach("could not flush role sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -168,25 +168,25 @@ impl Sink<Principal> for PrincipalSender {
     ) -> Poll<StdResult<(), Self::Error>> {
         ready!(self.users.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close user sender")?;
+            .attach("could not close user sender")?;
         ready!(self.machines.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close machine sender")?;
+            .attach("could not close machine sender")?;
         ready!(self.ais.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close ai sender")?;
+            .attach("could not close ai sender")?;
         ready!(self.actor_roles.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close actor role sender")?;
+            .attach("could not close actor role sender")?;
         ready!(self.webs.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close web sender")?;
+            .attach("could not close web sender")?;
         ready!(self.teams.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close team sender")?;
+            .attach("could not close team sender")?;
         ready!(self.roles.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close role sender")?;
+            .attach("could not close role sender")?;
 
         Poll::Ready(Ok(()))
     }

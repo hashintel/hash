@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::borrow::Borrow;
 
 use anstyle::Color;
 use ariadne::ColorGenerator;
@@ -37,7 +38,20 @@ impl<S> Label<S> {
         &self.span
     }
 
-    pub fn message(&self) -> &str {
+    pub fn map_span<S2>(self, func: impl FnOnce(S) -> S2) -> Label<S2> {
+        Label {
+            span: func(self.span),
+            message: self.message,
+            order: self.order,
+            priority: self.priority,
+            color: self.color,
+        }
+    }
+
+    pub const fn message(&self) -> &str
+    where
+        String: [const] Borrow<str>,
+    {
         &self.message
     }
 

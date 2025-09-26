@@ -5,13 +5,17 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  type HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import {
   addActorGroupMember,
   createUserActor,
 } from "@local/hash-graph-sdk/principal/actor-group";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   type FeatureFlag,
   featureFlags,
@@ -28,7 +32,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EnabledFeatureFlagsPropertyValue,
   User as UserEntity,
@@ -49,7 +52,6 @@ import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getEntityOutgoingLinks,
-  getEntitySubgraphResponse,
   getLatestEntityById,
 } from "../primitive/entity";
 import {
@@ -159,40 +161,37 @@ export const getUserById: ImpureGraphFunction<
 export const getUserByEmail: ImpureGraphFunction<
   { email: string; includeDrafts?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                /**
-                 * @todo H-4936 update when users can have more than one email
-                 */
-                path: [
-                  "properties",
-                  systemPropertyTypes.email.propertyTypeBaseUrl,
-                  0,
-                ],
-              },
-              { parameter: params.email },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+> = async (context, authentication, params) => {
+  const {
+    entities: [userEntity, ...unexpectedEntities],
+  } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.user.entityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            {
+              /**
+               * @todo H-4936 update when users can have more than one email
+               */
+              path: [
+                "properties",
+                systemPropertyTypes.email.propertyTypeBaseUrl,
+                0,
+              ],
+            },
+            { parameter: params.email },
+          ],
+        },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -211,40 +210,37 @@ export const getUserByEmail: ImpureGraphFunction<
 export const getUserByShortname: ImpureGraphFunction<
   { shortname: string; includeDrafts?: boolean; includeEmails?: boolean },
   Promise<User | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const [userEntity, ...unexpectedEntities] = await graphApi
-    .getEntities(actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
-      },
-      // TODO: Should this be an all-time query? What happens if the user is
-      //       archived/deleted, do we want to allow users to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId, params.includeEmails),
-      ),
-    );
+> = async (context, authentication, params) => {
+  const {
+    entities: [userEntity, ...unexpectedEntities],
+  } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.user.entityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.shortname.propertyTypeBaseUrl,
+              ],
+            },
+            { parameter: params.shortname },
+          ],
+        },
+      ],
+    },
+    // TODO: Should this be an all-time query? What happens if the user is
+    //       archived/deleted, do we want to allow users to replace their
+    //       shortname?
+    //   see https://linear.app/hash/issue/H-757
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -265,8 +261,12 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
   { kratosIdentityId: string; includeDrafts?: boolean },
   Promise<User | null>
 > = async (context, authentication, params) => {
-  const [userEntity, ...unexpectedEntities] = await context.graphApi
-    .getEntities(authentication.actorId, {
+  const {
+    entities: [userEntity, ...unexpectedEntities],
+  } = await queryEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -288,17 +288,17 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        /**
-         * We don't have the user's actorId yet, so the mapping function can't match the requesting user
-         * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
-         * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
-         */
-        mapGraphApiEntityToEntity(entity, null, true),
-      ),
-    );
+      includePermissions: false,
+    },
+    {
+      /**
+       * We don't have the user's actorId yet, so the mapping function can't match the requesting user
+       * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
+       * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
+       */
+      preserveProperties: true,
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -613,11 +613,10 @@ export const getUserPendingInvitations: ImpureGraphFunction<
     actorId: systemAccountId,
   };
 
-  const { subgraph: invitationSubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: invitationSubgraph } = await queryEntitySubgraph(
     context,
     systemAccountAuthentication,
     {
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
@@ -678,6 +677,8 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           outgoing: 0,
         },
       },
+      includeDrafts: false,
+      includePermissions: false,
     },
   );
 

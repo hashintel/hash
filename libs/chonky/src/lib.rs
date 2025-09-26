@@ -50,7 +50,7 @@ pub fn link_pdfium() -> Result<Pdfium, Report<ChonkyError>> {
         let lib_path = Path::new(lib_path.as_ref())
             .canonicalize()
             .change_context(ChonkyError::Pdfium)
-            .attach_printable_lazy(|| format!("could not canonicalize path `{lib_path}`"))?;
+            .attach_with(|| format!("could not canonicalize path `{lib_path}`"))?;
         Ok(Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(&lib_path))
                 .change_context(ChonkyError::Pdfium)?,
@@ -258,7 +258,7 @@ mod tests {
             Ok(())
         } else {
             // Unexpected success, return an error
-            Err(Report::new(ChonkyError::Pdfium).attach_printable("Expected load_pdf to fail"))
+            Err(Report::new(ChonkyError::Pdfium).attach("Expected load_pdf to fail"))
         }
     }
 
@@ -281,7 +281,7 @@ mod tests {
 
         if preprocessed_pdf.len() != num_pages {
             return Err(Report::new(ChonkyError::Pdfium)
-                .attach_printable("The length of vector should be number of pages"));
+                .attach("The length of vector should be number of pages"));
         }
 
         // now check if the image contents are the same using insta snapshots

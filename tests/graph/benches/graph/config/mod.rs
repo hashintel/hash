@@ -9,7 +9,9 @@ use std::{
 
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use hash_graph_test_data::seeding::producer::{
-    data_type::DataTypeProducerConfig, user::UserProducerConfig,
+    data_type::DataTypeProducerConfig, entity::EntityProducerConfig,
+    entity_type::EntityTypeProducerConfig, property_type::PropertyTypeProducerConfig,
+    user::UserProducerConfig,
 };
 use serde::de::DeserializeOwned;
 
@@ -18,6 +20,15 @@ pub static USER_PRODUCER_CONFIGS: LazyLock<HashMap<String, UserProducerConfig>> 
 
 pub static DATA_TYPE_PRODUCER_CONFIGS: LazyLock<HashMap<String, DataTypeProducerConfig>> =
     LazyLock::new(|| load_configs_map("data_types"));
+
+pub static PROPERTY_TYPE_PRODUCER_CONFIGS: LazyLock<HashMap<String, PropertyTypeProducerConfig>> =
+    LazyLock::new(|| load_configs_map("property_types"));
+
+pub static ENTITY_TYPE_PRODUCER_CONFIGS: LazyLock<HashMap<String, EntityTypeProducerConfig>> =
+    LazyLock::new(|| load_configs_map("entity_types"));
+
+pub static ENTITY_PRODUCER_CONFIGS: LazyLock<HashMap<String, EntityProducerConfig>> =
+    LazyLock::new(|| load_configs_map("entities"));
 
 #[derive(Debug, derive_more::Display)]
 pub enum LoadConfigError {
@@ -62,9 +73,7 @@ fn load_json_configs<T: DeserializeOwned>(
             let reader = BufReader::new(file);
             let cfg = serde_json::from_reader(reader)
                 .change_context(LoadConfigError::Parse)
-                .attach_printable_lazy(|| {
-                    format!("Failed to parse config file: `{}`", path.display())
-                })?;
+                .attach_with(|| format!("Failed to parse config file: `{}`", path.display()))?;
             let key = format!("{subdir}/{stem}");
             Ok(Some((key, cfg)))
         })

@@ -10,6 +10,6 @@
     "test:unit": "mise run test:unit @rust/hashql-diagnostics --test-strategy=powerset"
   },
   "dependencies": {
-    "@rust/error-stack": "0.5.0"
+    "@rust/error-stack": "0.6.0"
   }
 }

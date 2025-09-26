@@ -47,6 +47,11 @@ receivers:
           static_configs:
             - targets: ['${tempo_api_dns}:${tempo_api_port}']
           metrics_path: '/metrics'
+        - job_name: '${prefix}-pyroscope'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${pyroscope_http_dns}:${pyroscope_http_port}']
+          metrics_path: '/metrics'
         - job_name: '${prefix}-alloy'
           scrape_interval: 60s
           static_configs:

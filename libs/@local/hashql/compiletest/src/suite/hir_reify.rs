@@ -8,7 +8,7 @@ use hashql_core::{
 };
 use hashql_hir::{intern::Interner, node::Node};
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_status};
 
 pub(crate) struct HirReifySuite;
 
@@ -26,20 +26,19 @@ impl Suite for HirReifySuite {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
 
-        let (types, lower_diagnostics) = lower(
+        let result = lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
+        let types = process_status(diagnostics, result)?;
 
         let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let node = process_status(
+            diagnostics,
+            Node::from_ast(expr, &environment, &interner, &types),
+        )?;
 
         Ok(node
             .pretty_print(&environment, PrettyOptions::default().without_color())

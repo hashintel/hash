@@ -1,0 +1,44 @@
+{
+  "schema": {
+    "domain": {
+      "local": {
+        "index": {
+          "sampling": "uniform"
+        }
+      }
+    },
+    "title": {
+      "length": [6, 12]
+    },
+    "description": {
+      "length": [20, 80]
+    },
+    "properties": {
+      "type": "range",
+      "min": 1,
+      "max": 5,
+      "required": false
+    },
+    "links": {
+      "type": "range",
+      "min": 1,
+      "max": 5
+    }
+  },
+  "metadata": {
+    "provenance": {
+      "value": {
+        "sources": [],
+        "actorType": "machine",
+        "origin": {
+          "type": "api"
+        }
+      }
+    }
+  },
+  "config": {
+    "conflict_behavior": {
+      "value": "Fail"
+    }
+  }
+}

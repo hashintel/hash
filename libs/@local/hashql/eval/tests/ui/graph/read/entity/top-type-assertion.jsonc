@@ -1,11 +1,11 @@
 //@ run: pass
 //@ description: Test type assertions (is operator) in filter expressions
 // biome-ignore format: readability
-["::core::graph::tail::collect",
-  ["::core::graph::body::filter",
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-      ["is", {"#literal": true}, "Boolean"]
+      ["as", {"#literal": true}, "Boolean"]
     ]
   ]
 ]

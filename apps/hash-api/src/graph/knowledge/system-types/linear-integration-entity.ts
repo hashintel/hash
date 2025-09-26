@@ -1,4 +1,3 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getRightEntityForLinkEntity,
   getRoots,
@@ -15,7 +14,11 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  type HashEntity,
+  queryEntities,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -28,10 +31,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   LinearIntegration as LinearIntegrationEntity,
   SyncLinearDataWith,
@@ -83,11 +82,13 @@ export const getLinearIntegrationFromEntity: PureGraphFunction<
 export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
   { linearOrgId: string; includeDrafts?: boolean },
   Promise<LinearIntegration[]>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const { linearOrgId, includeDrafts = false } = params;
 
-  const entities = await graphApi
-    .getEntities(actorId, {
+  const { entities } = await queryEntities<LinearIntegrationEntity>(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -109,12 +110,9 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity<LinearIntegrationEntity>(entity, null, true),
-      ),
-    );
+      includePermissions: false,
+    },
+  );
 
   return entities.map((entity) => getLinearIntegrationFromEntity({ entity }));
 };
@@ -129,40 +127,35 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
     includeDrafts?: boolean;
   },
   Promise<LinearIntegration | null>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
-  const entities = await graphApi
-    .getEntities(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["webId"] }, { parameter: userAccountId }],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.linearIntegration.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, null, true),
-      ),
-    );
+  const { entities } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["webId"] }, { parameter: userAccountId }],
+        },
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.linearIntegration.entityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
+              ],
+            },
+            { parameter: linearOrgId },
+          ],
+        },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   if (entities.length > 1) {
     throw new Error(
@@ -200,58 +193,53 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
     }[]
   >
 > = async (
-  { graphApi },
-  { actorId },
+  context,
+  authentication,
   { linearIntegrationEntityId, includeDrafts = false },
 ) =>
-  graphApi
-    .getEntitySubgraph(actorId, {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(
-                  linearIntegrationEntityId,
-                ),
-              },
-            ],
-          },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasRightEntity: { incoming: 0, outgoing: 1 },
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.subgraph, null, true);
-
-      const syncLinearDataWithLinkEntities = getRoots(subgraph);
-
-      return syncLinearDataWithLinkEntities.map(
-        (syncLinearDataWithLinkEntity) => {
-          const webEntity = getRightEntityForLinkEntity(
-            subgraph,
-            syncLinearDataWithLinkEntity.metadata.recordId.entityId,
-          )![0]! as HashEntity;
-
-          return { syncLinearDataWithLinkEntity, webEntity };
+  queryEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
         },
-      );
-    });
+        generateVersionedUrlMatchingFilter(
+          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+          { ignoreParents: true },
+        ),
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            {
+              parameter: extractEntityUuidFromEntityId(
+                linearIntegrationEntityId,
+              ),
+            },
+          ],
+        },
+      ],
+    },
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      hasRightEntity: { incoming: 0, outgoing: 1 },
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  }).then(({ subgraph }) => {
+    const syncLinearDataWithLinkEntities = getRoots(subgraph);
+
+    return syncLinearDataWithLinkEntities.map(
+      (syncLinearDataWithLinkEntity) => {
+        const webEntity = getRightEntityForLinkEntity(
+          subgraph,
+          syncLinearDataWithLinkEntity.metadata.recordId.entityId,
+        )![0]! as HashEntity;
+
+        return { syncLinearDataWithLinkEntity, webEntity };
+      },
+    );
+  });
 
 export const linkIntegrationToWeb: ImpureGraphFunction<
   {
@@ -271,8 +259,8 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const existingLinkEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+  const { entities: existingLinkEntities } =
+    await queryEntities<SyncLinearDataWith>(context, authentication, {
       filter: {
         all: [
           {
@@ -304,12 +292,8 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity<SyncLinearDataWith>(entity, null, true),
-      ),
-    );
+      includePermissions: false,
+    });
 
   const properties: SyncLinearDataWith["propertiesWithMetadata"] = {
     value: {

@@ -31,7 +31,7 @@ use hashql_core::{
 };
 
 use super::error::{
-    TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
+    TypeExtractorDiagnosticIssues, duplicate_struct_fields, generic_constraint_not_allowed,
     invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
@@ -191,6 +191,7 @@ impl<'heap> FromIterator<(GenericArgumentReference<'heap>, SpanId)>
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
+    pub name: Ident<'heap>,
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
 
@@ -240,7 +241,7 @@ impl<'heap> LocalVariableResolver<'heap> for TypeLocals<'heap> {
 pub(crate) struct TranslationUnit<'env, 'heap, L> {
     pub env: &'env Environment<'heap>,
     pub registry: &'env ModuleRegistry<'heap>,
-    pub diagnostics: Vec<TypeExtractorDiagnostic>,
+    pub diagnostics: TypeExtractorDiagnosticIssues,
 
     pub locals: &'env L,
 
@@ -771,9 +772,10 @@ where
     ) -> TypeDef<'heap> {
         let (kind, arguments) = self.variable_verify(variable, constraints);
 
+        let kind = self.env.intern_kind(kind);
         let partial = PartialType {
             span: variable.r#type.span,
-            kind: self.env.intern_kind(kind),
+            kind,
         };
 
         let id = self.env.types.intern_provisioned(variable.id, partial).id;

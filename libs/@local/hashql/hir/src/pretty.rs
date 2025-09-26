@@ -444,7 +444,7 @@ impl<'heap> PrettyPrint<'heap> for GraphReadHead<'heap> {
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match self {
-            Self::Entity { axis } => RcDoc::text("::core::graph::head::entities").append(
+            Self::Entity { axis } => RcDoc::text("::graph::head::entities").append(
                 RcAllocator
                     .nil()
                     .append(axis.pretty(env, boundary))
@@ -463,7 +463,7 @@ impl<'heap> PrettyPrint<'heap> for GraphReadBody<'heap> {
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match self {
-            Self::Filter(node) => RcDoc::text("::core::graph::body::filter").append(
+            Self::Filter(node) => RcDoc::text("::graph::body::filter").append(
                 RcAllocator
                     .nil()
                     .append(node.pretty(env, boundary))
@@ -478,7 +478,7 @@ impl<'heap> PrettyPrint<'heap> for GraphReadBody<'heap> {
 impl<'heap> PrettyPrint<'heap> for GraphReadTail {
     fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
         match self {
-            Self::Collect => RcDoc::text("::core::graph::tail::collect"),
+            Self::Collect => RcDoc::text("::graph::tail::collect"),
         }
     }
 }

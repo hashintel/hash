@@ -1,3 +1,4 @@
+mod contractive;
 pub mod definition;
 pub mod error;
 pub mod translate;
@@ -16,10 +17,11 @@ use hashql_core::{
         environment::{Environment, instantiate::InstantiateEnvironment},
     },
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 pub use self::definition::TypeDefinitionExtractor;
 use self::{
-    error::TypeExtractorDiagnostic,
+    error::TypeExtractorDiagnosticIssues,
     translate::{Reference, SpannedGenericArguments, TranslationUnit},
 };
 use crate::{
@@ -86,7 +88,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             unit: TranslationUnit {
                 env: environment,
                 registry,
-                diagnostics: Vec::new(),
+                diagnostics: DiagnosticIssues::new(),
                 locals,
                 bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
             },
@@ -96,7 +98,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<TypeExtractorDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> TypeExtractorDiagnosticIssues {
         core::mem::take(&mut self.unit.diagnostics)
     }
 

@@ -4,9 +4,9 @@ import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   getHashInstance,
   getHashInstanceFromEntity,
-  getInstanceAdminsTeam,
 } from "@local/hash-backend-utils/hash-instance";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
+import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 

@@ -20,7 +20,7 @@ pub enum CursorField<'a> {
     Timestamp(Timestamp<()>),
     TimeInterval(TemporalInterval<()>),
     Json(PropertyValue),
-    Uuid(Uuid),
+    Uuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid),
 }
 
 impl CursorField<'_> {

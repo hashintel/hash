@@ -30,7 +30,9 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
-    "effect": "3.13.11"
+    "@temporalio/client": "1.12.1",
+    "effect": "3.13.11",
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",

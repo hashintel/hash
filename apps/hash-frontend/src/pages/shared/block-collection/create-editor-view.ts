@@ -32,7 +32,6 @@ import { LoadingView } from "./loading-view";
 import styles from "./style.module.css";
 
 const createSavePlugin = (
-  webId: WebId,
   pageEntityId: EntityId,
   getBlocksMap: () => ComponentIdHashBlockMap,
   client: ApolloClient<unknown>,
@@ -50,7 +49,6 @@ const createSavePlugin = (
       try {
         const [newContents, newDraftToEntityId] = await save({
           apolloClient: client,
-          webId,
           blockCollectionEntityId: pageEntityId,
           doc: view.state.doc,
           store: entityStorePluginState(view.state).store,
@@ -183,7 +181,6 @@ export const createEditorView = (params: {
         errorPlugin,
         ...(pageTitleRef ? [createFocusPageTitlePlugin(pageTitleRef)] : []),
         createSavePlugin(
-          webId,
           pageEntityId,
           getBlocksMap,
           client,

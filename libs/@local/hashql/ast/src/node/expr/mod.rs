@@ -36,6 +36,7 @@
 //! While the AST itself is frontend-independent, the examples shown in this documentation use
 //! `JExpr`, which is a JSON-based syntax for HashQL. Other frontends may be added in the future,
 //! all mapping to this same core AST structure.
+pub mod r#as;
 pub mod call;
 pub mod closure;
 pub mod dict;
@@ -43,7 +44,6 @@ pub mod field;
 pub mod r#if;
 pub mod index;
 pub mod input;
-pub mod is;
 pub mod r#let;
 pub mod list;
 pub mod literal;
@@ -56,8 +56,8 @@ pub mod r#use;
 use hashql_core::span::SpanId;
 
 pub use self::{
-    call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr, r#if::IfExpr,
-    index::IndexExpr, input::InputExpr, is::IsExpr, r#let::LetExpr, list::ListExpr,
+    r#as::AsExpr, call::CallExpr, closure::ClosureExpr, dict::DictExpr, field::FieldExpr,
+    r#if::IfExpr, index::IndexExpr, input::InputExpr, r#let::LetExpr, list::ListExpr,
     literal::LiteralExpr, newtype::NewTypeExpr, r#struct::StructExpr, tuple::TupleExpr,
     r#type::TypeExpr, r#use::UseExpr,
 };
@@ -475,17 +475,17 @@ pub enum ExprKind<'heap> {
     /// ## J-Expr
     ///
     /// ```json
-    /// ["is", "value", "String"]
-    /// ["is", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
+    /// ["as", "value", "String"]
+    /// ["as", ["get", "data", "field"], {"#type": {"name": "String", "age": "Int"}}]
     /// ```
     ///
     /// ## Documentation Format
     ///
     /// ```text
-    /// value is String
-    /// get(data, field) is {name: String, age: Int}
+    /// value as String
+    /// get(data, field) as {name: String, age: Int}
     /// ```
-    Is(IsExpr<'heap>),
+    As(AsExpr<'heap>),
 
     /// The underscore expression, used as a placeholder in various contexts.
     ///

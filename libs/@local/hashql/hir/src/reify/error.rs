@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     help::Help,
     label::Label,
@@ -10,7 +10,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-pub type ReificationDiagnostic = Diagnostic<ReificationDiagnosticCategory, SpanId>;
+pub type ReificationDiagnostic<K = Severity> = Diagnostic<ReificationDiagnosticCategory, SpanId, K>;
+pub type ReificationDiagnosticIssues<K = Severity> =
+    DiagnosticIssues<ReificationDiagnosticCategory, SpanId, K>;
+pub type ReificationStatus<T> = Status<T, ReificationDiagnosticCategory, SpanId>;
 
 const UNSUPPORTED_CONSTRUCT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unsupported-construct",

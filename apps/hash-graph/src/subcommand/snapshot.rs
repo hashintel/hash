@@ -117,7 +117,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
 
             pool.dump_snapshot(write, settings)
                 .change_context(GraphError)
-                .attach_printable("Failed to produce snapshot dump")?;
+                .attach("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
@@ -138,7 +138,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             .restore_snapshot(read, 10_000, args.ignore_validation_errors)
             .await
             .change_context(GraphError)
-            .attach_printable("Failed to restore snapshot")?;
+            .attach("Failed to restore snapshot")?;
 
             tracing::info!("Snapshot restored successfully");
         }

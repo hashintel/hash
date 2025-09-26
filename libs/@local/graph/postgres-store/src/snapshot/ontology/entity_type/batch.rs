@@ -43,7 +43,7 @@ where
             ))
             .await
             .change_context(InsertionError)
-            .attach_printable("could not create temporary tables")?;
+            .attach("could not create temporary tables")?;
         Ok(())
     }
 

@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getOutgoingLinkAndTargetEntities,
@@ -10,10 +9,9 @@ import type {
   PetriNetDefinitionObject,
   TransitionNodeData,
 } from "@hashintel/petrinaut";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -27,18 +25,18 @@ import type {
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type { PersistedNet } from "../use-process-save-and-load";
 
 export const getPersistedNetsFromSubgraph = (
-  data: GetEntitySubgraphQuery,
+  data: QueryEntitySubgraphQuery,
 ): PersistedNet[] => {
-  const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-    EntityRootType<HashEntity<PetriNet>>
-  >(data.getEntitySubgraph.subgraph);
+  const subgraph = deserializeQueryEntitySubgraphResponse<PetriNet>(
+    data.queryEntitySubgraph,
+  ).subgraph;
 
   const nets = getRoots(subgraph);
 
@@ -162,7 +160,7 @@ export const getPersistedNetsFromSubgraph = (
     const parentProcess = outgoingLinkAndRightEntities[0]?.rightEntity[0];
 
     const userEditable =
-      !!data.getEntitySubgraph.userPermissionsOnEntities?.[net.entityId]?.edit;
+      !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.edit;
 
     return {
       entityId: net.entityId,
@@ -185,9 +183,9 @@ export const getPersistedNetsFromSubgraph = (
 
 export const usePersistedNets = () => {
   const { data, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: {
@@ -213,8 +211,8 @@ export const usePersistedNets = () => {
         },
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
+        includePermissions: true,
       },
-      includePermissions: true,
     },
   });
 

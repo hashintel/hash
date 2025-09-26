@@ -30,7 +30,7 @@ fn current_commit() -> Result<String, Box<dyn Error + Send + Sync>> {
         std::process::Command::new("git")
             .args(["rev-parse", "HEAD"])
             .output()
-            .attach_printable("Could not get current commit hash")?
+            .attach("Could not get current commit hash")?
             .stdout,
     )?
     .trim()

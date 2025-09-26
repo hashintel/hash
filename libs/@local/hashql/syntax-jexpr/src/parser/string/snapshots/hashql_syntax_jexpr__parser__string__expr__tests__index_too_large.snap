@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/expr.rs
+description: Index too large
+expression: ".18446744073709551616"
+info:
+  kind: Err
+---
+.18446744073709551616
+ ^
+invalid field
+number too large to fit in target type

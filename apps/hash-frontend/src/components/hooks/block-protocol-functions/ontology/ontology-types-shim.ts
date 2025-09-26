@@ -11,6 +11,7 @@ import type {
   CreateResourceError,
   DataTypeRootType,
   EntityTypeRootType,
+  GraphResolveDepths,
   PropertyTypeRootType,
   ReadOrModifyResourceError,
   Subgraph,
@@ -70,7 +71,7 @@ export type QueryPropertyTypesRequest = {
   latestOnly?: boolean;
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
-    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+    Pick<GraphResolveDepths, "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
@@ -84,7 +85,7 @@ export type QueryPropertyTypesMessageCallback = MessageCallback<
 export type GetPropertyTypeRequest = {
   propertyTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
-    Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
+    Pick<GraphResolveDepths, "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
 };
 
@@ -123,7 +124,7 @@ export type QueryEntityTypesRequest = {
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<
-      Subgraph["depths"],
+      GraphResolveDepths,
       | "constrainsValuesOn"
       | "constrainsPropertiesOn"
       | "constrainsLinksOn"
@@ -143,7 +144,7 @@ export type GetEntityTypeRequest = {
   entityTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<
-      Subgraph["depths"],
+      GraphResolveDepths,
       | "constrainsValuesOn"
       | "constrainsPropertiesOn"
       | "constrainsLinksOn"

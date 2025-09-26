@@ -32,7 +32,7 @@ pub(crate) struct Args {
     ///
     /// Supports glob patterns like "*-test*" to filter which crates are excluded.
     /// When multiple patterns are provided, crates matching any pattern are excluded.
-    #[arg(short, long, default_value = "clorinde")]
+    #[arg(short, long)]
     exclude: Vec<String>,
 
     /// The root crate to highlight with a thicker border (if any)
@@ -124,7 +124,7 @@ fn output_diagram(
 
     fs::File::create(output_path)
         .change_context(DependencyDiagramError::FileWrite)
-        .attach_printable_lazy(|| output_path.display().to_string())?
+        .attach_with(|| output_path.display().to_string())?
         .write_all(diagram.as_bytes())
         .change_context(DependencyDiagramError::FileWrite)?;
 

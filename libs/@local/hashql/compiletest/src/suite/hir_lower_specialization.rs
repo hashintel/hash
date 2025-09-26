@@ -7,6 +7,7 @@ use hashql_core::{
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
 };
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     fold::Fold as _,
     intern::Interner,
@@ -18,10 +19,8 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{
-    Suite, SuiteDiagnostic,
-    common::{Header, process_diagnostics, process_result},
-};
+use super::{Suite, SuiteDiagnostic, common::Header};
+use crate::suite::common::{process_issues, process_status};
 
 pub(crate) struct HirLowerSpecializationSuite;
 
@@ -40,20 +39,19 @@ impl Suite for HirLowerSpecializationSuite {
         let registry = ModuleRegistry::new(&environment);
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
+        let result = lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
+        let types = process_status(diagnostics, result)?;
 
         let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let node = process_status(
+            diagnostics,
+            Node::from_ast(expr, &environment, &interner, &types),
+        )?;
 
         let _ = writeln!(
             output,
@@ -62,39 +60,47 @@ impl Suite for HirLowerSpecializationSuite {
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
 
-        let mut replacement = AliasReplacement::new(&interner);
+        let mut issues = DiagnosticIssues::new();
+        let mut replacement = AliasReplacement::new(&interner, &mut issues);
         let Ok(node) = replacement.fold_node(node);
 
-        let mut converter =
-            ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
+        let mut converter = ConvertTypeConstructor::new(
+            &interner,
+            &types.locals,
+            &registry,
+            &environment,
+            &mut issues,
+        );
+        let Ok(node) = converter.fold_node(node);
 
-        let node = process_result(diagnostics, converter.fold_node(node))?;
+        process_issues(diagnostics, issues)?;
 
         let mut inference = TypeInference::new(&environment, &registry);
         inference.visit_node(&node);
 
         let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_diagnostics(diagnostics, inference_diagnostics)?;
+        process_issues(diagnostics, inference_diagnostics)?;
 
-        let (substitution, solver_diagnostics) = solver.solve();
-        process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
+        let substitution = process_status(diagnostics, solver.solve())?;
 
         environment.substitution = substitution;
 
         let mut checking = TypeChecking::new(&environment, &registry, inference_residual);
         checking.visit_node(&node);
 
-        let (mut residual, checking_diagnostics) = checking.finish();
-        process_diagnostics(diagnostics, checking_diagnostics)?;
+        let mut residual = process_status(diagnostics, checking.finish())?;
 
+        let mut issues = DiagnosticIssues::new();
         let mut specialisation = Specialization::new(
             &environment,
             &interner,
             &mut residual.types,
             residual.intrinsics,
+            &mut issues,
         );
+        let Ok(node) = specialisation.fold_node(node);
 
-        let node = process_result(diagnostics, specialisation.fold_node(node))?;
+        process_issues(diagnostics, issues)?;
 
         let _ = writeln!(
             output,

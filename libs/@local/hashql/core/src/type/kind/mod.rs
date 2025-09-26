@@ -1965,7 +1965,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Primitive <: _
@@ -1978,7 +1980,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Intrinsic <: _
@@ -1991,7 +1995,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Struct <: _
@@ -2004,7 +2010,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Tuple(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Tuple <: _
@@ -2017,7 +2025,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Closure(_),
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Closure <: _
@@ -2030,7 +2040,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
+                | Self::Tuple(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {}
 
             // Apply <: _
@@ -2048,7 +2060,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 lhs.collect_substitution_constraints(self.span, env);
                 env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
@@ -2063,7 +2077,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Apply(rhs),
             ) => {
                 rhs.collect_substitution_constraints(supertype.span, env);
@@ -2086,7 +2102,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 lhs.collect_argument_constraints(self.span, env, false);
                 env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
@@ -2102,7 +2120,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Generic(rhs),
             ) => {
                 rhs.collect_argument_constraints(supertype.span, env, false);
@@ -2123,12 +2143,15 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
@@ -2145,13 +2168,16 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Union(rhs),
             ) => {
                 let self_variants = [self.id];
                 let super_variants = supertype.with(rhs).unnest(env);
 
                 UnionType::collect_constraints_variants(
+                    self.id,
                     supertype.id,
                     supertype.span,
                     &self_variants,
@@ -2173,7 +2199,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
             ) => {
                 let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
@@ -2194,7 +2222,9 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Infer(_)
-                | Self::Param(_),
+                | Self::Param(_)
+                | Self::Never
+                | Self::Unknown,
                 Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
@@ -2210,7 +2240,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Infer <: _
-            (&Self::Infer(Infer { hole: self_id }), _) => {
+            (
+                &Self::Infer(Infer { hole: self_id }),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {
                 let variable = Variable {
                     span: self.span,
                     kind: VariableKind::Hole(self_id),
@@ -2225,7 +2265,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // _ <: Infer
-            (_, &Self::Infer(Infer { hole: supertype_id })) => {
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+                &Self::Infer(Infer { hole: supertype_id }),
+            ) => {
                 let variable = Variable {
                     span: supertype.span,
                     kind: VariableKind::Hole(supertype_id),
@@ -2240,7 +2290,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Param <: _
-            (&Self::Param(Param { argument }), _) => {
+            (
+                &Self::Param(Param { argument }),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {
                 let variable = Variable {
                     span: self.span,
                     kind: VariableKind::Generic(argument),
@@ -2255,7 +2315,17 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // _ <: Param
-            (_, &Self::Param(Param { argument })) => {
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+                &Self::Param(Param { argument }),
+            ) => {
                 let variable = Variable {
                     span: supertype.span,
                     kind: VariableKind::Generic(argument),
@@ -2269,11 +2339,19 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 env.collect_dependencies(self.id, variable);
             }
 
-            // `Never <: _` | `_ <: Never`
-            (Self::Never, _) | (_, Self::Never) => {}
-
-            // `_ <: Unknown` | `Unknown <: _`
-            (_, Self::Unknown) | (Self::Unknown, _) => {}
+            // `Never <: _`
+            // `Unknown <: _`
+            (
+                Self::Never | Self::Unknown,
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Never
+                | Self::Unknown,
+            ) => {}
         }
     }
 
