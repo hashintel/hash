@@ -1834,9 +1834,12 @@ mod tests {
                     let has_web_permit = permits.iter().any(|permit| {
                         matches!(
                             permit,
-                            Filter::Exists {
-                                path: EntityQueryPath::WebId
-                            }
+                            Filter::Equal(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::WebId
+                                },
+                                _
+                            )
                         )
                     });
 

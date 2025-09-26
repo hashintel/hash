@@ -201,9 +201,9 @@ mod tests {
             )
         );
 
-        let filter_c = Filter::Exists {
+        let filter_c = Filter::Not(Box::new(Filter::Exists {
             path: DataTypeQueryPath::Description,
-        };
+        }));
         where_clause.add_condition(
             compiler
                 .compile_filter(&filter_c)
