@@ -32,7 +32,7 @@ use crate::{
     node::{
         HirId, Node,
         access::{field::FieldAccess, index::IndexAccess},
-        branch::{Branch, r#if::If},
+        branch::r#if::If,
         call::Call,
         closure::Closure,
         data::{Data, Literal},
