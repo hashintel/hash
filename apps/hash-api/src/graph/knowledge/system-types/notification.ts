@@ -512,17 +512,12 @@ export const getCommentNotification: ImpureGraphFunction<
           {
             any: [
               {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                  //   @see https://linear.app/hash/issue/H-1207
-                  null,
-                ],
+                exists: {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
+                  ],
+                },
               },
               {
                 equal: [
@@ -546,6 +541,7 @@ export const getCommentNotification: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

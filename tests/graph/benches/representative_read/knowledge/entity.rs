@@ -43,13 +43,13 @@ pub fn bench_get_entity_by_id(
                     actor_id,
                     QueryEntitiesParams {
                         filter: Filter::Equal(
-                            Some(FilterExpression::Path {
+                            FilterExpression::Path {
                                 path: EntityQueryPath::Uuid,
-                            }),
-                            Some(FilterExpression::Parameter {
+                            },
+                            FilterExpression::Parameter {
                                 parameter: Parameter::Uuid(entity_uuid.into()),
                                 convert: None,
-                            }),
+                            },
                         ),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -88,17 +88,17 @@ pub fn bench_query_entities_by_property(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
                     PathToken::Field(Cow::Borrowed(
                         "https://blockprotocol.org/@alice/types/property-type/name/",
                     )),
                 ]))),
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
                 convert: None,
-            }),
+            },
         );
         let response = store
             .query_entity_subgraph(
@@ -146,7 +146,7 @@ pub fn bench_get_link_by_target_by_property(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                     path: Box::new(EntityQueryPath::Properties(Some(
@@ -156,11 +156,11 @@ pub fn bench_get_link_by_target_by_property(
                     ))),
                     direction: EdgeDirection::Outgoing,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
                 convert: None,
-            }),
+            },
         );
         let response = store
             .query_entity_subgraph(
