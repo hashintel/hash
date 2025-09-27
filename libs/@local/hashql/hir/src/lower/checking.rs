@@ -10,12 +10,12 @@ use hashql_core::{
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
-        TypeBuilder, TypeId,
+        PartialType, TypeBuilder, TypeId,
         environment::{
             AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment, Variance,
         },
         error::TypeCheckDiagnosticIssues,
-        kind::generic::GenericArgumentReference,
+        kind::{PrimitiveType, TypeKind, generic::GenericArgumentReference},
     },
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -32,7 +32,7 @@ use crate::{
     node::{
         HirId, Node,
         access::{field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        branch::{Branch, r#if::If},
         call::Call,
         closure::Closure,
         data::{Data, Literal},
@@ -422,8 +422,21 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
             .insert_unique(Universe::Value, self.current, returns_id);
     }
 
-    fn visit_branch(&mut self, _: &'heap Branch<'heap>) {
-        unimplemented!()
+    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
+        visit::walk_if(self, r#if);
+
+        // the test expression must evaluate to a boolean
+        self.verify_subtype(
+            self.types[Universe::Value][&r#if.test.id],
+            self.env.intern_type(PartialType {
+                span: r#if.span,
+                kind: self
+                    .env
+                    .intern_kind(TypeKind::Primitive(PrimitiveType::Boolean)),
+            }),
+        );
+
+        self.transfer_type(self.current);
     }
 
     fn visit_closure(&mut self, closure: &'heap Closure<'heap>) {

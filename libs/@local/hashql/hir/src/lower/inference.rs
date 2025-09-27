@@ -16,7 +16,10 @@ use hashql_core::{
             Environment, InferenceEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         inference::{InferenceSolver, VariableCollector},
-        kind::generic::{GenericArgumentReference, GenericSubstitution},
+        kind::{
+            PrimitiveType, TypeKind, UnionType,
+            generic::{GenericArgumentReference, GenericSubstitution},
+        },
         visit::Visitor as _,
     },
 };
@@ -26,7 +29,7 @@ use crate::{
     node::{
         HirId, Node,
         access::{field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        branch::r#if::If,
         call::Call,
         closure::Closure,
         data::Literal,
@@ -434,8 +437,34 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // from the types provided when we do the type-check.
     }
 
-    fn visit_branch(&mut self, _: &'heap Branch<'heap>) {
-        unimplemented!()
+    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
+        visit::walk_if(self, r#if);
+
+        let test = self.types[Universe::Value][&r#if.test.id];
+        let then = self.types[Universe::Value][&r#if.then.id];
+        let r#else = self.types[Universe::Value][&r#if.r#else.id];
+
+        // The output is the union of the then and else branches
+        let output = self.env.intern_type(PartialType {
+            span: r#if.span,
+            kind: self.env.intern_kind(TypeKind::Union(UnionType {
+                variants: self.env.intern_type_ids(&[then, r#else]),
+            })),
+        });
+
+        self.types
+            .insert_unique(Universe::Value, self.current, output);
+
+        let test_expected = self.env.intern_type(PartialType {
+            span: r#if.span,
+            kind: self
+                .env
+                .intern_kind(TypeKind::Primitive(PrimitiveType::Boolean)),
+        });
+
+        // test <: Boolean
+        self.inference
+            .collect_constraints(Variance::Covariant, test, test_expected);
     }
 
     fn visit_closure(
