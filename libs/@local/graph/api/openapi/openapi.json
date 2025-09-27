@@ -4523,6 +4523,17 @@
         },
         "additionalProperties": false
       },
+      "EntityPermissions": {
+        "type": "object",
+        "properties": {
+          "update": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEditionId"
+            }
+          }
+        }
+      },
       "EntityProvenance": {
         "allOf": [
           {
@@ -4551,7 +4562,8 @@
         "type": "object",
         "required": [
           "temporalAxes",
-          "includeDrafts"
+          "includeDrafts",
+          "includePermissions"
         ],
         "properties": {
           "conversions": {
@@ -4587,6 +4599,9 @@
               }
             ],
             "nullable": true
+          },
+          "includePermissions": {
+            "type": "boolean"
           },
           "includeTypeIds": {
             "type": "boolean"
@@ -7989,6 +8004,12 @@
               "$ref": "#/components/schemas/Entity"
             }
           },
+          "permissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
+            }
+          },
           "typeIds": {
             "type": "object",
             "additionalProperties": {
@@ -8148,6 +8169,12 @@
             "additionalProperties": {
               "type": "integer",
               "minimum": 0
+            }
+          },
+          "entityPermissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
             }
           },
           "subgraph": {

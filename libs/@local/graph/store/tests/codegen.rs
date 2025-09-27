@@ -18,6 +18,7 @@ fn index() -> io::Result<()> {
         "@rust/hash-graph-authorization/types",
         ["ActionName", "Effect", "PrincipalConstraint"],
     );
+    generator.add_import_declaration("@blockprotocol/type-system-rs/types", ["EntityEditionId"]);
 
     for (type_id, _, type_definition) in collection.iter() {
         if type_definition.module.starts_with("hash_graph_store") {

@@ -5,8 +5,10 @@ import type {
   Subgraph,
 } from "@blockprotocol/graph";
 import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
-import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type EntityPermissionsMap,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -32,7 +34,7 @@ export const useEntityById = ({
 }): {
   loading: boolean;
   entitySubgraph?: Subgraph<EntityRootType>;
-  permissions?: UserPermissionsOnEntities;
+  permissions?: EntityPermissionsMap;
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
   const { data, loading } = useQuery<

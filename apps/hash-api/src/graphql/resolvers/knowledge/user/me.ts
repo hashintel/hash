@@ -1,41 +1,62 @@
-import { serializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { splitEntityId } from "@blockprotocol/type-system";
+import {
+  queryEntitySubgraph,
+  serializeQueryEntitySubgraphResponse,
+} from "@local/hash-graph-sdk/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 
-import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
-import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
 
 export const meResolver: ResolverFn<
   Query["me"],
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryMeArgs
-> = async (_, { hasLeftEntity, hasRightEntity }, graphQLContext, info) => {
-  const { authentication, user } = graphQLContext;
+> = async (_, { hasLeftEntity, hasRightEntity }, graphQLContext, __) => {
+  const [webId, entityUuid, draftId] = splitEntityId(
+    graphQLContext.user.entity.metadata.recordId.entityId,
+  );
 
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  const userSubgraph = await getLatestEntityRootedSubgraph(
-    context,
-    authentication,
+  const { subgraph, entityPermissions } = await queryEntitySubgraph(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
     {
-      entityId: user.entity.metadata.recordId.entityId,
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["webId"] }, { parameter: webId }],
+          },
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+          ...(draftId
+            ? [
+                {
+                  equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                },
+              ]
+            : []),
+        ],
+      },
       graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
         hasLeftEntity,
         hasRightEntity,
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: !!draftId,
+      includePermissions: false,
     },
-  );
-
-  const userPermissionsOnEntities = await getUserPermissionsOnSubgraph(
-    graphQLContext,
-    info,
-    userSubgraph,
-  );
+  ).then(serializeQueryEntitySubgraphResponse);
 
   return {
-    subgraph: serializeSubgraph(userSubgraph),
-    userPermissionsOnEntities,
+    subgraph,
+    userPermissionsOnEntities: entityPermissions!,
   };
 };

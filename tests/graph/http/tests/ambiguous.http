@@ -379,7 +379,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
