@@ -1,21 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useRef } from "react";
 
-import { calculateRefractionSpecular } from "../lib/specular";
+import { calculateSpecularImage } from "../lib/specular";
 
 // Define the args type for the specular function parameters
 interface SpecularArgs {
-  objectWidth: number;
-  objectHeight: number;
+  width: number;
+  height: number;
   radius: number;
-  bezelWidth: number;
   specularAngle: number;
   dpr: number;
 }
 
-// Specular visualization story
 const meta: Meta<SpecularArgs> = {
-  title: "Specular/Refraction Visualization",
+  title: "Internals/Specular",
   parameters: {
     layout: "centered",
     docs: {
@@ -31,9 +29,7 @@ object that can be rendered on a canvas to show realistic lighting effects.
 
 - **Object Dimensions**: Width and height of the object
 - **Radius**: Corner radius for rounded shapes
-- **Bezel Width**: Width of the bezel frame around the object
 - **Specular Angle**: Angle of the light source in radians
-- **Device Pixel Ratio**: Scale factor for high-DPI displays
 
 Use the controls below to adjust the parameters and see how they affect the specular pattern.
         `,
@@ -41,7 +37,8 @@ Use the controls below to adjust the parameters and see how they affect the spec
     },
   },
   argTypes: {
-    objectWidth: {
+    width: {
+      name: "Width",
       control: {
         type: "range",
         min: 100,
@@ -50,7 +47,8 @@ Use the controls below to adjust the parameters and see how they affect the spec
       },
       description: "Width of the object in pixels",
     },
-    objectHeight: {
+    height: {
+      name: "Height",
       control: {
         type: "range",
         min: 100,
@@ -60,6 +58,7 @@ Use the controls below to adjust the parameters and see how they affect the spec
       description: "Height of the object in pixels",
     },
     radius: {
+      name: "Radius",
       control: {
         type: "range",
         min: 0,
@@ -68,16 +67,8 @@ Use the controls below to adjust the parameters and see how they affect the spec
       },
       description: "Corner radius of the object",
     },
-    bezelWidth: {
-      control: {
-        type: "range",
-        min: 1,
-        max: 50,
-        step: 1,
-      },
-      description: "Width of the bezel frame",
-    },
     specularAngle: {
+      name: "Specular Angle",
       control: {
         type: "range",
         min: 0,
@@ -88,10 +79,9 @@ Use the controls below to adjust the parameters and see how they affect the spec
     },
   },
   args: {
-    objectWidth: 300,
-    objectHeight: 200,
+    width: 300,
+    height: 200,
     radius: 20,
-    bezelWidth: 16,
     specularAngle: Math.PI / 3,
   },
 };
@@ -102,10 +92,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Visualizes the specular refraction calculation on a canvas.
+ * Visualizes only the rendered specular on a canvas.
  * Use the controls to adjust the parameters and see how they affect the specular pattern.
  */
-export const SpecularVisualization: Story = {
+export const Preview: Story = {
   render: (args: SpecularArgs) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -121,21 +111,18 @@ export const SpecularVisualization: Story = {
       }
 
       // Set canvas size to match the object dimensions
-      canvas.width = args.objectWidth;
-      canvas.height = args.objectHeight;
+      canvas.width = args.width;
+      canvas.height = args.height;
 
       try {
-        const dpr = 2;
-
         // Calculate the specular pattern
-        const imageData = calculateRefractionSpecular(
-          args.objectWidth,
-          args.objectHeight,
-          args.radius,
-          args.bezelWidth,
-          args.specularAngle,
-          dpr
-        );
+        const imageData = calculateSpecularImage({
+          width: args.width,
+          height: args.height,
+          radius: args.radius,
+          specularAngle: args.specularAngle,
+          pixelRatio: 2,
+        });
 
         // Scale the ImageData if needed due to device pixel ratio
         const scaledCanvas = document.createElement("canvas");
@@ -144,8 +131,8 @@ export const SpecularVisualization: Story = {
           return;
         }
 
-        scaledCanvas.width = Math.round(args.objectWidth * dpr);
-        scaledCanvas.height = Math.round(args.objectHeight * dpr);
+        scaledCanvas.width = imageData.width;
+        scaledCanvas.height = imageData.height;
 
         scaledCtx.putImageData(imageData as ImageData, 0, 0);
 
@@ -169,39 +156,17 @@ export const SpecularVisualization: Story = {
         // eslint-disable-next-line no-console
         console.error("Specular calculation error:", error);
       }
-    }, [
-      args.objectWidth,
-      args.objectHeight,
-      args.radius,
-      args.bezelWidth,
-      args.specularAngle,
-    ]);
+    }, [args.width, args.height, args.radius, args.specularAngle]);
 
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <h3>Specular Preview</h3>
-        <canvas
-          ref={canvasRef}
-          style={{
-            maxWidth: "100%",
-            height: "auto",
-            backgroundColor: "#000",
-            padding: 40,
-            borderRadius: 4,
-          }}
-        />
-        <div style={{ marginTop: "1rem", fontSize: "14px", color: "#666" }}>
-          <p>
-            Canvas: {args.objectWidth} × {args.objectHeight}px
-          </p>
-          <p>
-            Radius: {args.radius}px, Bezel: {args.bezelWidth}px
-          </p>
-          <p>
-            Specular Angle: {((args.specularAngle * 180) / Math.PI).toFixed(1)}°
-          </p>
-          <p>Device Pixel Ratio: {args.dpr}</p>
-        </div>
+      <div
+        style={{
+          textAlign: "center",
+          backgroundColor: "#000",
+          padding: 70,
+        }}
+      >
+        <canvas ref={canvasRef} style={{ maxWidth: "100%", height: "auto" }} />
       </div>
     );
   },

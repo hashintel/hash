@@ -195,7 +195,7 @@ export const WithDynamicallySizedChildren = {
     specularOpacity: 0.6,
     specularSaturation: 12,
     scaleRatio: 0.9,
-    bezelWidth: 16,
+    bezelWidth: 14,
     glassThickness: 80,
     refractiveIndex: 1.45,
     // These are minimum dimensions - actual size will be determined by children

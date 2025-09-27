@@ -14,14 +14,15 @@ const SLIDER_HEIGHT = 4;
 const THUMB_WIDTH = 16;
 const THUMB_HEIGHT = 16;
 const THUMB_RADIUS = THUMB_HEIGHT / 2;
-const THUMB_ACTIVE_SCALE = 2;
+const THUMB_BEZEL_WIDTH = THUMB_RADIUS * 0.7;
+const THUMB_ACTIVE_SCALE = 2.2;
 
 const TRACK_COLOR = "#89898F66";
-const TRACK_ACTIVE = "#000000";
+const TRACK_ACTIVE = "#189fa8ff";
 
 const DEFAULT_SPECULAR_OPACITY = 0.4;
 const DEFAULT_SPECULAR_SATURATION = 7;
-const DEFAULT_BLUR_LEVEL = 0;
+const DEFAULT_BLUR_LEVEL = 2;
 const DEFAULT_GLASS_THICKNESS = 16;
 const DEFAULT_REFRACTIVE_INDEX = 1.5;
 
@@ -56,6 +57,7 @@ export const Slider: React.FC<SliderProps> = ({
   const thumbWidth = THUMB_WIDTH;
   const thumbHeight = THUMB_HEIGHT;
   const thumbRadius = THUMB_RADIUS;
+  const thumbBezelWidth = THUMB_BEZEL_WIDTH;
 
   return (
     <>
@@ -67,11 +69,11 @@ export const Slider: React.FC<SliderProps> = ({
         width={thumbWidth}
         height={thumbHeight}
         radius={thumbRadius}
-        bezelWidth={thumbRadius * 0.8}
+        bezelWidth={thumbBezelWidth}
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
-        dpr={4}
+        pixelRatio={6}
       />
 
       <BaseSlider.Root
@@ -149,15 +151,16 @@ export const Slider: React.FC<SliderProps> = ({
               outline: "none",
               transition: "transform 0.1s linear",
               "& > div": {
-                backgroundColor: "black",
+                backgroundColor: TRACK_ACTIVE,
                 transformOrigin: "center",
                 transition:
                   "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease",
               },
               "&[data-dragging] > div": {
                 transform: `scale(${THUMB_ACTIVE_SCALE})`,
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                boxShadow:
+                  "0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)",
               },
             })}
           >

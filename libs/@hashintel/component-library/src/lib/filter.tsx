@@ -6,8 +6,9 @@ import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
 } from "./displacement-map";
+import { getDevicePixelRatio } from "./get-device-pixel-ratio";
 import { imageDataToUrl } from "./image-data-to-url";
-import { calculateRefractionSpecular } from "./specular";
+import { calculateSpecularImage } from "./specular";
 import { CONVEX } from "./surface-equations";
 import { useDebounceMotionValue } from "./use-debounce-motion-value";
 import { useToMotion } from "./use-to-motion";
@@ -30,8 +31,8 @@ type FILTER_PROPS = {
   refractiveIndex: MotionValue<number>;
   specularOpacity: MotionValue<number>;
   specularSaturation: MotionValue<number>;
-  dpr: number;
-  bezelHeightFn?: (x: number) => number;
+  bezelHeightFn: (x: number) => number;
+  pixelRatio: number;
 };
 
 const FILTER: React.FC<FILTER_PROPS> = memo(
@@ -47,9 +48,10 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     scaleRatio,
     specularOpacity,
     specularSaturation,
-    bezelHeightFn = CONVEX,
-    dpr = 2,
+    bezelHeightFn,
+    pixelRatio,
   }) => {
+    // Debounce width/height to avoid excessive recalculations of displacement/specular maps during rapid size changes
     const imageWidth = useDebounceMotionValue(width, 40);
     const imageHeight = useDebounceMotionValue(height, 40);
 
@@ -67,33 +69,27 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     );
 
     const displacementMap = useTransform(() => {
-      return calculateDisplacementMap(
-        imageWidth.get(),
-        imageHeight.get(),
-        radius.get(),
-        bezelWidth.get(),
-        maximumDisplacement.get(),
-        map.get(),
-        dpr
-      );
+      return calculateDisplacementMap({
+        width: imageWidth.get(),
+        height: imageHeight.get(),
+        radius: radius.get(),
+        bezelWidth: bezelWidth.get(),
+        precomputedDisplacementMap: map.get(),
+        maximumDisplacement: maximumDisplacement.get(),
+        pixelRatio,
+      });
     });
 
     const specularLayer = useTransform(() => {
-      return calculateRefractionSpecular(
-        imageWidth.get(),
-        imageHeight.get(),
-        radius.get(),
-        50,
-        undefined,
-        dpr
-      );
+      return calculateSpecularImage({
+        width: imageWidth.get(),
+        height: imageHeight.get(),
+        radius: radius.get(),
+        specularAngle: Math.PI / 4,
+        pixelRatio,
+      });
     });
 
-    const displacementMapDataUrl = useTransform(
-      displacementMap,
-      imageDataToUrl
-    );
-    const specularLayerDataUrl = useTransform(specularLayer, imageDataToUrl);
     const scale = useTransform(
       () => maximumDisplacement.get() * scaleRatio.get()
     );
@@ -107,7 +103,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         />
 
         <motion.feImage
-          href={displacementMapDataUrl}
+          href={useTransform(displacementMap, imageDataToUrl)}
           x={0}
           y={0}
           width={width}
@@ -134,7 +130,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         />
 
         <motion.feImage
-          href={specularLayerDataUrl}
+          href={useTransform(specularLayer, imageDataToUrl)}
           x={0}
           y={0}
           width={width}
@@ -196,8 +192,8 @@ type FilterProps = {
   refractiveIndex: number | MotionValue<number>;
   specularOpacity: number | MotionValue<number>;
   specularSaturation?: number | MotionValue<number>;
-  dpr?: number;
   bezelHeightFn?: (x: number) => number;
+  pixelRatio?: number;
 };
 
 export const Filter: React.FC<FilterProps> = memo(
@@ -214,7 +210,7 @@ export const Filter: React.FC<FilterProps> = memo(
     specularOpacity,
     specularSaturation = 4,
     bezelHeightFn = CONVEX,
-    dpr = 2,
+    pixelRatio,
   }) => (
     <FILTER
       id={id}
@@ -229,7 +225,7 @@ export const Filter: React.FC<FilterProps> = memo(
       specularOpacity={useToMotion(specularOpacity)}
       specularSaturation={useToMotion(specularSaturation)}
       bezelHeightFn={bezelHeightFn}
-      dpr={dpr}
+      pixelRatio={pixelRatio ?? getDevicePixelRatio()}
     />
   )
 );

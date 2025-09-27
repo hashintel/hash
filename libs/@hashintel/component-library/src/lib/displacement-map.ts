@@ -1,8 +1,6 @@
 /* eslint-disable id-length */
 import { createImageData } from "canvas";
 
-import { getDevicePixelRatio } from "./get-device-pixel-ratio";
-
 export function calculateDisplacementMapRadius(
   glassThickness: number = 200,
   bezelWidth: number = 50,
@@ -54,61 +52,54 @@ export function calculateDisplacementMapRadius(
   });
 }
 
-export function calculateDisplacementMap(
-  objectWidth: number,
-  objectHeight: number,
-  radius: number,
-  bezelWidth: number,
-  maximumDisplacement: number,
-  precomputedDisplacementMap: number[] = [],
-  devicePixelRatio = getDevicePixelRatio()
-) {
-  const bufferWidth = Math.round(objectWidth * devicePixelRatio);
-  const bufferHeight = Math.round(objectHeight * devicePixelRatio);
-  const imageData = createImageData(bufferWidth, bufferHeight);
+export function calculateDisplacementMap(props: {
+  width: number;
+  height: number;
+  radius: number;
+  bezelWidth: number;
+  maximumDisplacement: number;
+  precomputedDisplacementMap: number[];
+  pixelRatio: number;
+}) {
+  const { pixelRatio, maximumDisplacement, precomputedDisplacementMap } = props;
+
+  const width = Math.round(props.width * pixelRatio);
+  const height = Math.round(props.height * pixelRatio);
+  const imageData = createImageData(width, height);
 
   // Fill neutral color using buffer
   const neutral = 0xff008080;
   new Uint32Array(imageData.data.buffer).fill(neutral);
 
-  const radius_ = Math.min(
-    radius * devicePixelRatio,
-    objectWidth / 2,
-    objectHeight / 2
-  );
-  const bezel = Math.min(bezelWidth * devicePixelRatio, radius_);
+  const radius = Math.min(props.radius * pixelRatio, width / 2, height / 2);
+  const bezel = Math.min(props.bezelWidth * pixelRatio, radius);
 
-  const radiusSquared = radius_ ** 2;
-  const radiusPlusOneSquared = (radius_ + 1) ** 2;
-  const radiusMinusBezelSquared = (radius_ - bezel) ** 2;
+  const radiusSquared = radius ** 2;
+  const radiusPlusOneSquared = (radius + 1) ** 2;
+  const radiusMinusBezelSquared = (radius - bezel) ** 2;
 
-  const objectWidth_ = Math.round(objectWidth * devicePixelRatio);
-  const objectHeight_ = Math.round(objectHeight * devicePixelRatio);
-  const widthBetweenRadiuses = objectWidth_ - radius_ * 2;
-  const heightBetweenRadiuses = objectHeight_ - radius_ * 2;
+  const widthBetweenRadiuses = width - radius * 2;
+  const heightBetweenRadiuses = height - radius * 2;
 
-  const objectX = (bufferWidth - objectWidth_) / 2;
-  const objectY = (bufferHeight - objectHeight_) / 2;
+  for (let y1 = 0; y1 < height; y1++) {
+    for (let x1 = 0; x1 < width; x1++) {
+      const idx = (y1 * width + x1) * 4;
 
-  for (let y1 = 0; y1 < objectHeight_; y1++) {
-    for (let x1 = 0; x1 < objectWidth_; x1++) {
-      const idx = ((objectY + y1) * bufferWidth + objectX + x1) * 4;
-
-      const isOnLeftSide = x1 < radius_;
-      const isOnRightSide = x1 >= objectWidth_ - radius_;
-      const isOnTopSide = y1 < radius_;
-      const isOnBottomSide = y1 >= objectHeight_ - radius_;
+      const isOnLeftSide = x1 < radius;
+      const isOnRightSide = x1 >= width - radius;
+      const isOnTopSide = y1 < radius;
+      const isOnBottomSide = y1 >= height - radius;
 
       const x = isOnLeftSide
-        ? x1 - radius_
+        ? x1 - radius
         : isOnRightSide
-        ? x1 - radius_ - widthBetweenRadiuses
+        ? x1 - radius - widthBetweenRadiuses
         : 0;
 
       const y = isOnTopSide
-        ? y1 - radius_
+        ? y1 - radius
         : isOnBottomSide
-        ? y1 - radius_ - heightBetweenRadiuses
+        ? y1 - radius - heightBetweenRadiuses
         : 0;
 
       const distanceToCenterSquared = x * x + y * y;
@@ -127,14 +118,15 @@ export function calculateDisplacementMap(
                 (Math.sqrt(radiusPlusOneSquared) - Math.sqrt(radiusSquared));
 
         const distanceFromCenter = Math.sqrt(distanceToCenterSquared);
-        const distanceFromSide = radius_ - distanceFromCenter;
+        const distanceFromSide = radius - distanceFromCenter;
 
         // Viewed from top
         const cos = x / distanceFromCenter;
         const sin = y / distanceFromCenter;
 
-        const bezelIndex =
-          ((distanceFromSide / bezel) * precomputedDisplacementMap.length) | 0;
+        const bezelIndex = Math.round(
+          (distanceFromSide / bezel) * precomputedDisplacementMap.length
+        );
         const distance = precomputedDisplacementMap[bezelIndex] ?? 0;
 
         const dX = (-cos * distance) / maximumDisplacement;

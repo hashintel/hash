@@ -1,25 +1,21 @@
 import { createImageData } from "canvas";
 
-import { getDevicePixelRatio } from "./get-device-pixel-ratio";
+const NEAR_EDGE_DISTANCE = 20;
 
-export function calculateRefractionSpecular(
-  objectWidth: number,
-  objectHeight: number,
-  radius: number,
-  bezelWidth: number,
-  specularAngle = Math.PI / 3,
-  devicePixelRatio = getDevicePixelRatio()
-) {
-  const bufferWidth = Math.round(objectWidth * devicePixelRatio);
-  const bufferHeight = Math.round(objectHeight * devicePixelRatio);
-  const imageData = createImageData(bufferWidth, bufferHeight);
+export function calculateSpecularImage(props: {
+  width: number;
+  height: number;
+  radius: number;
+  specularAngle: number;
+  pixelRatio: number;
+}) {
+  const { pixelRatio, specularAngle } = props;
 
-  const radius_ = Math.min(
-    radius * devicePixelRatio,
-    objectWidth / 2,
-    objectHeight / 2
-  );
-  const bezel_ = Math.min(bezelWidth * devicePixelRatio, radius_);
+  const width = Math.round(props.width * pixelRatio);
+  const height = Math.round(props.height * pixelRatio);
+  const imageData = createImageData(width, height);
+
+  const radius = Math.min(props.radius * pixelRatio, width / 2, height / 2);
 
   // Vector along which we should see specular
   const specular_vector = [
@@ -31,32 +27,32 @@ export function calculateRefractionSpecular(
   const neutral = 0x00000000;
   new Uint32Array(imageData.data.buffer).fill(neutral);
 
-  const radiusSquared = radius_ ** 2;
-  const radiusPlusOneSquared = (radius_ + 1) ** 2;
-  const radiusMinusBezelSquared = (radius_ - bezel_) ** 2;
+  const radiusSquared = radius ** 2;
+  const radiusPlusOneSquared = (radius + 1) ** 2;
+  const radiusMinusBezelSquared = (radius - NEAR_EDGE_DISTANCE) ** 2;
 
-  const widthBetweenRadiuses = bufferWidth - radius_ * 2;
-  const heightBetweenRadiuses = bufferHeight - radius_ * 2;
+  const widthBetweenRadiuses = width - radius * 2;
+  const heightBetweenRadiuses = height - radius * 2;
 
-  for (let y1 = 0; y1 < bufferHeight; y1++) {
-    for (let x1 = 0; x1 < bufferWidth; x1++) {
-      const idx = (y1 * bufferWidth + x1) * 4;
+  for (let y1 = 0; y1 < height; y1++) {
+    for (let x1 = 0; x1 < width; x1++) {
+      const idx = (y1 * width + x1) * 4;
 
-      const isOnLeftSide = x1 < radius_;
-      const isOnRightSide = x1 >= bufferWidth - radius_;
-      const isOnTopSide = y1 < radius_;
-      const isOnBottomSide = y1 >= bufferHeight - radius_;
+      const isOnLeftSide = x1 < radius;
+      const isOnRightSide = x1 >= width - radius;
+      const isOnTopSide = y1 < radius;
+      const isOnBottomSide = y1 >= height - radius;
 
       const x = isOnLeftSide
-        ? x1 - radius_
+        ? x1 - radius
         : isOnRightSide
-        ? x1 - radius_ - widthBetweenRadiuses
+        ? x1 - radius - widthBetweenRadiuses
         : 0;
 
       const y = isOnTopSide
-        ? y1 - radius_
+        ? y1 - radius
         : isOnBottomSide
-        ? y1 - radius_ - heightBetweenRadiuses
+        ? y1 - radius - heightBetweenRadiuses
         : 0;
 
       const distanceToCenterSquared = x * x + y * y;
@@ -68,7 +64,7 @@ export function calculateRefractionSpecular(
       // Process pixels that are in bezel or near bezel edge for anti-aliasing
       if (isInBezel) {
         const distanceFromCenter = Math.sqrt(distanceToCenterSquared);
-        const distanceFromSide = radius_ - distanceFromCenter;
+        const distanceFromSide = radius - distanceFromCenter;
 
         const opacity =
           distanceToCenterSquared <= radiusSquared
