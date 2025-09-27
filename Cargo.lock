@@ -6176,9 +6176,9 @@ checksum = "842a5c05d6f02368d1cdfebec87ae6e2277ca0cf544ab3778e6f2e6c5c947da3"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "3.6.0"
+version = "3.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "384cd6cd25e3cf031091ca7cfe947a59be14e62e1a28480a5e92d46b792b6303"
+checksum = "df44ba7f5bda40fb6d14b00eecd6a15c8cab5cdb7dca274ace3ee5447794fd50"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
@@ -6190,9 +6190,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.19.0"
+version = "3.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb81507ef485e9148e07d1f716c2d8b72fccc6a7ea93f3958ddbf1a6401786b3"
+checksum = "583b78c7cb4cdc745e263b14fb91caa113288a2d4b92d4e98b072296a248d92f"
 dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
@@ -6211,9 +6211,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.15.0"
+version = "2.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60977176e74a36cb65bdf21b63ae8caecc04f93981021db4d472f3252cbf338c"
+checksum = "5039bda9be37c686902685bcbe773759cc20bb84fa7c3deea81e2dc1c95dc959"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -6223,9 +6223,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.17.0"
+version = "3.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcd865a63f5d56134bd5e5d7ffe6e2a6a8458d79f625ebf7b56c43292829e96c"
+checksum = "e0841415d7abaadebe3306deebc7bcde110c09c4fbc7650bcb6614b9657d9d72"
 dependencies = [
  "orx-iterable",
  "orx-pseudo-default",
@@ -6245,9 +6245,9 @@ checksum = "67a8e35dfe18921e475b9861266fd58a5ecfd681161f242d24a9e2d1e07fbc28"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.19.0"
+version = "3.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eccac043eb507001a48c0e75c39e36650e6bbd99ece1ab8a15df43d7354c91e"
+checksum = "bf3385ebf1568428fab06238997455ac61dd0ab949c1643d47a0dacd9777261d"
 dependencies = [
  "orx-concurrent-iter",
  "orx-iterable",
