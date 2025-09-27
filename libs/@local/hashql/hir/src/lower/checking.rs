@@ -1,11 +1,11 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet},
+    collection::{FastHashMap, FastHashSet, HashMapExt as _},
     module::{
         ModuleRegistry, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
-        universe::{Entry, FastRealmsMap},
+        universe::Entry,
     },
     span::{SpanId, Spanned},
     symbol::Symbol,
@@ -71,8 +71,8 @@ pub struct TypeChecking<'env, 'heap> {
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
 
-    types: FastRealmsMap<HirId, TypeId>,
-    inputs: FastRealmsMap<Symbol<'heap>, TypeId>,
+    types: FastHashMap<HirId, TypeId>,
+    inputs: FastHashMap<Symbol<'heap>, TypeId>,
     simplified: FastHashMap<TypeId, TypeId>,
 }
 
@@ -107,8 +107,8 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             diagnostics: DiagnosticIssues::new(),
             analysis_diagnostics: DiagnosticIssues::new(),
 
-            types: FastRealmsMap::new(),
-            inputs: FastRealmsMap::new(),
+            types: FastHashMap::default(),
+            inputs: FastHashMap::default(),
             simplified: FastHashMap::default(),
         }
     }
@@ -127,7 +127,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     fn transfer_type(&mut self, id: HirId) {
         let inferred = self.inferred_type(id);
 
-        self.types.insert_unique(Universe::Value, id, inferred);
+        self.types.insert_unique(id, inferred);
     }
 
     fn verify_arity(
@@ -207,12 +207,9 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
                 .map_category(LoweringDiagnosticCategory::TypeChecking),
         );
 
-        let types = core::mem::take(&mut self.types[Universe::Value]);
-        let inputs = core::mem::take(&mut self.inputs[Universe::Value]);
-
         let residual = TypeCheckingResidual {
-            types,
-            inputs,
+            types: self.types,
+            inputs: self.inputs,
             intrinsics: self.intrinsics,
         };
 
@@ -312,24 +309,22 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.visit_node(body);
 
         // We simply take the type of the body
-        let body_id = self.types[Universe::Value][&body.id];
-        self.types
-            .insert_unique(Universe::Value, self.current, body_id);
+        let body_id = self.types[&body.id];
+        self.types.insert_unique(self.current, body_id);
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
         visit::walk_input(self, input);
 
         let inferred = self.inferred_type(self.current);
-        self.types
-            .insert_unique(Universe::Value, self.current, inferred);
+        self.types.insert_unique(self.current, inferred);
 
         if let Some(default) = &input.default {
-            self.verify_subtype(self.types[Universe::Value][&default.id], inferred);
+            self.verify_subtype(self.types[&default.id], inferred);
         }
 
         // Register the input type
-        match self.inputs.entry(Universe::Value, input.name.value) {
+        match self.inputs.entry(input.name.value) {
             Entry::Occupied(mut occupied) => {
                 // In case that the input already exists, we need to find the greatest lower bound
                 // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
@@ -349,8 +344,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         visit::walk_type_assertion(self, assertion);
 
         let inferred = self.inferred_type(self.current);
-        self.types
-            .insert_unique(Universe::Value, self.current, inferred);
+        self.types.insert_unique(self.current, inferred);
 
         // We do not need to check if the type is actually the correct one
         if assertion.force {
@@ -360,10 +354,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let simplified_assertion = self.simplified_type(assertion.r#type);
 
         // value <: assertion
-        self.verify_subtype(
-            self.types[Universe::Value][&assertion.value.id],
-            simplified_assertion,
-        );
+        self.verify_subtype(self.types[&assertion.value.id], simplified_assertion);
     }
 
     fn visit_type_constructor(&mut self, constructor: &'heap TypeConstructor<'heap>) {
@@ -401,7 +392,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let closure = builder.closure(
             call.arguments
                 .iter()
-                .map(|argument| self.types[Universe::Value][&argument.value.id]),
+                .map(|argument| self.types[&argument.value.id]),
             returns_id,
         );
 
@@ -416,10 +407,9 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // - covariant return value: `R <: ρ`
         //
         // For closure literals we invert the direction and collect `C <: F`
-        self.verify_subtype(self.types[Universe::Value][&call.function.id], closure);
+        self.verify_subtype(self.types[&call.function.id], closure);
 
-        self.types
-            .insert_unique(Universe::Value, self.current, returns_id);
+        self.types.insert_unique(self.current, returns_id);
     }
 
     fn visit_if(&mut self, r#if: &'heap If<'heap>) {
@@ -427,7 +417,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
         // the test expression must evaluate to a boolean
         self.verify_subtype(
-            self.types[Universe::Value][&r#if.test.id],
+            self.types[&r#if.test.id],
             self.env.intern_type(PartialType {
                 span: r#if.span,
                 kind: self
@@ -453,10 +443,9 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // constraints associated with it, unrelated to the function body.
         let closure_type = closure.signature.type_signature(&self.lattice);
         let returns = self.simplify.simplify(closure_type.returns);
-        self.verify_subtype(self.types[Universe::Value][&closure.body.id], returns);
+        self.verify_subtype(self.types[&closure.body.id], returns);
 
-        self.types
-            .insert_unique(Universe::Value, self.current, inferred);
+        self.types.insert_unique(self.current, inferred);
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
