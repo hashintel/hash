@@ -397,7 +397,8 @@ interact with dynamic background content.
         >
           <h1
             style={{
-              fontSize: "2.5rem",
+              fontSize: "7rem",
+              lineHeight: "7rem",
               marginBottom: "2rem",
               color: "#1a365d",
             }}
@@ -427,7 +428,8 @@ interact with dynamic background content.
 
           <h2
             style={{
-              fontSize: "1.8rem",
+              fontSize: "5rem",
+              lineHeight: "5rem",
               marginTop: "2rem",
               marginBottom: "1rem",
               color: "#2d3748",
@@ -448,7 +450,7 @@ interact with dynamic background content.
 
           <img
             src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-            alt="Scientific equipment demonstrating optical phenomena"
+            alt="Something"
             style={{
               width: "100%",
               height: "400px",
@@ -470,7 +472,8 @@ interact with dynamic background content.
 
           <h2
             style={{
-              fontSize: "1.8rem",
+              fontSize: "5rem",
+              lineHeight: "5rem",
               marginTop: "2rem",
               marginBottom: "1rem",
               color: "#2d3748",
@@ -500,7 +503,8 @@ interact with dynamic background content.
 
           <h2
             style={{
-              fontSize: "1.8rem",
+              fontSize: "5rem",
+              lineHeight: "5rem",
               marginTop: "2rem",
               marginBottom: "1rem",
               color: "#2d3748",
@@ -519,6 +523,19 @@ interact with dynamic background content.
             wavelengths (red and orange).
           </p>
 
+          <img
+            src="https://images.unsplash.com/photo-1496096265110-f83ad7f96608?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Something"
+            style={{
+              width: "100%",
+              height: "400px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              margin: "2rem 0",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          />
+
           <p>
             Atmospheric refraction creates numerous optical phenomena that we
             observe in daily life. Mirages, the apparent bending of the horizon,
@@ -530,7 +547,8 @@ interact with dynamic background content.
 
           <h2
             style={{
-              fontSize: "1.8rem",
+              fontSize: "5rem",
+              lineHeight: "5rem",
               marginTop: "2rem",
               marginBottom: "1rem",
               color: "#2d3748",
@@ -548,6 +566,19 @@ interact with dynamic background content.
             stimulated emission of radiation.
           </p>
 
+          <img
+            src="https://images.unsplash.com/photo-1579547621113-e4bb2a19bdd6?q=80&w=1239&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Something"
+            style={{
+              width: "100%",
+              height: "400px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              margin: "2rem 0",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          />
+
           <p>
             Research in metamaterials has opened entirely new possibilities for
             manipulating light. These artificially structured materials can
@@ -559,7 +590,8 @@ interact with dynamic background content.
 
           <h2
             style={{
-              fontSize: "1.8rem",
+              fontSize: "5rem",
+              lineHeight: "5rem",
               marginTop: "2rem",
               marginBottom: "1rem",
               color: "#2d3748",
@@ -585,6 +617,19 @@ interact with dynamic background content.
             optics in ways that push the boundaries of our understanding of
             light-matter interactions.
           </p>
+
+          <img
+            src="https://images.unsplash.com/photo-1637789594401-5a0dac0d3e36?q=80&w=1294&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Something"
+            style={{
+              width: "100%",
+              height: "400px",
+              objectFit: "cover",
+              borderRadius: "8px",
+              margin: "2rem 0",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          />
 
           <p style={{ marginBottom: "4rem" }}>
             As we continue to push the frontiers of optical science, from

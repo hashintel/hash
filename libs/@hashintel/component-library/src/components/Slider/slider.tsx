@@ -6,8 +6,8 @@ import { useId } from "react";
 import { Filter } from "../../lib/filter";
 import { CONVEX } from "../../lib/surface-equations";
 
-const BaseSliderThumb = motion(BaseSlider.Thumb);
-const BaseSliderRange = motion(BaseSlider.Range);
+const BaseSliderThumb = motion.create(BaseSlider.Thumb);
+const BaseSliderRange = motion.create(BaseSlider.Range);
 
 const SLIDER_WIDTH = 330;
 const SLIDER_HEIGHT = 5;
