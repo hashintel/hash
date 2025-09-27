@@ -18,18 +18,20 @@ graph TD
     class 6 root
     7[<a href="../hashql_eval/index.html">hashql-eval</a>]
     8[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    9[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    10[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    9[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    10[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    11[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
     0 --> 2
     1 --> 7
-    1 --> 9
+    1 --> 10
     2 --> 1
     3 -.-> 4
     4 --> 7
-    4 --> 9
+    4 --> 10
     5 --> 6
     7 --> 8
     8 -.-> 4
-    9 --> 3
-    9 --> 5
-    10 -.-> 1
+    9 -.-> 4
+    10 --> 3
+    10 --> 5
+    11 -.-> 1
