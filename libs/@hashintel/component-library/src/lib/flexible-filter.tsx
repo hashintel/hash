@@ -20,6 +20,7 @@ type Parts = {
   top: string;
   topRight: string;
   left: string;
+  middle: string;
   right: string;
   bottomLeft: string;
   bottom: string;
@@ -51,6 +52,13 @@ function splitImageDataToParts(
     0
   );
   const left = imageDataToUrl(imageData, radius, lateralPartSize, 0, radius);
+  const middle = imageDataToUrl(
+    imageData,
+    lateralPartSize,
+    lateralPartSize,
+    radius,
+    radius
+  );
   const right = imageDataToUrl(
     imageData,
     radius,
@@ -85,6 +93,7 @@ function splitImageDataToParts(
     top,
     topRight,
     left,
+    middle,
     right,
     bottomLeft,
     bottom,
@@ -176,6 +185,16 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         />
 
         <motion.feImage
+          href={useTransform(displacementMapParts, (_) => _.middle)}
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          result="displacement_map_middle"
+          preserveAspectRatio="none"
+        />
+
+        <motion.feImage
           href={useTransform(displacementMapParts, (_) => _.topLeft)}
           x={0}
           y={0}
@@ -257,43 +276,50 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
 
         <motion.feComposite
           in="displacement_map_topLeft"
-          in2="displacement_map_top"
+          in2="displacement_map_middle"
+          operator="over"
+          result="displacement_map_composite_0"
+        />
+
+        <motion.feComposite
+          in="displacement_map_top"
+          in2="displacement_map_composite_0"
           operator="over"
           result="displacement_map_composite_1"
         />
         <motion.feComposite
-          in="displacement_map_composite_1"
-          in2="displacement_map_topRight"
+          in="displacement_map_topRight"
+          in2="displacement_map_composite_1"
           operator="over"
           result="displacement_map_composite_2"
         />
         <motion.feComposite
-          in="displacement_map_composite_2"
-          in2="displacement_map_left"
+          in="displacement_map_left"
+          in2="displacement_map_composite_2"
           operator="over"
           result="displacement_map_composite_3"
         />
         <motion.feComposite
-          in="displacement_map_composite_3"
-          in2="displacement_map_right"
+          in="displacement_map_right"
+          in2="displacement_map_composite_3"
           operator="over"
           result="displacement_map_composite_4"
         />
         <motion.feComposite
-          in="displacement_map_composite_4"
-          in2="displacement_map_bottomLeft"
+          in="displacement_map_bottomLeft"
+          in2="displacement_map_composite_4"
           operator="over"
           result="displacement_map_composite_5"
         />
         <motion.feComposite
-          in="displacement_map_composite_5"
-          in2="displacement_map_bottom"
+          in="displacement_map_bottom"
+          in2="displacement_map_composite_5"
           operator="over"
           result="displacement_map_composite_6"
         />
         <motion.feComposite
-          in="displacement_map_composite_6"
-          in2="displacement_map_bottomRight"
+          in="displacement_map_bottomRight"
+          in2="displacement_map_composite_6"
           operator="over"
           result="displacement_map"
         />

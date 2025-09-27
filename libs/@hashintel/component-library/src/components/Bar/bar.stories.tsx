@@ -201,7 +201,7 @@ materials from standard window glass to high-index optical crystals.
 export const WithDynamicallySizedChildren = {
   args: {
     radius: 15,
-    blur: 8,
+    blur: 1.8,
     specularOpacity: 0.6,
     specularSaturation: 12,
     scaleRatio: 0.9,
@@ -212,7 +212,7 @@ export const WithDynamicallySizedChildren = {
     width: 200,
     height: 60,
     // Child control properties
-    childWidth: 250,
+    childWidth: 460,
     childHeight: 100,
     childContent:
       "Resizable Content\nUse Storybook controls to change my size!",
