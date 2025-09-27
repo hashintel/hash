@@ -3,7 +3,7 @@
   "tasks": {
     "codegen": {
       "outputs": ["./src/**/*.gen.*"],
-      "dependsOn": ["^codegen"]
+      "dependsOn": ["^build"]
     },
     "build": {
       "outputs": ["./build/**/*", "./zip/*"],

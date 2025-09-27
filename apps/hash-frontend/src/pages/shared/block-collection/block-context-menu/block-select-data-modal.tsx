@@ -11,7 +11,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
-import { IconButton, Modal } from "@hashintel/design-system";
+import { IconButton, Modal, XMarkRegularIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -36,7 +36,6 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
-import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { useBlockContext } from "../block-context";
