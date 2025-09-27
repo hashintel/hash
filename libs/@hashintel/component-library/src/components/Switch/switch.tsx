@@ -54,6 +54,7 @@ export const Switch: React.FC<SwitchProps> = ({
         glassThickness={12}
         bezelHeightFn={LIP}
         refractiveIndex={1.5}
+        pixelRatio={6}
       />
 
       <BaseSwitch.Root
@@ -68,15 +69,17 @@ export const Switch: React.FC<SwitchProps> = ({
             <>
               <BaseSwitch.Control
                 style={{
-                  position: "relative",
-                  display: "inline-block",
                   width: SLIDER_WIDTH,
                   height: SLIDER_HEIGHT,
-                  borderRadius: SLIDER_HEIGHT / 2,
+                  borderRadius: SLIDER_RADIUS,
+                }}
+                className={css({
+                  position: "relative",
+                  display: "inline-block",
                   cursor: disabled ? "not-allowed" : "pointer",
                   transition: "all 0.2s ease",
-                  backgroundColor: context.checked ? "#00FF00" : "#94949F77",
-                }}
+                  backgroundColor: context.checked ? "green.40" : "gray.40",
+                })}
               >
                 <BaseSwitch.Thumb
                   className={css({
@@ -97,6 +100,8 @@ export const Switch: React.FC<SwitchProps> = ({
                     "&[data-active] > div": {
                       transform: `scale(${THUMB_SCALE_ACTIVE})`,
                       backgroundColor: "[rgba(255, 255, 255, 0.1)]",
+                      boxShadow:
+                        "0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)",
                     },
                   })}
                 >

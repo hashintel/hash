@@ -10,8 +10,8 @@ const BaseSliderThumb = motion(BaseSlider.Thumb);
 const BaseSliderRange = motion(BaseSlider.Range);
 
 const SLIDER_WIDTH = 330;
-const SLIDER_HEIGHT = 4;
-const THUMB_WIDTH = 16;
+const SLIDER_HEIGHT = 5;
+const THUMB_WIDTH = 18;
 const THUMB_HEIGHT = 16;
 const THUMB_RADIUS = THUMB_HEIGHT / 2;
 const THUMB_BEZEL_WIDTH = THUMB_RADIUS * 0.7;
