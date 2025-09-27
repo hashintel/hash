@@ -12,7 +12,6 @@ import { calculateSpecularImage } from "./specular";
 import { CONVEX } from "./surface-equations";
 import { useDebounceMotionValue } from "./use-debounce-motion-value";
 import { useToMotion } from "./use-to-motion";
-import { getValueOrMotion } from "./use-value-or-motion";
 
 //
 // Internal Filter implementation.
@@ -147,10 +146,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         />
 
         <feComponentTransfer in="specular_layer" result="specular_faded">
-          <motion.feFuncA
-            type="linear"
-            slope={useTransform(() => getValueOrMotion(specularOpacity))}
-          />
+          <motion.feFuncA type="linear" slope={specularOpacity} />
         </feComponentTransfer>
 
         <motion.feBlend
