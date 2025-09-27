@@ -169,6 +169,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                 Ok(())
             }
+            NodeKind::Branch(_) => todo!("error out"),
         }
     }
 }
