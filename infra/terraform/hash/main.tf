@@ -515,5 +515,6 @@ module "application" {
   temporal_port = module.temporal.port
 
   otel_exporter_otlp_endpoint = module.observability.otel_otlp_endpoint
+  profile_exporter_endpoint   = module.observability.profile_exporter_endpoint
   amazon_trust_ca_bundle      = local.amazon_trust_ca_bundle
 }

@@ -52,6 +52,23 @@ resource "cloudflare_dns_record" "caa_hash_ai" {
   tags = ["terraform"]
 }
 
+# CAA Record to allow AWS Certificate Manager to issue wildcard certificates
+resource "cloudflare_dns_record" "caa_hash_ai_wildcard" {
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
+  name    = "hash.ai"
+  type    = "CAA"
+
+  data = {
+    flags = "0"
+    tag   = "issuewild"
+    value = "amazon.com"
+  }
+
+  ttl     = 1
+
+  tags = ["terraform"]
+}
+
 # Private Hosted Zone for internal AWS services
 # Shared across all modules for internal service DNS resolution
 resource "aws_route53_zone" "vpc" {
