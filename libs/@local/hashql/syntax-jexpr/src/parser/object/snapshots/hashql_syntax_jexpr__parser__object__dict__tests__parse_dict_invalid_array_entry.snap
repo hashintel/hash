@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects invalid entry format in array-format dict
 expression: "{\"#dict\": [\n            {\"not\": \"an-array\"}\n        ]}"
 ---
-[31m[parser::object::dict-entry-expected-array] Error:[0m Expected array for dictionary entry
-   ╭─[ <unknown>:2:13 ]
-   │
- 2 │             {"not": "an-array"}
-   │             ┬  
-   │             ╰── Expected an array for dictionary entry
-   │ 
-   │ Help: Found `{`, but dictionary entries must be arrays with exactly two elements [key, value]
-   │ 
-   │ Note: In the array-of-pairs format for dictionaries, each entry must be a two-element array.
-───╯
+error[parser::object::dict-entry-expected-array]: Expected array for dictionary entry
+  ╭▸ 
+2 │             {"not": "an-array"}
+  │             ━ Expected an array for dictionary entry
+  │
+  ├ help: Found `{`, but dictionary entries must be arrays with exactly two elements [key, value]
+  ╰ note: In the array-of-pairs format for dictionaries, each entry must be a two-element array.

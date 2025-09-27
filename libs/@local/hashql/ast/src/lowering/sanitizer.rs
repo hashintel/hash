@@ -3,12 +3,9 @@ use core::mem;
 
 use hashql_core::{module::Universe, span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
 
@@ -63,20 +60,18 @@ fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic
     let mut diagnostic = Diagnostic::new(
         SanitizerDiagnosticCategory::InvalidGenericConstraint,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        span,
+        format!("Remove this constraint from '{name}'"),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(span, format!("Remove this constraint from '{name}'"))
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "Generic constraints (like '{name}: Bound') are not allowed in this context. Use just the \
          parameter name without bounds: '{name}'. For example, change 'T: Clone' to just 'T'."
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Generic constraints with bounds can only be used in certain positions such as function \
          declarations, type declarations and newtype declarations. In other contexts, like usage \
          sites, only the parameter name should be specified.",
@@ -85,22 +80,16 @@ fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic
     diagnostic
 }
 fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        SanitizerDiagnosticCategory::InvalidSpecialForm,
-        Severity::Error,
-    );
-
-    // Primary label - the direct issue with context-specific message
     let label_message = match universe {
         Universe::Value => "Special form cannot be used as a value",
         Universe::Type => "Special form cannot be used as a type",
     };
 
-    diagnostic.labels.push(
-        Label::new(path.span, label_message)
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    let mut diagnostic = Diagnostic::new(
+        SanitizerDiagnosticCategory::InvalidSpecialForm,
+        Severity::Error,
+    )
+    .primary(Label::new(path.span, label_message));
 
     // Form the special form name for display
     let special_form = path
@@ -116,13 +105,13 @@ fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagn
         Universe::Type => "type annotation or declaration",
     };
 
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The special form '{special_form}' must be called directly with arguments. It cannot be \
          used as a {context} or passed to other functions. Instead, use it in a direct function \
          call syntax.",
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Special forms in HashQL are compile-time constructs that must be expanded during \
          compilation. They can only be used in call position with their expected arguments, not \
          as regular values, types, or function references.",

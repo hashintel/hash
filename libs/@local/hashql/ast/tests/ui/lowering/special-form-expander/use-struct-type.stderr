@@ -1,11 +1,7 @@
-[special-form-expander::invalid-use-import] Error: Invalid use import expression
-   ╭─[ <unknown>:8:15 ]
-   │
- 8 │     "#type": "X"
-   │               ┬  
-   │               ╰── Remove this type annotation
-   │ 
-   │ Help: Use import expressions cannot have type annotations. Import expressions define which symbols to import, and do not have a meaningful type in this context.
-   │ 
-   │ Note: Import expressions in the 'use' special form can only be a glob (*), a tuple of identifiers, or a struct of bindings, none of which should have type annotations.
-───╯
+error[special-form-expander::invalid-use-import]: Invalid use import expression
+  ╭▸ 
+8 │     "#type": "X"
+  │               ━ Remove this type annotation
+  │
+  ├ help: Use import expressions cannot have type annotations. Import expressions define which symbols to import, and do not have a meaningful type in this context.
+  ╰ note: Import expressions in the 'use' special form can only be a glob (*), a tuple of identifiers, or a struct of bindings, none of which should have type annotations.

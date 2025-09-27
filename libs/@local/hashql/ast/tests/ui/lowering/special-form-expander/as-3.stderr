@@ -1,17 +1,14 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-   ╭─[ <unknown>:7:3 ]
-   │
- 3 │ ╭─▶ [
-   ┆ ┆   
- 7 │ │     { "#literal": true }
-   │ │     ──────────┬─────────  
-   │ │               ╰─────────── Remove this argument
-   ┆ ┆   
- 9 │ ├─▶ ]
-   │ │       
-   │ ╰─────── In this `as` special form call
-   │     
-   │     Help: The as/2 form should look like: (as value type-expr)
-   │     
-   │     Note: The as function has 1 variant: as/2
-───╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+  ╭▸ 
+3 │ ┌ [
+4 │ │   "::kernel::special_form::as",
+5 │ │   { "#literal": true },
+6 │ │   { "#literal": true },
+7 │ │   { "#literal": true }
+  │ │   ━━━━━━━━━━━━━━━━━━━━ Remove this argument
+8 │ │   //~^ ERROR Remove this argument
+9 │ │ ]
+  │ └─┘ In this `as` special form call
+  │
+  ├ help: The as/2 form should look like: (as value type-expr)
+  ╰ note: The as function has 1 variant: as/2

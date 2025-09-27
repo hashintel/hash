@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Tab character inside quotes
 expression: "\"\thello\""
 ---
-[31m[lexer::invalid-string] Error:[0m Invalid string literal
-   ╭─[ <unknown>:1:3 ]
-   │
- 1 │ "   hello"
-   │     │ 
-   │     ╰─ Control character not allowed
-   │ 
-   │ Help: ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped
-───╯
+error[lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ "    hello"
+  │      ━ Control character not allowed
+  │
+  ╰ help: ASCII control characters (0x00 to 0x1F) cannot be used in JSON strings unless escaped

@@ -1,3 +1,5 @@
+#[cfg(feature = "render")]
+use alloc::borrow::Cow;
 use core::{
     cmp,
     fmt::{self, Display},
@@ -6,7 +8,8 @@ use core::{
 
 use anstyle::Color;
 
-use crate::{Help, Note};
+#[cfg(feature = "render")]
+use crate::diagnostic::Message;
 
 /// Trait for types that represent diagnostic severity levels.
 ///
@@ -336,44 +339,29 @@ impl Severity {
     ///
     /// Some severity levels provide built-in help messages that offer guidance on how to address or
     /// understand issues at that level.
-    pub(crate) const fn help(self) -> &'static [Help] {
+    #[cfg(feature = "render")]
+    pub(crate) const fn messages<'this, S>(self) -> &'this [Message<S>] {
         match self {
             Self::Bug => {
                 const {
                     &[
-                        Help::from_static(
+                        Message::help(Cow::Borrowed(
                             "This is a bug in the compiler, not an issue with your code.",
-                        )
+                        ))
                         .with_color(Color::Ansi(anstyle::AnsiColor::Green)),
-                        Help::from_static(
+                        Message::help(Cow::Borrowed(
                             "Please report this issue along with a minimal code example that \
                              reproduces the error.",
-                        )
+                        ))
                         .with_color(Color::Ansi(anstyle::AnsiColor::Blue)),
+                        Message::note(Cow::Borrowed(
+                            "Internal compiler errors indicate a bug in the compiler itself that \
+                             needs to be fixed.\n\nWe would appreciate if you could file a GitHub \
+                             or Linear issue and reference this error.\n\nWhen reporting this \
+                             issue, please include your query, any relevant type definitions, and \
+                             the complete error message shown above.",
+                        )),
                     ] as &[_]
-                }
-            }
-            Self::Fatal | Self::Error | Self::Warning | Self::Note | Self::Debug => &[],
-        }
-    }
-
-    /// Returns any notes associated with this severity level.
-    ///
-    /// Some severity levels provide built-in explanatory notes that give additional context about
-    /// what the severity level means.
-    pub(crate) const fn notes(self) -> &'static [Note] {
-        match self {
-            Self::Bug => {
-                const {
-                    // TODO: in the future we might want to include a link to create the issue
-                    // directly
-                    &[Note::from_static(
-                        "Internal compiler errors indicate a bug in the compiler itself that \
-                         needs to be fixed.\n\nWe would appreciate if you could file a GitHub or \
-                         Linear issue and reference this error.\n\nWhen reporting this issue, \
-                         please include your query, any relevant type definitions, and the \
-                         complete error message shown above.",
-                    )] as &[_]
                 }
             }
             Self::Fatal | Self::Error | Self::Warning | Self::Note | Self::Debug => &[],
@@ -448,13 +436,6 @@ impl Severity {
     #[must_use]
     pub const fn color(self) -> Color {
         self.info().color
-    }
-
-    /// Returns the ariadne report kind for this severity level.
-    ///
-    /// Used internally when generating diagnostic reports for display.
-    pub(crate) fn kind(self) -> ariadne::ReportKind<'static> {
-        ariadne::ReportKind::Custom(self.name(), anstyle_yansi::to_yansi_color(self.color()))
     }
 }
 

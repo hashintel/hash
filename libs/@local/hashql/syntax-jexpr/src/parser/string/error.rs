@@ -3,11 +3,9 @@ use core::fmt::Write as _;
 
 use hashql_core::span::{SpanId, storage::SpanStorage};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
 use text_size::{TextRange, TextSize};
@@ -118,16 +116,15 @@ pub(crate) fn invalid_expr<I>(
     parent: SpanId,
     error: ParseError<I, ContextError>,
 ) -> StringDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error);
-
     let (label, expected) = convert_parse_error(spans, parent, error);
 
-    diagnostic.labels.push(label);
+    let mut diagnostic =
+        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error)
+            .primary(label);
 
     if let Some(expected) = expected {
-        diagnostic.add_help(Help::new(expected));
-        diagnostic.add_note(Note::new(SYNTAX_ERROR_NOTE));
+        diagnostic.add_message(Message::help(expected));
+        diagnostic.add_message(Message::note(SYNTAX_ERROR_NOTE));
     }
 
     diagnostic

@@ -56,7 +56,7 @@ pub(crate) macro bind_parser(fn $name:ident($parser:ident, $expected:expr)) {
                 input,
             }),
             Err(diagnostic) => Err(ParseTestErr {
-                diagnostic: render_diagnostic(context.input, diagnostic, &context.spans),
+                diagnostic: render_diagnostic(context.input, &diagnostic, &context.spans),
                 input,
             }),
         }

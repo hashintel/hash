@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with non-string key should fail
 expression: "{42: \"value\"}"
 ---
-[31m[lexer::unexpected-token] Error:[0m Unexpected token
-   ╭─[ <unknown>:1:2 ]
-   │
- 1 │ {42: "value"}
-   │  ─┬  
-   │   ╰── Unexpected number, expected string
-   │ 
-   │ Help: Check your JSON syntax. Make sure brackets are balanced and all required punctuation is present.
-───╯
+error[lexer::unexpected-token]: Unexpected token
+  ╭▸ 
+1 │ {42: "value"}
+  │  ━━ Unexpected number, expected string
+  │
+  ╰ help: Check your JSON syntax. Make sure brackets are balanced and all required punctuation is present.
