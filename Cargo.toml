@@ -214,7 +214,7 @@ rand_distr                         = { version = "=0.5.1", default-features = fa
 rapidfuzz                          = { version = "=0.5.0", default-features = false }
 rayon                              = { version = "=1.11.0", default-features = false }
 refinery                           = { version = "=0.8.16", default-features = false }
-regex                              = { version = "=1.11.2", default-features = false, features = ["perf", "unicode"] }
+regex                              = { version = "=1.11.3", default-features = false, features = ["perf", "unicode"] }
 reqwest                            = { version = "=0.12.23", default-features = false, features = ["rustls-tls"] }
 reqwest-middleware                 = { version = "=0.4.2", default-features = false }
 reqwest-tracing                    = { version = "=0.5.8", default-features = false }
