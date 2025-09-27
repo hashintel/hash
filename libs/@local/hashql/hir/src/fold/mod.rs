@@ -65,7 +65,7 @@ use crate::{
     node::{
         HirId, Node, PartialNode,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
@@ -315,6 +315,10 @@ pub trait Fold<'heap> {
         arguments: Interned<'heap, [CallArgument<'heap>]>,
     ) -> Self::Output<Interned<'heap, [CallArgument<'heap>]>> {
         walk_call_arguments(self, arguments)
+    }
+
+    fn fold_if(&mut self, r#if: If<'heap>) -> Self::Output<If<'heap>> {
+        walk_if(self, r#if)
     }
 
     fn fold_branch(&mut self, branch: Branch<'heap>) -> Self::Output<Branch<'heap>> {
@@ -795,17 +799,39 @@ pub fn walk_call_arguments<'heap, T: Fold<'heap> + ?Sized>(
     Try::from_output(arguments.finish(&visitor.interner().call_arguments))
 }
 
+pub fn walk_if<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    If {
+        span,
+        test,
+        then,
+        r#else,
+    }: If<'heap>,
+) -> T::Output<If<'heap>> {
+    let span = visitor.fold_span(span)?;
+    let test = visitor.fold_node(test)?;
+    let then = visitor.fold_node(then)?;
+    let r#else = visitor.fold_node(r#else)?;
+
+    Try::from_output(If {
+        span,
+        test,
+        then,
+        r#else,
+    })
+}
+
 pub fn walk_branch<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Branch {
-        span,
-        kind,
-        _marker: _,
-    }: Branch<'heap>,
+    Branch { span, kind }: Branch<'heap>,
 ) -> T::Output<Branch<'heap>> {
-    let _span = visitor.fold_span(span)?;
+    let span = visitor.fold_span(span)?;
 
-    match kind {}
+    let kind = match kind {
+        BranchKind::If(r#if) => BranchKind::If(visitor.fold_if(r#if)?),
+    };
+
+    Try::from_output(Branch { span, kind })
 }
 
 pub fn walk_closure<'heap, T: Fold<'heap> + ?Sized>(
