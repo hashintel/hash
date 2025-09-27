@@ -13283,6 +13283,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hashql-mir@workspace:libs/@local/hashql/mir":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hashql-syntax-jexpr@npm:0.0.0-private, @rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr"
