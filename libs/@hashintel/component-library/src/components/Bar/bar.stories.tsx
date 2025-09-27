@@ -55,6 +55,15 @@ how each parameter affects the final appearance.
       },
       description: "Border radius for rounded corners",
     },
+    padding: {
+      control: {
+        type: "range",
+        min: 0,
+        max: 20,
+        step: 1,
+      },
+      description: "Padding inside the bar component",
+    },
     blur: {
       control: {
         type: "range",
@@ -122,6 +131,7 @@ how each parameter affects the final appearance.
   },
   args: {
     radius: 15,
+    padding: 2,
     blur: 5,
     specularOpacity: 0.5,
     specularSaturation: 10,
@@ -666,7 +676,6 @@ interact with dynamic background content.
         alignItems: "center",
         justifyContent: "center",
         padding: "2",
-        borderRadius: "lg",
         border: "none",
         cursor: "pointer",
         transition: "all",
@@ -704,7 +713,6 @@ interact with dynamic background content.
     return (
       <Bar
         className={css({
-          padding: "2",
           display: "flex",
           alignItems: "center",
           gap: "1",
@@ -718,6 +726,9 @@ interact with dynamic background content.
           },
         })}
         {...args}
+        style={{
+          padding: args.padding,
+        }}
       >
         {buttons.map(({ icon: Icon, title, id }) => {
           const isSelected = selectedButton === id;
@@ -726,6 +737,7 @@ interact with dynamic background content.
               key={id}
               type="button"
               className={getButtonStyle(isSelected)}
+              style={{ borderRadius: args.radius - args.padding }}
               title={title}
               onClick={() => setSelectedButton(id)}
             >

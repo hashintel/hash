@@ -1,4 +1,4 @@
-import { Filter } from "../../lib/filter";
+import { Filter } from "../../lib/flexible-filter";
 import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
