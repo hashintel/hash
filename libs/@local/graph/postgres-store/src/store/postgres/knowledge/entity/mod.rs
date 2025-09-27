@@ -17,10 +17,10 @@ use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryCursor,
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -443,12 +443,12 @@ where
 
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    async fn get_entities_impl(
+    async fn query_entities_impl(
         &self,
-        params: &GetEntitiesParams<'_>,
+        params: &QueryEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
@@ -686,7 +686,7 @@ where
             (entities, cursor)
         };
 
-        Ok(GetEntitiesResponse {
+        Ok(QueryEntitiesResponse {
             #[expect(
                 clippy::if_then_some_else_none,
                 reason = "False positive, use of `await`"
@@ -1290,11 +1290,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1312,7 +1312,7 @@ where
         let temporal_axes = params.temporal_axes.resolve();
 
         let mut response = self
-            .get_entities_impl(&params, &temporal_axes, &policy_components)
+            .query_entities_impl(&params, &temporal_axes, &policy_components)
             .await?;
 
         if !params.conversions.is_empty() {
@@ -1328,11 +1328,11 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -1353,7 +1353,7 @@ where
         let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let GetEntitiesResponse {
+        let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
             count,
@@ -1365,7 +1365,7 @@ where
             type_ids,
             type_titles,
         } = self
-            .get_entities_impl(&request, &temporal_axes, &policy_components)
+            .query_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
@@ -1437,7 +1437,7 @@ where
                 }
             }
 
-            Ok(GetEntitySubgraphResponse {
+            Ok(QueryEntitySubgraphResponse {
                 #[expect(
                     clippy::if_then_some_else_none,
                     reason = "False positive, use of `await`"
@@ -1639,13 +1639,13 @@ where
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &[Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
                     convert: None,
-                }),
+                },
             )],
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),

@@ -39,10 +39,8 @@ import {
   archiveEntityResolver,
   countEntitiesResolver,
   createEntityResolver,
-  getEntityResolver,
-  getEntitySubgraphResolver,
   isEntityPublicResolver,
-  queryEntitiesResolver,
+  queryEntitySubgraphResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
@@ -135,11 +133,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     // Knowledge
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
-    getEntity: getEntityResolver,
     getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
-    queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
       throw new Error(
@@ -147,7 +143,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       );
     }),
     countEntities: countEntitiesResolver,
-    getEntitySubgraph: getEntitySubgraphResolver,
+    queryEntitySubgraph: queryEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
     getMyPendingInvitations: loggedInAndSignedUpMiddleware(
       getMyPendingInvitationsResolver,

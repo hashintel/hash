@@ -2,6 +2,7 @@ import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   ClosedEntityType,
+  ClosedMultiEntityType,
   EntityTypeWithMetadata,
   VersionedUrl,
   WebId,
@@ -10,7 +11,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedEntityType as ClosedEntityTypeGraphApi,
-  ClosedMultiEntityTypeMap,
+  ClosedMultiEntityTypeMap as ClosedMultiEntityTypeMapGraphApi,
   EntityTypeResolveDefinitions as EntityTypeResolveDefinitionsGraphApi,
   EntityTypeWithMetadata as EntityTypeWithMetadataGraphApi,
   GetClosedMultiEntityTypesParams as GetClosedMultiEntityTypesParamsGraphApi,
@@ -234,11 +235,26 @@ export type GetClosedMultiEntityTypesParams = Omit<
   entityTypeIds: VersionedUrl[][];
 };
 
+export type ClosedMultiEntityTypeMap = Omit<
+  ClosedMultiEntityTypeMapGraphApi,
+  "inner" | "schema"
+> & {
+  inner?: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+  schema: ClosedMultiEntityType;
+};
+
+export const mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap = (
+  closedMultiEntityTypeMap: Record<
+    VersionedUrl,
+    ClosedMultiEntityTypeMapGraphApi
+  >,
+) => closedMultiEntityTypeMap as Record<VersionedUrl, ClosedMultiEntityTypeMap>;
+
 export type GetClosedMultiEntityTypesResponse = Omit<
   GetClosedMultiEntityTypesResponseGraphApi,
   "entityTypes" | "definitions"
 > & {
-  closedMultiEntityTypes: Record<string, ClosedMultiEntityTypeMap>;
+  entityTypes: Record<VersionedUrl, ClosedMultiEntityTypeMap>;
   definitions?: ClosedMultiEntityTypesDefinitions;
 };
 
@@ -254,7 +270,10 @@ export const getClosedMultiEntityTypes = (
   graphApi
     .getClosedMultiEntityTypes(authentication.actorId, params)
     .then(({ data: response }) => ({
-      closedMultiEntityTypes: response.entityTypes,
+      entityTypes:
+        mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+          response.entityTypes,
+        ),
       definitions: response.definitions
         ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
             response.definitions,

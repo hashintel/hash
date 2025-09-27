@@ -15,7 +15,7 @@ import type {
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
@@ -199,8 +199,10 @@ export const findExistingEntity = async ({
   let potentialMatches: HashEntity[] | undefined;
 
   if (semanticDistanceFilters.length > 0) {
-    potentialMatches = await graphApiClient
-      .getEntities(actorId, {
+    potentialMatches = await queryEntities(
+      { graphApi: graphApiClient },
+      { actorId },
+      {
         filter: {
           all: [
             ...existingEntityBaseAllFilter,
@@ -211,12 +213,13 @@ export const findExistingEntity = async ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts,
-      })
-      .then(({ data: response }) =>
-        response.entities
-          .slice(0, 3)
-          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-      );
+        includePermissions: false,
+      },
+    ).then(({ entities }) =>
+      entities
+        .slice(0, 3)
+        .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+    );
   }
 
   if (!potentialMatches?.length) {
@@ -228,8 +231,10 @@ export const findExistingEntity = async ({
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
     } else {
-      potentialMatches = await graphApiClient
-        .getEntities(actorId, {
+      potentialMatches = await queryEntities(
+        { graphApi: graphApiClient },
+        { actorId },
+        {
           filter: {
             all: [
               ...existingEntityBaseAllFilter,
@@ -246,12 +251,13 @@ export const findExistingEntity = async ({
           },
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts,
-        })
-        .then(({ data: response }) =>
-          response.entities
-            .slice(0, 3)
-            .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-        );
+          includePermissions: false,
+        },
+      ).then(({ entities }) =>
+        entities
+          .slice(0, 3)
+          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+      );
     }
   }
 
@@ -292,8 +298,10 @@ export const findExistingLinkEntity = async ({
     "entityTypeIds" | "properties" | "propertyMetadata" | "provenance"
   >;
 }): Promise<MatchedEntityUpdate<HashEntity> | null> => {
-  const linksWithOverlappingTypes = await graphApiClient
-    .getEntities(actorId, {
+  const { entities: linksWithOverlappingTypes } = await queryEntities(
+    { graphApi: graphApiClient },
+    { actorId },
+    {
       filter: {
         all: [
           { equal: [{ path: ["archived"] }, { parameter: false }] },
@@ -359,10 +367,9 @@ export const findExistingLinkEntity = async ({
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data }) =>
-      data.entities.map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
-    );
+      includePermissions: false,
+    },
+  );
 
   if (!linksWithOverlappingTypes.length) {
     return null;

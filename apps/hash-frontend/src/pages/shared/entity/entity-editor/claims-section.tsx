@@ -16,10 +16,10 @@ import { Box } from "@mui/material";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinksIcon } from "../../../../shared/icons/svg";
 import { SectionEmptyState } from "../../../@/[shortname]/shared/section-empty-state";
 import { ClaimsTable } from "../../claims-table";
@@ -39,11 +39,10 @@ export const ClaimsSection = () => {
   }, [entity]);
 
   const { data: claimsData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -70,6 +69,7 @@ export const ClaimsSection = () => {
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     },
     skip: !entityUuid || isLocalDraftOnly,
@@ -79,7 +79,7 @@ export const ClaimsSection = () => {
   const { claimsSubgraph, numberOfClaims } = useMemo(() => {
     if (claimsData) {
       const subgraph = deserializeSubgraph<EntityRootType<HashEntity<Claim>>>(
-        claimsData.getEntitySubgraph.subgraph,
+        claimsData.queryEntitySubgraph.subgraph,
       );
 
       const roots = getRoots(subgraph);

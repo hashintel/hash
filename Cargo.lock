@@ -3967,6 +3967,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashql-mir"
+version = "0.0.0"
+dependencies = [
+ "hashql-compiletest",
+]
+
+[[package]]
 name = "hashql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [

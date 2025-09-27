@@ -13281,6 +13281,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hashql-mir@workspace:libs/@local/hashql/mir":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hashql-syntax-jexpr@npm:0.0.0-private, @rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr"
@@ -16991,6 +16997,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:2.8.8"
     "@graphql-codegen/typescript-graphql-request": "npm:4.5.9"
     "@graphql-codegen/typescript-resolvers": "npm:2.7.13"
+    "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"

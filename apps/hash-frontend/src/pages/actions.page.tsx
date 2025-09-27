@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId } from "@blockprotocol/type-system";
 import {
@@ -11,12 +10,11 @@ import { CheckRegularIcon } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
 import type { Filter } from "@local/hash-graph-client";
 import {
+  deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
-  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -31,10 +29,10 @@ import { NextSeo } from "next-seo";
 import { useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -84,12 +82,12 @@ const ActionsPage = () => {
   const [
     previouslyFetchedDraftEntitiesWithLinkedDataResponse,
     setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<QueryEntitySubgraphQuery>();
 
   const { data: draftEntitiesWithLinkedDataResponse } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: getDraftEntitiesFilter,
@@ -101,8 +99,8 @@ const ActionsPage = () => {
           hasRightEntity: { outgoing: 1, incoming: 1 },
         },
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     skip: !draftEntities,
     onCompleted: (data) =>
@@ -126,18 +124,16 @@ const ActionsPage = () => {
       };
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(
+    const subgraph = deserializeQueryEntitySubgraphResponse(
       (draftEntitiesWithLinkedDataResponse ??
-        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.getEntitySubgraph
-        .subgraph,
-    );
+        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
+        .queryEntitySubgraph,
+    ).subgraph;
 
     const roots = getRoots(subgraph);
 
     const closedTypeMap = (draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.getEntitySubgraph
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph
       .closedMultiEntityTypes;
 
     return {

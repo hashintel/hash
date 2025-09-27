@@ -93,7 +93,7 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -109,6 +109,7 @@ export const updateDataTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     dataTypes = await graphActivities.getSubgraphDataTypes({
@@ -178,7 +179,7 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -194,6 +195,7 @@ export const updatePropertyTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     propertyTypes = await graphActivities.getSubgraphPropertyTypes({
@@ -263,7 +265,7 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -279,6 +281,7 @@ export const updateEntityTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     entityTypes = await graphActivities.getSubgraphEntityTypes({
@@ -353,7 +356,7 @@ export const updateEntityEmbeddings = async (
         new HashEntity(entity).toJSON(),
       );
     } else {
-      const queryResponse = await graphActivities.getEntitySubgraph({
+      const queryResponse = await graphActivities.queryEntitySubgraph({
         authentication: params.authentication,
         request: {
           filter: params.filter,
@@ -369,6 +372,7 @@ export const updateEntityEmbeddings = async (
           },
           temporalAxes,
           includeDrafts: true,
+          includePermissions: false,
           cursor,
           limit: 100,
         },
@@ -469,9 +473,7 @@ export const updateAllDataTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -489,9 +491,7 @@ export const updateAllPropertyTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -509,9 +509,7 @@ export const updateAllEntityTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -535,12 +533,7 @@ export const updateAllEntityEmbeddings =
         filter: {
           all: [
             {
-              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-              //                     see https://linear.app/hash/issue/H-1207
-              // We can skip entities for which the embeddings were already generated.
-              // If a full regeneration is desired, either the database should be wiped manually or the
-              // `updateEntityEmbeddings` workflow should be called manually.
-              equal: [{ path: ["embedding"] }, null],
+              exists: { path: ["embedding"] },
             },
             {
               // Only embeddings for non-empty properties are generated

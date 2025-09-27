@@ -67,11 +67,11 @@ export const useGetClosedMultiEntityTypes = (): {
         );
       }
 
-      const { closedMultiEntityTypes, definitions } =
+      const { entityTypes, definitions } =
         response.data.getClosedMultiEntityTypes;
 
       return {
-        closedMultiEntityTypes,
+        closedMultiEntityTypes: entityTypes,
         closedMultiEntityTypesDefinitions: definitions!,
       };
     },

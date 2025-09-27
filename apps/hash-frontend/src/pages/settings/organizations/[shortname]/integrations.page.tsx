@@ -1,11 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -24,10 +22,10 @@ import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
@@ -54,8 +52,8 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     data: linearIntegrationSyncLinksData,
     loading,
     refetch,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       variables: {
         request: {
@@ -87,8 +85,8 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
           graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
+          includePermissions: true,
         },
-        includePermissions: true,
       },
       skip: !org,
       fetchPolicy: "cache-and-network",
@@ -100,18 +98,15 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
       return [];
     }
 
-    const { userPermissionsOnEntities, subgraph } =
-      linearIntegrationSyncLinksData.getEntitySubgraph;
+    const { entityPermissions, subgraph } =
+      deserializeQueryEntitySubgraphResponse<SyncLinearDataWith>(
+        linearIntegrationSyncLinksData.queryEntitySubgraph,
+      );
 
-    const mappedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<SyncLinearDataWith>>
-      >(subgraph);
-
-    const links = getRoots(mappedSubgraph);
+    const links = getRoots(subgraph);
 
     return links.map(({ metadata, entityId }) => {
-      const canEdit = !!userPermissionsOnEntities?.[entityId]?.edit;
+      const canEdit = !!entityPermissions?.[entityId]?.edit;
 
       return {
         createdById: metadata.provenance.createdById,

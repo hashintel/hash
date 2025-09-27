@@ -13,7 +13,7 @@ import {
   NotFoundError,
 } from "@local/hash-backend-utils/error";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -98,55 +98,50 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
     includeDrafts?: boolean;
   },
   Promise<LinearUserSecret>
-> = async ({ graphApi }, { actorId }, params) => {
+> = async (context, authentication, params) => {
   const { userAccountId, linearOrgId, includeDrafts = false } = params;
 
-  const entities = await graphApi
-    .getEntities(actorId, {
-      filter: {
-        all: [
+  const { entities } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
+        },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.userSecret.entityTypeId,
+          { ignoreParents: true },
+        ),
+        generateVersionedUrlMatchingFilter(
+          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+          { ignoreParents: true, pathPrefix: ["incomingLinks"] },
+        ),
+        generateVersionedUrlMatchingFilter(
+          systemEntityTypes.linearIntegration.entityTypeId,
           {
-            equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
+            ignoreParents: true,
+            pathPrefix: ["incomingLinks", "leftEntity"],
           },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.userSecret.entityTypeId,
-            { ignoreParents: true },
-          ),
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-            { ignoreParents: true, pathPrefix: ["incomingLinks"] },
-          ),
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.linearIntegration.entityTypeId,
+        ),
+        {
+          equal: [
             {
-              ignoreParents: true,
-              pathPrefix: ["incomingLinks", "leftEntity"],
+              path: [
+                "incomingLinks",
+                "leftEntity",
+                "properties",
+                systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
+              ],
             },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "incomingLinks",
-                  "leftEntity",
-                  "properties",
-                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
-      ),
-    );
+            { parameter: linearOrgId },
+          ],
+        },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   if (entities.length > 1) {
     const warningMessage = `More than one linear user secret (${entities.length}) found for the user ${userAccountId} with the linear org ID ${linearOrgId}`;
@@ -185,8 +180,10 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
   const { hashWebEntityId, vaultClient, includeDrafts = false } = params;
   const [webId, webUuid] = splitEntityId(hashWebEntityId);
 
-  const linearIntegrationEntities = await context.graphApi
-    .getEntities(authentication.actorId, {
+  const { entities: linearIntegrationEntities } = await queryEntities(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           generateVersionedUrlMatchingFilter(
@@ -216,12 +213,9 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, null, true),
-      ),
-    );
+      includePermissions: false,
+    },
+  );
 
   const integrationEntity = linearIntegrationEntities[0];
 

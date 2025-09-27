@@ -1,9 +1,7 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,10 +13,10 @@ import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { ClaimsTable } from "../../../../../shared/claims-table";
 import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 import { useSlideStack } from "../../../../../shared/slide-stack";
@@ -36,11 +34,10 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
   const { pushToSlideStack } = useSlideStack();
 
   const { data: claimsData, loading: claimsDataLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -74,6 +71,7 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     },
     pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
@@ -94,9 +92,9 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
 
   const { claimsSubgraph, hasClaims } = useMemo(() => {
     if (claimsData) {
-      const subgraph = deserializeSubgraph<EntityRootType<HashEntity<Claim>>>(
-        claimsData.getEntitySubgraph.subgraph,
-      );
+      const subgraph = deserializeQueryEntitySubgraphResponse<Claim>(
+        claimsData.queryEntitySubgraph,
+      ).subgraph;
 
       const roots = getRoots(subgraph);
 

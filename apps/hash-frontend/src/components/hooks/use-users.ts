@@ -1,15 +1,18 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
+import {
+  currentTimeInstantTemporalAxes,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import {
   constructMinimalUser,
@@ -24,46 +27,39 @@ export const useUsers = (): {
   users?: MinimalUser[];
 } => {
   const { data, loading, refetch } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
-      operation: {
-        multiFilter: {
+      request: {
+        filter: convertBpFilterToGraphFilter({
           filters: [
             entityHasEntityTypeByVersionedUrlFilter(
               systemEntityTypes.user.entityTypeId,
             ),
           ],
           operator: "AND",
-        },
+        }),
+        graphResolveDepths: zeroedGraphResolveDepths,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       },
-      constrainsValuesOn: { outgoing: 0 },
-      constrainsPropertiesOn: { outgoing: 0 },
-      constrainsLinksOn: { outgoing: 0 },
-      constrainsLinkDestinationsOn: { outgoing: 0 },
-      inheritsFrom: { outgoing: 0 },
-      isOfType: { outgoing: 0 },
-      // as there may be a lot of users, we don't fetch anything linked to them (e.g. org memberships, avatars)
-      // @todo don't fetch all users, fetch a sensible short list on load and others dynamically as needed
-      hasLeftEntity: { incoming: 0, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 0 },
     },
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntities: queryEntitiesData } = data ?? {};
+  const { queryEntitySubgraph: queryEntitySubgraphData } = data ?? {};
 
   const users = useMemoCompare(
     () => {
-      if (!queryEntitiesData) {
+      if (!queryEntitySubgraphData) {
         return undefined;
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(queryEntitiesData.subgraph);
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        queryEntitySubgraphData,
+      ).subgraph;
 
       return getRoots(subgraph).map((userEntity) => {
         if (!isEntityUserEntity(userEntity)) {
@@ -75,7 +71,7 @@ export const useUsers = (): {
         return constructMinimalUser({ userEntity });
       });
     },
-    [queryEntitiesData],
+    [queryEntitySubgraphData],
     /**
      * Check if the previous and new users are the same.
      * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.

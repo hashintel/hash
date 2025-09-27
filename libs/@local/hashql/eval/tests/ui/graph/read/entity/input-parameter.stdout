@@ -20,18 +20,14 @@ _1«Boolean» ->
 
 [
     Equal(
-        Some(
-            Path {
-                path: Uuid,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Text(
-                    "e2851dbb-7376-4959-9bca-f72cafc4448f",
-                ),
-                convert: None,
-            },
-        ),
+        Path {
+            path: Uuid,
+        },
+        Parameter {
+            parameter: Text(
+                "e2851dbb-7376-4959-9bca-f72cafc4448f",
+            ),
+            convert: None,
+        },
     ),
 ]

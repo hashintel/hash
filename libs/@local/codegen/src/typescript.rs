@@ -1,6 +1,9 @@
 use oxc::{
     allocator::Allocator,
-    ast::{AstBuilder, ast},
+    ast::{
+        AstBuilder,
+        ast::{self, TSTupleElement},
+    },
     codegen::Codegen,
     span::SPAN,
 };
@@ -141,6 +144,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             | Type::Struct(_)
             | Type::Tuple(_)
             | Type::List(_)
+            | Type::NonEmptyList(_)
             | Type::Map(_)
             | Type::Nullable(_)) => self.should_export_as_interface(r#type),
         }
@@ -166,6 +170,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             | Type::Enum(_)
             | Type::Tuple(_)
             | Type::List(_)
+            | Type::NonEmptyList(_)
             | Type::Map(_)
             | Type::Nullable(_) => false,
         }
@@ -321,6 +326,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             | Type::Enum(_)
             | Type::Tuple(_)
             | Type::List(_)
+            | Type::NonEmptyList(_)
             | Type::Map(_)
             | Type::Nullable(_)) => {
                 unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",)
@@ -640,7 +646,18 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             .ts_type_array_type(SPAN, self.visit_type(&list.r#type))
     }
 
-    fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
+    fn visit_non_empty_list(&self, list: &List) -> ast::TSType<'a> {
+        let head = self.visit_type(&list.r#type);
+        let tail = self.ast.alloc_ts_rest_type(SPAN, self.visit_list(list));
+
+        self.ast.ts_type_tuple_type(
+            SPAN,
+            self.ast
+                .vec_from_array([head.into(), TSTupleElement::TSRestType(tail)]),
+        )
+    }
+
+    fn visit_nullable(&self, optional: &Type) -> ast::TSType<'a> {
         self.ast.ts_type_parenthesized_type(
             SPAN,
             self.ast.ts_type_union_type(
@@ -661,8 +678,9 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             Type::Reference(type_id) => self.visit_reference(*type_id),
             Type::Tuple(tuple) => self.visit_tuple(tuple),
             Type::List(list) => self.visit_list(list),
+            Type::NonEmptyList(list) => self.visit_non_empty_list(list),
             Type::Map(map) => self.visit_map(map),
-            Type::Nullable(optional) => self.visit_optional(optional),
+            Type::Nullable(optional) => self.visit_nullable(optional),
         }
     }
 }

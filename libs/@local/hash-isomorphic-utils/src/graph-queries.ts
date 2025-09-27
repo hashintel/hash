@@ -258,13 +258,9 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
-      equal: [
-        {
-          path: ["properties", archivedBaseUrl],
-        },
-        // @ts-expect-error -- We will update the type definition of `EntityStructuralQuery` to allow this, see H-1207
-        null,
-      ],
+      exists: {
+        path: ["properties", archivedBaseUrl],
+      },
     },
     {
       equal: [

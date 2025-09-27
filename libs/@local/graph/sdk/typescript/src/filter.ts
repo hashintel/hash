@@ -1,8 +1,7 @@
+import type { MultiFilter } from "@blockprotocol/graph";
 import type { Filter, PathExpression } from "@local/hash-graph-client";
-import type { Scalars } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-export type QueryOperationInput = Scalars["QueryOperationInput"];
-type MultiFilter = NonNullable<QueryOperationInput["multiFilter"]>;
+// type MultiFilter = NonNullable<QueryOperationInput["multiFilter"]>;
 
 export class InvalidEntityQueryError extends Error {
   constructor(message: string) {

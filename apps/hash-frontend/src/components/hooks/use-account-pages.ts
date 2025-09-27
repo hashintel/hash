@@ -1,14 +1,11 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -19,10 +16,10 @@ import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/s
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 import { useHashInstance } from "./use-hash-instance";
 
@@ -36,7 +33,7 @@ export type AccountPagesInfo = {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 };
 
 export const useAccountPages = (
@@ -46,9 +43,9 @@ export const useAccountPages = (
   const { hashInstance } = useHashInstance();
 
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: getAccountPagesVariables({
       webId,
       includeArchived,
@@ -57,20 +54,17 @@ export const useAccountPages = (
   });
 
   const pages = useMemo<SimplePage[]>(() => {
-    const subgraph = data?.getEntitySubgraph.subgraph;
+    const response = data?.queryEntitySubgraph;
 
-    if (!subgraph) {
+    if (!response) {
       return [];
     }
 
-    const typedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        subgraph,
-      );
+    const subgraph = deserializeQueryEntitySubgraphResponse(response).subgraph;
 
-    return getRoots(typedSubgraph).map((latestPage) => {
+    return getRoots(subgraph).map((latestPage) => {
       const pageOutgoingLinks = getOutgoingLinkAndTargetEntities(
-        deserializeSubgraph(subgraph),
+        subgraph,
         latestPage.metadata.recordId.entityId,
       );
 
