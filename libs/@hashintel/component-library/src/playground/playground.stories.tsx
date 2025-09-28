@@ -1,7 +1,7 @@
 /* eslint-disable import/no-default-export */
 import { css } from "@hashintel/styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { Bar } from "../components/Bar/bar";
@@ -12,10 +12,11 @@ import { Switch } from "../components/Switch/switch";
 import { ExampleArticle } from "./ExampleArticle";
 
 const PADDING = 6;
-const RADIUS = 20;
+const RADIUS = 25;
 
 const Playground = () => {
   const [switchChecked, setSwitchChecked] = useState(false);
+  const [switchChecked2, setSwitchChecked2] = useState(false);
   const [sliderValue, setSliderValue] = useState(50);
   const [currentPage, setCurrentPage] = useState("design");
 
@@ -78,6 +79,7 @@ const Playground = () => {
               borderWidth: "thin",
               borderColor: "neutral.black/10",
               shadow: "md",
+              overflow: "hidden",
             })}
             style={{
               borderRadius: RADIUS - PADDING,
@@ -113,121 +115,180 @@ const Playground = () => {
               })}
             />
 
-            <motion.div>
-              {currentPage === "design" ? (
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1rem",
-                      width: "100%",
+            <motion.div
+              layoutId="content-container"
+              layout
+              animate={{
+                width: "auto",
+                height: "auto",
+              }}
+              style={{
+                willChange: "width, height", // Optimize for animations
+              }}
+            >
+              <AnimatePresence mode="wait">
+                {currentPage === "design" ? (
+                  <motion.div
+                    key="design"
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{
+                      duration: 0.2,
+                      layout: { duration: 0.3, ease: [0.4, 0.0, 0.2, 1] },
                     }}
                   >
-                    <span
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        width: "100%",
+                      }}
+                    >
+                      <span
+                        className={css({
+                          fontSize: "sm",
+                        })}
+                      >
+                        Enable
+                      </span>
+                      <Switch
+                        checked={switchChecked}
+                        onCheckedChange={(checked) => setSwitchChecked(checked)}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.5rem",
+                        width: "100%",
+                      }}
+                    >
+                      <Slider
+                        defaultValue={sliderValue}
+                        onChange={(value) => setSliderValue(value[0] ?? 0)}
+                        label="Intensity Level"
+                        min={0}
+                        max={100}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "1rem",
+                        padding: "1rem",
+                        backgroundColor: switchChecked
+                          ? "rgba(34, 197, 94, 0.2)"
+                          : "rgba(239, 68, 68, 0.2)",
+                        borderRadius: "8px",
+                        border: switchChecked
+                          ? "1px solid rgba(34, 197, 94, 0.4)"
+                          : "1px solid rgba(239, 68, 68, 0.4)",
+                        width: "100%",
+                        textAlign: "center",
+                        transition: "background-color 0.2s, border-color 0.2s",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Status: {switchChecked ? "Active" : "Inactive"}
+                      </p>
+                      <p
+                        style={{
+                          margin: "0.25rem 0 0 0",
+                          fontSize: "0.875rem",
+                          opacity: 0.8,
+                        }}
+                      >
+                        Current intensity level: {sliderValue}%
+                      </p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="actions"
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{
+                      duration: 0.2,
+                      layout: { duration: 0.3, ease: [0.4, 0.0, 0.2, 1] },
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        width: "100%",
+                      }}
+                    >
+                      <span className={css({ fontSize: "sm" })}>
+                        Enable Feature A
+                      </span>
+                      <Switch
+                        checked={switchChecked2}
+                        onCheckedChange={setSwitchChecked2}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        width: "100%",
+                      }}
+                    >
+                      <span className={css({ fontSize: "sm" })}>
+                        Enable Feature B
+                      </span>
+                      <Switch />
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        width: "100%",
+                      }}
+                    >
+                      <span className={css({ fontSize: "sm" })}>
+                        Enable Feature C
+                      </span>
+                      <Switch />
+                    </div>
+
+                    <motion.div
+                      style={{ width: 450 }}
                       className={css({
-                        fontSize: "sm",
+                        rounded: "md",
+                        backgroundColor: "gray.10/50",
                       })}
-                    >
-                      Enable Feature
-                    </span>
-                    <Switch
-                      checked={switchChecked}
-                      onCheckedChange={(checked) => setSwitchChecked(checked)}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.5rem",
-                      width: "100%",
-                    }}
-                  >
-                    <Slider
-                      defaultValue={sliderValue}
-                      onChange={(value) => setSliderValue(value[0] ?? 0)}
-                      label="Intensity Level"
-                      min={0}
-                      max={100}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: "1rem",
-                      padding: "1rem",
-                      backgroundColor: switchChecked
-                        ? "rgba(34, 197, 94, 0.2)"
-                        : "rgba(239, 68, 68, 0.2)",
-                      borderRadius: "8px",
-                      border: switchChecked
-                        ? "1px solid rgba(34, 197, 94, 0.4)"
-                        : "1px solid rgba(239, 68, 68, 0.4)",
-                      width: "100%",
-                      textAlign: "center",
-                      transition: "background-color 0.2s, border-color 0.2s",
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "0.875rem",
+                      animate={{
+                        height: switchChecked2 ? "auto" : 0,
+                        opacity: switchChecked2 ? 1 : 0,
                       }}
+                      initial={false}
                     >
-                      Status: {switchChecked ? "Active" : "Inactive"}
-                    </p>
-                    <p
-                      style={{
-                        margin: "0.25rem 0 0 0",
-                        fontSize: "0.875rem",
-                        opacity: 0.8,
-                      }}
-                    >
-                      Current intensity level: {sliderValue}%
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1rem",
-                      width: "100%",
-                    }}
-                  >
-                    <span className={css({ fontSize: "sm" })}>
-                      Enable Feature A
-                    </span>
-                    <Switch />
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1rem",
-                      width: "100%",
-                    }}
-                  >
-                    <span className={css({ fontSize: "sm" })}>
-                      Enable Feature B
-                    </span>
-                    <Switch />
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1rem",
-                      width: "100%",
-                    }}
-                  >
-                    <span className={css({ fontSize: "sm" })}>
-                      Enable Feature C
-                    </span>
-                    <Switch />
-                  </div>
-                </div>
-              )}
+                      <p style={{ paddingTop: 12, fontWeight: "bold" }}>
+                        Extra content appearing when Feature A is enabled.
+                      </p>
+
+                      <p>
+                        Allows to demonstrate how the container smoothly
+                        transitions its height based on the content inside, and
+                        verify performance of refractive glass effects during
+                        dynamic layout changes.
+                      </p>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
           <div
@@ -236,7 +297,7 @@ const Playground = () => {
               display: "flex",
               gap: "1",
               justifyContent: "end",
-              width: "100%",
+              width: "[100%]",
             })}
           >
             <Button>Cancel</Button>
