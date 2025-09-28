@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     diagnostic::Message,
     severity::Severity,
 };
-use hashql_hir::node::{operation::binary::BinOp, variable::QualifiedVariable};
+use hashql_hir::node::{branch::BranchKind, operation::binary::BinOp, variable::QualifiedVariable};
 
 use super::{FilterCompilerContext, convert::ConversionError};
 
@@ -580,8 +580,6 @@ pub(super) fn branch_unsupported(
     branch: &hashql_hir::node::branch::Branch,
     branch_context: BranchContext,
 ) -> GraphReadCompilerDiagnostic {
-    use hashql_hir::node::branch::BranchKind;
-
     // Create specific primary message based on branch type
     let primary_message = match branch.kind {
         BranchKind::If(_) => "conditional expressions are not supported in filter contexts",
