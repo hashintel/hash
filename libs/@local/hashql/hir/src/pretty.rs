@@ -84,7 +84,6 @@ impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text(self.name.value.unwrap())
-            .append(RcDoc::space())
             .append(RcDoc::text(":"))
             .append(RcDoc::line())
             .append(self.value.pretty(env, boundary))
@@ -268,7 +267,7 @@ impl<'heap> PrettyPrint<'heap> for TypeAssertion<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        RcDoc::text("#is")
+        RcDoc::text("#as")
             .append(if self.force {
                 RcDoc::text("!")
             } else {

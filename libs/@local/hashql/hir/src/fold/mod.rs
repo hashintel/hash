@@ -220,6 +220,9 @@ pub trait Fold<'heap> {
         walk_struct_field(self, field)
     }
 
+    /// Fold a struct
+    ///
+    /// The caller must ensure that the struct fields do not have duplicate field names.
     fn fold_struct(&mut self, r#struct: Struct<'heap>) -> Self::Output<Struct<'heap>> {
         walk_struct(self, r#struct)
     }
@@ -535,7 +538,7 @@ pub fn walk_struct<'heap, T: Fold<'heap> + ?Sized>(
 
     let mut fields = Beef::new(fields);
     fields.try_map::<_, T::Output<()>>(|field| visitor.fold_struct_field(field))?;
-    let fields = fields.finish(&visitor.interner().struct_fields);
+    let fields = fields.finish_with(|slice| visitor.interner().intern_struct_fields(slice));
 
     Try::from_output(Struct { span, fields })
 }

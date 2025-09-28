@@ -13,7 +13,7 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    #is(true, type: Boolean)) |> ::graph::tail::collect
+    #as(true, type: Boolean)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
