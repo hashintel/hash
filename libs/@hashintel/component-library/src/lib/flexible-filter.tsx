@@ -27,6 +27,11 @@ type Parts = {
   bottomRight: string;
 };
 
+//
+// Splits an ImageData into 8 parts and returns them as Base64-encoded PNG images.
+// The parts can then be rendered and composited together to form a scalable image with correct corners and edges.
+//
+
 function splitImageDataToParts(
   imageData: ImageData,
   radius_: number,
@@ -94,25 +99,9 @@ function splitImageDataToParts(
 }
 
 //
-// Internal Filter implementation.
-// Exposed Filter API at bottom of file converts props to MotionValues and passes them here.
+// Component that renders the 8 parts of an image and composites them together.
+// Used internally by the Filter component, for DisplacementMap and SpecularMap.
 //
-
-type FILTER_PROPS = {
-  id: string;
-  scaleRatio: MotionValue<number>;
-  blur: MotionValue<number>;
-  width: MotionValue<number>;
-  height: MotionValue<number>;
-  radius: MotionValue<number>;
-  glassThickness: MotionValue<number>;
-  bezelWidth: MotionValue<number>;
-  refractiveIndex: MotionValue<number>;
-  specularOpacity: MotionValue<number>;
-  specularSaturation: MotionValue<number>;
-  bezelHeightFn: (x: number) => number;
-  pixelRatio: number;
-};
 
 type CompositePartsProps = {
   imageData: MotionValue<ImageData>;
@@ -121,16 +110,32 @@ type CompositePartsProps = {
   width: MotionValue<number>;
   height: MotionValue<number>;
   result: string;
+  hideTop?: boolean;
+  hideBottom?: boolean;
+  hideLeft?: boolean;
+  hideRight?: boolean;
 };
 
 const CompositeParts: React.FC<CompositePartsProps> = memo(
-  ({ imageData, radius, width, height, pixelRatio, result }) => {
+  ({
+    imageData,
+    radius,
+    width,
+    height,
+    pixelRatio,
+    result,
+    hideTop,
+    hideBottom,
+    hideLeft,
+    hideRight,
+  }) => {
     const parts = useTransform(() =>
       splitImageDataToParts(imageData.get(), radius.get(), pixelRatio)
     );
 
     return (
       <>
+        {/* Image Parts */}
         <motion.feImage
           href={useTransform(parts, (_) => _.topLeft)}
           x={0}
@@ -142,9 +147,9 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.top)}
-          x={radius}
+          x={0}
           y={0}
-          width={useTransform(() => width.get() - radius.get() * 2)}
+          width={width}
           height={radius}
           result={`${result}_top`}
           preserveAspectRatio="none"
@@ -161,18 +166,18 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
         <motion.feImage
           href={useTransform(parts, (_) => _.left)}
           x={0}
-          y={radius}
+          y={0}
           width={radius}
-          height={useTransform(() => height.get() - radius.get() * 2)}
+          height={height}
           result={`${result}_left`}
           preserveAspectRatio="none"
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.right)}
           x={useTransform(() => width.get() - radius.get())}
-          y={radius}
+          y={0}
           width={radius}
-          height={useTransform(() => height.get() - radius.get() * 2)}
+          height={height}
           result={`${result}_right`}
           preserveAspectRatio="none"
         />
@@ -187,9 +192,9 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.bottom)}
-          x={radius}
+          x={0}
           y={useTransform(() => height.get() - radius.get())}
-          width={useTransform(() => width.get() - radius.get() * 2)}
+          width={width}
           height={radius}
           result={`${result}_bottom`}
           preserveAspectRatio="none"
@@ -204,63 +209,69 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           preserveAspectRatio="none"
         />
 
+        {/* Composite parts together */}
+
         <motion.feFlood
           floodColor="rgb(128,128,128)"
-          floodOpacity="0.5"
-          result={`${result}_middle`}
+          floodOpacity="1"
+          result={`${result}_base`}
         />
-        <motion.feComposite
-          in={`${result}_topLeft`}
-          in2={`${result}_middle`}
-          operator="over"
-          result={`${result}_composite_0`}
-        />
-        <motion.feComposite
-          in={`${result}_top`}
-          in2={`${result}_composite_0`}
-          operator="over"
-          result={`${result}_composite_1`}
-        />
-        <motion.feComposite
-          in={`${result}_topRight`}
-          in2={`${result}_composite_1`}
-          operator="over"
-          result={`${result}_composite_2`}
-        />
-        <motion.feComposite
-          in={`${result}_left`}
-          in2={`${result}_composite_2`}
-          operator="over"
-          result={`${result}_composite_3`}
-        />
-        <motion.feComposite
-          in={`${result}_right`}
-          in2={`${result}_composite_3`}
-          operator="over"
-          result={`${result}_composite_4`}
-        />
-        <motion.feComposite
-          in={`${result}_bottomLeft`}
-          in2={`${result}_composite_4`}
-          operator="over"
-          result={`${result}_composite_5`}
-        />
-        <motion.feComposite
-          in={`${result}_bottom`}
-          in2={`${result}_composite_5`}
-          operator="over"
-          result={`${result}_composite_6`}
-        />
-        <motion.feComposite
-          in={`${result}_bottomRight`}
-          in2={`${result}_composite_6`}
-          operator="over"
-          result={result}
-        />
+
+        {[
+          !hideTop && "top",
+          !hideLeft && "left",
+          !hideRight && "right",
+          !hideBottom && "bottom",
+          !hideTop && !hideLeft && "topLeft",
+          !hideTop && !hideRight && "topRight",
+          !hideBottom && !hideLeft && "bottomLeft",
+          !hideBottom && !hideRight && "bottomRight",
+        ]
+          .filter((_) => typeof _ === "string")
+          .map((partName, index, arr) => (
+            <motion.feComposite
+              key={partName}
+              operator="over"
+              in={`${result}_${partName}`}
+              in2={
+                index === 0 ? `${result}_base` : `${result}_composite_${index}`
+              }
+              result={
+                index === arr.length - 1
+                  ? result
+                  : `${result}_composite_${index}`
+              }
+            />
+          ))}
       </>
     );
   }
 );
+
+//
+// Internal Filter implementation.
+// Exposed Filter API at bottom of file converts props to MotionValues and passes them here.
+//
+
+type FILTER_PROPS = {
+  id: string;
+  scaleRatio: MotionValue<number>;
+  blur: MotionValue<number>;
+  width: MotionValue<number>;
+  height: MotionValue<number>;
+  radius: MotionValue<number>;
+  glassThickness: MotionValue<number>;
+  bezelWidth: MotionValue<number>;
+  refractiveIndex: MotionValue<number>;
+  specularOpacity: MotionValue<number>;
+  specularAngle: MotionValue<number>;
+  bezelHeightFn: (x: number) => number;
+  pixelRatio: number;
+  hideTop?: boolean;
+  hideBottom?: boolean;
+  hideLeft?: boolean;
+  hideRight?: boolean;
+};
 
 const FILTER: React.FC<FILTER_PROPS> = memo(
   ({
@@ -274,9 +285,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     refractiveIndex,
     scaleRatio,
     specularOpacity,
-    specularSaturation,
     bezelHeightFn,
     pixelRatio,
+    hideTop,
+    hideBottom,
+    hideLeft,
+    hideRight,
   }) => {
     // Calculated image will always be a square that contains 4 corners + 3 pixels for middle
     const imageSide = useTransform(() => radius.get() * 2 + LATERAL_PART_SIZE);
@@ -335,6 +349,10 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           radius={radius}
           pixelRatio={pixelRatio}
           result="displacement_map"
+          hideTop={hideTop}
+          hideBottom={hideBottom}
+          hideLeft={hideLeft}
+          hideRight={hideRight}
         />
 
         <CompositeParts
@@ -344,6 +362,10 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           radius={radius}
           pixelRatio={pixelRatio}
           result="specular_map"
+          hideTop={hideTop}
+          hideBottom={hideBottom}
+          hideLeft={hideLeft}
+          hideRight={hideRight}
         />
 
         <motion.feDisplacementMap
@@ -366,7 +388,6 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           in="specular_with_opacity"
           in2="displaced_source"
           operator="over"
-          result="final_result"
         />
       </filter>
     );
@@ -395,9 +416,13 @@ type FilterProps = {
   bezelWidth: number | MotionValue<number>;
   refractiveIndex: number | MotionValue<number>;
   specularOpacity: number | MotionValue<number>;
-  specularSaturation?: number | MotionValue<number>;
+  specularAngle?: number | MotionValue<number>;
   bezelHeightFn?: (x: number) => number;
   pixelRatio?: number;
+  hideTop?: boolean;
+  hideBottom?: boolean;
+  hideLeft?: boolean;
+  hideRight?: boolean;
 };
 
 export const Filter: React.FC<FilterProps> = memo(
@@ -412,9 +437,13 @@ export const Filter: React.FC<FilterProps> = memo(
     refractiveIndex,
     scaleRatio = 1,
     specularOpacity,
-    specularSaturation = 4,
+    specularAngle = Math.PI / 4,
     bezelHeightFn = CONVEX,
     pixelRatio,
+    hideTop,
+    hideBottom,
+    hideLeft,
+    hideRight,
   }) => (
     <FILTER
       id={id}
@@ -427,9 +456,13 @@ export const Filter: React.FC<FilterProps> = memo(
       refractiveIndex={useToMotion(refractiveIndex)}
       scaleRatio={useToMotion(scaleRatio)}
       specularOpacity={useToMotion(specularOpacity)}
-      specularSaturation={useToMotion(specularSaturation)}
+      specularAngle={useToMotion(specularAngle)}
       bezelHeightFn={bezelHeightFn}
       pixelRatio={pixelRatio ?? getDevicePixelRatio()}
+      hideBottom={hideBottom}
+      hideLeft={hideLeft}
+      hideRight={hideRight}
+      hideTop={hideTop}
     />
   )
 );

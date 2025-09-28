@@ -8,7 +8,6 @@ export type BarProps = React.PropsWithChildren<{
   radius: number;
   blur: number;
   specularOpacity: number;
-  specularSaturation: number;
   scaleRatio: number;
   bezelWidth: number;
   glassThickness: number;
@@ -21,7 +20,6 @@ export const Bar: React.FC<BarProps> = ({
   radius,
   blur,
   specularOpacity,
-  specularSaturation,
   scaleRatio,
   bezelWidth,
   glassThickness,
@@ -41,10 +39,9 @@ export const Bar: React.FC<BarProps> = ({
     <>
       <Filter
         id="bar-filter"
-        blur={blur}
+        blur={0}
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
-        specularSaturation={specularSaturation}
         width={trackedMotionWidth}
         height={trackedMotionHeight}
         radius={radius}
@@ -53,15 +50,39 @@ export const Bar: React.FC<BarProps> = ({
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
       />
+
       <div
-        ref={divRef}
         className={className}
-        style={{
-          ...style,
-          borderRadius: radius,
-          backdropFilter: `url(#bar-filter)`,
-        }}
+        style={{ ...style, borderRadius: radius, position: "relative" }}
       >
+        <div
+          ref={divRef}
+          style={{
+            zIndex: -2,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            borderRadius: radius,
+            backdropFilter: `blur(${blur}px)`,
+          }}
+        />
+
+        <div
+          ref={divRef}
+          style={{
+            zIndex: -1,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            borderRadius: radius,
+            backdropFilter: `url(#bar-filter)`,
+          }}
+        />
+
         {children}
       </div>
     </>
