@@ -151,7 +151,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
         }: TupleExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let mut incomplete = false;
-        let mut fields = SmallVec::new();
+        let mut fields = SmallVec::with_capacity(elements.len());
 
         for element in elements {
             let Some(field) = self.expr(*element.value) else {
