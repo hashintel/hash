@@ -1,4 +1,3 @@
-//@ run: fail
+//@ run: pass
 //@ description: Verifies that appropriate errors are produced for tuple literals, which are planned but not yet implemented.
 { "#tuple": [{ "#literal": 2 }] }
-//~^ ERROR `tuple literal` not supported yet

@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Test tuple checking
+{
+  "#tuple": [{ "#literal": 1 }, { "#literal": 2 }, { "#literal": 3 }],
+  "#type": "(Number, Number, Number)"
+}
