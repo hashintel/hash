@@ -20,7 +20,6 @@ type Parts = {
   top: string;
   topRight: string;
   left: string;
-  middle: string;
   right: string;
   bottomLeft: string;
   bottom: string;
@@ -52,13 +51,6 @@ function splitImageDataToParts(
     0
   );
   const left = imageDataToUrl(imageData, radius, lateralPartSize, 0, radius);
-  const middle = imageDataToUrl(
-    imageData,
-    lateralPartSize,
-    lateralPartSize,
-    radius,
-    radius
-  );
   const right = imageDataToUrl(
     imageData,
     radius,
@@ -93,7 +85,6 @@ function splitImageDataToParts(
     top,
     topRight,
     left,
-    middle,
     right,
     bottomLeft,
     bottom,
@@ -121,6 +112,154 @@ type FILTER_PROPS = {
   bezelHeightFn: (x: number) => number;
   pixelRatio: number;
 };
+
+type CompositePartsProps = {
+  imageData: MotionValue<ImageData>;
+  radius: MotionValue<number>;
+  pixelRatio: number;
+  width: MotionValue<number>;
+  height: MotionValue<number>;
+  result: string;
+};
+
+const CompositeParts: React.FC<CompositePartsProps> = memo(
+  ({ imageData, radius, width, height, pixelRatio, result }) => {
+    const parts = useTransform(() =>
+      splitImageDataToParts(imageData.get(), radius.get(), pixelRatio)
+    );
+
+    return (
+      <>
+        <motion.feImage
+          href={useTransform(parts, (_) => _.topLeft)}
+          x={0}
+          y={0}
+          width={radius}
+          height={radius}
+          result={`${result}_topLeft`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.top)}
+          x={radius}
+          y={0}
+          width={useTransform(() => width.get() - radius.get() * 2)}
+          height={radius}
+          result={`${result}_top`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.topRight)}
+          x={useTransform(() => width.get() - radius.get())}
+          y={0}
+          width={radius}
+          height={radius}
+          result={`${result}_topRight`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.left)}
+          x={0}
+          y={radius}
+          width={radius}
+          height={useTransform(() => height.get() - radius.get() * 2)}
+          result={`${result}_left`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.right)}
+          x={useTransform(() => width.get() - radius.get())}
+          y={radius}
+          width={radius}
+          height={useTransform(() => height.get() - radius.get() * 2)}
+          result={`${result}_right`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.bottomLeft)}
+          x={0}
+          y={useTransform(() => height.get() - radius.get())}
+          width={radius}
+          height={radius}
+          result={`${result}_bottomLeft`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.bottom)}
+          x={radius}
+          y={useTransform(() => height.get() - radius.get())}
+          width={useTransform(() => width.get() - radius.get() * 2)}
+          height={radius}
+          result={`${result}_bottom`}
+          preserveAspectRatio="none"
+        />
+        <motion.feImage
+          href={useTransform(parts, (_) => _.bottomRight)}
+          x={useTransform(() => width.get() - radius.get())}
+          y={useTransform(() => height.get() - radius.get())}
+          width={radius}
+          height={radius}
+          result={`${result}_bottomRight`}
+          preserveAspectRatio="none"
+        />
+
+        <motion.feFlood
+          floodColor="rgb(128,128,128)"
+          floodOpacity="0.5"
+          result={`${result}_middle`}
+        />
+        <motion.feComposite
+          in={`${result}_topLeft`}
+          in2={`${result}_middle`}
+          operator="over"
+          result={`${result}_composite_0`}
+        />
+        <motion.feComposite
+          in={`${result}_top`}
+          in2={`${result}_composite_0`}
+          operator="over"
+          result={`${result}_composite_1`}
+        />
+        <motion.feComposite
+          in={`${result}_topRight`}
+          in2={`${result}_composite_1`}
+          operator="over"
+          result={`${result}_composite_2`}
+        />
+        <motion.feComposite
+          in={`${result}_left`}
+          in2={`${result}_composite_2`}
+          operator="over"
+          result={`${result}_composite_3`}
+        />
+        <motion.feComposite
+          in={`${result}_right`}
+          in2={`${result}_composite_3`}
+          operator="over"
+          result={`${result}_composite_4`}
+        />
+        <motion.feComposite
+          in={`${result}_bottomLeft`}
+          in2={`${result}_composite_4`}
+          operator="over"
+          result={`${result}_composite_5`}
+        />
+        <motion.feComposite
+          in={`${result}_bottom`}
+          in2={`${result}_composite_5`}
+          operator="over"
+          result={`${result}_composite_6`}
+        />
+        <motion.feComposite
+          in={`${result}_bottomRight`}
+          in2={`${result}_composite_6`}
+          operator="over"
+          result={result}
+        />
+      </>
+    );
+  }
+);
 
 const FILTER: React.FC<FILTER_PROPS> = memo(
   ({
@@ -164,14 +303,6 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
       });
     });
 
-    const displacementMapParts = useTransform(() => {
-      return splitImageDataToParts(
-        displacementMap.get(),
-        radius.get(),
-        pixelRatio
-      );
-    });
-
     const scale = useTransform(
       () => maximumDisplacement.get() * scaleRatio.get()
     );
@@ -184,143 +315,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           result="blurred_source"
         />
 
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.middle)}
-          x={0}
-          y={0}
+        <CompositeParts
+          imageData={displacementMap}
           width={width}
           height={height}
-          result="displacement_map_middle"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.topLeft)}
-          x={0}
-          y={0}
-          width={radius}
-          height={radius}
-          result="displacement_map_topLeft"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.top)}
-          x={radius}
-          y={0}
-          width={useTransform(() => width.get() - radius.get() * 2)}
-          height={radius}
-          result="displacement_map_top"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.topRight)}
-          x={useTransform(() => width.get() - radius.get())}
-          y={0}
-          width={radius}
-          height={radius}
-          result="displacement_map_topRight"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.left)}
-          x={0}
-          y={radius}
-          width={radius}
-          height={useTransform(() => height.get() - radius.get() * 2)}
-          result="displacement_map_left"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.right)}
-          x={useTransform(() => width.get() - radius.get())}
-          y={radius}
-          width={radius}
-          height={useTransform(() => height.get() - radius.get() * 2)}
-          result="displacement_map_right"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.bottomLeft)}
-          x={0}
-          y={useTransform(() => height.get() - radius.get())}
-          width={radius}
-          height={radius}
-          result="displacement_map_bottomLeft"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.bottom)}
-          x={radius}
-          y={useTransform(() => height.get() - radius.get())}
-          width={useTransform(() => width.get() - radius.get() * 2)}
-          height={radius}
-          result="displacement_map_bottom"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feImage
-          href={useTransform(displacementMapParts, (_) => _.bottomRight)}
-          x={useTransform(() => width.get() - radius.get())}
-          y={useTransform(() => height.get() - radius.get())}
-          width={radius}
-          height={radius}
-          result="displacement_map_bottomRight"
-          preserveAspectRatio="none"
-        />
-
-        <motion.feComposite
-          in="displacement_map_topLeft"
-          in2="displacement_map_middle"
-          operator="over"
-          result="displacement_map_composite_0"
-        />
-
-        <motion.feComposite
-          in="displacement_map_top"
-          in2="displacement_map_composite_0"
-          operator="over"
-          result="displacement_map_composite_1"
-        />
-        <motion.feComposite
-          in="displacement_map_topRight"
-          in2="displacement_map_composite_1"
-          operator="over"
-          result="displacement_map_composite_2"
-        />
-        <motion.feComposite
-          in="displacement_map_left"
-          in2="displacement_map_composite_2"
-          operator="over"
-          result="displacement_map_composite_3"
-        />
-        <motion.feComposite
-          in="displacement_map_right"
-          in2="displacement_map_composite_3"
-          operator="over"
-          result="displacement_map_composite_4"
-        />
-        <motion.feComposite
-          in="displacement_map_bottomLeft"
-          in2="displacement_map_composite_4"
-          operator="over"
-          result="displacement_map_composite_5"
-        />
-        <motion.feComposite
-          in="displacement_map_bottom"
-          in2="displacement_map_composite_5"
-          operator="over"
-          result="displacement_map_composite_6"
-        />
-        <motion.feComposite
-          in="displacement_map_bottomRight"
-          in2="displacement_map_composite_6"
-          operator="over"
+          radius={radius}
+          pixelRatio={pixelRatio}
           result="displacement_map"
         />
 
