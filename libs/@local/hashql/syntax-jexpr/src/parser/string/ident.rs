@@ -37,10 +37,7 @@ where
         cut_err(take_while(0.., unicode_ident::is_xid_continue)),
     );
 
-    let unused = (
-        '_',
-        cut_err(take_while(1.., unicode_ident::is_xid_continue)),
-    );
+    let unused = ('_', take_while(1.., unicode_ident::is_xid_continue));
 
     alt((used, unused))
         .take()
@@ -177,7 +174,7 @@ where
 {
     dispatch! {peek(any);
         '`' => cut_err(alt((parse_ident_symbol, parse_ident_url))),
-        char if unicode_ident::is_xid_start(char) || char == '_' => cut_err(parse_ident_lexical),
+        char if unicode_ident::is_xid_start(char) || char == '_' => parse_ident_lexical,
         char if is_symbol(char) => cut_err(parse_ident_symbol),
         _ => fail
     }
