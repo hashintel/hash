@@ -71,11 +71,11 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     alignItems: "center",
     gap: "2",
     "& [data-part='indicator']": {
-      backgroundColor: "gray.40/60",
+      backgroundColor: "whiteAlpha.20",
     },
     "&:active [data-part='indicator']": {
       transform: `[scale(${INDICATOR_SCALE_ACTIVE})]`,
-      backgroundColor: "gray.40/10",
+      backgroundColor: "whiteAlpha.10",
     },
     userSelect: "none",
   });
@@ -92,7 +92,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     height: "var(--height)",
     left: "var(--left)",
     top: "var(--top)",
-    boxShadow: "md",
+    boxShadow: "sm",
     transform: "scale(1)",
   });
 
@@ -123,7 +123,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   const itemTextStyles = css({
     fontSize: "sm",
     fontWeight: "medium",
-    color: "gray.10",
     _disabled: {
       opacity: "0.4",
     },
@@ -173,6 +172,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         className={cx(rootStyles, className)}
         style={{
           padding: ROOT_PADDING,
+          borderRadius: radius,
           ...style,
         }}
       >

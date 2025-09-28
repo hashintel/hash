@@ -47,7 +47,7 @@ const Playground = () => {
         <Bar
           radius={RADIUS}
           blur={2}
-          specularOpacity={0.5}
+          specularOpacity={0.7}
           scaleRatio={1}
           bezelWidth={RADIUS - 1}
           glassThickness={70}
@@ -59,6 +59,7 @@ const Playground = () => {
             gap: "1",
             alignItems: "center",
             pointerEvents: "auto", // Re-enable pointer events for the Bar itself
+            backgroundColor: "grayAlpha.40",
           })}
           style={{
             padding: PADDING,
@@ -79,27 +80,31 @@ const Playground = () => {
             }}
           >
             <h2
-              style={{
-                margin: 0,
+              className={css({
                 fontSize: "1.5rem",
                 fontWeight: "600",
                 textAlign: "center",
-              }}
+                marginBottom: "5",
+              })}
             >
               Interactive Playground
             </h2>
 
             <SegmentedControl
               radius={22}
-              specularOpacity={0.65}
+              specularOpacity={0.8}
               glassThickness={20}
               bezelWidth={11}
               blur={1.7}
               options={[
-                { name: "Option 1", value: "option1" },
-                { name: "Option 2", value: "option2" },
-                { name: "Option 3", value: "option3" },
+                { name: "Design", value: "design" },
+                { name: "Actions", value: "actions" },
               ]}
+              className={css({
+                color: "neutral.black/80",
+                backgroundColor: "gray.30",
+                marginBottom: "5",
+              })}
             />
 
             <div
