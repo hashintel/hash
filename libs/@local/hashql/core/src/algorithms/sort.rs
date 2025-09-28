@@ -67,7 +67,7 @@ mod tests {
     use proptest::{collection::size_range, prop_assert, prop_assert_eq, test_runner::Config};
     use test_strategy::proptest;
 
-    use crate::math::co_sort;
+    use crate::algorithms::co_sort;
 
     #[proptest(
         if cfg!(miri) {
