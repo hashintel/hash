@@ -30,12 +30,12 @@
 
 extern crate alloc;
 
+pub mod algorithms;
 pub mod collection;
 pub mod heap;
 pub mod id;
 pub mod intern;
 pub mod literal;
-pub mod math;
 pub mod module;
 pub mod pretty;
 pub mod similarity;
