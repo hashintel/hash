@@ -15,7 +15,7 @@ pub use self::{dict::Dict, list::List, literal::Literal, r#struct::Struct, tuple
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum DataKind<'heap> {
     /// A struct value with named fields
-    Struct(Struct<'heap>, !),
+    Struct(Struct<'heap>),
     /// A dictionary with dynamically computed keys
     Dict(Dict<'heap>, !),
     /// A tuple with positionally-accessed elements

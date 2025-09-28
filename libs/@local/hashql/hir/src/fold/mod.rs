@@ -68,7 +68,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal, Tuple},
+        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -214,6 +214,14 @@ pub trait Fold<'heap> {
 
     fn fold_literal(&mut self, literal: Literal<'heap>) -> Self::Output<Literal<'heap>> {
         walk_literal(self, literal)
+    }
+
+    fn fold_struct_field(&mut self, field: StructField<'heap>) -> Self::Output<StructField<'heap>> {
+        walk_struct_field(self, field)
+    }
+
+    fn fold_struct(&mut self, r#struct: Struct<'heap>) -> Self::Output<Struct<'heap>> {
+        walk_struct(self, r#struct)
     }
 
     fn fold_tuple(&mut self, tuple: Tuple<'heap>) -> Self::Output<Tuple<'heap>> {
@@ -494,6 +502,7 @@ pub fn walk_data<'heap, T: Fold<'heap> + ?Sized>(
     let kind = match kind {
         DataKind::Literal(literal) => DataKind::Literal(visitor.fold_literal(literal)?),
         DataKind::Tuple(tuple) => DataKind::Tuple(visitor.fold_tuple(tuple)?),
+        DataKind::Struct(r#struct) => DataKind::Struct(visitor.fold_struct(r#struct)?),
     };
 
     Try::from_output(Data { span, kind })
@@ -506,6 +515,29 @@ pub fn walk_literal<'heap, T: Fold<'heap> + ?Sized>(
     let span = visitor.fold_span(span)?;
 
     Try::from_output(Literal { span, kind })
+}
+
+pub fn walk_struct_field<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    StructField { name, value }: StructField<'heap>,
+) -> T::Output<StructField<'heap>> {
+    let name = visitor.fold_ident(name)?;
+    let value = visitor.fold_nested_node(value)?;
+
+    Try::from_output(StructField { name, value })
+}
+
+pub fn walk_struct<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Struct { span, fields }: Struct<'heap>,
+) -> T::Output<Struct<'heap>> {
+    let span = visitor.fold_span(span)?;
+
+    let mut fields = Beef::new(fields);
+    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_struct_field(field))?;
+    let fields = fields.finish(&visitor.interner().struct_fields);
+
+    Try::from_output(Struct { span, fields })
 }
 
 pub fn walk_tuple<'heap, T: Fold<'heap> + ?Sized>(
