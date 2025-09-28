@@ -69,7 +69,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     position: "relative",
     display: "flex",
     alignItems: "center",
-    gap: "2",
+    gap: "1",
     "& [data-part='indicator']": {
       backgroundColor: "whiteAlpha.20",
     },
@@ -187,6 +187,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             height: "100%",
             borderRadius: radius,
             backdropFilter: `url(#${rootFilterId})`,
+            boxShadow: "inset 1px 1px 1px rgba(0, 0, 0, 0.05)",
           }}
         />
 

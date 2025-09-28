@@ -16,6 +16,7 @@ const RADIUS = 20;
 const Playground = () => {
   const [switchChecked, setSwitchChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(50);
+  const [currentPage, setCurrentPage] = useState("design");
 
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
@@ -59,7 +60,7 @@ const Playground = () => {
             gap: "1",
             alignItems: "center",
             pointerEvents: "auto", // Re-enable pointer events for the Bar itself
-            backgroundColor: "grayAlpha.40",
+            backgroundColor: "gray.20/40",
           })}
           style={{
             padding: PADDING,
@@ -73,7 +74,7 @@ const Playground = () => {
               alignItems: "center",
               width: "[100%]",
               backgroundColor: "whiteAlpha.90",
-              shadow: "sm",
+              shadow: "md",
             })}
             style={{
               borderRadius: RADIUS - PADDING,
@@ -100,6 +101,8 @@ const Playground = () => {
                 { name: "Design", value: "design" },
                 { name: "Actions", value: "actions" },
               ]}
+              value={currentPage}
+              onValueChange={setCurrentPage}
               className={css({
                 color: "neutral.black/80",
                 backgroundColor: "gray.30",
@@ -131,12 +134,11 @@ const Playground = () => {
                 width: "100%",
               }}
             >
-              <span style={{ fontSize: "1rem" }}>
-                Intensity: {sliderValue}%
-              </span>
               <Slider
                 defaultValue={sliderValue}
                 onChange={(value) => setSliderValue(value[0] ?? 0)}
+                label="Intensity Level"
+                showValueText
                 min={0}
                 max={100}
               />
