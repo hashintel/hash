@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Test struct checking
+{
+  "#struct": {"a": { "#literal": 1 }, "b": { "#literal": 2 }, "c": { "#literal": 3 }},
+  "#type": "(a: Number, b: Number, c: Number)"
+}
