@@ -30,9 +30,20 @@ use super::{
 use crate::{
     lower::error::generic_argument_mismatch,
     node::{
-        access::{field::FieldAccess, index::IndexAccess}, branch::r#if::If, call::Call, closure::Closure, data::{Literal, Struct, Tuple}, graph::Graph, input::Input, r#let::Let, operation::{
-            r#type::{TypeAssertion, TypeConstructor}, BinaryOperation, UnaryOperation
-        }, variable::{LocalVariable, QualifiedVariable}, HirId, Node
+        HirId, Node,
+        access::{field::FieldAccess, index::IndexAccess},
+        branch::r#if::If,
+        call::Call,
+        closure::Closure,
+        data::{Literal, Struct, Tuple},
+        graph::Graph,
+        input::Input,
+        r#let::Let,
+        operation::{
+            BinaryOperation, UnaryOperation,
+            r#type::{TypeAssertion, TypeConstructor},
+        },
+        variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
 };
@@ -241,7 +252,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     }
 
     fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
-        visit::walk_struct(self, #r#struct);
+        visit::walk_struct(self, r#struct);
         self.transfer_type(self.current);
     }
 
