@@ -31,7 +31,7 @@ use crate::{
         branch::r#if::If,
         call::Call,
         closure::Closure,
-        data::Literal,
+        data::{Literal, Tuple},
         graph::Graph,
         input::Input,
         r#let::Let,
@@ -178,6 +178,15 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             LiteralKind::Integer(_) => builder.integer(),
             LiteralKind::String(_) => builder.string(),
         };
+
+        self.types.insert_unique(self.current, id);
+    }
+
+    fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
+        visit::walk_tuple(self, tuple);
+
+        let builder = TypeBuilder::spanned(tuple.span, self.env);
+        let id = builder.tuple(tuple.fields.iter().map(|field| self.types[&field.id]));
 
         self.types.insert_unique(self.current, id);
     }
