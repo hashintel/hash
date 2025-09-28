@@ -28,10 +28,10 @@ use super::{
     CompilationError, FilterCompilerContext, GraphReadCompiler,
     convert::convert_value_to_parameter,
     error::{
-        GraphReadCompilerIssues, call_unsupported, closure_unsupported,
-        field_access_internal_error, nested_graph_read_unsupported, path_conversion_error,
-        path_indexing_unsupported, path_traversal_internal_error, qualified_variable_unsupported,
-        value_parameter_conversion_error,
+        BranchContext, GraphReadCompilerIssues, branch_unsupported, call_unsupported,
+        closure_unsupported, field_access_internal_error, nested_graph_read_unsupported,
+        path_conversion_error, path_indexing_unsupported, path_traversal_internal_error,
+        qualified_variable_unsupported, value_parameter_conversion_error,
     },
     path::{CompleteQueryPath, PartialQueryPath, traverse_into_field, traverse_into_index},
 };
@@ -534,7 +534,12 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     Err(CompilationError)
                 }
             },
-            NodeKind::Branch(_) => todo!("error out"),
+            NodeKind::Branch(branch) => {
+                self.diagnostics
+                    .push(branch_unsupported(branch, BranchContext::FilterExpression));
+
+                Err(CompilationError)
+            }
         }
     }
 }
