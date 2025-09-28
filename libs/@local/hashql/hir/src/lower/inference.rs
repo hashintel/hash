@@ -31,7 +31,7 @@ use crate::{
         branch::r#if::If,
         call::Call,
         closure::Closure,
-        data::{Literal, Tuple},
+        data::{Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
         r#let::Let,
@@ -187,6 +187,20 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         let builder = TypeBuilder::spanned(tuple.span, self.env);
         let id = builder.tuple(tuple.fields.iter().map(|field| self.types[&field.id]));
+
+        self.types.insert_unique(self.current, id);
+    }
+
+    fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
+        visit::walk_struct(self, r#struct);
+
+        let builder = TypeBuilder::spanned(r#struct.span, self.env);
+        let id = builder.r#struct(
+            r#struct
+                .fields
+                .iter()
+                .map(|field| (field.name.value, self.types[&field.value.id])),
+        );
 
         self.types.insert_unique(self.current, id);
     }
