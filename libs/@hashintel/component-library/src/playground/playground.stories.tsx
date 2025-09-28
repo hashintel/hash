@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Bar } from "../components/Bar/bar";
 import { Button } from "../components/Button/button";
+import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
 import { Switch } from "../components/Switch/switch";
 import { ExampleArticle } from "./ExampleArticle";
@@ -87,6 +88,19 @@ const Playground = () => {
             >
               Interactive Playground
             </h2>
+
+            <SegmentedControl
+              radius={22}
+              specularOpacity={0.65}
+              glassThickness={20}
+              bezelWidth={11}
+              blur={1.7}
+              options={[
+                { name: "Option 1", value: "option1" },
+                { name: "Option 2", value: "option2" },
+                { name: "Option 3", value: "option3" },
+              ]}
+            />
 
             <div
               style={{

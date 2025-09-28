@@ -36,6 +36,8 @@ export interface SliderProps {
   refractiveIndex?: number;
   bezelWidth?: number;
   blurLevel?: number;
+  label?: string;
+  showValueText?: boolean;
   onChange?: (value: number[]) => void;
 }
 
@@ -48,6 +50,8 @@ export const Slider: React.FC<SliderProps> = ({
   blurLevel = DEFAULT_BLUR_LEVEL,
   glassThickness = DEFAULT_GLASS_THICKNESS,
   refractiveIndex = DEFAULT_REFRACTIVE_INDEX,
+  label,
+  showValueText = false,
   onChange,
 }) => {
   const filterId = `thumb-filter-${useId()}`;
@@ -85,25 +89,29 @@ export const Slider: React.FC<SliderProps> = ({
           position: "relative",
           display: "flex",
           flexDirection: "column",
-          gap: "4px",
+          gap: "1",
         })}
       >
-        <BaseSlider.Label
-          className={css({
-            fontSize: "14px",
-            fontWeight: "medium",
-            color: "gray.900",
-          })}
-        >
-          Label
-        </BaseSlider.Label>
+        {label && (
+          <BaseSlider.Label
+            className={css({
+              fontSize: "14px",
+              fontWeight: "medium",
+              color: "gray.900",
+            })}
+          >
+            {label}
+          </BaseSlider.Label>
+        )}
 
-        <BaseSlider.ValueText
-          className={css({
-            fontSize: "12px",
-            color: "gray.600",
-          })}
-        />
+        {showValueText && (
+          <BaseSlider.ValueText
+            className={css({
+              fontSize: "xs",
+              color: "gray.600",
+            })}
+          />
+        )}
 
         <BaseSlider.Control
           className={css({

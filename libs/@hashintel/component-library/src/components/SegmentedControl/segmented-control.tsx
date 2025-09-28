@@ -34,7 +34,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   blur = 2,
   specularOpacity = 0.4,
   scaleRatio = 1,
-  bezelWidth = 2,
+  bezelWidth = 20,
   glassThickness = 16,
   refractiveIndex = 1.5,
   options,
