@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 /// # Example
 ///
 /// ```
-/// # use hashql_core::math::cartesian_product;
+/// # use hashql_core::algorithms::cartesian_product;
 /// #
 /// let a = vec!['1', '2'];
 /// let b = vec!['A', 'B', 'C'];
