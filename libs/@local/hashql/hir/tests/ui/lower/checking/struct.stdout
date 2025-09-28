@@ -1,10 +1,10 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (Number, Number, Number))
+#as((a: 1, b: 2, c: 3), type: (a: Number, b: Number, c: Number))
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (Number, Number, Number))
+#as((a: 1, b: 2, c: 3), type: (a: Number, b: Number, c: Number))
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
@@ -17,9 +17,9 @@
 ┌─ 3
 └→ Integer
 
-┌─ (1, 2, 3)
-└→ (Integer, Integer, Integer)
+┌─ (a: 1, b: 2, c: 3)
+└→ (a: Integer, b: Integer, c: Integer)
 
-┌─ #as((1, 2, 3), type: (Number, Number, Number))
-└→ (Number, Number, Number)
+┌─ #as((a: 1, b: 2, c: 3), type: (a: Number, b: Number, c: Number))
+└→ (a: Number, b: Number, c: Number)
 

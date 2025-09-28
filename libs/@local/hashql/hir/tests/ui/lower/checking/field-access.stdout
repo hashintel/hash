@@ -1,25 +1,28 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (Number, Number, Number))
+#let foo:0 = (a: 42) in
+foo:0.a
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (Number, Number, Number))
+#let foo:0 = (a: 42) in
+foo:0.a
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 1
+┌─ 42
 └→ Integer
 
-┌─ 2
+┌─ (a: 42)
+└→ (a: Integer)
+
+┌─ foo:0
+└→ (a: Integer)
+
+┌─ foo:0.a
 └→ Integer
 
-┌─ 3
+┌─ #let foo:0 = (a: 42) in
+│  foo:0.a
 └→ Integer
-
-┌─ (1, 2, 3)
-└→ (Integer, Integer, Integer)
-
-┌─ #as((1, 2, 3), type: (Number, Number, Number))
-└→ (Number, Number, Number)
 

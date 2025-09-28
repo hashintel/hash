@@ -209,7 +209,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             span,
             kind: DataKind::Struct(Struct {
                 span,
-                fields: self.interner.intern_struct_fields(&fields),
+                fields: self.interner.intern_struct_fields(&mut fields),
             }),
         });
 

@@ -347,6 +347,64 @@ where
             BeefData::Interned(slice) => slice,
         }
     }
+
+    /// Finalizes the [`Beef`] and returns an interned slice using a custom interning function.
+    ///
+    /// This method provides flexible control over how the data is interned when finishing the
+    /// [`Beef`] operation. Unlike [`finish`], which uses a standard [`InternSet`], this method
+    /// allows you to provide a custom interning closure.
+    ///
+    /// If the [`Beef`] contains owned data (meaning modifications were made), the custom
+    /// interning function is called with a mutable reference to the owned slice. If the
+    /// [`Beef`] still contains the original interned data (no modifications were made), that
+    /// original interned slice is returned directly without calling the interning function.
+    ///
+    /// This is particularly useful when you need to:
+    /// - Use a different interner than the standard one
+    /// - Perform additional processing during the interning step
+    /// - Apply custom deduplication or caching logic
+    /// - Integrate with specialized interning systems
+    ///
+    /// # Arguments
+    ///
+    /// * `intern` - A closure that takes a mutable slice and returns an interned version. This
+    ///   closure is only called if the [`Beef`] contains owned data (i.e., modifications were
+    ///   made). The mutable reference allows for potential in-place optimizations before interning.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_hir::fold::beef::Beef;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let original = interner.intern_slice(&[1, 2, 3]);
+    ///
+    /// // Custom interning with additional processing
+    /// let mut beef = Beef::new(original);
+    /// beef.map(|x| x * 2);
+    ///
+    /// let result = beef.finish_with(|slice| {
+    ///     // Could perform additional processing here
+    ///     slice.sort(); // Example: sort before interning
+    ///     interner.intern_slice(slice)
+    /// });
+    ///
+    /// assert_eq!(result.as_ref(), &[2, 4, 6]);
+    /// ```
+    ///
+    /// [`finish`]: Self::finish
+    #[must_use]
+    pub fn finish_with(
+        self,
+        intern: impl FnOnce(&mut [T]) -> Interned<'heap, [T]>,
+    ) -> Interned<'heap, [T]> {
+        match self.0 {
+            BeefData::Owned(mut slice) => intern(&mut slice),
+            BeefData::Interned(slice) => slice,
+        }
+    }
 }
 
 impl<T> Debug for Beef<'_, T>

@@ -1,10 +1,10 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (_0, _1, _2))
+#as((a: 1, b: 2, c: 3), type: (a: _0, b: _1, c: _2))
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#as((1, 2, 3), type: (_0«Integer», _1«Integer», _2«Integer»))
+#as((a: 1, b: 2, c: 3), type: (a: _0«Integer», b: _1«Integer», c: _2«Integer»))
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
@@ -17,9 +17,9 @@
 ┌─ 3
 └→ Integer
 
-┌─ (1, 2, 3)
-└→ (Integer, Integer, Integer)
+┌─ (a: 1, b: 2, c: 3)
+└→ (a: Integer, b: Integer, c: Integer)
 
-┌─ #as((1, 2, 3), type: (_0«Integer», _1«Integer», _2«Integer»))
-└→ (_0«Integer», _1«Integer», _2«Integer»)
+┌─ #as((a: 1, b: 2, c: 3), type: (a: _0«Integer», b: _1«Integer», c: _2«Integer»))
+└→ (a: _0«Integer», b: _1«Integer», c: _2«Integer»)
 
