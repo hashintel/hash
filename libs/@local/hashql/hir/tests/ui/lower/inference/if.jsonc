@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: Type inference works across branches.
+[
+  "if", {"#literal": true},
+  ["Some", { "#literal": 2 }],
+  ["None"]
+]

@@ -428,7 +428,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.types.insert_unique(self.current, output);
 
         let test_expected = self.env.intern_type(PartialType {
-            span: r#if.span,
+            span: r#if.test.span,
             kind: self
                 .env
                 .intern_kind(TypeKind::Primitive(PrimitiveType::Boolean)),

@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: Ensures that type inference constraints the test condition
+[
+  "if", ["&&", {"#literal": true}, {"#literal": false}],
+  {"#literal": 2},
+  {"#literal": 3}
+]

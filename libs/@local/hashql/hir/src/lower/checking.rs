@@ -182,6 +182,12 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         }
     }
 
+    fn is_subtype(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        self.analysis.with_diagnostics_disabled(|analysis| {
+            analysis.is_subtype_of(Variance::Covariant, subtype, supertype)
+        })
+    }
+
     /// Finalizes the type checking process and returns the collected results.
     ///
     /// # Errors
@@ -416,15 +422,18 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         visit::walk_if(self, r#if);
 
         // the test expression must evaluate to a boolean
-        self.verify_subtype(
+        let is_test_boolean = self.is_subtype(
             self.types[&r#if.test.id],
             self.env.intern_type(PartialType {
-                span: r#if.span,
+                span: r#if.test.span,
                 kind: self
                     .env
                     .intern_kind(TypeKind::Primitive(PrimitiveType::Boolean)),
             }),
         );
+        if !is_test_boolean {
+            todo!("error out")
+        }
 
         self.transfer_type(self.current);
     }
