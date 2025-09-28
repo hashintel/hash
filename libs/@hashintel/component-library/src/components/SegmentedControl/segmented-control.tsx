@@ -1,6 +1,6 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/styled-system/css";
-import { useId, useState } from "react";
+import { useId } from "react";
 
 import { Filter } from "../../lib/flexible-filter";
 import { CONVEX, LIP } from "../../lib/surface-equations";
@@ -20,6 +20,7 @@ export type SegmentedControlProps = React.PropsWithChildren<{
   bezelWidth?: number;
   glassThickness?: number;
   refractiveIndex?: number;
+  options: { name: string; value: string }[];
   value?: string;
   defaultValue?: string;
   disabled?: boolean;
@@ -32,12 +33,12 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   radius = 22,
   blur = 2,
   specularOpacity = 0.4,
-  specularSaturation = 7,
   scaleRatio = 1,
   bezelWidth = 2,
   glassThickness = 16,
   refractiveIndex = 1.5,
-  // value,
+  options,
+  value,
   defaultValue,
   disabled = false,
   onValueChange,
@@ -62,15 +63,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     initialWidth: 10,
     initialHeight: 10,
   });
-
-  const items = [
-    { name: "Option 1", value: "option1" },
-    { name: "Option 2", value: "option2" },
-    { name: "Option 3", value: "option3" },
-  ] as const satisfies readonly { name: string; value: string }[];
-
-  type ItemType = (typeof items)[number]["value"];
-  const [value, setValue] = useState<ItemType>("option1");
 
   // Define PandaCSS styles for the segment group components
   const rootStyles = css({
@@ -144,7 +136,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         blur={blur}
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
-        specularSaturation={specularSaturation}
         width={rootMotionWidth}
         height={rootMotionHeight}
         radius={radius}
@@ -152,14 +143,13 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
-        pixelRatio={6}
+        pixelRatio={4}
       />
       <Filter
         id={indicatorFilterId}
         blur={0}
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
-        specularSaturation={specularSaturation}
         width={indicatorMotionWidth}
         height={indicatorMotionHeight}
         radius={radius - ROOT_PADDING}
@@ -167,14 +157,13 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={LIP}
-        pixelRatio={6}
+        pixelRatio={4}
       />
 
       <SegmentGroup.Root
         ref={rootRef}
         value={value}
         onValueChange={(details) => {
-          setValue(details.value as ItemType);
           if (details.value) {
             onValueChange?.(details.value);
           }
@@ -201,15 +190,15 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           }}
         />
 
-        {items.map((item) => (
+        {options.map((option) => (
           <SegmentGroup.Item
-            key={item.value}
-            value={item.value}
+            key={option.value}
+            value={option.value}
             className={itemStyles}
             style={{ borderRadius: radius - ROOT_PADDING }}
           >
             <SegmentGroup.ItemText className={itemTextStyles}>
-              {item.name}
+              {option.name}
             </SegmentGroup.ItemText>
             <SegmentGroup.ItemControl />
             <SegmentGroup.ItemHiddenInput />
@@ -224,8 +213,8 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             backdropFilter: `url(#${indicatorFilterId})`,
             transition: "all",
             transitionDuration: "300ms",
-            transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-            transition: "all 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.075)",
+            transition: "all 300ms cubic-bezier(0.175, 0.885, 0.32, 1.075)",
           }}
         />
       </SegmentGroup.Root>

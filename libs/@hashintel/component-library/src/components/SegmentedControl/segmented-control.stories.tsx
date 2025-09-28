@@ -149,7 +149,7 @@ export const Interactive: Story = {
     specularOpacity: 0.64,
     bezelWidth: 11,
     glassThickness: 20,
-    specularSaturation: 14
+    specularSaturation: 14,
   },
 
   render: (args) => {
@@ -174,6 +174,11 @@ export const Interactive: Story = {
       >
         <SegmentedControl
           {...args}
+          options={[
+            { name: "Option 1", value: "option1" },
+            { name: "Option 2", value: "option2" },
+            { name: "Option 3", value: "option3" },
+          ]}
           value={selectedValue}
           onValueChange={setSelectedValue}
         />
@@ -207,5 +212,5 @@ they transform the component's appearance from subtle glass to bold crystal effe
         `,
       },
     },
-  }
+  },
 };
