@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { Filter } from "../../lib/flexible-filter";
 import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
@@ -26,6 +28,7 @@ export const Bar: React.FC<BarProps> = ({
   refractiveIndex,
   children,
 }) => {
+  const filterId = `bar-filter-${useId()}`;
   const {
     ref: divRef,
     width: trackedMotionWidth,
@@ -38,7 +41,7 @@ export const Bar: React.FC<BarProps> = ({
   return (
     <>
       <Filter
-        id="bar-filter"
+        id={filterId}
         blur={0}
         scaleRatio={scaleRatio}
         specularOpacity={specularOpacity}
@@ -79,7 +82,7 @@ export const Bar: React.FC<BarProps> = ({
             width: "100%",
             height: "100%",
             borderRadius: radius,
-            backdropFilter: `url(#bar-filter)`,
+            backdropFilter: `url(#${filterId})`,
           }}
         />
 
