@@ -7,7 +7,7 @@ use hashql_ast::{
     node::{
         expr::{
             AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-            LetExpr, LiteralExpr, TupleExpr, call::Argument, closure,
+            LetExpr, LiteralExpr, StructExpr, TupleExpr, call::Argument, closure,
         },
         path::{Path, PathSegmentArgument},
         r#type::Type,
@@ -35,7 +35,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal, Tuple},
+        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -171,6 +171,45 @@ impl<'heap> ReificationContext<'_, 'heap> {
             kind: DataKind::Tuple(Tuple {
                 span,
                 fields: self.interner.intern_nodes(&fields),
+            }),
+        });
+
+        Some(self.wrap_type_assertion(span, kind, r#type))
+    }
+
+    fn struct_expr(
+        &mut self,
+        StructExpr {
+            id: _,
+            span,
+            entries,
+            r#type,
+        }: StructExpr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        let mut incomplete = false;
+        let mut fields = SmallVec::with_capacity(entries.len());
+
+        for entry in entries {
+            let Some(value) = self.expr(*entry.value) else {
+                incomplete = true;
+                continue;
+            };
+
+            fields.push(StructField {
+                name: entry.key,
+                value,
+            });
+        }
+
+        if incomplete {
+            return None;
+        }
+
+        let kind = NodeKind::Data(Data {
+            span,
+            kind: DataKind::Struct(Struct {
+                span,
+                fields: self.interner.intern_struct_fields(&fields),
             }),
         });
 
@@ -557,15 +596,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
     fn expr(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {
         let kind = match expr.kind {
             ExprKind::Call(call) => self.call_expr(call)?,
-            ExprKind::Struct(_) => {
-                self.diagnostics.push(unsupported_construct(
-                    expr.span,
-                    "struct literal",
-                    "https://linear.app/hash/issue/H-4602/enable-struct-literal-construct",
-                ));
-
-                return None;
-            }
+            ExprKind::Struct(r#struct) => self.struct_expr(r#struct)?,
             ExprKind::Dict(_) => {
                 self.diagnostics.push(unsupported_construct(
                     expr.span,

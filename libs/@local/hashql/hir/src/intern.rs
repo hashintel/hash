@@ -69,6 +69,13 @@ impl<'heap> Interner<'heap> {
         self.call_arguments.intern_slice(call_args)
     }
 
+    pub fn intern_struct_fields(
+        &self,
+        struct_fields: &[StructField<'heap>],
+    ) -> Interned<'heap, [StructField<'heap>]> {
+        self.struct_fields.intern_slice(struct_fields)
+    }
+
     pub fn intern_node(&self, node: PartialNode<'heap>) -> Node<'heap> {
         self.node.intern_partial(node)
     }
