@@ -37,10 +37,12 @@ pub trait HashMapExt<K, V, S> {
     /// # Examples
     ///
     /// ```
-    /// use hashbrown::HashMap;
-    /// use hashql_core::collection::HashMapExt;
+    /// #![feature(allocator_api)]
+    /// use std::alloc::Global;
     ///
-    /// let mut map = HashMap::new();
+    /// use hashql_core::collection::{FastHashMap, HashMapExt as _};
+    ///
+    /// let mut map = FastHashMap::<_, _, Global>::default();
     ///
     /// // Insert a new key-value pair
     /// let value_ref = map.insert_unique("key1", 42);
@@ -54,10 +56,12 @@ pub trait HashMapExt<K, V, S> {
     /// This example will panic:
     ///
     /// ```should_panic
-    /// use hashbrown::HashMap;
-    /// use hashql_core::collection::HashMapExt;
+    /// #![feature(allocator_api)]
+    /// use std::alloc::Global;
     ///
-    /// let mut map = HashMap::new();
+    /// use hashql_core::collection::{FastHashMap, HashMapExt as _};
+    ///
+    /// let mut map = FastHashMap::<_, _, Global>::default();
     /// map.insert("key1", 42);
     ///
     /// // This will panic because "key1" already exists
