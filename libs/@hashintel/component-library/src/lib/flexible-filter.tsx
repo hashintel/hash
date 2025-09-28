@@ -377,15 +377,30 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           result="displaced_source"
         />
 
-        <motion.feComponentTransfer
+        <motion.feColorMatrix
           in="specular_map"
+          type="luminanceToAlpha"
+          result="specular_alpha"
+        />
+
+        <motion.feComponentTransfer
+          in="specular_alpha"
           result="specular_with_opacity"
         >
           <motion.feFuncA type="linear" slope={specularOpacity} />
         </motion.feComponentTransfer>
 
+        <motion.feFlood floodColor="white" result="white_layer" />
+
         <motion.feComposite
-          in="specular_with_opacity"
+          in="white_layer"
+          in2="specular_with_opacity"
+          operator="in"
+          result="masked_specular"
+        />
+
+        <motion.feComposite
+          in="masked_specular"
           in2="displaced_source"
           operator="over"
         />
