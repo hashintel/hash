@@ -2,4 +2,51 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 <Meta title="Introduction" />
 
-This is the intro of the Storybook.
+# HASH Component Library
+
+This Storybook contains the components of the new Liquid-Glass-based Design System.
+
+It is built using:
+
+- [Ark UI](https://ark-ui.com/) for accessible and unstyled components
+- [Panda CSS](https://panda-css.com/) for utility-first styling and design tokens
+
+> **Note:** This library is a work in progress and is currently just a proof-of-concept of feasability of a Design System with refractive effects.
+
+To understand technical aspect of these refraction effects, you can refer to this article: https://kube.io/blog/liquid-glass-css-svg/.
+
+# Current Limitations
+
+- Only Chrome supports the CSS features required to render the refractive effects.
+- `BezelWidth` needs to be lower than `Radius` property. This requires rework of the Displacement Map generation logic.
+- CSS variables do not control the SVG Filter properties, which makes it hard to create dynamic components with different sizes and keep everything in sync.
+  > This could be achieved using watchers on CSS variables, but could also be really heavy.
+
+# Filter Components
+
+There are two `<Filter>` components in this library, to create the SVG Filter used as `backdrop-filter` to create the refractive effects.
+
+- `lib/filter.tsx`: Calculates an image for the whole displacement map and specular. This is useful for components like Switch and Slider, where refractive parts are fixed-size.
+- `lib/flexible-filter.tsx`: Calculates same images, but splits them into multiple tiles, to cover larger areas. This is useful for components like Card and Modal, where refractive parts can be large and dynamic in size.
+
+> Note: For now all image calculation is done on client-side, and not cached. Also every component instantiates it own `<Filter>` component.
+> This can be optimized in the future, by caching the generated images, but was not the most performance-critical part at this stage.
+> It would be interesting to generate some of these images at build-time.
+
+## Filter Image Split
+
+# Fallback for Non-Supporting Browsers
+
+For now, only Chrome supports the CSS features required to render the refractive effects. In these cases, we need to provide a fallback design without the refractive effects.
+
+There is no single solution for this, as the fallback will depend on the specific component and its use case. However, here are some general strategies:
+
+- Use classical gaussian blur for background blurring instead of the refraction effect.
+- Use progressive gaussian blur, where the blur increases with the distance from the center of the component.
+  > This can be achieved using multiple layers of gaussian blur, along with gradient-based masking.
+  > Though, this can be really slow on performance, particularly on Safari, so it should be used with caution.
+- Use a solid color or gradient background.
+
+It might also be a good idea to provide a toggle/slider in the application settings to switch between the refractive design and the fallback design, so users can choose based on their preferences/accessibility and device performance.
+
+This still needs to be debated with the design team.
