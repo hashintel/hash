@@ -96,16 +96,22 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     const fn compile_filter_expr_data<P>(
+        &mut self,
         Data { span, kind }: &'heap Data<'heap>,
-    ) -> IntermediateExpression<'env, 'heap, P>
+    ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
         P: PartialQueryPath<'heap>,
     {
         match kind {
-            DataKind::Literal(literal) => IntermediateExpression::Value {
+            DataKind::Literal(literal) => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Primitive(literal.kind)),
                 span: *span,
-            },
+            }),
+            DataKind::Tuple(tuple) => {
+                todo!("error out");
+
+                Err(CompilationError)
+            }
         }
     }
 
@@ -509,7 +515,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         P: PartialQueryPath<'heap> + Debug,
     {
         match node.kind {
-            NodeKind::Data(data) => Ok(Self::compile_filter_expr_data(data)),
+            NodeKind::Data(data) => self.compile_filter_expr_data(data),
             NodeKind::Variable(variable) => self.compile_filter_expr_variable(context, variable),
             NodeKind::Let(r#let) => self.compile_filter_expr_let(context, r#let),
             NodeKind::Input(input) => Ok(self.compile_filter_expr_input(input)),
