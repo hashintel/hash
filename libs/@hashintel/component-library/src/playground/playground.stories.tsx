@@ -1,6 +1,7 @@
 /* eslint-disable import/no-default-export */
 import { css } from "@hashintel/styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { motion } from "motion/react";
 import { useState } from "react";
 
 import { Bar } from "../components/Bar/bar";
@@ -112,77 +113,122 @@ const Playground = () => {
               })}
             />
 
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                width: "100%",
-              }}
-            >
-              <span
-                className={css({
-                  fontSize: "sm",
-                })}
-              >
-                Enable Feature
-              </span>
-              <Switch
-                checked={switchChecked}
-                onCheckedChange={(checked) => setSwitchChecked(checked)}
-              />
-            </div>
+            <motion.div>
+              {currentPage === "design" ? (
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      width: "100%",
+                    }}
+                  >
+                    <span
+                      className={css({
+                        fontSize: "sm",
+                      })}
+                    >
+                      Enable Feature
+                    </span>
+                    <Switch
+                      checked={switchChecked}
+                      onCheckedChange={(checked) => setSwitchChecked(checked)}
+                    />
+                  </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.5rem",
-                width: "100%",
-              }}
-            >
-              <Slider
-                defaultValue={sliderValue}
-                onChange={(value) => setSliderValue(value[0] ?? 0)}
-                label="Intensity Level"
-                min={0}
-                max={100}
-              />
-            </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                      width: "100%",
+                    }}
+                  >
+                    <Slider
+                      defaultValue={sliderValue}
+                      onChange={(value) => setSliderValue(value[0] ?? 0)}
+                      label="Intensity Level"
+                      min={0}
+                      max={100}
+                    />
+                  </div>
 
-            <div
-              style={{
-                marginTop: "1rem",
-                padding: "1rem",
-                backgroundColor: switchChecked
-                  ? "rgba(34, 197, 94, 0.2)"
-                  : "rgba(239, 68, 68, 0.2)",
-                borderRadius: "8px",
-                border: switchChecked
-                  ? "1px solid rgba(34, 197, 94, 0.4)"
-                  : "1px solid rgba(239, 68, 68, 0.4)",
-                width: "100%",
-                textAlign: "center",
-                transition: "background-color 0.2s, border 0.2s",
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "0.875rem",
-                }}
-              >
-                Status: {switchChecked ? "Active" : "Inactive"}
-              </p>
-              <p
-                style={{
-                  margin: "0.25rem 0 0 0",
-                  fontSize: "0.875rem",
-                  opacity: 0.8,
-                }}
-              >
-                Current intensity level: {sliderValue}%
-              </p>
-            </div>
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                      padding: "1rem",
+                      backgroundColor: switchChecked
+                        ? "rgba(34, 197, 94, 0.2)"
+                        : "rgba(239, 68, 68, 0.2)",
+                      borderRadius: "8px",
+                      border: switchChecked
+                        ? "1px solid rgba(34, 197, 94, 0.4)"
+                        : "1px solid rgba(239, 68, 68, 0.4)",
+                      width: "100%",
+                      textAlign: "center",
+                      transition: "background-color 0.2s, border-color 0.2s",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      Status: {switchChecked ? "Active" : "Inactive"}
+                    </p>
+                    <p
+                      style={{
+                        margin: "0.25rem 0 0 0",
+                        fontSize: "0.875rem",
+                        opacity: 0.8,
+                      }}
+                    >
+                      Current intensity level: {sliderValue}%
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      width: "100%",
+                    }}
+                  >
+                    <span className={css({ fontSize: "sm" })}>
+                      Enable Feature A
+                    </span>
+                    <Switch />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      width: "100%",
+                    }}
+                  >
+                    <span className={css({ fontSize: "sm" })}>
+                      Enable Feature B
+                    </span>
+                    <Switch />
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "1rem",
+                      width: "100%",
+                    }}
+                  >
+                    <span className={css({ fontSize: "sm" })}>
+                      Enable Feature C
+                    </span>
+                    <Switch />
+                  </div>
+                </div>
+              )}
+            </motion.div>
           </div>
           <div
             className={css({
