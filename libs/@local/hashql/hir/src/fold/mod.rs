@@ -515,7 +515,7 @@ pub fn walk_tuple<'heap, T: Fold<'heap> + ?Sized>(
     let span = visitor.fold_span(span)?;
 
     let mut fields = Beef::new(fields);
-    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_nested_node(field));
+    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_nested_node(field))?;
     let fields = fields.finish(&visitor.interner().nodes);
 
     Try::from_output(Tuple { span, fields })
