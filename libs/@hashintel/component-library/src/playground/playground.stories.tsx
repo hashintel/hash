@@ -160,6 +160,7 @@ const Playground = () => {
                   : "1px solid rgba(239, 68, 68, 0.4)",
                 width: "100%",
                 textAlign: "center",
+                transition: "background-color 0.2s, border 0.2s",
               }}
             >
               <p
