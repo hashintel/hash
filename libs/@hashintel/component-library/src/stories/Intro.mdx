@@ -13,7 +13,7 @@ It is built using:
 
 > **Note:** This library is a work in progress and is currently just a proof-of-concept of feasability of a Design System with refractive effects.
 
-To understand technical aspect of these refraction effects, you can refer to this article: https://kube.io/blog/liquid-glass-css-svg/.
+To understand technical aspect of these refraction effects, you can refer [to this article](https://kube.io/blog/liquid-glass-css-svg/).
 
 # Current Limitations
 
@@ -33,7 +33,116 @@ There are two `<Filter>` components in this library, to create the SVG Filter us
 > This can be optimized in the future, by caching the generated images, but was not the most performance-critical part at this stage.
 > It would be interesting to generate some of these images at build-time.
 
-## Filter Image Split
+## Flexible Filter Image Split
+
+The flexible filter system splits images into 9 parts to handle dynamic sizing while preserving corner details:
+
+<svg
+  width="400"
+  height="200"
+  viewBox="0 0 400 200"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  {/* Main rectangle with border radius */}
+  <rect
+    x="50"
+    y="50"
+    width="300"
+    height="100"
+    rx="20"
+    ry="20"
+    fill="none"
+    stroke="#333"
+    strokeWidth="2"
+  />
+
+{/* Vertical divider lines */}
+
+{" "}
+
+<line
+  x1="90"
+  y1="50"
+  x2="90"
+  y2="150"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+<line
+  x1="310"
+  y1="50"
+  x2="310"
+  y2="150"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+
+{/* Horizontal divider lines */}
+
+{" "}
+
+<line
+  x1="50"
+  y1="90"
+  x2="350"
+  y2="90"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+<line
+  x1="50"
+  y1="110"
+  x2="350"
+  y2="110"
+  stroke="#666"
+  strokeWidth="1"
+  strokeDasharray="4,2"
+/>
+
+{/* Corner radius indicators */}
+
+  <circle
+    cx="70"
+    cy="70"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="330"
+    cy="70"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="70"
+    cy="130"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+  <circle
+    cx="330"
+    cy="130"
+    r="15"
+    fill="none"
+    stroke="#999"
+    strokeWidth="1"
+    strokeDasharray="2,2"
+  />
+</svg>
+
+This approach allows the corners to maintain their shape while the middle sections can stretch to accommodate any size.
 
 # Fallback for Non-Supporting Browsers
 
@@ -47,6 +156,9 @@ There is no single solution for this, as the fallback will depend on the specifi
   > Though, this can be really slow on performance, particularly on Safari, so it should be used with caution.
 - Use a solid color or gradient background.
 
-It might also be a good idea to provide a toggle/slider in the application settings to switch between the refractive design and the fallback design, so users can choose based on their preferences/accessibility and device performance.
+## User Preference and Performance Considerations
+
+For preferences, accessibility, and performance considerations, especially on devices that may struggle with rendering refractive effects, it's important to provide a fallback design.
+It might be a good idea to provide a toggle/slider in the application settings to switch between the refractive design and the fallback design, so users can choose based on their preferences/accessibility and device performance.
 
 This still needs to be debated with the design team.
