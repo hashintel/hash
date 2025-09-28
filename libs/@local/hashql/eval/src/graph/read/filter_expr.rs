@@ -144,6 +144,42 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     span: *span,
                 })
             }
+            DataKind::Struct(r#struct) => {
+                let mut incomplete = false;
+                let mut fields = Vec::with_capacity(r#struct.fields.len());
+
+                for field in r#struct.fields {
+                    let Ok(expr) = self.compile_filter_expr::<P>(
+                        context.with_current_span(r#struct.span),
+                        &field.value,
+                    ) else {
+                        incomplete = true;
+                        continue;
+                    };
+
+                    let value = match expr {
+                        IntermediateExpression::Path { path: _, span } => {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(span, "struct"));
+
+                            incomplete = true;
+                            continue;
+                        }
+                        IntermediateExpression::Value { value, span: _ } => value.into_owned(),
+                    };
+
+                    fields.push((field.name.value, value));
+                }
+
+                if incomplete {
+                    return Err(CompilationError);
+                }
+
+                Ok(IntermediateExpression::Value {
+                    value: Cow::Owned(Value::Struct(value::Struct::from_fields(self.heap, fields))),
+                    span: *span,
+                })
+            }
         }
     }
 
