@@ -2,8 +2,14 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt::Display};
 
 use hashql_core::{
+    pretty::{PrettyOptions, PrettyPrint as _},
     span::{SpanId, Spanned},
-    r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
+    r#type::{
+        Type, TypeId,
+        environment::Environment,
+        error::TypeCheckDiagnosticCategory,
+        kind::{IntrinsicType, PrimitiveType, TypeKind, generic::GenericArgumentReference},
+    },
 };
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Label, Severity, Status,
@@ -190,6 +196,59 @@ pub(crate) fn argument_override<'heap>(
     diagnostic.add_message(Message::note(
         "Variables that alias parameterized expressions cannot have additional type arguments \
          applied to them, as this would create ambiguous type parameter bindings.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn type_mismatch_if<'heap>(
+    env: &Environment<'heap>,
+    r#type: Type<'heap>,
+) -> LoweringDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::TypeChecking(TypeCheckDiagnosticCategory::TypeMismatch),
+        Severity::Error,
+    )
+    .primary(Label::new(
+        r#type.span,
+        format!(
+            "expected `Boolean`, found `{}`",
+            r#type.pretty_print(env, PrettyOptions::default())
+        ),
+    ));
+
+    // Add a helpful note for common cases (primitives)
+    #[expect(clippy::wildcard_enum_match_arm)]
+    match r#type.kind {
+        TypeKind::Primitive(PrimitiveType::String) => {
+            diagnostic.add_message(Message::help(
+                "to check if a string is empty, use `core::string::is_empty`",
+            ));
+        }
+        TypeKind::Primitive(PrimitiveType::Number | PrimitiveType::Integer) => {
+            diagnostic.add_message(Message::help(
+                "to check if a number is zero, compare it to zero using `==` or `!=`",
+            ));
+        }
+        TypeKind::Intrinsic(IntrinsicType::List(_)) => {
+            diagnostic.add_message(Message::help(
+                "to check if a list is empty, use `core::list::is_empty`",
+            ));
+        }
+        TypeKind::Intrinsic(IntrinsicType::Dict(_)) => {
+            diagnostic.add_message(Message::help(
+                "to check if a dictionary is empty, use `core::dict::is_empty`",
+            ));
+        }
+        _ => {
+            diagnostic.add_message(Message::help(
+                "add a comparison or boolean conversion to make this a boolean expression",
+            ));
+        }
+    }
+
+    diagnostic.add_message(Message::note(
+        "if conditions require boolean expressions to determine which branch to execute",
     ));
 
     diagnostic

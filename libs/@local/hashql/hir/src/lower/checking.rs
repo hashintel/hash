@@ -23,7 +23,7 @@ use hashql_diagnostics::DiagnosticIssues;
 use super::{
     error::{
         GenericArgumentContext, LoweringDiagnosticCategory, LoweringDiagnosticIssues,
-        LoweringDiagnosticStatus,
+        LoweringDiagnosticStatus, type_mismatch_if,
     },
     inference::{Local, TypeInferenceResidual},
 };
@@ -432,7 +432,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
             }),
         );
         if !is_test_boolean {
-            todo!("error out")
+            self.diagnostics.push(type_mismatch_if(
+                self.env,
+                self.env.r#type(self.types[&r#if.test.id]),
+            ));
         }
 
         self.transfer_type(self.current);

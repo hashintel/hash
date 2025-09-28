@@ -2,6 +2,7 @@
 //@ description: If the test condition is not a boolean, the program should fail.
 ["if",
   {"#literal": 2},
+  //~^ ERROR expected `Boolean`, found `Integer`
   {"#literal": 3},
   {"#literal": 4}
 ]
