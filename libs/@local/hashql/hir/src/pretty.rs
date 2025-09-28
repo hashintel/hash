@@ -14,7 +14,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::Call,
         closure::Closure,
-        data::{Data, DataKind, Literal, Tuple},
+        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -77,6 +77,43 @@ impl<'heap> PrettyPrint<'heap> for Tuple<'heap> {
     }
 }
 
+impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text(self.name.value.unwrap())
+            .append(RcDoc::space())
+            .append(RcDoc::text(":"))
+            .append(RcDoc::line())
+            .append(self.value.pretty(env, boundary))
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Struct<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        if self.fields.is_empty() {
+            return RcDoc::text("(:)");
+        }
+
+        RcAllocator
+            .intersperse(
+                self.fields.iter().map(|field| field.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .parens()
+            .group()
+            .into_doc()
+    }
+}
+
 impl<'heap> PrettyPrint<'heap> for Data<'heap> {
     fn pretty(
         &self,
@@ -86,6 +123,7 @@ impl<'heap> PrettyPrint<'heap> for Data<'heap> {
         match &self.kind {
             DataKind::Literal(literal) => literal.pretty(env, boundary),
             DataKind::Tuple(tuple) => tuple.pretty(env, boundary),
+            DataKind::Struct(r#struct) => r#struct.pretty(env, boundary),
         }
     }
 }
