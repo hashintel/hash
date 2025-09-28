@@ -74,6 +74,8 @@ const Playground = () => {
               alignItems: "center",
               width: "[100%]",
               backgroundColor: "whiteAlpha.90",
+              borderWidth: "thin",
+              borderColor: "neutral.black/10",
               shadow: "md",
             })}
             style={{
