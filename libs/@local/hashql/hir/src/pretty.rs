@@ -53,6 +53,17 @@ impl<'heap> PrettyPrint<'heap> for Tuple<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
+        if self.fields.is_empty() {
+            return RcDoc::text("()");
+        }
+
+        if self.fields.len() == 1 {
+            return RcDoc::text("(")
+                .append(self.fields[0].pretty(env, boundary))
+                .append(RcDoc::text(","))
+                .append(RcDoc::text(")"));
+        }
+
         RcAllocator
             .intersperse(
                 self.fields.iter().map(|field| field.pretty(env, boundary)),
