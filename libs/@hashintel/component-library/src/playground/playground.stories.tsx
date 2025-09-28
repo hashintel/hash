@@ -113,13 +113,17 @@ const Playground = () => {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
                 gap: "1rem",
                 width: "100%",
-                justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: "1rem" }}>Enable Feature:</span>
+              <span
+                className={css({
+                  fontSize: "sm",
+                })}
+              >
+                Enable Feature
+              </span>
               <Switch
                 checked={switchChecked}
                 onCheckedChange={(checked) => setSwitchChecked(checked)}
@@ -138,7 +142,6 @@ const Playground = () => {
                 defaultValue={sliderValue}
                 onChange={(value) => setSliderValue(value[0] ?? 0)}
                 label="Intensity Level"
-                showValueText
                 min={0}
                 max={100}
               />
