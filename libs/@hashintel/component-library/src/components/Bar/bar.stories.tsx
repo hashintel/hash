@@ -292,6 +292,7 @@ as you change the child element's size using the controls panel.
         style={{
           minWidth: args.width,
           minHeight: args.height,
+          scale: 1,
         }}
         className={css({
           shadow: "md",
