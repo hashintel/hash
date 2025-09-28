@@ -1,7 +1,7 @@
 error[lower::type-check::type-mismatch]: Type mismatch
   ╭▸ 
-4 │   {"#literal": 2},
-  │                ━ expected `Boolean`, found `Integer`
+5 │   { "#literal": 2 },
+  │                 ━ expected `Boolean`, found `Integer`
   │
   ├ help: to check if a number is zero, compare it to zero using `==` or `!=`
   ╰ note: if conditions require boolean expressions to determine which branch to execute

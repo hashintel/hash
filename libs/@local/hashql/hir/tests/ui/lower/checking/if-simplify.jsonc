@@ -1,7 +1,3 @@
 //@ run: pass
 //@ description: The output should simplify down if possible
-["if",
-  {"#literal": true},
-  {"#literal": 3},
-  {"#literal": 4}
-]
+["if", { "#literal": true }, { "#literal": 3 }, { "#literal": 4 }]
