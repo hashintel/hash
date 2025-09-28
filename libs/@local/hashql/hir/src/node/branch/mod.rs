@@ -22,10 +22,7 @@ pub enum BranchKind<'heap> {
 /// A branch node in the HashQL HIR.
 ///
 /// Represents control flow operations that can conditionally execute different
-/// expressions based on a test condition. Examples include if/else expressions.
-///
-/// This is currently implemented as a placeholder structure awaiting full implementation.
-/// When completed, branch nodes will be used for conditional logic in HashQL programs.
+/// expressions based on a test condition.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Branch<'heap> {
     pub span: SpanId,
