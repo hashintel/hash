@@ -362,13 +362,13 @@ as you change the child element's size using the controls panel.
  */
 export const WithScrollableContent: Story = {
   args: {
-    radius: 12,
+    radius: 22,
     blur: 2.4,
-    specularOpacity: 0.83,
+    specularOpacity: 0.31,
     specularSaturation: 18,
     scaleRatio: 1.2,
-    bezelWidth: 7,
-    glassThickness: 80,
+    bezelWidth: 19,
+    glassThickness: 100,
     padding: 8,
   },
   parameters: {
