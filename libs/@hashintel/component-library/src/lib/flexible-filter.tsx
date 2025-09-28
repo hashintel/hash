@@ -9,6 +9,7 @@ import {
 } from "./displacement-map";
 import { getDevicePixelRatio } from "./get-device-pixel-ratio";
 import { imageDataToUrl } from "./image-data-to-url";
+import { calculateSpecularImage } from "./specular";
 import { CONVEX } from "./surface-equations";
 import { useToMotion } from "./use-to-motion";
 
@@ -272,6 +273,8 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     bezelWidth,
     refractiveIndex,
     scaleRatio,
+    specularOpacity,
+    specularSaturation,
     bezelHeightFn,
     pixelRatio,
   }) => {
@@ -303,6 +306,16 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
       });
     });
 
+    const specularMap = useTransform(() => {
+      return calculateSpecularImage({
+        width: imageSide.get(),
+        height: imageSide.get(),
+        radius: radius.get(),
+        specularAngle: Math.PI / 4, // Default angle, could be made configurable
+        pixelRatio,
+      });
+    });
+
     const scale = useTransform(
       () => maximumDisplacement.get() * scaleRatio.get()
     );
@@ -324,12 +337,36 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           result="displacement_map"
         />
 
+        <CompositeParts
+          imageData={specularMap}
+          width={width}
+          height={height}
+          radius={radius}
+          pixelRatio={pixelRatio}
+          result="specular_map"
+        />
+
         <motion.feDisplacementMap
           in="blurred_source"
           in2="displacement_map"
           scale={scale}
           xChannelSelector="R"
           yChannelSelector="G"
+          result="displaced_source"
+        />
+
+        <motion.feComponentTransfer
+          in="specular_map"
+          result="specular_with_opacity"
+        >
+          <motion.feFuncA type="linear" slope={specularOpacity} />
+        </motion.feComponentTransfer>
+
+        <motion.feComposite
+          in="specular_with_opacity"
+          in2="displaced_source"
+          operator="over"
+          result="final_result"
         />
       </filter>
     );

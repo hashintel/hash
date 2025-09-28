@@ -369,7 +369,7 @@ export const WithScrollableContent: Story = {
     scaleRatio: 1.2,
     bezelWidth: 7,
     glassThickness: 80,
-    padding: 8
+    padding: 8,
   },
   parameters: {
     layout: "fullscreen",

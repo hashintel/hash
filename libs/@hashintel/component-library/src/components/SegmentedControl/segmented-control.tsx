@@ -2,7 +2,7 @@ import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/styled-system/css";
 import { useId, useState } from "react";
 
-import { Filter } from "../../lib/filter";
+import { Filter } from "../../lib/flexible-filter";
 import { CONVEX, LIP } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
