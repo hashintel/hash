@@ -12,7 +12,8 @@
   "type": "module",
   "scripts": {
     "prepare": "panda codegen --clean",
-    "dev": "panda codegen --watch"
+    "dev": "panda codegen --watch",
+    "build": "panda codegen"
   },
   "exports": {
     "./css": {
