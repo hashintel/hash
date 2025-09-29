@@ -7,7 +7,6 @@ import { CONVEX, LIP } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
 const ROOT_PADDING = 4;
-const INDICATOR_SCALE_ACTIVE = 1.5;
 
 export type SegmentedControlProps = React.PropsWithChildren<{
   className?: string;
@@ -70,21 +69,19 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     display: "flex",
     alignItems: "center",
     gap: "1",
-    "& [data-part='indicator']": {
-      backgroundColor: "whiteAlpha.20",
-    },
-    "&:active [data-part='indicator']": {
-      transform: `[scale(${INDICATOR_SCALE_ACTIVE})]`,
-      backgroundColor: "whiteAlpha.10",
-    },
     userSelect: "none",
   });
 
   const rootBackdropStyles = css({
-    position: "relative",
+    position: "absolute",
     display: "flex",
     alignItems: "center",
     backgroundColor: "gray.10/20",
+    left: "0",
+    top: "0",
+    right: "0",
+    bottom: "0",
+    shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
   });
 
   const indicatorStyles = css({
@@ -93,7 +90,10 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     left: "var(--left)",
     top: "var(--top)",
     boxShadow: "sm",
-    transform: "scale(1)",
+    backgroundColor: "whiteAlpha.20",
+    "[data-part='root']:active &": {
+      backgroundColor: "whiteAlpha.10",
+    },
   });
 
   const itemStyles = css({
@@ -142,7 +142,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
-        pixelRatio={4}
       />
       <Filter
         id={indicatorFilterId}
@@ -156,7 +155,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={LIP}
-        pixelRatio={4}
       />
 
       <SegmentGroup.Root
@@ -179,15 +177,8 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         <div
           className={rootBackdropStyles}
           style={{
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            position: "absolute",
-            height: "100%",
             borderRadius: radius,
             backdropFilter: `url(#${rootFilterId})`,
-            boxShadow: "inset 1px 1px 1px rgba(0, 0, 0, 0.05)",
           }}
         />
 
@@ -212,10 +203,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           style={{
             borderRadius: radius - ROOT_PADDING,
             backdropFilter: `url(#${indicatorFilterId})`,
-            transition: "all",
-            transitionDuration: "300ms",
-            transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.075)",
-            transition: "all 300ms cubic-bezier(0.175, 0.885, 0.32, 1.075)",
           }}
         />
       </SegmentGroup.Root>
