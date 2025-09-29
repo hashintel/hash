@@ -45,7 +45,7 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@storybook/addon-docs": "^9.1.8",
+    "@storybook/addon-docs": "9.1.8",
     "@storybook/react-vite": "9.1.8",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.1",
