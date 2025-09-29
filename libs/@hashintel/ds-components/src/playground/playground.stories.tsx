@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { Button } from "../components/Button/button";
-import { RefractivePaneProps } from "../components/RefractivePane/refractive-pane";
+import { RefractivePane } from "../components/RefractivePane/refractive-pane";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
 import { Switch } from "../components/Switch/switch";
@@ -121,7 +121,7 @@ const Playground = () => {
                 exit={{ opacity: 0, scale: 0.8, y: 90 }}
                 transition={{ duration: 0.16, ease: "easeInOut" }}
               >
-                <RefractivePaneProps
+                <RefractivePane
                   radius={RADIUS}
                   blur={2}
                   specularOpacity={0.7}
@@ -396,13 +396,13 @@ const Playground = () => {
                       Confirm
                     </Button>
                   </div>
-                </RefractivePaneProps>
+                </RefractivePane>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <RefractivePaneProps
+        <RefractivePane
           className={css({
             display: "flex",
             alignItems: "center",
@@ -444,7 +444,7 @@ const Playground = () => {
               </button>
             );
           })}
-        </RefractivePaneProps>
+        </RefractivePane>
       </div>
     </div>
   );

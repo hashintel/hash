@@ -17,7 +17,7 @@ export type RefractivePaneProps = React.PropsWithChildren<{
   refractiveIndex: number;
 }>;
 
-export const RefractivePaneProps: React.FC<RefractivePaneProps> = ({
+export const RefractivePane: React.FC<RefractivePaneProps> = ({
   className,
   style,
   radius,

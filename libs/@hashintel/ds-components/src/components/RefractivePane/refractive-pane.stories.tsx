@@ -13,23 +13,14 @@ import {
 import { useState } from "react";
 
 import { ExampleArticle } from "../../playground/ExampleArticle";
-import { RefractivePaneProps } from "./refractive-pane";
+import { RefractivePane } from "./refractive-pane";
 
 const meta = {
   title: "Component Library/RefractivePane",
-  component: RefractivePaneProps,
+  component: RefractivePane,
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
-    docs: {
-      description: {
-        component: `
-A sophisticated refractive surface component with advanced visual effects including blur, 
-specular highlights, and refraction. This component serves as a building block 
-for creating glass-like UI elements with customizable dimensions and visual properties.
-        `,
-      },
-    },
   },
   argTypes: {
     radius: {
@@ -40,15 +31,6 @@ for creating glass-like UI elements with customizable dimensions and visual prop
         step: 1,
       },
       description: "Border radius for rounded corners",
-    },
-    padding: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 20,
-        step: 1,
-      },
-      description: "Padding inside the refractive surface component",
     },
     blur: {
       control: {
@@ -108,7 +90,6 @@ for creating glass-like UI elements with customizable dimensions and visual prop
   },
   args: {
     radius: 15,
-    padding: 2,
     blur: 5,
     specularOpacity: 0.5,
     scaleRatio: 0.8,
@@ -116,7 +97,7 @@ for creating glass-like UI elements with customizable dimensions and visual prop
     glassThickness: 80,
     refractiveIndex: 1.45,
   },
-} satisfies Meta<typeof RefractivePaneProps>;
+} satisfies Meta<typeof RefractivePane>;
 
 // eslint-disable-next-line import/no-default-export
 export default meta;
@@ -227,7 +208,7 @@ export const WithDynamicallySizedChildren = {
     const childContent = args.childContent;
 
     return (
-      <RefractivePaneProps
+      <RefractivePane
         style={{
           minWidth: args.width,
           minHeight: args.height,
@@ -278,7 +259,7 @@ export const WithDynamicallySizedChildren = {
             </div>
           </div>
         </div>
-      </RefractivePaneProps>
+      </RefractivePane>
     );
   },
 };
@@ -288,7 +269,7 @@ export const WithDynamicallySizedChildren = {
  * The toolbar is positioned over scrollable content to demonstrate the refraction and blur effects.
  * Scroll the background content to see how the refractive surface interacts with different content underneath.
  */
-export const WithScrollableContent: Story = {
+export const WithScrollableContent = {
   args: {
     radius: 22,
     blur: 2.4,
@@ -296,13 +277,27 @@ export const WithScrollableContent: Story = {
     scaleRatio: 1.2,
     bezelWidth: 19,
     glassThickness: 100,
+    refractiveIndex: 1.45,
     padding: 8,
+  },
+  argTypes: {
+    ...meta.argTypes,
+    padding: {
+      control: {
+        type: "range",
+        min: 0,
+        max: 20,
+        step: 1,
+      },
+      description: "Padding inside the refractive surface component",
+      table: { category: "Styling" },
+    },
   },
   parameters: {
     layout: "fullscreen",
   },
   decorators: [
-    (Story) => (
+    (Story: React.ComponentType) => (
       <div style={{ position: "relative", height: "100vh", overflow: "auto" }}>
         {/* Background content */}
         <ExampleArticle />
@@ -322,7 +317,7 @@ export const WithScrollableContent: Story = {
       </div>
     ),
   ],
-  render: (args: typeof meta.args) => {
+  render: (args: typeof meta.args & { padding: number }) => {
     const [selectedButton, setSelectedButton] = useState<string>("select");
 
     const getButtonStyle = (isSelected: boolean) =>
@@ -365,8 +360,10 @@ export const WithScrollableContent: Story = {
       { icon: ChevronDown, title: "More Options", id: "more" },
     ];
 
+    const { padding, ...refractiveProps } = args;
+
     return (
-      <RefractivePaneProps
+      <RefractivePane
         className={css({
           display: "flex",
           alignItems: "center",
@@ -380,9 +377,9 @@ export const WithScrollableContent: Story = {
             backgroundColor: "whiteAlpha.50",
           },
         })}
-        {...args}
+        {...refractiveProps}
         style={{
-          padding: args.padding,
+          padding,
         }}
       >
         {buttons.map(({ icon: Icon, title, id }) => {
@@ -392,7 +389,7 @@ export const WithScrollableContent: Story = {
               key={id}
               type="button"
               className={getButtonStyle(isSelected)}
-              style={{ borderRadius: args.radius - args.padding }}
+              style={{ borderRadius: args.radius - padding }}
               title={title}
               onClick={() => setSelectedButton(id)}
             >
@@ -400,7 +397,7 @@ export const WithScrollableContent: Story = {
             </button>
           );
         })}
-      </RefractivePaneProps>
+      </RefractivePane>
     );
   },
 };

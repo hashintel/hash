@@ -9,31 +9,6 @@ const meta: Meta<typeof SegmentedControl> = {
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
-    docs: {
-      description: {
-        component: `
-A sophisticated segmented control component with advanced visual effects including blur, 
-specular highlights, and refraction. Built on top of Ark UI's SegmentGroup, this component 
-provides a glass-like appearance with customizable optical properties.
-
-## Features
-- 🎨 Advanced visual effects (blur, specular highlights, refraction)
-- 📏 Customizable dimensions and radius
-- ⚙️ Configurable visual parameters
-- 🌟 Glass-like appearance with realistic lighting
-- 🔧 Flexible scale ratio for dynamic effects
-- 🖼️ Adjustable bezel width for frame customization
-- 🔍 Variable glass thickness for refraction depth control
-- ⚗️ Configurable refractive index for different material simulation
-- 🎛️ Built on Ark UI for accessibility and interaction
-
-## Usage
-The SegmentedControl component accepts props to control its appearance and behavior.
-Use the Storybook controls panel to experiment with different optical settings and see
-how each parameter affects the final glass-like appearance.
-        `,
-      },
-    },
   },
   argTypes: {
     radius: {
@@ -188,29 +163,5 @@ export const Interactive: Story = {
 
   parameters: {
     layout: "fullscreen",
-    docs: {
-      description: {
-        story: `
-This interactive story showcases the SegmentedControl component with full state management.
-The component demonstrates:
-
-**Key Features:**
-- **Glass-like Visual Effects**: Advanced optical properties create realistic material appearance
-- **Interactive Selection**: Click segments to see selection state changes
-- **Customizable Appearance**: All optical parameters can be adjusted via controls
-- **Real-time Feedback**: Selected value is displayed below the component
-- **Responsive Design**: Component adapts to different visual settings
-
-**Optical Properties:**
-- **Blur**: Controls the backdrop blur intensity
-- **Specular Effects**: Adjusts highlight intensity and color saturation  
-- **Refraction**: Scale ratio and refractive index for glass-like distortion
-- **Bezel & Thickness**: Frame width and glass depth for dimensional effects
-
-Use the controls panel to experiment with different optical settings and see how
-they transform the component's appearance from subtle glass to bold crystal effects.
-        `,
-      },
-    },
   },
 };
