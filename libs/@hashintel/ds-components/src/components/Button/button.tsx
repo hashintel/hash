@@ -1,4 +1,4 @@
-import { css, cx } from "@hashintel/styled-system/css";
+import { css, cx } from "@hashintel/ds-styled-system/css";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {

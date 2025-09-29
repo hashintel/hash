@@ -1,5 +1,5 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
-import { css } from "@hashintel/styled-system/css";
+import { css } from "@hashintel/ds-styled-system/css";
 import { motion } from "motion/react";
 import { useId } from "react";
 

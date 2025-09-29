@@ -1,12 +1,12 @@
 {
-  "name": "@hashintel/ui-preset",
+  "name": "@hashintel/ds-preset",
   "version": "0.0.1",
   "description": "HASH UI Preset",
   "main": "src/index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
-    "directory": "libs/@hashintel/ui-preset"
+    "directory": "libs/@hashintel/ds-preset"
   },
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,

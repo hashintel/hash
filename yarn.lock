@@ -7611,39 +7611,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/component-library@workspace:libs/@hashintel/component-library":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/component-library@workspace:libs/@hashintel/component-library"
-  dependencies:
-    "@ark-ui/react": "npm:5.25.0"
-    "@hashintel/styled-system": "workspace:*"
-    "@local/eslint": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    "@pandacss/dev": "npm:1.3.1"
-    "@storybook/addon-docs": "npm:^9.1.8"
-    "@storybook/react-vite": "npm:9.1.8"
-    "@testing-library/jest-dom": "npm:^6.6.3"
-    "@testing-library/react": "npm:^16.1.1"
-    "@testing-library/user-event": "npm:^14.5.2"
-    "@types/react": "npm:19.1.13"
-    "@types/react-dom": "npm:19.1.9"
-    canvas: "npm:3.2.0"
-    eslint: "npm:9.36.0"
-    eslint-plugin-storybook: "npm:^9.1.8"
-    jsdom: "npm:27.0.0"
-    lucide-react: "npm:0.544.0"
-    motion: "npm:12.23.19"
-    storybook: "npm:9.1.8"
-    typescript: "npm:5.9.2"
-    vite: "npm:7.1.7"
-    vite-plugin-dts: "npm:4.5.4"
-    vitest: "npm:3.2.4"
-  peerDependencies:
-    react: ^19.0.0
-    react-dom: ^19.0.0
-  languageName: unknown
-  linkType: soft
-
 "@hashintel/design-system@npm:0.0.9-canary.1, @hashintel/design-system@workspace:libs/@hashintel/design-system":
   version: 0.0.0-use.local
   resolution: "@hashintel/design-system@workspace:libs/@hashintel/design-system"
@@ -7680,6 +7647,54 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hashintel/ds-components@workspace:libs/@hashintel/ds-components":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
+  dependencies:
+    "@ark-ui/react": "npm:5.25.0"
+    "@hashintel/ds-styled-system": "npm:0.0.1"
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
+    "@pandacss/dev": "npm:1.3.1"
+    "@storybook/addon-docs": "npm:^9.1.8"
+    "@storybook/react-vite": "npm:9.1.8"
+    "@testing-library/jest-dom": "npm:^6.6.3"
+    "@testing-library/react": "npm:^16.1.1"
+    "@testing-library/user-event": "npm:^14.5.2"
+    "@types/react": "npm:19.1.13"
+    "@types/react-dom": "npm:19.1.9"
+    canvas: "npm:3.2.0"
+    eslint: "npm:9.36.0"
+    eslint-plugin-storybook: "npm:^9.1.8"
+    jsdom: "npm:27.0.0"
+    lucide-react: "npm:0.544.0"
+    motion: "npm:12.23.19"
+    storybook: "npm:9.1.8"
+    typescript: "npm:5.9.2"
+    vite: "npm:7.1.7"
+    vite-plugin-dts: "npm:4.5.4"
+    vitest: "npm:3.2.4"
+  peerDependencies:
+    react: ^19.0.0
+    react-dom: ^19.0.0
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/ds-preset@npm:0.0.1, @hashintel/ds-preset@workspace:libs/@hashintel/ds-preset":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/ds-preset@workspace:libs/@hashintel/ds-preset"
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/ds-styled-system@npm:0.0.1, @hashintel/ds-styled-system@workspace:libs/@hashintel/ds-styled-system":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/ds-styled-system@workspace:libs/@hashintel/ds-styled-system"
+  dependencies:
+    "@hashintel/ds-preset": "npm:0.0.1"
+    "@pandacss/dev": "npm:1.3.1"
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/query-editor@npm:0.0.3, @hashintel/query-editor@workspace:libs/@hashintel/query-editor":
   version: 0.0.0-use.local
   resolution: "@hashintel/query-editor@workspace:libs/@hashintel/query-editor"
@@ -7705,15 +7720,6 @@ __metadata:
     react: ^19.0.0
     react-dom: ^19.0.0
     react-hook-form: 7.61.1
-  languageName: unknown
-  linkType: soft
-
-"@hashintel/styled-system@workspace:*, @hashintel/styled-system@workspace:libs/@hashintel/styled-system":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/styled-system@workspace:libs/@hashintel/styled-system"
-  dependencies:
-    "@hashintel/ui-preset": "npm:0.0.0-private"
-    "@pandacss/dev": "npm:1.3.1"
   languageName: unknown
   linkType: soft
 
@@ -7750,12 +7756,6 @@ __metadata:
     react: ^19.0.0
     react-dom: ^19.0.0
     react-hook-form: 7.61.1
-  languageName: unknown
-  linkType: soft
-
-"@hashintel/ui-preset@npm:0.0.0-private, @hashintel/ui-preset@workspace:libs/@hashintel/ui-preset":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/ui-preset@workspace:libs/@hashintel/ui-preset"
   languageName: unknown
   linkType: soft
 

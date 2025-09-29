@@ -1,5 +1,5 @@
 /* eslint-disable import/no-default-export */
-import { css } from "@hashintel/styled-system/css";
+import { css } from "@hashintel/ds-styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   ArrowUpRightIcon,

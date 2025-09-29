@@ -1,7 +1,7 @@
 import { definePreset } from "@pandacss/dev";
 
 export default definePreset({
-  name: "@hashintel/ui-preset",
+  name: "@hashintel/ds-preset",
   theme: {
     extend: {
       // Core tokens are the foundational design tokens.

@@ -1,11 +1,11 @@
 {
-  "name": "@hashintel/styled-system",
+  "name": "@hashintel/ds-styled-system",
   "version": "0.0.1",
-  "description": "HASH Panda Styled System",
+  "description": "HASH PandaCSS Styled System",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
-    "directory": "libs/@hashintel/ui-preset"
+    "directory": "libs/@hashintel/ds-styled-system"
   },
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
@@ -44,7 +44,7 @@
     "./styles.css": "./dist/styles.css"
   },
   "dependencies": {
-    "@hashintel/ui-preset": "0.0.0-private"
+    "@hashintel/ds-preset": "0.0.1"
   },
   "devDependencies": {
     "@pandacss/dev": "1.3.1"

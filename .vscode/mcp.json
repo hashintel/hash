@@ -1,0 +1,13 @@
+{
+	"servers": {
+		"my-mcp-server-f2fb0dbd": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@ark-ui/mcp"
+			]
+		}
+	},
+	"inputs": []
+}
