@@ -13,35 +13,20 @@ import {
 import { useState } from "react";
 
 import { ExampleArticle } from "../../playground/ExampleArticle";
-import { Bar } from "./bar";
+import { RefractiveSurface } from "./refractive-surface";
 
 const meta = {
-  title: "Component Library/Bar",
-  component: Bar,
+  title: "Component Library/RefractiveSurface",
+  component: RefractiveSurface,
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
     docs: {
       description: {
         component: `
-A sophisticated bar component with advanced visual effects including blur, 
+A sophisticated refractive surface component with advanced visual effects including blur, 
 specular highlights, and refraction. This component serves as a building block 
 for creating glass-like UI elements with customizable dimensions and visual properties.
-
-## Features
-- 🎨 Advanced visual effects (blur, specular highlights, refraction)
-- 📏 Customizable dimensions (width, height, radius)
-- ⚙️ Configurable visual parameters
-- 🌟 Glass-like appearance with realistic lighting
-- 🔧 Flexible scale ratio for dynamic effects
-- 🖼️ Adjustable bezel width for frame customization
-- 🔍 Variable glass thickness for refraction depth control
-- ⚗️ Configurable refractive index for different material simulation
-
-## Usage
-The Bar component accepts props to control its dimensions and visual appearance.
-Use the Storybook controls panel to experiment with different settings and see
-how each parameter affects the final appearance.
         `,
       },
     },
@@ -63,7 +48,7 @@ how each parameter affects the final appearance.
         max: 20,
         step: 1,
       },
-      description: "Padding inside the bar component",
+      description: "Padding inside the refractive surface component",
     },
     blur: {
       control: {
@@ -131,7 +116,7 @@ how each parameter affects the final appearance.
     glassThickness: 80,
     refractiveIndex: 1.45,
   },
-} satisfies Meta<typeof Bar>;
+} satisfies Meta<typeof RefractiveSurface>;
 
 // eslint-disable-next-line import/no-default-export
 export default meta;
@@ -147,16 +132,8 @@ type ExtendedArgs = typeof meta.args & {
   height: number;
 };
 
-/**
- * The default Bar component with standard settings.
- * This demonstrates the basic glass-like appearance of the bar.
- */
 export const Default: Story = {};
 
-/**
- * Demonstrates advanced optical properties with customized bezel, glass thickness, and refractive index.
- * This story showcases how the new optical parameters affect the visual appearance of the component.
- */
 export const OpticalProperties: Story = {
   args: {
     radius: 20,
@@ -167,27 +144,9 @@ export const OpticalProperties: Story = {
     glassThickness: 120,
     refractiveIndex: 1.8,
   },
-  parameters: {
-    docs: {
-      description: {
-        story: `
-This variant demonstrates the new optical properties:
-- **Bezel Width**: Wider bezel frame (25px) for more pronounced edge effects
-- **Glass Thickness**: Increased thickness (120px) creates deeper refraction
-- **Refractive Index**: Higher index (1.8) simulates dense optical glass or crystal
-        
-These parameters allow fine-tuning of the optical behavior to simulate different 
-materials from standard window glass to high-index optical crystals.
-        `,
-      },
-    },
-  },
+  parameters: {},
 };
 
-/**
- * Bar component with dynamically sized children that can be resized via controls.
- * This story demonstrates how the Bar adapts to its children's dimensions and tracks them with MotionValues.
- */
 export const WithDynamicallySizedChildren = {
   args: {
     radius: 15,
@@ -239,26 +198,6 @@ export const WithDynamicallySizedChildren = {
   },
   parameters: {
     layout: "fullscreen",
-    docs: {
-      description: {
-        story: `
-This story demonstrates how the Bar component adapts to dynamically sized children.
-The Bar will resize to fit its content, and the MotionValues will track these changes
-in real-time. Use the Storybook controls panel to adjust the child element's 
-dimensions and content to see how the Bar responds.
-
-**Key Features Demonstrated:**
-- **Dynamic Sizing**: Bar adapts to content size
-- **MotionValue Tracking**: Real-time dimension tracking (check browser console)
-- **Flexible Layout**: Content-driven dimensions
-- **Storybook Controls**: Use the controls panel to resize child content
-- **Background Integration**: Shows how the Bar interacts with background content
-
-Open your browser's console to see the MotionValue dimension tracking in action
-as you change the child element's size using the controls panel.
-        `,
-      },
-    },
   },
   decorators: [
     (Story: React.ComponentType) => (
@@ -288,7 +227,7 @@ as you change the child element's size using the controls panel.
     const childContent = args.childContent;
 
     return (
-      <Bar
+      <RefractiveSurface
         style={{
           minWidth: args.width,
           minHeight: args.height,
@@ -339,15 +278,15 @@ as you change the child element's size using the controls panel.
             </div>
           </div>
         </div>
-      </Bar>
+      </RefractiveSurface>
     );
   },
 };
 
 /**
- * Bar component used as a toolbar with interactive buttons and Lucide icons.
+ * RefractiveSurface component used as a toolbar with interactive buttons and Lucide icons.
  * The toolbar is positioned over scrollable content to demonstrate the refraction and blur effects.
- * Scroll the background content to see how the bar interacts with different content underneath.
+ * Scroll the background content to see how the refractive surface interacts with different content underneath.
  */
 export const WithScrollableContent: Story = {
   args: {
@@ -361,24 +300,6 @@ export const WithScrollableContent: Story = {
   },
   parameters: {
     layout: "fullscreen",
-    docs: {
-      description: {
-        story: `
-This story demonstrates the Bar component used as an interactive toolbar with Lucide icons.
-The toolbar contains buttons for common design tools (select, hand, 3D box, comment, edit, etc.)
-and is positioned over scrollable content to showcase how the blur and refraction effects 
-interact with dynamic background content. 
-
-**Key Features:**
-- **Selectable Buttons**: Click any button to select it (only one can be selected at a time)
-- **Visual Feedback**: Selected buttons show a blue background with white icons
-- **Interactive States**: Hover and active states provide responsive feedback
-- **Lucide Icons**: Modern, consistent iconography
-- **Glass Effect**: The toolbar maintains the signature glass-like appearance
-- **Background Interaction**: Scroll to see how the optical effects work with varied content
-        `,
-      },
-    },
   },
   decorators: [
     (Story) => (
@@ -386,7 +307,7 @@ interact with dynamic background content.
         {/* Background content */}
         <ExampleArticle />
 
-        {/* Fixed Bar component overlay */}
+        {/* Fixed RefractiveSurface component overlay */}
         <div
           style={{
             position: "fixed",
@@ -445,7 +366,7 @@ interact with dynamic background content.
     ];
 
     return (
-      <Bar
+      <RefractiveSurface
         className={css({
           display: "flex",
           alignItems: "center",
@@ -479,7 +400,7 @@ interact with dynamic background content.
             </button>
           );
         })}
-      </Bar>
+      </RefractiveSurface>
     );
   },
 };

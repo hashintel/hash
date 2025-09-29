@@ -1,10 +1,11 @@
+import { css, cx } from "@hashintel/styled-system/css";
 import { useId } from "react";
 
 import { Filter } from "../../lib/flexible-filter";
 import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
-export type BarProps = React.PropsWithChildren<{
+export type RefractiveSurfaceProps = React.PropsWithChildren<{
   className?: string;
   style?: React.CSSProperties;
   radius: number;
@@ -16,7 +17,7 @@ export type BarProps = React.PropsWithChildren<{
   refractiveIndex: number;
 }>;
 
-export const Bar: React.FC<BarProps> = ({
+export const RefractiveSurface: React.FC<RefractiveSurfaceProps> = ({
   className,
   style,
   radius,
@@ -39,7 +40,13 @@ export const Bar: React.FC<BarProps> = ({
   });
 
   return (
-    <>
+    <div
+      className={cx(css({ position: "relative" }), className)}
+      style={{
+        ...style,
+        borderRadius: radius,
+      }}
+    >
       <Filter
         id={filterId}
         blur={0}
@@ -55,39 +62,34 @@ export const Bar: React.FC<BarProps> = ({
       />
 
       <div
-        className={className}
-        style={{ ...style, borderRadius: radius, position: "relative" }}
-      >
-        <div
-          ref={divRef}
-          style={{
-            zIndex: -2,
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            borderRadius: radius,
-            backdropFilter: `blur(${blur}px)`,
-          }}
-        />
+        ref={divRef}
+        style={{
+          zIndex: -2,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          borderRadius: radius,
+          backdropFilter: `blur(${blur}px)`,
+        }}
+      />
 
-        <div
-          ref={divRef}
-          style={{
-            zIndex: -1,
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            borderRadius: radius,
-            backdropFilter: `url(#${filterId})`,
-          }}
-        />
+      <div
+        ref={divRef}
+        style={{
+          zIndex: -1,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          borderRadius: radius,
+          backdropFilter: `url(#${filterId})`,
+        }}
+      />
 
-        {children}
-      </div>
-    </>
+      {children}
+    </div>
   );
 };
