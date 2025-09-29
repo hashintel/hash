@@ -242,6 +242,7 @@ async fn insert() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -491,6 +492,7 @@ async fn get_entity_links() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await

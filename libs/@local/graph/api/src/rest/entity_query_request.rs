@@ -198,6 +198,7 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     include_type_ids: bool,
     #[serde(default)]
     include_type_titles: bool,
+    include_permissions: bool,
 
     // `QueryEntitySubgraphRequest::ResolveDepths`
     graph_resolve_depths: Option<GraphResolveDepths>,
@@ -524,6 +525,7 @@ pub struct EntityQueryOptions<'s, 'p> {
     pub include_type_ids: bool,
     #[serde(default)]
     pub include_type_titles: bool,
+    pub include_permissions: bool,
 }
 
 impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQueryOptions<'s, 'p> {
@@ -548,6 +550,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             include_type_titles,
             graph_resolve_depths,
             traversal_paths,
+            include_permissions,
         } = value;
 
         if filter.is_some() {
@@ -584,6 +587,7 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             include_edition_created_by_ids,
             include_type_ids,
             include_type_titles,
+            include_permissions,
         })
     }
 }
@@ -613,6 +617,7 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             include_edition_created_by_ids: self.include_edition_created_by_ids,
             include_type_ids: self.include_type_ids,
             include_type_titles: self.include_type_titles,
+            include_permissions: self.include_permissions,
         }
     }
 

@@ -1,8 +1,6 @@
 import type { MultiFilter } from "@blockprotocol/graph";
 import type { Filter, PathExpression } from "@local/hash-graph-client";
 
-// type MultiFilter = NonNullable<QueryOperationInput["multiFilter"]>;
-
 export class InvalidEntityQueryError extends Error {
   constructor(message: string) {
     super(message);

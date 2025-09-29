@@ -15,12 +15,12 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryCursor,
-        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityPermissions,
+        EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval,
+        EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -751,6 +751,8 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            // Populated later
+            permissions: None,
         })
     }
 }
@@ -1323,6 +1325,40 @@ where
             }
         }
 
+        if params.include_permissions {
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect::<Vec<_>>();
+
+            let update_permissions = self
+                .has_permission_for_entities(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
+        }
+
         Ok(response)
     }
 
@@ -1340,6 +1376,7 @@ where
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
+        let actor = policy_components.actor_id();
 
         let provider = StoreProvider::new(self, &policy_components);
 
@@ -1364,6 +1401,7 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            permissions,
         } = self
             .query_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
@@ -1384,7 +1422,7 @@ where
             let mut traversal_context = TraversalContext::default();
 
             // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow
-            // the       vertices and have to `.collect()` the keys.
+            //       the vertices and have to `.collect()` the keys.
             self.traverse_entities(
                 subgraph
                     .vertices
@@ -1494,7 +1532,6 @@ where
                     }
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
-                subgraph,
                 cursor,
                 count,
                 web_ids,
@@ -1502,6 +1539,41 @@ where
                 edition_created_by_ids,
                 type_ids,
                 type_titles,
+                entity_permissions: if request.include_permissions {
+                    debug_assert!(permissions.is_none(), "Should not be populated yet");
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
+                } else {
+                    None
+                },
+                subgraph,
             })
         }
         .instrument(tracing::trace_span!("construct_subgraph"))

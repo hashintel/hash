@@ -164,6 +164,7 @@ async fn initial_person() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -229,6 +230,7 @@ async fn initial_person() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -258,6 +260,7 @@ async fn initial_person() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -341,6 +344,7 @@ async fn create_multi() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -370,6 +374,7 @@ async fn create_multi() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -430,6 +435,7 @@ async fn create_multi() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await

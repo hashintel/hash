@@ -205,6 +205,7 @@ pub fn bench_get_entity_by_id(
                         include_edition_created_by_ids: false,
                         include_type_ids: false,
                         include_type_titles: false,
+                        include_permissions: false,
                     },
                 )
                 .await

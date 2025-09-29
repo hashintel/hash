@@ -183,6 +183,7 @@ async fn properties_add() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -278,6 +279,7 @@ async fn properties_remove() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -375,6 +377,7 @@ async fn properties_replace() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -465,6 +468,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -523,6 +527,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -583,6 +588,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await

@@ -11,11 +11,11 @@ use hash_graph_store::{
     self,
     entity::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
-        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
-        EntityValidationType, HasPermissionForEntitiesParams, LinkDataStateError,
-        LinkDataValidationReport, LinkError, LinkTargetError, LinkValidationReport,
-        LinkedEntityError, MetadataValidationReport, PatchEntityParams,
+        DiffEntityResult, EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord,
+        EntityQuerySortingToken, EntityQueryToken, EntityStore, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
+        LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
+        LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
         PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
         UnexpectedEntityType, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
         ValidateEntityParams,
@@ -129,6 +129,7 @@ use crate::rest::{
             EntityQuerySortingToken,
             QueryEntitiesResponse,
             QueryEntitySubgraphResponse,
+            EntityPermissions,
             ClosedMultiEntityTypeMap,
             QueryConversion,
 
@@ -472,20 +473,7 @@ where
     let response = store
         .query_entities(actor_id, params)
         .await
-        .map(|response| {
-            Json(QueryEntitiesResponse {
-                entities: response.entities,
-                cursor: response.cursor.map(EntityQueryCursor::into_owned),
-                count: response.count,
-                closed_multi_entity_types: response.closed_multi_entity_types,
-                definitions: response.definitions,
-                web_ids: response.web_ids,
-                created_by_ids: response.created_by_ids,
-                edition_created_by_ids: response.edition_created_by_ids,
-                type_ids: response.type_ids,
-                type_titles: response.type_titles,
-            })
-        })
+        .map(Json)
         .map_err(report_to_response);
 
     if let Some(query_logger) = &mut query_logger {
@@ -524,6 +512,9 @@ struct QueryEntitySubgraphResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     type_titles: Option<HashMap<VersionedUrl, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[utoipa::path(
@@ -603,6 +594,7 @@ where
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
                 type_titles: response.type_titles,
+                entity_permissions: response.entity_permissions,
             })
         })
         .map_err(report_to_response);

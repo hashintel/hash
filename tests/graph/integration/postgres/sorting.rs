@@ -78,6 +78,7 @@ async fn test_root_sorting(
             edition_created_by_ids: _,
             type_ids: _,
             type_titles: _,
+            entity_permissions: _,
         } = api
             .query_entity_subgraph(
                 api.account_id,
@@ -103,6 +104,7 @@ async fn test_root_sorting(
                         include_edition_created_by_ids: false,
                         include_type_ids: false,
                         include_type_titles: false,
+                        include_permissions: false,
                     },
                 },
             )
