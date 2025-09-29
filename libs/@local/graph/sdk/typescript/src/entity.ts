@@ -671,6 +671,7 @@ export const mergePropertiesAndMetadata = (
       const returnedValues: Record<BaseUrl, PropertyWithMetadata> = {};
       let isPropertyObject = true;
       for (const [key, value] of typedEntries(property)) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
         if (value === undefined) {
           continue;
         }
@@ -700,7 +701,7 @@ export const mergePropertiesAndMetadata = (
       return {
         value: Object.fromEntries(
           Object.entries(property)
-
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
             .filter(([_key, value]) => value !== undefined)
             .map(([key, value]) => {
               if (!isBaseUrl(key)) {
