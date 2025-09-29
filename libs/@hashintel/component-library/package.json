@@ -21,10 +21,6 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "CHANGELOG.md",
-    "LICENSE-APACHE.md",
-    "LICENSE-MIT.md",
-    "LICENSE",
     "README.md"
   ],
   "scripts": {
