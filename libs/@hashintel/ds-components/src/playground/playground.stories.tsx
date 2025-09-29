@@ -248,9 +248,8 @@ const Playground = () => {
                             >
                               <Slider
                                 defaultValue={sliderValue}
-                                onChange={(value) =>
-                                  setSliderValue(value[0] ?? 0)
-                                }
+                                onChange={setSliderValue}
+                                style={{ width: 400 }}
                                 label="Intensity Level"
                                 min={0}
                                 max={100}

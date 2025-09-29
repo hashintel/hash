@@ -89,10 +89,8 @@ const meta = {
     blurLevel: 0,
     label: "Volume",
     showValueText: true,
-    onChange: (value: number[]) =>
-      // eslint-disable-next-line no-console
-      console.log("Value changed:", value),
   },
+  render: (args) => <Slider {...args} style={{ width: "400px" }} />,
 } satisfies Meta<typeof Slider>;
 
 // eslint-disable-next-line import/no-default-export
