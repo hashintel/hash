@@ -5,7 +5,7 @@ import { Filter } from "../../lib/flexible-filter";
 import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
-export type RefractiveSurfaceProps = React.PropsWithChildren<{
+export type RefractivePaneProps = React.PropsWithChildren<{
   className?: string;
   style?: React.CSSProperties;
   radius: number;
@@ -17,7 +17,7 @@ export type RefractiveSurfaceProps = React.PropsWithChildren<{
   refractiveIndex: number;
 }>;
 
-export const RefractiveSurface: React.FC<RefractiveSurfaceProps> = ({
+export const RefractivePaneProps: React.FC<RefractivePaneProps> = ({
   className,
   style,
   radius,

@@ -13,11 +13,11 @@ import {
 import { useState } from "react";
 
 import { ExampleArticle } from "../../playground/ExampleArticle";
-import { RefractiveSurface } from "./refractive-surface";
+import { RefractivePaneProps } from "./refractive-pane";
 
 const meta = {
-  title: "Component Library/RefractiveSurface",
-  component: RefractiveSurface,
+  title: "Component Library/RefractivePane",
+  component: RefractivePaneProps,
   tags: ["docsPage"],
   parameters: {
     layout: "centered",
@@ -116,7 +116,7 @@ for creating glass-like UI elements with customizable dimensions and visual prop
     glassThickness: 80,
     refractiveIndex: 1.45,
   },
-} satisfies Meta<typeof RefractiveSurface>;
+} satisfies Meta<typeof RefractivePaneProps>;
 
 // eslint-disable-next-line import/no-default-export
 export default meta;
@@ -227,7 +227,7 @@ export const WithDynamicallySizedChildren = {
     const childContent = args.childContent;
 
     return (
-      <RefractiveSurface
+      <RefractivePaneProps
         style={{
           minWidth: args.width,
           minHeight: args.height,
@@ -278,13 +278,13 @@ export const WithDynamicallySizedChildren = {
             </div>
           </div>
         </div>
-      </RefractiveSurface>
+      </RefractivePaneProps>
     );
   },
 };
 
 /**
- * RefractiveSurface component used as a toolbar with interactive buttons and Lucide icons.
+ * RefractivePane component used as a toolbar with interactive buttons and Lucide icons.
  * The toolbar is positioned over scrollable content to demonstrate the refraction and blur effects.
  * Scroll the background content to see how the refractive surface interacts with different content underneath.
  */
@@ -307,7 +307,7 @@ export const WithScrollableContent: Story = {
         {/* Background content */}
         <ExampleArticle />
 
-        {/* Fixed RefractiveSurface component overlay */}
+        {/* Fixed RefractivePane component overlay */}
         <div
           style={{
             position: "fixed",
@@ -366,7 +366,7 @@ export const WithScrollableContent: Story = {
     ];
 
     return (
-      <RefractiveSurface
+      <RefractivePaneProps
         className={css({
           display: "flex",
           alignItems: "center",
@@ -400,7 +400,7 @@ export const WithScrollableContent: Story = {
             </button>
           );
         })}
-      </RefractiveSurface>
+      </RefractivePaneProps>
     );
   },
 };
