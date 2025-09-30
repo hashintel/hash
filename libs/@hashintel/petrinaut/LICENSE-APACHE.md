@@ -1,6 +1,6 @@
 # Apache License
 
-_Version 2.0, January 2004_  
+_Version 2.0, January 2004_
 _&lt;<http://www.apache.org/licenses/>&gt;_
 
 ### Terms and Conditions for use, reproduction, and distribution
@@ -174,7 +174,7 @@ To apply the Apache License to an individual file, attach the following notice.
 The text should be enclosed in the appropriate comment syntax for the file
 format.
 
-    Copyright © 2023–, HASH
+    Copyright © 2025–, HASH
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
