@@ -1,11 +1,7 @@
-[lower::specialization::unsupported-intrinsic] Error: Unsupported intrinsic operation
-   ╭─[ <unknown>:3:3 ]
-   │
- 3 │ ["!", { "#literal": true }]
-   │   ┬  
-   │   ╰── intrinsic `::core::bool::not` not supported yet
-   │ 
-   │ Help: The intrinsic operation `::core::bool::not` is a valid HashQL operation, but support for this operation is still in development during the specialization phase. For now, you'll need to use alternative approaches or wait for this feature to be implemented. Check issue https://linear.app/hash/issue/H-4729/hashql-enable-unary-operations for implementation status and updates.
-   │ 
-   │ Note: Intrinsic operations are low-level operations that are built into the HashQL language. The specialization phase converts high-level function calls into these optimized operations, but not all intrinsics are currently supported. We're actively working on supporting ::core::bool::not and other intrinsic operations to make HashQL more expressive and powerful.
-───╯
+error[lower::specialization::unsupported-intrinsic]: Unsupported intrinsic operation
+  ╭▸ 
+3 │ ["!", { "#literal": true }]
+  │   ━ intrinsic `::core::bool::not` not supported yet
+  │
+  ├ help: The intrinsic operation `::core::bool::not` is a valid HashQL operation, but support for this operation is still in development during the specialization phase. For now, you'll need to use alternative approaches or wait for this feature to be implemented. Check issue https://linear.app/hash/issue/H-4729/hashql-enable-unary-operations for implementation status and updates.
+  ╰ note: Intrinsic operations are low-level operations that are built into the HashQL language. The specialization phase converts high-level function calls into these optimized operations, but not all intrinsics are currently supported. We're actively working on supporting ::core::bool::not and other intrinsic operations to make HashQL more expressive and powerful.

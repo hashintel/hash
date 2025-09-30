@@ -5,10 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anstream::adapter::strip_str;
-use error_stack::{
-    Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _,
-};
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{heap::Heap, span::storage::SpanStorage};
@@ -23,7 +20,7 @@ use crate::{
     annotation::directive::RunMode,
     reporter::Statistics,
     styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
-    suite::{ResolvedSuiteDiagnostic, find_suite},
+    suite::{SuiteDiagnostic, find_suite},
 };
 
 fn parse_source<'heap>(
@@ -223,19 +220,20 @@ impl Trial {
 
         let (expr, spans) = parse_source(&source, &heap)?;
 
-        let (received_stdout, diagnostics) = self.run_suite(&spans, &heap, expr)?;
+        let (received_stdout, diagnostics) = self.run_suite(&heap, expr)?;
 
         let mut sink = ReportSink::new_armed();
 
         verify_annotations(
             &source,
+            &mut &*spans,
             &line_index,
             &diagnostics,
             &annotations.diagnostics,
             &mut sink,
         );
 
-        let received_stderr = render_stderr(&source, &diagnostics);
+        let received_stderr = render_stderr(&source, &spans, &diagnostics);
 
         let result = if context.bless {
             self.bless_outputs(received_stdout.as_deref(), received_stderr.as_deref())
@@ -266,11 +264,10 @@ impl Trial {
 
     fn run_suite<'heap>(
         &self,
-        mut spans: &SpanStorage<Span>,
         heap: &'heap Heap,
         expr: Expr<'heap>,
-    ) -> Result<(Option<String>, Vec<ResolvedSuiteDiagnostic>), Report<TrialError>> {
-        let mut diagnostics = vec![];
+    ) -> Result<(Option<String>, Vec<SuiteDiagnostic>), Report<TrialError>> {
+        let mut diagnostics = Vec::new();
 
         let result = self.suite.run(heap, expr, &mut diagnostics);
 
@@ -283,16 +280,13 @@ impl Trial {
         }
 
         let (received_stdout, fatal_diagnostic) = match result {
-            Ok(stdout) => (Some(strip_str(&stdout).to_string()), None),
+            Ok(stdout) => (Some(stdout), None),
             Err(error) => (None, Some(error)),
         };
 
-        let diagnostics = diagnostics
-            .into_iter()
-            .chain(fatal_diagnostic)
-            .map(|diagnostic| diagnostic.resolve(&mut spans))
-            .try_collect_reports()
-            .change_context(TrialError::DiagnosticResolution)?;
+        if let Some(fatal) = fatal_diagnostic {
+            diagnostics.push(fatal);
+        }
 
         Ok((received_stdout, diagnostics))
     }

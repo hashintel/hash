@@ -103,7 +103,7 @@ mod tests {
                 dump: expr.syntax_dump_to_string(),
                 input,
             }),
-            Err(diagnostic) => Err(render_diagnostic(input, diagnostic, &spans)),
+            Err(diagnostic) => Err(render_diagnostic(input, &diagnostic, &spans)),
         }
     }
 

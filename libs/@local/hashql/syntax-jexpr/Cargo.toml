@@ -32,12 +32,12 @@ unicode-properties    = { workspace = true, features = ["general-category"] }
 url                   = { workspace = true }
 winnow                = { workspace = true, features = ["std"] }
 
+[dev-dependencies]
+hashql-diagnostics = { workspace = true, features = ["render"] }
+insta              = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+test-fuzz          = { workspace = true }
+
 [lints]
 workspace = true
-
-[dev-dependencies]
-ariadne    = { workspace = true }
-insta      = { workspace = true }
-serde      = { workspace = true }
-serde_json = { workspace = true }
-test-fuzz  = { workspace = true }

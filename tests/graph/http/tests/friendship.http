@@ -1292,7 +1292,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1493,8 +1494,9 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
+  "includeEntityTypes": "resolved",
   "includeDrafts": true,
-  "includeEntityTypes": "resolved"
+  "includePermissions": false
 }
 
 > {%
@@ -1526,7 +1528,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1668,7 +1671,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1729,7 +1733,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1794,7 +1799,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1836,7 +1842,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 
@@ -1875,7 +1882,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -2021,7 +2029,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 > {%
@@ -2059,7 +2068,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 > {%

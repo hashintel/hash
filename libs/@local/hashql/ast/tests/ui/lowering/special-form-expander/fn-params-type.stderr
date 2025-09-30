@@ -1,11 +1,7 @@
-[special-form-expander::fn-params-with-type-annotation] Error: Function parameters with type annotation
-   ╭─[ <unknown>:8:15 ]
-   │
- 8 │     "#type": "Int"
-   │               ─┬─  
-   │                ╰─── Remove this type annotation
-   │ 
-   │ Help: Function parameter declarations cannot have type annotations at the struct level. The struct itself represents the parameter list, and each field represents a parameter with its type.
-   │ 
-   │ Note: In the 'fn' special form, parameter lists should be structured as (param1: Type1, param2: Type2), where the struct itself does not have a type annotation.
-───╯
+error[special-form-expander::fn-params-with-type-annotation]: Function parameters with type annotation
+  ╭▸ 
+8 │     "#type": "Int"
+  │               ━━━ Remove this type annotation
+  │
+  ├ help: Function parameter declarations cannot have type annotations at the struct level. The struct itself represents the parameter list, and each field represents a parameter with its type.
+  ╰ note: In the 'fn' special form, parameter lists should be structured as (param1: Type1, param2: Type2), where the struct itself does not have a type annotation.

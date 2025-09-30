@@ -160,7 +160,7 @@ export const getPersistedNetsFromSubgraph = (
     const parentProcess = outgoingLinkAndRightEntities[0]?.rightEntity[0];
 
     const userEditable =
-      !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.edit;
+      !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.update;
 
     return {
       entityId: net.entityId,

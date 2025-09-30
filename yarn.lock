@@ -13267,8 +13267,6 @@ __metadata:
 "@rust/hashql-diagnostics@npm:0.0.0-private, @rust/hashql-diagnostics@workspace:libs/@local/hashql/diagnostics":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-diagnostics@workspace:libs/@local/hashql/diagnostics"
-  dependencies:
-    "@rust/error-stack": "npm:0.6.0"
   languageName: unknown
   linkType: soft
 
@@ -13291,6 +13289,12 @@ __metadata:
     "@rust/hashql-ast": "npm:0.0.0-private"
     "@rust/hashql-core": "npm:0.0.0-private"
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
+  languageName: unknown
+  linkType: soft
+
+"@rust/hashql-mir@workspace:libs/@local/hashql/mir":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
   languageName: unknown
   linkType: soft
 

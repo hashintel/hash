@@ -112,6 +112,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
+name = "annotate-snippets"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8ee2f071d418442e50c643c4e7a4051ce3abd9dba11713cc6cdf4f4a3f3cca5"
+dependencies = [
+ "anstyle",
+ "memchr",
+ "unicode-width 0.2.1",
+]
+
+[[package]]
 name = "ansi-to-html"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -194,16 +205,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstyle-yansi"
-version = "2.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4acb1a62104c1b155ca5066ec3db53aa0cbafb932ae3dc6120e4b6a3f383049"
-dependencies = [
- "anstyle",
- "yansi",
-]
-
-[[package]]
 name = "antsi"
 version = "0.0.0-reserved"
 dependencies = [
@@ -240,16 +241,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
-]
-
-[[package]]
-name = "ariadne"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36f5e3dca4e09a6f340a61a0e9c7b61e030c69fc27bf29d73218f7e5e3b7638f"
-dependencies = [
- "unicode-width 0.1.14",
- "yansi",
 ]
 
 [[package]]
@@ -3340,8 +3331,6 @@ dependencies = [
 name = "hash-graph-api"
 version = "0.0.0"
 dependencies = [
- "anstyle-svg",
- "ariadne",
  "async-trait",
  "axum",
  "axum-core 0.5.0",
@@ -3869,8 +3858,6 @@ name = "hashql-compiletest"
 version = "0.0.0"
 dependencies = [
  "anstream",
- "anstyle",
- "ariadne",
  "camino",
  "clap",
  "derive_more 2.0.1",
@@ -3939,13 +3926,12 @@ dependencies = [
 name = "hashql-diagnostics"
 version = "0.0.0"
 dependencies = [
+ "annotate-snippets",
+ "anstream",
  "anstyle",
  "anstyle-lossy",
- "anstyle-yansi",
- "ariadne",
+ "anstyle-svg",
  "derive_more 2.0.1",
- "error-stack",
- "jsonptr",
  "rstest",
  "serde",
  "serde_json",
@@ -3981,10 +3967,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashql-mir"
+version = "0.0.0"
+dependencies = [
+ "hashql-compiletest",
+]
+
+[[package]]
 name = "hashql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [
- "ariadne",
  "circular-buffer",
  "ecow",
  "hashql-ast",
@@ -4776,10 +4768,6 @@ name = "jsonptr"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5a3cc660ba5d72bce0b3bb295bf20847ccbb40fd423f3f05b61273672e561fe"
-dependencies = [
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "jsonschema"

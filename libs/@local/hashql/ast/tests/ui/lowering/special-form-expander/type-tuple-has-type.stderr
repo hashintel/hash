@@ -1,11 +1,7 @@
-[special-form-expander::type-with-existing-annotation] Error: Type expression with redundant type annotation
-   ╭─[ <unknown>:8:15 ]
-   │
- 8 │     "#type": "(Int)"
-   │               ──┬──  
-   │                 ╰──── Remove this type annotation
-   │ 
-   │ Help: Type expressions used in special forms cannot have their own type annotations. The expression itself defines a type and cannot be annotated with another type.
-   │ 
-   │ Note: When constructing type expressions for special forms like 'type', 'newtype', or 'as', the expression itself represents a type definition and cannot have a separate type annotation.
-───╯
+error[special-form-expander::type-with-existing-annotation]: Type expression with redundant type annotation
+  ╭▸ 
+8 │     "#type": "(Int)"
+  │               ━━━━━ Remove this type annotation
+  │
+  ├ help: Type expressions used in special forms cannot have their own type annotations. The expression itself defines a type and cannot be annotated with another type.
+  ╰ note: When constructing type expressions for special forms like 'type', 'newtype', or 'as', the expression itself represents a type definition and cannot have a separate type annotation.
