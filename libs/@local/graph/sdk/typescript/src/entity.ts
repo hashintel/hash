@@ -13,6 +13,7 @@ import type {
 import type {
   ActorEntityUuid,
   BaseUrl,
+  Brand,
   ClosedEntityType,
   ClosedMultiEntityType,
   Entity,
@@ -45,7 +46,6 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
-import type { Brand } from "@local/advanced-types/brand";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
