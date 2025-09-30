@@ -17,7 +17,12 @@ To understand technical aspect of these refraction effects, you can refer [to th
 
 # Current Limitations
 
-- Only Chrome supports the CSS features required to render the refractive effects.
+- Only Chrome currently supports the `backdrop-filter` property with SVG Filter, used to render the refractive effects.
+
+  > See [Fallback for Non-Supporting Browsers](#fallback-for-non-supporting-browsers) section below.
+  >
+  > See [Firefox bug report](https://bugzilla.mozilla.org/show_bug.cgi?id=1989910), and [Safari bug report](https://bugs.webkit.org/show_bug.cgi?id=245510) to track progress on other browsers.
+
 - `BezelWidth` needs to be lower than `Radius` property. This requires rework of the Displacement Map generation logic.
 - CSS variables do not control the SVG Filter properties, which makes it hard to create dynamic components with different sizes and keep everything in sync.
   > This could be achieved using watchers on CSS variables, but could also be really heavy.
