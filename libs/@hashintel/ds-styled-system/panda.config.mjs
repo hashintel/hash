@@ -1,7 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
 export default defineConfig({
-  presets: ["@hashintel/ui-preset"],
+  presets: ["@hashintel/ds-preset"],
   outdir: "dist",
   jsxFramework: "react",
   validation: "error",
