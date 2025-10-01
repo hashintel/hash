@@ -84,7 +84,7 @@ export function calculateSpecularImage(props: {
 
         const coefficient =
           dotProduct *
-          Math.sqrt(1 - (1 - distanceFromSide / (1 * devicePixelRatio)) ** 2);
+          Math.sqrt(1 - (1 - distanceFromSide / (1 * pixelRatio)) ** 2);
 
         const color = 255 * coefficient;
         const finalOpacity = color * coefficient * opacity;
