@@ -3,13 +3,13 @@ import type { MotionValue } from "motion/react";
 import { motion, useTransform } from "motion/react";
 import { memo } from "react";
 
+import { getDevicePixelRatio } from "./get-device-pixel-ratio";
+import { imageDataToUrl } from "./image-data-to-url";
 import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
-} from "./displacement-map";
-import { getDevicePixelRatio } from "./get-device-pixel-ratio";
-import { imageDataToUrl } from "./image-data-to-url";
-import { calculateSpecularImage } from "./specular";
+} from "./maps/displacement-map";
+import { calculateSpecularImage } from "./maps/specular";
 import { CONVEX } from "./surface-equations";
 import { useToMotion } from "./use-to-motion";
 
