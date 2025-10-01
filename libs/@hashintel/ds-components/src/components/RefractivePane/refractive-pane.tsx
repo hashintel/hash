@@ -62,7 +62,6 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
       />
 
       <div
-        ref={divRef}
         style={{
           zIndex: -2,
           position: "absolute",
