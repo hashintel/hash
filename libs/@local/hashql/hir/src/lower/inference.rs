@@ -215,6 +215,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // Choosing the second option allows for more accuracy in type inference in edge cases.
         // In particular it helps us to choose a type for empty lists.
         let inner = self.inference.fresh_hole(list.span);
+        self.inference.add_variables([inner]);
 
         for element in list.elements {
             self.inference.add_constraint(Constraint::LowerBound {
