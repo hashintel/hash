@@ -36,30 +36,31 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
+    let _ = ws(".").parse_next(input)?;
 
-    preceded(
-        ws("."),
-        alt((
-            parse_ident.map(Access::Field),
-            digit1
+    match peek(any).parse_next(input)? {
+        '0'..='9' => {
+            let (digit, range) = digit1
                 .with_span()
                 .try_map(|(digits, range): (&str, _)| {
                     // Ensure the value is within bounds
                     digits.parse::<usize>().map(|_| (digits, range))
                 })
-                .map(|(digit, range)| {
-                    Access::Field(Ident {
-                        span: context.span(range),
+                .parse_next(input)?;
 
-                        value: context.heap.intern_symbol(digit),
-                        kind: IdentKind::Lexical, // Do we need to specify a different kind here?
-                    })
-                }),
-        )),
-    )
-    .context(StrContext::Label("field"))
-    .parse_next(input)
+            Ok(Access::Field(Ident {
+                span: input.state.span(range),
+
+                value: input.state.heap.intern_symbol(digit),
+                kind: IdentKind::Lexical, // Do we need to specify a different kind here?
+            }))
+        }
+
+        _ => parse_ident.map(Access::Field).parse_next(input),
+    }
+
+    // TODO:
+    // .context(StrContext::Label("field"))
 }
 
 fn parse_index_access<'heap, 'span, 'source, E>(
@@ -70,30 +71,30 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
+    let _ = ws("[").parse_next(input)?;
 
     // super limited version that only allows literal access instead of arbitrary expressions
-    delimited(
-        ws("["),
-        alt((
-            digit1.with_span().map(|(digit, range)| {
-                let span = context.span(range);
+    let access = match peek(any).parse_next(input)? {
+        '0'..='9' => {
+            let (digit, range) = digit1.with_span().parse_next(input)?;
 
-                Access::IndexByLiteral(LiteralExpr {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    kind: LiteralKind::Integer(IntegerLiteral {
-                        value: context.heap.intern_symbol(digit),
-                    }),
-                    r#type: None,
-                })
-            }),
-            parse_expr_path.map(Access::IndexByExpr),
-        )),
-        ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']')))),
-    )
-    .context(StrContext::Label("index"))
-    .parse_next(input)
+            Access::IndexByLiteral(LiteralExpr {
+                id: NodeId::PLACEHOLDER,
+                span: input.state.span(range),
+                kind: LiteralKind::Integer(IntegerLiteral {
+                    value: input.state.heap.intern_symbol(digit),
+                }),
+                r#type: None,
+            })
+        }
+        _ => parse_expr_path.map(Access::IndexByExpr).parse_next(input)?,
+    };
+
+    let _ = ws(cut_err("]")).parse_next(input)?;
+
+    // TODO:
+    // .context(StrContext::Label("index"))
+    Ok(access)
 }
 
 pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
