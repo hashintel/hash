@@ -165,7 +165,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             if fields.len() != index {
                 // Since a previous iteration has failed we can skip any subsequent pushes, this
                 // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
-                return None;
+                continue;
             }
 
             fields.push(field);
