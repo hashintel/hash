@@ -255,6 +255,7 @@ fn run_benchmark_seed_group(
             BenchmarkId::new("resolve_policies_for_actor", &bench_id),
             &(&test_actor, &actions),
             |bencher, &(test_actor, actions)| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(
                     &group_name,
                     Some("resolve_policies_for_actor"),

@@ -311,6 +311,7 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
             |bencher, (_account_id, entity_list)| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     bencher,
@@ -364,6 +365,7 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
             |bencher, (_account_id, entity_metadata_list)| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     bencher,

@@ -180,6 +180,8 @@ locals {
       ],
       [
         { name = "HASH_OTLP_ENDPOINT", value = "grpc://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
+        { name = "HASH_GRAPH_LOG_LEVEL", value = "info" },
+        # { name = "HASH_PROFILER_ENDPOINT", value = "https://${var.profile_exporter_endpoint}" },
       ]
     )
     secrets = [
@@ -241,6 +243,7 @@ locals {
         { name = "HASH_OTLP_ENDPOINT", value = "grpc://${local.otel_grpc_container_port_dns}:${local.otel_grpc_container_port}" },
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
+        # { name = "HASH_PROFILER_ENDPOINT", value = "https://${var.profile_exporter_endpoint}" },
       ]
     )
 
