@@ -90,7 +90,9 @@ where
         _ => parse_expr_path.map(Access::IndexByExpr).parse_next(input)?,
     };
 
-    let _: &'source str = ws(cut_err("]")).parse_next(input)?;
+    let _: &'source str =
+        ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']'))))
+            .parse_next(input)?;
 
     Ok(access)
 }
