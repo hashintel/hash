@@ -1,4 +1,3 @@
-pub mod entry;
 mod table;
 
 use core::{
@@ -82,12 +81,12 @@ impl SpanId {
         Self(id)
     }
 
-    pub(crate) const fn source_id(&self) -> SourceId {
+    pub(crate) const fn source_id(self) -> SourceId {
         // The top 4 bits are the source ID, and the bottom 28 bits are the span ID.
         SourceId::new_unchecked(self.0 >> 28)
     }
 
-    pub(crate) const fn id(&self) -> u32 {
+    pub(crate) const fn id(self) -> u32 {
         // The bottom 28 bits are the span ID.
         self.0 & 0x0FFF_FFFF
     }
@@ -100,35 +99,38 @@ impl Display for SpanId {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum SpanCombinator {
+pub enum SpanResolutionMode {
     Union,
     Intersection,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SpanAncestors<'spans> {
     spans: &'spans [SpanId],
-    combinator: SpanCombinator,
+    mode: SpanResolutionMode,
 }
 
 impl<'spans> SpanAncestors<'spans> {
-    pub fn union(spans: &'spans [SpanId]) -> Self {
+    #[must_use]
+    pub const fn union(spans: &'spans [SpanId]) -> Self {
         Self {
             spans,
-            combinator: SpanCombinator::Union,
+            mode: SpanResolutionMode::Union,
         }
     }
 
-    pub fn intersection(ancestors: &'spans [SpanId]) -> Self {
+    #[must_use]
+    pub const fn intersection(ancestors: &'spans [SpanId]) -> Self {
         Self {
             spans: ancestors,
-            combinator: SpanCombinator::Intersection,
+            mode: SpanResolutionMode::Intersection,
         }
     }
 }
 
 pub struct SpanAncestorsMut<'spans> {
-    pub ancestors: &'spans mut [SpanId],
-    pub combinator: &'spans mut SpanCombinator,
+    pub spans: &'spans mut [SpanId],
+    pub mode: &'spans mut SpanResolutionMode,
 }
 /// Represents a full span in a file.
 ///
@@ -147,8 +149,12 @@ impl<S> DiagnosticSpan<&SpanTable<S>> for SpanId
 where
     S: Span,
 {
+    fn source(&self) -> SourceId {
+        self.source_id()
+    }
+
     fn absolute(&self, resolver: &mut &SpanTable<S>) -> Option<SourceSpan> {
-        todo!()
+        resolver.absolute(*self)
     }
 }
 

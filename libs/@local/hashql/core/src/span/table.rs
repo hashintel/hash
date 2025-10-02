@@ -2,12 +2,12 @@ use core::ops::Range;
 
 use hashql_diagnostics::source::{SourceId, SourceSpan};
 
-use super::{Span, SpanAncestors, SpanCombinator, SpanId};
+use super::{Span, SpanAncestors, SpanAncestorsMut, SpanId, SpanResolutionMode};
 
 #[derive(Debug)]
 struct SpanEntry<S> {
     span: S,
-    combinator: SpanCombinator,
+    mode: SpanResolutionMode,
     ancestors: Range<usize>, // index into the adjacent `ancestors` vector
 }
 
@@ -20,7 +20,7 @@ pub struct SpanTable<S> {
 
 impl<S> SpanTable<S> {
     #[must_use]
-    pub fn new(source: SourceId) -> Self {
+    pub const fn new(source: SourceId) -> Self {
         Self {
             source_id: source,
             spans: Vec::new(),
@@ -43,7 +43,7 @@ impl<S> SpanTable<S> {
         let index = self.spans.len();
         self.spans.push(SpanEntry {
             span,
-            combinator: ancestors.combinator,
+            mode: ancestors.mode,
             ancestors: ancestors_index..(ancestors_index + ancestors.spans.len()),
         });
 
@@ -68,8 +68,8 @@ impl<S> SpanTable<S> {
         func(
             &mut element.span,
             SpanAncestorsMut {
-                ancestors: &mut self.ancestors[element.ancestors.clone()],
-                combinator: &mut element.combinator,
+                spans: &mut self.ancestors[element.ancestors.clone()],
+                mode: &mut element.mode,
             },
         );
         true
@@ -90,10 +90,15 @@ impl<S> SpanTable<S> {
         self.get_entry(span).map(|entry| &entry.span)
     }
 
-    pub(crate) fn absolute(&self, span: SpanId) -> Option<SourceSpan>
+    fn absolute_impl(&self, span: SpanId, depth: usize) -> Option<SourceSpan>
     where
         S: Span,
     {
+        assert!(
+            depth <= 32,
+            "Cannot resolve excessively deep span of {depth}, likely due to a circular dependency"
+        );
+
         let entry = self.get_entry(span)?;
         let ancestors = &self.ancestors[entry.ancestors.clone()];
 
@@ -102,17 +107,24 @@ impl<S> SpanTable<S> {
             [base, rest @ ..] => (*base, rest),
         };
 
-        let mut base = self.absolute(base)?.range();
-        for ancestor in rest {
-            let ancestor = self.absolute(base)?.range();
+        let mut base = self.absolute_impl(base, depth + 1)?.range();
+        for &ancestor in rest {
+            let ancestor = self.absolute_impl(ancestor, depth + 1)?.range();
 
-            base = match entry.combinator {
-                SpanCombinator::Intersection => base.intersect(ancestor),
-                SpanCombinator::Union => base.cover(ancestor),
+            base = match entry.mode {
+                SpanResolutionMode::Intersection => base.intersect(ancestor)?,
+                SpanResolutionMode::Union => base.cover(ancestor),
             };
         }
 
         let range = entry.span.range() + base.start();
         Some(SourceSpan::from_parts(span.source_id(), range))
+    }
+
+    pub(crate) fn absolute(&self, span: SpanId) -> Option<SourceSpan>
+    where
+        S: Span,
+    {
+        self.absolute_impl(span, 0)
     }
 }

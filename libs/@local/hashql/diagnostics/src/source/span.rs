@@ -48,6 +48,8 @@ use super::SourceId;
 /// }
 /// ```
 pub trait DiagnosticSpan<R>: Display {
+    fn source(&self) -> SourceId;
+
     fn absolute(&self, resolver: &mut R) -> Option<SourceSpan>;
 }
 
