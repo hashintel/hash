@@ -7,7 +7,10 @@ use hashql_core::{
 };
 
 use crate::node::{
-    Node, PartialNode, call::CallArgument, closure::ClosureParam, data::r#struct::StructField,
+    Node, PartialNode,
+    call::CallArgument,
+    closure::ClosureParam,
+    data::{dict::DictField, r#struct::StructField},
     graph::read::GraphReadBody,
 };
 
@@ -23,6 +26,7 @@ pub struct Interner<'heap> {
     pub node: InternMap<'heap, Node<'heap>>,
 
     struct_fields: InternSet<'heap, [StructField<'heap>]>,
+    pub dict_fields: InternSet<'heap, [DictField<'heap>]>,
 }
 
 impl<'heap> Interner<'heap> {
@@ -36,6 +40,7 @@ impl<'heap> Interner<'heap> {
             call_arguments: InternSet::new(heap),
             graph_read_body: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
+            dict_fields: InternSet::new(heap),
 
             node: InternMap::new(heap),
         }

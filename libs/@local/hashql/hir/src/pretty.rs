@@ -14,7 +14,10 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::Call,
         closure::Closure,
-        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
+        data::{
+            Data, DataKind, Dict, List, Literal, Struct, Tuple, dict::DictField,
+            r#struct::StructField,
+        },
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -134,6 +137,39 @@ impl<'heap> PrettyPrint<'heap> for List<'heap> {
     }
 }
 
+impl<'heap> PrettyPrint<'heap> for DictField<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        self.key
+            .pretty(env, boundary)
+            .append(RcDoc::text(":"))
+            .append(RcDoc::space())
+            .append(self.value.pretty(env, boundary))
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Dict<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcAllocator
+            .intersperse(
+                self.fields.iter().map(|field| field.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .braces()
+            .group()
+            .into_doc()
+    }
+}
+
 impl<'heap> PrettyPrint<'heap> for Data<'heap> {
     fn pretty(
         &self,
@@ -145,6 +181,7 @@ impl<'heap> PrettyPrint<'heap> for Data<'heap> {
             DataKind::Tuple(tuple) => tuple.pretty(env, boundary),
             DataKind::Struct(r#struct) => r#struct.pretty(env, boundary),
             DataKind::List(list) => list.pretty(env, boundary),
+            DataKind::Dict(dict) => dict.pretty(env, boundary),
         }
     }
 }
