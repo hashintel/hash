@@ -1,0 +1,43 @@
+error[type-check::conflicting-equality-constraints]: Conflicting equality constraints
+   ╭▸ 
+ 3 │   { "#dict": [
+   │ ┏━━━━━━━━━━━━┛
+ 4 │ ┃   [{"#literal": 42}, { "#literal": 42 }],
+   │ ┃                 ── Previously constrained to be exactly `Integer`
+ 5 │ ┃   //~^ ERROR Previously constrained to be exactly `Integer`
+ 6 │ ┃   [{"#literal": "b"}, { "#literal": 43.0 }],
+ 7 │ ┃   //~^ ERROR But here constrained to be exactly `String`
+ 8 │ ┃   [{"#literal": "c"}, { "#literal": "foo" }]
+   │ ┃                 ─── But here constrained to be exactly `String`
+ 9 │ ┃   //~^ ERROR But here constrained to be exactly `String`
+10 │ ┃ ]
+   │ ┗━┛ Type variable has conflicting equality constraints
+   │
+   ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+   │       To fix this issue:
+   │       1. Ensure consistent type usage - either use `Integer` everywhere
+   │       2. Or use `String` everywhere
+   │       3. Add explicit type conversions where needed
+   │       4. Check type annotations for contradictory requirements
+   ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[type-check::conflicting-equality-constraints]: Conflicting equality constraints
+   ╭▸ 
+ 3 │   { "#dict": [
+   │ ┏━━━━━━━━━━━━┛
+ 4 │ ┃   [{"#literal": 42}, { "#literal": 42 }],
+   │ ┃                 ── Previously constrained to be exactly `Integer`
+ 5 │ ┃   //~^ ERROR Previously constrained to be exactly `Integer`
+ 6 │ ┃   [{"#literal": "b"}, { "#literal": 43.0 }],
+   │ ┃                 ─── But here constrained to be exactly `String`
+   ‡ ┃
+10 │ ┃ ]
+   │ ┗━┛ Type variable has conflicting equality constraints
+   │
+   ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+   │       To fix this issue:
+   │       1. Ensure consistent type usage - either use `Integer` everywhere
+   │       2. Or use `String` everywhere
+   │       3. Add explicit type conversions where needed
+   │       4. Check type annotations for contradictory requirements
+   ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
