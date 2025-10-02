@@ -43,6 +43,8 @@ fn parse_labelled_argument_shorthand<'heap>(
     let key = match parse_ident_labelled_argument_from_string(state, token_span, &value) {
         Ok(value) => value,
         Err(error) => {
+            let error = (error.offset(), error.into_inner());
+
             return Err(
                 labeled_argument_invalid_identifier(state.spans(), token_span, error)
                     .map_category(From::from),
@@ -139,6 +141,7 @@ fn parse_labelled_argument<'heap>(
         let key = match parse_ident_labelled_argument_from_string(state, key_span, &key.value) {
             Ok(value) => value,
             Err(error) => {
+                let error = (error.offset(), error.into_inner());
                 return Err(
                     labeled_argument_invalid_identifier(state.spans(), key_span, error)
                         .map_category(From::from),
@@ -178,8 +181,8 @@ fn parse_labelled_argument<'heap>(
     Ok(Some(labeled_arguments))
 }
 
-pub(crate) fn parse_array<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+pub(crate) fn parse_array<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     debug_assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);

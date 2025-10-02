@@ -27,15 +27,13 @@ fn parse_type_infer<'heap, 'span, 'source, E>(
 where
     E: ParserError<Input<'heap, 'span, 'source>>,
 {
-    let context = input.state;
+    let (_, span) = "_".with_span().parse_next(input)?;
 
-    "_".with_span()
-        .map(|(_, span)| Type {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            kind: TypeKind::Infer,
-        })
-        .parse_next(input)
+    Ok(Type {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        kind: TypeKind::Infer,
+    })
 }
 
 fn parse_type_tuple_field<'heap, 'span, 'source, E>(
@@ -45,16 +43,13 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
+    let (r#type, span) = parse_type.with_span().parse_next(input)?;
 
-    parse_type
-        .with_span()
-        .map(|(r#type, span)| TupleField {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            r#type,
-        })
-        .parse_next(input)
+    Ok(TupleField {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        r#type,
+    })
 }
 
 fn parse_type_struct_field<'heap, 'span, 'source, E>(
@@ -64,21 +59,20 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    separated_pair(
+    let ((name, r#type), span) = separated_pair(
         parse_ident,
         ws(cut_err(":").context(StrContext::Expected(StrContextValue::CharLiteral(':')))),
         parse_type,
     )
     .with_span()
-    .map(|((name, r#type), span)| StructField {
+    .parse_next(input)?;
+
+    Ok(StructField {
         id: NodeId::PLACEHOLDER,
-        span: context.span(span),
+        span: input.state.span(span),
         name,
         r#type,
     })
-    .parse_next(input)
 }
 
 fn parse_type_paren_empty_tuple<'heap, 'span, 'source, E>(
@@ -89,28 +83,25 @@ where
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     move |input: &mut Input<'heap, 'span, 'source>| {
-        let context = input.state;
-
-        cut_err(')')
+        let span = cut_err(')')
             .span()
-            .map(|span| {
-                let span = context.span(Range {
-                    start: start_span.start,
-                    end: span.end,
-                });
-
-                Type {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    kind: TypeKind::Tuple(TupleType {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        fields: context.heap.vec(None),
-                    }),
-                }
-            })
             .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
-            .parse_next(input)
+            .parse_next(input)?;
+
+        let span = input.state.span(Range {
+            start: start_span.start,
+            end: span.end,
+        });
+
+        Ok(Type {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind: TypeKind::Tuple(TupleType {
+                id: NodeId::PLACEHOLDER,
+                span,
+                fields: input.state.heap.vec(None),
+            }),
+        })
     }
 }
 
@@ -122,28 +113,25 @@ where
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     move |input: &mut Input<'heap, 'span, 'source>| {
-        let context = input.state;
-
-        cut_err(":)")
+        let span = cut_err(":)")
             .span()
-            .map(|span| {
-                let span = context.span(Range {
-                    start: start_span.start,
-                    end: span.end,
-                });
-
-                Type {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    kind: TypeKind::Struct(StructType {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        fields: context.heap.vec(None),
-                    }),
-                }
-            })
             .context(StrContext::Expected(StrContextValue::StringLiteral(":)")))
-            .parse_next(input)
+            .parse_next(input)?;
+
+        let span = input.state.span(Range {
+            start: start_span.start,
+            end: span.end,
+        });
+
+        Ok(Type {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind: TypeKind::Struct(StructType {
+                id: NodeId::PLACEHOLDER,
+                span,
+                fields: input.state.heap.vec(None),
+            }),
+        })
     }
 }
 
@@ -158,52 +146,47 @@ where
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     move |input: &mut Input<'heap, 'span, 'source>| {
-        let context = input.state;
-
         // to now construct the first field, we just need to parse the type
         let (field_type, field_range) = parse_type.with_span().parse_next(input)?;
 
-        let field_span = context.span(Range {
+        let field_span = input.state.span(Range {
             start: partial_field_span.start,
             end: field_range.end,
         });
 
-        let mut field = Some(StructField {
+        let field = StructField {
             id: NodeId::PLACEHOLDER,
             span: field_span,
             name: ident,
             r#type: field_type,
-        });
+        };
 
         let fields = terminated(
             repeat(0.., preceded(ws(","), parse_type_struct_field)),
             opt(","),
         );
 
-        terminated(
+        let (mut fields, mut span): (Vec<_>, _) = terminated(
             fields,
             ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
         )
         .with_span()
-        .map(move |(mut fields, mut span): (Vec<_>, _)| {
-            let field = field.take().expect("Parser called more than once");
+        .parse_next(input)?;
 
-            span.start = start_span.start;
-            let span = context.span(span);
+        span.start = start_span.start;
+        let span = input.state.span(span);
 
-            fields.insert(0, field);
+        fields.insert(0, field);
 
-            Type {
+        Ok(Type {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind: TypeKind::Struct(StructType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                kind: TypeKind::Struct(StructType {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    fields: context.heap.transfer_vec(fields),
-                }),
-            }
+                fields: input.state.heap.transfer_vec(fields),
+            }),
         })
-        .parse_next(input)
     }
 }
 
@@ -219,9 +202,7 @@ where
     let mut first = Some(first);
 
     move |input: &mut Input<'heap, 'span, 'source>| {
-        let context = input.state;
-
-        terminated(
+        let ((_, rest, last), mut span): ((_, Vec<_>, _), _) = terminated(
             (
                 cut_err(','),
                 repeat(0.., terminated(parse_type_tuple_field, ws(","))),
@@ -230,36 +211,35 @@ where
             ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
         )
         .with_span()
-        .map(|((_, rest, last), mut span): ((_, Vec<_>, _), _)| {
-            let first = first.take().expect("Parser called more than once");
+        .parse_next(input)?;
 
-            let first = TupleField {
-                id: NodeId::PLACEHOLDER,
-                span: first.span,
-                r#type: first,
-            };
+        let first = first.take().expect("Parser called more than once");
 
-            span.start = start_span.start;
-            let span = context.span(span);
+        let first = TupleField {
+            id: NodeId::PLACEHOLDER,
+            span: first.span,
+            r#type: first,
+        };
 
-            let mut fields = Vec::with_capacity(rest.len() + 2);
-            fields.push(first);
-            fields.extend(rest);
-            if let Some(last) = last {
-                fields.push(last);
-            }
+        span.start = start_span.start;
+        let span = input.state.span(span);
 
-            Type {
+        let mut fields = Vec::with_capacity(rest.len() + 2);
+        fields.push(first);
+        fields.extend(rest);
+        if let Some(last) = last {
+            fields.push(last);
+        }
+
+        Ok(Type {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind: TypeKind::Tuple(TupleType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                kind: TypeKind::Tuple(TupleType {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    fields: context.heap.transfer_vec(fields),
-                }),
-            }
+                fields: input.state.heap.transfer_vec(fields),
+            }),
         })
-        .parse_next(input)
     }
 }
 
@@ -274,8 +254,6 @@ where
         Struct(Ident<'heap>, Range<usize>),
         TupleOrParen(Type<'heap>),
     }
-
-    let context = input.state;
 
     let start_span = ws("(").span().parse_next(input)?;
 
@@ -319,19 +297,18 @@ where
             match peek(opt(any)).parse_next(input)? {
                 Some(')') => {
                     let mut r#type = Some(r#type);
-                    cut_err(")")
+                    let mut span = cut_err(")")
                         .span()
-                        .map(|mut span| {
-                            let r#type = r#type.take().expect("Parser called more than once");
-
-                            // Extend the span of the type to include the closing parenthesis
-                            span.start = start_span.start;
-                            context.cover(r#type.span, span);
-
-                            r#type
-                        })
                         .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
-                        .parse_next(input)
+                        .parse_next(input)?;
+
+                    let r#type = r#type.take().expect("Parser called more than once");
+
+                    // Extend the span of the type to include the closing parenthesis
+                    span.start = start_span.start;
+                    input.state.cover(r#type.span, span);
+
+                    Ok(r#type)
                 }
                 Some(',') => parse_type_paren_tuple(r#type, start_span).parse_next(input),
                 _ => fail
@@ -372,31 +349,28 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    separated(1.., parse_type_atom, ws("|"))
+    let (mut parsed, span): (Vec<_>, _) = separated(1.., parse_type_atom, ws("|"))
         .with_span()
-        .map(|(mut parsed, span): (Vec<_>, _)| {
-            if parsed.len() == 1 {
-                return parsed.pop().unwrap_or_else(|| unreachable!());
-            }
+        .parse_next(input)?;
 
-            let span = context.span(span);
+    if parsed.len() == 1 {
+        return Ok(parsed.pop().unwrap_or_else(|| unreachable!()));
+    }
 
-            let mut types = context.heap.vec(Some(parsed.len()));
-            types.extend(parsed);
+    let span = input.state.span(span);
 
-            Type {
-                id: NodeId::PLACEHOLDER,
-                span,
-                kind: TypeKind::Union(UnionType {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    types,
-                }),
-            }
-        })
-        .parse_next(input)
+    let mut types = input.state.heap.vec(Some(parsed.len()));
+    types.extend(parsed);
+
+    Ok(Type {
+        id: NodeId::PLACEHOLDER,
+        span,
+        kind: TypeKind::Union(UnionType {
+            id: NodeId::PLACEHOLDER,
+            span,
+            types,
+        }),
+    })
 }
 
 fn parse_type_intersection<'heap, 'span, 'source, E>(
@@ -406,31 +380,28 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    separated(1.., parse_type_union, ws("&"))
+    let (mut parsed, span): (Vec<_>, _) = separated(1.., parse_type_union, ws("&"))
         .with_span()
-        .map(|(mut parsed, span): (Vec<_>, _)| {
-            if parsed.len() == 1 {
-                return parsed.pop().unwrap_or_else(|| unreachable!());
-            }
+        .parse_next(input)?;
 
-            let span = context.span(span);
+    if parsed.len() == 1 {
+        return Ok(parsed.pop().unwrap_or_else(|| unreachable!()));
+    }
 
-            let mut types = context.heap.vec(Some(parsed.len()));
-            types.extend(parsed);
+    let span = input.state.span(span);
 
-            Type {
-                id: NodeId::PLACEHOLDER,
-                span,
-                kind: TypeKind::Intersection(IntersectionType {
-                    id: NodeId::PLACEHOLDER,
-                    span,
-                    types,
-                }),
-            }
-        })
-        .parse_next(input)
+    let mut types = input.state.heap.vec(Some(parsed.len()));
+    types.extend(parsed);
+
+    Ok(Type {
+        id: NodeId::PLACEHOLDER,
+        span,
+        kind: TypeKind::Intersection(IntersectionType {
+            id: NodeId::PLACEHOLDER,
+            span,
+            types,
+        }),
+    })
 }
 
 /// ```abnf

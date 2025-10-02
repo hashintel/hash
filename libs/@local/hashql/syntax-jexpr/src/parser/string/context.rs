@@ -20,9 +20,9 @@ fn range_to_text(range: Range<usize>) -> TextRange {
 }
 
 #[derive(Debug)]
-pub(crate) struct Context<'heap, 'span> {
+pub(crate) struct Context<'heap, 'spans> {
     pub heap: &'heap Heap,
-    pub spans: &'span mut SpanTable<Span>,
+    pub spans: &'spans mut SpanTable<Span>,
     pub parent: SpanId,
 }
 

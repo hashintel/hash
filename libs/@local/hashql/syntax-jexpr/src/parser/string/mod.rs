@@ -9,8 +9,6 @@ mod path;
 pub(crate) mod test;
 mod r#type;
 
-use core::fmt::Debug;
-
 use hashql_ast::node::{expr::Expr, r#type::Type};
 use hashql_core::{span::SpanId, symbol::Ident};
 use winnow::{
@@ -34,12 +32,12 @@ use crate::{
 
 type InputStream<'heap, 'span, I> = Stateful<LocatingSlice<I>, Context<'heap, 'span>>;
 
-fn parse_from_string<'heap, 'span, I, O>(
-    mut parser: impl ModalParser<InputStream<'heap, 'span, I>, O, ContextError>,
-    state: &'span ParserState<'heap, '_>,
+fn parse_from_string<'heap, 'spans, I, O>(
+    mut parser: impl ModalParser<InputStream<'heap, 'spans, I>, O, ContextError>,
+    state: &'spans mut ParserState<'heap, '_, '_>,
     parent: SpanId,
     input: I,
-) -> Result<O, ParseError<InputStream<'heap, 'span, I>, ContextError>>
+) -> Result<O, ParseError<InputStream<'heap, 'spans, I>, ContextError>>
 where
     I: Stream + StreamIsPartial + Offset + Clone,
 {
@@ -56,7 +54,7 @@ where
 }
 
 pub(crate) fn parse_expr_from_string<'heap>(
-    state: &ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
     parent: SpanId,
     value: &str,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
@@ -64,7 +62,13 @@ pub(crate) fn parse_expr_from_string<'heap>(
 
     match expr {
         Ok(expr) => Ok(expr),
-        Err(error) => Err(invalid_expr(state.spans(), parent, error)),
+        Err(error) => {
+            // We need to destructure here instead of in the error so that we can mutably borrow the
+            // span table
+            let error = (error.offset(), error.into_inner());
+
+            Err(invalid_expr(state.spans(), parent, error))
+        }
     }
 }
 
@@ -73,8 +77,8 @@ pub(crate) fn parse_expr_from_string<'heap>(
     reason = "If this happened, the contract with the function has been violated, therefore is \
               fatal"
 )]
-pub(crate) fn parse_string<'heap, 'source>(
-    state: &ParserState<'heap, 'source>,
+pub(crate) fn parse_string<'heap, 'source, 'spans>(
+    state: &mut ParserState<'heap, 'source, 'spans>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
     let TokenKind::String(value) = token.kind else {
@@ -84,14 +88,13 @@ pub(crate) fn parse_string<'heap, 'source>(
     let id = state.insert_span(Span {
         range: token.span,
         pointer: Some(state.current_pointer()),
-        parent_id: None,
     });
 
     parse_expr_from_string(state, id, &value)
 }
 
 pub(crate) fn parse_type_from_string<'heap>(
-    state: &ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
     parent: SpanId,
     value: &str,
 ) -> Result<Type<'heap>, StringDiagnostic> {
@@ -99,7 +102,11 @@ pub(crate) fn parse_type_from_string<'heap>(
 
     match expr {
         Ok(expr) => Ok(expr),
-        Err(error) => Err(invalid_expr(state.spans(), parent, error)),
+        Err(error) => {
+            let error = (error.offset(), error.into_inner());
+
+            Err(invalid_expr(state.spans(), parent, error))
+        }
     }
 }
 
@@ -108,8 +115,8 @@ pub(crate) fn parse_type_from_string<'heap>(
     reason = "If this happened, the contract with the function has been violated, therefore is \
               fatal"
 )]
-pub(crate) fn parse_type_from_token<'heap, 'source>(
-    state: &ParserState<'heap, 'source>,
+pub(crate) fn parse_type_from_token<'heap, 'source, 'spans>(
+    state: &mut ParserState<'heap, 'source, 'spans>,
     token: Token<'source>,
 ) -> Result<Type<'heap>, StringDiagnostic> {
     let TokenKind::String(value) = token.kind else {
@@ -119,24 +126,23 @@ pub(crate) fn parse_type_from_token<'heap, 'source>(
     let id = state.insert_span(Span {
         range: token.span,
         pointer: Some(state.current_pointer()),
-        parent_id: None,
     });
 
     parse_type_from_string(state, id, &value)
 }
 
-pub(crate) fn parse_ident_from_string<'heap>(
-    state: &ParserState<'heap, '_>,
+pub(crate) fn parse_ident_from_string<'heap, 'spans, 'input>(
+    state: &'spans mut ParserState<'heap, '_, '_>,
     parent: SpanId,
-    value: &str,
-) -> Result<Ident<'heap>, ParseError<impl Debug, ContextError>> {
+    value: &'input str,
+) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str>, ContextError>> {
     parse_from_string(parse_ident, state, parent, value)
 }
 
-pub(crate) fn parse_ident_labelled_argument_from_string<'heap>(
-    state: &ParserState<'heap, '_>,
+pub(crate) fn parse_ident_labelled_argument_from_string<'heap, 'spans, 'input>(
+    state: &'spans mut ParserState<'heap, '_, '_>,
     parent: SpanId,
-    value: &str,
-) -> Result<Ident<'heap>, ParseError<impl Debug, ContextError>> {
+    value: &'input str,
+) -> Result<Ident<'heap>, ParseError<InputStream<'heap, 'spans, &'input str>, ContextError>> {
     parse_from_string(parse_ident_labelled_argument, state, parent, value)
 }

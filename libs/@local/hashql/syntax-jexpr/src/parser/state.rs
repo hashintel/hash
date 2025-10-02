@@ -329,8 +329,8 @@ impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
         self.lexer.span()
     }
 
-    pub(crate) fn spans(&self) -> &SpanTable<Span> {
-        &self.context.spans
+    pub(crate) fn spans(&mut self) -> &mut SpanTable<Span> {
+        self.context.spans
     }
 
     pub(crate) const fn heap(&self) -> &'heap Heap {
