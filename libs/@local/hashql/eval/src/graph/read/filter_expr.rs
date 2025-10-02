@@ -11,7 +11,7 @@ use hashql_hir::node::{
     Node,
     access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
     call::Call,
-    data::{Data, DataKind},
+    data::{Data, DataKind, dict::DictField},
     graph::GraphKind,
     input::Input,
     kind::NodeKind,
@@ -96,6 +96,31 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
+    fn compile_data_node<P>(
+        &mut self,
+        context: FilterCompilerContext<'heap>,
+        span: SpanId,
+        name: &'static str,
+        node: &'heap Node<'heap>,
+    ) -> Option<Value<'heap>>
+    where
+        P: PartialQueryPath<'heap> + Debug,
+    {
+        let Ok(expr) = self.compile_filter_expr::<P>(context.with_current_span(span), node) else {
+            return None;
+        };
+
+        match expr {
+            IntermediateExpression::Path { path: _, span } => {
+                self.diagnostics
+                    .push(path_in_data_construct_unsupported(span, name));
+
+                None
+            }
+            IntermediateExpression::Value { value, span: _ } => Some(value.into_owned()),
+        }
+    }
+
     fn compile_data_children<P, T, U>(
         &mut self,
         context: FilterCompilerContext<'heap>,
@@ -108,39 +133,25 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     where
         P: PartialQueryPath<'heap> + Debug,
     {
-        let mut incomplete = false;
         let mut values = Vec::with_capacity(items.len());
 
-        for item in items {
+        for (index, item) in items.iter().enumerate() {
             let node = into_node(item);
 
-            let Ok(expr) = self.compile_filter_expr::<P>(context.with_current_span(span), node)
-            else {
-                incomplete = true;
+            let Some(value) = self.compile_data_node::<P>(context, span, name, node) else {
                 continue;
             };
 
-            let value = match expr {
-                IntermediateExpression::Path { path: _, span } => {
-                    self.diagnostics
-                        .push(path_in_data_construct_unsupported(span, name));
-
-                    incomplete = true;
-                    continue;
-                }
-                IntermediateExpression::Value { value, span: _ } => value.into_owned(),
-            };
-
-            if incomplete {
-                // There's no point to additionally allocating for memory if we're already
-                // guaranteed to fail
+            if values.len() != index {
+                // Previous iteration failed, so pushing (and thereby potentially re-allocating) is
+                // pointless.
                 continue;
             }
 
             values.push(into_value(item, value));
         }
 
-        if incomplete {
+        if values.len() != items.len() {
             return Err(CompilationError);
         }
 
@@ -202,6 +213,35 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::List(value::List::from_values(values))),
+                    span: *span,
+                })
+            }
+            DataKind::Dict(dict) => {
+                let mut entries = Vec::with_capacity(dict.fields.len());
+
+                for (index, DictField { key, value }) in dict.fields.iter().enumerate() {
+                    let key = self.compile_data_node::<P>(context, dict.span, "dict", key);
+                    let value = self.compile_data_node::<P>(context, dict.span, "dict", value);
+
+                    let Some((key, value)) = Option::zip(key, value) else {
+                        continue;
+                    };
+
+                    if entries.len() != index {
+                        // Previous iteration failed, so pushing (and thereby potentially
+                        // re-allocating) is pointless.
+                        continue;
+                    }
+
+                    entries.push((key, value));
+                }
+
+                if entries.len() != dict.fields.len() {
+                    return Err(CompilationError);
+                }
+
+                Ok(IntermediateExpression::Value {
+                    value: Cow::Owned(Value::Dict(value::Dict::from_entries(entries))),
                     span: *span,
                 })
             }
