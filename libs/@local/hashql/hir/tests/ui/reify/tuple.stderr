@@ -1,7 +1,0 @@
-error[reify::unsupported-construct]: Unsupported language construct
-  ╭▸ 
-3 │ { "#tuple": [{ "#literal": 2 }] }
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ `tuple literal` not supported yet
-  │
-  ├ help: The tuple literal syntax is valid HashQL code, but support for this feature is still in development. For now, you'll need to use alternative approaches to achieve the same result. Check issue https://linear.app/hash/issue/H-4604/enable-tuple-literal-construct for implementation status and updates.
-  ╰ note: This is a temporary limitation. We're actively working on supporting tuple literal constructs and other advanced features to make HashQL more expressive and powerful.

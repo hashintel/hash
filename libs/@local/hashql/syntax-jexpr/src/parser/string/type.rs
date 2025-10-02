@@ -474,6 +474,7 @@ mod tests {
         empty_tuple("()") => "Empty tuple",
         single_element_tuple("(Int,)") => "Single-element tuple with trailing comma",
         multi_element_tuple("(Int, String, Boolean)") => "Multi-element tuple",
+        infer_tuple("(_, _, _)") => "Inferred tuple type",
 
         // Struct types
         empty_struct("(:)") => "Empty struct",

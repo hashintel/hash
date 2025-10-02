@@ -5,7 +5,7 @@ use hash_graph_store::filter::{FilterExpression, QueryRecord};
 use hashql_core::{
     literal::LiteralKind,
     span::SpanId,
-    value::{Opaque, Value},
+    value::{self, Opaque, Value},
 };
 use hashql_hir::node::{
     Node,
@@ -30,8 +30,9 @@ use super::{
     error::{
         BranchContext, GraphReadCompilerIssues, branch_unsupported, call_unsupported,
         closure_unsupported, field_access_internal_error, nested_graph_read_unsupported,
-        path_conversion_error, path_indexing_unsupported, path_traversal_internal_error,
-        qualified_variable_unsupported, value_parameter_conversion_error,
+        path_conversion_error, path_in_data_construct_unsupported, path_indexing_unsupported,
+        path_traversal_internal_error, qualified_variable_unsupported,
+        value_parameter_conversion_error,
     },
     path::{CompleteQueryPath, PartialQueryPath, traverse_into_field, traverse_into_index},
 };
@@ -95,17 +96,54 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
-    const fn compile_filter_expr_data<P>(
+    fn compile_filter_expr_data<P>(
+        &mut self,
+        context: FilterCompilerContext<'heap>,
         Data { span, kind }: &'heap Data<'heap>,
-    ) -> IntermediateExpression<'env, 'heap, P>
+    ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
-        P: PartialQueryPath<'heap>,
+        P: PartialQueryPath<'heap> + Debug,
     {
         match kind {
-            DataKind::Literal(literal) => IntermediateExpression::Value {
+            DataKind::Literal(literal) => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Primitive(literal.kind)),
                 span: *span,
-            },
+            }),
+            DataKind::Tuple(tuple) => {
+                let mut incomplete = false;
+                let mut values = Vec::with_capacity(tuple.fields.len());
+
+                for field in tuple.fields {
+                    let Ok(expr) =
+                        self.compile_filter_expr::<P>(context.with_current_span(tuple.span), field)
+                    else {
+                        incomplete = true;
+                        continue;
+                    };
+
+                    let value = match expr {
+                        IntermediateExpression::Path { path: _, span } => {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(span, "tuple"));
+
+                            incomplete = true;
+                            continue;
+                        }
+                        IntermediateExpression::Value { value, span: _ } => value.into_owned(),
+                    };
+
+                    values.push(value);
+                }
+
+                if incomplete {
+                    return Err(CompilationError);
+                }
+
+                Ok(IntermediateExpression::Value {
+                    value: Cow::Owned(Value::Tuple(value::Tuple::from_values(values))),
+                    span: *span,
+                })
+            }
         }
     }
 
@@ -509,7 +547,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         P: PartialQueryPath<'heap> + Debug,
     {
         match node.kind {
-            NodeKind::Data(data) => Ok(Self::compile_filter_expr_data(data)),
+            NodeKind::Data(data) => self.compile_filter_expr_data(context, data),
             NodeKind::Variable(variable) => self.compile_filter_expr_variable(context, variable),
             NodeKind::Let(r#let) => self.compile_filter_expr_let(context, r#let),
             NodeKind::Input(input) => Ok(self.compile_filter_expr_input(input)),

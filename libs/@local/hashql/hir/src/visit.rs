@@ -65,7 +65,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal},
+        data::{Data, DataKind, Literal, Tuple},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -167,6 +167,10 @@ pub trait Visitor<'heap> {
         walk_variable(self, variable);
     }
 
+    fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
+        walk_tuple(self, tuple);
+    }
+
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         walk_local_variable(self, variable);
     }
@@ -227,12 +231,12 @@ pub trait Visitor<'heap> {
         walk_call_argument(self, argument);
     }
 
-    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
-        walk_if(self, r#if);
-    }
-
     fn visit_branch(&mut self, branch: &'heap Branch<'heap>) {
         walk_branch(self, branch);
+    }
+
+    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
+        walk_if(self, r#if);
     }
 
     fn visit_closure(&mut self, closure: &'heap Closure<'heap>) {
@@ -306,6 +310,7 @@ pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(
 
     match kind {
         DataKind::Literal(literal) => visitor.visit_literal(literal),
+        DataKind::Tuple(tuple) => visitor.visit_tuple(tuple),
     }
 }
 
@@ -314,6 +319,17 @@ pub fn walk_literal<'heap, T: Visitor<'heap> + ?Sized>(
     Literal { span, kind: _ }: &'heap Literal<'heap>,
 ) {
     visitor.visit_span(*span);
+}
+
+pub fn walk_tuple<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Tuple { span, fields }: &'heap Tuple<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    for field in fields {
+        visitor.visit_node(field);
+    }
 }
 
 pub fn walk_variable<'heap, T: Visitor<'heap> + ?Sized>(
@@ -528,6 +544,17 @@ pub fn walk_call_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_node(value);
 }
 
+pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Branch { span, kind }: &'heap Branch<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    match kind {
+        BranchKind::If(r#if) => visitor.visit_if(r#if),
+    }
+}
+
 pub fn walk_if<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     If {
@@ -542,17 +569,6 @@ pub fn walk_if<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_node(then);
 
     visitor.visit_node(r#else);
-}
-
-pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    Branch { span, kind }: &'heap Branch<'heap>,
-) {
-    visitor.visit_span(*span);
-
-    match kind {
-        BranchKind::If(r#if) => visitor.visit_if(r#if),
-    }
 }
 
 pub fn walk_closure<'heap, T: Visitor<'heap> + ?Sized>(
