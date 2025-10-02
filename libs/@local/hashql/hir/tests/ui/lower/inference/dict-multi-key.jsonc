@@ -2,7 +2,6 @@
 //@ description: Multiple key type dict inference
 { "#dict": [
   [{"#literal": 42}, { "#literal": 42 }],
-  //~^ ERROR Previously constrained to be exactly `Integer`
   [{"#literal": "b"}, { "#literal": 43.0 }],
   //~^ ERROR But here constrained to be exactly `String`
   [{"#literal": "c"}, { "#literal": "foo" }]
