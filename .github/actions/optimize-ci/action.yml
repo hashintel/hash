@@ -1,0 +1,11 @@
+name: Optimize CI
+description: Optimizes CI workflows using Graphite
+
+runs:
+  using: composite
+  steps:
+    - name: Optimize CI
+      id: check_skip
+      uses: withgraphite/graphite-ci-action@main
+      with:
+        graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
