@@ -11,14 +11,17 @@ use hashql_core::{
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
-    combinator::{
-        alt, cut_err, delimited, dispatch, eof, fail, peek, preceded, repeat, terminated,
-    },
+    combinator::{alt, cut_err, dispatch, eof, fail, peek, preceded, repeat, terminated},
     error::{AddContext, FromExternalError, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
-use super::{combinator::ws, context::Input, ident::parse_ident, path::parse_path};
+use super::{
+    combinator::{Alt2, ws},
+    context::Input,
+    ident::parse_ident,
+    path::parse_path,
+};
 
 #[derive(Debug)]
 enum Access<'heap> {
@@ -58,9 +61,6 @@ where
 
         _ => parse_ident.map(Access::Field).parse_next(input),
     }
-
-    // TODO:
-    // .context(StrContext::Label("field"))
 }
 
 fn parse_index_access<'heap, 'span, 'source, E>(
@@ -92,8 +92,6 @@ where
 
     let _ = ws(cut_err("]")).parse_next(input)?;
 
-    // TODO:
-    // .context(StrContext::Label("index"))
     Ok(access)
 }
 
@@ -105,17 +103,15 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    (
+    let ((path, path_span), access): (_, Vec<_>) = (
         parse_path.with_span(),
         repeat(
             0..,
             preceded(
                 multispace0,
                 dispatch! {peek(any);
-                    '[' => parse_index_access,
-                    '.' => parse_field_access,
+                    '[' => parse_index_access.context(StrContext::Label("index")),
+                    '.' => parse_field_access.context(StrContext::Label("field")),
                     _ => fail
                         .context(StrContext::Expected(StrContextValue::CharLiteral('[')))
                         .context(StrContext::Expected(StrContextValue::CharLiteral('.')))
@@ -124,58 +120,57 @@ where
             ),
         ),
     )
-        .map(|((path, path_span), access): (_, Vec<_>)| {
-            let mut range = path_span;
+        .parse_next(input)?;
 
-            let mut expr = Expr {
+    let mut range = path_span;
+
+    let mut expr = Expr {
+        id: NodeId::PLACEHOLDER,
+        span: path.span,
+        kind: ExprKind::Path(path),
+    };
+
+    for (access, span) in access {
+        range.end = span.end;
+
+        let span = input.state.span(range.clone());
+
+        // We de-sugar into expressions directly instead of special forms, not to save
+        // on memory, but just because it is a lot easier and terse to create these
+        // nodes instead of fully-fledged call nodes.
+        let kind = match access {
+            Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
                 id: NodeId::PLACEHOLDER,
-                span: path.span,
-                kind: ExprKind::Path(path),
-            };
-
-            for (access, span) in access {
-                range.end = span.end;
-
-                let span = context.span(range.clone());
-
-                // We de-sugar into expressions directly instead of special forms, not to save
-                // on memory, but just because it is a lot easier and terse to create these
-                // nodes instead of fully-fledged call nodes.
-                let kind = match access {
-                    Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        value: context.heap.boxed(expr),
-                        index: context.heap.boxed(Expr {
-                            id: NodeId::PLACEHOLDER,
-                            span: literal.span,
-                            kind: ExprKind::Literal(literal),
-                        }),
-                    }),
-                    Access::IndexByExpr(index) => ExprKind::Index(IndexExpr {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        value: context.heap.boxed(expr),
-                        index: context.heap.boxed(index),
-                    }),
-                    Access::Field(ident) => ExprKind::Field(FieldExpr {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        value: context.heap.boxed(expr),
-                        field: ident,
-                    }),
-                };
-
-                expr = Expr {
+                span,
+                value: input.state.heap.boxed(expr),
+                index: input.state.heap.boxed(Expr {
                     id: NodeId::PLACEHOLDER,
-                    span,
-                    kind,
-                };
-            }
+                    span: literal.span,
+                    kind: ExprKind::Literal(literal),
+                }),
+            }),
+            Access::IndexByExpr(index) => ExprKind::Index(IndexExpr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                value: input.state.heap.boxed(expr),
+                index: input.state.heap.boxed(index),
+            }),
+            Access::Field(ident) => ExprKind::Field(FieldExpr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                value: input.state.heap.boxed(expr),
+                field: ident,
+            }),
+        };
 
-            expr
-        })
-        .parse_next(input)
+        expr = Expr {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind,
+        };
+    }
+
+    Ok(expr)
 }
 
 // super limited set of expressions that are supported in strings for convenience
@@ -187,18 +182,21 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    alt((
-        terminated('_', eof).span().map(|span| Expr {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            kind: ExprKind::Underscore,
-        }),
-        parse_expr_path,
+    let alt = alt((
+        terminated('_', ws(eof)).span().map(Alt2::Left),
+        parse_expr_path.map(Alt2::Right),
     ))
     .context(StrContext::Label("expression"))
-    .parse_next(input)
+    .parse_next(input)?;
+
+    match alt {
+        Alt2::Left(span) => Ok(Expr {
+            id: NodeId::PLACEHOLDER,
+            span: input.state.span(span),
+            kind: ExprKind::Underscore,
+        }),
+        Alt2::Right(right) => Ok(right),
+    }
 }
 
 #[cfg(test)]

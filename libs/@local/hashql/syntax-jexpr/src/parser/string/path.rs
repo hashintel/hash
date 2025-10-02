@@ -22,12 +22,10 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
     let arguments = opt(delimited(
         ws("<"),
         separated_alloc1(
-            context.heap,
+            input.state.heap,
             alt((
                 parse_generic_constraint.map(PathSegmentArgument::Constraint),
                 parse_generic_argument.map(PathSegmentArgument::Argument),
@@ -37,15 +35,14 @@ where
         ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     ));
 
-    (parse_ident, arguments)
-        .with_span()
-        .map(|((ident, arguments), span)| PathSegment {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            name: ident,
-            arguments: arguments.unwrap_or_else(|| context.heap.vec(None)),
-        })
-        .parse_next(input)
+    let ((ident, arguments), span) = (parse_ident, arguments).with_span().parse_next(input)?;
+
+    Ok(PathSegment {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        name: ident,
+        arguments: arguments.unwrap_or_else(|| input.state.heap.vec(None)),
+    })
 }
 
 pub(crate) fn parse_path<'heap, 'span, 'source, E>(
@@ -55,21 +52,20 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
     let root = opt(ws("::")).map(|value| value.is_some());
-    let segments = separated_alloc1(context.heap, parse_path_segment, ws("::"));
+    let segments = separated_alloc1(input.state.heap, parse_path_segment, ws("::"));
 
-    (root, segments)
+    let ((rooted, segments), span) = (root, segments)
         .with_span()
-        .map(|((rooted, segments), span)| Path {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            rooted,
-            segments,
-        })
         .context(StrContext::Label("path"))
-        .parse_next(input)
+        .parse_next(input)?;
+
+    Ok(Path {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        rooted,
+        segments,
+    })
 }
 
 #[cfg(test)]

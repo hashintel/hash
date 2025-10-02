@@ -98,6 +98,8 @@ fn parse_struct<'heap>(
         let ident = match parse_ident_from_string(state, key_span, &key.value) {
             Ok(ident) => ident,
             Err(error) => {
+                let error = (error.offset(), error.into_inner());
+
                 return Err(
                     struct_key_expected_identifier(state.spans(), key_span, error)
                         .map_category(From::from),
