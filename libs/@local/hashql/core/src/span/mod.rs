@@ -1,15 +1,15 @@
 pub mod entry;
-mod storage;
+mod table;
 
 use core::{
     fmt::{self, Display},
     ops::Deref,
 };
 
-use hashql_diagnostics::source::{DiagnosticSpan, SourceId};
+use hashql_diagnostics::source::{DiagnosticSpan, SourceId, SourceSpan};
 pub use text_size::{TextRange, TextSize};
 
-pub use self::storage::SpanTable;
+pub use self::table::SpanTable;
 
 /// Represents a unique identifier for a span in some source.
 ///
@@ -82,8 +82,14 @@ impl SpanId {
         Self(id)
     }
 
-    pub(crate) const fn value(self) -> u32 {
-        self.0
+    pub(crate) const fn source_id(&self) -> SourceId {
+        // The top 4 bits are the source ID, and the bottom 28 bits are the span ID.
+        SourceId::new_unchecked(self.0 >> 28)
+    }
+
+    pub(crate) const fn id(&self) -> u32 {
+        // The bottom 28 bits are the span ID.
+        self.0 & 0x0FFF_FFFF
     }
 }
 
@@ -93,6 +99,37 @@ impl Display for SpanId {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SpanCombinator {
+    Union,
+    Intersection,
+}
+
+pub struct SpanAncestors<'spans> {
+    spans: &'spans [SpanId],
+    combinator: SpanCombinator,
+}
+
+impl<'spans> SpanAncestors<'spans> {
+    pub fn union(spans: &'spans [SpanId]) -> Self {
+        Self {
+            spans,
+            combinator: SpanCombinator::Union,
+        }
+    }
+
+    pub fn intersection(ancestors: &'spans [SpanId]) -> Self {
+        Self {
+            spans: ancestors,
+            combinator: SpanCombinator::Intersection,
+        }
+    }
+}
+
+pub struct SpanAncestorsMut<'spans> {
+    pub ancestors: &'spans mut [SpanId],
+    pub combinator: &'spans mut SpanCombinator,
+}
 /// Represents a full span in a file.
 ///
 /// A span is a range of text within a file, along with a reference to the file itself, every span
@@ -104,32 +141,14 @@ impl Display for SpanId {
 pub trait Span {
     /// The relative range of the span within its parent span.
     fn range(&self) -> TextRange;
-
-    /// Optional parent span, if any.
-    fn parent_id(&self) -> Option<SpanId>;
 }
 
 impl<S> DiagnosticSpan<&SpanTable<S>> for SpanId
 where
     S: Span,
 {
-    fn source(&self) -> SourceId {
-        SourceId::new_unchecked(0)
-    }
-
-    fn span(&self, resolver: &mut &SpanTable<S>) -> Option<TextRange> {
-        if *self == Self::SYNTHETIC {
-            return Some(TextRange::empty(TextSize::new(0)));
-        }
-
-        let entry = resolver.get(*self)?;
-
-        Some(entry.map(Span::range))
-    }
-
-    #[expect(refining_impl_trait_reachable, reason = "false positive")]
-    fn ancestors(&self, resolver: &mut &SpanTable<S>) -> impl IntoIterator<Item = Self> + use<S> {
-        resolver.ancestors(*self)
+    fn absolute(&self, resolver: &mut &SpanTable<S>) -> Option<SourceSpan> {
+        todo!()
     }
 }
 
