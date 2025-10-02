@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 /// # Example
 ///
 /// ```
-/// # use hashql_core::math::cartesian_product;
+/// # use hashql_core::algorithms::cartesian_product;
 /// #
 /// let a = vec!['1', '2'];
 /// let b = vec!['A', 'B', 'C'];
@@ -59,7 +59,7 @@ where
 mod tests {
     #![expect(clippy::min_ident_chars)]
 
-    use crate::math::cartesian_product;
+    use crate::algorithms::cartesian_product;
 
     #[test]
     fn empty_fields_list() {

@@ -1,16 +1,16 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#is(42, type: Number)
+#as(42, type: Number)
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#is(42, type: Number)
+#as(42, type: Number)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ 42
 └→ Integer
 
-┌─ #is(42, type: Number)
+┌─ #as(42, type: Number)
 └→ Number
 
