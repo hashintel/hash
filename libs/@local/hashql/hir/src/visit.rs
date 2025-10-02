@@ -65,7 +65,10 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
+        data::{
+            Data, DataKind, Dict, List, Literal, Struct, Tuple, dict::DictField,
+            r#struct::StructField,
+        },
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -177,6 +180,14 @@ pub trait Visitor<'heap> {
 
     fn visit_list(&mut self, list: &'heap List<'heap>) {
         walk_list(self, list);
+    }
+
+    fn visit_dict(&mut self, dict: &'heap Dict<'heap>) {
+        walk_dict(self, dict);
+    }
+
+    fn visit_dict_field(&mut self, field: &'heap DictField<'heap>) {
+        walk_dict_field(self, field);
     }
 
     fn visit_variable(&mut self, variable: &'heap Variable<'heap>) {
@@ -325,6 +336,7 @@ pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(
         DataKind::Tuple(tuple) => visitor.visit_tuple(tuple),
         DataKind::Struct(r#struct) => visitor.visit_struct(r#struct),
         DataKind::List(list) => visitor.visit_list(list),
+        DataKind::Dict(dict) => visitor.visit_dict(dict),
     }
 }
 
@@ -374,6 +386,25 @@ pub fn walk_list<'heap, T: Visitor<'heap> + ?Sized>(
     for element in elements {
         visitor.visit_node(element);
     }
+}
+
+pub fn walk_dict<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Dict { span, fields }: &'heap Dict<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    for field in fields {
+        visitor.visit_dict_field(field);
+    }
+}
+
+pub fn walk_dict_field<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    DictField { key, value }: &'heap DictField<'heap>,
+) {
+    visitor.visit_node(key);
+    visitor.visit_node(value);
 }
 
 pub fn walk_variable<'heap, T: Visitor<'heap> + ?Sized>(

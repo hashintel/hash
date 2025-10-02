@@ -17,7 +17,7 @@ pub enum DataKind<'heap> {
     /// A struct value with named fields
     Struct(Struct<'heap>),
     /// A dictionary with dynamically computed keys
-    Dict(Dict<'heap>, !),
+    Dict(Dict<'heap>),
     /// A tuple with positionally-accessed elements
     Tuple(Tuple<'heap>),
     /// A homogeneous list of elements

@@ -6,8 +6,9 @@ use hashql_ast::{
     lowering::ExtractedTypes,
     node::{
         expr::{
-            AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-            LetExpr, ListExpr, LiteralExpr, StructExpr, TupleExpr, call::Argument, closure,
+            AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
+            InputExpr, LetExpr, ListExpr, LiteralExpr, StructExpr, TupleExpr, call::Argument,
+            closure, dict::DictEntry,
         },
         path::{Path, PathSegmentArgument},
         r#type::Type,
@@ -25,7 +26,7 @@ use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _};
 
 use self::error::{
     ReificationDiagnosticIssues, ReificationStatus, dummy_expression, internal_error,
-    underscore_expression, unprocessed_expression, unsupported_construct,
+    underscore_expression, unprocessed_expression,
 };
 use crate::{
     intern::Interner,
@@ -35,7 +36,10 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
+        data::{
+            Data, DataKind, Dict, List, Literal, Struct, Tuple, dict::DictField,
+            r#struct::StructField,
+        },
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -150,19 +154,24 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: TupleExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut fields = SmallVec::with_capacity(elements.len());
+        let len = elements.len();
+        let mut fields = SmallVec::with_capacity(len);
 
-        for element in elements {
+        for (index, element) in elements.into_iter().enumerate() {
             let Some(field) = self.expr(*element.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if fields.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
 
             fields.push(field);
         }
 
-        if incomplete {
+        if fields.len() != len {
             return None;
         }
 
@@ -186,19 +195,24 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: ListExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut elements = SmallVec::with_capacity(list_elements.len());
+        let len = list_elements.len();
+        let mut elements = SmallVec::with_capacity(len);
 
-        for element in list_elements {
+        for (index, element) in list_elements.into_iter().enumerate() {
             let Some(element) = self.expr(*element.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if elements.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
 
             elements.push(element);
         }
 
-        if incomplete {
+        if elements.len() != len {
             return None;
         }
 
@@ -222,14 +236,19 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: StructExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut fields = SmallVec::with_capacity(entries.len());
+        let len = entries.len();
+        let mut fields = SmallVec::with_capacity(len);
 
-        for entry in entries {
+        for (index, entry) in entries.into_iter().enumerate() {
             let Some(value) = self.expr(*entry.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if fields.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
 
             fields.push(StructField {
                 name: entry.key,
@@ -237,7 +256,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             });
         }
 
-        if incomplete {
+        if fields.len() != len {
             return None;
         }
 
@@ -246,6 +265,59 @@ impl<'heap> ReificationContext<'_, 'heap> {
             kind: DataKind::Struct(Struct {
                 span,
                 fields: self.interner.intern_struct_fields(&mut fields),
+            }),
+        });
+
+        Some(self.wrap_type_assertion(span, kind, r#type))
+    }
+
+    fn dict_expr(
+        &mut self,
+        DictExpr {
+            id: _,
+            span,
+            entries,
+            r#type,
+        }: DictExpr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        let len = entries.len();
+        let mut fields = SmallVec::with_capacity(len);
+
+        for (
+            index,
+            DictEntry {
+                id: _,
+                span: _,
+                key,
+                value,
+            },
+        ) in entries.into_iter().enumerate()
+        {
+            let key = self.expr(*key);
+            let value = self.expr(*value);
+
+            let Some((key, value)) = Option::zip(key, value) else {
+                continue;
+            };
+
+            if fields.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
+
+            fields.push(DictField { key, value });
+        }
+
+        if fields.len() != len {
+            return None;
+        }
+
+        let kind = NodeKind::Data(Data {
+            span,
+            kind: DataKind::Dict(Dict {
+                span,
+                fields: self.interner.intern_dict_fields(&fields),
             }),
         });
 
@@ -633,15 +705,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
         let kind = match expr.kind {
             ExprKind::Call(call) => self.call_expr(call)?,
             ExprKind::Struct(r#struct) => self.struct_expr(r#struct)?,
-            ExprKind::Dict(_) => {
-                self.diagnostics.push(unsupported_construct(
-                    expr.span,
-                    "dict literal",
-                    "https://linear.app/hash/issue/H-4603/enable-dict-literal-construct",
-                ));
-
-                return None;
-            }
+            ExprKind::Dict(dict) => self.dict_expr(dict)?,
             ExprKind::Tuple(tuple) => self.tuple_expr(tuple)?,
             ExprKind::List(list) => self.list_expr(list)?,
             ExprKind::Literal(literal) => self.literal_expr(literal),

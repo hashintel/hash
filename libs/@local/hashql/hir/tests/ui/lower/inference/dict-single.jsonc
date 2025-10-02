@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Single value type dict inference
+{
+  "#dict": {
+    "a": { "#literal": 42 },
+    "b": { "#literal": 43 },
+    "c": { "#literal": 44 }
+  }
+}
