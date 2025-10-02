@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     diagnostic::Message,
     severity::Severity,
 };
-use hashql_hir::node::{operation::binary::BinOp, variable::QualifiedVariable};
+use hashql_hir::node::{branch::BranchKind, operation::binary::BinOp, variable::QualifiedVariable};
 
 use super::{FilterCompilerContext, convert::ConversionError};
 
@@ -82,6 +82,11 @@ const NESTED_GRAPH_READ_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagno
     name: "Nested graph read operations not supported",
 };
 
+const BRANCH_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "branch-unsupported",
+    name: "Branch construct unsupported",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum GraphReadCompilerDiagnosticCategory {
     ValueParameterConversion,
@@ -96,6 +101,7 @@ pub enum GraphReadCompilerDiagnosticCategory {
     CallUnsupported,
     ClosureUnsupported,
     NestedGraphReadUnsupported,
+    BranchUnsupported,
 }
 
 impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
@@ -121,6 +127,7 @@ impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
             Self::CallUnsupported => Some(&CALL_UNSUPPORTED),
             Self::ClosureUnsupported => Some(&CLOSURE_UNSUPPORTED),
             Self::NestedGraphReadUnsupported => Some(&NESTED_GRAPH_READ_UNSUPPORTED),
+            Self::BranchUnsupported => Some(&BRANCH_UNSUPPORTED),
         }
     }
 }
@@ -523,7 +530,7 @@ pub(super) fn nested_graph_read_unsupported(
     )
     .primary(Label::new(
         graph_span,
-        "Nested graph operation not supported here",
+        "Nested graph read operations not supported here",
     ));
 
     diagnostic.labels.push(Label::new(
@@ -532,16 +539,81 @@ pub(super) fn nested_graph_read_unsupported(
     ));
 
     diagnostic.add_message(Message::help(
-        "Filter expressions do not currently support nested graph operations. Move the graph \
-         operation outside the filter expression, assign the result to a variable, and use that \
-         variable in the filter instead.",
+        "Filter expressions do not support nested graph operations. Use a separate query for the \
+         nested graph read and pass the result to this filter expression.",
     ));
 
     diagnostic.add_message(Message::note(
-        "Nested graph operations in filter expressions are not yet implemented. This is a current \
-         limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and \
-         https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.",
+        "Nested graph reads in filter expressions are not yet implemented. This is a current \
+         limitation that is being tracked in \
+         https://linear.app/hash/issue/H-4913/hashql-implement-vm.",
     ));
+
+    diagnostic
+}
+
+/// Context type for branch unsupported diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BranchContext {
+    /// Branch in a filter boolean expression context
+    Filter,
+    /// Branch in a filter expression context
+    FilterExpression,
+}
+
+/// Creates a diagnostic for unsupported branch constructs in filter contexts.
+///
+/// This diagnostic is emitted when conditional statements (if/else) are encountered
+/// in filter contexts where they are not supported.
+///
+/// # Arguments
+///
+/// * `context` - The filter compilation context containing the parent filter span
+/// * `branch` - The branch construct that is not supported
+/// * `branch_context` - Whether this is in a filter or filter expression context
+///
+/// # Returns
+///
+/// A diagnostic indicating that branch constructs are not supported in this context,
+/// with guidance on how to restructure the code.
+pub(super) fn branch_unsupported(
+    branch: &hashql_hir::node::branch::Branch,
+    branch_context: BranchContext,
+) -> GraphReadCompilerDiagnostic {
+    // Create specific primary message based on branch type
+    let primary_message = match branch.kind {
+        BranchKind::If(_) => "conditional expressions are not supported in filter contexts",
+    };
+
+    let mut diagnostic = Diagnostic::new(
+        GraphReadCompilerDiagnosticCategory::BranchUnsupported,
+        Severity::Error,
+    )
+    .primary(Label::new(branch.span, primary_message));
+
+    diagnostic.add_message(Message::help(
+        "rewrite the logic to avoid conditional statements",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "conditional statements (`if`/`else`) are not supported by the current query compiler. \
+         This is a fundamental limitation that will be addressed in the next-generation compiler",
+    ));
+
+    match branch_context {
+        BranchContext::Filter => {
+            diagnostic.add_message(Message::note(
+                "consider using boolean operators (`&&`, `||`, `!`) to combine conditions \
+                 directly instead of `if` statements",
+            ));
+        }
+        BranchContext::FilterExpression => {
+            diagnostic.add_message(Message::note(
+                "conditional logic must be handled outside the query or using other language \
+                 constructs",
+            ));
+        }
+    }
 
     diagnostic
 }

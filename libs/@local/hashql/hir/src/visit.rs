@@ -62,7 +62,7 @@ use crate::{
     node::{
         HirId, Node,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::{Branch, BranchKind},
+        branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
@@ -225,6 +225,10 @@ pub trait Visitor<'heap> {
 
     fn visit_call_argument(&mut self, argument: &'heap CallArgument<'heap>) {
         walk_call_argument(self, argument);
+    }
+
+    fn visit_if(&mut self, r#if: &'heap If<'heap>) {
+        walk_if(self, r#if);
     }
 
     fn visit_branch(&mut self, branch: &'heap Branch<'heap>) {
@@ -524,18 +528,30 @@ pub fn walk_call_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_node(value);
 }
 
+pub fn walk_if<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    If {
+        span,
+        test,
+        then,
+        r#else,
+    }: &'heap If<'heap>,
+) {
+    visitor.visit_span(*span);
+    visitor.visit_node(test);
+    visitor.visit_node(then);
+
+    visitor.visit_node(r#else);
+}
+
 pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Branch {
-        span,
-        kind,
-        _marker: _,
-    }: &'heap Branch<'heap>,
+    Branch { span, kind }: &'heap Branch<'heap>,
 ) {
     visitor.visit_span(*span);
 
     match kind {
-        BranchKind::Never(_) => unreachable!(),
+        BranchKind::If(r#if) => visitor.visit_if(r#if),
     }
 }
 

@@ -89,6 +89,14 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self
     }
 
+    pub fn with_diagnostics_disabled<T>(&mut self, func: impl FnOnce(&mut Self) -> T) -> T {
+        let diagnostics = self.diagnostics.take();
+        let result = func(self);
+        self.diagnostics = diagnostics;
+
+        result
+    }
+
     pub fn take_diagnostics(&mut self) -> Option<TypeCheckDiagnosticIssues> {
         self.diagnostics.as_mut().map(mem::take)
     }

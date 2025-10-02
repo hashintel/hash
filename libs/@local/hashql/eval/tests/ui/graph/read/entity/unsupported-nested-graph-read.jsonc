@@ -18,9 +18,9 @@
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
         "read",
-        //~^ ERROR Nested graph operation not supported here
+        //~^ ERROR Nested graph read operations not supported here
         "read"
-        //~^ ERROR Nested graph operation not supported here
+        //~^ ERROR Nested graph read operations not supported here
       ]
     ]
   ]

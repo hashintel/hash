@@ -1,7 +1,0 @@
-error[reify::unsupported-construct]: Unsupported language construct
-  ╭▸ 
-3 │ ["if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
-  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ `if expression` not supported yet
-  │
-  ├ help: The if expression syntax is valid HashQL code, but support for this feature is still in development. For now, you'll need to use alternative approaches to achieve the same result. Check issue https://linear.app/hash/issue/H-4606/implement-if-expressions for implementation status and updates.
-  ╰ note: This is a temporary limitation. We're actively working on supporting if expression constructs and other advanced features to make HashQL more expressive and powerful.

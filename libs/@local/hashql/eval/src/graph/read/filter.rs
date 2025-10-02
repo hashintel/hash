@@ -15,7 +15,9 @@ use hashql_hir::node::{
 
 use super::{
     CompilationError, FilterCompilerContext, GraphReadCompiler,
-    error::qualified_variable_unsupported, path::CompleteQueryPath, sink::FilterSink,
+    error::{BranchContext, branch_unsupported, qualified_variable_unsupported},
+    path::CompleteQueryPath,
+    sink::FilterSink,
 };
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
@@ -168,6 +170,12 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 ));
 
                 Ok(())
+            }
+            NodeKind::Branch(branch) => {
+                self.diagnostics
+                    .push(branch_unsupported(branch, BranchContext::Filter));
+
+                Err(CompilationError)
             }
         }
     }

@@ -6,7 +6,7 @@ use hashql_ast::{
     lowering::ExtractedTypes,
     node::{
         expr::{
-            AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IndexExpr, InputExpr,
+            AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
             LetExpr, LiteralExpr, call::Argument, closure,
         },
         path::{Path, PathSegmentArgument},
@@ -18,6 +18,7 @@ use hashql_core::{
     heap,
     intern::Interned,
     span::{SpanId, Spanned},
+    symbol::{Ident, IdentKind, Symbol, sym},
     r#type::{TypeId, environment::Environment},
 };
 use hashql_diagnostics::{DiagnosticIssues, Status, StatusExt as _};
@@ -31,6 +32,7 @@ use crate::{
     node::{
         Node, PartialNode,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
+        branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
@@ -54,6 +56,8 @@ struct ReificationContext<'env, 'heap> {
     interner: &'env Interner<'heap>,
     types: &'env ExtractedTypes<'heap>,
     diagnostics: ReificationDiagnosticIssues,
+
+    scratch_ident: Vec<Ident<'heap>>,
 }
 
 impl<'heap> ReificationContext<'_, 'heap> {
@@ -399,6 +403,121 @@ impl<'heap> ReificationContext<'_, 'heap> {
         }))
     }
 
+    fn make_qualified_path(&mut self, span: SpanId, path: &[Symbol<'heap>]) -> Node<'heap> {
+        self.scratch_ident.clear();
+        self.scratch_ident.extend(path.iter().map(|&value| Ident {
+            span,
+            value,
+            kind: IdentKind::Lexical,
+        }));
+
+        let partial = PartialNode {
+            span,
+            kind: NodeKind::Variable(Variable {
+                span,
+                kind: VariableKind::Qualified(QualifiedVariable {
+                    span,
+                    path: QualifiedPath::new_unchecked(
+                        self.interner.intern_idents(&self.scratch_ident),
+                    ),
+                    arguments: self.interner.intern_type_ids(&[]),
+                }),
+            }),
+        };
+
+        self.interner.intern_node(partial)
+    }
+
+    fn if_expr_if_else(
+        &mut self,
+        span: SpanId,
+        test: Expr<'heap>,
+        then: Expr<'heap>,
+        r#else: Expr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        let test = self.expr(test);
+        let then = self.expr(then);
+        let r#else = self.expr(r#else);
+
+        Some(NodeKind::Branch(Branch {
+            span,
+            kind: BranchKind::If(If {
+                span,
+                test: test?,
+                then: then?,
+                r#else: r#else?,
+            }),
+        }))
+    }
+
+    fn if_expr_then_some(&mut self, node: Node<'heap>) -> Node<'heap> {
+        let some = self.make_qualified_path(
+            node.span,
+            &[sym::lexical::core, sym::lexical::option, sym::lexical::Some],
+        );
+
+        let partial = PartialNode {
+            span: node.span,
+            kind: NodeKind::Call(Call {
+                span: node.span,
+                function: some,
+                arguments: self.interner.intern_call_arguments(&[CallArgument {
+                    span: node.span,
+                    value: node,
+                }]),
+            }),
+        };
+
+        self.interner.intern_node(partial)
+    }
+
+    fn if_expr_else_none(&mut self, span: SpanId) -> Node<'heap> {
+        let none = self.make_qualified_path(
+            span,
+            &[sym::lexical::core, sym::lexical::option, sym::lexical::None],
+        );
+
+        let partial = PartialNode {
+            span,
+            kind: NodeKind::Call(Call {
+                span,
+                function: none,
+                arguments: self.interner.intern_call_arguments(&[]),
+            }),
+        };
+
+        self.interner.intern_node(partial)
+    }
+
+    fn if_expr(
+        &mut self,
+        IfExpr {
+            id: _,
+            span,
+            test,
+            then,
+            r#else,
+        }: IfExpr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        if let Some(r#else) = r#else {
+            return self.if_expr_if_else(span, *test, *then, *r#else);
+        }
+
+        // `r#else` is `None`, so we desugar to `Option<T>`
+        let (test, then) = Option::zip(self.expr(*test), self.expr(*then))?;
+
+        // Then must be wrapped in an `Option` call
+        Some(NodeKind::Branch(Branch {
+            span,
+            kind: BranchKind::If(If {
+                span,
+                test,
+                then: self.if_expr_then_some(then),
+                r#else: self.if_expr_else_none(span),
+            }),
+        }))
+    }
+
     fn expr(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {
         let kind = match expr.kind {
             ExprKind::Call(call) => self.call_expr(call)?,
@@ -469,14 +588,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             }
             ExprKind::Input(input) => self.input_expr(input)?,
             ExprKind::Closure(closure) => self.closure_expr(closure)?,
-            ExprKind::If(_) => {
-                self.diagnostics.push(unsupported_construct(
-                    expr.span,
-                    "if expression",
-                    "https://linear.app/hash/issue/H-4606/implement-if-expressions",
-                ));
-                return None;
-            }
+            ExprKind::If(r#if) => self.if_expr(r#if)?,
             ExprKind::Field(field) => self.field_expr(field)?,
             ExprKind::Index(index) => self.index_expr(index)?,
             ExprKind::As(r#as) => self.as_expr(r#as)?,
@@ -530,6 +642,8 @@ impl<'heap> Node<'heap> {
             interner,
             types,
             diagnostics: DiagnosticIssues::new(),
+            // we're likely to only ever create qualified paths of length 3 or less
+            scratch_ident: Vec::with_capacity(3),
         };
 
         let node = context.expr(expr);

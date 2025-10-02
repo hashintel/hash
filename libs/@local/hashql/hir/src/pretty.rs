@@ -11,7 +11,7 @@ use crate::{
     node::{
         Node,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        branch::{Branch, BranchKind, r#if::If},
         call::Call,
         closure::Closure,
         data::{Data, DataKind, Literal},
@@ -353,9 +353,32 @@ impl<'heap> PrettyPrint<'heap> for Call<'heap> {
     }
 }
 
+impl<'heap> PrettyPrint<'heap> for If<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text("if").append(
+            RcDoc::space()
+                .append(self.test.pretty(env, boundary))
+                .append(RcDoc::space())
+                .append(self.then.pretty(env, boundary))
+                .append(RcDoc::space())
+                .append(self.r#else.pretty(env, boundary)),
+        )
+    }
+}
+
 impl<'heap> PrettyPrint<'heap> for Branch<'heap> {
-    fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
-        match self.kind {}
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match self.kind {
+            BranchKind::If(r#if) => r#if.pretty(env, boundary),
+        }
     }
 }
 
