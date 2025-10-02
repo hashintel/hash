@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Multiple value type dict inference
+{ "#dict": {"a": { "#literal": 42 }, "b": { "#literal": 43.0 }, "c": { "#literal": "foo" }} }

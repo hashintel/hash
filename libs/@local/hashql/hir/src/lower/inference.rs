@@ -31,7 +31,7 @@ use crate::{
         branch::r#if::If,
         call::Call,
         closure::Closure,
-        data::{List, Literal, Struct, Tuple},
+        data::{Dict, List, Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
         r#let::Let,
@@ -226,6 +226,31 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         let builder = TypeBuilder::spanned(list.span, self.env);
         let id = builder.list(inner.into_type(self.env).id);
+        self.types.insert_unique(self.current, id);
+    }
+
+    fn visit_dict(&mut self, dict: &'heap Dict<'heap>) {
+        visit::walk_dict(self, dict);
+
+        // Dicts are invariant over their key and covariant over their value.
+        let key = self.inference.fresh_hole(dict.span);
+        let value = self.inference.fresh_hole(dict.span);
+        self.inference.add_variables([key, value]);
+
+        for field in dict.fields {
+            self.inference.add_constraint(Constraint::Equals {
+                variable: key,
+                r#type: self.types[&field.key.id],
+            });
+
+            self.inference.add_constraint(Constraint::LowerBound {
+                variable: value,
+                bound: self.types[&field.value.id],
+            });
+        }
+
+        let builder = TypeBuilder::spanned(dict.span, self.env);
+        let id = builder.dict(key.into_type(self.env).id, value.into_type(self.env).id);
         self.types.insert_unique(self.current, id);
     }
 

@@ -1,0 +1,102 @@
+error[lower::type-check::dict-key-type-mismatch]: Dictionary key type mismatch
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┬───────────────────────────────────────────────────────                ━━━ Key type doesn't match dictionary's key type
+  │                          │
+  │                          ... when accessing this dictionary
+  │
+  ├ help: Cannot access dictionary with key of type 'String'. This dictionary expects keys of type 'EntityUuid[Uuid[String]]'.
+  │       
+  │       Dictionary keys must match exactly - there is no implicit conversion between key types. Use a key of the correct type or ensure your key expression evaluates to the expected type: `dict[key]` where `key` has type 'EntityUuid[Uuid[String]]'.
+  ╰ note: Dictionary keys are invariant - the key type used for access must be exactly equivalent to the dictionary's declared key type. Unlike some languages, there is no implicit type coercion for dictionary key access.
+
+error[lower::type-check::conflicting-equality-constraints]: Conflicting equality constraints
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┯━━┬──────────────────────────────━━━━━━━━━━━━━━━━━━━━━━                ─── But here constrained to be exactly `String`
+  │                          │  │
+  │                          │  Previously constrained to be exactly `_6`
+  │                          Type variable has conflicting equality constraints
+  │
+  ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+  │       To fix this issue:
+  │       1. Ensure consistent type usage - either use `_6` everywhere
+  │       2. Or use `String` everywhere
+  │       3. Add explicit type conversions where needed
+  │       4. Check type annotations for contradictory requirements
+  ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[lower::type-check::conflicting-equality-constraints]: Conflicting equality constraints
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┯━━┬──────────────────────────────━━━━━━━━━━━━━━━━━━━━━━                ─── But here constrained to be exactly `String`
+  │                          │  │
+  │                          │  Previously constrained to be exactly `_6`
+  │                          Type variable has conflicting equality constraints
+  │
+  ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+  │       To fix this issue:
+  │       1. Ensure consistent type usage - either use `_6` everywhere
+  │       2. Or use `String` everywhere
+  │       3. Add explicit type conversions where needed
+  │       4. Check type annotations for contradictory requirements
+  ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[lower::type-check::conflicting-equality-constraints]: Conflicting equality constraints
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┯━━┬──────────────────────────────━━━━━━━━━━━━━━━━━━━━━━                ─── But here constrained to be exactly `String`
+  │                          │  │
+  │                          │  Previously constrained to be exactly `_6`
+  │                          Type variable has conflicting equality constraints
+  │
+  ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+  │       To fix this issue:
+  │       1. Ensure consistent type usage - either use `_6` everywhere
+  │       2. Or use `String` everywhere
+  │       3. Add explicit type conversions where needed
+  │       4. Check type annotations for contradictory requirements
+  ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[lower::type-check::conflicting-equality-constraints]: Conflicting equality constraints
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┯━━┬──────────────────────────────━━━━━━━━━━━━━━━━━━━━━━                ─── But here constrained to be exactly `String`
+  │                          │  │
+  │                          │  Previously constrained to be exactly `_6`
+  │                          Type variable has conflicting equality constraints
+  │
+  ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+  │       To fix this issue:
+  │       1. Ensure consistent type usage - either use `_6` everywhere
+  │       2. Or use `String` everywhere
+  │       3. Add explicit type conversions where needed
+  │       4. Check type annotations for contradictory requirements
+  ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[lower::type-check::conflicting-equality-constraints]: Conflicting equality constraints
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │                          ┯━━┬──────────────────────────────━━━━━━━━━━━━━━━━━━━━━━                ─── But here constrained to be exactly `String`
+  │                          │  │
+  │                          │  Previously constrained to be exactly `_6`
+  │                          Type variable has conflicting equality constraints
+  │
+  ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
+  │       To fix this issue:
+  │       1. Ensure consistent type usage - either use `_6` everywhere
+  │       2. Or use `String` everywhere
+  │       3. Add explicit type conversions where needed
+  │       4. Check type annotations for contradictory requirements
+  ╰ note: During type inference, all constraints on a type variable must be satisfied simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no valid solution exists. This typically occurs when you've specified different types for the same variable in different parts of your code, either explicitly through annotations or implicitly through usage.
+
+error[lower::type-check::unconstrained-type-variable]: Unconstrained type variable
+  ╭▸ 
+9 │         ["[]", {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]}, {"#literal": "a"}],
+  │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Cannot infer type for this variable - no usage constraints available
+  │
+  ├ help: Add an explicit type annotation to provide the necessary context. For example:
+  │       - Change `let x = ...` to `let x: Type = ...`
+  │       - Provide type parameters like `function<T: SomeType>(...)`
+  │       - Use the value in a way that constrains its type
+  ╰ note: Type inference needs constraints that come from how variables are used. When a variable lacks both usage context and explicit annotations, the type system cannot determine an appropriate type. This commonly occurs with empty collections, unused variables, or generic functions without type annotations.
