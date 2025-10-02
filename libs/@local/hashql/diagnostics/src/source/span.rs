@@ -48,32 +48,7 @@ use super::SourceId;
 /// }
 /// ```
 pub trait DiagnosticSpan<R>: Display {
-    /// Returns the source file identifier for this span.
-    ///
-    /// The returned [`SourceId`] identifies which source file this span
-    /// references within a [`Sources`] collection.
-    ///
-    /// [`Sources`]: super::Sources
-    fn source(&self) -> SourceId;
-
-    /// Resolves this span to a text range within its source file.
-    ///
-    /// Returns `None` if the span cannot be resolved, which may occur if
-    /// the span references invalid locations or if the resolver cannot
-    /// process this particular span type.
-    fn span(&self, resolver: &mut R) -> Option<TextRange>;
-
-    /// Returns ancestor spans that provide additional context for this span.
-    ///
-    /// Ancestors are used to build hierarchical span relationships, where
-    /// the final resolved position may depend on the positions of parent
-    /// spans. For example, a span within a macro expansion might have
-    /// the macro invocation site as an ancestor.
-    ///
-    /// The returned spans are processed in order, with each ancestor's
-    /// position contributing to the final resolved location.
-    #[expect(clippy::min_ident_chars, reason = "false-positive")]
-    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R>;
+    fn absolute(&self, resolver: &mut R) -> Option<SourceSpan>;
 }
 
 /// An absolute span representing a resolved location within a source file.
@@ -147,15 +122,7 @@ impl SourceSpan {
     where
         S: DiagnosticSpan<R>,
     {
-        let source = span.source();
-
-        let mut range = span.span(resolver)?;
-
-        for ancestor in span.ancestors(resolver) {
-            range += ancestor.span(resolver)?.start();
-        }
-
-        Some(Self { source, range })
+        span.absolute(resolver)
     }
 
     /// Creates a new source span from a source ID and text range.
