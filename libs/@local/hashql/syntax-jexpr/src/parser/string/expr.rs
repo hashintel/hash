@@ -39,7 +39,7 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let _ = ws(".").parse_next(input)?;
+    let _: &'source str = ws(".").parse_next(input)?;
 
     match peek(any).parse_next(input)? {
         '0'..='9' => {
@@ -71,7 +71,7 @@ where
         + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let _ = ws("[").parse_next(input)?;
+    let _: &'source str = ws("[").parse_next(input)?;
 
     // super limited version that only allows literal access instead of arbitrary expressions
     let access = match peek(any).parse_next(input)? {
@@ -90,7 +90,7 @@ where
         _ => parse_expr_path.map(Access::IndexByExpr).parse_next(input)?,
     };
 
-    let _ = ws(cut_err("]")).parse_next(input)?;
+    let _: &'source str = ws(cut_err("]")).parse_next(input)?;
 
     Ok(access)
 }

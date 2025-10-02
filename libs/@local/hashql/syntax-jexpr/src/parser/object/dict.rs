@@ -75,8 +75,8 @@ impl<'heap> State<'heap> for DictNode<'heap> {
     }
 }
 
-fn parse_dict_object<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+fn parse_dict_object<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
@@ -121,8 +121,8 @@ fn parse_dict_object<'heap, 'source, 'spans>(
     })
 }
 
-fn parse_dict_array<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+fn parse_dict_array<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
