@@ -5,7 +5,12 @@ use hash_graph_store::{
     filter::{JsonPath, PathToken, QueryPath},
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
-use hashql_core::{heap::Heap, literal::LiteralKind, symbol::Symbol, value::Value};
+use hashql_core::{
+    heap::Heap,
+    literal::LiteralKind,
+    symbol::{Symbol, sym},
+    value::Value,
+};
 
 pub(crate) trait CompleteQueryPath<'heap>: QueryPath {
     type PartialQueryPath: PartialQueryPath<'heap, QueryPath = Self>;
@@ -64,17 +69,12 @@ pub(crate) enum PartialEntityIdQueryPath {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityIdQueryPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        // see: https://linear.app/hash/issue/H-4512/hashql-use-symbol-sym-constants-instead-of-string-literals
-        let web_id = heap.intern_symbol("web_id");
-        let entity_uuid = heap.intern_symbol("entity_uuid");
-        let draft_id = heap.intern_symbol("draft_id");
-
-        if field == web_id {
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        if field == sym::lexical::web_id {
             Some(Self::WebId)
-        } else if field == entity_uuid {
+        } else if field == sym::lexical::entity_uuid {
             Some(Self::EntityUuid)
-        } else if field == draft_id {
+        } else if field == sym::lexical::draft_id {
             Some(Self::DraftId)
         } else {
             None
@@ -111,14 +111,10 @@ pub(crate) enum PartialEntityRecordIdPath {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityRecordIdPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        // see: https://linear.app/hash/issue/H-4512/hashql-use-symbol-sym-constants-instead-of-string-literals
-        let entity_id = heap.intern_symbol("entity_id");
-        let entity_edition_id = heap.intern_symbol("entity_edition_id");
-
-        if field == entity_id {
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        if field == sym::lexical::entity_id {
             Some(Self::EntityId(None))
-        } else if field == entity_edition_id {
+        } else if field == sym::lexical::entity_edition_id {
             Some(Self::EntityEditionId)
         } else {
             None
@@ -167,13 +163,10 @@ pub(crate) enum PartialLinkDataPath {
 impl<'heap> PartialQueryPath<'heap> for PartialLinkDataPath {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        let left_entity_id = heap.intern_symbol("left_entity_id");
-        let right_entity_id = heap.intern_symbol("right_entity_id");
-
-        if field == left_entity_id {
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        if field == sym::lexical::left_entity_id {
             Some(Self::LeftEntityId(None))
-        } else if field == right_entity_id {
+        } else if field == sym::lexical::right_entity_id {
             Some(Self::RightEntityId(None))
         } else {
             None
@@ -289,16 +282,12 @@ pub(crate) enum PartialEntityQueryPath<'heap> {
 impl<'heap> PartialQueryPath<'heap> for PartialEntityQueryPath<'heap> {
     type QueryPath = EntityQueryPath<'heap>;
 
-    fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        let id = heap.intern_symbol("id");
-        let properties = heap.intern_symbol("properties");
-        let link_data = heap.intern_symbol("link_data");
-
-        if field == id {
+    fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
+        if field == sym::lexical::id {
             Some(PartialEntityQueryPath::Id(None))
-        } else if field == properties {
+        } else if field == sym::lexical::properties {
             Some(PartialEntityQueryPath::Properties(None))
-        } else if field == link_data {
+        } else if field == sym::lexical::link_data {
             Some(PartialEntityQueryPath::LinkData(None))
         } else {
             None
