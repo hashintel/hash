@@ -119,7 +119,7 @@ impl ParserContext<'_> {
     }
 
     #[inline]
-    fn lexer(&mut self) -> LexerContext {
+    const fn lexer(&mut self) -> LexerContext<'_> {
         LexerContext { spans: self.spans }
     }
 
@@ -329,7 +329,7 @@ impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
         self.lexer.span()
     }
 
-    pub(crate) fn spans(&mut self) -> &mut SpanTable<Span> {
+    pub(crate) const fn spans(&mut self) -> &mut SpanTable<Span> {
         self.context.spans
     }
 

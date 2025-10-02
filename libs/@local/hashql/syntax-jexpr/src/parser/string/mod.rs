@@ -77,8 +77,8 @@ pub(crate) fn parse_expr_from_string<'heap>(
     reason = "If this happened, the contract with the function has been violated, therefore is \
               fatal"
 )]
-pub(crate) fn parse_string<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+pub(crate) fn parse_string<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, StringDiagnostic> {
     let TokenKind::String(value) = token.kind else {
@@ -115,8 +115,8 @@ pub(crate) fn parse_type_from_string<'heap>(
     reason = "If this happened, the contract with the function has been violated, therefore is \
               fatal"
 )]
-pub(crate) fn parse_type_from_token<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+pub(crate) fn parse_type_from_token<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Type<'heap>, StringDiagnostic> {
     let TokenKind::String(value) = token.kind else {

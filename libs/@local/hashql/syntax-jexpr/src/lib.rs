@@ -41,7 +41,7 @@ pub struct Parser<'heap, 'spans> {
 }
 
 impl<'heap, 'spans> Parser<'heap, 'spans> {
-    pub fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
+    pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
         Self { heap, spans }
     }
 

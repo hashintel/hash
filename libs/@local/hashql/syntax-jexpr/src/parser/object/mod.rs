@@ -87,8 +87,8 @@ impl<'heap> State<'heap> for ObjectState<'heap> {
     }
 }
 
-pub(crate) fn parse_object<'heap, 'source, 'spans>(
-    state: &mut ParserState<'heap, 'source, 'spans>,
+pub(crate) fn parse_object<'heap, 'source>(
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     let mut current = ObjectState::Initial(Initial);
