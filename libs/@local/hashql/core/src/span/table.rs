@@ -75,7 +75,7 @@ impl<S> SpanTable<S> {
         true
     }
 
-    fn get_entry(&self, span: SpanId) -> Option<&SpanEntry> {
+    fn get_entry(&self, span: SpanId) -> Option<&SpanEntry<S>> {
         if span.source_id() != self.source_id {
             return None;
         }
@@ -94,8 +94,25 @@ impl<S> SpanTable<S> {
     where
         S: Span,
     {
-        let mut entry = self.get_entry(span)?.range();
+        let entry = self.get_entry(span)?;
+        let ancestors = &self.ancestors[entry.ancestors.clone()];
 
-        loop {}
+        let (base, rest) = match ancestors {
+            [] => return Some(SourceSpan::from_parts(span.source_id(), entry.span.range())),
+            [base, rest @ ..] => (*base, rest),
+        };
+
+        let mut base = self.absolute(base)?.range();
+        for ancestor in rest {
+            let ancestor = self.absolute(base)?.range();
+
+            base = match entry.combinator {
+                SpanCombinator::Intersection => base.intersect(ancestor),
+                SpanCombinator::Union => base.cover(ancestor),
+            };
+        }
+
+        let range = entry.span.range() + base.start();
+        Some(SourceSpan::from_parts(span.source_id(), range))
     }
 }
