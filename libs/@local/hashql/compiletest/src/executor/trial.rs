@@ -1,4 +1,3 @@
-use alloc::sync::Arc;
 use std::{
     fs::{self, File},
     io::{self, Cursor},
@@ -9,6 +8,7 @@ use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{heap::Heap, span::SpanTable};
+use hashql_diagnostics::source::SourceId;
 use hashql_syntax_jexpr::{Parser, span::Span};
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
@@ -26,9 +26,9 @@ use crate::{
 fn parse_source<'heap>(
     source: &str,
     heap: &'heap Heap,
-) -> Result<(Expr<'heap>, Arc<SpanTable<Span>>), Report<TrialError>> {
-    let spans = Arc::new(SpanTable::new());
-    let parser = Parser::new(heap, Arc::clone(&spans));
+) -> Result<(Expr<'heap>, SpanTable<Span>), Report<TrialError>> {
+    let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
+    let mut parser = Parser::new(heap, &mut spans);
 
     let expr = parser
         .parse_expr(source.as_bytes())
@@ -226,7 +226,7 @@ impl Trial {
 
         verify_annotations(
             &source,
-            &mut &*spans,
+            &mut &spans,
             &line_index,
             &diagnostics,
             &annotations.diagnostics,

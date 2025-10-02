@@ -171,12 +171,8 @@ mod tests {
             SourceId::new_unchecked(0)
         }
 
-        fn span(&self, _: &mut R) -> Option<TextRange> {
-            Some(self.0)
-        }
-
-        fn ancestors(&self, _: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
-            []
+        fn absolute(&self, _: &mut R) -> Option<SourceSpan> {
+            Some(SourceSpan::from_parts(SourceId::new_unchecked(0), self.0))
         }
     }
 
