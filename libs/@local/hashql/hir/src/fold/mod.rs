@@ -68,7 +68,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
+        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -229,6 +229,10 @@ pub trait Fold<'heap> {
 
     fn fold_tuple(&mut self, tuple: Tuple<'heap>) -> Self::Output<Tuple<'heap>> {
         walk_tuple(self, tuple)
+    }
+
+    fn fold_list(&mut self, list: List<'heap>) -> Self::Output<List<'heap>> {
+        walk_list(self, list)
     }
 
     fn fold_variable(&mut self, variable: Variable<'heap>) -> Self::Output<Variable<'heap>> {
@@ -506,6 +510,7 @@ pub fn walk_data<'heap, T: Fold<'heap> + ?Sized>(
         DataKind::Literal(literal) => DataKind::Literal(visitor.fold_literal(literal)?),
         DataKind::Tuple(tuple) => DataKind::Tuple(visitor.fold_tuple(tuple)?),
         DataKind::Struct(r#struct) => DataKind::Struct(visitor.fold_struct(r#struct)?),
+        DataKind::List(list) => DataKind::List(visitor.fold_list(list)?),
     };
 
     Try::from_output(Data { span, kind })
@@ -554,6 +559,19 @@ pub fn walk_tuple<'heap, T: Fold<'heap> + ?Sized>(
     let fields = fields.finish(&visitor.interner().nodes);
 
     Try::from_output(Tuple { span, fields })
+}
+
+pub fn walk_list<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    List { span, elements }: List<'heap>,
+) -> T::Output<List<'heap>> {
+    let span = visitor.fold_span(span)?;
+
+    let mut elements = Beef::new(elements);
+    elements.try_map::<_, T::Output<()>>(|element| visitor.fold_nested_node(element))?;
+    let elements = elements.finish(&visitor.interner().nodes);
+
+    Try::from_output(List { span, elements })
 }
 
 pub fn walk_variable<'heap, T: Fold<'heap> + ?Sized>(

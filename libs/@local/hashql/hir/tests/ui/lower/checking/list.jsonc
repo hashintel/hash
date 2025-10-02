@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Test list type checking
+{
+  "#list": [{ "#literal": 42 }, { "#literal": 43 }, { "#literal": 44 }],
+  "#type": "List<Number>"
+}

@@ -7,7 +7,7 @@ use hashql_ast::{
     node::{
         expr::{
             AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-            LetExpr, LiteralExpr, StructExpr, TupleExpr, call::Argument, closure,
+            LetExpr, ListExpr, LiteralExpr, StructExpr, TupleExpr, call::Argument, closure,
         },
         path::{Path, PathSegmentArgument},
         r#type::Type,
@@ -35,7 +35,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
+        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -171,6 +171,42 @@ impl<'heap> ReificationContext<'_, 'heap> {
             kind: DataKind::Tuple(Tuple {
                 span,
                 fields: self.interner.intern_nodes(&fields),
+            }),
+        });
+
+        Some(self.wrap_type_assertion(span, kind, r#type))
+    }
+
+    fn list_expr(
+        &mut self,
+        ListExpr {
+            id: _,
+            span,
+            elements: list_elements,
+            r#type,
+        }: ListExpr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        let mut incomplete = false;
+        let mut elements = SmallVec::with_capacity(list_elements.len());
+
+        for element in list_elements {
+            let Some(element) = self.expr(*element.value) else {
+                incomplete = true;
+                continue;
+            };
+
+            elements.push(element);
+        }
+
+        if incomplete {
+            return None;
+        }
+
+        let kind = NodeKind::Data(Data {
+            span,
+            kind: DataKind::List(List {
+                span,
+                elements: self.interner.intern_nodes(&elements),
             }),
         });
 
@@ -607,15 +643,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
                 return None;
             }
             ExprKind::Tuple(tuple) => self.tuple_expr(tuple)?,
-            ExprKind::List(_) => {
-                self.diagnostics.push(unsupported_construct(
-                    expr.span,
-                    "list literal",
-                    "https://linear.app/hash/issue/H-4605/enable-list-literal-construct",
-                ));
-
-                return None;
-            }
+            ExprKind::List(list) => self.list_expr(list)?,
             ExprKind::Literal(literal) => self.literal_expr(literal),
             ExprKind::Path(path) => self.path(path)?,
             ExprKind::Let(r#let) => self.let_expr(r#let)?,

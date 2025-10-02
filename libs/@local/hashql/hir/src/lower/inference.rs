@@ -14,7 +14,7 @@ use hashql_core::{
         environment::{
             Environment, InferenceEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
-        inference::{InferenceSolver, VariableCollector},
+        inference::{Constraint, InferenceSolver, VariableCollector},
         kind::{
             PrimitiveType, TypeKind, UnionType,
             generic::{GenericArgumentReference, GenericSubstitution},
@@ -31,7 +31,7 @@ use crate::{
         branch::r#if::If,
         call::Call,
         closure::Closure,
-        data::{Literal, Struct, Tuple},
+        data::{List, Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
         r#let::Let,
@@ -202,6 +202,30 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
                 .map(|field| (field.name.value, self.types[&field.value.id])),
         );
 
+        self.types.insert_unique(self.current, id);
+    }
+
+    fn visit_list(&mut self, list: &'heap List<'heap>) {
+        visit::walk_list(self, list);
+
+        // List is covariant over the elements. There are two ways to handle this:
+        // 1. Create a union of all the element types
+        // 2. Create a hole and then fill in lower bound obligations for it
+        // Internally both will result in the same type, but the implementation details differ.
+        // Choosing the second option allows for more accuracy in type inference in edge cases.
+        // In particular it helps us to choose a type for empty lists.
+        let inner = self.inference.fresh_hole(list.span);
+        self.inference.add_variables([inner]);
+
+        for element in list.elements {
+            self.inference.add_constraint(Constraint::LowerBound {
+                variable: inner,
+                bound: self.types[&element.id],
+            });
+        }
+
+        let builder = TypeBuilder::spanned(list.span, self.env);
+        let id = builder.list(inner.into_type(self.env).id);
         self.types.insert_unique(self.current, id);
     }
 
