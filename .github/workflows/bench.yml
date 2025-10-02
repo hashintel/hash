@@ -20,12 +20,13 @@ concurrency:
 jobs:
   optimize_ci: # Do not run benches in the middle of the stack
     runs-on: ubuntu-24.04
+    name: Optimize CI
     outputs:
       skip: ${{ steps.check_skip.outputs.skip }}
     steps:
       - name: Optimize CI
         id: check_skip
-        uses: withgraphite/graphite-ci-action@main
+        uses: withgraphite/graphite-ci-action@6213dcfab02da542aaf534e087282a928ff4374a
         with:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
 
