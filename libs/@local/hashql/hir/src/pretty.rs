@@ -14,7 +14,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::Call,
         closure::Closure,
-        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
+        data::{Data, DataKind, List, Literal, Struct, Tuple, r#struct::StructField},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -113,6 +113,27 @@ impl<'heap> PrettyPrint<'heap> for Struct<'heap> {
     }
 }
 
+impl<'heap> PrettyPrint<'heap> for List<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcAllocator
+            .intersperse(
+                self.elements
+                    .iter()
+                    .map(|element| element.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .brackets()
+            .group()
+            .into_doc()
+    }
+}
+
 impl<'heap> PrettyPrint<'heap> for Data<'heap> {
     fn pretty(
         &self,
@@ -123,6 +144,7 @@ impl<'heap> PrettyPrint<'heap> for Data<'heap> {
             DataKind::Literal(literal) => literal.pretty(env, boundary),
             DataKind::Tuple(tuple) => tuple.pretty(env, boundary),
             DataKind::Struct(r#struct) => r#struct.pretty(env, boundary),
+            DataKind::List(list) => list.pretty(env, boundary),
         }
     }
 }
