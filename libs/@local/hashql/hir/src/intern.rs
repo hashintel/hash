@@ -103,6 +103,13 @@ impl<'heap> Interner<'heap> {
         self.struct_fields.intern_slice(fields)
     }
 
+    pub fn intern_dict_fields(
+        &self,
+        fields: &[DictField<'heap>],
+    ) -> Interned<'heap, [DictField<'heap>]> {
+        self.dict_fields.intern_slice(fields)
+    }
+
     pub fn intern_node(&self, node: PartialNode<'heap>) -> Node<'heap> {
         self.node.intern_partial(node)
     }

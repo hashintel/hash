@@ -67,38 +67,6 @@ impl DiagnosticCategory for ReificationDiagnosticCategory {
     }
 }
 
-/// Creates a diagnostic for an unsupported language construct.
-///
-/// This is a temporary error for features that are not yet implemented
-/// but will be supported in the near future.
-pub(crate) fn unsupported_construct(
-    span: SpanId,
-    construct_name: &str,
-    issue_url: &str,
-) -> ReificationDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ReificationDiagnosticCategory::UnsupportedConstruct,
-        Severity::Error,
-    )
-    .primary(Label::new(
-        span,
-        format!("`{construct_name}` not supported yet"),
-    ));
-
-    diagnostic.add_message(Message::help(format!(
-        "The {construct_name} syntax is valid HashQL code, but support for this feature is still \
-         in development. For now, you'll need to use alternative approaches to achieve the same \
-         result. Check issue {issue_url} for implementation status and updates."
-    )));
-
-    diagnostic.add_message(Message::note(format!(
-        "This is a temporary limitation. We're actively working on supporting {construct_name} \
-         constructs and other advanced features to make HashQL more expressive and powerful."
-    )));
-
-    diagnostic
-}
-
 /// Creates a diagnostic for an unhandled error from a previous phase.
 ///
 /// This indicates that a fatal error occurred in a previous compilation phase,
