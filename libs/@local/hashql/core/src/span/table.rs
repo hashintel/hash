@@ -127,4 +127,34 @@ impl<S> SpanTable<S> {
     {
         self.absolute_impl(span, 0)
     }
+
+    // returns a linearized view of all ancestors from a span
+    #[must_use]
+    pub fn ancestors(&self, span: SpanId) -> Vec<SpanId> {
+        let mut ancestors = Vec::new();
+        let mut stack = vec![span];
+
+        while let Some(current) = stack.pop() {
+            let Some(entry) = self.get_entry(current) else {
+                continue;
+            };
+
+            let direct_ancestors = &self.ancestors[entry.ancestors.clone()];
+
+            if direct_ancestors.is_empty() {
+                continue;
+            }
+
+            for &ancestor in direct_ancestors {
+                if ancestors.contains(&ancestor) {
+                    continue;
+                }
+
+                ancestors.push(ancestor);
+                stack.push(ancestor);
+            }
+        }
+
+        ancestors
+    }
 }
