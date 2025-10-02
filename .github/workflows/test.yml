@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  optimize_ci:
+  optimize-ci:
     runs-on: ubuntu-24.04
     name: Optimize CI
     outputs:
@@ -186,11 +186,11 @@ jobs:
       contents: read
       packages: write
     runs-on: ubuntu-24.04
-    needs: [setup, optimize_ci]
+    needs: [setup, optimize-ci]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
-    if: needs.setup.outputs.dockers != '{"name":[],"include":[]}' && needs.optimize_ci.outputs.skip == 'false'
+    if: needs.setup.outputs.dockers != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -207,11 +207,11 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup, optimize_ci]
+    needs: [setup, optimize-ci]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize_ci.outputs.skip == 'false'
+    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -394,7 +394,7 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, build, integration-tests, publish, optimize_ci]
+    needs: [setup, unit-tests, build, integration-tests, publish, optimize-ci]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -405,11 +405,11 @@ jobs:
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
       - name: Check builds
-        if: needs.optimize_ci.outputs.skip == 'false'
+        if: needs.optimize-ci.outputs.skip == 'false'
         run: |
           [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration tests
-        if: needs.optimize_ci.outputs.skip == 'false'
+        if: needs.optimize-ci.outputs.skip == 'false'
         run: |
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check publish results

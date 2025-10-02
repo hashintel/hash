@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  optimize_ci: # Do not run benches in the middle of the stack
+  optimize-ci: # Do not run benches in the middle of the stack
     runs-on: ubuntu-24.04
     name: Optimize CI
     outputs:
@@ -31,8 +31,8 @@ jobs:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
 
   setup:
-    needs: [optimize_ci]
-    if: needs.optimize_ci.outputs.skip == 'false'
+    needs: [optimize-ci]
+    if: needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     outputs:
       unit: ${{ steps.packages.outputs.unit }}
@@ -389,8 +389,8 @@ jobs:
 
   passed:
     name: Benches passed
-    needs: [setup, unit-benches, integration-benches]
-    if: always()
+    needs: [setup, unit-benches, integration-benches, optimize-ci]
+    if: always() && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
