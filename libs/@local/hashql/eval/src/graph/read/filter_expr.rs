@@ -11,7 +11,7 @@ use hashql_hir::node::{
     Node,
     access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
     call::Call,
-    data::{Data, DataKind},
+    data::{Data, DataKind, dict::DictField},
     graph::GraphKind,
     input::Input,
     kind::NodeKind,
@@ -111,13 +111,19 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }),
             DataKind::Tuple(tuple) => {
                 let mut values = Vec::with_capacity(tuple.fields.len());
-                for field in tuple.fields {
+                for (index, field) in tuple.fields.iter().enumerate() {
                     let Ok(IntermediateExpression::Value { value, span: _ }) =
                         self.compile_filter_expr::<!>(context.with_current_span(*span), field)
                     else {
                         // `!` ensures that no `IntermediateExpression::Path` will be returned
                         continue;
                     };
+
+                    if values.len() != index {
+                        // Previous iteration failed, so pushing (and thereby potentially
+                        // re-allocating) is pointless.
+                        continue;
+                    }
 
                     values.push(value.into_owned());
                 }
@@ -133,13 +139,19 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             DataKind::Struct(r#struct) => {
                 let mut fields = Vec::with_capacity(r#struct.fields.len());
-                for field in r#struct.fields {
+                for (index, field) in r#struct.fields.iter().enumerate() {
                     let Ok(IntermediateExpression::Value { value, span: _ }) = self
                         .compile_filter_expr::<!>(context.with_current_span(*span), &field.value)
                     else {
                         // `!` ensures that no `IntermediateExpression::Path` will be returned
                         continue;
                     };
+
+                    if fields.len() != index {
+                        // Previous iteration failed, so pushing (and thereby potentially
+                        // re-allocating) is pointless.
+                        continue;
+                    }
 
                     fields.push((field.name.value, value.into_owned()));
                 }
@@ -155,13 +167,19 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             DataKind::List(list) => {
                 let mut values = Vec::with_capacity(list.elements.len());
-                for element in list.elements {
+                for (index, element) in list.elements.iter().enumerate() {
                     let Ok(IntermediateExpression::Value { value, span: _ }) =
                         self.compile_filter_expr::<!>(context.with_current_span(*span), element)
                     else {
                         // `!` ensures that no `IntermediateExpression::Path` will be returned
                         continue;
                     };
+
+                    if values.len() != index {
+                        // Previous iteration failed, so pushing (and thereby potentially
+                        // re-allocating) is pointless.
+                        continue;
+                    }
 
                     values.push(value.into_owned());
                 }
@@ -172,6 +190,45 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::List(value::List::from_values(values))),
+                    span: *span,
+                })
+            }
+            DataKind::Dict(dict) => {
+                let mut entries = Vec::with_capacity(dict.fields.len());
+
+                for (index, DictField { key, value }) in dict.fields.iter().enumerate() {
+                    let key = self.compile_filter_expr::<!>(context.with_current_span(*span), key);
+                    let value =
+                        self.compile_filter_expr::<!>(context.with_current_span(*span), value);
+
+                    // We delay destructing here, so that we can gather errors for both keys and
+                    // values
+                    let (
+                        Ok(IntermediateExpression::Value {
+                            value: key,
+                            span: _,
+                        }),
+                        Ok(IntermediateExpression::Value { value, span: _ }),
+                    ) = (key, value)
+                    else {
+                        continue;
+                    };
+
+                    if entries.len() != index {
+                        // Previous iteration failed, so pushing (and thereby potentially
+                        // re-allocating) is pointless.
+                        continue;
+                    }
+
+                    entries.push((key.into_owned(), value.into_owned()));
+                }
+
+                if entries.len() != dict.fields.len() {
+                    return Err(CompilationError);
+                }
+
+                Ok(IntermediateExpression::Value {
+                    value: Cow::Owned(Value::Dict(value::Dict::from_entries(entries))),
                     span: *span,
                 })
             }

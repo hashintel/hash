@@ -94,9 +94,9 @@ fn parse_labelled_argument<'heap>(
         return Ok(None);
     };
 
+    // absolute paths start with `::`, so ignore them
     if let TokenKind::String(peek1) = &peek1.kind
         && peek1.starts_with(':')
-        // ignore absolute paths
         && !peek1.starts_with("::")
     {
         return parse_labelled_argument_shorthand(state).map(Some);
