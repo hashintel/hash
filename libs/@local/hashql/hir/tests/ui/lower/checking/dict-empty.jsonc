@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Test empty dict type checking
+{
+  "#dict": {},
+  "#type": "Dict<String, Number>"
+}
