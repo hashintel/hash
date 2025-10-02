@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::Diagnostic;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
@@ -24,7 +24,7 @@ pub(crate) mod token_kind;
 
 pub(crate) struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,
-    spans: Arc<SpanStorage<Span>>,
+    spans: Arc<SpanTable<Span>>,
 }
 
 impl<'source> Lexer<'source> {
@@ -34,7 +34,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Panics if the source is larger than 4GiB.
     #[must_use]
-    pub(crate) fn new(source: &'source [u8], storage: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+    pub(crate) fn new(source: &'source [u8], storage: impl Into<Arc<SpanTable<Span>>>) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
@@ -137,7 +137,7 @@ mod test {
     #![expect(clippy::non_ascii_literal)]
     use alloc::sync::Arc;
 
-    use hashql_core::span::{SpanId, storage::SpanStorage};
+    use hashql_core::span::{SpanId, SpanTable};
     use hashql_diagnostics::Diagnostic;
     use insta::{assert_snapshot, with_settings};
     use text_size::TextRange;
@@ -147,7 +147,7 @@ mod test {
 
     fn parse(
         source: &str,
-        storage: impl Into<Arc<SpanStorage<Span>>>,
+        storage: impl Into<Arc<SpanTable<Span>>>,
     ) -> Result<Vec<Token<'_>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
         let lexer = Lexer::new(source.as_bytes(), storage.into());
 
@@ -155,7 +155,7 @@ mod test {
     }
 
     macro assert_parse($source:expr, $description:literal) {{
-        let tokens = parse($source, SpanStorage::new()).expect("should parse successfully");
+        let tokens = parse($source, SpanTable::new()).expect("should parse successfully");
         // we're not super interested in the spans (a different test covers these)
         let compiled = tokens
             .into_iter()
@@ -171,7 +171,7 @@ mod test {
     }}
 
     macro assert_parse_fail($source:expr, $description:literal) {{
-        let spans = Arc::new(SpanStorage::new());
+        let spans = Arc::new(SpanTable::new());
         let diagnostic = parse($source, Arc::clone(&spans)).expect_err("should fail to parse");
 
         let report = render_diagnostic($source, &diagnostic, &spans);
@@ -348,7 +348,7 @@ mod test {
     #[test]
     fn span_range() {
         let source = r#"{"key": 42}"#;
-        let storage = SpanStorage::new();
+        let storage = SpanTable::new();
         let mut lexer = Lexer::new(source.as_bytes(), storage);
 
         let advance = |lexer: &mut Lexer| {
@@ -386,7 +386,7 @@ mod test {
     #[test]
     fn iterator_implementation() {
         let source = "[1, 2, 3]";
-        let storage = SpanStorage::new();
+        let storage = SpanTable::new();
         let lexer = Lexer::new(source.as_bytes(), storage);
 
         // Should get 7 tokens: [, 1, ,, 2, ,, 3, ]
@@ -399,7 +399,7 @@ mod test {
     #[test]
     fn custom_error_handling() {
         let source = r#"{"key": 42.}"#;
-        let spans = Arc::new(SpanStorage::new());
+        let spans = Arc::new(SpanTable::new());
         let result = parse(source, Arc::clone(&spans));
 
         assert!(result.is_err(), "should fail to parse invalid number");
@@ -436,7 +436,7 @@ mod test {
 
         for bytes in invalid_sequences {
             // Create a storage for spans
-            let storage = Arc::new(SpanStorage::new());
+            let storage = Arc::new(SpanTable::new());
 
             // Create a lexer directly from the bytes
             let mut lexer = Lexer::new(bytes, Arc::clone(&storage));

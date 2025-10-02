@@ -22,7 +22,7 @@ extern crate alloc;
 use alloc::sync::Arc;
 
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::storage::SpanStorage};
+use hashql_core::{heap::Heap, span::SpanTable};
 
 use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory, ResultExt as _},
@@ -39,11 +39,11 @@ pub(crate) mod test;
 
 pub struct Parser<'heap> {
     heap: &'heap Heap,
-    spans: Arc<SpanStorage<Span>>,
+    spans: Arc<SpanTable<Span>>,
 }
 
 impl<'heap> Parser<'heap> {
-    pub fn new(heap: &'heap Heap, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+    pub fn new(heap: &'heap Heap, spans: impl Into<Arc<SpanTable<Span>>>) -> Self {
         Self {
             heap,
             spans: spans.into(),
@@ -78,7 +78,7 @@ mod tests {
     use alloc::sync::Arc;
 
     use hashql_ast::format::SyntaxDump as _;
-    use hashql_core::{heap::Heap, span::storage::SpanStorage};
+    use hashql_core::{heap::Heap, span::SpanTable};
     use insta::{assert_snapshot, with_settings};
 
     use crate::{Parser, test::render_diagnostic};
@@ -95,7 +95,7 @@ mod tests {
     /// Attempt to parse an input string and return either a successful result or formatted error
     fn parse_input(input: &'static str) -> Result<ParseTestResult, String> {
         let heap = Heap::new();
-        let spans = Arc::new(SpanStorage::new());
+        let spans = Arc::new(SpanTable::new());
         let parser = Parser::new(&heap, Arc::clone(&spans));
 
         match parser.parse_expr(input.as_bytes()) {

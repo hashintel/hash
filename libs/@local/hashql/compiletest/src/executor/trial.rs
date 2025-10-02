@@ -8,7 +8,7 @@ use std::{
 use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::storage::SpanStorage};
+use hashql_core::{heap::Heap, span::SpanTable};
 use hashql_syntax_jexpr::{Parser, span::Span};
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
@@ -26,8 +26,8 @@ use crate::{
 fn parse_source<'heap>(
     source: &str,
     heap: &'heap Heap,
-) -> Result<(Expr<'heap>, Arc<SpanStorage<Span>>), Report<TrialError>> {
-    let spans = Arc::new(SpanStorage::new());
+) -> Result<(Expr<'heap>, Arc<SpanTable<Span>>), Report<TrialError>> {
+    let spans = Arc::new(SpanTable::new());
     let parser = Parser::new(heap, Arc::clone(&spans));
 
     let expr = parser

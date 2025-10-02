@@ -8,11 +8,11 @@ use super::{Span, SpanId, entry::Entry};
 /// Once inserted spans are to be considered immutable and can be referred to via their `SpanId`,
 /// which is returned on insertion.
 #[derive(Debug)]
-pub struct SpanStorage<S> {
+pub struct SpanTable<S> {
     inner: ConcurrentVec<S>,
 }
 
-impl<S> SpanStorage<S> {
+impl<S> SpanTable<S> {
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -21,7 +21,7 @@ impl<S> SpanStorage<S> {
     }
 }
 
-impl<S> SpanStorage<S>
+impl<S> SpanTable<S>
 where
     S: Span,
 {
@@ -99,7 +99,7 @@ where
     }
 }
 
-impl<S> Default for SpanStorage<S> {
+impl<S> Default for SpanTable<S> {
     fn default() -> Self {
         Self::new()
     }

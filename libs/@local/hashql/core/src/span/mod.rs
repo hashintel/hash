@@ -1,5 +1,5 @@
 pub mod entry;
-pub mod storage;
+mod storage;
 
 use core::{
     fmt::{self, Display},
@@ -9,7 +9,7 @@ use core::{
 use hashql_diagnostics::source::{DiagnosticSpan, SourceId};
 pub use text_size::{TextRange, TextSize};
 
-use self::storage::SpanStorage;
+pub use self::storage::SpanTable;
 
 /// Represents a unique identifier for a span in some source.
 ///
@@ -27,7 +27,7 @@ use self::storage::SpanStorage;
 /// ## Usage
 ///
 /// Since `SpanId` is just an identifier, the actual span information must be retrieved
-/// from the storage system [`SpanStorage`]. This differs from more complex systems
+/// from the storage system [`SpanTable`]. This differs from more complex systems
 /// where the span information might be directly embedded within the span identifier itself.
 ///
 /// ## Inspirations
@@ -54,7 +54,7 @@ use self::storage::SpanStorage;
 /// majority of spans (99.9%+), making it more efficient to look up the span information.
 /// Implementating a similar approach is left up to a future iteration of the library.
 ///
-/// [`SpanStorage`]: self::storage::SpanStorage
+/// [`SpanTable`]: self::storage::SpanTable
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanId(u32);
@@ -109,7 +109,7 @@ pub trait Span {
     fn parent_id(&self) -> Option<SpanId>;
 }
 
-impl<S> DiagnosticSpan<&SpanStorage<S>> for SpanId
+impl<S> DiagnosticSpan<&SpanTable<S>> for SpanId
 where
     S: Span,
 {
@@ -117,7 +117,7 @@ where
         SourceId::new_unchecked(0)
     }
 
-    fn span(&self, resolver: &mut &SpanStorage<S>) -> Option<TextRange> {
+    fn span(&self, resolver: &mut &SpanTable<S>) -> Option<TextRange> {
         if *self == Self::SYNTHETIC {
             return Some(TextRange::empty(TextSize::new(0)));
         }
@@ -128,7 +128,7 @@ where
     }
 
     #[expect(refining_impl_trait_reachable, reason = "false positive")]
-    fn ancestors(&self, resolver: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
+    fn ancestors(&self, resolver: &mut &SpanTable<S>) -> impl IntoIterator<Item = Self> + use<S> {
         resolver.ancestors(*self)
     }
 }

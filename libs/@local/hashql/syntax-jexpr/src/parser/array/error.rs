@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -277,7 +277,7 @@ const LABELED_ARGUMENT_IDENTIFIER_HELP: &str =
     "Labeled argument identifiers must be valid HashQL identifiers";
 
 pub(crate) fn labeled_argument_invalid_identifier<I>(
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     label_span: SpanId,
     parse_error: ParseError<I, ContextError>,
 ) -> ArrayDiagnostic {

@@ -1,21 +1,21 @@
 use alloc::sync::Arc;
 
 use hashql_ast::format::SyntaxDump as _;
-use hashql_core::{heap::Heap, span::storage::SpanStorage};
+use hashql_core::{heap::Heap, span::SpanTable};
 
 use crate::{lexer::Lexer, parser::state::ParserState, span::Span, test::render_diagnostic};
 
 pub(crate) struct TestContext {
     pub input: &'static str,
     pub heap: Heap,
-    pub spans: Arc<SpanStorage<Span>>,
+    pub spans: Arc<SpanTable<Span>>,
 }
 
 pub(crate) macro bind_context(let $context:ident = $value:expr) {
     let $context = TestContext {
         input: $value,
         heap: Heap::new(),
-        spans: Arc::new(SpanStorage::new()),
+        spans: Arc::new(SpanTable::new()),
     };
 }
 

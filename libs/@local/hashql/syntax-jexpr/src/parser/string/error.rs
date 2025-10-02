@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::fmt::Write as _;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -46,7 +46,7 @@ impl DiagnosticCategory for StringDiagnosticCategory {
     reason = "lexer ensures we never parse more than 4GiB"
 )]
 pub(crate) fn convert_parse_error<I>(
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     parent: SpanId,
     error: ParseError<I, ContextError>,
 ) -> (Label<SpanId>, Option<String>) {
@@ -112,7 +112,7 @@ const SYNTAX_ERROR_NOTE: &str =
     "Check for missing delimiters, incorrect operators, or typos in identifiers.";
 
 pub(crate) fn invalid_expr<I>(
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     parent: SpanId,
     error: ParseError<I, ContextError>,
 ) -> StringDiagnostic {

@@ -3,7 +3,7 @@ use alloc::sync::Arc;
 use circular_buffer::CircularBuffer;
 use hashql_core::{
     heap::Heap,
-    span::{SpanId, storage::SpanStorage},
+    span::{SpanId, SpanTable},
     symbol::Symbol,
 };
 use text_size::TextRange;
@@ -85,7 +85,7 @@ impl<'source> LookaheadLexer<'source> {
 }
 
 struct ParserContext {
-    spans: Arc<SpanStorage<Span>>,
+    spans: Arc<SpanTable<Span>>,
     stack: Vec<jsonptr::Token<'static>>,
 }
 
@@ -183,7 +183,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     pub(crate) const fn new(
         heap: &'heap Heap,
         lexer: Lexer<'source>,
-        spans: Arc<SpanStorage<Span>>,
+        spans: Arc<SpanTable<Span>>,
     ) -> Self {
         Self {
             heap,
@@ -306,7 +306,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         self.lexer.span()
     }
 
-    pub(crate) fn spans(&self) -> &SpanStorage<Span> {
+    pub(crate) fn spans(&self) -> &SpanTable<Span> {
         &self.context.spans
     }
 
