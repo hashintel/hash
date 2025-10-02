@@ -154,19 +154,24 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: TupleExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut fields = SmallVec::with_capacity(elements.len());
+        let len = elements.len();
+        let mut fields = SmallVec::with_capacity(len);
 
-        for element in elements {
+        for (index, element) in elements.into_iter().enumerate() {
             let Some(field) = self.expr(*element.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if fields.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                return None;
+            }
 
             fields.push(field);
         }
 
-        if incomplete {
+        if fields.len() != len {
             return None;
         }
 
@@ -190,19 +195,24 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: ListExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut elements = SmallVec::with_capacity(list_elements.len());
+        let len = list_elements.len();
+        let mut elements = SmallVec::with_capacity(len);
 
-        for element in list_elements {
+        for (index, element) in list_elements.into_iter().enumerate() {
             let Some(element) = self.expr(*element.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if elements.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
 
             elements.push(element);
         }
 
-        if incomplete {
+        if elements.len() != len {
             return None;
         }
 
@@ -226,14 +236,19 @@ impl<'heap> ReificationContext<'_, 'heap> {
             r#type,
         }: StructExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let mut incomplete = false;
-        let mut fields = SmallVec::with_capacity(entries.len());
+        let len = entries.len();
+        let mut fields = SmallVec::with_capacity(len);
 
-        for entry in entries {
+        for (index, entry) in entries.into_iter().enumerate() {
             let Some(value) = self.expr(*entry.value) else {
-                incomplete = true;
                 continue;
             };
+
+            if fields.len() != index {
+                // Since a previous iteration has failed we can skip any subsequent pushes, this
+                // allows the `SmallVec` to avoid reallocations if we're going to fail anyway.
+                continue;
+            }
 
             fields.push(StructField {
                 name: entry.key,
@@ -241,7 +256,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             });
         }
 
-        if incomplete {
+        if fields.len() != len {
             return None;
         }
 
