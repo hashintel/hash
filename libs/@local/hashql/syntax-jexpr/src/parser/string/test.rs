@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use hashql_core::{
     heap::Heap,
-    span::{TextRange, storage::SpanStorage},
+    span::{SpanTable, TextRange},
 };
 use text_size::TextSize;
 use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
@@ -53,7 +53,7 @@ pub(crate) macro bind_parser($format:ident; fn $name:ident($parser:ident)) {
     // this could also be a function, but then you run into issues with lifetimes, so this is easier
     fn $name(source: &str) -> (String, Info) {
         let heap = Heap::new();
-        let spans = SpanStorage::new();
+        let spans = SpanTable::new();
         let parent = spans.insert(Span {
             range: TextRange::up_to(TextSize::of(source)),
             pointer: None,

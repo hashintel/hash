@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use hashql_core::{
     heap::Heap,
-    span::{SpanId, TextRange, TextSize, storage::SpanStorage},
+    span::{SpanId, SpanTable, TextRange, TextSize},
 };
 use winnow::{LocatingSlice, Stateful};
 
@@ -22,7 +22,7 @@ fn range_to_text(range: Range<usize>) -> TextRange {
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Context<'heap, 'span> {
     pub heap: &'heap Heap,
-    pub spans: &'span SpanStorage<Span>,
+    pub spans: &'span SpanTable<Span>,
     pub parent: SpanId,
 }
 

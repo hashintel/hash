@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -434,7 +434,7 @@ pub(crate) fn duplicate_key(
 const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid HashQL identifiers";
 
 pub(crate) fn struct_key_expected_identifier<I>(
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     key_span: SpanId,
     parse_error: ParseError<I, ContextError>,
 ) -> ObjectDiagnostic {

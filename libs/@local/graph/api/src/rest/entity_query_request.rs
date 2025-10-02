@@ -39,7 +39,7 @@ use hashql_core::{
     collection::fast_hash_map,
     heap::Heap,
     module::ModuleRegistry,
-    span::{SpanId, storage::SpanStorage},
+    span::{SpanId, SpanTable},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -253,7 +253,7 @@ struct ResolvedSpan {
     pub pointer: Option<String>,
 }
 
-fn resolve_span(id: SpanId, spans: &SpanStorage<Span>) -> Option<ResolvedSpan> {
+fn resolve_span(id: SpanId, spans: &SpanTable<Span>) -> Option<ResolvedSpan> {
     let ancestors = spans.ancestors(id);
 
     let mut base = spans.get_cloned(id)?;
@@ -279,7 +279,7 @@ fn issues_to_response(
     issues: DiagnosticIssues<HashQLDiagnosticCategory, SpanId>,
     severity: Severity,
     source: &str,
-    mut spans: &SpanStorage<Span>,
+    mut spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     let status_code = match severity {
@@ -311,7 +311,7 @@ fn issues_to_response(
 fn failure_to_response(
     failure: Failure<HashQLDiagnosticCategory, SpanId>,
     source: &str,
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     // Find the highest diagnostic level
@@ -338,7 +338,7 @@ pub enum EntityQuery<'q> {
 impl<'q> EntityQuery<'q> {
     fn compile_query<'h>(
         heap: &'h Heap,
-        spans: Arc<SpanStorage<Span>>,
+        spans: Arc<SpanTable<Span>>,
         query: &RawJsonValue,
     ) -> Status<Filter<'h, Entity>, HashQLDiagnosticCategory, SpanId> {
         // Parse the query
@@ -452,7 +452,7 @@ impl<'q> EntityQuery<'q> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
             EntityQuery::Query { query } => {
-                let spans = Arc::new(SpanStorage::new());
+                let spans = Arc::new(SpanTable::new());
 
                 let Success {
                     value: filter,
