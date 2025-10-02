@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::fmt::Write as _;
 
-use hashql_core::span::{SpanId, SpanTable};
+use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -46,19 +46,20 @@ impl DiagnosticCategory for StringDiagnosticCategory {
     reason = "lexer ensures we never parse more than 4GiB"
 )]
 pub(crate) fn convert_parse_error<I>(
-    spans: &SpanTable<Span>,
+    spans: &mut SpanTable<Span>,
     parent: SpanId,
     error: ParseError<I, ContextError>,
 ) -> (Label<SpanId>, Option<String>) {
     let offset = error.offset();
     let error = error.into_inner();
 
-    let span = spans.insert(Span {
-        range: TextRange::empty(TextSize::new(offset as u32)),
-        pointer: None,
-
-        parent_id: Some(parent),
-    });
+    let span = spans.insert(
+        Span {
+            range: TextRange::empty(TextSize::new(offset as u32)),
+            pointer: None,
+        },
+        SpanAncestors::union(&[parent]),
+    );
 
     // adapted from the `Display` for `ContextError`.
     let expression = error.context().find_map(|context| match context {
@@ -112,7 +113,7 @@ const SYNTAX_ERROR_NOTE: &str =
     "Check for missing delimiters, incorrect operators, or typos in identifiers.";
 
 pub(crate) fn invalid_expr<I>(
-    spans: &SpanTable<Span>,
+    spans: &mut SpanTable<Span>,
     parent: SpanId,
     error: ParseError<I, ContextError>,
 ) -> StringDiagnostic {
