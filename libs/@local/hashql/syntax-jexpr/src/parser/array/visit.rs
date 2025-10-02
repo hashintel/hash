@@ -33,10 +33,12 @@ const EXPECTED_ARRAY_SEP: SyntaxKindSet =
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn visit_array<'arena, 'source, C>(
-    state: &mut ParserState<'arena, 'source>,
+pub(crate) fn visit_array<'arena, 'source, 'spans, C>(
+    state: &mut ParserState<'arena, 'source, 'spans>,
     token: Token<'source>,
-    mut on_item: impl FnMut(&mut ParserState<'arena, 'source>) -> Result<(), Diagnostic<C, SpanId>>,
+    mut on_item: impl FnMut(
+        &mut ParserState<'arena, 'source, 'spans>,
+    ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<TextRange, Diagnostic<C, SpanId>>
 where
     C: From<ArrayDiagnosticCategory>,
@@ -100,7 +102,6 @@ where
                 let span = state.insert_span(Span {
                     range: next_span,
                     pointer: Some(state.current_pointer()),
-                    parent_id: None,
                 });
 
                 // do not consume the token, so that we can do recoverable parsing (in the future)
@@ -327,7 +328,6 @@ mod tests {
                     state.insert_span(Span {
                         range: token.span,
                         pointer: None,
-                        parent_id: None,
                     }),
                     SyntaxKindSet::COMPLETE,
                 ))
@@ -460,7 +460,7 @@ mod tests {
 
     #[expect(clippy::panic_in_result_fn)]
     fn process_nested_array(
-        state: &mut ParserState<'_, '_>,
+        state: &mut ParserState<'_, '_, '_>,
         depth: &mut usize,
     ) -> Result<(), ArrayDiagnostic> {
         *depth += 1;

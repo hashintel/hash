@@ -32,7 +32,7 @@ pub(crate) struct StructNode<'heap> {
 
 impl<'heap> StructNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_struct(state)?;
@@ -53,7 +53,7 @@ impl<'heap> StructNode<'heap> {
 impl<'heap> State<'heap> for StructNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#struct", self.key_span, &mut self.r#type, state, &key)?;
@@ -62,7 +62,7 @@ impl<'heap> State<'heap> for StructNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -76,7 +76,7 @@ impl<'heap> State<'heap> for StructNode<'heap> {
 }
 
 fn parse_struct<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<StructExpr<'heap>, ParserDiagnostic> {
     // We do not use expected here, to give the user a better error message
     let token = state

@@ -111,6 +111,16 @@ pub struct SpanAncestors<'spans> {
 }
 
 impl<'spans> SpanAncestors<'spans> {
+    pub const EMPTY: Self = Self::empty();
+
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self {
+            spans: &[],
+            mode: SpanResolutionMode::Union,
+        }
+    }
+
     #[must_use]
     pub const fn union(spans: &'spans [SpanId]) -> Self {
         Self {

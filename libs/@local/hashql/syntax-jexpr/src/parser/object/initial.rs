@@ -21,7 +21,7 @@ pub(crate) struct Initial;
 impl<'heap> State<'heap> for Initial {
     fn handle(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         match &*key.value {
@@ -42,7 +42,7 @@ impl<'heap> State<'heap> for Initial {
 
     fn build(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         Err(empty(state.insert_range(span)).map_category(From::from))

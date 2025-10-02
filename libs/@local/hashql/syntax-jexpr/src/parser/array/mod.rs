@@ -29,7 +29,7 @@ use crate::{
 };
 
 fn parse_labelled_argument_shorthand<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<Vec<LabeledArgument<'heap>>, ParserDiagnostic> {
     let token = state
         .advance(SyntaxKind::String)
@@ -83,7 +83,7 @@ fn parse_labelled_argument_shorthand<'heap>(
 // Peek twice, we know if it's a labeled argument if the first token is `{` and the second a
 // string that starts with `:`.
 fn parse_labelled_argument<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<Option<Vec<LabeledArgument<'heap>>>, ParserDiagnostic> {
     let Some(peek1) = state
         .peek()
@@ -178,8 +178,8 @@ fn parse_labelled_argument<'heap>(
     Ok(Some(labeled_arguments))
 }
 
-pub(crate) fn parse_array<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+pub(crate) fn parse_array<'heap, 'source, 'spans>(
+    state: &mut ParserState<'heap, 'source, 'spans>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     debug_assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
@@ -214,7 +214,6 @@ pub(crate) fn parse_array<'heap, 'source>(
     let span = state.insert_span(Span {
         range: span,
         pointer: Some(state.current_pointer()),
-        parent_id: None,
     });
 
     let Some(function) = function else {
