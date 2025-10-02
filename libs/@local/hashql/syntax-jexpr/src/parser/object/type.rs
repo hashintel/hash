@@ -33,7 +33,7 @@ pub(crate) struct TypeNode<'heap> {
 
 impl<'heap> TypeNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let (value_span, value) = parse_type(state).change_category(From::from)?;
@@ -51,7 +51,7 @@ impl<'heap> TypeNode<'heap> {
 
     pub(crate) fn finish(
         node: Option<Self>,
-        state: &ParserState<'heap, '_>,
+        state: &ParserState<'heap, '_, '_>,
     ) -> Option<heap::Box<'heap, Type<'heap>>> {
         node.map(Self::into_inner)
             .map(|r#type| state.heap().boxed(r#type))
@@ -61,7 +61,7 @@ impl<'heap> TypeNode<'heap> {
 impl<'heap> State<'heap> for TypeNode<'heap> {
     fn handle(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         match &*key.value {
@@ -97,7 +97,7 @@ impl<'heap> State<'heap> for TypeNode<'heap> {
 
     fn build(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         _span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         // to improve error visibility, we only show the error on the key-value pair of the type
@@ -112,7 +112,7 @@ pub(crate) fn handle_typed<'heap>(
     id: &'static str,
     id_span: TextRange,
     r#type: &mut Option<TypeNode<'heap>>,
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
     key: &Key<'_>,
 ) -> Result<(), ParserDiagnostic> {
     match &*key.value {
@@ -144,7 +144,7 @@ pub(crate) fn handle_typed<'heap>(
 }
 
 fn parse_type<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<(TextRange, Type<'heap>), ParserDiagnostic> {
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.

@@ -28,7 +28,7 @@ pub(crate) struct ListNode<'heap> {
 
 impl<'heap> ListNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_list(state)?;
@@ -49,7 +49,7 @@ impl<'heap> ListNode<'heap> {
 impl<'heap> State<'heap> for ListNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#list", self.key_span, &mut self.r#type, state, &key)?;
@@ -58,7 +58,7 @@ impl<'heap> State<'heap> for ListNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -72,7 +72,7 @@ impl<'heap> State<'heap> for ListNode<'heap> {
 }
 
 fn parse_list<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<ListExpr<'heap>, ParserDiagnostic> {
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
