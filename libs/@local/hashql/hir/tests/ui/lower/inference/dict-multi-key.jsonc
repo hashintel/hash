@@ -1,10 +1,11 @@
 //@ run: fail
 //@ description: Multiple key type dict inference
-{ "#dict": [
-  [{"#literal": 42}, { "#literal": 42 }],
-  [{"#literal": "b"}, { "#literal": 43.0 }],
-  //~^ ERROR But here constrained to be exactly `String`
-  [{"#literal": "c"}, { "#literal": "foo" }]
-  //~^ ERROR But here constrained to be exactly `String`
-]
+{
+  "#dict": [
+    [{ "#literal": 42 }, { "#literal": 42 }],
+    [{ "#literal": "b" }, { "#literal": 43.0 }],
+    //~^ ERROR But here constrained to be exactly `String`
+    [{ "#literal": "c" }, { "#literal": "foo" }]
+    //~^ ERROR But here constrained to be exactly `String`
+  ]
 }
