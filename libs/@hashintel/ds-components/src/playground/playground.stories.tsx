@@ -161,8 +161,8 @@ const Playground = () => {
                   >
                     <h2
                       className={css({
-                        fontSize: "1.5rem",
-                        fontWeight: "600",
+                        fontSize: "2xl",
+                        fontWeight: "medium",
                         textAlign: "center",
                         marginBottom: "5",
                       })}
