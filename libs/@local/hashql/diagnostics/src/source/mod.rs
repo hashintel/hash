@@ -32,6 +32,14 @@ impl SourceId {
     pub const fn new_unchecked(id: u32) -> Self {
         Self(id)
     }
+
+    /// Returns the raw value of the `SourceId`.
+    ///
+    /// This method provides direct access to the underlying integer value of the `SourceId`.
+    #[must_use]
+    pub const fn value(self) -> u32 {
+        self.0
+    }
 }
 
 impl fmt::Display for SourceId {
