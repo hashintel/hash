@@ -59,6 +59,15 @@ pub trait DiagnosticSpan<R>: Display {
     ///
     /// [`source()`]: DiagnosticSpan::source
     fn absolute(&self, resolver: &mut R) -> Option<SourceSpan>;
+
+    /// Returns `true` if this span is synthetic.
+    ///
+    /// A synthetic span is one that was created programmatically, rather than being derived from a
+    /// source file.
+    ///
+    /// Synthetic spans are attached to the closest source file, if no file can be found, an error
+    /// will be rendered instead.
+    fn is_synthetic(&self) -> bool;
 }
 
 /// An absolute span representing a resolved location within a source file.
@@ -113,6 +122,7 @@ impl SourceSpan {
     /// # impl<R> DiagnosticSpan<R> for SimpleSpan {
     /// #     fn source(&self) -> SourceId { self.source_id }
     /// #     fn absolute(&self, _: &mut R) -> Option<SourceSpan> { Some(SourceSpan::from_parts(self.source_id, self.range)) }
+    /// #     fn is_synthetic(&self) -> bool { false }
     /// # }
     /// # struct DummyResolver;
     ///

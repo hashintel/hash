@@ -174,6 +174,10 @@ mod tests {
         fn absolute(&self, _: &mut R) -> Option<SourceSpan> {
             Some(SourceSpan::from_parts(SourceId::new_unchecked(0), self.0))
         }
+
+        fn is_synthetic(&self) -> bool {
+            false
+        }
     }
 
     // Helper to create test spans

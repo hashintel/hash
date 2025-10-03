@@ -1,6 +1,7 @@
 use core::ops::Range;
 
 use hashql_diagnostics::source::{SourceId, SourceSpan};
+use text_size::{TextRange, TextSize};
 
 use super::{Span, SpanAncestors, SpanAncestorsMut, SpanId, SpanResolutionMode};
 
@@ -53,7 +54,7 @@ impl<S> SpanTable<S> {
     #[must_use]
     pub const fn new(source: SourceId) -> Self {
         assert!(
-            source.value() < SpanId::MAX_SOURCE_ID,
+            source.value() <= SpanId::MAX_SOURCE_ID,
             "source ID exceeds maximum"
         );
 
@@ -145,7 +146,7 @@ impl<S> SpanTable<S> {
             ancestors: ancestors_index..(ancestors_index + ancestors.spans.len()),
         });
 
-        assert!(index < SpanId::MAX_ID, "span index overflow");
+        assert!(index <= SpanId::MAX_ID, "span index overflow");
         SpanId::new(self.source_id, index)
     }
 
@@ -333,6 +334,14 @@ impl<S> SpanTable<S> {
             depth <= 32,
             "Cannot resolve excessively deep span of {depth}, likely due to a circular dependency"
         );
+
+        // Special case synthetic spans, which have no source location
+        if span == SpanId::SYNTHETIC {
+            return Some(SourceSpan::from_parts(
+                self.source_id,
+                TextRange::empty(TextSize::new(0)),
+            ));
+        }
 
         let entry = self.get_entry(span)?;
         let ancestors = &self.ancestors[entry.ancestors.clone()];

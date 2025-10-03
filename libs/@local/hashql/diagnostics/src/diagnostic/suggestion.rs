@@ -221,11 +221,7 @@ impl<S> Suggestions<S> {
 
 #[cfg(feature = "render")]
 impl<S> Suggestions<S> {
-    #[expect(
-        clippy::panic_in_result_fn,
-        clippy::indexing_slicing,
-        reason = "chunks are always non-empty"
-    )]
+    #[expect(clippy::panic_in_result_fn, reason = "chunks are always non-empty")]
     pub(crate) fn render<'this, R>(
         &'this self,
         mut group: Group<'this>,
@@ -236,13 +232,18 @@ impl<S> Suggestions<S> {
     {
         use annotate_snippets::{Level, Snippet};
 
-        for chunk in self
-            .patches
-            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
-        {
+        for chunk in self.patches.chunk_by(|lhs, rhs| {
+            lhs.span().source() == rhs.span().source()
+                || lhs.span().is_synthetic()
+                || rhs.span().is_synthetic()
+        }) {
             assert!(!chunk.is_empty());
 
-            let source_id = chunk[0].span().source();
+            let source_id = chunk
+                .iter()
+                .find_map(|patch| (!patch.span().is_synthetic()).then(|| patch.span().source()))
+                .ok_or(RenderError::ConcreteSourceNotFound)?;
+
             let source = context
                 .sources
                 .get(source_id)
@@ -255,7 +256,9 @@ impl<S> Suggestions<S> {
                     RenderError::SpanNotFound(None, span) => {
                         RenderError::SpanNotFound(Some(source_id), span)
                     }
-                    RenderError::SourceNotFound(_) | RenderError::SpanNotFound(Some(_), _) => error,
+                    RenderError::SourceNotFound(_)
+                    | RenderError::SpanNotFound(Some(_), _)
+                    | RenderError::ConcreteSourceNotFound => error,
                 })?;
                 snippet = snippet.patch(patch);
             }
