@@ -299,6 +299,8 @@ impl SpanId {
     /// The encoding means synthetic spans technically belong to source ID 4095 with the maximum
     /// possible span index (`u32::MAX`), but these values are meaningless since synthetic spans
     /// don't reference real table entries.
+    ///
+    /// [`SYNTHETIC`]: SpanId::SYNTHETIC
     pub const SYNTHETIC: Self = Self(u32::MAX);
 
     pub(crate) const fn new(source: SourceId, id: u32) -> Self {
