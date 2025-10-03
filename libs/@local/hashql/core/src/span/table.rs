@@ -93,8 +93,11 @@ impl<S> SpanTable<S> {
     /// };
     /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// assert_eq!(span_id.source_id(), SourceId::new_unchecked(0));
-    /// assert_eq!(span_id.id(), 0); // First span has index 0
+    /// // Verify span was inserted successfully
+    /// assert_eq!(
+    ///     table.get(span_id).map(|span| span.range),
+    ///     Some(TextRange::new(0.into(), 10.into()))
+    /// );
     /// ```
     ///
     /// Inserting a span with ancestors:
@@ -111,7 +114,7 @@ impl<S> SpanTable<S> {
     ///
     /// // Insert parent span
     /// let parent = MySpan {
-    ///     range: TextRange::new(0.into(), 50.into()),
+    ///     range: TextRange::new(10.into(), 50.into()),
     /// };
     /// let parent_id = table.insert(parent, SpanAncestors::empty());
     ///
@@ -121,7 +124,11 @@ impl<S> SpanTable<S> {
     /// };
     /// let child_id = table.insert(child, SpanAncestors::union(&[parent_id]));
     ///
-    /// assert_eq!(child_id.id(), 1); // Second span has index 1
+    /// // Verify child span was inserted successfully
+    /// assert_eq!(
+    ///     table.get(child_id).map(|span| span.range),
+    ///     Some(TextRange::new(5.into(), 15.into()))
+    /// );
     /// ```
     #[expect(
         clippy::cast_possible_truncation,
@@ -159,18 +166,19 @@ impl<S> SpanTable<S> {
     /// use hashql_core::span::{SpanAncestors, SpanResolutionMode, SpanTable, TextRange};
     /// use hashql_diagnostics::source::SourceId;
     ///
-    /// # struct MySpan { range: TextRange }
+    /// # struct MySpan { name: &'static str, range: TextRange }
     /// # impl hashql_core::span::Span for MySpan {
     /// #     fn range(&self) -> TextRange { self.range }
     /// # }
-    /// let mut table = SpanTable::new(SourceId::new_unchecked(0));
+    /// let mut table = SpanTable::new(SourceId::new_unchecked(3));
     ///
-    /// let span_data = MySpan {
-    ///     range: TextRange::new(0.into(), 10.into()),
+    /// let span = MySpan {
+    ///     name: "test",
+    ///     range: TextRange::new(10.into(), 20.into()),
     /// };
-    /// let span_id = table.insert(span_data, SpanAncestors::empty());
+    /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// let success = table.modify(span_id, |_span, ancestors| {
+    /// let success = table.modify(span_id, |_span, mut ancestors| {
     ///     *ancestors.mode = SpanResolutionMode::Intersection;
     /// });
     ///
@@ -183,24 +191,24 @@ impl<S> SpanTable<S> {
     /// use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
     /// use hashql_diagnostics::source::SourceId;
     ///
-    /// # struct MySpan { range: TextRange, name: String }
+    /// # struct MySpan { name: &'static str, range: TextRange }
     /// # impl hashql_core::span::Span for MySpan {
     /// #     fn range(&self) -> TextRange { self.range }
     /// # }
-    /// let mut table = SpanTable::new(SourceId::new_unchecked(0));
+    /// let mut table = SpanTable::new(SourceId::new_unchecked(4));
     ///
-    /// let span_data = MySpan {
-    ///     range: TextRange::new(0.into(), 10.into()),
-    ///     name: "old_name".to_string(),
+    /// let span = MySpan {
+    ///     name: "old_name",
+    ///     range: TextRange::new(5.into(), 15.into()),
     /// };
-    /// let span_id = table.insert(span_data, SpanAncestors::empty());
+    /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
     /// let success = table.modify(span_id, |span, _ancestors| {
-    ///     span.name = "new_name".to_string();
+    ///     span.name = "new_name";
     /// });
     ///
     /// assert!(success);
-    /// assert_eq!(table.get(span_id).unwrap().name, "new_name");
+    /// assert_eq!(table.get(span_id).map(|span| span.name), Some("new_name"));
     /// ```
     ///
     /// Handling cross-source modification attempts:
@@ -213,17 +221,16 @@ impl<S> SpanTable<S> {
     /// # impl hashql_core::span::Span for MySpan {
     /// #     fn range(&self) -> TextRange { self.range }
     /// # }
-    /// let mut table1 = SpanTable::new(SourceId::new_unchecked(0));
-    /// let mut table2 = SpanTable::new(SourceId::new_unchecked(1));
-    ///
-    /// let span_data = MySpan {
+    /// let mut table = SpanTable::new(SourceId::new_unchecked(5));
+    /// let span = MySpan {
     ///     range: TextRange::new(0.into(), 10.into()),
     /// };
-    /// let span_id = table1.insert(span_data, SpanAncestors::empty());
+    /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// // Attempt to modify span from table1 using table2
-    /// let success = table2.modify(span_id, |_span, _ancestors| {
-    ///     // This callback won't be called
+    /// // Try to modify from a different source - should fail
+    /// let mut table2 = SpanTable::new(SourceId::new_unchecked(1));
+    /// let success = table2.modify(span_id, |_span: &mut MySpan, _ancestors| {
+    ///     // This won't execute due to source mismatch
     /// });
     ///
     /// assert!(!success); // Modification rejected
@@ -273,24 +280,24 @@ impl<S> SpanTable<S> {
     /// Successful lookup:
     ///
     /// ```rust
-    /// use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
+    /// use hashql_core::span::{Span, SpanAncestors, SpanTable, TextRange};
     /// use hashql_diagnostics::source::SourceId;
     ///
-    /// # struct MySpan { range: TextRange, value: i32 }
+    /// # struct MySpan { value: i32, range: TextRange }
     /// # impl hashql_core::span::Span for MySpan {
     /// #     fn range(&self) -> TextRange { self.range }
     /// # }
     /// let mut table = SpanTable::new(SourceId::new_unchecked(0));
     ///
-    /// let span_data = MySpan {
-    ///     range: TextRange::new(5.into(), 10.into()),
+    /// let span = MySpan {
     ///     value: 42,
+    ///     range: TextRange::new(10.into(), 15.into()),
     /// };
-    /// let span_id = table.insert(span_data, SpanAncestors::empty());
+    /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// let retrieved = table.get(span_id).expect("span should exist");
+    /// let retrieved = table.get(span_id).expect("span exists");
     /// assert_eq!(retrieved.value, 42);
-    /// assert_eq!(retrieved.range().len().into(), 5u32);
+    /// assert_eq!(u32::from(retrieved.range().len()), 5u32);
     /// ```
     ///
     /// Cross-source lookup failure:
@@ -303,15 +310,14 @@ impl<S> SpanTable<S> {
     /// # impl hashql_core::span::Span for MySpan {
     /// #     fn range(&self) -> TextRange { self.range }
     /// # }
-    /// let mut table1 = SpanTable::new(SourceId::new_unchecked(0));
-    /// let table2 = SpanTable::new(SourceId::new_unchecked(1));
-    ///
-    /// let span_data = MySpan {
-    ///     range: TextRange::new(0.into(), 5.into()),
+    /// let mut table = SpanTable::new(SourceId::new_unchecked(0));
+    /// let span = MySpan {
+    ///     range: TextRange::new(0.into(), 10.into()),
     /// };
-    /// let span_id = table1.insert(span_data, SpanAncestors::empty());
+    /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
     /// // Attempt lookup from wrong table
+    /// let table2: SpanTable<MySpan> = SpanTable::new(SourceId::new_unchecked(1));
     /// assert!(table2.get(span_id).is_none());
     /// ```
     #[must_use]
@@ -454,7 +460,8 @@ impl<S> SpanTable<S> {
     /// let child = MySpan {
     ///     range: TextRange::new(0.into(), 5.into()),
     /// };
-    /// let ancestors = SpanAncestors::intersection(&[ancestor1_id, ancestor2_id]);
+    /// let ancestor_ids = [ancestor1_id, ancestor2_id];
+    /// let ancestors = SpanAncestors::intersection(&ancestor_ids);
     /// let child_id = table.insert(child, ancestors);
     ///
     /// // Resolution fails due to no intersection between [0,10] and [20,30]

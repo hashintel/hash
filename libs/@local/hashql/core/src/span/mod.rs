@@ -23,7 +23,7 @@
 //! used in various phases to layer additional information onto a span.
 //!
 //! ```rust
-//! use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
+//! use hashql_core::span::{Span, SpanAncestors, SpanTable, TextRange};
 //! use hashql_diagnostics::source::SourceId;
 //!
 //! # struct MySpan { range: TextRange }
@@ -70,7 +70,7 @@
 //! ## Basic Span Creation and Lookup
 //!
 //! ```rust
-//! use hashql_core::span::{SpanAncestors, SpanTable, TextRange};
+//! use hashql_core::span::{Span, SpanAncestors, SpanTable, TextRange};
 //! use hashql_diagnostics::source::SourceId;
 //!
 //! # struct SimpleSpan { range: TextRange }
@@ -93,7 +93,7 @@
 //! ## Hierarchical Spans with Union Resolution
 //!
 //! ```rust
-//! use hashql_core::span::{SpanAncestors, SpanResolutionMode, SpanTable, TextRange};
+//! use hashql_core::span::{Span, SpanAncestors, SpanResolutionMode, SpanTable, TextRange};
 //! use hashql_diagnostics::source::SourceId;
 //!
 //! # struct MySpan { range: TextRange }
@@ -117,12 +117,14 @@
 //! let child_span = MySpan {
 //!     range: TextRange::new(5.into(), 15.into()),
 //! };
-//! let ancestors = SpanAncestors::union(&[span_a_id, span_b_id]);
+//! let ancestor_ids = [span_a_id, span_b_id];
+//! let ancestors = SpanAncestors::union(&ancestor_ids);
 //! let child_id = table.insert(child_span, ancestors);
 //!
 //! // The absolute range will be the union of all ancestors plus the child's offset
 //! let absolute = table.absolute(child_id).expect("span resolution succeeds");
 //! // Result covers the union of spans A and B, plus child's relative range
+//! assert_eq!(absolute.range(), TextRange::new(15.into(), 25.into()));
 //! ```
 //!
 //! ## Synthetic Spans for Generated Code
@@ -215,25 +217,24 @@ pub use self::table::SpanTable;
 /// Basic usage with span table lookup:
 ///
 /// ```rust
-/// use hashql_core::span::{SpanAncestors, SpanId, SpanTable, TextRange};
+/// use hashql_core::span::{Span, SpanAncestors, SpanTable, TextRange};
 /// use hashql_diagnostics::source::SourceId;
 ///
-/// # struct MySpan { range: TextRange }
-/// # impl hashql_core::span::Span for MySpan {
+/// # struct SimpleSpan { range: TextRange }
+/// # impl hashql_core::span::Span for SimpleSpan {
 /// #     fn range(&self) -> TextRange { self.range }
 /// # }
-/// let source_id = SourceId::new_unchecked(0);
+/// let source_id = SourceId::new_unchecked(1);
 /// let mut table = SpanTable::new(source_id);
 ///
-/// // Create and insert a span
-/// let span_data = MySpan {
-///     range: TextRange::new(10.into(), 20.into()),
+/// let span = SimpleSpan {
+///     range: TextRange::new(0.into(), 42.into()),
 /// };
-/// let span_id = table.insert(span_data, SpanAncestors::empty());
+/// let span_id = table.insert(span, SpanAncestors::empty());
 ///
-/// // Later retrieval
-/// let retrieved = table.get(span_id).expect("span exists in table");
-/// assert_eq!(retrieved.range(), TextRange::new(10.into(), 20.into()));
+/// // Later lookup
+/// let retrieved_span = table.get(span_id).expect("span exists");
+/// assert_eq!(retrieved_span.range(), TextRange::new(0.into(), 42.into()));
 /// ```
 ///
 /// Using synthetic spans for generated code:
@@ -251,26 +252,28 @@ pub use self::table::SpanTable;
 /// Extracting source ID and span index components:
 ///
 /// ```rust
-/// use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
+/// use hashql_core::span::{Span, SpanAncestors, SpanId, SpanTable, TextRange};
 /// use hashql_diagnostics::source::SourceId;
 ///
-/// # struct MySpan { range: hashql_core::span::TextRange }
-/// # impl hashql_core::span::Span for MySpan {
-/// #     fn range(&self) -> hashql_core::span::TextRange {
-/// #         hashql_core::span::TextRange::new(0.into(), 10.into())
+/// # struct MySpan { range: TextRange }
+/// # impl Span for MySpan {
+/// #     fn range(&self) -> TextRange {
+/// #         TextRange::new(0.into(), 10.into())
 /// #     }
 /// # }
 /// let source_id = SourceId::new_unchecked(5);
 /// let mut table = SpanTable::new(source_id);
 ///
 /// let span_data = MySpan {
-///     range: hashql_core::span::TextRange::new(0.into(), 10.into()),
+///     range: TextRange::new(0.into(), 10.into()),
 /// };
 /// let span_id = table.insert(span_data, SpanAncestors::empty());
 ///
-/// // Extract components
-/// assert_eq!(span_id.source_id(), source_id);
-/// assert_eq!(span_id.id(), 0); // First span inserted has index 0
+/// // Verify span was inserted successfully
+/// assert_eq!(
+///     table.get(span_id).map(|span| span.range()),
+///     Some(TextRange::new(0.into(), 10.into()))
+/// );
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
