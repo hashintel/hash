@@ -11,9 +11,25 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+    "Button": {
+      "import": "./dist/Button.js",
+      "types": "./dist/Button.d.ts"
+    },
+    "RefractivePane": {
+      "import": "./dist/RefractivePane.js",
+      "types": "./dist/RefractivePane.d.ts"
+    },
+    "SegmentedControl": {
+      "import": "./dist/SegmentedControl.js",
+      "types": "./dist/SegmentedControl.d.ts"
+    },
+    "Slider": {
+      "import": "./dist/Slider.js",
+      "types": "./dist/Slider.d.ts"
+    },
+    "Switch": {
+      "import": "./dist/Switch.js",
+      "types": "./dist/Switch.d.ts"
     }
   },
   "main": "./dist/index.js",
@@ -53,6 +69,7 @@
     "@storybook/react-vite": "9.1.8",
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
+    "@vitejs/plugin-react": "5.0.4",
     "eslint": "9.36.0",
     "eslint-plugin-storybook": "9.1.8",
     "lucide-react": "0.544.0",
