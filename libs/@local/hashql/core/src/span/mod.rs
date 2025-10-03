@@ -280,9 +280,9 @@ pub use self::table::SpanTable;
 pub struct SpanId(u32);
 
 impl SpanId {
-    pub(crate) const MAX_ID: u32 = 1 << Self::SOURCE_OFFSET;
-    pub(crate) const MAX_SOURCE_ID: u32 = 1 << (u32::BITS - Self::SOURCE_OFFSET);
-    const SOURCE_MASK: u32 = (1 << Self::SOURCE_OFFSET) - 1;
+    const ID_MASK: u32 = (1 << Self::SOURCE_OFFSET) - 1;
+    pub(crate) const MAX_ID: u32 = (1 << Self::SOURCE_OFFSET) - 1;
+    pub(crate) const MAX_SOURCE_ID: u32 = (1 << (u32::BITS - Self::SOURCE_OFFSET)) - 1;
     const SOURCE_OFFSET: u32 = 20;
     /// A special span ID for compiler-generated nodes that don't correspond to actual source code.
     ///
@@ -304,7 +304,7 @@ impl SpanId {
     pub const SYNTHETIC: Self = Self(u32::MAX);
 
     pub(crate) const fn new(source: SourceId, id: u32) -> Self {
-        Self((source.value() << Self::SOURCE_OFFSET) | (id & Self::SOURCE_MASK))
+        Self((source.value() << Self::SOURCE_OFFSET) | (id & Self::ID_MASK))
     }
 
     pub(crate) const fn source_id(self) -> SourceId {
@@ -312,7 +312,7 @@ impl SpanId {
     }
 
     pub(crate) const fn id(self) -> u32 {
-        self.0 & Self::SOURCE_MASK
+        self.0 & Self::ID_MASK
     }
 }
 
@@ -492,6 +492,10 @@ where
 
     fn absolute(&self, resolver: &mut &SpanTable<S>) -> Option<SourceSpan> {
         resolver.absolute(*self)
+    }
+
+    fn is_synthetic(&self) -> bool {
+        *self == Self::SYNTHETIC
     }
 }
 
