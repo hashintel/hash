@@ -41,6 +41,10 @@ use super::SourceId;
 ///     fn absolute(&self, _resolver: &mut R) -> Option<SourceSpan> {
 ///         Some(SourceSpan::from_parts(self.source_id, self.range))
 ///     }
+///
+///     fn is_synthetic(&self) -> bool {
+///         false
+///     }
 /// }
 /// ```
 pub trait DiagnosticSpan<R>: Display {
