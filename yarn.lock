@@ -314,7 +314,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
-    openai: "npm:4.104.0"
+    openai: "npm:5.23.2"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.3"
     pdf2json: "npm:3.2.0"
@@ -432,7 +432,7 @@ __metadata:
     nanoid: "npm:3.3.11"
     nodemailer: "npm:6.10.1"
     oembed-providers: "npm:1.0.20250715"
-    openai: "npm:4.104.0"
+    openai: "npm:5.23.2"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.20.3"
@@ -36132,7 +36132,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:4.104.0, openai@npm:^4.73.1":
+"openai@npm:5.23.2":
+  version: 5.23.2
+  resolution: "openai@npm:5.23.2"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 10c0/8ee37f37c64fd04a61622c4782d231e8f0245e2d85956d833e43d30946edbf07d5276cd74e09aa5d23006de8da43dad312246a9dd7ca6ca6d65d983fc976ffa6
+  languageName: node
+  linkType: hard
+
+"openai@npm:^4.73.1":
   version: 4.104.0
   resolution: "openai@npm:4.104.0"
   dependencies:

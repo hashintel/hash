@@ -78,7 +78,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.2.0",
-    "openai": "4.104.0",
+    "openai": "5.23.2",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.5.3",
     "pdf2json": "3.2.0",
