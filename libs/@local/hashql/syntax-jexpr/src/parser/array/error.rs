@@ -1,13 +1,13 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,
 };
-use winnow::error::{ContextError, ParseError};
+use winnow::error::ContextError;
 
 use crate::{lexer::error::LexerDiagnosticCategory, span::Span};
 
@@ -276,10 +276,10 @@ pub(crate) fn labeled_arguments_length_mismatch(
 const LABELED_ARGUMENT_IDENTIFIER_HELP: &str =
     "Labeled argument identifiers must be valid HashQL identifiers";
 
-pub(crate) fn labeled_argument_invalid_identifier<I>(
-    spans: &SpanStorage<Span>,
+pub(crate) fn labeled_argument_invalid_identifier(
+    spans: &mut SpanTable<Span>,
     label_span: SpanId,
-    parse_error: ParseError<I, ContextError>,
+    parse_error: (usize, ContextError),
 ) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,

@@ -19,7 +19,7 @@ const PARSE_EXPR_KINDS: SyntaxKindSet = SyntaxKindSet::from_slice(&[
 ]);
 
 pub(crate) fn parse_expr<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     let token = state
         .advance(PARSE_EXPR_KINDS)

@@ -32,7 +32,7 @@ pub(crate) struct DictNode<'heap> {
 
 impl<'heap> DictNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_dict(state)?;
@@ -53,7 +53,7 @@ impl<'heap> DictNode<'heap> {
 impl<'heap> State<'heap> for DictNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#dict", self.key_span, &mut self.r#type, state, &key)?;
@@ -62,7 +62,7 @@ impl<'heap> State<'heap> for DictNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -76,7 +76,7 @@ impl<'heap> State<'heap> for DictNode<'heap> {
 }
 
 fn parse_dict_object<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
@@ -122,7 +122,7 @@ fn parse_dict_object<'heap, 'source>(
 }
 
 fn parse_dict_array<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     let mut entries = Vec::new();
@@ -196,7 +196,7 @@ fn parse_dict_array<'heap, 'source>(
 }
 
 fn parse_dict<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<DictExpr<'heap>, ParserDiagnostic> {
     // We're parsing everything here, so that we're able to improve the error message
     let token = state

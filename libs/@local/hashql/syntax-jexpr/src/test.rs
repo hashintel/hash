@@ -1,4 +1,4 @@
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic,
     category::DiagnosticCategory,
@@ -11,7 +11,7 @@ use crate::span::Span;
 pub(crate) fn render_diagnostic<C>(
     source: &str,
     diagnostic: &Diagnostic<C, SpanId>,
-    mut spans: &SpanStorage<Span>,
+    mut spans: &SpanTable<Span>,
 ) -> String
 where
     C: DiagnosticCategory,

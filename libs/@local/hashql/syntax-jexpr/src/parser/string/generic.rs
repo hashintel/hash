@@ -22,17 +22,16 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    parse_type
+    let (r#type, span) = parse_type
         .with_span()
-        .map(|(r#type, span)| GenericArgument {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            r#type: context.heap.boxed(r#type),
-        })
         .context(StrContext::Label("generic argument"))
-        .parse_next(input)
+        .parse_next(input)?;
+
+    Ok(GenericArgument {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        r#type: input.state.heap.boxed(r#type),
+    })
 }
 
 pub(crate) fn parse_generic_constraint<'heap, 'span, 'source, E>(
@@ -42,18 +41,17 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    (parse_ident, preceded(ws(":"), parse_type))
+    let ((name, bound), span) = (parse_ident, preceded(ws(":"), parse_type))
         .with_span()
-        .map(|((name, bound), span)| GenericConstraint {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            name,
-            bound: Some(context.heap.boxed(bound)),
-        })
         .context(StrContext::Label("generic constraint"))
-        .parse_next(input)
+        .parse_next(input)?;
+
+    Ok(GenericConstraint {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        name,
+        bound: Some(input.state.heap.boxed(bound)),
+    })
 }
 
 fn parse_generic_param<'heap, 'span, 'source, E>(
@@ -63,18 +61,17 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    (parse_ident, opt(preceded(ws(":"), parse_type)))
+    let ((name, bound), span) = (parse_ident, opt(preceded(ws(":"), parse_type)))
         .with_span()
-        .map(|((name, bound), span)| GenericParam {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            name,
-            bound: bound.map(|bound| context.heap.boxed(bound)),
-        })
         .context(StrContext::Label("generic parameter"))
-        .parse_next(input)
+        .parse_next(input)?;
+
+    Ok(GenericParam {
+        id: NodeId::PLACEHOLDER,
+        span: input.state.span(span),
+        name,
+        bound: bound.map(|bound| input.state.heap.boxed(bound)),
+    })
 }
 
 #[expect(clippy::allow_attributes, reason = "except doesn't work here")]
@@ -89,21 +86,20 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    delimited(
+    let (params, span) = delimited(
         ws("<"),
-        separated_alloc1(context.heap, parse_generic_param, ws(",")),
+        separated_alloc1(input.state.heap, parse_generic_param, ws(",")),
         ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     )
     .with_span()
-    .map(|(params, span)| Generics {
+    .context(StrContext::Label("generics"))
+    .parse_next(input)?;
+
+    Ok(Generics {
         id: NodeId::PLACEHOLDER,
-        span: context.span(span),
+        span: input.state.span(span),
         params,
     })
-    .context(StrContext::Label("generics"))
-    .parse_next(input)
 }
 
 #[cfg(test)]

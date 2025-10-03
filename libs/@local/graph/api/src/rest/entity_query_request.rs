@@ -14,7 +14,7 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::borrow::Cow;
 use core::{cmp, ops::Range};
 
 use axum::{
@@ -39,7 +39,7 @@ use hashql_core::{
     collection::fast_hash_map,
     heap::Heap,
     module::ModuleRegistry,
-    span::{SpanId, storage::SpanStorage},
+    span::{SpanId, SpanTable},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -47,7 +47,7 @@ use hashql_diagnostics::{
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
     severity::Critical,
-    source::{Source, Sources},
+    source::{DiagnosticSpan, Source, SourceId, Sources},
 };
 use hashql_eval::{
     error::EvalDiagnosticCategory,
@@ -253,25 +253,25 @@ struct ResolvedSpan {
     pub pointer: Option<String>,
 }
 
-fn resolve_span(id: SpanId, spans: &SpanStorage<Span>) -> Option<ResolvedSpan> {
-    let ancestors = spans.ancestors(id);
+fn resolve_span(id: SpanId, mut spans: &SpanTable<Span>) -> Option<ResolvedSpan> {
+    let absolute = DiagnosticSpan::absolute(&id, &mut spans)?;
+    let mut pointer = spans.get(id)?.pointer.as_ref().map(ToString::to_string);
 
-    let mut base = spans.get_cloned(id)?;
+    for ancestor in spans.ancestors(id) {
+        let Some(ancestor) = spans.get(ancestor) else {
+            continue;
+        };
 
-    for ancestor in ancestors {
-        let parent = spans.get(ancestor)?;
-        base.range += parent.map(|parent| parent.range.start());
-
-        if base.pointer.is_none()
-            && let Some(pointer) = parent.cloned().pointer
+        if pointer.is_none()
+            && let Some(ancestor_pointer) = &ancestor.pointer
         {
-            base.pointer = Some(pointer);
+            pointer = Some(ancestor_pointer.to_string());
         }
     }
 
     Some(ResolvedSpan {
-        range: base.range.into(),
-        pointer: base.pointer.map(|ptr| ptr.to_string()),
+        range: absolute.range().into(),
+        pointer,
     })
 }
 
@@ -279,7 +279,7 @@ fn issues_to_response(
     issues: DiagnosticIssues<HashQLDiagnosticCategory, SpanId>,
     severity: Severity,
     source: &str,
-    mut spans: &SpanStorage<Span>,
+    mut spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     let status_code = match severity {
@@ -311,7 +311,7 @@ fn issues_to_response(
 fn failure_to_response(
     failure: Failure<HashQLDiagnosticCategory, SpanId>,
     source: &str,
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     // Find the highest diagnostic level
@@ -336,13 +336,13 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    fn compile_query<'h>(
-        heap: &'h Heap,
-        spans: Arc<SpanStorage<Span>>,
+    fn compile_query<'heap>(
+        heap: &'heap Heap,
+        spans: &mut SpanTable<Span>,
         query: &RawJsonValue,
-    ) -> Status<Filter<'h, Entity>, HashQLDiagnosticCategory, SpanId> {
+    ) -> Status<Filter<'heap, Entity>, HashQLDiagnosticCategory, SpanId> {
         // Parse the query
-        let parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
         let mut ast = parser
             .parse_expr(query.get().as_bytes())
             .map_err(|diagnostic| {
@@ -452,12 +452,12 @@ impl<'q> EntityQuery<'q> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
             EntityQuery::Query { query } => {
-                let spans = Arc::new(SpanStorage::new());
+                let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
 
                 let Success {
                     value: filter,
                     advisories,
-                } = Self::compile_query(heap, Arc::clone(&spans), query).map_err(|failure| {
+                } = Self::compile_query(heap, &mut spans, query).map_err(|failure| {
                     failure_to_response(failure, query.get(), &spans, options)
                 })?;
                 if !advisories.is_empty() {

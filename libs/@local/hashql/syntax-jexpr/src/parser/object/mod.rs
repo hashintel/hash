@@ -29,13 +29,13 @@ pub(crate) mod visit;
 trait State<'heap> {
     fn handle(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic>;
 
     fn build(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic>;
 }
@@ -56,7 +56,7 @@ enum ObjectState<'heap> {
 impl<'heap> State<'heap> for ObjectState<'heap> {
     fn handle(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         match self {
@@ -72,7 +72,7 @@ impl<'heap> State<'heap> for ObjectState<'heap> {
 
     fn build(
         self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         match self {
@@ -88,7 +88,7 @@ impl<'heap> State<'heap> for ObjectState<'heap> {
 }
 
 pub(crate) fn parse_object<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     let mut current = ObjectState::Initial(Initial);

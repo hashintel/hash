@@ -14,10 +14,14 @@ pub(crate) enum VerifyState {
 }
 
 pub(crate) fn verify_no_repeat<C>(
-    state: &mut ParserState<'_, '_>,
+    state: &mut ParserState<'_, '_, '_>,
     deny: SyntaxKindSet,
     end: SyntaxKindSet,
-    on_error: impl FnOnce(&ParserState<'_, '_>, Vec<SpanId>, VerifyState) -> Diagnostic<C, SpanId>,
+    on_error: impl FnOnce(
+        &mut ParserState<'_, '_, '_>,
+        Vec<SpanId>,
+        VerifyState,
+    ) -> Diagnostic<C, SpanId>,
 ) -> Result<(), Diagnostic<C, SpanId>>
 where
     C: From<LexerDiagnosticCategory>,
