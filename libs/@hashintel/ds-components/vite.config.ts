@@ -3,6 +3,16 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
+// Dependencies that should not be bundled into the library
+const external = [
+  "@ark-ui/react",
+  "@hashintel/ds-styled-system",
+  "canvas",
+  "motion",
+  "react",
+  "react-dom",
+];
+
 export default defineConfig({
   plugins: [
     react(),
@@ -33,7 +43,7 @@ export default defineConfig({
       fileName: "index",
     },
     rollupOptions: {
-      external: ["react", "react-dom"],
+      external,
       output: {
         preserveModules: true,
         preserveModulesRoot: "src",
