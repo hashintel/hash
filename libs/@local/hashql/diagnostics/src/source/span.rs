@@ -18,7 +18,7 @@ use super::SourceId;
 /// ```
 /// use core::fmt;
 ///
-/// use hashql_diagnostics::source::{DiagnosticSpan, SourceId};
+/// use hashql_diagnostics::source::{DiagnosticSpan, SourceId, SourceSpan};
 /// use text_size::TextRange;
 ///
 /// #[derive(Debug)]
@@ -38,18 +38,26 @@ use super::SourceId;
 ///         self.source_id
 ///     }
 ///
-///     fn span(&self, _resolver: &mut R) -> Option<TextRange> {
-///         Some(self.range)
-///     }
-///
-///     fn ancestors(&self, _resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
-///         [] // No ancestors for this simple span
+///     fn absolute(&self, _resolver: &mut R) -> Option<SourceSpan> {
+///         Some(SourceSpan::from_parts(self.source_id, self.range))
 ///     }
 /// }
 /// ```
 pub trait DiagnosticSpan<R>: Display {
+    /// Returns the source file identifier for this span.
+    ///
+    /// The returned [`SourceId`] identifies which source file this span
+    /// references within a [`Sources`] collection.
+    ///
+    /// [`Sources`]: super::Sources
     fn source(&self) -> SourceId;
 
+    /// Returns the absolute location of this span within its source file.
+    ///
+    /// The returned [`SourceSpan`] represents the resolved location of this
+    /// span within the source file identified by [`source()`].
+    ///
+    /// [`source()`]: DiagnosticSpan::source
     fn absolute(&self, resolver: &mut R) -> Option<SourceSpan>;
 }
 
@@ -104,8 +112,7 @@ impl SourceSpan {
     /// # }
     /// # impl<R> DiagnosticSpan<R> for SimpleSpan {
     /// #     fn source(&self) -> SourceId { self.source_id }
-    /// #     fn span(&self, _: &mut R) -> Option<TextRange> { Some(self.range) }
-    /// #     fn ancestors(&self, _: &mut R) -> impl IntoIterator<Item = Self> + use<R> { [] }
+    /// #     fn absolute(&self, _: &mut R) -> Option<SourceSpan> { Some(SourceSpan::from_parts(self.source_id, self.range)) }
     /// # }
     /// # struct DummyResolver;
     ///
