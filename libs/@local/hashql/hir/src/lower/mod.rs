@@ -13,6 +13,7 @@ use self::{
 use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
 pub mod alias;
+pub mod anf;
 pub mod checking;
 pub mod ctor;
 pub mod error;
