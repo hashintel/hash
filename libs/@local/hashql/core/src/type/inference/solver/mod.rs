@@ -402,7 +402,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // meaning it won't be rerun.
                         self.persistent_diagnostics
                             .push(conflicting_equality_constraints(
-                                &self.lattice,
+                                &*self.lattice,
                                 variable,
                                 self.lattice.r#type(lhs),
                                 self.lattice.r#type(rhs),
@@ -578,7 +578,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             // this is a persistent diagnostic
                             self.persistent_diagnostics
                                 .push(conflicting_equality_constraints(
-                                    &self.lattice,
+                                    &*self.lattice,
                                     variable,
                                     self.lattice.r#type(existing),
                                     self.lattice.r#type(r#type),
@@ -1125,7 +1125,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             {
                 // Report error: incompatible bounds
                 self.diagnostics.push(bound_constraint_violation(
-                    &self.lattice,
+                    &*self.lattice,
                     variable,
                     self.lattice.r#type(lower),
                     self.lattice.r#type(upper),

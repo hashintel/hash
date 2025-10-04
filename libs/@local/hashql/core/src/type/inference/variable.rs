@@ -40,7 +40,7 @@ impl Variable {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Variable {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Variable {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -103,12 +103,8 @@ impl VariableKind {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for VariableKind {
-    fn pretty(
-        &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+impl<'heap, E> PrettyPrint<'heap, E> for VariableKind {
+    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> pretty::RcDoc<'heap, anstyle::Style> {
         match self {
             Self::Hole(id) => RcDoc::text(format!("_{id}")),
             Self::Generic(id) => RcDoc::text(format!("?{id}")),

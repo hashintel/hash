@@ -244,8 +244,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
 }
 
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
-pub(crate) fn type_mismatch<'heap, T, U>(
-    env: &Environment<'heap>,
+pub(crate) fn type_mismatch<'heap, E, T, U>(
+    env: &E,
 
     lhs: Type<'heap, T>,
     rhs: Type<'heap, U>,
@@ -253,8 +253,8 @@ pub(crate) fn type_mismatch<'heap, T, U>(
     help: Option<&str>,
 ) -> TypeCheckDiagnostic
 where
-    T: PrettyPrint<'heap>,
-    U: PrettyPrint<'heap>,
+    T: PrettyPrint<'heap, E>,
+    U: PrettyPrint<'heap, E>,
 {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
@@ -293,13 +293,7 @@ where
 ///
 /// This error occurs when type inference cannot determine a concrete type for a variable
 /// because it wasn't constrained by any usage in the code.
-pub(crate) fn no_type_inference<'heap, K>(
-    env: &Environment<'heap>,
-    infer_type: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+pub(crate) fn no_type_inference<K>(infer_type: Type<'_, K>) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::NoTypeInference,
         // This is a compiler bug, as we should've encountered the `Infer` at an earlier stage
@@ -308,11 +302,6 @@ where
     .primary(Label::new(
         infer_type.span,
         "cannot infer the type of this expression; it is unconstrained",
-    ));
-
-    diagnostic.labels.push(Label::new(
-        env.source,
-        "no constraints were generated for this type variable",
     ));
 
     diagnostic.add_message(Message::help(
@@ -327,6 +316,11 @@ where
          more type information.",
     ));
 
+    diagnostic.add_message(Message::note(
+        "The variable was missed in an earlier compilation stage and has had no constraints \
+         generated for it.",
+    ));
+
     diagnostic
 }
 
@@ -335,10 +329,7 @@ pub(crate) fn circular_type_reference<'heap, K>(
     span: SpanId,
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::Warning).primary(
             Label::new(span, "Circular type reference detected in this expression"),
@@ -374,10 +365,7 @@ pub(crate) fn tuple_length_mismatch<'heap, K>(
     rhs: Type<'heap, K>,
     lhs_len: usize,
     rhs_len: usize,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleLengthMismatch,
         Severity::Error,
@@ -427,10 +415,7 @@ pub(crate) fn opaque_type_name_mismatch<'heap, K>(
 
     lhs_name: Symbol<'heap>,
     rhs_name: Symbol<'heap>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::OpaqueTypeNameMismatch,
         Severity::Error,
@@ -464,14 +449,14 @@ where
 
 /// Creates a diagnostic for when a union type variant doesn't match any variant in the expected
 /// union type
-pub(crate) fn union_variant_mismatch<'heap, K1, K2>(
-    env: &Environment<'heap>,
+pub(crate) fn union_variant_mismatch<'heap, E, K1, K2>(
+    env: &E,
     bad_variant: Type<'heap, K1>,
     expected_union: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    K1: PrettyPrint<'heap>,
-    K2: PrettyPrint<'heap>,
+    K1: PrettyPrint<'heap, E>,
+    K2: PrettyPrint<'heap, E>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnionVariantMismatch,
@@ -523,10 +508,7 @@ pub(crate) fn function_parameter_count_mismatch<'heap, K>(
 
     lhs_param_count: usize,
     rhs_param_count: usize,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::FunctionParameterCountMismatch,
         Severity::Error,
@@ -564,25 +546,28 @@ where
     diagnostic
 }
 
-pub(crate) fn cannot_be_subtype_of_never<'heap, K>(
-    env: &Environment<'heap>,
-    actual_type: Type<'heap, K>,
+pub(crate) fn cannot_be_subtype_of_never<'heap, E, K, L>(
+    env: &E,
+    subtype: Type<'heap, K>,
+    supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, E>,
 {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
-            Label::new(env.source, "This type cannot be a subtype of `!`"),
+            Label::new(
+                subtype.span,
+                format!(
+                    "`{}` cannot be a subtype of `!`",
+                    subtype.kind.pretty_print(env, PrettyOptions::default())
+                ),
+            ),
         );
 
-    diagnostic.labels.push(Label::new(
-        actual_type.span,
-        format!(
-            "This type `{}` has values, but `!` has no values",
-            actual_type.kind.pretty_print(env, PrettyOptions::default())
-        ),
-    ));
+    diagnostic
+        .labels
+        .push(Label::new(supertype.span, "this is of type `!`"));
 
     diagnostic.add_message(Message::help(
         "Only the `!` (Never) type itself can be a subtype of `!`. Any type with values cannot be \
@@ -597,25 +582,28 @@ where
     diagnostic
 }
 
-pub(crate) fn cannot_be_supertype_of_unknown<'heap, K>(
-    env: &Environment<'heap>,
-    actual_type: Type<'heap, K>,
+pub(crate) fn cannot_be_supertype_of_unknown<'heap, E, K, L>(
+    env: &E,
+    subtype: Type<'heap, K>,
+    supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    L: PrettyPrint<'heap, E>,
 {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
-            Label::new(env.source, "This type cannot be a supertype of `?`"),
+            Label::new(
+                supertype.span,
+                format!(
+                    "`{}` type cannot be a supertype of `?`",
+                    supertype.kind.pretty_print(env, PrettyOptions::default())
+                ),
+            ),
         );
 
-    diagnostic.labels.push(Label::new(
-        actual_type.span,
-        format!(
-            "{} is more specific than `?`",
-            actual_type.kind.pretty_print(env, PrettyOptions::default())
-        ),
-    ));
+    diagnostic
+        .labels
+        .push(Label::new(subtype.span, "this is of type `?`"));
 
     diagnostic.add_message(Message::help(
         "Only the `?` (Unknown) type itself can be a supertype of `?`.",
@@ -630,14 +618,14 @@ where
     diagnostic
 }
 
-pub(crate) fn intersection_variant_mismatch<'heap, K1, K2>(
-    env: &Environment<'heap>,
+pub(crate) fn intersection_variant_mismatch<'heap, E, K1, K2>(
+    env: &E,
     variant: Type<'heap, K1>,
     expected_intersection: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    K1: PrettyPrint<'heap>,
-    K2: PrettyPrint<'heap>,
+    K1: PrettyPrint<'heap, E>,
+    K2: PrettyPrint<'heap, E>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IntersectionVariantMismatch,
@@ -686,10 +674,7 @@ pub(crate) fn struct_field_mismatch<'heap, K>(
     span: SpanId,
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::StructFieldMismatch,
         Severity::Error,
@@ -727,10 +712,7 @@ pub fn duplicate_struct_field<'heap, K>(
     span: SpanId,
     struct_type: Type<'heap, K>,
     field_name: Symbol<'heap>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::DuplicateStructField,
         Severity::Error,
@@ -766,10 +748,7 @@ pub(crate) fn missing_struct_field<'heap, K>(
     subtype: Type<'heap, K>,
     supertype: Type<'heap, K>,
     field_name: Symbol<'heap>,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::MissingStructField,
         Severity::Error,
@@ -863,7 +842,7 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap, K>(
     equals: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleLowerEqualConstraint,
@@ -931,7 +910,7 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap, K>(
     upper: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleUpperEqualConstraint,
@@ -991,14 +970,14 @@ where
 }
 
 /// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
-pub(crate) fn bound_constraint_violation<'heap, K>(
-    env: &Environment<'heap>,
+pub(crate) fn bound_constraint_violation<'heap, E, K>(
+    env: &E,
     variable: Variable,
     lower_bound: Type<'heap, K>,
     upper_bound: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, E>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::BoundConstraintViolation,
@@ -1073,14 +1052,14 @@ where
 }
 
 /// Creates a diagnostic for when a type variable has incompatible equality constraints
-pub(crate) fn conflicting_equality_constraints<'heap, K>(
-    env: &Environment<'heap>,
+pub(crate) fn conflicting_equality_constraints<'heap, E, K>(
+    env: &E,
     variable: Variable,
     existing: Type<'heap, K>,
     new_type: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, E>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::ConflictingEqualityConstraints,
@@ -1146,14 +1125,10 @@ where
 ///
 /// This is used when instantiating a parameterized type, but one of the required type
 /// parameters is not available in the environment.
-pub(crate) fn type_parameter_not_found<'heap, K>(
-    env: &Environment<'heap>,
-    param: Type<'heap, K>,
+pub(crate) fn type_parameter_not_found<K>(
+    param: Type<'_, K>,
     argument: GenericArgumentId,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint<'heap>,
-{
+) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TypeParameterNotFound,
         Severity::Bug,
@@ -1163,15 +1138,14 @@ where
         format!("Invalid reference to undefined type parameter ?{argument}",),
     ));
 
-    diagnostic.labels.push(Label::new(
-        env.source,
-        "This invalid code should have been rejected earlier in the compilation process",
-    ));
-
     diagnostic.add_message(Message::help(
         "This error indicates your code contains an invalid type parameter reference that should \
          have been caught by an earlier validation step. While the code is indeed incorrect, the \
          compiler should have reported this error in a more specific way at an earlier stage.",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "This invalid code should have been rejected earlier in the compilation process",
     ));
 
     diagnostic.add_message(Message::note(format!(
@@ -1193,7 +1167,7 @@ pub(crate) fn struct_field_not_found<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error).primary(
@@ -1259,7 +1233,7 @@ pub(crate) fn invalid_tuple_index<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::InvalidTupleIndex,
@@ -1299,7 +1273,7 @@ pub(crate) fn tuple_index_out_of_bounds<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
@@ -1382,7 +1356,7 @@ pub(crate) fn unsupported_projection<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnsupportedProjection,
@@ -1504,7 +1478,7 @@ pub(crate) fn unsupported_subscript<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let index = env.r#type(index);
 
@@ -1602,7 +1576,7 @@ pub(crate) fn recursive_type_projection<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::RecursiveTypeProjection,
@@ -1644,7 +1618,7 @@ pub(crate) fn recursive_type_subscript<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let index = env.r#type(index);
 
@@ -1775,7 +1749,7 @@ pub(crate) fn list_subscript_mismatch<'heap, K>(
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     let index = env.r#type(index);
 

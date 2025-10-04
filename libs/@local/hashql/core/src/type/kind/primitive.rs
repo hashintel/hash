@@ -9,8 +9,8 @@ use crate::{
     r#type::{
         Type, TypeId,
         environment::{
-            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+            instantiate::InstantiateEnvironment,
         },
         error::{
             UnsupportedProjectionCategory, UnsupportedSubscriptCategory, type_mismatch,
@@ -244,12 +244,8 @@ impl PrimitiveType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for PrimitiveType {
-    fn pretty(
-        &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+impl<'heap, E> PrettyPrint<'heap, E> for PrimitiveType {
+    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }

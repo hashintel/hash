@@ -11,7 +11,7 @@ pub struct Param {
     pub argument: GenericArgumentId,
 }
 
-impl<'heap> PrettyPrint<'heap> for Param {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Param {
     fn pretty(
         &self,
         env: &Environment<'heap>,

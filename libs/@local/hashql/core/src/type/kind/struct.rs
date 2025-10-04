@@ -31,7 +31,7 @@ pub struct StructField<'heap> {
     pub value: TypeId,
 }
 
-impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructField<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -98,7 +98,7 @@ impl<'heap> Deref for StructFields<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for StructFields<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructFields<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -551,7 +551,7 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for StructType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

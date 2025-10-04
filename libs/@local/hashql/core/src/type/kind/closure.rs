@@ -335,7 +335,7 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for ClosureType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
