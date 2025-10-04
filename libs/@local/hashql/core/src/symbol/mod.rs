@@ -8,6 +8,7 @@
 //! The module provides:
 //!
 //! - [`Symbol`]: An opaque wrapper around string data that enables efficient storage and comparison
+//! - [`SymbolTable`]: A mapping from identifiers to symbols optimized for different access patterns
 //! - [`Ident`]: A named identifier with source location and categorization
 //! - [`IdentKind`]: Classification of different identifier types in HashQL
 //!
