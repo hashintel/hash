@@ -3,7 +3,7 @@ use core::fmt::Display;
 use hashql_core::{
     collection::{FastHashMap, FastHashSet, HashMapExt as _},
     module::{
-        ModuleRegistry, Universe,
+        Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         universe::Entry,
     },
@@ -28,6 +28,7 @@ use super::{
     inference::{Local, TypeInferenceResidual},
 };
 use crate::{
+    context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
         HirId, Node,
@@ -38,7 +39,7 @@ use crate::{
         data::{Dict, List, Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::Let,
+        r#let::{Let, VarId},
         operation::{
             BinaryOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor},
@@ -56,9 +57,9 @@ pub struct TypeCheckingResidual<'heap> {
 
 pub struct TypeChecking<'env, 'heap> {
     env: &'env Environment<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
+    context: &'env HirContext<'env, 'heap>,
 
-    locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    locals: FastHashMap<VarId, Local<'heap>>,
     inference: FastHashMap<HirId, TypeId>,
     intrinsics: FastHashMap<HirId, &'static str>,
 
@@ -79,7 +80,7 @@ pub struct TypeChecking<'env, 'heap> {
 impl<'env, 'heap> TypeChecking<'env, 'heap> {
     pub fn new(
         env: &'env Environment<'heap>,
-        registry: &'env ModuleRegistry<'heap>,
+        context: &'env HirContext<'env, 'heap>,
 
         TypeInferenceResidual {
             locals,
@@ -92,7 +93,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 
         Self {
             env,
-            registry,
+            context,
 
             locals,
             inference,
@@ -269,11 +270,11 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         visit::walk_local_variable(self, variable);
 
-        let generic_arguments = self.locals[&variable.name.value].r#type.arguments;
+        let generic_arguments = self.locals[&variable.id.value].r#type.arguments;
         self.verify_arity(
             variable.span,
-            variable.name.span,
-            variable.name(),
+            variable.id.span,
+            variable.name(&self.context.symbols),
             &generic_arguments,
             &variable.arguments,
         );
@@ -285,7 +286,8 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         visit::walk_qualified_variable(self, variable);
 
         let item = self
-            .registry
+            .context
+            .modules
             .lookup(
                 variable.path.0.iter().map(|ident| ident.value),
                 Universe::Value,
@@ -325,7 +327,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     ) {
         self.visit_span(*span);
 
-        self.visit_ident(name);
+        self.visit_binder(name);
         self.visit_node(value);
 
         self.visit_node(body);

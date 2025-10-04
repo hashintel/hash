@@ -6,7 +6,9 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
-use hashql_hir::{intern::Interner, node::Node};
+use hashql_hir::{
+    context::HirContext, intern::Interner, node::Node, pretty::PrettyPrintEnvironment,
+};
 
 use super::{Suite, SuiteDiagnostic, common::process_status};
 
@@ -25,6 +27,7 @@ impl Suite for HirReifySuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
 
         let result = lower(
             heap.intern_symbol("::main"),
@@ -34,14 +37,17 @@ impl Suite for HirReifySuite {
         );
         let types = process_status(diagnostics, result)?;
 
-        let interner = Interner::new(heap);
-        let node = process_status(
-            diagnostics,
-            Node::from_ast(expr, &environment, &interner, &types),
-        )?;
+        let mut context = HirContext::new(&interner, &registry);
+        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
 
         Ok(node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
+            .pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color(),
+            )
             .to_string())
     }
 }

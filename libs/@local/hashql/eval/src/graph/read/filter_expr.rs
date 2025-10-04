@@ -54,7 +54,7 @@ pub(crate) enum IntermediateExpression<'env, 'heap, P> {
 impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
     pub(crate) fn finish<R>(
         self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         diagnostics: &mut GraphReadCompilerIssues,
     ) -> Result<FilterExpression<'heap, R>, CompilationError>
     where
@@ -98,7 +98,7 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     fn compile_filter_expr_data<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Data { span, kind }: &'heap Data<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
@@ -237,7 +237,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_variable<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Variable { span: _, kind }: &'heap Variable<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
@@ -246,9 +246,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         match kind {
             &VariableKind::Local(LocalVariable {
                 span,
-                name,
+                id,
                 arguments: _,
-            }) if name.value == context.param_name => {
+            }) if id.value == context.param_id => {
                 if P::UNSUPPORTED {
                     self.diagnostics
                         .push(path_in_data_construct_unsupported(span));
@@ -260,10 +260,10 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             VariableKind::Local(LocalVariable {
                 span,
-                name,
+                id,
                 arguments: _,
             }) => {
-                let value = self.locals[&name.value];
+                let value = self.locals[&id.value];
                 self.compile_filter_expr(context.with_current_span(*span), value)
             }
             VariableKind::Qualified(qualified_variable) => {
@@ -277,7 +277,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_let<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Let {
             span: _,
             name,
@@ -288,9 +288,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     where
         P: PartialQueryPath<'heap> + Debug,
     {
-        self.locals.insert(name.value, value);
+        self.locals.insert(name.id, value);
         let result = self.compile_filter_expr(context, body);
-        self.locals.remove(&name.value);
+        self.locals.remove(&name.id);
 
         result
     }
@@ -317,7 +317,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_operation_type<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         TypeOperation { span: _, kind }: &'heap TypeOperation<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
@@ -346,7 +346,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_operation_binary<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         &BinaryOperation {
             span: _,
             op,
@@ -376,7 +376,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_operation<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Operation { span: _, kind }: &'heap Operation<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
@@ -392,7 +392,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_access_field<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         FieldAccess {
             span,
             expr: expr_node,
@@ -461,7 +461,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_access_index<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         IndexAccess {
             span,
             expr: expr_node,
@@ -550,7 +550,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_access<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Access { span: _, kind }: &'heap Access<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
@@ -564,7 +564,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
     fn compile_filter_expr_call_ctor(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         span: SpanId,
         node: &'heap Node<'heap>,
     ) -> Result<&'heap TypeConstructor<'heap>, CompilationError> {
@@ -580,7 +580,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Variable(Variable {
                 span: _,
                 kind: VariableKind::Local(local),
-            }) => self.compile_filter_expr_call_ctor(context, span, self.locals[&local.name.value]),
+            }) => self.compile_filter_expr_call_ctor(context, span, self.locals[&local.id.value]),
             NodeKind::Data(_)
             | NodeKind::Variable(_)
             | NodeKind::Let(_)
@@ -602,7 +602,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     // statically analyze them real easy.
     fn compile_filter_expr_call<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         Call {
             span,
             function,
@@ -649,7 +649,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     // `&'heap` lifetimes.
     pub(super) fn compile_filter_expr<P>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         node: &'heap Node<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where

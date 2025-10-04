@@ -9,6 +9,7 @@ use hashql_core::{
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
+    context::HirContext,
     fold::Fold as _,
     intern::Interner,
     lower::{
@@ -16,6 +17,7 @@ use hashql_hir::{
         inference::TypeInference, specialization::Specialization,
     },
     node::Node,
+    pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
 
@@ -37,6 +39,9 @@ impl Suite for HirLowerSpecializationSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
         let result = lower(
@@ -47,35 +52,32 @@ impl Suite for HirLowerSpecializationSuite {
         );
         let types = process_status(diagnostics, result)?;
 
-        let interner = Interner::new(heap);
-        let node = process_status(
-            diagnostics,
-            Node::from_ast(expr, &environment, &interner, &types),
-        )?;
+        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
 
         let _ = writeln!(
             output,
             "{}\n\n{}",
             Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         let mut issues = DiagnosticIssues::new();
-        let mut replacement = AliasReplacement::new(&interner, &mut issues);
+        let mut replacement = AliasReplacement::new(&context, &mut issues);
         let Ok(node) = replacement.fold_node(node);
 
-        let mut converter = ConvertTypeConstructor::new(
-            &interner,
-            &types.locals,
-            &registry,
-            &environment,
-            &mut issues,
-        );
+        let mut converter =
+            ConvertTypeConstructor::new(&context, &types.locals, &environment, &mut issues);
         let Ok(node) = converter.fold_node(node);
 
         process_issues(diagnostics, issues)?;
 
-        let mut inference = TypeInference::new(&environment, &registry);
+        let mut inference = TypeInference::new(&environment, &context);
         inference.visit_node(&node);
 
         let (solver, inference_residual, inference_diagnostics) = inference.finish();
@@ -85,7 +87,7 @@ impl Suite for HirLowerSpecializationSuite {
 
         environment.substitution = substitution;
 
-        let mut checking = TypeChecking::new(&environment, &registry, inference_residual);
+        let mut checking = TypeChecking::new(&environment, &context, inference_residual);
         checking.visit_node(&node);
 
         let mut residual = process_status(diagnostics, checking.finish())?;
@@ -93,7 +95,7 @@ impl Suite for HirLowerSpecializationSuite {
         let mut issues = DiagnosticIssues::new();
         let mut specialisation = Specialization::new(
             &environment,
-            &interner,
+            &context,
             &mut residual.types,
             residual.intrinsics,
             &mut issues,
@@ -106,7 +108,13 @@ impl Suite for HirLowerSpecializationSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after specialization"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         Ok(output)

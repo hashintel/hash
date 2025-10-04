@@ -18,6 +18,7 @@
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
 
 pub mod sym;
+mod table;
 
 use core::{
     cmp::Ordering,
@@ -26,6 +27,7 @@ use core::{
     ptr,
 };
 
+pub use self::table::SymbolTable;
 use crate::span::SpanId;
 
 /// A string-like value used throughout the HashQL compiler.

@@ -3,12 +3,11 @@ use hashql_core::{
     intern::Interned,
     literal::LiteralKind,
     module::{
-        ModuleRegistry, Universe,
+        Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         locals::TypeDef,
     },
     span::{SpanId, Spanned},
-    symbol::Symbol,
     r#type::{
         PartialType, TypeBuilder, TypeId,
         environment::{
@@ -25,6 +24,7 @@ use hashql_core::{
 
 use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
+    context::HirContext,
     node::{
         HirId, Node,
         access::{field::FieldAccess, index::IndexAccess},
@@ -34,7 +34,7 @@ use crate::{
         data::{Dict, List, Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::Let,
+        r#let::{Let, VarId},
         operation::{
             BinaryOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor},
@@ -51,14 +51,14 @@ pub struct Local<'heap> {
 }
 
 pub struct TypeInferenceResidual<'heap> {
-    pub locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    pub locals: FastHashMap<VarId, Local<'heap>>,
     pub intrinsics: FastHashMap<HirId, &'static str>,
     pub types: FastHashMap<HirId, TypeId>,
 }
 
 pub struct TypeInference<'env, 'heap> {
     env: &'env Environment<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
+    context: &'env HirContext<'env, 'heap>,
 
     inference: InferenceEnvironment<'env, 'heap>,
     collector: VariableCollector<'env, 'heap>,
@@ -67,17 +67,17 @@ pub struct TypeInference<'env, 'heap> {
     current: HirId,
 
     visited: FastHashSet<HirId>,
-    locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    locals: FastHashMap<VarId, Local<'heap>>,
     types: FastHashMap<HirId, TypeId>,
     arguments: FastHashMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
     intrinsics: FastHashMap<HirId, &'static str>,
 }
 
 impl<'env, 'heap> TypeInference<'env, 'heap> {
-    pub fn new(env: &'env Environment<'heap>, registry: &'env ModuleRegistry<'heap>) -> Self {
+    pub fn new(env: &'env Environment<'heap>, context: &'env HirContext<'env, 'heap>) -> Self {
         Self {
             env,
-            registry,
+            context,
 
             inference: InferenceEnvironment::new(env),
             collector: VariableCollector::new(env),
@@ -260,7 +260,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         let Local {
             r#type: mut def,
             intrinsic,
-        } = self.locals[&variable.name.value];
+        } = self.locals[&variable.id.value];
         // We must instantiate fresh generics for this type reference to preserve polymorphism.
         // Reusing the same generic variables would cause all instantiations to converge,
         // breaking polymorphic behavior.
@@ -279,7 +279,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         visit::walk_qualified_variable(self, variable);
 
         let item = self
-            .registry
+            .context
+            .modules
             .lookup(
                 variable.path.0.iter().map(|ident| ident.value),
                 Universe::Value,
@@ -319,7 +320,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
     ) {
         self.visit_span(*span);
 
-        self.visit_ident(name);
+        self.visit_binder(name);
         self.visit_node(value);
 
         // We simply take the type of the value
@@ -343,7 +344,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // closures retain meaningful arguments. Other types have ambiguous argument semantics,
         // so we don't support arguments for them.
         self.locals.insert_unique(
-            name.value,
+            name.id,
             Local {
                 r#type: TypeDef {
                     id: value_type,
@@ -543,7 +544,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // inference
         for (param, &type_id) in signature.params.iter().zip(type_signature.params) {
             self.locals.insert_unique(
-                param.name.value,
+                param.name.id,
                 Local {
                     r#type: TypeDef {
                         id: type_id,

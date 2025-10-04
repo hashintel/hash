@@ -78,7 +78,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binder, Let, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -143,6 +143,10 @@ pub trait Fold<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: HirId) {
         // do nothing, no fields to walk
+    }
+
+    fn fold_var_id(&mut self, id: VarId) -> Self::Output<VarId> {
+        Try::from_output(id)
     }
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
@@ -266,6 +270,10 @@ pub trait Fold<'heap> {
 
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         walk_let(self, r#let)
+    }
+
+    fn fold_binder(&mut self, binding: Binder<'heap>) -> Self::Output<Binder<'heap>> {
+        walk_binder(self, binding)
     }
 
     fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
@@ -631,17 +639,22 @@ pub fn walk_local_variable<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     LocalVariable {
         span,
-        name,
+        id,
         arguments,
     }: LocalVariable<'heap>,
 ) -> T::Output<LocalVariable<'heap>> {
     let span = visitor.fold_span(span)?;
-    let ident = visitor.fold_ident(name)?;
+
+    let id = Spanned {
+        span: visitor.fold_span(id.span)?,
+        value: visitor.fold_var_id(id.value)?,
+    };
+
     let arguments = visitor.fold_type_ids(arguments)?;
 
     Try::from_output(LocalVariable {
         span,
-        name: ident,
+        id,
         arguments,
     })
 }
@@ -675,7 +688,7 @@ pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
     }: Let<'heap>,
 ) -> T::Output<Let<'heap>> {
     let span = visitor.fold_span(span)?;
-    let name = visitor.fold_ident(name)?;
+    let name = visitor.fold_binder(name)?;
 
     let value = visitor.fold_nested_node(value)?;
     let body = visitor.fold_nested_node(body)?;
@@ -686,6 +699,21 @@ pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
         value,
         body,
     })
+}
+
+pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binder { id, name }: Binder<'heap>,
+) -> T::Output<Binder<'heap>> {
+    let id = visitor.fold_var_id(id)?;
+
+    let name = if let Some(name) = name {
+        Some(visitor.fold_ident(name)?)
+    } else {
+        None
+    };
+
+    Try::from_output(Binder { id, name })
 }
 
 pub fn walk_input<'heap, T: Fold<'heap> + ?Sized>(
@@ -978,7 +1006,7 @@ pub fn walk_closure_param<'heap, T: Fold<'heap> + ?Sized>(
 ) -> T::Output<ClosureParam<'heap>> {
     let span = visitor.fold_span(span)?;
 
-    let name = visitor.fold_ident(name)?;
+    let name = visitor.fold_binder(name)?;
 
     Try::from_output(ClosureParam { span, name })
 }
