@@ -27,7 +27,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binding, Let},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -286,6 +286,21 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Va
     }
 }
 
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Binding<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text(self.binder.mangled().to_string())
+            .append(RcDoc::space())
+            .append(RcDoc::text("="))
+            .append(RcDoc::line())
+            .append(self.value.pretty(env, boundary))
+            .group()
+    }
+}
+
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Let<'heap> {
     fn pretty(
         &self,
@@ -293,19 +308,16 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Le
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text("#let")
-            .append(RcDoc::softline())
-            .append(self.name.mangled().to_string())
-            .append(RcDoc::softline())
-            .append(RcDoc::text("="))
-            .append(RcDoc::softline())
-            .group()
-            .append(self.value.pretty(env, boundary))
-            .group()
-            .append(RcDoc::softline())
-            .append("in")
-            .group()
+            .append(RcDoc::space())
+            .append(RcDoc::intersperse(
+                self.bindings
+                    .iter()
+                    .map(|binding| binding.pretty(env, boundary).nest(5)),
+                RcDoc::hardline(),
+            ))
+            .append(RcDoc::line())
+            .append(RcDoc::text("in"))
             .append(RcDoc::hardline())
-            .append(self.body.pretty(env, boundary))
             .group()
     }
 }
