@@ -1,13 +1,15 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = #input(x, type: Number) in
-#let bar:0 = #input(x, type: Integer) in
+#let foo:0 = #input(x, type: Number)
+     bar:0 = #input(x, type: Integer)
+in
 foo:0
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#let foo:0 = #input(x, type: Number) in
-#let bar:0 = #input(x, type: Integer) in
+#let foo:0 = #input(x, type: Number)
+     bar:0 = #input(x, type: Integer)
+in
 foo:0
 
 ════ Inputs ════════════════════════════════════════════════════════════════════
@@ -28,12 +30,9 @@ foo:0
 ┌─ foo:0
 └→ Number
 
-┌─ #let bar:0 = #input(x, type: Integer) in
-│  foo:0
-└→ Number
-
-┌─ #let foo:0 = #input(x, type: Number) in
-│  #let bar:0 = #input(x, type: Integer) in
+┌─ #let foo:0 = #input(x, type: Number)
+│       bar:0 = #input(x, type: Integer)
+│  in
 │  foo:0
 └→ Number
 

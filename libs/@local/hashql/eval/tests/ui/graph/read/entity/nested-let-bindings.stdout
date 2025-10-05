@@ -13,10 +13,11 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    #let entity_uuid:0 = vertex:0.id.entity_id.entity_uuid in
-    #let user_id:0 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
-    arguments: [])(#ctor(fn(String) -> Uuid[String],
-    arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")) in
+    #let entity_uuid:0 = vertex:0.id.entity_id.entity_uuid
+         user_id:0 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
+             arguments: [])(#ctor(fn(String) -> Uuid[String],
+             arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f"))
+    in
     (entity_uuid:0 == user_id:0)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════

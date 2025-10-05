@@ -478,12 +478,12 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }
 
         let mut bindings = Vec::new();
-        let mut incomplete = false;
+        let mut incomplete = true;
 
         // We don't immediately return, and instead just delay it so that we can collect errors in
         // the body.
         if let Some(value) = value {
-            incomplete = true;
+            incomplete = false;
             bindings.push(Binding { binder, value });
         }
 

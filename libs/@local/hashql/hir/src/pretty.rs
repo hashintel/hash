@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::cmp;
 
 use hashql_core::{
     literal::LiteralKind,
@@ -295,8 +296,8 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Bi
         RcDoc::text(self.binder.mangled().to_string())
             .append(RcDoc::space())
             .append(RcDoc::text("="))
-            .append(RcDoc::line())
-            .append(self.value.pretty(env, boundary))
+            .append(RcDoc::space())
+            .append(self.value.pretty(env, boundary).nest(4))
             .group()
     }
 }
@@ -310,14 +311,19 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Le
         RcDoc::text("#let")
             .append(RcDoc::space())
             .append(RcDoc::intersperse(
-                self.bindings
-                    .iter()
-                    .map(|binding| binding.pretty(env, boundary).nest(5)),
+                self.bindings.iter().enumerate().map(|(index, binding)| {
+                    RcAllocator
+                        .nil()
+                        .append(binding.pretty(env, boundary))
+                        .indent(cmp::min(index, 1) * 5)
+                }),
                 RcDoc::hardline(),
             ))
             .append(RcDoc::line())
             .append(RcDoc::text("in"))
             .append(RcDoc::hardline())
+            .group()
+            .append(self.body.pretty(env, boundary))
             .group()
     }
 }

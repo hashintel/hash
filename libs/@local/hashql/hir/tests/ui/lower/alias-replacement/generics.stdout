@@ -1,7 +1,8 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = ::core::math::add<Integer> in
-#let bar:0 = foo:0 in
+#let foo:0 = ::core::math::add<Integer>
+     bar:0 = foo:0
+in
 bar:0
 
 ════ HIR after alias replacement ═══════════════════════════════════════════════
