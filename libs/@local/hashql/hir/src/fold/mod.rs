@@ -78,7 +78,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::{Binder, Let, VarId},
+        r#let::{Binder, Binding, Let, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -270,6 +270,10 @@ pub trait Fold<'heap> {
 
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         walk_let(self, r#let)
+    }
+
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
+        walk_binding(self, binding)
     }
 
     fn fold_binder(&mut self, binding: Binder<'heap>) -> Self::Output<Binder<'heap>> {
@@ -682,23 +686,32 @@ pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Let {
         span,
-        name,
-        value,
+        bindings,
         body,
     }: Let<'heap>,
 ) -> T::Output<Let<'heap>> {
     let span = visitor.fold_span(span)?;
-    let name = visitor.fold_binder(name)?;
 
-    let value = visitor.fold_nested_node(value)?;
+    let mut bindings = Beef::new(bindings);
+    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
+
     let body = visitor.fold_nested_node(body)?;
 
     Try::from_output(Let {
         span,
-        name,
-        value,
+        bindings: bindings.finish(&visitor.interner().bindings),
         body,
     })
+}
+
+pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binding { binder, value }: Binding<'heap>,
+) -> T::Output<Binding<'heap>> {
+    let binder = visitor.fold_binder(binder)?;
+    let value = visitor.fold_nested_node(value)?;
+
+    Try::from_output(Binding { binder, value })
 }
 
 pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(
