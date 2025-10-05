@@ -12,6 +12,8 @@ const external = [
   "motion",
   "react",
   "react-dom",
+  "react/jsx-runtime",
+  "react/jsx-dev-runtime",
 ];
 
 export default defineConfig({
@@ -30,11 +32,11 @@ export default defineConfig({
         Button: path.resolve(__dirname, "src/components/Button/button.tsx"),
         RefractivePane: path.resolve(
           __dirname,
-          "src/components/RefractivePane/refractive-pane.tsx",
+          "src/components/RefractivePane/refractive-pane.tsx"
         ),
         SegmentedControl: path.resolve(
           __dirname,
-          "src/components/SegmentedControl/segmented-control.tsx",
+          "src/components/SegmentedControl/segmented-control.tsx"
         ),
         Slider: path.resolve(__dirname, "src/components/Slider/slider.tsx"),
         Switch: path.resolve(__dirname, "src/components/Switch/switch.tsx"),
