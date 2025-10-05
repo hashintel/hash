@@ -32,22 +32,16 @@ use crate::{
     context::HirContext,
     node::{
         Node, PartialNode,
-        access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::{Branch, BranchKind, r#if::If},
+        access::{Access, FieldAccess, IndexAccess},
+        branch::{Branch, If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{
-            Data, DataKind, Dict, List, Literal, Struct, Tuple, dict::DictField,
-            r#struct::StructField,
-        },
+        data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let, VarId},
-        operation::{
-            Operation, OperationKind, TypeOperation,
-            r#type::{TypeAssertion, TypeOperationKind},
-        },
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        operation::{Operation, TypeAssertion, TypeOperation},
+        variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
 };
@@ -120,7 +114,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         let (function, arguments) = Option::zip(function, arguments)?;
 
         Some(NodeKind::Call(Call {
-            span,
             function,
             arguments,
         }))
@@ -136,21 +129,14 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             return kind;
         };
 
-        NodeKind::Operation(Operation {
-            span,
-            kind: OperationKind::Type(TypeOperation {
-                span,
-                kind: TypeOperationKind::Assertion(TypeAssertion {
-                    span,
-                    value: self
-                        .context
-                        .interner
-                        .intern_node(PartialNode { span, kind }),
-                    r#type: self.types.anonymous[r#type.id],
-                    force: false,
-                }),
-            }),
-        })
+        NodeKind::Operation(Operation::Type(TypeOperation::Assertion(TypeAssertion {
+            value: self
+                .context
+                .interner
+                .intern_node(PartialNode { span, kind }),
+            r#type: self.types.anonymous[r#type.id],
+            force: false,
+        })))
     }
 
     fn tuple_expr(
@@ -183,13 +169,9 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             return None;
         }
 
-        let kind = NodeKind::Data(Data {
-            span,
-            kind: DataKind::Tuple(Tuple {
-                span,
-                fields: self.context.interner.intern_nodes(&fields),
-            }),
-        });
+        let kind = NodeKind::Data(Data::Tuple(Tuple {
+            fields: self.context.interner.intern_nodes(&fields),
+        }));
 
         Some(self.wrap_type_assertion(span, kind, r#type))
     }
@@ -224,13 +206,9 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             return None;
         }
 
-        let kind = NodeKind::Data(Data {
-            span,
-            kind: DataKind::List(List {
-                span,
-                elements: self.context.interner.intern_nodes(&elements),
-            }),
-        });
+        let kind = NodeKind::Data(Data::List(List {
+            elements: self.context.interner.intern_nodes(&elements),
+        }));
 
         Some(self.wrap_type_assertion(span, kind, r#type))
     }
@@ -268,13 +246,9 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             return None;
         }
 
-        let kind = NodeKind::Data(Data {
-            span,
-            kind: DataKind::Struct(Struct {
-                span,
-                fields: self.context.interner.intern_struct_fields(&mut fields),
-            }),
-        });
+        let kind = NodeKind::Data(Data::Struct(Struct {
+            fields: self.context.interner.intern_struct_fields(&mut fields),
+        }));
 
         Some(self.wrap_type_assertion(span, kind, r#type))
     }
@@ -321,13 +295,9 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             return None;
         }
 
-        let kind = NodeKind::Data(Data {
-            span,
-            kind: DataKind::Dict(Dict {
-                span,
-                fields: self.context.interner.intern_dict_fields(&fields),
-            }),
-        });
+        let kind = NodeKind::Data(Data::Dict(Dict {
+            fields: self.context.interner.intern_dict_fields(&fields),
+        }));
 
         Some(self.wrap_type_assertion(span, kind, r#type))
     }
@@ -341,11 +311,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             r#type,
         }: LiteralExpr<'heap>,
     ) -> NodeKind<'heap> {
-        let kind = NodeKind::Data(Data {
-            span,
-            kind: DataKind::Literal(Literal { span, kind }),
-        });
-
+        let kind = NodeKind::Data(Data::Literal(kind));
         self.wrap_type_assertion(span, kind, r#type)
     }
 
@@ -390,13 +356,12 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
 
     fn path(&mut self, path: Path<'heap>) -> Option<NodeKind<'heap>> {
         let span = path.span;
-        let kind = match path.into_generic_ident() {
+        let variable = match path.into_generic_ident() {
             Ok((ident, args)) => {
                 // undeclared variables should have been resolved in the AST (import resolution)
                 let binder = self.binder_scope[&ident.value];
 
-                VariableKind::Local(LocalVariable {
-                    span,
+                Variable::Local(LocalVariable {
                     id: Spanned {
                         span: ident.span,
                         value: binder,
@@ -427,8 +392,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
                     segments.push(segment.name);
                 }
 
-                VariableKind::Qualified(QualifiedVariable {
-                    span,
+                Variable::Qualified(QualifiedVariable {
                     path: QualifiedPath::new_unchecked(
                         self.context.interner.intern_idents(&segments),
                     ),
@@ -437,7 +401,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             }
         };
 
-        Some(NodeKind::Variable(Variable { span, kind }))
+        Some(NodeKind::Variable(variable))
     }
 
     fn let_expr(
@@ -454,7 +418,8 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
     ) -> Option<Fold<'heap>> {
         let binder = Binder {
             id: self.context.counter.var.next(),
-            name: Some(name),
+            span: name.span,
+            name: Some(name.value),
         };
 
         // The name manager guarantees that the name is unique within the program
@@ -466,6 +431,8 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         if let Some(bindings) = bindings {
             // We're already nested, add us to the existing set of bindings
             bindings.push(Binding {
+                // TODO: https://linear.app/hash/issue/BE-76/hashql-allow-spanids-to-span-multiple-spans
+                span,
                 binder,
                 value: value?,
             });
@@ -484,7 +451,11 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         // the body.
         if let Some(value) = value {
             incomplete = false;
-            bindings.push(Binding { binder, value });
+            bindings.push(Binding {
+                span,
+                binder,
+                value,
+            });
         }
 
         let body = self.expr_fold(*body, Some(&mut bindings));
@@ -496,7 +467,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }
 
         let kind = NodeKind::Let(Let {
-            span,
             bindings: self.context.interner.bindings.intern_slice(&bindings),
             body,
         });
@@ -508,14 +478,13 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         &mut self,
         InputExpr {
             id: _,
-            span,
+            span: _,
             name,
             r#type,
             default,
         }: InputExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let kind = NodeKind::Input(Input {
-            span,
             name,
             r#type: self.types.anonymous[r#type.id],
             default: if let Some(default) = default {
@@ -532,7 +501,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         &mut self,
         ClosureExpr {
             id: _,
-            span,
+            span: _,
             signature,
             body,
         }: ClosureExpr<'heap>,
@@ -555,7 +524,8 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
                 span,
                 name: Binder {
                     id,
-                    name: Some(name),
+                    span: name.span,
+                    name: Some(name.value),
                 },
             });
         }
@@ -567,7 +537,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }
 
         Some(NodeKind::Closure(Closure {
-            span,
             signature: ClosureSignature {
                 span: signature.span,
                 def: signature_def,
@@ -581,28 +550,24 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         &mut self,
         FieldExpr {
             id: _,
-            span,
+            span: _,
             value,
             field,
         }: FieldExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let value = self.expr(*value)?;
 
-        Some(NodeKind::Access(Access {
-            span,
-            kind: AccessKind::Field(FieldAccess {
-                span,
-                expr: value,
-                field,
-            }),
-        }))
+        Some(NodeKind::Access(Access::Field(FieldAccess {
+            expr: value,
+            field,
+        })))
     }
 
     fn index_expr(
         &mut self,
         IndexExpr {
             id: _,
-            span,
+            span: _,
             value,
             index,
         }: IndexExpr<'heap>,
@@ -612,39 +577,30 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
 
         let (value, index) = Option::zip(value, index)?;
 
-        Some(NodeKind::Access(Access {
-            span,
-            kind: AccessKind::Index(IndexAccess {
-                span,
-                expr: value,
-                index,
-            }),
-        }))
+        Some(NodeKind::Access(Access::Index(IndexAccess {
+            expr: value,
+            index,
+        })))
     }
 
     fn as_expr(
         &mut self,
         AsExpr {
             id: _,
-            span,
+            span: _,
             value,
             r#type,
         }: AsExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let value = self.expr(*value)?;
 
-        Some(NodeKind::Operation(Operation {
-            span,
-            kind: OperationKind::Type(TypeOperation {
-                span,
-                kind: TypeOperationKind::Assertion(TypeAssertion {
-                    span,
-                    value,
-                    r#type: self.types.anonymous[r#type.id],
-                    force: false,
-                }),
+        Some(NodeKind::Operation(Operation::Type(
+            TypeOperation::Assertion(TypeAssertion {
+                value,
+                r#type: self.types.anonymous[r#type.id],
+                force: false,
             }),
-        }))
+        )))
     }
 
     fn make_qualified_path(&mut self, span: SpanId, path: &[Symbol<'heap>]) -> Node<'heap> {
@@ -657,16 +613,12 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
 
         let partial = PartialNode {
             span,
-            kind: NodeKind::Variable(Variable {
-                span,
-                kind: VariableKind::Qualified(QualifiedVariable {
-                    span,
-                    path: QualifiedPath::new_unchecked(
-                        self.context.interner.intern_idents(&self.scratch_ident),
-                    ),
-                    arguments: self.context.interner.intern_type_ids(&[]),
-                }),
-            }),
+            kind: NodeKind::Variable(Variable::Qualified(QualifiedVariable {
+                path: QualifiedPath::new_unchecked(
+                    self.context.interner.intern_idents(&self.scratch_ident),
+                ),
+                arguments: self.context.interner.intern_type_ids(&[]),
+            })),
         };
 
         self.context.interner.intern_node(partial)
@@ -674,7 +626,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
 
     fn if_expr_if_else(
         &mut self,
-        span: SpanId,
         test: Expr<'heap>,
         then: Expr<'heap>,
         r#else: Expr<'heap>,
@@ -683,15 +634,11 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         let then = self.expr(then);
         let r#else = self.expr(r#else);
 
-        Some(NodeKind::Branch(Branch {
-            span,
-            kind: BranchKind::If(If {
-                span,
-                test: test?,
-                then: then?,
-                r#else: r#else?,
-            }),
-        }))
+        Some(NodeKind::Branch(Branch::If(If {
+            test: test?,
+            then: then?,
+            r#else: r#else?,
+        })))
     }
 
     fn if_expr_then_some(&mut self, node: Node<'heap>) -> Node<'heap> {
@@ -703,7 +650,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         let partial = PartialNode {
             span: node.span,
             kind: NodeKind::Call(Call {
-                span: node.span,
                 function: some,
                 arguments: self.context.interner.intern_call_arguments(&[CallArgument {
                     span: node.span,
@@ -724,7 +670,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         let partial = PartialNode {
             span,
             kind: NodeKind::Call(Call {
-                span,
                 function: none,
                 arguments: self.context.interner.intern_call_arguments(&[]),
             }),
@@ -744,22 +689,18 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }: IfExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         if let Some(r#else) = r#else {
-            return self.if_expr_if_else(span, *test, *then, *r#else);
+            return self.if_expr_if_else(*test, *then, *r#else);
         }
 
         // `r#else` is `None`, so we desugar to `Option<T>`
         let (test, then) = Option::zip(self.expr(*test), self.expr(*then))?;
 
         // Then must be wrapped in an `Option` call
-        Some(NodeKind::Branch(Branch {
-            span,
-            kind: BranchKind::If(If {
-                span,
-                test,
-                then: self.if_expr_then_some(then),
-                r#else: self.if_expr_else_none(span),
-            }),
-        }))
+        Some(NodeKind::Branch(Branch::If(If {
+            test,
+            then: self.if_expr_then_some(then),
+            r#else: self.if_expr_else_none(span),
+        })))
     }
 
     fn expr(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {

@@ -611,14 +611,8 @@ pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_if<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    If {
-        span,
-        test,
-        then,
-        r#else,
-    }: &'heap If<'heap>,
+    If { test, then, r#else }: &'heap If<'heap>,
 ) {
-    visitor.visit_span(*span);
     visitor.visit_node(test);
     visitor.visit_node(then);
 
