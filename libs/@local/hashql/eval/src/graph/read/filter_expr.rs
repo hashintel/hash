@@ -15,7 +15,7 @@ use hashql_hir::node::{
     graph::GraphKind,
     input::Input,
     kind::NodeKind,
-    r#let::Let,
+    r#let::{Binding, Let},
     operation::{
         BinaryOperation, Operation, OperationKind, TypeOperation,
         binary::BinOpKind,
@@ -280,17 +280,22 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         context: FilterCompilerContext,
         Let {
             span: _,
-            name,
-            value,
+            bindings,
             body,
         }: &'heap Let<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
         P: PartialQueryPath<'heap> + Debug,
     {
-        self.locals.insert(name.id, value);
+        for Binding { binder, value } in bindings {
+            self.locals.insert(binder.id, value);
+        }
+
         let result = self.compile_filter_expr(context, body);
-        self.locals.remove(&name.id);
+
+        for Binding { binder, value: _ } in bindings {
+            self.locals.remove(&binder.id);
+        }
 
         result
     }
