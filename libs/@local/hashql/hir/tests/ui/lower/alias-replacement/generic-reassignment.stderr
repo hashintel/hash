@@ -1,10 +1,15 @@
 error[lower::argument-override]: Cannot apply type arguments to already-parameterized variable
    ╭▸ 
- 6 │   "core::math::add<Integer>",
-   │    ━━━━━━━━━━━━━━━━━━━━━━━━ `foo` was defined with type arguments here
-   ‡
-10 │     "foo<Number>",
-   │          ────── ... but additional type arguments are provided here
+ 3 │ ┏ [
+ 4 │ ┃   "let",
+ 5 │ ┃   "foo",
+ 6 │ ┃   "core::math::add<Integer>",
+   ‡ ┃
+10 │ ┃     "foo<Number>",
+   │ ┃          ────── ... but additional type arguments are provided here
+   ‡ ┃
+14 │ ┃ ]
+   │ ┗━┛ `foo` was defined with type arguments here
    │
    ├ help: The variable `foo` already represents `::core::math::add` with type arguments applied. Use `foo` directly without additional type arguments, or create a new binding if you need different type parameters.
    ╰ note: Variables that alias parameterized expressions cannot have additional type arguments applied to them, as this would create ambiguous type parameter bindings.

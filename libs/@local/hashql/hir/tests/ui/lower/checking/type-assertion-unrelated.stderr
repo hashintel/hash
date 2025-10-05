@@ -1,7 +1,7 @@
 error[lower::type-check::type-mismatch]: Type mismatch
   ╭▸ 
 5 │   { "#literal": 42 },
-  │                 ━━ This is of type `Integer`
+  │   ━━━━━━━━━━━━━━━━━━ This is of type `Integer`
 6 │   //~^ ERROR This is of type `Integer`
 7 │   "String"
   │    ────── ... and this is of type `String`

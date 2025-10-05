@@ -1,16 +1,16 @@
 error[type-check::conflicting-equality-constraints]: Conflicting equality constraints
    ╭▸ 
- 4 │     "#dict": [
-   │ ┏━━━━━━━━━━━━┛
+ 3 │ ┏ {
+ 4 │ ┃   "#dict": [
  5 │ ┃     [{ "#literal": 42 }, { "#literal": 42 }],
-   │ ┃                    ── Previously constrained to be exactly `Integer`
+   │ ┃      ────────────────── Previously constrained to be exactly `Integer`
  6 │ ┃     [{ "#literal": "b" }, { "#literal": 43.0 }],
  7 │ ┃     //~^ ERROR But here constrained to be exactly `String`
  8 │ ┃     [{ "#literal": "c" }, { "#literal": "foo" }]
-   │ ┃                    ─── But here constrained to be exactly `String`
- 9 │ ┃     //~^ ERROR But here constrained to be exactly `String`
-10 │ ┃   ]
-   │ ┗━━━┛ Type variable has conflicting equality constraints
+   │ ┃      ─────────────────── But here constrained to be exactly `String`
+   ‡ ┃
+11 │ ┃ }
+   │ ┗━┛ Type variable has conflicting equality constraints
    │
    ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
    │       To fix this issue:
@@ -22,15 +22,15 @@ error[type-check::conflicting-equality-constraints]: Conflicting equality constr
 
 error[type-check::conflicting-equality-constraints]: Conflicting equality constraints
    ╭▸ 
- 4 │     "#dict": [
-   │ ┏━━━━━━━━━━━━┛
+ 3 │ ┏ {
+ 4 │ ┃   "#dict": [
  5 │ ┃     [{ "#literal": 42 }, { "#literal": 42 }],
-   │ ┃                    ── Previously constrained to be exactly `Integer`
+   │ ┃      ────────────────── Previously constrained to be exactly `Integer`
  6 │ ┃     [{ "#literal": "b" }, { "#literal": 43.0 }],
-   │ ┃                    ─── But here constrained to be exactly `String`
+   │ ┃      ─────────────────── But here constrained to be exactly `String`
    ‡ ┃
-10 │ ┃   ]
-   │ ┗━━━┛ Type variable has conflicting equality constraints
+11 │ ┃ }
+   │ ┗━┛ Type variable has conflicting equality constraints
    │
    ├ help: A type variable can only be equal to one concrete type at a time. This variable has multiple conflicting equality constraints.
    │       To fix this issue:

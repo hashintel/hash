@@ -190,13 +190,23 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
-        for Binding { binder, value } in &r#let.bindings {
+        for Binding {
+            span: _,
+            binder,
+            value,
+        } in &r#let.bindings
+        {
             self.locals.insert(binder.id, value);
         }
 
         visit::walk_let(self, r#let);
 
-        for Binding { binder, value: _ } in &r#let.bindings {
+        for Binding {
+            span: _,
+            binder,
+            value: _,
+        } in &r#let.bindings
+        {
             self.locals.remove(&binder.id);
         }
 

@@ -1,7 +1,7 @@
 error[type-check::bound-constraint-violation]: Type bound constraint violation
   ╭▸ 
 3 │ ["newtype", "Person<T: Number>", "T", ["Person", { "#literal": "2" }]]
-  │                        ┬─────           ┯━━━━━                 ─── Lower bound `String` must be a subtype of the upper bound
+  │                        ┬─────           ┯━━━━━   ─────────────────── Lower bound `String` must be a subtype of the upper bound
   │                        │                │
   │                        │                Type variable has incompatible upper and lower bounds
   │                        Upper bound `Number` is not a supertype of the lower bound

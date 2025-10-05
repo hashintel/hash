@@ -4,6 +4,7 @@ use core::convert::Infallible;
 
 use hashql_core::{
     collection::{FastHashMap, HashMapExt as _, SmallVec},
+    span::{SpanId, Spanned},
     r#type::{TypeId, environment::Environment},
 };
 
@@ -20,16 +21,13 @@ use crate::{
         HirId, Node, PartialNode,
         call::Call,
         graph::{
-            Graph, GraphKind,
+            Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         kind::NodeKind,
         r#let::{Binding, VarId},
-        operation::{
-            BinaryOperation, Operation, OperationKind,
-            binary::{BinOp, BinOpKind},
-        },
-        variable::{Variable, VariableKind},
+        operation::{BinOp, BinaryOperation, Operation},
+        variable::Variable,
     },
     pretty::PrettyPrintEnvironment,
 };
@@ -41,6 +39,7 @@ pub struct Specialization<'env, 'heap, 'diag> {
     types: &'env mut FastHashMap<HirId, TypeId>,
     intrinsics: FastHashMap<HirId, &'static str>,
 
+    current_span: SpanId,
     visited: FastHashMap<HirId, Node<'heap>>,
     locals: FastHashMap<VarId, Node<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
@@ -61,6 +60,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             types,
             intrinsics,
 
+            current_span: SpanId::SYNTHETIC,
             visited: FastHashMap::default(),
             locals: FastHashMap::default(),
             diagnostics,
@@ -88,11 +88,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
         let mut next = call.arguments[0].value;
         loop {
             // Follow any local variables
-            while let NodeKind::Variable(Variable {
-                kind: VariableKind::Local(local),
-                ..
-            }) = next.kind
-            {
+            while let NodeKind::Variable(Variable::Local(local)) = next.kind {
                 next = self.locals[&local.id.value];
             }
 
@@ -115,7 +111,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                         env: self.env,
                         symbols: &self.context.symbols,
                     },
-                    call.span,
+                    self.current_span,
                     call.function,
                 ));
 
@@ -140,14 +136,13 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     body.reverse();
 
                     return Some(GraphRead {
-                        span: call.span,
                         head,
                         body: self.context.interner.graph_read_body.intern_slice(&body),
                         tail,
                     });
                 }
                 _ => {
-                    self.push_diagnostic(non_graph_intrinsic(call.span, intrinsic));
+                    self.push_diagnostic(non_graph_intrinsic(self.current_span, intrinsic));
 
                     return None;
                 }
@@ -162,7 +157,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     ) -> <Self as Fold<'heap>>::Output<Option<Node<'heap>>> {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         enum OpKind {
-            Bin(BinOpKind),
+            Bin(BinOp),
         }
 
         #[expect(clippy::match_same_arms)]
@@ -189,12 +184,12 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 return Ok(None);
             }
-            "::core::cmp::gt" => OpKind::Bin(BinOpKind::Gt),
-            "::core::cmp::lt" => OpKind::Bin(BinOpKind::Lt),
-            "::core::cmp::gte" => OpKind::Bin(BinOpKind::Gte),
-            "::core::cmp::lte" => OpKind::Bin(BinOpKind::Lte),
-            "::core::cmp::eq" => OpKind::Bin(BinOpKind::Eq),
-            "::core::cmp::ne" => OpKind::Bin(BinOpKind::Ne),
+            "::core::cmp::gt" => OpKind::Bin(BinOp::Gt),
+            "::core::cmp::lt" => OpKind::Bin(BinOp::Lt),
+            "::core::cmp::gte" => OpKind::Bin(BinOp::Gte),
+            "::core::cmp::lte" => OpKind::Bin(BinOp::Lte),
+            "::core::cmp::eq" => OpKind::Bin(BinOp::Eq),
+            "::core::cmp::ne" => OpKind::Bin(BinOp::Ne),
             "::core::bool::not" => {
                 self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
@@ -204,8 +199,8 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 return Ok(None);
             }
-            "::core::bool::and" => OpKind::Bin(BinOpKind::And),
-            "::core::bool::or" => OpKind::Bin(BinOpKind::Or),
+            "::core::bool::and" => OpKind::Bin(BinOp::And),
+            "::core::bool::or" => OpKind::Bin(BinOp::Or),
             "::graph::head::entities" | "::graph::body::filter" => {
                 // We ignore this on purpose, as `graph::tail::collect` will process these
                 return Ok(None);
@@ -222,11 +217,8 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                 let read = fold::walk_graph_read(self, read)?;
 
                 return Ok(Some(self.context.interner.intern_node(PartialNode {
-                    span: call.span,
-                    kind: NodeKind::Graph(Graph {
-                        span: call.span,
-                        kind: GraphKind::Read(read),
-                    }),
+                    span: self.current_span,
+                    kind: NodeKind::Graph(Graph::Read(read)),
                 })));
             }
             _ => {
@@ -236,11 +228,11 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             }
         };
 
-        let kind = match op {
-            OpKind::Bin(kind) => {
-                let op = BinOp {
+        let operation = match op {
+            OpKind::Bin(value) => {
+                let op = Spanned {
                     span: call.function.span,
-                    kind,
+                    value,
                 };
 
                 assert_eq!(
@@ -249,8 +241,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     "Expected 2 arguments for binary operation"
                 );
 
-                OperationKind::Binary(BinaryOperation {
-                    span: call.span,
+                Operation::Binary(BinaryOperation {
                     op,
                     left: call.arguments[0].value,
                     right: call.arguments[1].value,
@@ -258,15 +249,10 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             }
         };
 
-        let operation = Operation {
-            span: call.span,
-            kind,
-        };
-
         let operation = fold::walk_operation(self, operation)?;
 
         Ok(Some(self.context.interner.intern_node(PartialNode {
-            span: call.span,
+            span: self.current_span,
             kind: NodeKind::Operation(operation),
         })))
     }
@@ -285,11 +271,19 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
     }
 
     fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
-        let Binding { binder, value } = fold::walk_binding(self, binding)?;
+        let Binding {
+            span,
+            binder,
+            value,
+        } = fold::walk_binding(self, binding)?;
 
         self.locals.insert_unique(binder.id, value);
 
-        Ok(Binding { binder, value })
+        Ok(Binding {
+            span,
+            binder,
+            value,
+        })
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
@@ -300,6 +294,9 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         if let Some(&existing) = self.visited.get(&node_id) {
             return Ok(existing);
         }
+
+        let previous = self.current_span;
+        self.current_span = node.span;
 
         // We need to check **before** folding the call, if the function is an intrinsic, otherwise
         // the underlying HirId might've been changed
@@ -338,6 +335,8 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         }
 
         self.visited.insert(node_id, node);
+
+        self.current_span = previous;
 
         Ok(node)
     }

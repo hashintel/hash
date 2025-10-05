@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::fmt::Debug;
 
 use hashql_core::{
-    span::SpanId,
+    span::{SpanId, Spanned},
     symbol::Ident,
     value::{FieldAccessError, IndexAccessError},
 };
@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     diagnostic::Message,
     severity::Severity,
 };
-use hashql_hir::node::{branch::BranchKind, operation::binary::BinOp, variable::QualifiedVariable};
+use hashql_hir::node::{branch::Branch, operation::BinOp, variable::QualifiedVariable};
 
 use super::{FilterCompilerContext, convert::ConversionError};
 
@@ -214,13 +214,14 @@ pub(super) fn path_conversion_error(
 pub(super) fn qualified_variable_unsupported(
     context: FilterCompilerContext,
     variable: &QualifiedVariable,
+    span: SpanId,
 ) -> GraphReadCompilerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::QualifiedVariableUnsupported,
         Severity::Error,
     )
     .primary(Label::new(
-        variable.span,
+        span,
         format!(
             "Qualified variable `{}` not supported here",
             variable.name()
@@ -282,7 +283,7 @@ pub(super) fn type_constructor_unsupported(
 
 pub(super) fn binary_operation_unsupported(
     context: FilterCompilerContext,
-    op: BinOp,
+    op: Spanned<BinOp>,
 ) -> GraphReadCompilerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::BinaryOperationUnsupported,
@@ -290,7 +291,7 @@ pub(super) fn binary_operation_unsupported(
     )
     .primary(Label::new(
         op.span,
-        format!("Operation `{}` not supported here", op.kind.as_str()),
+        format!("Operation `{}` not supported here", op.value.as_str()),
     ));
 
     diagnostic.labels.push(Label::new(
@@ -302,7 +303,7 @@ pub(super) fn binary_operation_unsupported(
         "The `{0}` operation can only be used at the top level of filter conditions, not as an \
          operand in other operations. For example, `(a {0} b) == c` is not allowed, but `(a {0} \
          b) && (c == d)` is valid.",
-        op.kind.as_str(),
+        op.value.as_str(),
     )));
 
     diagnostic.add_message(Message::note(
@@ -584,19 +585,20 @@ pub enum BranchContext {
 /// A diagnostic indicating that branch constructs are not supported in this context,
 /// with guidance on how to restructure the code.
 pub(super) fn branch_unsupported(
-    branch: &hashql_hir::node::branch::Branch,
+    branch: &Branch,
+    span: SpanId,
     branch_context: BranchContext,
 ) -> GraphReadCompilerDiagnostic {
     // Create specific primary message based on branch type
-    let primary_message = match branch.kind {
-        BranchKind::If(_) => "conditional expressions are not supported in filter contexts",
+    let primary_message = match branch {
+        Branch::If(_) => "conditional expressions are not supported in filter contexts",
     };
 
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::BranchUnsupported,
         Severity::Error,
     )
-    .primary(Label::new(branch.span, primary_message));
+    .primary(Label::new(span, primary_message));
 
     diagnostic.add_message(Message::help(
         "rewrite the logic to avoid conditional statements",

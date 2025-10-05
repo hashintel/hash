@@ -1,7 +1,10 @@
 error[type-check::unconstrained-type-variable]: Unconstrained type variable
   ╭▸ 
-4 │   "#list": []
-  │            ━━ Cannot infer type for this variable - no usage constraints available
+3 │ ┏ {
+4 │ ┃   "#list": []
+5 │ ┃   //~^ ERROR Cannot infer type for this variable
+6 │ ┃ }
+  │ ┗━┛ Cannot infer type for this variable - no usage constraints available
   │
   ├ help: Add an explicit type annotation to provide the necessary context. For example:
   │       - Change `let x = ...` to `let x: Type = ...`
