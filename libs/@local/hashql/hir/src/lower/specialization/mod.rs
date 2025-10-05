@@ -111,7 +111,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                         env: self.env,
                         symbols: &self.context.symbols,
                     },
-                    self.current_span,
+                    call.function.span,
                     call.function,
                 ));
 
@@ -142,7 +142,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     });
                 }
                 _ => {
-                    self.push_diagnostic(non_graph_intrinsic(self.current_span, intrinsic));
+                    self.push_diagnostic(non_graph_intrinsic(call.function.span, intrinsic));
 
                     return None;
                 }

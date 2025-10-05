@@ -416,6 +416,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }: LetExpr<'heap>,
         bindings: Option<&mut Vec<Binding<'heap>>>,
     ) -> Option<Fold<'heap>> {
+        let value_span = value.span;
         let binder = Binder {
             id: self.context.counter.var.next(),
             span: name.span,
@@ -432,7 +433,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             // We're already nested, add us to the existing set of bindings
             bindings.push(Binding {
                 // TODO: https://linear.app/hash/issue/BE-76/hashql-allow-spanids-to-span-multiple-spans
-                span,
+                span: value_span,
                 binder,
                 value: value?,
             });
@@ -452,7 +453,8 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         if let Some(value) = value {
             incomplete = false;
             bindings.push(Binding {
-                span,
+                // TODO: https://linear.app/hash/issue/BE-76/hashql-allow-spanids-to-span-multiple-spans
+                span: value_span,
                 binder,
                 value,
             });
@@ -712,18 +714,22 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         expr: Expr<'heap>,
         bindings: Option<&mut Vec<Binding<'heap>>>,
     ) -> Option<Node<'heap>> {
-        let kind = match expr.kind {
-            ExprKind::Call(call) => self.call_expr(call)?,
-            ExprKind::Struct(r#struct) => self.struct_expr(r#struct)?,
-            ExprKind::Dict(dict) => self.dict_expr(dict)?,
-            ExprKind::Tuple(tuple) => self.tuple_expr(tuple)?,
-            ExprKind::List(list) => self.list_expr(list)?,
-            ExprKind::Literal(literal) => self.literal_expr(literal),
-            ExprKind::Path(path) => self.path(path)?,
-            ExprKind::Let(r#let) => match self.let_expr(r#let, bindings)? {
-                Fold::Partial(kind) => kind,
-                Fold::Promote(node) => return Some(node),
-            },
+        let (span, kind) = match expr.kind {
+            ExprKind::Call(call) => (call.span, self.call_expr(call)?),
+            ExprKind::Struct(r#struct) => (r#struct.span, self.struct_expr(r#struct)?),
+            ExprKind::Dict(dict) => (dict.span, self.dict_expr(dict)?),
+            ExprKind::Tuple(tuple) => (tuple.span, self.tuple_expr(tuple)?),
+            ExprKind::List(list) => (list.span, self.list_expr(list)?),
+            ExprKind::Literal(literal) => (literal.span, self.literal_expr(literal)),
+            ExprKind::Path(path) => (path.span, self.path(path)?),
+            ExprKind::Let(r#let) => {
+                let span = r#let.span;
+
+                match self.let_expr(r#let, bindings)? {
+                    Fold::Partial(kind) => (span, kind),
+                    Fold::Promote(node) => return Some(node),
+                }
+            }
             ExprKind::Type(_) => {
                 self.diagnostics.push(unprocessed_expression(
                     expr.span,
@@ -750,12 +756,12 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
                 ));
                 return None;
             }
-            ExprKind::Input(input) => self.input_expr(input)?,
-            ExprKind::Closure(closure) => self.closure_expr(closure)?,
-            ExprKind::If(r#if) => self.if_expr(r#if)?,
-            ExprKind::Field(field) => self.field_expr(field)?,
-            ExprKind::Index(index) => self.index_expr(index)?,
-            ExprKind::As(r#as) => self.as_expr(r#as)?,
+            ExprKind::Input(input) => (input.span, self.input_expr(input)?),
+            ExprKind::Closure(closure) => (closure.span, self.closure_expr(closure)?),
+            ExprKind::If(r#if) => (r#if.span, self.if_expr(r#if)?),
+            ExprKind::Field(field) => (field.span, self.field_expr(field)?),
+            ExprKind::Index(index) => (index.span, self.index_expr(index)?),
+            ExprKind::As(r#as) => (r#as.span, self.as_expr(r#as)?),
             ExprKind::Underscore => {
                 self.diagnostics.push(underscore_expression(expr.span));
 
@@ -767,10 +773,11 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             }
         };
 
-        Some(self.context.interner.intern_node(PartialNode {
-            span: expr.span,
-            kind,
-        }))
+        Some(
+            self.context
+                .interner
+                .intern_node(PartialNode { span, kind }),
+        )
     }
 }
 

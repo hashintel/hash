@@ -79,7 +79,7 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
             self.scope.insert_unique(
                 binder.id,
                 Spanned {
-                    span: self.current_span,
+                    span: value.span,
                     value: alias,
                 },
             );
