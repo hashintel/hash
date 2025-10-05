@@ -19,7 +19,7 @@ export default defineConfig({
     dts({
       rollupTypes: true,
       insertTypesEntry: true,
-      exclude: ["**/*.test.*", "**/*.spec.*"],
+      exclude: ["**/*.test.*", "**/*.spec.*", "playground/**", "stories/**"],
       copyDtsFiles: false,
     }),
   ],
@@ -29,11 +29,11 @@ export default defineConfig({
         Button: resolve(__dirname, "src/components/Button/button.tsx"),
         RefractivePane: resolve(
           __dirname,
-          "src/components/RefractivePane/refractive-pane.tsx"
+          "src/components/RefractivePane/refractive-pane.tsx",
         ),
         SegmentedControl: resolve(
           __dirname,
-          "src/components/SegmentedControl/segmented-control.tsx"
+          "src/components/SegmentedControl/segmented-control.tsx",
         ),
         Slider: resolve(__dirname, "src/components/Slider/slider.tsx"),
         Switch: resolve(__dirname, "src/components/Switch/switch.tsx"),
