@@ -10,7 +10,7 @@ use crate::node::{
     Node, PartialNode,
     call::CallArgument,
     closure::ClosureParam,
-    data::{dict::DictField, r#struct::StructField},
+    data::{DictField, StructField},
     graph::read::GraphReadBody,
     r#let::Binding,
 };

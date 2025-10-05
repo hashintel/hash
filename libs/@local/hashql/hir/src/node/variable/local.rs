@@ -1,11 +1,6 @@
 use core::fmt::Display;
 
-use hashql_core::{
-    intern::Interned,
-    span::{SpanId, Spanned},
-    symbol::{Ident, IdentKind},
-    r#type::TypeId,
-};
+use hashql_core::{intern::Interned, span::Spanned, r#type::TypeId};
 
 use crate::{
     context::SymbolRegistry,
@@ -22,8 +17,6 @@ use crate::{
 /// allow for specialization of generic types and functions at use sites.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LocalVariable<'heap> {
-    pub span: SpanId,
-
     pub id: Spanned<VarId>,
     pub arguments: Interned<'heap, [Spanned<TypeId>]>,
 }
@@ -31,14 +24,11 @@ pub struct LocalVariable<'heap> {
 impl<'heap> LocalVariable<'heap> {
     #[must_use]
     pub fn to_binder(self, symbols: &SymbolRegistry<'heap>) -> Binder<'heap> {
-        let name = symbols.binder.get(self.id.value).map(|symbol| Ident {
-            span: self.id.span,
-            value: symbol,
-            kind: IdentKind::Lexical,
-        });
+        let name = symbols.binder.get(self.id.value);
 
         Binder {
             id: self.id.value,
+            span: self.id.span,
             name,
         }
     }

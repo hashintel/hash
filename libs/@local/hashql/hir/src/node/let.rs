@@ -4,7 +4,7 @@ use hashql_core::{
     id::{self},
     intern::Interned,
     span::SpanId,
-    symbol::Ident,
+    symbol::Symbol,
 };
 
 use super::Node;
@@ -21,7 +21,9 @@ id::newtype!(
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Binder<'heap> {
     pub id: VarId,
-    pub name: Option<Ident<'heap>>,
+    pub span: SpanId,
+
+    pub name: Option<Symbol<'heap>>,
 }
 
 impl Binder<'_> {
@@ -32,7 +34,7 @@ impl Binder<'_> {
         impl Display for DisplayMangled<'_> {
             fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
                 if let Some(name) = &self.0.name {
-                    return Display::fmt(&name.value, fmt);
+                    return Display::fmt(&name, fmt);
                 }
 
                 fmt.write_str("%")?;
@@ -47,7 +49,7 @@ impl Binder<'_> {
 impl Display for Binder<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(name) = &self.name {
-            return Display::fmt(name.value.demangle(), fmt);
+            return Display::fmt(name.demangle(), fmt);
         }
 
         fmt.write_str("%")?;
@@ -57,6 +59,8 @@ impl Display for Binder<'_> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Binding<'heap> {
+    pub span: SpanId,
+
     pub binder: Binder<'heap>,
     pub value: Node<'heap>,
 }
@@ -68,8 +72,6 @@ pub struct Binding<'heap> {
 /// that can be referenced by name.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Let<'heap> {
-    pub span: SpanId,
-
     pub bindings: Interned<'heap, [Binding<'heap>]>,
 
     pub body: Node<'heap>,
