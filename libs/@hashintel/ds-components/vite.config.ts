@@ -6,10 +6,11 @@ import dts from "vite-plugin-dts";
 
 // Dependencies that should not be bundled into the library
 const external = [
-  "@ark-ui/react",
   "@hashintel/ds-styled-system",
+  "@hashintel/ds-styled-system/css",
   "canvas",
   "motion",
+  "motion/react",
   "react",
   "react-dom",
   "react/jsx-runtime",
@@ -22,24 +23,31 @@ export default defineConfig({
     dts({
       rollupTypes: true,
       insertTypesEntry: true,
-      exclude: ["**/*.test.*", "**/*.spec.*", "playground/**", "stories/**"],
+      exclude: [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "playground/**",
+        "stories/**",
+        ".storybook/**",
+      ],
       copyDtsFiles: false,
+      outDir: "dist",
     }),
   ],
   build: {
     lib: {
       entry: {
-        Button: path.resolve(__dirname, "src/components/Button/button.tsx"),
-        RefractivePane: path.resolve(
+        button: path.resolve(__dirname, "src/components/Button/button.tsx"),
+        "refractive-pane": path.resolve(
           __dirname,
-          "src/components/RefractivePane/refractive-pane.tsx"
+          "src/components/RefractivePane/refractive-pane.tsx",
         ),
-        SegmentedControl: path.resolve(
+        "segmented-control": path.resolve(
           __dirname,
-          "src/components/SegmentedControl/segmented-control.tsx"
+          "src/components/SegmentedControl/segmented-control.tsx",
         ),
-        Slider: path.resolve(__dirname, "src/components/Slider/slider.tsx"),
-        Switch: path.resolve(__dirname, "src/components/Switch/switch.tsx"),
+        slider: path.resolve(__dirname, "src/components/Slider/slider.tsx"),
+        switch: path.resolve(__dirname, "src/components/Switch/switch.tsx"),
       },
       name: "HashComponentLibrary",
       formats: ["es"],
@@ -48,18 +56,15 @@ export default defineConfig({
     rollupOptions: {
       external,
       output: {
-        preserveModules: true,
-        preserveModulesRoot: "src",
+        // preserveModules: true,
+        // preserveModulesRoot: "src",
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
         },
-        assetFileNames: (chunk) => {
-          return chunk.name?.endsWith(".css")
-            ? "styles/[name][extname]"
-            : "[name][extname]";
-        },
         entryFileNames: "[name].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name][extname]",
       },
       onwarn(warning, warn) {
         // Skip warnings for "use client". Will be fixed in future Vite/Rollup versions

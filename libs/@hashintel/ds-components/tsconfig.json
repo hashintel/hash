@@ -4,15 +4,17 @@
     "module": "ESNext",
     "target": "es2022",
     "moduleResolution": "bundler",
-    "outDir": "dist",
-    "declarationDir": "dist",
-    "declaration": true,
-    "declarationMap": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "ES2021"],
-    "noEmit": false,
+    "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*", ".storybook/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.*",
+    "**/*.spec.*",
+    ".storybook/**/*"
+  ]
 }
