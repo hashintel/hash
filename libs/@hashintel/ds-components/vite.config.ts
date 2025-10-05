@@ -1,5 +1,6 @@
+import path from "node:path";
+
 import react from "@vitejs/plugin-react";
-import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
@@ -26,17 +27,17 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        Button: resolve(__dirname, "src/components/Button/button.tsx"),
-        RefractivePane: resolve(
+        Button: path.resolve(__dirname, "src/components/Button/button.tsx"),
+        RefractivePane: path.resolve(
           __dirname,
           "src/components/RefractivePane/refractive-pane.tsx",
         ),
-        SegmentedControl: resolve(
+        SegmentedControl: path.resolve(
           __dirname,
           "src/components/SegmentedControl/segmented-control.tsx",
         ),
-        Slider: resolve(__dirname, "src/components/Slider/slider.tsx"),
-        Switch: resolve(__dirname, "src/components/Switch/switch.tsx"),
+        Slider: path.resolve(__dirname, "src/components/Slider/slider.tsx"),
+        Switch: path.resolve(__dirname, "src/components/Switch/switch.tsx"),
       },
       name: "HashComponentLibrary",
       formats: ["es"],
@@ -52,7 +53,6 @@ export default defineConfig({
           "react-dom": "ReactDOM",
         },
         assetFileNames: (chunk) => {
-          console.log({ name: chunk.name, names: chunk.names });
           return chunk.name?.endsWith(".css")
             ? "styles/[name][extname]"
             : "[name][extname]";
@@ -61,7 +61,9 @@ export default defineConfig({
       },
       onwarn(warning, warn) {
         // Skip warnings for "use client". Will be fixed in future Vite/Rollup versions
-        if (warning.code === "MODULE_LEVEL_DIRECTIVE") return;
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE") {
+          return;
+        }
         // Use default for everything else
         warn(warning);
       },

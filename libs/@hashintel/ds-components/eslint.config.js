@@ -5,7 +5,22 @@ import { createBase, disableRules } from "@local/eslint/deprecated";
 
 export default [
   ...createBase(import.meta.dirname),
+  ...storybook.configs["flat/recommended"],
   ...disableRules([]),
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [
+            "vite.config.ts",
+            "panda.config.ts",
+            "postcss.config.cjs",
+          ],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
   {
     rules: {
       "import/no-default-export": "error",
@@ -22,6 +37,12 @@ export default [
         },
       ],
     },
+    files: ["src/**/*.ts{x,}"],
   },
-  ...storybook.configs["flat/recommended"],
+  {
+    files: ["src/**/*.stories.ts{x,}"],
+    rules: {
+      "import/no-default-export": "off",
+    },
+  },
 ];

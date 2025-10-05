@@ -93,7 +93,6 @@ const meta = {
   render: (args) => <Slider {...args} style={{ width: "400px" }} />,
 } satisfies Meta<typeof Slider>;
 
-// eslint-disable-next-line import/no-default-export
 export default meta;
 
 type Story = StoryObj<typeof meta>;

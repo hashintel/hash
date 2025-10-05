@@ -48,7 +48,6 @@ const meta = {
   },
 } satisfies Meta<typeof Switch>;
 
-// eslint-disable-next-line import/no-default-export
 export default meta;
 
 type Story = StoryObj<typeof meta>;

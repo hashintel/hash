@@ -107,7 +107,6 @@ const meta: Meta<typeof SegmentedControl> = {
   },
 };
 
-// eslint-disable-next-line import/no-default-export
 export default meta;
 
 type Story = StoryObj<typeof meta>;
@@ -129,7 +128,7 @@ export const Interactive: Story = {
 
   render: (args) => {
     const [selectedValue, setSelectedValue] = useState(
-      args.defaultValue ?? "option1"
+      args.defaultValue ?? "option1",
     );
 
     return (

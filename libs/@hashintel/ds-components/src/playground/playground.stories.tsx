@@ -1,4 +1,3 @@
-/* eslint-disable import/no-default-export */
 import { css } from "@hashintel/ds-styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
@@ -19,7 +18,7 @@ import { RefractivePane } from "../components/RefractivePane/refractive-pane";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
 import { Switch } from "../components/Switch/switch";
-import { ExampleArticle } from "./ExampleArticle";
+import { ExampleArticle } from "./example-article";
 
 const PADDING = 6;
 const RADIUS = 25;

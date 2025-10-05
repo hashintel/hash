@@ -86,7 +86,6 @@ Use the controls below to adjust the parameters and see how they affect the spec
   },
 };
 
-// eslint-disable-next-line import/no-default-export
 export default meta;
 
 type Story = StoryObj<typeof meta>;
@@ -150,7 +149,7 @@ export const Preview: Story = {
         ctx.fillText(
           "Error calculating specular",
           canvas.width / 2,
-          canvas.height / 2
+          canvas.height / 2,
         );
         // Log error for debugging
         // eslint-disable-next-line no-console

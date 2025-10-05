@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { ExampleArticle } from "../../playground/ExampleArticle";
+import { ExampleArticle } from "../../playground/example-article";
 import { RefractivePane } from "./refractive-pane";
 
 const meta = {
@@ -99,7 +99,6 @@ const meta = {
   },
 } satisfies Meta<typeof RefractivePane>;
 
-// eslint-disable-next-line import/no-default-export
 export default meta;
 
 type Story = StoryObj<typeof meta>;

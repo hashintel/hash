@@ -21,6 +21,7 @@ const ignoredDependencies = [
   // Storybook dependencies are ignored until we deprecate the previous design system
   "eslint-plugin-storybook",
   "storybook",
+  "@storybook/react",
 ];
 const ignoredWorkspaces = ["@blocks/embed", "@blocks/person"];
 

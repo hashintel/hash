@@ -13,6 +13,6 @@
     "noEmit": false,
     "isolatedModules": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", ".storybook/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]
 }
