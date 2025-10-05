@@ -1,6 +1,6 @@
 use core::convert::Infallible;
 
-use hashql_core::collection::{FastHashMap, HashMapExt as _};
+use hashql_core::collection::{FastHashMap, HashMapExt as _, TinyVec};
 
 use super::error::{LoweringDiagnosticIssues, argument_override};
 use crate::{
@@ -8,9 +8,9 @@ use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        Node,
+        Node, PartialNode,
         kind::NodeKind,
-        r#let::{Let, VarId},
+        r#let::{Binding, VarId},
         variable::{Variable, VariableKind},
     },
 };
@@ -48,13 +48,13 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
         self.context.interner
     }
 
-    fn fold_let(&mut self, mut r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
         // Walk the node first, to resolve any aliases
-        r#let.value = fold::walk_node(self, r#let.value)?;
+        let Binding { binder, value } = fold::walk_binding(self, binding)?;
 
-        // if the let statement is a simple re-assignment add the variable to the scope, if the
+        // If the let statement is a simple re-assignment add the variable to the scope, if the
         // variable is already in the scope, simply add the proxy / alias
-        if let NodeKind::Variable(variable) = r#let.value.kind {
+        if let NodeKind::Variable(variable) = value.kind {
             let alias = if let VariableKind::Local(local) = variable.kind {
                 // Check if a binding already exists, if that is the case, re-use that, otherwise
                 // create a new one
@@ -68,12 +68,10 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
 
             // We can just indiscriminately insert into the scope, and don't need to worry about
             // clean-up because everything is guaranteed to be unique by name.
-            self.scope.insert_unique(r#let.name.id, alias);
+            self.scope.insert_unique(binder.id, alias);
         }
 
-        let r#let = fold::walk_let(self, r#let)?;
-
-        Ok(r#let)
+        Ok(Binding { binder, value })
     }
 
     fn fold_variable(&mut self, variable: Variable<'heap>) -> Self::Output<Variable<'heap>> {
@@ -123,14 +121,34 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
         // Check if the node is a let expression and if said let expression is just an alias, if
         // that's the case we can safely remove it in favour of it's body, as all occurences have
         // already been replaced
-        if let NodeKind::Let(r#let) = node.kind
-            && self.scope.contains_key(&r#let.name.id)
-        {
-            // We don't really need to do this, but it helps us to not pollute the scope with
-            // unnecessary aliases and therefore keep memory usage down.
-            self.scope.remove(&r#let.name.id);
+        if let NodeKind::Let(r#let) = node.kind {
+            // Only retain the bindings that are not aliases
+            let mut bindings = TinyVec::from_slice(&r#let.bindings);
+            bindings.retain(|binding| !self.scope.contains_key(&binding.binder.id));
 
-            return Ok(r#let.body);
+            // For each binding that exists, remove it from the scope. This is not strictly
+            // necessary, but helps us keep memory usage down and not pollute the scope with
+            // unnecessary aliases.
+            for binding in &r#let.bindings {
+                self.scope.remove(&binding.binder.id);
+            }
+
+            if bindings.is_empty() {
+                // All the items are aliases, so we can safely remove it in favour of it's body
+                return Ok(r#let.body);
+            }
+
+            // If the size is different (so there has been an alias), re-intern with the new set of
+            // bindings and replace
+            if bindings.len() != r#let.bindings.len() {
+                let mut r#let = *r#let;
+                r#let.bindings = self.context.interner.bindings.intern_slice(&bindings);
+
+                return Ok(self.context.interner.intern_node(PartialNode {
+                    span: node.span,
+                    kind: NodeKind::Let(r#let),
+                }));
+            }
         }
 
         Ok(node)

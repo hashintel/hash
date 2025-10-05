@@ -1,6 +1,6 @@
 pub mod error;
 
-use core::{convert::Infallible, ops::Try};
+use core::convert::Infallible;
 
 use hashql_core::{
     collection::{FastHashMap, HashMapExt as _, SmallVec},
@@ -24,7 +24,7 @@ use crate::{
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         kind::NodeKind,
-        r#let::{Let, VarId},
+        r#let::{Binding, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind,
             binary::{BinOp, BinOpKind},
@@ -284,30 +284,12 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         self.context.interner
     }
 
-    fn fold_let(
-        &mut self,
-        Let {
-            span,
-            name,
-            value,
-            body,
-        }: Let<'heap>,
-    ) -> Self::Output<Let<'heap>> {
-        let span = self.fold_span(span)?;
-        let name = self.fold_binder(name)?;
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
+        let Binding { binder, value } = fold::walk_binding(self, binding)?;
 
-        let value = self.fold_nested_node(value)?;
+        self.locals.insert_unique(binder.id, value);
 
-        self.locals.insert_unique(name.id, value);
-
-        let body = self.fold_nested_node(body)?;
-
-        Try::from_output(Let {
-            span,
-            name,
-            value,
-            body,
-        })
+        Ok(Binding { binder, value })
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
