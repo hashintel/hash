@@ -1,4 +1,4 @@
-use hashql_core::{heap::Heap, id::Id as _, module::ModuleRegistry, symbol::SymbolTable};
+use hashql_core::{heap::Heap, id::IdCounter, module::ModuleRegistry, symbol::SymbolTable};
 
 use crate::{intern::Interner, node::r#let::VarId};
 
@@ -26,12 +26,14 @@ impl Default for SymbolRegistry<'_> {
 
 #[derive(Debug)]
 pub struct Counter {
-    pub var: VarId,
+    pub var: IdCounter<VarId>,
 }
 
 impl Counter {
     const fn new() -> Self {
-        Self { var: VarId::MIN }
+        Self {
+            var: IdCounter::new(),
+        }
     }
 }
 

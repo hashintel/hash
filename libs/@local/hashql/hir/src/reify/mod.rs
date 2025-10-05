@@ -17,7 +17,6 @@ use hashql_ast::{
 use hashql_core::{
     collection::{FastHashMap, HashMapExt as _, SmallVec},
     heap,
-    id::Id as _,
     intern::Interned,
     span::{SpanId, Spanned},
     symbol::{Ident, IdentKind, Symbol, sym},
@@ -448,10 +447,9 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
         }: LetExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         let binder = Binder {
-            id: self.context.counter.var,
+            id: self.context.counter.var.next(),
             name: Some(name),
         };
-        self.context.counter.var.increment_by(1);
 
         // The name manager guarantees that the name is unique within the program
         self.binder_scope.insert_unique(name.value, binder.id);
@@ -517,7 +515,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             bound: _,
         } in &signature.inputs
         {
-            let id = self.context.counter.var;
+            let id = self.context.counter.var.next();
             self.binder_scope.insert_unique(name.value, id);
             self.context.symbols.binder.insert(id, name.value);
 
@@ -528,8 +526,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
                     name: Some(name),
                 },
             });
-
-            self.context.counter.var.increment_by(1);
         }
 
         let body = self.expr(*body)?;
@@ -822,10 +818,9 @@ impl<'heap> Node<'heap> {
         // tree
         let mut binder_scope = FastHashMap::default();
         for local in types.locals.iter() {
-            let id = context.counter.var;
+            let id = context.counter.var.next();
             binder_scope.insert_unique(local.name, id);
             context.symbols.binder.insert(id, local.name);
-            context.counter.var.increment_by(1);
         }
 
         let expr_span = expr.span;
