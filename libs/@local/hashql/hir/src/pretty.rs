@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::cmp;
 
 use hashql_core::{
     literal::LiteralKind,
@@ -27,7 +28,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binding, Let},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -286,6 +287,21 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Va
     }
 }
 
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Binding<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text(self.binder.mangled().to_string())
+            .append(RcDoc::space())
+            .append(RcDoc::text("="))
+            .append(RcDoc::space())
+            .append(self.value.pretty(env, boundary).nest(4))
+            .group()
+    }
+}
+
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Let<'heap> {
     fn pretty(
         &self,
@@ -293,18 +309,20 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Le
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text("#let")
-            .append(RcDoc::softline())
-            .append(self.name.mangled().to_string())
-            .append(RcDoc::softline())
-            .append(RcDoc::text("="))
-            .append(RcDoc::softline())
-            .group()
-            .append(self.value.pretty(env, boundary))
-            .group()
-            .append(RcDoc::softline())
-            .append("in")
-            .group()
+            .append(RcDoc::space())
+            .append(RcDoc::intersperse(
+                self.bindings.iter().enumerate().map(|(index, binding)| {
+                    RcAllocator
+                        .nil()
+                        .append(binding.pretty(env, boundary))
+                        .indent(cmp::min(index, 1) * 5)
+                }),
+                RcDoc::hardline(),
+            ))
+            .append(RcDoc::line())
+            .append(RcDoc::text("in"))
             .append(RcDoc::hardline())
+            .group()
             .append(self.body.pretty(env, boundary))
             .group()
     }

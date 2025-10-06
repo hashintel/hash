@@ -4,7 +4,7 @@ use hash_graph_store::filter::{Filter, FilterExpression, Parameter, QueryRecord}
 use hashql_hir::node::{
     Node,
     kind::NodeKind,
-    r#let::Let,
+    r#let::{Binding, Let},
     operation::{
         BinaryOperation, Operation, OperationKind, TypeOperation,
         binary::BinOpKind,
@@ -60,13 +60,18 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             NodeKind::Let(Let {
                 span: _,
-                name,
-                value,
+                bindings,
                 body,
             }) => {
-                self.locals.insert(name.id, value);
+                for Binding { binder, value } in bindings {
+                    self.locals.insert(binder.id, value);
+                }
+
                 let filter = self.compile_filter(context, body, sink);
-                self.locals.remove(&name.id);
+
+                for Binding { binder, value: _ } in bindings {
+                    self.locals.remove(&binder.id);
+                }
 
                 filter
             }

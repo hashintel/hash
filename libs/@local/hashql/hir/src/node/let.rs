@@ -2,6 +2,7 @@ use core::fmt::{self, Display};
 
 use hashql_core::{
     id::{self},
+    intern::Interned,
     span::SpanId,
     symbol::Ident,
 };
@@ -54,6 +55,12 @@ impl Display for Binder<'_> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Binding<'heap> {
+    pub binder: Binder<'heap>,
+    pub value: Node<'heap>,
+}
+
 /// A variable binding node in the HashQL HIR.
 ///
 /// Represents a `let` expression that binds a value to a name within a lexical scope.
@@ -63,8 +70,7 @@ impl Display for Binder<'_> {
 pub struct Let<'heap> {
     pub span: SpanId,
 
-    pub name: Binder<'heap>,
-    pub value: Node<'heap>,
+    pub bindings: Interned<'heap, [Binding<'heap>]>,
 
     pub body: Node<'heap>,
 }

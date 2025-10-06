@@ -316,21 +316,13 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.transfer_type(self.current);
     }
 
-    fn visit_let(
-        &mut self,
-        Let {
-            span,
-            name,
-            value,
+    fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
+        visit::walk_let(self, r#let);
+        let Let {
+            span: _,
+            bindings: _,
             body,
-        }: &'heap Let<'heap>,
-    ) {
-        self.visit_span(*span);
-
-        self.visit_binder(name);
-        self.visit_node(value);
-
-        self.visit_node(body);
+        } = r#let;
 
         // We simply take the type of the body
         let body_id = self.types[&body.id];

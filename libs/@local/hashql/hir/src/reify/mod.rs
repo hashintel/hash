@@ -17,7 +17,6 @@ use hashql_ast::{
 use hashql_core::{
     collection::{FastHashMap, HashMapExt as _, SmallVec},
     heap,
-    id::Id as _,
     intern::Interned,
     span::{SpanId, Spanned},
     symbol::{Ident, IdentKind, Symbol, sym},
@@ -43,7 +42,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::{Binder, Let, VarId},
+        r#let::{Binder, Binding, Let, VarId},
         operation::{
             Operation, OperationKind, TypeOperation,
             r#type::{TypeAssertion, TypeOperationKind},
@@ -52,6 +51,11 @@ use crate::{
     },
     path::QualifiedPath,
 };
+
+enum Fold<'heap> {
+    Partial(NodeKind<'heap>),
+    Promote(Node<'heap>),
+}
 
 // TODO: we might want to contemplate moving this into a separate crate, to completely separate
 // HashQL's AST and HIR. (like done in rustc)
@@ -446,32 +450,58 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             r#type,
             body,
         }: LetExpr<'heap>,
-    ) -> Option<NodeKind<'heap>> {
+        bindings: Option<&mut Vec<Binding<'heap>>>,
+    ) -> Option<Fold<'heap>> {
         let binder = Binder {
-            id: self.context.counter.var,
+            id: self.context.counter.var.next(),
             name: Some(name),
         };
-        self.context.counter.var.increment_by(1);
 
         // The name manager guarantees that the name is unique within the program
         self.binder_scope.insert_unique(name.value, binder.id);
         self.context.symbols.binder.insert(binder.id, name.value);
 
         let value = self.expr(*value);
-        let body = self.expr(*body);
 
+        if let Some(bindings) = bindings {
+            // We're already nested, add us to the existing set of bindings
+            bindings.push(Binding {
+                binder,
+                value: value?,
+            });
+
+            // Simply return the body instead of us directly
+            let body = self.expr_fold(*body, Some(bindings));
+            self.binder_scope.remove(&name.value);
+
+            return body.map(Fold::Promote);
+        }
+
+        let mut bindings = Vec::new();
+        let mut incomplete = true;
+
+        // We don't immediately return, and instead just delay it so that we can collect errors in
+        // the body.
+        if let Some(value) = value {
+            incomplete = false;
+            bindings.push(Binding { binder, value });
+        }
+
+        let body = self.expr_fold(*body, Some(&mut bindings));
         self.binder_scope.remove(&name.value);
 
-        let (value, body) = Option::zip(value, body)?;
+        let body = body?;
+        if incomplete {
+            return None;
+        }
 
         let kind = NodeKind::Let(Let {
             span,
-            name: binder,
-            value,
+            bindings: self.context.interner.bindings.intern_slice(&bindings),
             body,
         });
 
-        Some(self.wrap_type_assertion(span, kind, r#type))
+        Some(Fold::Partial(self.wrap_type_assertion(span, kind, r#type)))
     }
 
     fn input_expr(
@@ -517,7 +547,7 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             bound: _,
         } in &signature.inputs
         {
-            let id = self.context.counter.var;
+            let id = self.context.counter.var.next();
             self.binder_scope.insert_unique(name.value, id);
             self.context.symbols.binder.insert(id, name.value);
 
@@ -528,8 +558,6 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
                     name: Some(name),
                 },
             });
-
-            self.context.counter.var.increment_by(1);
         }
 
         let body = self.expr(*body)?;
@@ -735,6 +763,14 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
     }
 
     fn expr(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {
+        self.expr_fold(expr, None)
+    }
+
+    fn expr_fold(
+        &mut self,
+        expr: Expr<'heap>,
+        bindings: Option<&mut Vec<Binding<'heap>>>,
+    ) -> Option<Node<'heap>> {
         let kind = match expr.kind {
             ExprKind::Call(call) => self.call_expr(call)?,
             ExprKind::Struct(r#struct) => self.struct_expr(r#struct)?,
@@ -743,7 +779,10 @@ impl<'heap> ReificationContext<'_, '_, 'heap> {
             ExprKind::List(list) => self.list_expr(list)?,
             ExprKind::Literal(literal) => self.literal_expr(literal),
             ExprKind::Path(path) => self.path(path)?,
-            ExprKind::Let(r#let) => self.let_expr(r#let)?,
+            ExprKind::Let(r#let) => match self.let_expr(r#let, bindings)? {
+                Fold::Partial(kind) => kind,
+                Fold::Promote(node) => return Some(node),
+            },
             ExprKind::Type(_) => {
                 self.diagnostics.push(unprocessed_expression(
                     expr.span,
@@ -822,10 +861,9 @@ impl<'heap> Node<'heap> {
         // tree
         let mut binder_scope = FastHashMap::default();
         for local in types.locals.iter() {
-            let id = context.counter.var;
+            let id = context.counter.var.next();
             binder_scope.insert_unique(local.name, id);
             context.symbols.binder.insert(id, local.name);
-            context.counter.var.increment_by(1);
         }
 
         let expr_span = expr.span;

@@ -75,7 +75,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::{Binder, Let, VarId},
+        r#let::{Binder, Binding, Let, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -209,6 +209,10 @@ pub trait Visitor<'heap> {
 
     fn visit_binder(&mut self, binding: &'heap Binder<'heap>) {
         walk_binder(self, binding);
+    }
+
+    fn visit_binding(&mut self, binding: &'heap Binding<'heap>) {
+        walk_binding(self, binding);
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
@@ -473,19 +477,28 @@ pub fn walk_binder<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
+pub fn walk_binding<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binding { binder, value }: &'heap Binding<'heap>,
+) {
+    visitor.visit_binder(binder);
+    visitor.visit_node(value);
+}
+
 pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Let {
         span,
-        name,
-        value,
+        bindings,
         body,
     }: &'heap Let<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_binder(name);
 
-    visitor.visit_node(value);
+    for binding in bindings {
+        visitor.visit_binding(binding);
+    }
+
     visitor.visit_node(body);
 }
 

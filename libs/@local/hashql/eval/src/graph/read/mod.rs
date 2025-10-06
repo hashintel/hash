@@ -17,7 +17,7 @@ use hashql_hir::{
         HirId, Node,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
-        r#let::{Let, VarId},
+        r#let::{Binding, Let, VarId},
     },
     visit::{self, Visitor},
 };
@@ -190,9 +190,15 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
-        self.locals.insert(r#let.name.id, &r#let.value);
+        for Binding { binder, value } in &r#let.bindings {
+            self.locals.insert(binder.id, value);
+        }
+
         visit::walk_let(self, r#let);
-        self.locals.remove(&r#let.name.id);
+
+        for Binding { binder, value: _ } in &r#let.bindings {
+            self.locals.remove(&binder.id);
+        }
 
         if let Some(value) = self.output.get(&r#let.body.id) {
             self.output.insert(self.current, value.clone());

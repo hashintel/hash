@@ -12,6 +12,7 @@ use crate::node::{
     closure::ClosureParam,
     data::{dict::DictField, r#struct::StructField},
     graph::read::GraphReadBody,
+    r#let::Binding,
 };
 
 #[derive(Debug)]
@@ -22,6 +23,7 @@ pub struct Interner<'heap> {
     pub closure_params: InternSet<'heap, [ClosureParam<'heap>]>,
     pub call_arguments: InternSet<'heap, [CallArgument<'heap>]>,
     pub graph_read_body: InternSet<'heap, [GraphReadBody<'heap>]>,
+    pub bindings: InternSet<'heap, [Binding<'heap>]>,
 
     pub node: InternMap<'heap, Node<'heap>>,
 
@@ -41,6 +43,7 @@ impl<'heap> Interner<'heap> {
             graph_read_body: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
             dict_fields: InternSet::new(heap),
+            bindings: InternSet::new(heap),
 
             node: InternMap::new(heap),
         }

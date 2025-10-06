@@ -34,7 +34,7 @@ use crate::{
         data::{Dict, List, Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::{Let, VarId},
+        r#let::{Binding, Let, VarId},
         operation::{
             BinaryOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor},
@@ -309,19 +309,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.intrinsics.insert_unique(self.current, intrinsic);
     }
 
-    fn visit_let(
-        &mut self,
-        Let {
-            span,
-            name,
-            value,
-            body,
-        }: &'heap Let<'heap>,
-    ) {
-        self.visit_span(*span);
-
-        self.visit_binder(name);
-        self.visit_node(value);
+    fn visit_binding(&mut self, binding: &'heap Binding<'heap>) {
+        visit::walk_binding(self, binding);
+        let Binding { binder, value } = binding;
 
         // We simply take the type of the value
         let value_type = self.types[&value.id];
@@ -344,7 +334,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // closures retain meaningful arguments. Other types have ambiguous argument semantics,
         // so we don't support arguments for them.
         self.locals.insert_unique(
-            name.id,
+            binder.id,
             Local {
                 r#type: TypeDef {
                     id: value_type,
@@ -353,11 +343,17 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
                 intrinsic,
             },
         );
+    }
 
+    fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
         // No additional type constraints are generated here since we directly adopt
         // the body's type without transformation.
-
-        self.visit_node(body);
+        visit::walk_let(self, r#let);
+        let Let {
+            span: _,
+            bindings: _,
+            body,
+        } = r#let;
 
         // Note: We intentionally leave locals in scope after visiting the body to avoid
         // requiring an additional traversal for collection during the type checking phase.
