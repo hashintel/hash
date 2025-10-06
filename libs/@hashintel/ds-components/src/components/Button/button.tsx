@@ -1,15 +1,6 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  radius?: number;
-  specularOpacity?: number;
-  specularSaturation?: number;
-  blurLevel?: number;
-  glassThickness?: number;
-  refractiveIndex?: number;
-  bezelWidth?: number;
-}
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const Button: React.FC<ButtonProps> = ({
   className,
@@ -33,7 +24,7 @@ export const Button: React.FC<ButtonProps> = ({
             cursor: "not-allowed",
           },
         }),
-        className,
+        className
       )}
       {...props}
     >
