@@ -110,8 +110,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                         return Ok(());
                     }
-                    BinOpKind::Eq => |left, right| Filter::Equal(left, right),
-                    BinOpKind::Ne => |left, right| Filter::NotEqual(left, right),
+                    BinOpKind::Eq => Filter::Equal,
+                    BinOpKind::Ne => Filter::NotEqual,
                     BinOpKind::Lt => Filter::Less,
                     BinOpKind::Lte => Filter::LessOrEqual,
                     BinOpKind::Gt => Filter::Greater,

@@ -87,6 +87,11 @@ const BRANCH_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategor
     name: "Branch construct unsupported",
 };
 
+const PATH_IN_DATA_CONSTRUCT_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "path-in-data-construct-unsupported",
+    name: "Path in data construct unsupported",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum GraphReadCompilerDiagnosticCategory {
     ValueParameterConversion,
@@ -102,6 +107,7 @@ pub enum GraphReadCompilerDiagnosticCategory {
     ClosureUnsupported,
     NestedGraphReadUnsupported,
     BranchUnsupported,
+    PathInDataConstructUnsupported,
 }
 
 impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
@@ -128,6 +134,7 @@ impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
             Self::ClosureUnsupported => Some(&CLOSURE_UNSUPPORTED),
             Self::NestedGraphReadUnsupported => Some(&NESTED_GRAPH_READ_UNSUPPORTED),
             Self::BranchUnsupported => Some(&BRANCH_UNSUPPORTED),
+            Self::PathInDataConstructUnsupported => Some(&PATH_IN_DATA_CONSTRUCT_UNSUPPORTED),
         }
     }
 }
@@ -614,6 +621,47 @@ pub(super) fn branch_unsupported(
             ));
         }
     }
+
+    diagnostic
+}
+
+/// Creates a diagnostic for unsupported path expressions within data constructs.
+///
+/// This diagnostic is emitted when path expressions are encountered within data
+/// constructs like tuples, lists, dictionaries, or structs, where they are not
+/// supported by the current query compiler.
+///
+/// # Arguments
+///
+/// * `path_span` - The span of the path expression within the data construct
+/// * `construct_name` - The name of the data construct containing the path (e.g., "tuple", "list")
+///
+/// # Returns
+///
+/// A diagnostic indicating that path expressions are not supported within the
+/// specified data construct, with guidance on alternative approaches.
+pub(super) fn path_in_data_construct_unsupported(
+    path_span: SpanId,
+    construct_name: &str,
+) -> GraphReadCompilerDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        GraphReadCompilerDiagnosticCategory::PathInDataConstructUnsupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        path_span,
+        format!("path expressions are not supported in {construct_name} constructs"),
+    ));
+
+    diagnostic.add_message(Message::help(
+        "rewrite the logic to avoid path expressions in data constructs",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "path expressions within complex data constructs (tuples, lists, dictionaries, structs) \
+         are not supported by the current query compiler. This is a fundamental limitation that \
+         will be addressed in the next-generation compiler",
+    ));
 
     diagnostic
 }

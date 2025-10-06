@@ -7,7 +7,7 @@ use hashql_ast::{
     node::{
         expr::{
             AsExpr, CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-            LetExpr, LiteralExpr, call::Argument, closure,
+            LetExpr, LiteralExpr, TupleExpr, call::Argument, closure,
         },
         path::{Path, PathSegmentArgument},
         r#type::Type,
@@ -35,7 +35,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal},
+        data::{Data, DataKind, Literal, Tuple},
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -139,6 +139,42 @@ impl<'heap> ReificationContext<'_, 'heap> {
                 }),
             }),
         })
+    }
+
+    fn tuple_expr(
+        &mut self,
+        TupleExpr {
+            id: _,
+            span,
+            elements,
+            r#type,
+        }: TupleExpr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        let mut incomplete = false;
+        let mut fields = SmallVec::with_capacity(elements.len());
+
+        for element in elements {
+            let Some(field) = self.expr(*element.value) else {
+                incomplete = true;
+                continue;
+            };
+
+            fields.push(field);
+        }
+
+        if incomplete {
+            return None;
+        }
+
+        let kind = NodeKind::Data(Data {
+            span,
+            kind: DataKind::Tuple(Tuple {
+                span,
+                fields: self.interner.intern_nodes(&fields),
+            }),
+        });
+
+        Some(self.wrap_type_assertion(span, kind, r#type))
     }
 
     fn literal_expr(
@@ -539,15 +575,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
 
                 return None;
             }
-            ExprKind::Tuple(_) => {
-                self.diagnostics.push(unsupported_construct(
-                    expr.span,
-                    "tuple literal",
-                    "https://linear.app/hash/issue/H-4604/enable-tuple-literal-construct",
-                ));
-
-                return None;
-            }
+            ExprKind::Tuple(tuple) => self.tuple_expr(tuple)?,
             ExprKind::List(_) => {
                 self.diagnostics.push(unsupported_construct(
                     expr.span,

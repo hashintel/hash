@@ -19,7 +19,7 @@ pub enum DataKind<'heap> {
     /// A dictionary with dynamically computed keys
     Dict(Dict<'heap>, !),
     /// A tuple with positionally-accessed elements
-    Tuple(Tuple<'heap>, !),
+    Tuple(Tuple<'heap>),
     /// A homogeneous list of elements
     List(List<'heap>, !),
     /// A primitive literal value
