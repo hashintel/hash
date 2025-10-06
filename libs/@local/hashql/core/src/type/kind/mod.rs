@@ -329,7 +329,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `Never ∨ T <=> T`
-            env.diagnostics.push(no_type_inference(env, self));
+            env.diagnostics.push(no_type_inference(self));
             return SmallVec::from_slice(&[other.id]);
         };
 
@@ -344,7 +344,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∨ Never <=> T`
-            env.diagnostics.push(no_type_inference(env, other));
+            env.diagnostics.push(no_type_inference(other));
             return SmallVec::from_slice(&[self.id]);
         };
 
@@ -635,7 +635,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
-            env.diagnostics.push(no_type_inference(env, self));
+            env.diagnostics.push(no_type_inference(self));
             return SmallVec::from_slice(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(Self::Never),
@@ -653,7 +653,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
-            env.diagnostics.push(no_type_inference(env, other));
+            env.diagnostics.push(no_type_inference(other));
             return SmallVec::from_slice(&[env.intern_type(PartialType {
                 span: other.span,
                 kind: env.intern_kind(TypeKind::Never),
@@ -1043,7 +1043,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot determine if a type is bottom, if it hasn't been resolved yet
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1071,7 +1071,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot determine if a type is top, if it hasn't been resolved yet
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1216,7 +1216,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = env.resolve_type(self) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1224,7 +1224,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         self = resolved;
 
         let Some(resolved) = env.resolve_type(other) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(other));
 
             return false;
         };
@@ -1525,7 +1525,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = env.resolve_type(self) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(self));
 
             return false;
         };
@@ -1533,7 +1533,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         self = resolved;
 
         let Some(resolved) = env.resolve_type(supertype) else {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, supertype));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| no_type_inference(supertype));
 
             return false;
         };
@@ -2392,7 +2392,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                         kind: env.intern_kind(Self::Param(Param { argument })),
                     })
                 } else {
-                    env.record_diagnostic(type_parameter_not_found(env, self, argument));
+                    env.record_diagnostic(type_parameter_not_found(self, argument));
                     self.id
                 }
             }
@@ -2401,7 +2401,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeKind<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -2448,7 +2448,9 @@ impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         match self {
             Self::Opaque(opaque) => opaque.pretty_generic(env, boundary, arguments),
-            Self::Primitive(primitive) => primitive.pretty_generic(env, boundary, arguments),
+            Self::Primitive(primitive) => PrettyPrint::<'heap, Environment<'heap>>::pretty_generic(
+                primitive, env, boundary, arguments,
+            ),
             Self::Intrinsic(intrinsic) => intrinsic.pretty_generic(env, boundary, arguments),
             Self::Struct(r#struct) => r#struct.pretty_generic(env, boundary, arguments),
             Self::Tuple(tuple) => tuple.pretty_generic(env, boundary, arguments),
@@ -2457,7 +2459,7 @@ impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection) => {
                 intersection.pretty_generic(env, boundary, arguments)
             }
-            Self::Apply(apple) => apple.pretty_generic(env, boundary, arguments),
+            Self::Apply(apply) => apply.pretty_generic(env, boundary, arguments),
             Self::Generic(generic) => generic.pretty_generic(env, boundary, arguments),
             Self::Param(param) => param.pretty_generic(env, boundary, arguments),
             Self::Infer(_) | Self::Never | Self::Unknown => arguments

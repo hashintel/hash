@@ -145,8 +145,8 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, Environment<'heap>>,
+        U: PrettyPrint<'heap, Environment<'heap>>,
     {
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {
@@ -157,7 +157,7 @@ impl<'heap> UnionType<'heap> {
         if super_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, actual));
+                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, actual, expected));
 
             return false;
         }
@@ -196,8 +196,8 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, Environment<'heap>>,
+        U: PrettyPrint<'heap, Environment<'heap>>,
     {
         // Empty unions are only equivalent to other empty unions
         // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`
@@ -722,7 +722,7 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for UnionType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for UnionType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

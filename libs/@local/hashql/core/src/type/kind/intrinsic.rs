@@ -227,7 +227,7 @@ impl<'heap> Inference<'heap> for ListType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for ListType {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for ListType {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -551,7 +551,7 @@ impl<'heap> Inference<'heap> for DictType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for DictType {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for DictType {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -801,7 +801,7 @@ impl<'heap> Inference<'heap> for IntrinsicType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for IntrinsicType {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for IntrinsicType {
     fn pretty(
         &self,
         env: &Environment<'heap>,

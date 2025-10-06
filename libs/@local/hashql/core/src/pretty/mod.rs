@@ -237,14 +237,14 @@ impl PrettyPrintBoundary {
         }
     }
 
-    fn track<'heap, T>(
+    fn track<'heap, E, T>(
         &mut self,
-        env: &Environment<'heap>,
+        env: &E,
         value: &T,
-        call: impl FnOnce(&T, &Environment<'heap>, &mut Self) -> RcDoc<'heap, Style>,
+        call: impl FnOnce(&T, &E, &mut Self) -> RcDoc<'heap, Style>,
     ) -> RcDoc<'heap, Style>
     where
-        T: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, E>,
     {
         if !self.visited.enter(value) {
             return RcDoc::text("...");
@@ -303,9 +303,9 @@ impl PrettyPrintBoundary {
     ///
     /// Main entry point for printing any value that implements [`PrettyPrint`].
     #[inline]
-    pub fn pretty<'heap, T>(&mut self, env: &Environment<'heap>, value: &T) -> RcDoc<'heap, Style>
+    pub fn pretty<'heap, E, T>(&mut self, env: &E, value: &T) -> RcDoc<'heap, Style>
     where
-        T: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, E>,
     {
         self.track(env, value, PrettyPrint::pretty)
     }
@@ -412,16 +412,12 @@ impl PrettyOptions {
 ///
 /// Implementers need only define the [`Self::pretty`] method. The trait handles
 /// display, I/O, and recursion control through default implementations.
-pub trait PrettyPrint<'heap> {
+pub trait PrettyPrint<'heap, E> {
     /// Convert to a document representation.
     ///
     /// Core method that transforms the value into a document that can be
     /// rendered with proper formatting, indentation, and syntax highlighting.
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, Style>;
+    fn pretty(&self, env: &E, boundary: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style>;
 
     /// Format with generic type arguments.
     ///
@@ -432,7 +428,10 @@ pub trait PrettyPrint<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
-    ) -> RcDoc<'heap, Style> {
+    ) -> RcDoc<'heap, Style>
+    where
+        Self: PrettyPrint<'heap, Environment<'heap>>,
+    {
         RcDoc::line_()
             .append(arguments.pretty(env, boundary))
             .append(self.pretty(env, boundary))
@@ -445,12 +444,7 @@ pub trait PrettyPrint<'heap> {
     /// # Errors
     ///
     /// Returns [`io::Error`] if writing fails.
-    fn pretty_print_into<W>(
-        &self,
-        write: &mut W,
-        env: &Environment<'heap>,
-        options: PrettyOptions,
-    ) -> io::Result<()>
+    fn pretty_print_into<W>(&self, write: &mut W, env: &E, options: PrettyOptions) -> io::Result<()>
     where
         W: io::Write,
     {
@@ -463,16 +457,12 @@ pub trait PrettyPrint<'heap> {
     /// Get a displayable representation.
     ///
     /// Returns a [`Display`] implementor for using in formatting contexts.
-    fn pretty_print(&self, env: &Environment<'heap>, options: PrettyOptions) -> impl Display {
-        struct PrettyPrinter<'a, 'b, 'heap, T: ?Sized>(
-            &'a T,
-            &'b Environment<'heap>,
-            PrettyOptions,
-        );
+    fn pretty_print(&self, env: &E, options: PrettyOptions) -> impl Display {
+        struct PrettyPrinter<'a, 'b, T: ?Sized, E>(&'a T, &'b E, PrettyOptions);
 
-        impl<'a, T> Display for PrettyPrinter<'_, '_, 'a, T>
+        impl<'heap, T, E> Display for PrettyPrinter<'_, '_, T, E>
         where
-            T: PrettyPrint<'a> + ?Sized,
+            T: PrettyPrint<'heap, E> + ?Sized,
         {
             fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
                 let Self(target, env, options) = self;
@@ -489,9 +479,9 @@ pub trait PrettyPrint<'heap> {
     }
 }
 
-impl<'heap, T> PrettyPrint<'heap> for &T
+impl<'heap, T> PrettyPrint<'heap, Environment<'heap>> for &T
 where
-    T: PrettyPrint<'heap>,
+    T: PrettyPrint<'heap, Environment<'heap>>,
 {
     fn pretty(
         &self,
@@ -506,7 +496,10 @@ where
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
-    ) -> RcDoc<'heap, Style> {
+    ) -> RcDoc<'heap, Style>
+    where
+        Self: PrettyPrint<'heap, Environment<'heap>>,
+    {
         T::pretty_generic(self, env, boundary, arguments)
     }
 }

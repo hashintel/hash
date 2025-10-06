@@ -358,7 +358,7 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TupleType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
