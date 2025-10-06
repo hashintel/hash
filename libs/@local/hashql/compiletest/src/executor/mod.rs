@@ -7,7 +7,7 @@ use std::{self, io, sync::mpsc, thread};
 
 use error_stack::Report;
 use guppy::graph::PackageGraph;
-use hashql_core::span::{Span, SpanId, storage::SpanStorage};
+use hashql_core::span::{Span, SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic,
     category::DiagnosticCategory,
@@ -66,7 +66,7 @@ where
 
 fn render_stderr<'a, C, S>(
     source: &str,
-    mut spans: &SpanStorage<S>,
+    mut spans: &SpanTable<S>,
     diagnostics: impl IntoIterator<Item = &'a Diagnostic<C, SpanId>>,
 ) -> Option<String>
 where

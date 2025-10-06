@@ -18,7 +18,7 @@ use super::SourceId;
 /// ```
 /// use core::fmt;
 ///
-/// use hashql_diagnostics::source::{DiagnosticSpan, SourceId};
+/// use hashql_diagnostics::source::{DiagnosticSpan, SourceId, SourceSpan};
 /// use text_size::TextRange;
 ///
 /// #[derive(Debug)]
@@ -38,12 +38,12 @@ use super::SourceId;
 ///         self.source_id
 ///     }
 ///
-///     fn span(&self, _resolver: &mut R) -> Option<TextRange> {
-///         Some(self.range)
+///     fn absolute(&self, _resolver: &mut R) -> Option<SourceSpan> {
+///         Some(SourceSpan::from_parts(self.source_id, self.range))
 ///     }
 ///
-///     fn ancestors(&self, _resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
-///         [] // No ancestors for this simple span
+///     fn is_synthetic(&self) -> bool {
+///         false
 ///     }
 /// }
 /// ```
@@ -56,24 +56,22 @@ pub trait DiagnosticSpan<R>: Display {
     /// [`Sources`]: super::Sources
     fn source(&self) -> SourceId;
 
-    /// Resolves this span to a text range within its source file.
+    /// Returns the absolute location of this span within its source file.
     ///
-    /// Returns `None` if the span cannot be resolved, which may occur if
-    /// the span references invalid locations or if the resolver cannot
-    /// process this particular span type.
-    fn span(&self, resolver: &mut R) -> Option<TextRange>;
+    /// The returned [`SourceSpan`] represents the resolved location of this
+    /// span within the source file identified by [`source()`].
+    ///
+    /// [`source()`]: DiagnosticSpan::source
+    fn absolute(&self, resolver: &mut R) -> Option<SourceSpan>;
 
-    /// Returns ancestor spans that provide additional context for this span.
+    /// Returns `true` if this span is synthetic.
     ///
-    /// Ancestors are used to build hierarchical span relationships, where
-    /// the final resolved position may depend on the positions of parent
-    /// spans. For example, a span within a macro expansion might have
-    /// the macro invocation site as an ancestor.
+    /// A synthetic span is one that was created programmatically, rather than being derived from a
+    /// source file.
     ///
-    /// The returned spans are processed in order, with each ancestor's
-    /// position contributing to the final resolved location.
-    #[expect(clippy::min_ident_chars, reason = "false-positive")]
-    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<Self, R>;
+    /// Synthetic spans are attached to the closest source file, if no file can be found, an error
+    /// will be rendered instead.
+    fn is_synthetic(&self) -> bool;
 }
 
 /// An absolute span representing a resolved location within a source file.
@@ -127,8 +125,8 @@ impl SourceSpan {
     /// # }
     /// # impl<R> DiagnosticSpan<R> for SimpleSpan {
     /// #     fn source(&self) -> SourceId { self.source_id }
-    /// #     fn span(&self, _: &mut R) -> Option<TextRange> { Some(self.range) }
-    /// #     fn ancestors(&self, _: &mut R) -> impl IntoIterator<Item = Self> + use<R> { [] }
+    /// #     fn absolute(&self, _: &mut R) -> Option<SourceSpan> { Some(SourceSpan::from_parts(self.source_id, self.range)) }
+    /// #     fn is_synthetic(&self) -> bool { false }
     /// # }
     /// # struct DummyResolver;
     ///
@@ -147,15 +145,7 @@ impl SourceSpan {
     where
         S: DiagnosticSpan<R>,
     {
-        let source = span.source();
-
-        let mut range = span.span(resolver)?;
-
-        for ancestor in span.ancestors(resolver) {
-            range += ancestor.span(resolver)?.start();
-        }
-
-        Some(Self { source, range })
+        span.absolute(resolver)
     }
 
     /// Creates a new source span from a source ID and text range.

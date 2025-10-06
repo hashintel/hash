@@ -1,13 +1,13 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
     Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     diagnostic::Message,
     severity::Severity,
 };
-use winnow::error::{ContextError, ParseError};
+use winnow::error::ContextError;
 
 use crate::{
     lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind},
@@ -433,10 +433,10 @@ pub(crate) fn duplicate_key(
 
 const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid HashQL identifiers";
 
-pub(crate) fn struct_key_expected_identifier<I>(
-    spans: &SpanStorage<Span>,
+pub(crate) fn struct_key_expected_identifier(
+    spans: &mut SpanTable<Span>,
     key_span: SpanId,
-    parse_error: ParseError<I, ContextError>,
+    parse_error: (usize, ContextError),
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::StructKeyExpectedIdentifier,
