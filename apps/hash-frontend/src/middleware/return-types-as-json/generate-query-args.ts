@@ -7,9 +7,9 @@ import type {
   QueryEntityTypesQueryVariables,
   QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
  * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string
@@ -39,7 +39,7 @@ export const generateQueryArgs = (
   switch (ontologyType) {
     case "data-type":
       return {
-        query: queryStringFromNode(queryDataTypeSubgraphQuery),
+        query: queryStringFromNode(queryDataTypesQuery),
         variables: {
           request: {
             filter: {
@@ -51,7 +51,7 @@ export const generateQueryArgs = (
       };
     case "entity-type":
       return {
-        query: queryStringFromNode(queryEntityTypeSubgraphQuery),
+        query: queryStringFromNode(queryEntityTypesQuery),
         variables: {
           request: {
             filter: {
@@ -63,7 +63,7 @@ export const generateQueryArgs = (
       };
     case "property-type":
       return {
-        query: queryStringFromNode(queryPropertyTypeSubgraphQuery),
+        query: queryStringFromNode(queryPropertyTypesQuery),
         variables: {
           request: {
             filter: {
