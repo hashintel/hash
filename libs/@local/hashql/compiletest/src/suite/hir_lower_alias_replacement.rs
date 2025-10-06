@@ -8,11 +8,11 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
-use hashql_diagnostics::Diagnostic;
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
-use crate::suite::common::Header;
+use super::{Suite, SuiteDiagnostic};
+use crate::suite::common::{Header, process_issues, process_status};
 
 pub(crate) struct HirLowerAliasReplacementSuite;
 
@@ -31,20 +31,19 @@ impl Suite for HirLowerAliasReplacementSuite {
         let registry = ModuleRegistry::new(&environment);
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
+        let result = lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
+        let types = process_status(diagnostics, result)?;
 
         let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let node = process_status(
+            diagnostics,
+            Node::from_ast(expr, &environment, &interner, &types),
+        )?;
 
         let _ = writeln!(
             output,
@@ -53,15 +52,11 @@ impl Suite for HirLowerAliasReplacementSuite {
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
 
-        let mut replacement = AliasReplacement::new(&interner);
+        let mut issues = DiagnosticIssues::new();
+        let mut replacement = AliasReplacement::new(&interner, &mut issues);
         let Ok(node) = replacement.fold_node(node);
 
-        diagnostics.extend(
-            replacement
-                .take_diagnostics()
-                .into_iter()
-                .map(Diagnostic::boxed),
-        );
+        process_issues(diagnostics, issues)?;
 
         let _ = writeln!(
             output,

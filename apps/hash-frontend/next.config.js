@@ -156,11 +156,12 @@ export default withSentryConfig(
         "@blockprotocol/hook",
         "@blockprotocol/type-system",
         "@emotion/server",
+        "@hashintel/block-design-system",
         "@hashintel/design-system",
+        "@hashintel/petrinaut",
+        "@hashintel/type-editor",
         "echarts",
         "zrender",
-        "@hashintel/block-design-system",
-        "@hashintel/type-editor",
         "@hashintel/query-editor",
         "@local/advanced-types",
         "@local/hash-graph-client",
@@ -191,6 +192,7 @@ export default withSentryConfig(
 
         // eslint-disable-next-line no-param-reassign
         webpackConfig.experiments.asyncWebAssembly = true;
+
         if (!isServer) {
           // eslint-disable-next-line no-param-reassign
           webpackConfig.output.publicPath = `/_next/`;

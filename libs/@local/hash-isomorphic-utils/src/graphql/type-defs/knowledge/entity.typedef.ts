@@ -7,11 +7,16 @@ export const entityTypedef = gql`
   scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
+  scalar EntityPermissionsMap
   scalar EntityQueryCursor
   scalar EntityRecordId
   scalar EntityRelationAndSubject
   scalar EntityValidationReport
-  scalar GetEntitySubgraphRequest
+  scalar QueryEntitiesRequest
+  scalar QueryEntitiesResponse
+  scalar QueryEntitySubgraphRequest
+  scalar QueryEntitySubgraphResponse
+  scalar TypeIdsAndPropertiesForEntity
   scalar LinkData
   scalar PropertyObject
   scalar PropertyObjectWithMetadata
@@ -28,22 +33,8 @@ export const entityTypedef = gql`
   scalar RoleUnassignmentStatus
 
   type SubgraphAndPermissions {
-    userPermissionsOnEntities: UserPermissionsOnEntities!
+    userPermissionsOnEntities: EntityPermissionsMap!
     subgraph: GqlSubgraph!
-  }
-
-  type GetEntitySubgraphResponse {
-    count: Int
-    createdByIds: CreatedByIdsMap
-    editionCreatedByIds: CreatedByIdsMap
-    cursor: EntityQueryCursor
-    closedMultiEntityTypes: ClosedMultiEntityTypesRootMap
-    definitions: ClosedMultiEntityTypesDefinitions
-    userPermissionsOnEntities: UserPermissionsOnEntities!
-    subgraph: GqlSubgraph!
-    typeIds: TypeIdsMap
-    typeTitles: TypeTitlesMap
-    webIds: WebIdsMap
   }
 
   input LinkedEntityDefinition {
@@ -119,53 +110,11 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    """
-    Implementation of the Block Protocol queryEntities hook
-    """
-    queryEntities(
-      """
-      Filter root entities by their entity type ID (optional)
-      """
-      operation: QueryOperationInput!
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      isOfType: OutgoingEdgeResolveDepthInput!
-      hasLeftEntity: EdgeResolveDepthsInput!
-      hasRightEntity: EdgeResolveDepthsInput!
-      includeDrafts: Boolean
-    ): SubgraphAndPermissions!
-
     countEntities(request: CountEntitiesParams!): Int!
 
-    getEntitySubgraph(
-      request: GetEntitySubgraphRequest!
-    ): GetEntitySubgraphResponse!
-
-    """
-    Get a subgraph rooted at an entity resolved by its id.
-    """
-    getEntity(
-      """
-      The id of the entity.
-      """
-      entityId: EntityId!
-      """
-      The version of the entity. Defaults to the latest version.
-      """
-      entityVersion: String
-      constrainsValuesOn: OutgoingEdgeResolveDepthInput!
-      constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinksOn: OutgoingEdgeResolveDepthInput!
-      constrainsLinkDestinationsOn: OutgoingEdgeResolveDepthInput!
-      inheritsFrom: OutgoingEdgeResolveDepthInput!
-      isOfType: OutgoingEdgeResolveDepthInput!
-      hasLeftEntity: EdgeResolveDepthsInput!
-      hasRightEntity: EdgeResolveDepthsInput!
-      includeDrafts: Boolean
-    ): SubgraphAndPermissions!
+    queryEntitySubgraph(
+      request: QueryEntitySubgraphRequest!
+    ): QueryEntitySubgraphResponse!
 
     isEntityPublic(entityId: EntityId!): Boolean!
 

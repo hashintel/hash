@@ -15,7 +15,7 @@ import type {
   UpdateBlockCollectionContentsMutation,
   UpdateBlockCollectionContentsMutationVariables,
 } from "../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { BlockSuggester } from "../../../../shared/block-collection/create-suggester/block-suggester";
 import { usePageContext } from "../../../../shared/block-collection/page-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../../shared/block-collection-contents";
@@ -89,7 +89,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         // temporary hack to keep page data consistent, in the absence of proper data subscriptions
         refetchQueries: [
           {
-            query: getEntitySubgraphQuery,
+            query: queryEntitySubgraphQuery,
             variables: getBlockCollectionContentsStructuralQueryVariables(
               extractEntityUuidFromEntityId(pageEntityId),
             ),

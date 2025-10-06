@@ -14,11 +14,12 @@ use hashql_core::{
         kind::generic::{GenericArgumentId, GenericArgumentReference},
     },
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 use super::{
     contractive::is_contractive,
     error::{
-        TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
+        TypeExtractorDiagnosticCategory, TypeExtractorDiagnosticIssues, duplicate_newtype,
         duplicate_type_alias, non_contractive_recursive_type,
     },
     translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
@@ -34,7 +35,7 @@ use crate::{
 type LocalState<'env, 'heap> = (
     FastHashMap<Symbol<'heap>, LocalVariable<'env, 'heap>>,
     FastHashMap<GenericArgumentId, Option<TypeId>>,
-    Vec<TypeExtractorDiagnostic>,
+    TypeExtractorDiagnosticIssues,
 );
 
 pub struct TypeDefinitionExtractor<'env, 'heap> {
@@ -46,7 +47,7 @@ pub struct TypeDefinitionExtractor<'env, 'heap> {
     alias: Vec<(Symbol<'heap>, TypeExpr<'heap>)>,
     opaque: Vec<(Symbol<'heap>, NewTypeExpr<'heap>)>,
 
-    diagnostics: Vec<TypeExtractorDiagnostic>,
+    diagnostics: TypeExtractorDiagnosticIssues,
 }
 
 impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
@@ -65,7 +66,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             alias: Vec::new(),
             opaque: Vec::new(),
 
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
         }
     }
 
@@ -97,7 +98,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     fn setup_locals(&self) -> LocalState<'_, 'heap> {
-        let mut diagnostics = Vec::new();
+        let mut diagnostics = DiagnosticIssues::new();
 
         // Setup the translation unit and environment
         let mut locals = FastHashMap::with_capacity_and_hasher(
@@ -210,7 +211,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         let mut unit = TranslationUnit {
             env: self.environment,
             registry: self.registry,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             locals: &variables,
 
             bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
@@ -263,8 +264,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         locals
     }
 
-    #[must_use]
-    pub fn finish(mut self) -> (TypeLocals<'heap>, Vec<TypeExtractorDiagnostic>) {
+    pub fn finish(mut self) -> (TypeLocals<'heap>, TypeExtractorDiagnosticIssues) {
         let locals = self.translate();
 
         (locals, self.diagnostics)

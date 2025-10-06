@@ -174,7 +174,7 @@ mod test {
         let spans = Arc::new(SpanStorage::new());
         let diagnostic = parse($source, Arc::clone(&spans)).expect_err("should fail to parse");
 
-        let report = render_diagnostic($source, diagnostic, &spans);
+        let report = render_diagnostic($source, &diagnostic, &spans);
 
         with_settings!({
             description => $description

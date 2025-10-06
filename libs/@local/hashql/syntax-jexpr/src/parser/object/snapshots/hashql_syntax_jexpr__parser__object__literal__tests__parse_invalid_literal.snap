@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/literal.rs
 description: Rejects invalid literal values
 expression: "{\"#literal\": {\"invalid\": \"object\"}}"
 ---
-[31m[parser::object::literal-expected-primitive] Error:[0m Expected primitive for literal definition
-   ╭─[ <unknown>:1:14 ]
-   │
- 1 │ {"#literal": {"invalid": "object"}}
-   │              ┬  
-   │              ╰── Invalid literal value in this context
-   │ 
-   │ Help: Found `{`, which is not a valid primitive literal. Primitive literals are either strings, numbers, or booleans.
-───╯
+error[parser::object::literal-expected-primitive]: Expected primitive for literal definition
+  ╭▸ 
+1 │ {"#literal": {"invalid": "object"}}
+  │              ━ Invalid literal value in this context
+  │
+  ╰ help: Found `{`, which is not a valid primitive literal. Primitive literals are either strings, numbers, or booleans.

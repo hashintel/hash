@@ -4,7 +4,7 @@ use hashql_ast::{
 };
 use hashql_core::heap::Heap;
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringSpecialFormExpanderSuite;
 
@@ -23,7 +23,7 @@ impl Suite for AstLoweringSpecialFormExpanderSuite {
 
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }

@@ -1,4 +1,5 @@
 import {
+  type EntityRootType,
   isEntityVertex,
   type KnowledgeGraphVertex,
   type Subgraph,
@@ -31,6 +32,7 @@ import type {
 import {
   HashEntity,
   type SerializedKnowledgeGraphVertex,
+  type SerializedSubgraph,
   type SerializedVertices,
 } from "./entity.js";
 
@@ -161,11 +163,12 @@ export const mapGraphApiVerticesToVertices = (
  */
 export const mapGraphApiSubgraphToSubgraph = <
   RootType extends SubgraphRootType,
+  PropertyMap extends TypeIdsAndPropertiesForEntity,
 >(
   subgraph: GraphApiSubgraph,
   userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
-): Subgraph<RootType, HashEntity> => {
+): Subgraph<RootType, HashEntity<PropertyMap>> => {
   return {
     ...subgraph,
     vertices: mapGraphApiVerticesToVertices(
@@ -173,7 +176,7 @@ export const mapGraphApiSubgraphToSubgraph = <
       userAccountId,
       preserveProperties,
     ),
-  } as Subgraph<RootType, HashEntity>;
+  } as Subgraph<RootType, HashEntity<PropertyMap>>;
 };
 
 const serializeKnowledgeGraphVertex = (
@@ -209,9 +212,12 @@ export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
     ]),
   ) as SerializedVertices;
 
-export const deserializeGraphVertices = (
+export const deserializeGraphVertices = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
   vertices: SerializedVertices,
-): Vertices<HashEntity> =>
+): Vertices<HashEntity<PropertyMap>> =>
   Object.fromEntries(
     typedEntries(vertices).map(([baseId, inner]) => [
       baseId,
@@ -224,4 +230,24 @@ export const deserializeGraphVertices = (
         ]),
       ),
     ]),
-  ) as Vertices<HashEntity>;
+  ) as Vertices<HashEntity<PropertyMap>>;
+
+export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
+  roots: subgraph.roots,
+  vertices: serializeGraphVertices(subgraph.vertices as Vertices<HashEntity>),
+  edges: subgraph.edges,
+  temporalAxes: subgraph.temporalAxes,
+});
+
+export const deserializeSubgraph = <
+  RootType extends
+    | Exclude<SubgraphRootType, EntityRootType>
+    | EntityRootType<HashEntity>,
+>(
+  subgraph: SerializedSubgraph,
+): Subgraph<RootType, HashEntity> => ({
+  roots: subgraph.roots as RootType["vertexId"][],
+  vertices: deserializeGraphVertices(subgraph.vertices),
+  edges: subgraph.edges,
+  temporalAxes: subgraph.temporalAxes,
+});

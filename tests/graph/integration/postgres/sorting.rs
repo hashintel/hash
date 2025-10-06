@@ -4,7 +4,8 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, GetEntitiesParams, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+        EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse,
     },
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
@@ -66,7 +67,7 @@ async fn test_root_sorting(
     let mut entities = Vec::new();
 
     loop {
-        let GetEntitySubgraphResponse {
+        let QueryEntitySubgraphResponse {
             mut subgraph,
             count,
             cursor: new_cursor,
@@ -77,12 +78,13 @@ async fn test_root_sorting(
             edition_created_by_ids: _,
             type_ids: _,
             type_titles: _,
+            entity_permissions: _,
         } = api
-            .get_entity_subgraph(
+            .query_entity_subgraph(
                 api.account_id,
-                GetEntitySubgraphParams::ResolveDepths {
+                QueryEntitySubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths::default(),
-                    request: GetEntitiesParams {
+                    request: QueryEntitiesParams {
                         filter: Filter::All(Vec::new()),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -102,6 +104,7 @@ async fn test_root_sorting(
                         include_edition_created_by_ids: false,
                         include_type_ids: false,
                         include_type_titles: false,
+                        include_permissions: false,
                     },
                 },
             )

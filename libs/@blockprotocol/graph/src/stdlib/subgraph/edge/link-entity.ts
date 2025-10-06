@@ -4,7 +4,6 @@ import type {
   TemporalBound,
   TemporalInterval,
 } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type {
   LinkEntityAndLeftEntity,
@@ -20,6 +19,7 @@ import {
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
 } from "../../../types/subgraph.js";
+import { typedEntries } from "../../../util/typed-entries.js";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,

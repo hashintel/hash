@@ -1,11 +1,11 @@
 import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { removeActorGroupMember } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationRemoveUserFromOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { ApolloError } from "apollo-server-errors";
 
-import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import { getUserById } from "../../../../graph/knowledge/system-types/user";
 import type { ResolverFn } from "../../../api-types.gen";
@@ -46,8 +46,7 @@ export const removeUserFromOrgResolver: ResolverFn<
     );
   }
 
-  const membershipLink = await getEntities(context, authentication, {
-    includeDrafts: false,
+  const membershipLink = await queryEntities(context, authentication, {
     temporalAxes: currentTimeInstantTemporalAxes,
     filter: {
       all: [
@@ -93,7 +92,9 @@ export const removeUserFromOrgResolver: ResolverFn<
         },
       ],
     },
-  }).then((entities) => entities[0]);
+    includeDrafts: false,
+    includePermissions: false,
+  }).then(({ entities }) => entities[0]);
 
   if (!membershipLink) {
     throw new ApolloError(

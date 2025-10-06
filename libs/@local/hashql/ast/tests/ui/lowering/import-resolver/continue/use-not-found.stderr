@@ -1,13 +1,10 @@
-[import-resolver::unresolved-import] Error: Unresolved import
-   ╭─[ <unknown>:5:12 ]
-   │
- 5 │   "kernel::foo",
-   │    ─────┬───┬─  
-   │         │   ╰─── Module 'foo' not found
-   │         │       
-   │         ╰─────── In this path
-   │ 
-   │ Help: The module 'kernel::foo' doesn't exist in this scope. Check the spelling and ensure the module is available.
-   │ 
-   │ Note: Modules must be properly defined and exported from their parent module to be accessible.
-───╯
+error[import-resolver::unresolved-import]: Unresolved import
+  ╭▸ 
+5 │   "kernel::foo",
+  │    ┬───────┯━━
+  │    │       │
+  │    │       Module 'foo' not found
+  │    In this path
+  │
+  ├ help: The module 'kernel::foo' doesn't exist in this scope. Check the spelling and ensure the module is available.
+  ╰ note: Modules must be properly defined and exported from their parent module to be accessible.

@@ -1,7 +1,5 @@
-import {
-  getHashInstance,
-  isUserHashInstanceAdmin,
-} from "@local/hash-backend-utils/hash-instance";
+import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import type { HashInstanceSettings, ResolverFn } from "../../../api-types.gen";

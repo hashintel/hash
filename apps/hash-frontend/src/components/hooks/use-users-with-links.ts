@@ -1,22 +1,20 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 
@@ -30,14 +28,13 @@ export const useUsersWithLinks = ({
 }): {
   loading: boolean;
   users?: User[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -75,6 +72,7 @@ export const useUsersWithLinks = ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -82,9 +80,7 @@ export const useUsersWithLinks = ({
   });
 
   const subgraph = data
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        data.getEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
     : undefined;
 
   const users = useMemo(() => {

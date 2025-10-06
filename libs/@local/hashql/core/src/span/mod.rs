@@ -6,7 +6,7 @@ use core::{
     ops::Deref,
 };
 
-use hashql_diagnostics::span::DiagnosticSpan;
+use hashql_diagnostics::source::{DiagnosticSpan, SourceId};
 pub use text_size::{TextRange, TextSize};
 
 use self::storage::SpanStorage;
@@ -69,10 +69,10 @@ impl SpanId {
     ///
     /// Diagnostic renderers (like `hashql_diagnostics`) have freedom in how they choose to
     /// represent synthetic spans. For example, they might:
-    /// - Omit the location completely in output
-    /// - Display them with a special indicator or style
-    /// - Replace them with the closest relevant source location
-    /// - Show them as occurring at an implicit location, such as the start of a file
+    /// - Omit the location completely in output.
+    /// - Display them with a special indicator or style.
+    /// - Replace them with the closest relevant source location.
+    /// - Show them as occurring at an implicit location, such as the start of a file.
     ///
     /// The interpretation and visualization of synthetic spans is left to the implementation
     /// of the consuming renderer.
@@ -113,19 +113,23 @@ impl<S> DiagnosticSpan<&SpanStorage<S>> for SpanId
 where
     S: Span,
 {
-    fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+    fn source(&self) -> SourceId {
+        SourceId::new_unchecked(0)
+    }
+
+    fn span(&self, resolver: &mut &SpanStorage<S>) -> Option<TextRange> {
         if *self == Self::SYNTHETIC {
             return Some(TextRange::empty(TextSize::new(0)));
         }
 
-        let entry = context.get(*self)?;
+        let entry = resolver.get(*self)?;
 
         Some(entry.map(Span::range))
     }
 
     #[expect(refining_impl_trait_reachable, reason = "false positive")]
-    fn ancestors(&self, context: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
-        context.ancestors(*self)
+    fn ancestors(&self, resolver: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
+        resolver.ancestors(*self)
     }
 }
 

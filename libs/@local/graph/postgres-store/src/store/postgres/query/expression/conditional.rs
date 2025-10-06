@@ -251,15 +251,6 @@ where
     }
 }
 
-impl Transpile for Option<Expression> {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Some(value) => value.transpile(fmt),
-            None => fmt.write_str("NULL"),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;

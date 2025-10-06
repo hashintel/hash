@@ -39,10 +39,8 @@ import {
   archiveEntityResolver,
   countEntitiesResolver,
   createEntityResolver,
-  getEntityResolver,
-  getEntitySubgraphResolver,
   isEntityPublicResolver,
-  queryEntitiesResolver,
+  queryEntitySubgraphResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
@@ -93,8 +91,8 @@ import {
   checkUserPermissionsOnEntityTypeResolver,
   createEntityTypeResolver,
   getClosedMultiEntityTypesResolver,
-  getEntityTypeResolver,
   queryEntityTypesResolver,
+  queryEntityTypeSubgraphResolver,
   unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
   updateEntityTypesResolver,
@@ -130,16 +128,14 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryPropertyTypes: queryPropertyTypesResolver,
     queryPropertyTypeSubgraph: queryPropertyTypeSubgraphResolver,
     queryEntityTypes: queryEntityTypesResolver,
-    getEntityType: getEntityTypeResolver,
+    queryEntityTypeSubgraph: queryEntityTypeSubgraphResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,
     // Knowledge
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
-    getEntity: getEntityResolver,
     getEntityDiffs: getEntityDiffsResolver,
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
-    queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
       throw new Error(
@@ -147,7 +143,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       );
     }),
     countEntities: countEntitiesResolver,
-    getEntitySubgraph: getEntitySubgraphResolver,
+    queryEntitySubgraph: queryEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
     getMyPendingInvitations: loggedInAndSignedUpMiddleware(
       getMyPendingInvitationsResolver,

@@ -27,39 +27,40 @@ graph TD
     16[<a href="../hashql_eval/index.html">hashql-eval</a>]
     17[hashql-hir]
     class 17 root
-    18[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    19[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    20[<a href="../error_stack/index.html">error-stack</a>]
-    21[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    22[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    18[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    19[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    20[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    21[<a href="../error_stack/index.html">error-stack</a>]
+    22[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    23[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 8
     1 --> 7
-    1 -.-> 22
+    1 -.-> 23
     2 -.-> 3
     2 --> 11
     4 --> 16
-    4 --> 18
+    4 --> 19
     5 --> 1
     6 --> 5
     6 --> 9
-    6 --> 19
+    6 --> 20
     7 --> 2
     8 --> 4
-    9 -.-> 22
+    9 -.-> 23
     11 -.-> 10
     11 --> 10
-    11 --> 20
+    11 --> 21
     12 -.-> 13
     13 --> 16
-    13 --> 18
+    13 --> 19
     14 --> 2
     14 --> 15
-    15 --> 20
     16 --> 6
     16 --> 17
     17 -.-> 13
-    18 --> 12
-    18 --> 14
-    19 --> 1
-    21 -.-> 4
-    22 --> 6
+    18 -.-> 13
+    19 --> 12
+    19 --> 14
+    20 --> 1
+    22 -.-> 4
+    23 --> 6

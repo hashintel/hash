@@ -133,6 +133,33 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
     }
 }
 
+pub struct InteractiveHeader(pub bool);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for InteractiveHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Some(value) = parts.headers.get("Interactive") else {
+            return Ok(Self(false));
+        };
+
+        let bytes = value.as_ref();
+        if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
+            return Ok(Self(true));
+        }
+
+        if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
+            return Ok(Self(false));
+        }
+
+        Err((
+            StatusCode::BAD_REQUEST,
+            Cow::Borrowed("`Interactive` header must be either `true` (`1`) or `false` (`0`)"),
+        ))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PermissionResponse {
     pub has_permission: bool,
@@ -667,6 +694,12 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("ExistsFilter"))
+                                .property("exists", Ref::from_schema_name("PathExpression"))
+                                .required("exists"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("GreaterFilter"))
                                 .property(
                                     "greater",
@@ -766,45 +799,47 @@ impl Modify for FilterSchemaAddon {
                 .into(),
             );
             components.schemas.insert(
+                "PathExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("PathExpression"))
+                    .property(
+                        "path",
+                        ArrayBuilder::new().items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityQueryToken"))
+                                .item(Ref::from_schema_name("Selector"))
+                                .item(
+                                    ObjectBuilder::new()
+                                        .schema_type(SchemaType::String)
+                                        .enum_values(Some(["convert"])),
+                                )
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
+                        ),
+                    )
+                    .required("path")
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
+                "ParameterExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("ParameterExpression"))
+                    .property("parameter", Any::schema().1)
+                    .required("parameter")
+                    .property("convert", ParameterConversion::schema().1)
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
                 "FilterExpression".to_owned(),
                 schema::Schema::OneOf(
                     OneOfBuilder::new()
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("PathExpression"))
-                                .property(
-                                    "path",
-                                    ArrayBuilder::new().items(
-                                        OneOfBuilder::new()
-                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
-                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector"))
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String)
-                                                    .enum_values(Some(["convert"])),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::Number),
-                                            ),
-                                    ),
-                                )
-                                .required("path"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema().1)
-                                .required("parameter")
-                                .property("convert", ParameterConversion::schema().1),
-                        )
+                        .item(Ref::from_schema_name("PathExpression"))
+                        .item(Ref::from_schema_name("ParameterExpression"))
                         .build(),
                 )
                 .into(),

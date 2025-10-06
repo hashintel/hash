@@ -3,7 +3,10 @@ import {
   entityIdFromComponents,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  type HashEntity,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
@@ -28,10 +31,7 @@ import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
 import type { EmailTransporter } from "../../../../email/transporters";
-import {
-  createEntity,
-  getEntitySubgraphResponse,
-} from "../../../../graph/knowledge/primitive/entity";
+import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
   getOrgById,
@@ -226,11 +226,10 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const existingInvitations = await getEntitySubgraphResponse(
+  const existingInvitations = await queryEntitySubgraph(
     context,
     authentication,
     {
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: generateExistingInvitationFilter(
         orgWebId,
@@ -255,6 +254,8 @@ export const inviteUserToOrgResolver: ResolverFn<
           outgoing: 0,
         },
       },
+      includeDrafts: false,
+      includePermissions: false,
     },
   ).then(({ subgraph }) =>
     getPendingOrgInvitationsFromSubgraph(context, authentication, subgraph),

@@ -1,74 +1,55 @@
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:16:7 ]
-    │
- 16 │       { "#literal": 1 }
-    │       ────────┬────────  
-    │               ╰────────── Replace this literal with a type name
-    │ 
-    │ Help: Replace this expression with a valid type reference, struct type, or tuple type
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+   ╭▸ 
+22 │   { "#dict": { "a": "b" } }
+   │   ━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this dictionary with a proper type expression
+   │
+   ├ help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
+   ╰ note: Valid type expressions include:
+           - Type names: String, Int, Float
+           - Struct types: {name: String, age: Int}
+           - Tuple types: (String, Int, Boolean)
+           - Unions: (| String Int)
+           - Intersections: (& String Int)
+           - Generic types: Array<String>, Option<Int>
 
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+   ╭▸ 
+16 │       { "#literal": 1 }
+   │       ━━━━━━━━━━━━━━━━━ Replace this literal with a type name
+   │
+   ├ help: Replace this expression with a valid type reference, struct type, or tuple type
+   ╰ note: Valid type expressions include:
+           - Type names: String, Int, Float
+           - Struct types: {name: String, age: Int}
+           - Tuple types: (String, Int, Boolean)
+           - Unions: (| String Int)
+           - Intersections: (& String Int)
+           - Generic types: Array<String>, Option<Int>
 
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:19:5 ]
-    │
- 19 │     { "#list": ["a", "b"] }
-    │     ───────────┬───────────  
-    │                ╰───────────── Replace this list with a proper type expression
-    │ 
-    │ Help: Arrays do not constitute a valid type expression, did you mean to instantiate a tuple type or refer to the `Array<T>` type?
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+   ╭▸ 
+19 │     { "#list": ["a", "b"] }
+   │     ━━━━━━━━━━━━━━━━━━━━━━━ Replace this list with a proper type expression
+   │
+   ├ help: Arrays do not constitute a valid type expression, did you mean to instantiate a tuple type or refer to the `Array<T>` type?
+   ╰ note: Valid type expressions include:
+           - Type names: String, Int, Float
+           - Struct types: {name: String, age: Int}
+           - Tuple types: (String, Int, Boolean)
+           - Unions: (| String Int)
+           - Intersections: (& String Int)
+           - Generic types: Array<String>, Option<Int>
 
-
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:22:3 ]
-    │
- 22 │   { "#dict": { "a": "b" } }
-    │   ────────────┬────────────  
-    │               ╰────────────── Replace this dictionary with a proper type expression
-    │ 
-    │ Help: Dictionaries do not constitute a valid type expression, did you mean to instantiate a struct type or refer to the `Dict<K, V>` type?
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
-
-
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-    ╭─[ <unknown>:13:9 ]
-    │
- 13 │         ["::kernel::special_form::as", "x", "X"]
-    │         ────────────────────┬───────────────────  
-    │                             ╰───────────────────── Replace this as with a proper type expression
-    │ 
-    │ Help: Replace this expression with a valid type reference, struct type, or tuple type
-    │ 
-    │ Note: Valid type expressions include:
-    │       - Type names: String, Int, Float
-    │       - Struct types: {name: String, age: Int}
-    │       - Tuple types: (String, Int, Boolean)
-    │       - Unions: (| String Int)
-    │       - Intersections: (& String Int)
-    │       - Generic types: Array<String>, Option<Int>
-────╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+   ╭▸ 
+13 │         ["::kernel::special_form::as", "x", "X"]
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Replace this as with a proper type expression
+   │
+   ├ help: Replace this expression with a valid type reference, struct type, or tuple type
+   ╰ note: Valid type expressions include:
+           - Type names: String, Int, Float
+           - Struct types: {name: String, age: Int}
+           - Tuple types: (String, Int, Boolean)
+           - Unions: (| String Int)
+           - Intersections: (& String Int)
+           - Generic types: Array<String>, Option<Int>

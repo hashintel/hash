@@ -11,7 +11,7 @@ use hashql_core::{
     heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringNodeRenumbererSuite;
 
@@ -36,7 +36,7 @@ impl Suite for AstLoweringNodeRenumbererSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut renumberer = NodeRenumberer::new();
         renumberer.visit_expr(&mut expr);

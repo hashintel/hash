@@ -1,11 +1,7 @@
-[special-form-expander::fn-generics-with-type-annotation] Error: Function generics with type annotation
-   ╭─[ <unknown>:7:15 ]
-   │
- 7 │     "#type": "Int"
-   │               ─┬─  
-   │                ╰─── Remove this type annotation
-   │ 
-   │ Help: Function generics declarations cannot have type annotations. Generic parameter lists define type parameters for the function, and do not have a meaningful type themselves.
-   │ 
-   │ Note: In the 'fn' special form, the generics argument should be either a tuple of identifiers such as (T, U) or a struct of bounded type parameters such as (T: SomeBound, U: OtherBound, V: _), where an underscore indicates no bound.
-───╯
+error[special-form-expander::fn-generics-with-type-annotation]: Function generics with type annotation
+  ╭▸ 
+7 │     "#type": "Int"
+  │               ━━━ Remove this type annotation
+  │
+  ├ help: Function generics declarations cannot have type annotations. Generic parameter lists define type parameters for the function, and do not have a meaningful type themselves.
+  ╰ note: In the 'fn' special form, the generics argument should be either a tuple of identifiers such as (T, U) or a struct of bounded type parameters such as (T: SomeBound, U: OtherBound, V: _), where an underscore indicates no bound.

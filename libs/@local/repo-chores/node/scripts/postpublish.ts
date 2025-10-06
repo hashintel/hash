@@ -32,7 +32,7 @@ const script = async () => {
 
   if (
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-    ("main" in packageJson && !packageJson.main.startsWith("dist/")) ||
+    ("main" in packageJson && !packageJson.main.includes("dist/")) ||
     ("exports" in packageJson &&
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Object.values(packageJson.exports as Record<string, string>).some(
@@ -46,6 +46,7 @@ const script = async () => {
 
   process.stdout.write("Resetting directory contents...");
 
+  // Restore files to their original state
   await execa(
     "git",
     [
@@ -61,6 +62,12 @@ const script = async () => {
       reject: false,
     },
   );
+
+  // Delete new files
+  await execa("git", ["clean", "-fdx", "--", packageInfo.path], {
+    cwd: monorepoRootDirPath,
+    reject: false,
+  });
 
   process.stdout.write(" Done\n");
 };

@@ -1,7 +1,7 @@
 import type { ActorEntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -26,23 +26,26 @@ export const getDereferencedEntityTypesActivity = async (params: {
   /** Fetch the full schemas for the requested entity types */
   const entityTypes: DereferencedEntityTypesByTypeId = {};
 
-  const { data: response } = await backOff(
+  const response = await backOff(
     () =>
-      graphApiClient.getEntityTypeSubgraph(actorId, {
-        filter: {
-          any: entityTypeIds.map((entityTypeId) => ({
-            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
-          })),
+      queryEntityTypeSubgraph(
+        graphApiClient,
+        { actorId },
+        {
+          filter: {
+            any: entityTypeIds.map((entityTypeId) => ({
+              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+            })),
+          },
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            constrainsValuesOn: { outgoing: 255 },
+            constrainsPropertiesOn: { outgoing: 255 },
+            inheritsFrom: { outgoing: 255 },
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          inheritsFrom: { outgoing: 255 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-      }),
+      ),
     {
       numOfAttempts: 3,
       startingDelay: 1_000,
@@ -53,7 +56,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
   for (const entityTypeId of entityTypeIds) {
     entityTypes[entityTypeId] = dereferenceEntityType({
       entityTypeId,
-      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph, actorId),
+      subgraph: response.subgraph,
       simplifyPropertyKeys: true,
     });
   }

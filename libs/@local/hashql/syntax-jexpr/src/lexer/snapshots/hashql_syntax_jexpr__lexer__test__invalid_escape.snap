@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Invalid escape sequence
 expression: "\"\\z\""
 ---
-[31m[lexer::invalid-string] Error:[0m Invalid string literal
-   ╭─[ <unknown>:1:4 ]
-   │
- 1 │ "\z"
-   │    │ 
-   │    ╰─ Invalid escape sequence
-   │ 
-   │ Help: unknown escape sequence type
-───╯
+error[lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ "\z"
+  │    ━ Invalid escape sequence
+  │
+  ╰ help: unknown escape sequence type

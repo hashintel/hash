@@ -1,9 +1,10 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-graph-sdk/subgraph";
+import {
+  type HashEntity,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -51,8 +52,10 @@ export const getGoogleAccountById = async ({
   googleAccountId: string;
   graphApiClient: GraphApi;
 }): Promise<HashEntity<GoogleAccount> | undefined> => {
-  const entities = await graphApiClient
-    .getEntitySubgraph(userAccountId, {
+  const entities = await queryEntitySubgraph(
+    { graphApi: graphApiClient },
+    { actorId: userAccountId },
+    {
       filter: {
         all: [
           {
@@ -79,15 +82,11 @@ export const getGoogleAccountById = async ({
       graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
-    })
-    .then(({ data }) => {
-      const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType>(
-        data.subgraph,
-        userAccountId,
-      );
-
-      return getRoots(subgraph);
-    });
+      includePermissions: false,
+    },
+  ).then(({ subgraph }) => {
+    return getRoots(subgraph);
+  });
 
   if (entities.length > 1) {
     throw new Error(

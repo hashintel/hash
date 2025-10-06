@@ -14,12 +14,17 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
+use core::{cmp, ops::Range};
 
+use axum::{
+    Json,
+    response::{Html, IntoResponse as _, Response},
+};
 use hash_graph_store::{
     entity::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        GetEntitiesParams, GetEntitySubgraphParams, QueryConversion,
+        QueryConversion, QueryEntitiesParams, QueryEntitySubgraphParams,
     },
     entity_type::IncludeEntityTypeOption,
     filter::Filter,
@@ -29,12 +34,28 @@ use hash_graph_store::{
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
+use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collection::fast_hash_map, heap::Heap, module::ModuleRegistry, span::storage::SpanStorage,
+    collection::fast_hash_map,
+    heap::Heap,
+    module::ModuleRegistry,
+    span::{SpanId, storage::SpanStorage},
     r#type::environment::Environment,
 };
-use hashql_eval::graph::read::FilterSlice;
-use hashql_hir::visit::Visitor as _;
+use hashql_diagnostics::{
+    DiagnosticIssues, Failure, Severity, Status, StatusExt as _, Success,
+    category::{DiagnosticCategory, canonical_category_id},
+    diagnostic::render::{Format, RenderOptions},
+    severity::Critical,
+    source::{Source, Sources},
+};
+use hashql_eval::{
+    error::EvalDiagnosticCategory,
+    graph::{error::GraphCompilerDiagnosticCategory, read::FilterSlice},
+};
+use hashql_hir::{error::HirDiagnosticCategory, visit::Visitor as _};
+use hashql_syntax_jexpr::{error::JExprDiagnosticCategory, span::Span};
+use http::StatusCode;
 use serde::Deserialize;
 use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
@@ -131,7 +152,7 @@ fn generate_sorting_paths(
     }
 }
 
-/// Internal deserialization proxy for `GetEntitiesRequest`.
+/// Internal deserialization proxy for `QueryEntitiesRequest`.
 ///
 /// This struct is necessary because [`RawJsonValue`] cannot be used directly with
 /// `#[serde(untagged, deny_unknown_fields)]` - these attributes force deserialization into an
@@ -145,15 +166,15 @@ fn generate_sorting_paths(
     reason = "Parameter struct deserialized from JSON"
 )]
 #[serde(rename_all = "camelCase")]
-struct FlatEntitiesRequestData<'q, 's, 'p> {
-    // `GetEntitiesQuery::Filter`
+struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
+    // `QueryEntitiesQuery::Filter`
     #[serde(borrow)]
     filter: Option<Filter<'q, Entity>>,
-    // `GetEntitiesQuery::Query`,
+    // `QueryEntitiesQuery::Query`,
     #[serde(borrow)]
     query: Option<&'q RawJsonValue>,
 
-    // `GetEntitiesRequest`
+    // `QueryEntitiesRequest`
     temporal_axes: QueryTemporalAxesUnresolved,
     include_drafts: bool,
     limit: Option<usize>,
@@ -177,11 +198,134 @@ struct FlatEntitiesRequestData<'q, 's, 'p> {
     include_type_ids: bool,
     #[serde(default)]
     include_type_titles: bool,
+    include_permissions: bool,
 
-    // `GetEntitySubgraphRequest::ResolveDepths`
+    // `QueryEntitySubgraphRequest::ResolveDepths`
     graph_resolve_depths: Option<GraphResolveDepths>,
-    // `GetEntitySubgraphRequest::Paths`
+    // `QueryEntitySubgraphRequest::Paths`
     traversal_paths: Option<Vec<TraversalPath>>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct CompilationOptions {
+    pub interactive: bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum HashQLDiagnosticCategory {
+    JExpr(JExprDiagnosticCategory),
+    Ast(AstDiagnosticCategory),
+    Hir(HirDiagnosticCategory),
+    Eval(EvalDiagnosticCategory),
+}
+
+impl serde::Serialize for HashQLDiagnosticCategory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(&canonical_category_id(self))
+    }
+}
+
+impl DiagnosticCategory for HashQLDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("hashql")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("HashQL")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::JExpr(jexpr) => Some(jexpr),
+            Self::Ast(ast) => Some(ast),
+            Self::Hir(hir) => Some(hir),
+            Self::Eval(eval) => Some(eval),
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ResolvedSpan {
+    pub range: Range<usize>,
+    pub pointer: Option<String>,
+}
+
+fn resolve_span(id: SpanId, spans: &SpanStorage<Span>) -> Option<ResolvedSpan> {
+    let ancestors = spans.ancestors(id);
+
+    let mut base = spans.get_cloned(id)?;
+
+    for ancestor in ancestors {
+        let parent = spans.get(ancestor)?;
+        base.range += parent.map(|parent| parent.range.start());
+
+        if base.pointer.is_none()
+            && let Some(pointer) = parent.cloned().pointer
+        {
+            base.pointer = Some(pointer);
+        }
+    }
+
+    Some(ResolvedSpan {
+        range: base.range.into(),
+        pointer: base.pointer.map(|ptr| ptr.to_string()),
+    })
+}
+
+fn issues_to_response(
+    issues: DiagnosticIssues<HashQLDiagnosticCategory, SpanId>,
+    severity: Severity,
+    source: &str,
+    mut spans: &SpanStorage<Span>,
+    options: CompilationOptions,
+) -> Response {
+    let status_code = match severity {
+        Severity::Bug | Severity::Fatal => StatusCode::INTERNAL_SERVER_ERROR,
+        Severity::Error => StatusCode::BAD_REQUEST,
+        Severity::Warning | Severity::Note | Severity::Debug => StatusCode::CONFLICT,
+    };
+
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
+
+    let mut response = if options.interactive {
+        let output = issues.render(RenderOptions::new(Format::Html, &sources), &mut spans);
+
+        Html(output).into_response()
+    } else {
+        let diagnostics: Vec<_> = issues
+            .into_iter()
+            .map(|diagnostic| diagnostic.map_spans(|span| resolve_span(span, spans)))
+            .collect();
+
+        Json(diagnostics).into_response()
+    };
+
+    *response.status_mut() = status_code;
+    response
+}
+
+fn failure_to_response(
+    failure: Failure<HashQLDiagnosticCategory, SpanId>,
+    source: &str,
+    spans: &SpanStorage<Span>,
+    options: CompilationOptions,
+) -> Response {
+    // Find the highest diagnostic level
+    let severity = cmp::max(
+        failure
+            .secondary
+            .iter()
+            .map(|diagnostic| diagnostic.severity)
+            .max()
+            .unwrap_or(Severity::Debug),
+        failure.primary.severity.into(),
+    );
+
+    issues_to_response(failure.into_issues(), severity, source, spans, options)
 }
 
 #[derive(Debug, Clone)]
@@ -192,47 +336,64 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    #[expect(
-        clippy::unnecessary_wraps,
-        clippy::panic_in_result_fn,
-        reason = "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-    )]
-    fn compile_query<'h>(heap: &'h Heap, query: &RawJsonValue) -> Result<Filter<'h, Entity>, !> {
-        let spans = Arc::new(SpanStorage::new());
-
+    fn compile_query<'h>(
+        heap: &'h Heap,
+        spans: Arc<SpanStorage<Span>>,
+        query: &RawJsonValue,
+    ) -> Status<Filter<'h, Entity>, HashQLDiagnosticCategory, SpanId> {
         // Parse the query
-        let parser = hashql_syntax_jexpr::Parser::new(heap, Arc::clone(&spans));
-        let mut ast = parser.parse_expr(query.get().as_bytes()).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+        let mut ast = parser
+            .parse_expr(query.get().as_bytes())
+            .map_err(|diagnostic| {
+                Failure::new(
+                    diagnostic
+                        .map_category(HashQLDiagnosticCategory::JExpr)
+                        .map_severity(|severity| {
+                            Critical::try_new(severity).unwrap_or_else(|| {
+                                tracing::error!(
+                                    ?severity,
+                                    "JExpr returned an error of non-critical severity"
+                                );
+                                Critical::ERROR
+                            })
+                        }),
+                )
+            })?;
 
         let mut env = Environment::new(ast.span, heap);
         let modules = ModuleRegistry::new(&env);
 
         // Lower the AST
-        let (types, diagnostics) =
-            hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules);
-        assert!(
-            diagnostics.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
+        let Success {
+            value: types,
+            advisories,
+        } = hashql_ast::lowering::lower(heap.intern_symbol("main"), &mut ast, &env, &modules)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Ast(AstDiagnosticCategory::Lowering(category))
+            })?;
 
         let interner = hashql_hir::intern::Interner::new(heap);
 
         // Reify the HIR from the AST
-        let (hir, diagnostics) = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types);
-        assert!(
-            diagnostics.is_empty(),
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly"
-        );
-        let hir = hir.expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let Success {
+            value: hir,
+            advisories,
+        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
+            })
+            .with_diagnostics(advisories)?;
 
         // Lower the HIR
-        let hir = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let Success {
+            value: hir,
+            advisories,
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner)
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
+            })
+            .with_diagnostics(advisories)?;
 
         // Evaluate the HIR
         // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
@@ -241,13 +402,19 @@ impl<'q> EntityQuery<'q> {
 
         compiler.visit_node(&hir);
 
-        let result = compiler.finish().expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let Success {
+            value: result,
+            advisories,
+        } = compiler
+            .finish()
+            .map_category(|category| {
+                HashQLDiagnosticCategory::Eval(EvalDiagnosticCategory::Graph(
+                    GraphCompilerDiagnosticCategory::Read(category),
+                ))
+            })
+            .with_diagnostics(advisories)?;
 
-        let output = result.output.get(&hir.id).expect(
-            "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-        );
+        let output = result.output.get(&hir.id).expect("TODO");
 
         // Compile the Filter into one
         let filters = match output {
@@ -260,7 +427,10 @@ impl<'q> EntityQuery<'q> {
             _ => Filter::All(filters.to_vec()),
         };
 
-        Ok(filter)
+        Ok(Success {
+            value: filter,
+            advisories,
+        })
     }
 
     /// Compiles a query into an executable entity filter.
@@ -273,10 +443,39 @@ impl<'q> EntityQuery<'q> {
     /// # Errors
     ///
     /// Returns an error if the HashQL query cannot be compiled.
-    pub fn compile(self, heap: &'q Heap) -> Result<Filter<'q, Entity>, !> {
+    #[expect(clippy::result_large_err, reason = "precompiled response")]
+    pub(crate) fn compile(
+        self,
+        heap: &'q Heap,
+        options: CompilationOptions,
+    ) -> Result<Filter<'q, Entity>, Response> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
-            EntityQuery::Query { query } => Self::compile_query(heap, query),
+            EntityQuery::Query { query } => {
+                let spans = Arc::new(SpanStorage::new());
+
+                let Success {
+                    value: filter,
+                    advisories,
+                } = Self::compile_query(heap, Arc::clone(&spans), query).map_err(|failure| {
+                    failure_to_response(failure, query.get(), &spans, options)
+                })?;
+                if !advisories.is_empty() {
+                    // This isn't perfect, what we'd want instead is to return it alongside the
+                    // response, the problem with that approach is just how: we'd need to adjust the
+                    // return type, and respect interactive. Returning warnings before so that user
+                    // can fix them before trying again seems to be the best approach for now.
+                    return Err(issues_to_response(
+                        advisories.generalize(),
+                        Severity::Warning,
+                        query.get(),
+                        &spans,
+                        options,
+                    ));
+                }
+
+                Ok(filter)
+            }
         }
     }
 }
@@ -326,13 +525,14 @@ pub struct EntityQueryOptions<'s, 'p> {
     pub include_type_ids: bool,
     #[serde(default)]
     pub include_type_titles: bool,
+    pub include_permissions: bool,
 }
 
-impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for EntityQueryOptions<'s, 'p> {
+impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQueryOptions<'s, 'p> {
     type Error = EntityQueryOptionsError;
 
-    fn try_from(value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
-        let FlatEntitiesRequestData {
+    fn try_from(value: FlatQueryEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+        let FlatQueryEntitiesRequestData {
             filter,
             query,
             temporal_axes,
@@ -350,6 +550,7 @@ impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for EntityQueryOpt
             include_type_titles,
             graph_resolve_depths,
             traversal_paths,
+            include_permissions,
         } = value;
 
         if filter.is_some() {
@@ -386,17 +587,18 @@ impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for EntityQueryOpt
             include_edition_created_by_ids,
             include_type_ids,
             include_type_titles,
+            include_permissions,
         })
     }
 }
 
 impl<'p> EntityQueryOptions<'_, 'p> {
     #[must_use]
-    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> GetEntitiesParams<'f>
+    pub fn into_params<'f>(self, filter: Filter<'f, Entity>) -> QueryEntitiesParams<'f>
     where
         'p: 'f,
     {
-        GetEntitiesParams {
+        QueryEntitiesParams {
             filter,
             sorting: generate_sorting_paths(
                 self.sorting_paths,
@@ -415,6 +617,7 @@ impl<'p> EntityQueryOptions<'_, 'p> {
             include_edition_created_by_ids: self.include_edition_created_by_ids,
             include_type_ids: self.include_type_ids,
             include_type_titles: self.include_type_titles,
+            include_permissions: self.include_permissions,
         }
     }
 
@@ -423,27 +626,29 @@ impl<'p> EntityQueryOptions<'_, 'p> {
         self,
         filter: Filter<'q, Entity>,
         traversal: SubgraphTraversalParams,
-    ) -> GetEntitySubgraphParams<'q>
+    ) -> QueryEntitySubgraphParams<'q>
     where
         'p: 'q,
     {
         match traversal {
             SubgraphTraversalParams::ResolveDepths {
                 graph_resolve_depths,
-            } => GetEntitySubgraphParams::ResolveDepths {
+            } => QueryEntitySubgraphParams::ResolveDepths {
                 graph_resolve_depths,
                 request: self.into_params(filter),
             },
-            SubgraphTraversalParams::Paths { traversal_paths } => GetEntitySubgraphParams::Paths {
-                traversal_paths,
-                request: self.into_params(filter),
-            },
+            SubgraphTraversalParams::Paths { traversal_paths } => {
+                QueryEntitySubgraphParams::Paths {
+                    traversal_paths,
+                    request: self.into_params(filter),
+                }
+            }
         }
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::From)]
-enum GetEntitiesRequestError {
+enum QueryEntitiesRequestError {
     #[from]
     RequestOptions(EntityQueryOptionsError),
     #[display("Missing required query parameter. Provide either 'filter' or 'query'.")]
@@ -452,12 +657,16 @@ enum GetEntitiesRequestError {
     ConflictingQueryParameters,
 }
 
-impl core::error::Error for GetEntitiesRequestError {}
+impl core::error::Error for QueryEntitiesRequestError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, try_from = "FlatEntitiesRequestData", deny_unknown_fields)]
+#[serde(
+    untagged,
+    try_from = "FlatQueryEntitiesRequestData",
+    deny_unknown_fields
+)]
 #[expect(clippy::large_enum_variant)]
-pub enum GetEntitiesRequest<'q, 's, 'p> {
+pub enum QueryEntitiesRequest<'q, 's, 'p> {
     #[serde(rename_all = "camelCase")]
     Query {
         #[serde(borrow)]
@@ -475,16 +684,18 @@ pub enum GetEntitiesRequest<'q, 's, 'p> {
     },
 }
 
-impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for GetEntitiesRequest<'q, 's, 'p> {
-    type Error = GetEntitiesRequestError;
+impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
+    for QueryEntitiesRequest<'q, 's, 'p>
+{
+    type Error = QueryEntitiesRequestError;
 
-    fn try_from(mut value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+    fn try_from(mut value: FlatQueryEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
         let filter = value.filter.take();
         let query = value.query.take();
 
         match (filter, query) {
-            (None, None) => Err(GetEntitiesRequestError::MissingQueryParameter),
-            (Some(_), Some(_)) => Err(GetEntitiesRequestError::ConflictingQueryParameters),
+            (None, None) => Err(QueryEntitiesRequestError::MissingQueryParameter),
+            (Some(_), Some(_)) => Err(QueryEntitiesRequestError::ConflictingQueryParameters),
             (Some(filter), None) => Ok(Self::Filter {
                 filter,
                 options: value.try_into()?,
@@ -497,7 +708,7 @@ impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>> for GetEntitiesReq
     }
 }
 
-impl<'q, 's, 'p> GetEntitiesRequest<'q, 's, 'p> {
+impl<'q, 's, 'p> QueryEntitiesRequest<'q, 's, 'p> {
     #[must_use]
     pub fn from_parts(query: EntityQuery<'q>, options: EntityQueryOptions<'s, 'p>) -> Self {
         match query {
@@ -509,8 +720,10 @@ impl<'q, 's, 'p> GetEntitiesRequest<'q, 's, 'p> {
     #[must_use]
     pub fn into_parts(self) -> (EntityQuery<'q>, EntityQueryOptions<'s, 'p>) {
         match self {
-            GetEntitiesRequest::Query { query, options } => (EntityQuery::Query { query }, options),
-            GetEntitiesRequest::Filter { filter, options } => {
+            QueryEntitiesRequest::Query { query, options } => {
+                (EntityQuery::Query { query }, options)
+            }
+            QueryEntitiesRequest::Filter { filter, options } => {
                 (EntityQuery::Filter { filter }, options)
             }
         }
@@ -518,9 +731,9 @@ impl<'q, 's, 'p> GetEntitiesRequest<'q, 's, 'p> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::From)]
-enum GetEntitySubgraphRequestError {
+enum QueryEntitySubgraphRequestError {
     #[from]
-    GetEntityRequest(GetEntitiesRequestError),
+    QueryEntityRequest(QueryEntitiesRequestError),
     #[display(
         "Subgraph request missing traversal parameters. Specify either 'graphResolveDepths' or \
          'traversalPaths'."
@@ -533,11 +746,15 @@ enum GetEntitySubgraphRequestError {
     ConflictingSubgraphTraversal,
 }
 
-impl core::error::Error for GetEntitySubgraphRequestError {}
+impl core::error::Error for QueryEntitySubgraphRequestError {}
 
 #[derive(Debug, Clone, Deserialize, ToSchema)]
-#[serde(untagged, try_from = "FlatEntitiesRequestData", deny_unknown_fields)]
-pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
+#[serde(
+    untagged,
+    try_from = "FlatQueryEntitiesRequestData",
+    deny_unknown_fields
+)]
+pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(rename_all = "camelCase")]
     ResolveDepthsWithQuery {
         #[serde(borrow)]
@@ -574,45 +791,47 @@ pub enum GetEntitySubgraphRequest<'q, 's, 'p> {
     },
 }
 
-impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>>
-    for GetEntitySubgraphRequest<'q, 's, 'p>
+impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
+    for QueryEntitySubgraphRequest<'q, 's, 'p>
 {
-    type Error = GetEntitySubgraphRequestError;
+    type Error = QueryEntitySubgraphRequestError;
 
-    fn try_from(mut value: FlatEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
+    fn try_from(mut value: FlatQueryEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
         let graph_resolve_depths = value.graph_resolve_depths.take();
         let traversal_paths = value.traversal_paths.take();
 
         let request = value.try_into()?;
 
         match (graph_resolve_depths, traversal_paths, request) {
-            (None, None, _) => Err(GetEntitySubgraphRequestError::MissingSubgraphTraversal),
+            (None, None, _) => Err(QueryEntitySubgraphRequestError::MissingSubgraphTraversal),
             (Some(_), Some(_), _) => {
-                Err(GetEntitySubgraphRequestError::ConflictingSubgraphTraversal)
+                Err(QueryEntitySubgraphRequestError::ConflictingSubgraphTraversal)
             }
-            (Some(graph_resolve_depths), None, GetEntitiesRequest::Filter { filter, options }) => {
-                Ok(GetEntitySubgraphRequest::ResolveDepthsWithFilter {
-                    graph_resolve_depths,
-                    filter,
-                    options,
-                })
-            }
-            (Some(graph_resolve_depths), None, GetEntitiesRequest::Query { query, options }) => {
-                Ok(GetEntitySubgraphRequest::ResolveDepthsWithQuery {
+            (
+                Some(graph_resolve_depths),
+                None,
+                QueryEntitiesRequest::Filter { filter, options },
+            ) => Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
+                graph_resolve_depths,
+                filter,
+                options,
+            }),
+            (Some(graph_resolve_depths), None, QueryEntitiesRequest::Query { query, options }) => {
+                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
                     graph_resolve_depths,
                     query,
                     options,
                 })
             }
-            (None, Some(traversal_paths), GetEntitiesRequest::Filter { filter, options }) => {
-                Ok(GetEntitySubgraphRequest::PathsWithFilter {
+            (None, Some(traversal_paths), QueryEntitiesRequest::Filter { filter, options }) => {
+                Ok(QueryEntitySubgraphRequest::PathsWithFilter {
                     traversal_paths,
                     filter,
                     options,
                 })
             }
-            (None, Some(traversal_paths), GetEntitiesRequest::Query { query, options }) => {
-                Ok(GetEntitySubgraphRequest::PathsWithQuery {
+            (None, Some(traversal_paths), QueryEntitiesRequest::Query { query, options }) => {
+                Ok(QueryEntitySubgraphRequest::PathsWithQuery {
                     traversal_paths,
                     query,
                     options,
@@ -622,7 +841,7 @@ impl<'q, 's, 'p> TryFrom<FlatEntitiesRequestData<'q, 's, 'p>>
     }
 }
 
-impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
+impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
     #[must_use]
     pub fn from_parts(
         query: EntityQuery<'q>,
@@ -677,7 +896,7 @@ impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
         SubgraphTraversalParams,
     ) {
         match self {
-            GetEntitySubgraphRequest::ResolveDepthsWithQuery {
+            QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
                 query,
                 graph_resolve_depths,
                 options,
@@ -688,7 +907,7 @@ impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
                     graph_resolve_depths,
                 },
             ),
-            GetEntitySubgraphRequest::ResolveDepthsWithFilter {
+            QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
                 filter,
                 graph_resolve_depths,
                 options,
@@ -699,7 +918,7 @@ impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
                     graph_resolve_depths,
                 },
             ),
-            GetEntitySubgraphRequest::PathsWithQuery {
+            QueryEntitySubgraphRequest::PathsWithQuery {
                 query,
                 traversal_paths,
                 options,
@@ -708,7 +927,7 @@ impl<'q, 's, 'p> GetEntitySubgraphRequest<'q, 's, 'p> {
                 options,
                 SubgraphTraversalParams::Paths { traversal_paths },
             ),
-            GetEntitySubgraphRequest::PathsWithFilter {
+            QueryEntitySubgraphRequest::PathsWithFilter {
                 filter,
                 traversal_paths,
                 options,

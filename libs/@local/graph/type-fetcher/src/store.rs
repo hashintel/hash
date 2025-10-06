@@ -36,16 +36,17 @@ use hash_graph_store::{
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
-        ArchiveEntityTypeParams, CommonGetEntityTypesParams, CountEntityTypesParams,
+        ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
         CreateEntityTypeParams, EntityTypeStore, GetClosedMultiEntityTypesResponse,
-        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
-        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        QueryEntityTypeSubgraphParams, QueryEntityTypeSubgraphResponse, QueryEntityTypesParams,
+        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
@@ -493,16 +494,15 @@ where
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(
+                .query_entity_types(
                     actor_id,
-                    GetEntityTypesParams {
-                        request: CommonGetEntityTypesParams {
+                    QueryEntityTypesParams {
+                        request: CommonQueryEntityTypesParams {
                             filter: Filter::for_versioned_url(url),
                             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                                 pinned: PinnedTemporalAxisUnresolved::new(None),
                                 variable: VariableTemporalAxisUnresolved::new(None, None),
                             },
-                            include_drafts: true,
                             after: None,
                             limit: None,
                             include_count: false,
@@ -1442,12 +1442,12 @@ where
         self.store.count_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
-        self.store.get_entity_types(actor_id, params).await
+        params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
+        self.store.query_entity_types(actor_id, params).await
     }
 
     async fn get_closed_multi_entity_types<I, J>(
@@ -1471,12 +1471,14 @@ where
             .await
     }
 
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
-        self.store.get_entity_type_subgraph(actor_id, params).await
+        params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
+        self.store
+            .query_entity_type_subgraph(actor_id, params)
+            .await
     }
 
     async fn update_entity_types<P>(
@@ -1599,20 +1601,20 @@ where
         self.store.validate_entities(actor_id, params).await
     }
 
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        self.store.get_entities(actor_id, params).await
+        params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
+        self.store.query_entities(actor_id, params).await
     }
 
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        self.store.get_entity_subgraph(actor_id, params).await
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        self.store.query_entity_subgraph(actor_id, params).await
     }
 
     async fn get_entity_by_id(

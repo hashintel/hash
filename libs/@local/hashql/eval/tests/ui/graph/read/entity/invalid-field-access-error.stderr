@@ -1,26 +1,17 @@
-[graph-read-compiler::field-access-internal-error] Internal Compiler Error: Internal error during field access
-    ╭─[ <unknown>:14:12 ]
-    │
- 13 │           ["input", "user", {"#struct": {"ID": "::graph::types::knowledge::entity::EntityUuid"}}],
-    │           ───────────────────────────────────────────┬───────────────────────────────────────────  
-    │                                                      ╰───────────────────────────────────────────── ... on this value
- 14 │           "ID"
-    │            ─┬  
-    │             ╰── Field access for `ID` failed unexpectedly
-    │ 
-    │ Help 1: This is an internal compiler error. The field access should have been validated by the type checker, but the operation failed during compilation. Please report this as a bug with the code that triggered this error.
-    │ 
-    │ Help 2: This is a bug in the compiler, not an issue with your code.
-    │ 
-    │ Help 3: Please report this issue along with a minimal code example that reproduces the error.
-    │ 
-    │ Note 1: This error indicates a bug in the type checker or compiler. The field access was expected to succeed based on type information, but failed during evaluation.
-    │ 
-    │ Note 2: Internal error that occurred: Field `ID` not found
-    │ 
-    │ Note 3: Internal compiler errors indicate a bug in the compiler itself that needs to be fixed.
-    │         
-    │         We would appreciate if you could file a GitHub or Linear issue and reference this error.
-    │         
-    │         When reporting this issue, please include your query, any relevant type definitions, and the complete error message shown above.
-────╯
+error[graph-read-compiler::field-access-internal-error]: Internal error during field access
+   ╭▸ 
+13 │           ["input", "user", {"#struct": {"ID": "::graph::types::knowledge::entity::EntityUuid"}}],
+   │           ─────────────────────────────────────────────────────────────────────────────────────── ... on this value
+14 │           "ID"
+   │            ━━ Field access for `ID` failed unexpectedly
+   │
+   ├ help: This is an internal compiler error. The field access should have been validated by the type checker, but the operation failed during compilation. Please report this as a bug with the code that triggered this error.
+   ├ note: This error indicates a bug in the type checker or compiler. The field access was expected to succeed based on type information, but failed during evaluation.
+   ├ note: Internal error that occurred: Field `ID` not found
+   ├ help: This is a bug in the compiler, not an issue with your code.
+   ├ help: Please report this issue along with a minimal code example that reproduces the error.
+   ╰ note: Internal compiler errors indicate a bug in the compiler itself that needs to be fixed.
+           
+           We would appreciate if you could file a GitHub or Linear issue and reference this error.
+           
+           When reporting this issue, please include your query, any relevant type definitions, and the complete error message shown above.

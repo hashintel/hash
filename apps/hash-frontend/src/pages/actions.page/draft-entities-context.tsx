@@ -1,20 +1,22 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
 import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
@@ -49,7 +51,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const [
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<GetEntitySubgraphQuery>();
+  ] = useState<QueryEntitySubgraphQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -61,17 +63,19 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch: refetchFullData,
     loading,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       variables: {
         request: {
           filter: {
             all: [
               {
-                // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-                //                     @see https://linear.app/hash/issue/H-1207
-                notEqual: [{ path: ["draftId"] }, null],
+                not: {
+                  exists: {
+                    path: ["draftId"],
+                  },
+                },
               },
               {
                 equal: [{ path: ["archived"] }, { parameter: false }],
@@ -81,8 +85,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
           temporalAxes: currentTimeInstantTemporalAxes,
           graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: true,
+          includePermissions: false,
         },
-        includePermissions: false,
       },
       onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
       pollInterval,
@@ -94,10 +98,10 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const draftEntitiesSubgraph = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        ? deserializeQueryEntitySubgraphResponse(
             (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .getEntitySubgraph.subgraph,
-          )
+              .queryEntitySubgraph,
+          ).subgraph
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
   );
