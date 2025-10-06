@@ -112,6 +112,10 @@ export const entityTypedef = gql`
   extend type Query {
     countEntities(request: CountEntitiesParams!): Int!
 
+    queryEntities(
+      request: QueryEntitiesRequest!
+    ): QueryEntitiesResponse!
+
     queryEntitySubgraph(
       request: QueryEntitySubgraphRequest!
     ): QueryEntitySubgraphResponse!

@@ -6,6 +6,7 @@ import {
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   HashEntity,
+  queryEntities,
   queryEntitySubgraph,
   serializeQueryEntitySubgraphResponse,
 } from "@local/hash-graph-sdk/entity";
@@ -15,7 +16,6 @@ import {
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
-import type { MutationArchiveEntitiesArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   ApolloError,
   ForbiddenError,
@@ -37,6 +37,7 @@ import {
 } from "../../../../graph/knowledge/primitive/link-entity";
 import type {
   MutationAddEntityViewerArgs,
+  MutationArchiveEntitiesArgs,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
   MutationRemoveEntityViewerArgs,
@@ -45,6 +46,7 @@ import type {
   Query,
   QueryCountEntitiesArgs,
   QueryIsEntityPublicArgs,
+  QueryQueryEntitiesArgs,
   QueryQueryEntitySubgraphArgs,
   QueryValidateEntityArgs,
   ResolverFn,
@@ -118,6 +120,18 @@ export const countEntitiesResolver: ResolverFn<
   QueryCountEntitiesArgs
 > = async (_, { request }, graphQLContext) =>
   countEntities(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    request,
+  );
+
+export const queryEntitiesResolver: ResolverFn<
+  Query["queryEntities"],
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryEntitiesArgs
+> = async (_, { request }, graphQLContext) =>
+  queryEntities(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
