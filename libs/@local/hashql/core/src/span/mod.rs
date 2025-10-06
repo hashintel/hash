@@ -435,7 +435,7 @@ impl<'spans> SpanAncestors<'spans> {
 /// Mutable view of span ancestors, used for modifying ancestor relationships.
 ///
 /// [`SpanAncestorsMut`] provides mutable access to both the ancestor span list
-/// and the resolution mode. This type is typically used within [`SpanTable::modify`]
+/// and the resolution mode. This type is typically used within [`SpanTable::update`]
 /// operations to update span relationships after initial creation.
 pub struct SpanAncestorsMut<'spans> {
     /// Mutable reference to the ancestor span list.
