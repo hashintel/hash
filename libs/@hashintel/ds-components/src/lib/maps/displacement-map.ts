@@ -7,7 +7,7 @@ export function calculateDisplacementMapRadius(
   bezelWidth: number = 50,
   bezelHeightFn: (x: number) => number = (x) => x,
   refractiveIndex: number = 1.5,
-  samples: number = 128
+  samples: number = 128,
 ): number[] {
   // Pre-calculate the distance the ray will be deviated
   // given the distance to border (ratio of bezel)
@@ -84,7 +84,7 @@ export function calculateDisplacementMap(props: {
       const sin = y / distanceFromCenter;
 
       const bezelIndex = Math.round(
-        (distanceFromSide / bezel) * precomputedDisplacementMap.length
+        (distanceFromSide / bezel) * precomputedDisplacementMap.length,
       );
       const distance = precomputedDisplacementMap[bezelIndex] ?? 0;
 

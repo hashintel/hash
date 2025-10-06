@@ -38,7 +38,7 @@ export function calculateSpecularImage(props: {
 
       // Dot product of orientation
       const dotProduct = Math.abs(
-        cos * specular_vector[0] + sin * specular_vector[1]
+        cos * specular_vector[0] + sin * specular_vector[1],
       );
 
       const coefficient =

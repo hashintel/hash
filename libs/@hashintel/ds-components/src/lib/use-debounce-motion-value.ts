@@ -5,7 +5,7 @@ import { getValueOrMotion } from "./use-value-or-motion";
 
 export function useDebounceMotionValue(
   value: number | MotionValue<number>,
-  delay = 200
+  delay = 200,
 ): MotionValue<number> {
   const debounced = useMotionValue(getValueOrMotion(value));
 

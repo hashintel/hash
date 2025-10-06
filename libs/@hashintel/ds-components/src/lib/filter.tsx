@@ -59,12 +59,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         glassThickness.get(),
         bezelWidth.get(),
         bezelHeightFn,
-        refractiveIndex.get()
+        refractiveIndex.get(),
       );
     });
 
     const maximumDisplacement = useTransform(() =>
-      Math.max(...map.get().map(Math.abs))
+      Math.max(...map.get().map(Math.abs)),
     );
 
     const displacementMap = useTransform(() => {
@@ -90,7 +90,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     });
 
     const scale = useTransform(
-      () => maximumDisplacement.get() * scaleRatio.get()
+      () => maximumDisplacement.get() * scaleRatio.get(),
     );
 
     const content = (
@@ -168,7 +168,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         <defs>{content}</defs>
       </svg>
     );
-  }
+  },
 );
 
 //
@@ -223,5 +223,5 @@ export const Filter: React.FC<FilterProps> = memo(
       bezelHeightFn={bezelHeightFn}
       pixelRatio={pixelRatio ?? getDevicePixelRatio()}
     />
-  )
+  ),
 );

@@ -3,7 +3,7 @@ import { useMotionValue } from "motion/react";
 import { useLayoutEffect, useRef } from "react";
 
 export interface UseMotionResizeObserverReturn<
-  T extends HTMLElement = HTMLElement
+  T extends HTMLElement = HTMLElement,
 > {
   /**
    * Ref to attach to the DOM element you want to observe
@@ -60,7 +60,7 @@ export interface UseMotionResizeObserverOptions {
  * ```
  */
 export function useMotionResizeObserver<T extends HTMLElement = HTMLElement>(
-  options: UseMotionResizeObserverOptions = {}
+  options: UseMotionResizeObserverOptions = {},
 ): UseMotionResizeObserverReturn<T> {
   const { initialWidth = 0, initialHeight = 0 } = options;
 

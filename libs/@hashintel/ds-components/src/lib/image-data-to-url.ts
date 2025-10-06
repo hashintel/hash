@@ -5,11 +5,11 @@ export function imageDataToUrl(
   width?: number,
   height?: number,
   x = 0,
-  y = 0
+  y = 0,
 ): string {
   const canvas = createCanvas(
     width ?? imageData.width,
-    height ?? imageData.height
+    height ?? imageData.height,
   );
   const ctx = canvas.getContext("2d");
   ctx.putImageData(imageData, -x, -y);

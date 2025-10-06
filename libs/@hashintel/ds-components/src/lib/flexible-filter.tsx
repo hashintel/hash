@@ -35,7 +35,7 @@ type Parts = {
 function splitImageDataToParts(
   imageData: ImageData,
   radius_: number,
-  pixelRatio: number
+  pixelRatio: number,
 ): Parts {
   const radius = radius_ * pixelRatio;
   const lateralPartSize = LATERAL_PART_SIZE * pixelRatio;
@@ -54,7 +54,7 @@ function splitImageDataToParts(
     radius,
     radius,
     radius + lateralPartSize,
-    0
+    0,
   );
   const left = imageDataToUrl(imageData, radius, lateralPartSize, 0, radius);
   const right = imageDataToUrl(
@@ -62,28 +62,28 @@ function splitImageDataToParts(
     radius,
     lateralPartSize,
     radius + lateralPartSize,
-    radius
+    radius,
   );
   const bottomLeft = imageDataToUrl(
     imageData,
     radius,
     radius,
     0,
-    radius + lateralPartSize
+    radius + lateralPartSize,
   );
   const bottom = imageDataToUrl(
     imageData,
     lateralPartSize,
     radius,
     radius,
-    radius + lateralPartSize
+    radius + lateralPartSize,
   );
   const bottomRight = imageDataToUrl(
     imageData,
     radius,
     radius,
     radius + lateralPartSize,
-    radius + lateralPartSize
+    radius + lateralPartSize,
   );
 
   return {
@@ -130,7 +130,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
     hideRight,
   }) => {
     const parts = useTransform(() =>
-      splitImageDataToParts(imageData.get(), radius.get(), pixelRatio)
+      splitImageDataToParts(imageData.get(), radius.get(), pixelRatio),
     );
 
     return (
@@ -245,7 +245,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           ))}
       </>
     );
-  }
+  },
 );
 
 //
@@ -300,12 +300,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         glassThickness.get(),
         bezelWidth.get(),
         bezelHeightFn,
-        refractiveIndex.get()
+        refractiveIndex.get(),
       );
     });
 
     const maximumDisplacement = useTransform(() =>
-      Math.max(...map.get().map(Math.abs))
+      Math.max(...map.get().map(Math.abs)),
     );
 
     const displacementMap = useTransform(() => {
@@ -331,7 +331,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     });
 
     const scale = useTransform(
-      () => maximumDisplacement.get() * scaleRatio.get()
+      () => maximumDisplacement.get() * scaleRatio.get(),
     );
 
     const content = (
@@ -412,7 +412,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         <defs>{content}</defs>
       </svg>
     );
-  }
+  },
 );
 
 //
@@ -479,5 +479,5 @@ export const Filter: React.FC<FilterProps> = memo(
       hideRight={hideRight}
       hideTop={hideTop}
     />
-  )
+  ),
 );
