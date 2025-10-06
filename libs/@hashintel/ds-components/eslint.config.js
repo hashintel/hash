@@ -15,6 +15,7 @@ export default [
             "vite.config.ts",
             "panda.config.ts",
             "postcss.config.cjs",
+            ".storybook/*.ts",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
