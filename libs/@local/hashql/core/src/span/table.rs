@@ -204,7 +204,7 @@ impl<S> SpanTable<S> {
     /// };
     /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// let success = table.modify(span_id, |span, _ancestors| {
+    /// let success = table.update(span_id, |span, _ancestors| {
     ///     span.name = "new_name";
     /// });
     ///
@@ -228,15 +228,15 @@ impl<S> SpanTable<S> {
     /// };
     /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// // Try to modify from a different source - should fail
+    /// // Try to update from a different source - should fail
     /// let mut table2 = SpanTable::new(SourceId::new_unchecked(1));
-    /// let success = table2.modify(span_id, |_span: &mut MySpan, _ancestors| {
+    /// let success = table2.update(span_id, |_span: &mut MySpan, _ancestors| {
     ///     // This won't execute due to source mismatch
     /// });
     ///
     /// assert!(!success); // Modification rejected
     /// ```
-    pub fn modify(&mut self, span: SpanId, func: impl FnOnce(&mut S, SpanAncestorsMut)) -> bool {
+    pub fn update(&mut self, span: SpanId, func: impl FnOnce(&mut S, SpanAncestorsMut)) -> bool {
         if span.source_id() != self.source_id {
             return false;
         }

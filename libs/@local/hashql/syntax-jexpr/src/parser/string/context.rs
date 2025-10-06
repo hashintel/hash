@@ -39,7 +39,7 @@ impl Context<'_, '_> {
     }
 
     pub(crate) fn cover(&mut self, span: SpanId, range: Range<usize>) {
-        self.spans.modify(span, |span, _| {
+        self.spans.update(span, |span, _| {
             span.range = span.range.cover(range_to_text(range.clone()));
         });
     }
