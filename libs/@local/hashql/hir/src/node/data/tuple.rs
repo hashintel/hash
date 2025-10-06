@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::intern::Interned;
 
 use crate::node::Node;
 
@@ -9,7 +9,5 @@ use crate::node::Node;
 /// support indexed access.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Tuple<'heap> {
-    pub span: SpanId,
-
     pub fields: Interned<'heap, [Node<'heap>]>,
 }

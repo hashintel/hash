@@ -1,6 +1,9 @@
 use core::convert::Infallible;
 
-use hashql_core::collection::{FastHashMap, HashMapExt as _, TinyVec};
+use hashql_core::{
+    collection::{FastHashMap, HashMapExt as _, TinyVec},
+    span::{SpanId, Spanned},
+};
 
 use super::error::{LoweringDiagnosticIssues, argument_override};
 use crate::{
@@ -11,13 +14,14 @@ use crate::{
         Node, PartialNode,
         kind::NodeKind,
         r#let::{Binding, VarId},
-        variable::{Variable, VariableKind},
+        variable::Variable,
     },
 };
 
 #[derive(Debug)]
 pub struct AliasReplacement<'env, 'heap, 'diag> {
-    scope: FastHashMap<VarId, Variable<'heap>>,
+    current_span: SpanId,
+    scope: FastHashMap<VarId, Spanned<Variable<'heap>>>,
     context: &'env HirContext<'env, 'heap>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
@@ -29,6 +33,7 @@ impl<'env, 'heap, 'diag> AliasReplacement<'env, 'heap, 'diag> {
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
+            current_span: SpanId::SYNTHETIC,
             scope: FastHashMap::default(),
             context,
             diagnostics,
@@ -50,35 +55,48 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
 
     fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
         // Walk the node first, to resolve any aliases
-        let Binding { binder, value } = fold::walk_binding(self, binding)?;
+        let Binding {
+            span,
+            binder,
+            value,
+        } = fold::walk_binding(self, binding)?;
 
         // If the let statement is a simple re-assignment add the variable to the scope, if the
         // variable is already in the scope, simply add the proxy / alias
         if let NodeKind::Variable(variable) = value.kind {
-            let alias = if let VariableKind::Local(local) = variable.kind {
+            let alias = if let Variable::Local(local) = variable {
                 // Check if a binding already exists, if that is the case, re-use that, otherwise
                 // create a new one
                 self.scope
                     .get(&local.id.value)
-                    .copied()
-                    .unwrap_or(*variable)
+                    .map_or(*variable, |variable| variable.value)
             } else {
                 *variable
             };
 
             // We can just indiscriminately insert into the scope, and don't need to worry about
             // clean-up because everything is guaranteed to be unique by name.
-            self.scope.insert_unique(binder.id, alias);
+            self.scope.insert_unique(
+                binder.id,
+                Spanned {
+                    span: value.span,
+                    value: alias,
+                },
+            );
         }
 
-        Ok(Binding { binder, value })
+        Ok(Binding {
+            span,
+            binder,
+            value,
+        })
     }
 
     fn fold_variable(&mut self, variable: Variable<'heap>) -> Self::Output<Variable<'heap>> {
         let variable = fold::walk_variable(self, variable)?;
 
         // Check if said variable is an alias, in that case replace it with the aliased variable
-        if let VariableKind::Local(local) = variable.kind
+        if let Variable::Local(local) = variable
             && let Some(alias) = self.scope.get(&local.id.value)
         {
             // In the case that there are arguments on the local variable, we need to check if we
@@ -96,7 +114,7 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
                 // This happens when we have:
                 // `let foo = bar<T> in foo`
                 // we can just replace with the aliased variable, and don't care about the arguments
-                return Ok(*alias);
+                return Ok(alias.value);
             }
 
             // This happens when we have:
@@ -107,16 +125,21 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
             // We need to create a new variable, that takes into account the new arguments, if both
             // have arguments, we simply override, this is so that we can continue compilation.
             let mut replacement = *alias;
-            replacement.set_arguments_from(&variable);
+            replacement.value.set_arguments_from(&variable);
 
-            return Ok(replacement);
+            return Ok(replacement.value);
         }
 
         Ok(variable)
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
-        let node = fold::walk_node(self, node)?;
+        let previous = self.current_span;
+        self.current_span = node.span;
+
+        let Ok(node) = fold::walk_node(self, node);
+
+        self.current_span = previous;
 
         // Check if the node is a let expression and if said let expression is just an alias, if
         // that's the case we can safely remove it in favour of it's body, as all occurences have

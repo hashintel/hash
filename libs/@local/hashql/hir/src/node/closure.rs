@@ -113,8 +113,6 @@ impl<'heap> ClosureSignature<'heap> {
 /// Closures in HashQL can capture variables from their surrounding scope.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Closure<'heap> {
-    pub span: SpanId,
-
     pub signature: ClosureSignature<'heap>,
     pub body: Node<'heap>,
 }

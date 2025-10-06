@@ -1,5 +1,3 @@
-use hashql_core::span::SpanId;
-
 use crate::node::Node;
 
 /// A conditional expression in the HashQL HIR.
@@ -13,8 +11,6 @@ use crate::node::Node;
 /// reification.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct If<'heap> {
-    pub span: SpanId,
-
     pub test: Node<'heap>,
     pub then: Node<'heap>,
     pub r#else: Node<'heap>,

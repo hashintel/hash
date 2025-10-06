@@ -164,7 +164,7 @@ pub(crate) fn generic_argument_mismatch(
 
 pub(crate) fn argument_override<'heap>(
     variable: &Variable<'heap>,
-    replacement: &Variable<'heap>,
+    replacement: &Spanned<Variable<'heap>>,
     symbols: &SymbolRegistry<'heap>,
 ) -> LoweringDiagnostic {
     let mut diagnostic = Diagnostic::new(

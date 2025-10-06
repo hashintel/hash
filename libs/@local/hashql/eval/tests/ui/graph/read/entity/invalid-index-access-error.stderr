@@ -3,7 +3,7 @@ error[graph-read-compiler::index-access-internal-error]: Internal error during i
 13 │           ["input", "user_ids", "Dict<String, ::graph::types::knowledge::entity::EntityUuid>"],
    │           ──────────────────────────────────────────────────────────────────────────────────── ... on this value
 14 │           {"#literal": "abc"}
-   │           ━━━━━━━━━━━━━━━━━━━ Index access failed unexpectedly
+   │                        ━━━━━ Index access failed unexpectedly
    │
    ├ help: This is an internal compiler error. The index access should have been validated by the type checker, but the operation failed during compilation. Please report this as a bug with the code that triggered this error.
    ├ note: This error indicates a bug in the type checker or compiler. The index access was expected to succeed based on type information, but failed during evaluation.

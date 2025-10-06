@@ -2,6 +2,7 @@ use core::fmt::Display;
 
 use hashql_core::{
     collection::{FastHashMap, FastHashSet, HashMapExt as _},
+    literal::LiteralKind,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -31,19 +32,16 @@ use crate::{
     context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
-        HirId, Node,
-        access::{field::FieldAccess, index::IndexAccess},
-        branch::r#if::If,
+        HirId, HirPtr, Node,
+        access::{FieldAccess, IndexAccess},
+        branch::If,
         call::Call,
         closure::Closure,
-        data::{Dict, List, Literal, Struct, Tuple},
+        data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
         r#let::{Let, VarId},
-        operation::{
-            BinaryOperation, UnaryOperation,
-            r#type::{TypeAssertion, TypeConstructor},
-        },
+        operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
         variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
@@ -67,7 +65,7 @@ pub struct TypeChecking<'env, 'heap> {
     analysis: AnalysisEnvironment<'env, 'heap>,
     simplify: SimplifyEnvironment<'env, 'heap>,
 
-    current: HirId,
+    current: HirPtr,
     visited: FastHashSet<HirId>,
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
@@ -103,7 +101,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             analysis,
             simplify: SimplifyEnvironment::new(env),
 
-            current: HirId::PLACEHOLDER,
+            current: HirPtr::PLACEHOLDER,
             visited: FastHashSet::default(),
             diagnostics: DiagnosticIssues::new(),
             analysis_diagnostics: DiagnosticIssues::new(),
@@ -235,36 +233,35 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         }
 
         let previous = self.current;
-        self.current = node.id;
+        self.current = node.ptr();
 
         visit::walk_node(self, node);
 
         self.current = previous;
     }
 
-    fn visit_literal(&mut self, literal: &'heap Literal<'heap>) {
-        visit::walk_literal(self, literal);
-        self.transfer_type(self.current);
+    fn visit_literal(&mut self, _: &'heap LiteralKind<'heap>) {
+        self.transfer_type(self.current.id);
     }
 
     fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
         visit::walk_tuple(self, tuple);
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
         visit::walk_struct(self, r#struct);
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_list(&mut self, list: &'heap List<'heap>) {
         visit::walk_list(self, list);
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_dict(&mut self, dict: &'heap Dict<'heap>) {
         visit::walk_dict(self, dict);
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
@@ -272,14 +269,14 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
         let generic_arguments = self.locals[&variable.id.value].r#type.arguments;
         self.verify_arity(
-            variable.span,
+            self.current.span,
             variable.id.span,
             variable.name(&self.context.symbols),
             &generic_arguments,
             &variable.arguments,
         );
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_qualified_variable(&mut self, variable: &'heap QualifiedVariable<'heap>) {
@@ -306,34 +303,30 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
             }
         };
         self.verify_arity(
-            variable.span,
+            self.current.span,
             variable.path.0.last().expect("should be non-empty").span,
             variable.name(),
             &def.arguments,
             &variable.arguments,
         );
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
         visit::walk_let(self, r#let);
-        let Let {
-            span: _,
-            bindings: _,
-            body,
-        } = r#let;
+        let Let { bindings: _, body } = r#let;
 
         // We simply take the type of the body
         let body_id = self.types[&body.id];
-        self.types.insert_unique(self.current, body_id);
+        self.types.insert_unique(self.current.id, body_id);
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
         visit::walk_input(self, input);
 
-        let inferred = self.inferred_type(self.current);
-        self.types.insert_unique(self.current, inferred);
+        let inferred = self.inferred_type(self.current.id);
+        self.types.insert_unique(self.current.id, inferred);
 
         if let Some(default) = &input.default {
             self.verify_subtype(self.types[&default.id], inferred);
@@ -359,8 +352,8 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_type_assertion(&mut self, assertion: &'heap TypeAssertion<'heap>) {
         visit::walk_type_assertion(self, assertion);
 
-        let inferred = self.inferred_type(self.current);
-        self.types.insert_unique(self.current, inferred);
+        let inferred = self.inferred_type(self.current.id);
+        self.types.insert_unique(self.current.id, inferred);
 
         // We do not need to check if the type is actually the correct one
         if assertion.force {
@@ -376,7 +369,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_type_constructor(&mut self, constructor: &'heap TypeConstructor<'heap>) {
         visit::walk_type_constructor(self, constructor);
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_binary_operation(&mut self, _: &'heap BinaryOperation<'heap>) {
@@ -390,21 +383,21 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_field_access(&mut self, access: &'heap FieldAccess<'heap>) {
         visit::walk_field_access(self, access);
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_index_access(&mut self, access: &'heap IndexAccess<'heap>) {
         visit::walk_index_access(self, access);
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_call(&mut self, call: &'heap Call<'heap>) {
         visit::walk_call(self, call);
 
-        let returns_id = self.inferred_type(self.current);
+        let returns_id = self.inferred_type(self.current.id);
 
-        let builder = TypeBuilder::spanned(call.span, self.env);
+        let builder = TypeBuilder::spanned(self.current.span, self.env);
         let closure = builder.closure(
             call.arguments
                 .iter()
@@ -425,7 +418,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // For closure literals we invert the direction and collect `C <: F`
         self.verify_subtype(self.types[&call.function.id], closure);
 
-        self.types.insert_unique(self.current, returns_id);
+        self.types.insert_unique(self.current.id, returns_id);
     }
 
     fn visit_if(&mut self, r#if: &'heap If<'heap>) {
@@ -448,13 +441,13 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
             ));
         }
 
-        self.transfer_type(self.current);
+        self.transfer_type(self.current.id);
     }
 
     fn visit_closure(&mut self, closure: &'heap Closure<'heap>) {
         visit::walk_closure(self, closure);
 
-        let inferred = self.inferred_type(self.current);
+        let inferred = self.inferred_type(self.current.id);
 
         // `body <: return`
         // We need to compare with the actual signature, not the inferred type, as we use the actual
@@ -467,7 +460,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let returns = self.simplify.simplify(closure_type.returns);
         self.verify_subtype(self.types[&closure.body.id], returns);
 
-        self.types.insert_unique(self.current, inferred);
+        self.types.insert_unique(self.current.id, inferred);
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {

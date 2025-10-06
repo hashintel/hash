@@ -22,8 +22,6 @@ pub struct CallArgument<'heap> {
 /// positional arguments in their final order.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Call<'heap> {
-    pub span: SpanId,
-
     pub function: Node<'heap>,
     pub arguments: Interned<'heap, [CallArgument<'heap>]>,
 }

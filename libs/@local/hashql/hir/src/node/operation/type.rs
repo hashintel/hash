@@ -1,6 +1,5 @@
 use hashql_core::{
     intern::Interned,
-    span::SpanId,
     symbol::Symbol,
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
@@ -28,8 +27,6 @@ use crate::node::Node;
 ///   operations.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TypeAssertion<'heap> {
-    pub span: SpanId,
-
     pub value: Node<'heap>,
     pub r#type: TypeId,
 
@@ -46,8 +43,6 @@ pub struct TypeAssertion<'heap> {
 /// newtypes, allowing explicit conversion between otherwise incompatible types.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TypeConstructor<'heap> {
-    pub span: SpanId,
-
     /// The name of the opaque type being constructed.
     pub name: Symbol<'heap>,
     // The closure that performs the conversion
@@ -57,25 +52,13 @@ pub struct TypeConstructor<'heap> {
 }
 // TODO: we potentially want functions to access the repr and opaque value
 
-/// The kinds of type operations in the HashQL HIR.
-///
-/// Represents the two primary ways of working with types in HashQL expressions:
-/// assertions (checking if a value matches a type) and constructors (creating
-/// a value of a specific type).
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum TypeOperationKind<'heap> {
-    Assertion(TypeAssertion<'heap>),
-    Constructor(TypeConstructor<'heap>),
-}
-
 /// A type operation node in the HashQL HIR.
 ///
 /// Represents operations that interact with the type system, including type assertions
 /// (checking if a value conforms to a type) and type constructors (explicitly creating
 /// values of specific types).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct TypeOperation<'heap> {
-    pub span: SpanId,
-
-    pub kind: TypeOperationKind<'heap>,
+pub enum TypeOperation<'heap> {
+    Assertion(TypeAssertion<'heap>),
+    Constructor(TypeConstructor<'heap>),
 }

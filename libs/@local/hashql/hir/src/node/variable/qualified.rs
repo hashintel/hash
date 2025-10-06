@@ -1,10 +1,6 @@
 use core::fmt::Display;
 
-use hashql_core::{
-    intern::Interned,
-    span::{SpanId, Spanned},
-    r#type::TypeId,
-};
+use hashql_core::{intern::Interned, span::Spanned, r#type::TypeId};
 
 use crate::path::QualifiedPath;
 
@@ -18,8 +14,6 @@ use crate::path::QualifiedPath;
 /// allow for specialization of generic modules and types from external paths.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct QualifiedVariable<'heap> {
-    pub span: SpanId,
-
     pub path: QualifiedPath<'heap>,
     pub arguments: Interned<'heap, [Spanned<TypeId>]>,
 }
