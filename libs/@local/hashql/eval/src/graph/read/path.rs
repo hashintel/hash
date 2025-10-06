@@ -19,11 +19,39 @@ pub(crate) trait CompleteQueryPath<'heap>: QueryPath {
 pub(crate) trait PartialQueryPath<'heap>: Sized {
     type QueryPath;
 
+    const UNSUPPORTED: bool = false;
+
     fn from_field(heap: &'heap Heap, field: Symbol<'heap>) -> Option<Self>;
     fn access_field(self, heap: &'heap Heap, field: Symbol<'heap>) -> Result<Self, Self>;
     fn from_index(heap: &'heap Heap, index: Cow<'_, Value<'heap>>) -> Option<Self>;
     fn access_index(self, heap: &'heap Heap, index: Cow<'_, Value<'heap>>) -> Result<Self, Self>;
     fn finish(self) -> Option<Self::QueryPath>;
+}
+
+impl<'heap> PartialQueryPath<'heap> for ! {
+    type QueryPath = !;
+
+    const UNSUPPORTED: bool = true;
+
+    fn from_field(_: &'heap Heap, _: Symbol<'heap>) -> Option<Self> {
+        None
+    }
+
+    fn access_field(self, _: &'heap Heap, _: Symbol<'heap>) -> Result<Self, Self> {
+        self
+    }
+
+    fn from_index(_: &'heap Heap, _: Cow<'_, Value<'heap>>) -> Option<Self> {
+        None
+    }
+
+    fn access_index(self, _: &'heap Heap, _: Cow<'_, Value<'heap>>) -> Result<Self, Self> {
+        self
+    }
+
+    fn finish(self) -> Option<Self::QueryPath> {
+        None
+    }
 }
 
 impl<'heap> CompleteQueryPath<'heap> for EntityQueryPath<'heap> {

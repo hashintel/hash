@@ -96,57 +96,6 @@ impl<'heap, P> IntermediateExpression<'_, 'heap, P> {
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
-    fn compile_data_children<P, T, U>(
-        &mut self,
-        context: FilterCompilerContext<'heap>,
-        span: SpanId,
-        name: &'static str,
-        items: &'heap [T],
-        into_node: fn(&'heap T) -> &'heap Node<'heap>,
-        into_value: fn(&'heap T, Value<'heap>) -> U,
-    ) -> Result<Vec<U>, CompilationError>
-    where
-        P: PartialQueryPath<'heap> + Debug,
-    {
-        let mut incomplete = false;
-        let mut values = Vec::with_capacity(items.len());
-
-        for item in items {
-            let node = into_node(item);
-
-            let Ok(expr) = self.compile_filter_expr::<P>(context.with_current_span(span), node)
-            else {
-                incomplete = true;
-                continue;
-            };
-
-            let value = match expr {
-                IntermediateExpression::Path { path: _, span } => {
-                    self.diagnostics
-                        .push(path_in_data_construct_unsupported(span, name));
-
-                    incomplete = true;
-                    continue;
-                }
-                IntermediateExpression::Value { value, span: _ } => value.into_owned(),
-            };
-
-            if incomplete {
-                // There's no point to additionally allocating for memory if we're already
-                // guaranteed to fail
-                continue;
-            }
-
-            values.push(into_value(item, value));
-        }
-
-        if incomplete {
-            return Err(CompilationError);
-        }
-
-        Ok(values)
-    }
-
     fn compile_filter_expr_data<P>(
         &mut self,
         context: FilterCompilerContext<'heap>,
@@ -161,14 +110,21 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 span: *span,
             }),
             DataKind::Tuple(tuple) => {
-                let values = self.compile_data_children::<P, _, _>(
-                    context,
-                    tuple.span,
-                    "tuple",
-                    &tuple.fields,
-                    |node| node,
-                    |_, value| value,
-                )?;
+                let mut values = Vec::with_capacity(tuple.fields.len());
+                for field in tuple.fields {
+                    let Ok(IntermediateExpression::Value { value, span: _ }) =
+                        self.compile_filter_expr::<!>(context.with_current_span(*span), field)
+                    else {
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
+                        continue;
+                    };
+
+                    values.push(value.into_owned());
+                }
+
+                if values.len() != tuple.fields.len() {
+                    return Err(CompilationError);
+                }
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::Tuple(value::Tuple::from_values(values))),
@@ -176,14 +132,21 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 })
             }
             DataKind::Struct(r#struct) => {
-                let fields = self.compile_data_children::<P, _, _>(
-                    context,
-                    r#struct.span,
-                    "struct",
-                    &r#struct.fields,
-                    |field| &field.value,
-                    |field, value| (field.name.value, value),
-                )?;
+                let mut fields = Vec::with_capacity(r#struct.fields.len());
+                for field in r#struct.fields {
+                    let Ok(IntermediateExpression::Value { value, span: _ }) = self
+                        .compile_filter_expr::<!>(context.with_current_span(*span), &field.value)
+                    else {
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
+                        continue;
+                    };
+
+                    fields.push((field.name.value, value.into_owned()));
+                }
+
+                if fields.len() != r#struct.fields.len() {
+                    return Err(CompilationError);
+                }
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::Struct(value::Struct::from_fields(self.heap, fields))),
@@ -191,14 +154,21 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 })
             }
             DataKind::List(list) => {
-                let values = self.compile_data_children::<P, _, _>(
-                    context,
-                    list.span,
-                    "list",
-                    &list.elements,
-                    |element| element,
-                    |_, value| value,
-                )?;
+                let mut values = Vec::with_capacity(list.elements.len());
+                for element in list.elements {
+                    let Ok(IntermediateExpression::Value { value, span: _ }) =
+                        self.compile_filter_expr::<!>(context.with_current_span(*span), element)
+                    else {
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
+                        continue;
+                    };
+
+                    values.push(value.into_owned());
+                }
+
+                if values.len() != list.elements.len() {
+                    return Err(CompilationError);
+                }
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::List(value::List::from_values(values))),
@@ -222,6 +192,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 name,
                 arguments: _,
             }) if name.value == context.param_name => {
+                if P::UNSUPPORTED {
+                    self.diagnostics
+                        .push(path_in_data_construct_unsupported(span));
+
+                    return Err(CompilationError);
+                }
+
                 Ok(IntermediateExpression::Path { path: None, span })
             }
             VariableKind::Local(LocalVariable {
@@ -398,6 +375,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 let path = match traverse_into_field(path, self.heap, field.value) {
                     Ok(path) => path,
                     Err(path) => {
+                        if path.is_none() && P::UNSUPPORTED {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(*span));
+
+                            return Err(CompilationError);
+                        }
+
                         self.diagnostics.push(path_traversal_internal_error(
                             expr_node.span,
                             field.span,
@@ -480,6 +464,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 let path = match traverse_into_index(path, self.heap, index) {
                     Ok(path) => path,
                     Err(path) => {
+                        if path.is_none() && P::UNSUPPORTED {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(*span));
+
+                            return Err(CompilationError);
+                        }
+
                         self.diagnostics.push(path_traversal_internal_error(
                             expr_node.span,
                             index_node.span,
