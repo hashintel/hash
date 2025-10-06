@@ -4801,8 +4801,7 @@ dependencies = [
 [[package]]
 name = "justjson"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7e253b574775d0ebd7975c471fc18f72f0775a4d42b563b5fbc3c4068aa1075"
+source = "git+https://github.com/TimDiekmann/justjson?rev=d8e8cf1#d8e8cf1fb71b2c2e15db74232122bf44d8376657"
 
 [[package]]
 name = "keccak"

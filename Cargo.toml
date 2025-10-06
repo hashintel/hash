@@ -389,5 +389,6 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
-oxc    = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
-specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
+oxc      = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
+justjson = { git = "https://github.com/TimDiekmann/justjson", rev = "d8e8cf1" }
+specta   = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
