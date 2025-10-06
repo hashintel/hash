@@ -71,10 +71,6 @@ impl<'heap> Variable<'heap> {
     }
 
     /// Transfer the arguments from one variable to another.
-    ///
-    /// # Panics
-    ///
-    /// Panics if any of the variables are anonymous.
     pub const fn set_arguments_from(&mut self, donor: &Self) {
         let target = match &mut self.kind {
             VariableKind::Local(local_variable) => &mut local_variable.arguments,
