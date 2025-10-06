@@ -7,7 +7,7 @@ error[type-check::bound-constraint-violation]: Type bound constraint violation
   │    ━━━━━━━━━━━━━━━━━━━ Type variable has incompatible upper and lower bounds
   ‡
 7 │   { "#literal": "42" }
-  │   ──────────────────── Lower bound `String` must be a subtype of the upper bound
+  │                 ──── Lower bound `String` must be a subtype of the upper bound
   │
   ├ help: These type bounds create an impossible constraint. To fix this:
   │       1. Modify `String` to be a proper subtype of `Number`

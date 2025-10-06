@@ -4,7 +4,7 @@ error[type-check::bound-constraint-violation]: Type bound constraint violation
   │ ─ Upper bound `Number` is not a supertype of the lower bound
 2 │ //@ description: Ensures type checking fails when calling a function with an incompatible argument type (Number vs String).
 3 │ ["+", { "#literal": 42.12 }, { "#literal": "42" }]
-  │   ┯                          ──────────────────── Lower bound `String` must be a subtype of the upper bound
+  │   ┯                                        ──── Lower bound `String` must be a subtype of the upper bound
   │   │
   │   Type variable has incompatible upper and lower bounds
   │

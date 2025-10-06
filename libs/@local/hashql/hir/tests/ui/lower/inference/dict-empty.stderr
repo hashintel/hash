@@ -1,10 +1,7 @@
 error[type-check::unconstrained-type-variable]: Unconstrained type variable
   ╭▸ 
-3 │ ┏ {
-4 │ ┃   "#dict": {}
-  ‡ ┃
-7 │ ┃ }
-  │ ┗━┛ Cannot infer type for this variable - no usage constraints available
+4 │   "#dict": {}
+  │            ━━ Cannot infer type for this variable - no usage constraints available
   │
   ├ help: Add an explicit type annotation to provide the necessary context. For example:
   │       - Change `let x = ...` to `let x: Type = ...`
@@ -14,11 +11,8 @@ error[type-check::unconstrained-type-variable]: Unconstrained type variable
 
 error[type-check::unconstrained-type-variable]: Unconstrained type variable
   ╭▸ 
-3 │ ┏ {
-4 │ ┃   "#dict": {}
-  ‡ ┃
-7 │ ┃ }
-  │ ┗━┛ Cannot infer type for this variable - no usage constraints available
+4 │   "#dict": {}
+  │            ━━ Cannot infer type for this variable - no usage constraints available
   │
   ├ help: Add an explicit type annotation to provide the necessary context. For example:
   │       - Change `let x = ...` to `let x: Type = ...`

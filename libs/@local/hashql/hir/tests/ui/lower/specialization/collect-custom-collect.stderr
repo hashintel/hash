@@ -1,5 +1,5 @@
 error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic function in graph operation
-  ╭▸
+  ╭▸ 
 6 │     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", "graph"],
   │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ This is not a graph intrinsic operation
   │

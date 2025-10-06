@@ -3,7 +3,7 @@ error[lower::type-check::type-mismatch]: Type mismatch
 7 │   "String",
   │    ────── ... and this is of type `String`
 8 │   { "#literal": 1 }
-  │   ━━━━━━━━━━━━━━━━━ This is of type `Integer`
+  │                 ━ This is of type `Integer`
   │
   ├ help: You can convert the number to a string using the `::core::number::to_string/1` or `::core::number::to_string/2` function
   ╰ note: This type system uses a combination of nominal and structural typing. Types are compatible when they have the same structure (same fields/elements with compatible types) or when they represent the same named type. Union types must have at least one compatible variant, and intersection types require all constraints to be satisfied.
