@@ -1,5 +1,4 @@
-import { MotionValue } from "motion";
-import { useMotionValue } from "motion/react";
+import { MotionValue, useMotionValue } from "motion/react";
 import { useLayoutEffect } from "react";
 
 import { getValueOrMotion } from "./use-value-or-motion";
