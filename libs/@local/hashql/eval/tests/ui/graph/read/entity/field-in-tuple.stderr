@@ -1,7 +1,7 @@
 error[graph-read-compiler::path-in-data-construct-unsupported]: Path in data construct unsupported
   ╭▸ 
 9 │         [".", {"#tuple": ["vertex.id.entity_id.entity_uuid"]}, { "#literal": 0 }],
-  │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ path expressions are not supported in tuple constructs
+  │                            ━━━━━━ path expressions are not supported in data constructs
   │
   ├ help: rewrite the logic to avoid path expressions in data constructs
   ╰ note: path expressions within complex data constructs (tuples, lists, dictionaries, structs) are not supported by the current query compiler. This is a fundamental limitation that will be addressed in the next-generation compiler

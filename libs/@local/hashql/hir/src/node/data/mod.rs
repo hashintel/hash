@@ -21,7 +21,7 @@ pub enum DataKind<'heap> {
     /// A tuple with positionally-accessed elements
     Tuple(Tuple<'heap>),
     /// A homogeneous list of elements
-    List(List<'heap>, !),
+    List(List<'heap>),
     /// A primitive literal value
     Literal(Literal<'heap>),
 }

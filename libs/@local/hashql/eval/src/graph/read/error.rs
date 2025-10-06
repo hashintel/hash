@@ -640,17 +640,14 @@ pub(super) fn branch_unsupported(
 ///
 /// A diagnostic indicating that path expressions are not supported within the
 /// specified data construct, with guidance on alternative approaches.
-pub(super) fn path_in_data_construct_unsupported(
-    path_span: SpanId,
-    construct_name: &str,
-) -> GraphReadCompilerDiagnostic {
+pub(super) fn path_in_data_construct_unsupported(path_span: SpanId) -> GraphReadCompilerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::PathInDataConstructUnsupported,
         Severity::Error,
     )
     .primary(Label::new(
         path_span,
-        format!("path expressions are not supported in {construct_name} constructs"),
+        "path expressions are not supported in data constructs",
     ));
 
     diagnostic.add_message(Message::help(

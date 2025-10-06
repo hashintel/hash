@@ -110,32 +110,19 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 span: *span,
             }),
             DataKind::Tuple(tuple) => {
-                let mut incomplete = false;
                 let mut values = Vec::with_capacity(tuple.fields.len());
-
                 for field in tuple.fields {
-                    let Ok(expr) =
-                        self.compile_filter_expr::<P>(context.with_current_span(tuple.span), field)
+                    let Ok(IntermediateExpression::Value { value, span: _ }) =
+                        self.compile_filter_expr::<!>(context.with_current_span(*span), field)
                     else {
-                        incomplete = true;
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
                         continue;
                     };
 
-                    let value = match expr {
-                        IntermediateExpression::Path { path: _, span } => {
-                            self.diagnostics
-                                .push(path_in_data_construct_unsupported(span, "tuple"));
-
-                            incomplete = true;
-                            continue;
-                        }
-                        IntermediateExpression::Value { value, span: _ } => value.into_owned(),
-                    };
-
-                    values.push(value);
+                    values.push(value.into_owned());
                 }
 
-                if incomplete {
+                if values.len() != tuple.fields.len() {
                     return Err(CompilationError);
                 }
 
@@ -145,38 +132,46 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 })
             }
             DataKind::Struct(r#struct) => {
-                let mut incomplete = false;
                 let mut fields = Vec::with_capacity(r#struct.fields.len());
-
                 for field in r#struct.fields {
-                    let Ok(expr) = self.compile_filter_expr::<P>(
-                        context.with_current_span(r#struct.span),
-                        &field.value,
-                    ) else {
-                        incomplete = true;
+                    let Ok(IntermediateExpression::Value { value, span: _ }) = self
+                        .compile_filter_expr::<!>(context.with_current_span(*span), &field.value)
+                    else {
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
                         continue;
                     };
 
-                    let value = match expr {
-                        IntermediateExpression::Path { path: _, span } => {
-                            self.diagnostics
-                                .push(path_in_data_construct_unsupported(span, "struct"));
-
-                            incomplete = true;
-                            continue;
-                        }
-                        IntermediateExpression::Value { value, span: _ } => value.into_owned(),
-                    };
-
-                    fields.push((field.name.value, value));
+                    fields.push((field.name.value, value.into_owned()));
                 }
 
-                if incomplete {
+                if fields.len() != r#struct.fields.len() {
                     return Err(CompilationError);
                 }
 
                 Ok(IntermediateExpression::Value {
                     value: Cow::Owned(Value::Struct(value::Struct::from_fields(self.heap, fields))),
+                    span: *span,
+                })
+            }
+            DataKind::List(list) => {
+                let mut values = Vec::with_capacity(list.elements.len());
+                for element in list.elements {
+                    let Ok(IntermediateExpression::Value { value, span: _ }) =
+                        self.compile_filter_expr::<!>(context.with_current_span(*span), element)
+                    else {
+                        // `!` ensures that no `IntermediateExpression::Path` will be returned
+                        continue;
+                    };
+
+                    values.push(value.into_owned());
+                }
+
+                if values.len() != list.elements.len() {
+                    return Err(CompilationError);
+                }
+
+                Ok(IntermediateExpression::Value {
+                    value: Cow::Owned(Value::List(value::List::from_values(values))),
                     span: *span,
                 })
             }
@@ -197,6 +192,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 name,
                 arguments: _,
             }) if name.value == context.param_name => {
+                if P::UNSUPPORTED {
+                    self.diagnostics
+                        .push(path_in_data_construct_unsupported(span));
+
+                    return Err(CompilationError);
+                }
+
                 Ok(IntermediateExpression::Path { path: None, span })
             }
             VariableKind::Local(LocalVariable {
@@ -373,6 +375,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 let path = match traverse_into_field(path, self.heap, field.value) {
                     Ok(path) => path,
                     Err(path) => {
+                        if path.is_none() && P::UNSUPPORTED {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(*span));
+
+                            return Err(CompilationError);
+                        }
+
                         self.diagnostics.push(path_traversal_internal_error(
                             expr_node.span,
                             field.span,
@@ -455,6 +464,13 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 let path = match traverse_into_index(path, self.heap, index) {
                     Ok(path) => path,
                     Err(path) => {
+                        if path.is_none() && P::UNSUPPORTED {
+                            self.diagnostics
+                                .push(path_in_data_construct_unsupported(*span));
+
+                            return Err(CompilationError);
+                        }
+
                         self.diagnostics.push(path_traversal_internal_error(
                             expr_node.span,
                             index_node.span,
