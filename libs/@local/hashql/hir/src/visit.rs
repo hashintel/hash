@@ -75,7 +75,7 @@ use crate::{
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binder, Let, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
@@ -120,6 +120,11 @@ use crate::{
 pub trait Visitor<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: HirId) {
+        // do nothing, no fields to walk
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_var_id(&mut self, id: VarId) {
         // do nothing, no fields to walk
     }
 
@@ -200,6 +205,10 @@ pub trait Visitor<'heap> {
 
     fn visit_qualified_variable(&mut self, variable: &'heap QualifiedVariable<'heap>) {
         walk_qualified_variable(self, variable);
+    }
+
+    fn visit_binder(&mut self, binding: &'heap Binder<'heap>) {
+        walk_binder(self, binding);
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
@@ -423,12 +432,14 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     LocalVariable {
         span,
-        name,
+        id,
         arguments,
     }: &'heap LocalVariable<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_ident(name);
+
+    visitor.visit_span(id.span);
+    visitor.visit_var_id(id.value);
 
     for &argument in arguments {
         visitor.visit_type_id(argument.value);
@@ -451,6 +462,17 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     }
 }
 
+pub fn walk_binder<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binder { id, name }: &'heap Binder<'heap>,
+) {
+    visitor.visit_var_id(*id);
+
+    if let Some(name) = name {
+        visitor.visit_ident(name);
+    }
+}
+
 pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Let {
@@ -461,7 +483,7 @@ pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
     }: &'heap Let<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_ident(name);
+    visitor.visit_binder(name);
 
     visitor.visit_node(value);
     visitor.visit_node(body);
@@ -681,7 +703,7 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
 ) {
     visitor.visit_span(*span);
 
-    visitor.visit_ident(name);
+    visitor.visit_binder(name);
 }
 
 pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(

@@ -4,7 +4,7 @@ use hashql_core::{
     collection::FastHashMap,
     intern::Interned,
     module::{
-        ModuleRegistry, Universe,
+        Universe,
         item::ItemKind,
         locals::{TypeDef, TypeLocals},
     },
@@ -19,6 +19,7 @@ use hashql_core::{
 
 use super::error::{GenericArgumentContext, LoweringDiagnosticIssues, generic_argument_mismatch};
 use crate::{
+    context::HirContext,
     fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
@@ -33,9 +34,9 @@ use crate::{
 };
 
 pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
-    interner: &'env Interner<'heap>,
+    context: &'env HirContext<'env, 'heap>,
+
     locals: &'env TypeLocals<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
@@ -46,16 +47,15 @@ pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
 
 impl<'env, 'heap, 'diag> ConvertTypeConstructor<'env, 'heap, 'diag> {
     pub fn new(
-        interner: &'env Interner<'heap>,
+        context: &'env HirContext<'env, 'heap>,
         locals: &'env TypeLocals<'heap>,
-        registry: &'env ModuleRegistry<'heap>,
         environment: &'env Environment<'heap>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
-            interner,
+            context,
+
             locals,
-            registry,
             environment,
             instantiate: InstantiateEnvironment::new(environment),
 
@@ -74,10 +74,11 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
         match variable.kind {
             VariableKind::Local(LocalVariable {
                 span: _,
-                name,
+                id,
                 arguments,
             }) => {
-                let local = self.locals.get(name.value)?;
+                let name = self.context.symbols.binder.get(id.value)?;
+                let local = self.locals.get(name)?;
 
                 Some((local.value, arguments))
             }
@@ -87,7 +88,8 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
                 arguments,
             }) => {
                 let item = self
-                    .registry
+                    .context
+                    .modules
                     .lookup(path.0.iter().map(|ident| ident.value), Universe::Value)?;
 
                 let ItemKind::Constructor(constructor) = item.kind else {
@@ -160,7 +162,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
 
         if generic_arguments.is_empty() {
             // We're done here, as we don't need to apply anything
-            return Some(self.interner.intern_node(make(TypeConstructor {
+            return Some(self.context.interner.intern_node(make(TypeConstructor {
                 span: variable.span,
                 name,
                 closure: closure_def.id,
@@ -175,7 +177,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
                 GenericArgumentContext::TypeConstructor,
                 node.span,
                 variable.span,
-                variable.name(),
+                variable.name(&self.context.symbols),
                 &closure_def.arguments,
                 &generic_arguments,
             ));
@@ -200,7 +202,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
         // We do not need to instantiate here again, because we already had α-renaming in the
         // closure definition, which means that the closure is already unique. As the closure is
         // unused and unique, we don't need to α-rename again.
-        Some(self.interner.intern_node(make(TypeConstructor {
+        Some(self.context.interner.intern_node(make(TypeConstructor {
             span: variable.span,
             name,
             closure: closure_id,
@@ -256,7 +258,7 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
     type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
-        self.interner
+        self.context.interner
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {

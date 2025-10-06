@@ -24,7 +24,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     #[expect(clippy::too_many_lines, reason = "match statement")]
     pub(super) fn compile_filter<R>(
         &mut self,
-        context: FilterCompilerContext<'heap>,
+        context: FilterCompilerContext,
         node: &'heap Node<'heap>,
         sink: &mut FilterSink<'_, 'heap, R>,
     ) -> Result<(), CompilationError>
@@ -37,16 +37,16 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 kind:
                     VariableKind::Local(LocalVariable {
                         span: _,
-                        name,
+                        id,
                         arguments: _,
                     }),
             }) => {
                 debug_assert_ne!(
-                    name.value, context.param_name,
+                    id.value, context.param_id,
                     "typecheck should have caught this, cannot just return the entity itself."
                 );
 
-                let value = self.locals[&name.value];
+                let value = self.locals[&id.value];
                 self.compile_filter(context, value, sink)
             }
             NodeKind::Variable(Variable {
@@ -64,9 +64,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 value,
                 body,
             }) => {
-                self.locals.insert(name.value, value);
+                self.locals.insert(name.id, value);
                 let filter = self.compile_filter(context, body, sink);
-                self.locals.remove(&name.value);
+                self.locals.remove(&name.id);
 
                 filter
             }

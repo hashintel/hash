@@ -18,7 +18,7 @@ use hashql_diagnostics::{
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;
-use crate::node::variable::Variable;
+use crate::{context::SymbolRegistry, node::variable::Variable};
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
@@ -165,6 +165,7 @@ pub(crate) fn generic_argument_mismatch(
 pub(crate) fn argument_override<'heap>(
     variable: &Variable<'heap>,
     replacement: &Variable<'heap>,
+    symbols: &SymbolRegistry<'heap>,
 ) -> LoweringDiagnostic {
     let mut diagnostic = Diagnostic::new(
         LoweringDiagnosticCategory::ArgumentOverride,
@@ -172,7 +173,10 @@ pub(crate) fn argument_override<'heap>(
     )
     .primary(Label::new(
         replacement.span,
-        format!("`{}` was defined with type arguments here", variable.name()),
+        format!(
+            "`{}` was defined with type arguments here",
+            variable.name(symbols)
+        ),
     ));
 
     let variable_arguments = variable.arguments();
@@ -188,9 +192,9 @@ pub(crate) fn argument_override<'heap>(
         "The variable `{}` already represents `{}` with type arguments applied. Use `{}` directly \
          without additional type arguments, or create a new binding if you need different type \
          parameters.",
-        variable.name(),
-        replacement.name(),
-        variable.name()
+        variable.name(symbols),
+        replacement.name(symbols),
+        variable.name(symbols)
     )));
 
     diagnostic.add_message(Message::note(

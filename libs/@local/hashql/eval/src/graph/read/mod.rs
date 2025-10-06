@@ -17,7 +17,7 @@ use hashql_hir::{
         HirId, Node,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Let, VarId},
     },
     visit::{self, Visitor},
 };
@@ -49,18 +49,18 @@ impl<'heap> Filters<'heap> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct FilterCompilerContext<'heap> {
+struct FilterCompilerContext {
     span: SpanId,
     current_span: Option<SpanId>,
-    param_name: Symbol<'heap>,
+    param_id: VarId,
 }
 
-impl FilterCompilerContext<'_> {
+impl FilterCompilerContext {
     const fn without_current_span(self) -> Self {
         Self {
             span: self.span,
             current_span: None,
-            param_name: self.param_name,
+            param_id: self.param_id,
         }
     }
 
@@ -68,7 +68,7 @@ impl FilterCompilerContext<'_> {
         Self {
             span: self.span,
             current_span: Some(span),
-            param_name: self.param_name,
+            param_id: self.param_id,
         }
     }
 }
@@ -89,7 +89,7 @@ pub struct GraphReadCompiler<'env, 'heap> {
 
     diagnostics: GraphReadCompilerIssues,
 
-    locals: FastHashMap<Symbol<'heap>, &'heap Node<'heap>>,
+    locals: FastHashMap<VarId, &'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
     output: FastHashMap<HirId, FilterSlice>,
 }
@@ -141,7 +141,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                         FilterCompilerContext {
                             span: closure.body.span,
                             current_span: None,
-                            param_name: closure.signature.params[0].name.value,
+                            param_id: closure.signature.params[0].name.id,
                         },
                         &closure.body,
                         &mut sink,
@@ -190,9 +190,9 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
-        self.locals.insert(r#let.name.value, &r#let.value);
+        self.locals.insert(r#let.name.id, &r#let.value);
         visit::walk_let(self, r#let);
-        self.locals.remove(&r#let.name.value);
+        self.locals.remove(&r#let.name.id);
 
         if let Some(value) = self.output.get(&r#let.body.id) {
             self.output.insert(self.current, value.clone());

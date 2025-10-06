@@ -374,12 +374,13 @@ impl<'q> EntityQuery<'q> {
             })?;
 
         let interner = hashql_hir::intern::Interner::new(heap);
+        let mut context = hashql_hir::context::HirContext::new(&interner, &modules);
 
         // Reify the HIR from the AST
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types)
+        } = hashql_hir::node::Node::from_ast(ast, &mut context, &types)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })
@@ -389,7 +390,7 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner)
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &context)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
             })

@@ -94,14 +94,25 @@ pub trait Id:
     /// Converts this ID to a [`usize`] value.
     fn as_usize(self) -> usize;
 
-    /// Returns the next ID in sequence, if it exists.
+    /// Adds the given amount to this ID.
     ///
     /// # Panics
     ///
-    /// Panics if this ID is already at the maximum value.
-    #[must_use]
-    fn next(self) -> Self {
-        Self::from_usize(self.as_usize() + 1)
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    #[must_use = "Use `increment_by` to modify the id in place"]
+    fn plus(self, amount: usize) -> Self {
+        Self::from_usize(self.as_usize() + amount)
+    }
+
+    /// Mutably adds the given amount to this ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    fn increment_by(&mut self, amount: usize) {
+        *self = self.plus(amount);
     }
 
     /// Returns the previous ID in sequence, if it exists.

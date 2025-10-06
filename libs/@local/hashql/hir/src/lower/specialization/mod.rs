@@ -3,9 +3,7 @@ pub mod error;
 use core::{convert::Infallible, ops::Try};
 
 use hashql_core::{
-    collection::{FastHashMap, SmallVec},
-    module::{Universe, universe::FastRealmsMap},
-    symbol::Symbol,
+    collection::{FastHashMap, HashMapExt as _, SmallVec},
     r#type::{TypeId, environment::Environment},
 };
 
@@ -15,6 +13,7 @@ use self::error::{
 };
 use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
+    context::HirContext,
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
@@ -25,44 +24,45 @@ use crate::{
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Let, VarId},
         operation::{
             BinaryOperation, Operation, OperationKind,
             binary::{BinOp, BinOpKind},
         },
         variable::{Variable, VariableKind},
     },
+    pretty::PrettyPrintEnvironment,
 };
 
 pub struct Specialization<'env, 'heap, 'diag> {
     env: &'env Environment<'heap>,
-    interner: &'env Interner<'heap>,
+    context: &'env HirContext<'env, 'heap>,
 
     types: &'env mut FastHashMap<HirId, TypeId>,
     intrinsics: FastHashMap<HirId, &'static str>,
 
     visited: FastHashMap<HirId, Node<'heap>>,
-    locals: FastRealmsMap<Symbol<'heap>, Node<'heap>>,
+    locals: FastHashMap<VarId, Node<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
 impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     pub fn new(
         env: &'env Environment<'heap>,
-        interner: &'env Interner<'heap>,
+        context: &'env HirContext<'env, 'heap>,
         types: &'env mut FastHashMap<HirId, TypeId>,
         intrinsics: FastHashMap<HirId, &'static str>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
             env,
-            interner,
+            context,
 
             types,
             intrinsics,
 
             visited: FastHashMap::default(),
-            locals: FastRealmsMap::default(),
+            locals: FastHashMap::default(),
             diagnostics,
         }
     }
@@ -93,18 +93,28 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                 ..
             }) = next.kind
             {
-                next = self.locals[Universe::Value][&local.name.value];
+                next = self.locals[&local.id.value];
             }
 
             let NodeKind::Call(call) = next.kind else {
-                self.push_diagnostic(invalid_graph_chain(self.env, next.span, next));
+                self.push_diagnostic(invalid_graph_chain(
+                    &PrettyPrintEnvironment {
+                        env: self.env,
+                        symbols: &self.context.symbols,
+                    },
+                    next.span,
+                    next,
+                ));
 
                 return None;
             };
 
             let Some(&intrinsic) = self.intrinsics.get(&call.function.id) else {
                 self.push_diagnostic(non_intrinsic_graph_operation(
-                    self.env,
+                    &PrettyPrintEnvironment {
+                        env: self.env,
+                        symbols: &self.context.symbols,
+                    },
                     call.span,
                     call.function,
                 ));
@@ -132,7 +142,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     return Some(GraphRead {
                         span: call.span,
                         head,
-                        body: self.interner.graph_read_body.intern_slice(&body),
+                        body: self.context.interner.graph_read_body.intern_slice(&body),
                         tail,
                     });
                 }
@@ -211,7 +221,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 let read = fold::walk_graph_read(self, read)?;
 
-                return Ok(Some(self.interner.intern_node(PartialNode {
+                return Ok(Some(self.context.interner.intern_node(PartialNode {
                     span: call.span,
                     kind: NodeKind::Graph(Graph {
                         span: call.span,
@@ -255,7 +265,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
         let operation = fold::walk_operation(self, operation)?;
 
-        Ok(Some(self.interner.intern_node(PartialNode {
+        Ok(Some(self.context.interner.intern_node(PartialNode {
             span: call.span,
             kind: NodeKind::Operation(operation),
         })))
@@ -271,7 +281,7 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
     type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
-        self.interner
+        self.context.interner
     }
 
     fn fold_let(
@@ -284,12 +294,11 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         }: Let<'heap>,
     ) -> Self::Output<Let<'heap>> {
         let span = self.fold_span(span)?;
-        let name = self.fold_ident(name)?;
+        let name = self.fold_binder(name)?;
 
         let value = self.fold_nested_node(value)?;
 
-        self.locals
-            .insert_unique(Universe::Value, name.value, value);
+        self.locals.insert_unique(name.id, value);
 
         let body = self.fold_nested_node(body)?;
 

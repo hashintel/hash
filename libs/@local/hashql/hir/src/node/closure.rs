@@ -2,7 +2,6 @@ use hashql_core::{
     intern::Interned,
     module::locals::TypeDef,
     span::SpanId,
-    symbol::Ident,
     r#type::{
         TypeId,
         environment::Environment,
@@ -10,7 +9,7 @@ use hashql_core::{
     },
 };
 
-use super::Node;
+use super::{Node, r#let::Binder};
 
 pub(crate) fn extract_signature<'heap>(
     mut type_id: TypeId,
@@ -47,7 +46,7 @@ pub struct ClosureParam<'heap> {
 
     // see: https://linear.app/hash/issue/H-4587/hashql-add-argument-label-support-a-la-swift
     // pub label: Option<Ident<'heap>>,
-    pub name: Ident<'heap>,
+    pub name: Binder<'heap>,
 }
 
 /// The signature of a closure in the HashQL HIR.
