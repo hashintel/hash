@@ -1,5 +1,5 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
-import { css, cx } from "@hashintel/ds-styled-system/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { useId } from "react";
 
 import { Filter } from "../../lib/flexible-filter";

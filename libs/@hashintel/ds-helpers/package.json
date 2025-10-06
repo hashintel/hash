@@ -1,11 +1,11 @@
 {
-  "name": "@hashintel/ds-styled-system",
+  "name": "@hashintel/ds-helpers",
   "version": "0.0.1",
   "description": "HASH PandaCSS Styled System",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
-    "directory": "libs/@hashintel/ds-styled-system"
+    "directory": "libs/@hashintel/ds-helpers"
   },
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
@@ -44,7 +44,7 @@
     "prepare": "panda codegen --clean"
   },
   "dependencies": {
-    "@hashintel/ds-preset": "0.0.1"
+    "@hashintel/ds-theme": "0.0.1"
   },
   "devDependencies": {
     "@pandacss/dev": "1.4.1"

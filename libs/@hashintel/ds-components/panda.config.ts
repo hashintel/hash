@@ -15,6 +15,6 @@ export default defineConfig({
     extend: {},
   },
 
-  importMap: "@hashintel/ds-styled-system",
-  presets: ["@hashintel/ds-preset"],
+  importMap: "@hashintel/ds-helpers",
+  presets: ["@hashintel/ds-theme"],
 });

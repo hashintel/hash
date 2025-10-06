@@ -6,8 +6,8 @@ import dts from "vite-plugin-dts";
 
 // Dependencies that should not be bundled into the library
 const external = [
-  "@hashintel/ds-styled-system",
-  "@hashintel/ds-styled-system/css",
+  "@hashintel/ds-helpers",
+  "@hashintel/ds-helpers/css",
   "canvas",
   "motion",
   "motion/react",

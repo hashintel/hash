@@ -7299,7 +7299,7 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.25.1"
-    "@hashintel/ds-styled-system": "npm:0.0.1"
+    "@hashintel/ds-helpers": "npm:0.0.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@pandacss/dev": "npm:1.4.1"
@@ -7324,18 +7324,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-preset@npm:0.0.1, @hashintel/ds-preset@workspace:libs/@hashintel/ds-preset":
+"@hashintel/ds-helpers@npm:0.0.1, @hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers":
   version: 0.0.0-use.local
-  resolution: "@hashintel/ds-preset@workspace:libs/@hashintel/ds-preset"
+  resolution: "@hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers"
+  dependencies:
+    "@hashintel/ds-theme": "npm:0.0.1"
+    "@pandacss/dev": "npm:1.4.1"
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-styled-system@npm:0.0.1, @hashintel/ds-styled-system@workspace:libs/@hashintel/ds-styled-system":
+"@hashintel/ds-theme@npm:0.0.1, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
   version: 0.0.0-use.local
-  resolution: "@hashintel/ds-styled-system@workspace:libs/@hashintel/ds-styled-system"
-  dependencies:
-    "@hashintel/ds-preset": "npm:0.0.1"
-    "@pandacss/dev": "npm:1.4.1"
+  resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   languageName: unknown
   linkType: soft
 

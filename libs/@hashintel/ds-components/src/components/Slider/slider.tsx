@@ -1,5 +1,5 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
-import { css, cx } from "@hashintel/ds-styled-system/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { motion } from "motion/react";
 import { useId } from "react";
 
@@ -83,7 +83,7 @@ export const Slider: React.FC<SliderProps> = ({
             flexDirection: "column",
             gap: "1",
           }),
-          className
+          className,
         )}
         style={style}
         max={max}

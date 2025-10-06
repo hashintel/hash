@@ -1,5 +1,5 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
-import { css } from "@hashintel/ds-styled-system/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { useId } from "react";
 
 import { Filter } from "../../lib/filter";

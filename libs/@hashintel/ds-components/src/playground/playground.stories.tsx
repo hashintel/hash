@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-styled-system/css";
+import { css } from "@hashintel/ds-helpers/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   ArrowUpRightIcon,
