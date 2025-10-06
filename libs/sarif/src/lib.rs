@@ -10,7 +10,7 @@
 )]
 #![cfg_attr(
     doc,
-    feature(doc_auto_cfg),
+    feature(doc_cfg),
     doc = include_str!("../README.md"),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery)))),
 )]
