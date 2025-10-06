@@ -1,0 +1,66 @@
+{
+  "name": "@hashintel/ds-components",
+  "version": "0.0.1",
+  "description": "HASH Component Library built with React, Ark UI, and PandaCSS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/ds-components"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./*": {
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf dist",
+    "dev": "vite build --watch",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@ark-ui/react": "5.25.1",
+    "@hashintel/ds-helpers": "0.0.1",
+    "canvas": "3.2.0",
+    "motion": "12.23.22"
+  },
+  "devDependencies": {
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@pandacss/dev": "1.4.1",
+    "@storybook/addon-docs": "9.1.8",
+    "@storybook/react": "9.1.10",
+    "@storybook/react-vite": "9.1.10",
+    "@types/react": "19.1.9",
+    "@types/react-dom": "19.1.7",
+    "@vitejs/plugin-react": "5.0.4",
+    "eslint": "9.20.1",
+    "eslint-plugin-storybook": "9.1.10",
+    "lucide-react": "0.544.0",
+    "storybook": "9.1.10",
+    "typescript": "5.7.3",
+    "vite": "7.1.9",
+    "vite-plugin-dts": "4.5.4"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

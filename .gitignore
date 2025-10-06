@@ -146,6 +146,7 @@ seed-users.json
 *.pem
 
 # Storybook
+*storybook.log
 **/storybook-static
 
 # SARIF files
