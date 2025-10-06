@@ -133,7 +133,8 @@ impl<S> SpanTable<S> {
     /// ```
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "The arena is not expected to be larger than u32::MAX + debug assertions"
+        reason = "The table panics if the number of spans exceeds `SpanId::MAX_ID` (which is \
+                  lower than `u32::MAX`)"
     )]
     pub fn insert(&mut self, span: S, ancestors: SpanAncestors) -> SpanId {
         let ancestors_index = self.ancestors.len();
@@ -179,7 +180,7 @@ impl<S> SpanTable<S> {
     /// };
     /// let span_id = table.insert(span, SpanAncestors::empty());
     ///
-    /// let success = table.modify(span_id, |_span, mut ancestors| {
+    /// let success = table.update(span_id, |_span, mut ancestors| {
     ///     *ancestors.mode = SpanResolutionMode::Intersection;
     /// });
     ///
