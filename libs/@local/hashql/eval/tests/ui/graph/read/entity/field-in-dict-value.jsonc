@@ -7,7 +7,7 @@
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["==",
         ["[]", {"#dict": {"a": "vertex.id.entity_id.entity_uuid"}}, {"#literal": "a"}],
-        //~^ ERROR path expressions are not supported in dict constructs
+        //~^ ERROR path expressions are not supported in data constructs
         "vertex.id.entity_id.entity_uuid"
       ]
     ]
