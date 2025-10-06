@@ -11,25 +11,9 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    "Button": {
-      "import": "./dist/Button.js",
-      "types": "./dist/Button.d.ts"
-    },
-    "RefractivePane": {
-      "import": "./dist/RefractivePane.js",
-      "types": "./dist/RefractivePane.d.ts"
-    },
-    "SegmentedControl": {
-      "import": "./dist/SegmentedControl.js",
-      "types": "./dist/SegmentedControl.d.ts"
-    },
-    "Slider": {
-      "import": "./dist/Slider.js",
-      "types": "./dist/Slider.d.ts"
-    },
-    "Switch": {
-      "import": "./dist/Switch.js",
-      "types": "./dist/Switch.d.ts"
+    "./*": {
+      "import": "./dist/*.js",
+      "types": "./dist/*.d.ts"
     }
   },
   "files": [
