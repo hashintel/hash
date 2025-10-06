@@ -121,7 +121,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                     if values.len() != index {
                         // Previous iteration failed, so pushing (and thereby potentially
-                        // re-allocating) is pointless.
+                        // reallocating) is pointless.
                         continue;
                     }
 
@@ -149,7 +149,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                     if fields.len() != index {
                         // Previous iteration failed, so pushing (and thereby potentially
-                        // re-allocating) is pointless.
+                        // reallocating) is pointless.
                         continue;
                     }
 
@@ -177,7 +177,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                     if values.len() != index {
                         // Previous iteration failed, so pushing (and thereby potentially
-                        // re-allocating) is pointless.
+                        // reallocating) is pointless.
                         continue;
                     }
 
@@ -216,7 +216,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                     if entries.len() != index {
                         // Previous iteration failed, so pushing (and thereby potentially
-                        // re-allocating) is pointless.
+                        // reallocating) is pointless.
                         continue;
                     }
 
