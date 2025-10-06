@@ -29,6 +29,8 @@ pub struct SpanTable<S> {
 }
 
 impl<S> SpanTable<S> {
+    const MAX_SPAN_DEPTH: usize = 32;
+
     /// Creates a new, empty span table for the specified source.
     ///
     /// The `source` parameter determines the [`SourceId`] that will be encoded
@@ -332,7 +334,7 @@ impl<S> SpanTable<S> {
         S: Span,
     {
         assert!(
-            depth <= 32,
+            depth <= Self::MAX_SPAN_DEPTH,
             "Cannot resolve excessively deep span of {depth}, likely due to a circular dependency"
         );
 
