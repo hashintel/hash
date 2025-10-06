@@ -13,7 +13,6 @@ import {
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
@@ -30,11 +29,11 @@ import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
@@ -274,14 +273,13 @@ export const SearchBar: FunctionComponent = () => {
   });
 
   const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
     variables: {
       request: {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: zeroedGraphResolveDepths,
       },
     },
     skip: !submittedQuery,
@@ -300,21 +298,10 @@ export const SearchBar: FunctionComponent = () => {
       : undefined;
   const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
 
-  const entityTypeSubgraph =
-    entityTypeResultData &&
-    /**
-     * Ideally we would use {@link isEntityTypeRootedSubgraph} here, but we cannot because one of the checks it makes
-     * is that the root's revisionId is a stringified integer. In HASH, the revisionId for a type root is a number.
-     * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
-     * H-2489
-     */
-    deserializeQueryEntityTypeSubgraphResponse(
-      entityTypeResultData.queryEntityTypeSubgraph,
-    ).subgraph;
-
-  const entityTypeResults = entityTypeSubgraph
-    ? getRoots(entityTypeSubgraph)
-    : [];
+  const entityTypeResults =
+    (entityTypeResultData &&
+      entityTypeResultData.queryEntityTypes.entityTypes) ??
+    [];
 
   useKey(["Escape"], () => setResultListVisible(false));
 

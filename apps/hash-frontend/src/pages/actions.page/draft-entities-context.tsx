@@ -1,22 +1,15 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
 import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
@@ -51,7 +44,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const [
     previouslyFetchedDraftEntitiesData,
     setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<QueryEntitySubgraphQuery>();
+  ] = useState<QueryEntitiesQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -63,8 +56,8 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch: refetchFullData,
     loading,
-  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-    queryEntitySubgraphQuery,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
     {
       variables: {
         request: {
@@ -83,7 +76,6 @@ export const DraftEntitiesContextProvider: FunctionComponent<
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
-          graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: true,
           includePermissions: false,
         },
@@ -95,39 +87,25 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     },
   );
 
-  const draftEntitiesSubgraph = useMemo(
+  const draftEntities = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? deserializeQueryEntitySubgraphResponse(
-            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .queryEntitySubgraph,
-          ).subgraph
+        ? (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
+            .queryEntities.entities
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
-  );
-
-  const draftEntities = useMemo(
-    () => (draftEntitiesSubgraph ? getRoots(draftEntitiesSubgraph) : undefined),
-    [draftEntitiesSubgraph],
   );
 
   const value = useMemo<DraftEntitiesContextValue>(
     () => ({
       draftEntities,
-      draftEntitiesSubgraph,
       loading,
       refetch: async () => {
         await refetchFullData();
         await refetchDraftEntitiesCount();
       },
     }),
-    [
-      draftEntities,
-      draftEntitiesSubgraph,
-      loading,
-      refetchFullData,
-      refetchDraftEntitiesCount,
-    ],
+    [draftEntities, loading, refetchFullData, refetchDraftEntitiesCount],
   );
 
   return (

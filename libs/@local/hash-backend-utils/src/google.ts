@@ -1,14 +1,9 @@
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import {
-  type HashEntity,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
@@ -52,7 +47,7 @@ export const getGoogleAccountById = async ({
   googleAccountId: string;
   graphApiClient: GraphApi;
 }): Promise<HashEntity<GoogleAccount> | undefined> => {
-  const entities = await queryEntitySubgraph(
+  const { entities } = await queryEntities(
     { graphApi: graphApiClient },
     { actorId: userAccountId },
     {
@@ -79,14 +74,11 @@ export const getGoogleAccountById = async ({
           },
         ],
       },
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
       includePermissions: false,
     },
-  ).then(({ subgraph }) => {
-    return getRoots(subgraph);
-  });
+  );
 
   if (entities.length > 1) {
     throw new Error(

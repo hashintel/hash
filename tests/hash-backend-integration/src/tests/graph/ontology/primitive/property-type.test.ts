@@ -14,14 +14,10 @@ import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
-import {
-  getPropertyTypeById,
-  getPropertyTypeSubgraphById,
-} from "@local/hash-graph-sdk/property-type";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -214,9 +210,8 @@ describe("Property type CRU", () => {
     ).toBeNull();
 
     expect(
-      await getPropertyTypeSubgraphById(graphContext.graphApi, authentication, {
+      await getPropertyTypeById(graphContext.graphApi, authentication, {
         propertyTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
     ).not.toBeNull();

@@ -1,14 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { DocumentNode } from "graphql";
 
 import type {
-  QueryDataTypeSubgraphQueryVariables,
-  QueryEntityTypeSubgraphQueryVariables,
-  QueryPropertyTypeSubgraphQueryVariables,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
@@ -35,9 +32,9 @@ export const generateQueryArgs = (
 ): {
   query: string;
   variables:
-    | QueryDataTypeSubgraphQueryVariables
-    | QueryEntityTypeSubgraphQueryVariables
-    | QueryPropertyTypeSubgraphQueryVariables;
+    | QueryDataTypesQueryVariables
+    | QueryEntityTypesQueryVariables
+    | QueryPropertyTypesQueryVariables;
 } => {
   switch (ontologyType) {
     case "data-type":
@@ -48,7 +45,6 @@ export const generateQueryArgs = (
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },
@@ -61,7 +57,6 @@ export const generateQueryArgs = (
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },
@@ -74,7 +69,6 @@ export const generateQueryArgs = (
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },

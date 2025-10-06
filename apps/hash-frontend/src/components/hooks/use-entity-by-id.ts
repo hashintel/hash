@@ -60,10 +60,7 @@ export const useEntityById = ({
               : []),
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...graphResolveDepths,
-        },
+        graphResolveDepths: graphResolveDepths ?? zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: !!draftId,
         includePermissions,

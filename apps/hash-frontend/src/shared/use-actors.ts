@@ -1,22 +1,19 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
@@ -43,9 +40,9 @@ export const useActors = (params: {
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       request: {
         filter: {
@@ -66,7 +63,6 @@ export const useActors = (params: {
             }),
           ),
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
@@ -84,19 +80,17 @@ export const useActors = (params: {
       return;
     }
 
-    const subgraph = deserializeQueryEntitySubgraphResponse(
-      machineActorsData.queryEntitySubgraph,
-    ).subgraph;
-
-    const machineActors = getRoots(subgraph).map((entity) => {
-      return {
-        accountId: entity.metadata.provenance.edition.createdById,
-        kind: "machine" as const,
-        displayName: (entity.properties as MachineProperties)[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
-        ],
-      };
-    });
+    const machineActors = machineActorsData.queryEntities.entities.map(
+      (entity) => {
+        return {
+          accountId: entity.metadata.provenance.edition.createdById,
+          kind: "machine" as const,
+          displayName: (entity.properties as MachineProperties)[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+          ],
+        };
+      },
+    );
 
     return [...machineActors, ...userActors];
   }, [userActors, machineActorsData, accountIds]);

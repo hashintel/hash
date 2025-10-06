@@ -21,6 +21,7 @@ import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 import { useMemo } from "react";
 
 import type {
+  QueryEntitiesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
@@ -142,7 +143,7 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
   webId,
 }: {
   webId: WebId;
-}): QueryEntitySubgraphQueryVariables => {
+}): QueryEntitiesQueryVariables => {
   return {
     request: {
       /**
@@ -158,7 +159,6 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
         webIds: [webId],
         includeArchived: false,
       }),
-      graphResolveDepths: zeroedGraphResolveDepths,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
       includePermissions: false,

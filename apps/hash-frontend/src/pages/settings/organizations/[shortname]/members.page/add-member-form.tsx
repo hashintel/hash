@@ -1,12 +1,7 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import { TextField } from "@hashintel/design-system";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Stack } from "@mui/material";
 import type { FormEvent } from "react";
@@ -15,10 +10,10 @@ import { useEffect, useRef, useState } from "react";
 import type {
   InviteUserToOrgMutation,
   InviteUserToOrgMutationVariables,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
@@ -35,10 +30,10 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     InviteUserToOrgMutationVariables
   >(inviteUserToOrgMutation);
 
-  const [queryEntitySubgraph] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery);
+  const [queryEntities] = useLazyQuery<
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery);
 
   const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
@@ -67,7 +62,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const { data } = await queryEntitySubgraph({
+    const { data } = await queryEntities({
       variables: {
         request: {
           filter: convertBpFilterToGraphFilter({
@@ -85,7 +80,6 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
             ],
             operator: "AND",
           }),
-          graphResolveDepths: zeroedGraphResolveDepths,
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: false,
           includePermissions: false,
@@ -99,11 +93,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    const subgraph = deserializeQueryEntitySubgraphResponse(
-      data.queryEntitySubgraph,
-    ).subgraph;
-
-    const user = getRoots(subgraph)[0];
+    const user = data.queryEntities.entities[0];
 
     if (!user && !isEmail) {
       setError(`User with shortname ${shortnameOrEmail} not found`);

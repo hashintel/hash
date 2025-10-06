@@ -18,6 +18,12 @@ export const updateEntityMutation = /* GraphQL */ `
   }
 `;
 
+export const queryEntitiesQuery = /* GraphQL */ `
+  query queryEntities($request: QueryEntitiesRequest!) {
+    queryEntities(request: $request)
+  }
+`;
+
 export const queryEntitySubgraphQuery = /* GraphQL */ `
   query queryEntitySubgraph($request: QueryEntitySubgraphRequest!) {
     queryEntitySubgraph(request: $request)
