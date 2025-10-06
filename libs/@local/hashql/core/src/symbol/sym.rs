@@ -92,6 +92,7 @@ symbols![lexical; LEXICAL;
     bit_shl,
     bit_shr,
     bit_xor,
+    core,
     div,
     eq,
     gt,
@@ -105,6 +106,7 @@ symbols![lexical; LEXICAL;
     mul,
     ne,
     not,
+    option,
     or,
     pow,
     r#fn: "fn",
@@ -156,7 +158,13 @@ symbols![symbol; SYMBOLS;
     tilde: "~",
 ];
 
-pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS];
+symbols![path; PATHS;
+    option: "::core::option::Option",
+    some: "::core::option::Some",
+    none: "::core::option::None",
+];
+
+pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS];
 
 #[cfg(test)]
 mod test {

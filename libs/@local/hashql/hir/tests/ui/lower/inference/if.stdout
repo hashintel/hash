@@ -1,0 +1,33 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+if true ::core::option::Some(2) ::core::option::None()
+
+════ HIR after type inference ══════════════════════════════════════════════════
+
+if true #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»],
+arguments: [T])(2) #ctor(fn() -> None[Null], arguments: [])()
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ true
+└→ Boolean
+
+┌─ 2
+└→ Integer
+
+┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
+└→ fn<T?25>(?25«Integer») -> Some[?25«Integer»]
+
+┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
+└→ _0«Some[Integer]»
+
+┌─ #ctor(fn() -> None[Null], arguments: [])
+└→ fn() -> None[Null]
+
+┌─ #ctor(fn() -> None[Null], arguments: [])()
+└→ _1«None[Null]»
+
+┌─ if true #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»],
+│  arguments: [T])(2) #ctor(fn() -> None[Null], arguments: [])()
+└→ (_0«Some[Integer]» | _1«None[Null]»)
+

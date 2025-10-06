@@ -1,7 +1,11 @@
+mod hash_map;
+
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hashbrown::{HashMap, HashSet};
+
+pub use self::hash_map::HashMapExt;
 
 pub type ConcurrentHashMap<K, V> = scc::HashMap<K, V, foldhash::fast::RandomState>;
 pub type ConcurrentHashSet<T> = scc::HashSet<T, foldhash::fast::RandomState>;
