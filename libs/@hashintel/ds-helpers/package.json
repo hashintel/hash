@@ -38,6 +38,9 @@
     },
     "./styles.css": "./dist/styles.css"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "panda codegen",
     "dev": "panda codegen --watch",
