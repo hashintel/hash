@@ -5,8 +5,8 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    algorithms::cartesian_product,
     intern::Interned,
-    math::cartesian_product,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{

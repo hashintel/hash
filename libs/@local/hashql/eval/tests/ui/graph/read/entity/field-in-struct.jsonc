@@ -1,0 +1,15 @@
+//@ run: fail
+//@ description: Paths inside data constructs are unsupported
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        [".", {"#struct": {"a": "vertex.id.entity_id.entity_uuid"}}, "a"],
+        //~^ ERROR path expressions are not supported in struct constructs
+        "vertex.id.entity_id.entity_uuid"
+      ]
+    ]
+  ]
+]

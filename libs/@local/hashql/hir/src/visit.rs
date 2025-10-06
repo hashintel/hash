@@ -65,7 +65,7 @@ use crate::{
         branch::{Branch, BranchKind, r#if::If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal, Tuple},
+        data::{Data, DataKind, Literal, Struct, Tuple, r#struct::StructField},
         graph::{
             Graph, GraphKind,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
@@ -169,6 +169,14 @@ pub trait Visitor<'heap> {
 
     fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
         walk_tuple(self, tuple);
+    }
+
+    fn visit_struct_field(&mut self, field: &'heap StructField<'heap>) {
+        walk_struct_field(self, field);
+    }
+
+    fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
+        walk_struct(self, r#struct);
     }
 
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
@@ -311,6 +319,7 @@ pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(
     match kind {
         DataKind::Literal(literal) => visitor.visit_literal(literal),
         DataKind::Tuple(tuple) => visitor.visit_tuple(tuple),
+        DataKind::Struct(r#struct) => visitor.visit_struct(r#struct),
     }
 }
 
@@ -329,6 +338,25 @@ pub fn walk_tuple<'heap, T: Visitor<'heap> + ?Sized>(
 
     for field in fields {
         visitor.visit_node(field);
+    }
+}
+
+pub fn walk_struct_field<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    StructField { name, value }: &'heap StructField<'heap>,
+) {
+    visitor.visit_ident(name);
+    visitor.visit_node(value);
+}
+
+pub fn walk_struct<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Struct { span, fields }: &'heap Struct<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    for field in fields {
+        visitor.visit_struct_field(field);
     }
 }
 

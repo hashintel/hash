@@ -35,7 +35,7 @@ use crate::{
         branch::r#if::If,
         call::Call,
         closure::Closure,
-        data::{Literal, Tuple},
+        data::{Literal, Struct, Tuple},
         graph::Graph,
         input::Input,
         r#let::Let,
@@ -248,6 +248,11 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
     fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
         visit::walk_tuple(self, tuple);
+        self.transfer_type(self.current);
+    }
+
+    fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
+        visit::walk_struct(self, r#struct);
         self.transfer_type(self.current);
     }
 
