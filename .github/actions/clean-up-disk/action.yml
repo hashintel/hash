@@ -36,7 +36,6 @@ runs:
           /usr/local/.ghcup \
           /usr/local/lib/android \
           /usr/local/share/powershell \
-          /opt/ghc \
         ; do
           if [ -d "$dir" ]; then
             size=$(du -sh "$dir" 2>/dev/null | cut -f1)
