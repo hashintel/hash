@@ -11,16 +11,28 @@ runs:
         df -h
         echo
 
-        echo "Disk space usage of /usr before cleanup:"
-        du -ah /usr 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /usr before cleanup:"
+        du -h --max-depth=1 /usr 2>/dev/null | sort -rh | head -n 30
         echo
 
-        echo "Disk space usage of /var before cleanup:"
-        du -ah /var 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /usr/lib before cleanup:"
+        du -h --max-depth=2 /usr/lib 2>/dev/null | sort -rh | head -n 30
         echo
 
-        echo "Disk space usage of /opt before cleanup:"
-        du -ah /opt 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /usr/local before cleanup:"
+        du -h --max-depth=2 /usr/local 2>/dev/null | sort -rh | head -n 30
+        echo
+
+        echo "Top directories in /usr/share before cleanup:"
+        du -h --max-depth=2 /usr/share 2>/dev/null | sort -rh | head -n 30
+        echo
+
+        echo "Top directories in /var before cleanup:"
+        du -h --max-depth=2 /var 2>/dev/null | sort -rh | head -n 30
+        echo
+
+        echo "Top directories in /opt before cleanup:"
+        du -h --max-depth=2 /opt 2>/dev/null | sort -rh | head -n 30
         echo
 
     - name: Remove unused files
@@ -53,14 +65,14 @@ runs:
         df -h
         echo
 
-        echo "Disk space usage of /usr after cleanup:"
-        du -ah /usr 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /usr after cleanup:"
+        du -h --max-depth=2 /usr 2>/dev/null | sort -rh | head -n 30
         echo
 
-        echo "Disk space usage of /var after cleanup:"
-        du -ah /var 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /var after cleanup:"
+        du -h --max-depth=2 /var 2>/dev/null | sort -rh | head -n 30
         echo
 
-        echo "Disk space usage of /opt after cleanup:"
-        du -ah /opt 2>/dev/null | sort -rh | head -n 100
+        echo "Top directories in /opt after cleanup:"
+        du -h --max-depth=2 /opt 2>/dev/null | sort -rh | head -n 30
         echo
