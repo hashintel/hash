@@ -5372,44 +5372,26 @@
         ]
       },
       "GraphResolveDepths": {
-        "type": "object",
-        "required": [
-          "inheritsFrom",
-          "constrainsValuesOn",
-          "constrainsPropertiesOn",
-          "constrainsLinksOn",
-          "constrainsLinkDestinationsOn",
-          "isOfType",
-          "hasLeftEntity",
-          "hasRightEntity"
-        ],
-        "properties": {
-          "constrainsLinkDestinationsOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OntologyGraphResolveDepths"
           },
-          "constrainsLinksOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "constrainsPropertiesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "constrainsValuesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "hasLeftEntity": {
-            "$ref": "#/components/schemas/EdgeResolveDepths"
-          },
-          "hasRightEntity": {
-            "$ref": "#/components/schemas/EdgeResolveDepths"
-          },
-          "inheritsFrom": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "isOfType": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          {
+            "type": "object",
+            "required": [
+              "hasLeftEntity",
+              "hasRightEntity"
+            ],
+            "properties": {
+              "hasLeftEntity": {
+                "$ref": "#/components/schemas/EdgeResolveDepths"
+              },
+              "hasRightEntity": {
+                "$ref": "#/components/schemas/EdgeResolveDepths"
+              }
+            }
           }
-        },
-        "additionalProperties": false
+        ]
       },
       "HasPermissionForDataTypesParams": {
         "type": "object",
@@ -6427,6 +6409,38 @@
           }
         ],
         "description": "Provenance information for a specific edition of an ontology type.\n\nContains comprehensive tracking of who created and potentially archived this\nedition, along with user-provided context about the creation process."
+      },
+      "OntologyGraphResolveDepths": {
+        "type": "object",
+        "required": [
+          "inheritsFrom",
+          "constrainsValuesOn",
+          "constrainsPropertiesOn",
+          "constrainsLinksOn",
+          "constrainsLinkDestinationsOn",
+          "isOfType"
+        ],
+        "properties": {
+          "constrainsLinkDestinationsOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsLinksOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsPropertiesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsValuesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "inheritsFrom": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "isOfType": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          }
+        },
+        "additionalProperties": false
       },
       "OntologyOutwardEdge": {
         "oneOf": [

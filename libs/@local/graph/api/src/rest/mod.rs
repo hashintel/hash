@@ -49,8 +49,9 @@ use hash_graph_store::{
     subgraph::{
         edges::{
             EdgeResolveDepths, EntityTraversalEdgeDirection, GraphResolveDepths,
-            KnowledgeGraphEdgeKind, OntologyEdgeKind, OntologyTraversalEdgeDirection,
-            OutgoingEdgeResolveDepth, SharedEdgeKind, TraversalEdge, TraversalPath,
+            KnowledgeGraphEdgeKind, OntologyEdgeKind, OntologyGraphResolveDepths,
+            OntologyTraversalEdgeDirection, OutgoingEdgeResolveDepth, SharedEdgeKind,
+            TraversalEdge, TraversalPath,
         },
         identifier::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
@@ -457,6 +458,7 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             KnowledgeGraphOutwardEdge,
             Edges,
             GraphResolveDepths,
+            OntologyGraphResolveDepths,
             EdgeResolveDepths,
             OutgoingEdgeResolveDepth,
             Subgraph,
