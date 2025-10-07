@@ -6,27 +6,61 @@ runs:
   steps:
     - name: Check disk space
       shell: bash
-      run: df  -h
+      run: |
+        echo "Overal disk space usage before cleanup:"
+        df -h
+        echo
+
+        echo "Disk space usage of /usr before cleanup:"
+        du -ah /usr 2>/dev/null | sort -rh | head -n 100
+        echo
+
+        echo "Disk space usage of /var before cleanup:"
+        du -ah /var 2>/dev/null | sort -rh | head -n 100
+        echo
+
+        echo "Disk space usage of /opt before cleanup:"
+        du -ah /opt 2>/dev/null | sort -rh | head -n 100
+        echo
 
     - name: Remove unused files
       shell: bash
       run: |
-        sudo rm -rf \
-          /usr/share/dotnet \
-          /usr/share/swift \
-          /usr/lib/jvm \
-          /usr/local/.ghcup \
-          /usr/local/lib/android \
-          /usr/local/share/powershell \
-          /opt/ghc
+        echo "Removing unused files..."
+        # sudo rm -rf \
+        #   /usr/share/dotnet \
+        #   /usr/share/swift \
+        #   /usr/lib/jvm \
+        #   /usr/local/.ghcup \
+        #   /usr/local/lib/android \
+        #   /usr/local/share/powershell \
+        #   /opt/ghc
+        echo
 
     - name: Remove unused packages
       shell: bash
       run: |
+        echo "Removing unused packages..."
         sudo apt-get autoremove -y
         sudo apt-get autoclean -y
+        echo
 
 
     - name: Check disk space
       shell: bash
-      run: df  -h
+      run: |
+        echo "Overal disk space usage after cleanup:"
+        df -h
+        echo
+
+        echo "Disk space usage of /usr after cleanup:"
+        du -ah /usr 2>/dev/null | sort -rh | head -n 100
+        echo
+
+        echo "Disk space usage of /var after cleanup:"
+        du -ah /var 2>/dev/null | sort -rh | head -n 100
+        echo
+
+        echo "Disk space usage of /opt after cleanup:"
+        du -ah /opt 2>/dev/null | sort -rh | head -n 100
+        echo
