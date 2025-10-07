@@ -55,10 +55,10 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   ClosedMultiEntityTypeMap,
-  DiffEntityParams,
-  GraphApi,
   CreateEntityParams as GraphApiCreateEntityParams,
+  DiffEntityParams,
   Entity as GraphApiEntity,
+  GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
   QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
