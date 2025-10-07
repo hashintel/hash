@@ -55,10 +55,10 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   ClosedMultiEntityTypeMap,
-  CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
-  Entity as GraphApiEntity,
   GraphApi,
+  CreateEntityParams as GraphApiCreateEntityParams,
+  Entity as GraphApiEntity,
   PatchEntityParams as GraphApiPatchEntityParams,
   QueryEntitiesRequest as QueryEntitiesRequestGraphApi,
   QueryEntitiesResponse as QueryEntitiesResponseGraphApi,
@@ -306,7 +306,7 @@ export type QueryEntitySubgraphRequest = ExclusiveUnion<
 export type QueryEntitySubgraphResponse<
   PropertyMap extends
     TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
-> = DistributiveReplaceProperties<
+> = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
   | "subgraph"
   | "closedMultiEntityTypes"
