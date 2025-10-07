@@ -35,6 +35,18 @@ export const scalars = {
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
+  QueryEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesParams",
+  QueryEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesResponse",
+  QueryEntityTypeSubgraphParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypeSubgraphParams",
+  QueryEntityTypeSubgraphResponse:
+    "@local/hash-graph-sdk/entity-type#SerializedQueryEntityTypeSubgraphResponse",
+  GetClosedMultiEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesParams",
+  GetClosedMultiEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesResponse",
   ConstructEntityTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructEntityTypeParams",
 
@@ -57,8 +69,12 @@ export const scalars = {
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
-  GetEntitySubgraphRequest:
-    "@local/hash-graph-sdk/entity#GetEntitySubgraphRequest",
+  QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
+  QueryEntitiesResponse: "@local/hash-graph-sdk/entity#QueryEntitiesResponse",
+  QueryEntitySubgraphRequest:
+    "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
+  QueryEntitySubgraphResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitySubgraphResponse",
   EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
   PropertyObject: "@blockprotocol/type-system#PropertyObject",
   PropertyArray: "@blockprotocol/type-system#PropertyArray",
@@ -83,6 +99,7 @@ export const scalars = {
 
   UserPermissionsOnEntities:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntities",
+  EntityPermissionsMap: "@local/hash-graph-sdk/entity#EntityPermissionsMap",
   UserPermissions: "@local/hash-graph-sdk/authorization#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntityType",

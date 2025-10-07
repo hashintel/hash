@@ -185,7 +185,7 @@ pub struct QueryConversion<'a> {
 
 #[derive(Debug)]
 #[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct GetEntitiesParams<'a> {
+pub struct QueryEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
@@ -199,6 +199,7 @@ pub struct GetEntitiesParams<'a> {
     pub include_edition_created_by_ids: bool,
     pub include_type_ids: bool,
     pub include_type_titles: bool,
+    pub include_permissions: bool,
 }
 
 /// A recursive map structure representing a hierarchical combination of entity types.
@@ -238,12 +239,23 @@ pub struct ClosedMultiEntityTypeMap {
     pub inner: HashMap<VersionedUrl, Self>,
 }
 
+#[derive(Debug, Default, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+pub struct EntityPermissions {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub update: Vec<EntityEditionId>,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetEntitiesResponse<'r> {
+pub struct QueryEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -266,37 +278,40 @@ pub struct GetEntitiesResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug)]
-pub enum GetEntitySubgraphParams<'a> {
+pub enum QueryEntitySubgraphParams<'a> {
     ResolveDepths {
         graph_resolve_depths: GraphResolveDepths,
-        request: GetEntitiesParams<'a>,
+        request: QueryEntitiesParams<'a>,
     },
     Paths {
         traversal_paths: Vec<TraversalPath>,
-        request: GetEntitiesParams<'a>,
+        request: QueryEntitiesParams<'a>,
     },
 }
 
-impl<'a> GetEntitySubgraphParams<'a> {
+impl<'a> QueryEntitySubgraphParams<'a> {
     #[must_use]
-    pub const fn request(&self) -> &GetEntitiesParams<'a> {
+    pub const fn request(&self) -> &QueryEntitiesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub const fn request_mut(&mut self) -> &mut GetEntitiesParams<'a> {
+    pub const fn request_mut(&mut self) -> &mut QueryEntitiesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub fn into_request(self) -> (GetEntitiesParams<'a>, SubgraphTraversalParams) {
+    pub fn into_request(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
         match self {
             Self::Paths {
                 request,
@@ -366,7 +381,7 @@ impl<'a> GetEntitySubgraphParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct GetEntitySubgraphResponse<'r> {
+pub struct QueryEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
@@ -377,6 +392,7 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub edition_created_by_ids: Option<HashMap<ActorEntityUuid, usize>>,
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
     pub type_titles: Option<HashMap<VersionedUrl, String>>,
+    pub entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -529,35 +545,35 @@ pub trait EntityStore {
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 
-    /// Get a list of entities specified by the [`GetEntitiesParams`].
+    /// Get a list of entities specified by the [`QueryEntitiesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
-    fn get_entities(
+    fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitiesParams<'_>,
-    ) -> impl Future<Output = Result<GetEntitiesResponse<'static>, Report<QueryError>>> + Send;
+        params: QueryEntitiesParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`]s specified by the [`GetEntitySubgraphParams`].
+    /// Get the [`Subgraph`]s specified by the [`QueryEntitySubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
-    fn get_entity_subgraph(
+    fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
-    /// Count the number of entities that would be returned in [`get_entity`].
+    /// Count the number of entities that would be returned in [`query_entities`].
     ///
     /// # Errors
     ///
     /// - if the request to the database fails
     ///
-    /// [`get_entity`]: Self::get_entity_subgraph
+    /// [`query_entities`]: Self::query_entities
     fn count_entities(
         &self,
         actor_id: ActorEntityUuid,

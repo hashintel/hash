@@ -21,60 +21,48 @@ _1«Boolean» ->
     Any(
         [
             Equal(
-                Some(
-                    Parameter {
-                        parameter: Boolean(
-                            true,
-                        ),
-                        convert: None,
-                    },
-                ),
-                Some(
-                    Parameter {
-                        parameter: Boolean(
-                            true,
-                        ),
-                        convert: None,
-                    },
-                ),
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
             ),
             All(
                 [
                     Equal(
-                        Some(
-                            Parameter {
-                                parameter: Boolean(
-                                    true,
-                                ),
-                                convert: None,
-                            },
-                        ),
-                        Some(
-                            Parameter {
-                                parameter: Boolean(
-                                    true,
-                                ),
-                                convert: None,
-                            },
-                        ),
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
                     ),
                     Equal(
-                        Some(
-                            Parameter {
-                                parameter: Boolean(
-                                    false,
-                                ),
-                                convert: None,
-                            },
-                        ),
-                        Some(
-                            Parameter {
-                                parameter: Boolean(
-                                    true,
-                                ),
-                                convert: None,
-                            },
-                        ),
+                        Parameter {
+                            parameter: Boolean(
+                                false,
+                            ),
+                            convert: None,
+                        },
+                        Parameter {
+                            parameter: Boolean(
+                                true,
+                            ),
+                            convert: None,
+                        },
                     ),
                 ],
             ),

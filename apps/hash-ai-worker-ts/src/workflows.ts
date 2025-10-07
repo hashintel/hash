@@ -10,12 +10,12 @@ import type {
   EntityQueryCursor,
   Filter,
 } from "@local/hash-graph-client";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -93,7 +93,7 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -109,6 +109,7 @@ export const updateDataTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     dataTypes = await graphActivities.getSubgraphDataTypes({
@@ -178,7 +179,7 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -194,6 +195,7 @@ export const updatePropertyTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     propertyTypes = await graphActivities.getSubgraphPropertyTypes({
@@ -263,7 +265,7 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.getEntitySubgraph({
+    const response = await graphActivities.queryEntitySubgraph({
       authentication: params.authentication,
       request: {
         filter: params.filter,
@@ -279,6 +281,7 @@ export const updateEntityTypeEmbeddings = async (
         },
         temporalAxes,
         includeDrafts: true,
+        includePermissions: false,
       },
     });
     entityTypes = await graphActivities.getSubgraphEntityTypes({
@@ -353,7 +356,7 @@ export const updateEntityEmbeddings = async (
         new HashEntity(entity).toJSON(),
       );
     } else {
-      const queryResponse = await graphActivities.getEntitySubgraph({
+      const queryResponse = await graphActivities.queryEntitySubgraph({
         authentication: params.authentication,
         request: {
           filter: params.filter,
@@ -369,6 +372,7 @@ export const updateEntityEmbeddings = async (
           },
           temporalAxes,
           includeDrafts: true,
+          includePermissions: false,
           cursor,
           limit: 100,
         },
@@ -403,7 +407,7 @@ export const updateEntityEmbeddings = async (
       // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
       //       just making another request here. We should add the required methods to the library and do this client
       //       side.
-      const subgraph = await graphActivities.getEntityTypesSubgraph({
+      const { subgraph } = await graphActivities.queryEntityTypesSubgraph({
         authentication: params.authentication,
         request: {
           filter: {
@@ -422,7 +426,6 @@ export const updateEntityEmbeddings = async (
             hasRightEntity: { incoming: 0, outgoing: 0 },
           },
           temporalAxes,
-          includeDrafts: false,
         },
       });
 
@@ -470,9 +473,7 @@ export const updateAllDataTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -490,9 +491,7 @@ export const updateAllPropertyTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -510,9 +509,7 @@ export const updateAllEntityTypeEmbeddings =
       filter: {
         all: [
           {
-            // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-            //                     see https://linear.app/hash/issue/H-1207
-            equal: [{ path: ["embedding"] }, null],
+            exists: { path: ["embedding"] },
           },
           {
             equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -536,12 +533,7 @@ export const updateAllEntityEmbeddings =
         filter: {
           all: [
             {
-              // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-              //                     see https://linear.app/hash/issue/H-1207
-              // We can skip entities for which the embeddings were already generated.
-              // If a full regeneration is desired, either the database should be wiped manually or the
-              // `updateEntityEmbeddings` workflow should be called manually.
-              equal: [{ path: ["embedding"] }, null],
+              exists: { path: ["embedding"] },
             },
             {
               // Only embeddings for non-empty properties are generated

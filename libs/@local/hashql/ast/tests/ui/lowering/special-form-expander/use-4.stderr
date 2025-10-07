@@ -1,17 +1,15 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-    ╭─[ <unknown>:8:4 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  8 │ │     "y"
-    │ │      ┬  
-    │ │      ╰── Remove this argument
-    ┆ ┆   
- 10 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this `use` special form call
-    │     
-    │     Help: The use/3 form should look like: (use module imports body)
-    │     
-    │     Note: The use function has 1 variant: use/3
-────╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+   ╭▸ 
+ 3 │ ┌ [
+ 4 │ │   "::kernel::special_form::use",
+ 5 │ │   "::math",
+ 6 │ │   { "#tuple": ["pi"] },
+ 7 │ │   "x",
+ 8 │ │   "y"
+   │ │    ━ Remove this argument
+ 9 │ │   //~^ ERROR Remove this argument
+10 │ │ ]
+   │ └─┘ In this `use` special form call
+   │
+   ├ help: The use/3 form should look like: (use module imports body)
+   ╰ note: The use function has 1 variant: use/3

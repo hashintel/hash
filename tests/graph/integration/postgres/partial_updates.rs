@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 use hash_codec::numeric::Real;
 use hash_graph_store::{
     entity::{
-        CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
-        PatchEntityParams,
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
+        QueryEntitiesParams,
     },
     filter::Filter,
     subgraph::temporal_axes::{
@@ -161,9 +161,9 @@ async fn properties_add() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -183,6 +183,7 @@ async fn properties_add() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -256,9 +257,9 @@ async fn properties_remove() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -278,6 +279,7 @@ async fn properties_remove() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -353,9 +355,9 @@ async fn properties_replace() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -375,6 +377,7 @@ async fn properties_replace() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -443,9 +446,9 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -465,6 +468,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -501,9 +505,9 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -523,6 +527,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -561,9 +566,9 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -583,6 +588,7 @@ async fn type_ids() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await

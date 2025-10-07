@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/type.rs
 description: Parses invalid syntax
 expression: "{\"#type\": [\"a\"]}"
 ---
-[31m[parser::object::type-expected-string] Error:[0m Expected string for type definition
-   ╭─[ <unknown>:1:11 ]
-   │
- 1 │ {"#type": ["a"]}
-   │           ┬  
-   │           ╰── Invalid type specification
-   │ 
-   │ Help: Found `[`, which is not a valid type specification. Types must be represented as a string.
-   │ 
-   │ Note: Types in J-Expr must be specified through an embedded language represented in a string that mimics that of Rust and TypeScript. See the language documentation for more details.
-───╯
+error[parser::object::type-expected-string]: Expected string for type definition
+  ╭▸ 
+1 │ {"#type": ["a"]}
+  │           ━ Invalid type specification
+  │
+  ├ help: Found `[`, which is not a valid type specification. Types must be represented as a string.
+  ╰ note: Types in J-Expr must be specified through an embedded language represented in a string that mimics that of Rust and TypeScript. See the language documentation for more details.

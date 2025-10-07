@@ -2,18 +2,23 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt::Display};
 
 use hashql_core::{
+    pretty::{PrettyOptions, PrettyPrint as _},
     span::{SpanId, Spanned},
-    r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
+    r#type::{
+        Type, TypeId,
+        environment::Environment,
+        error::TypeCheckDiagnosticCategory,
+        kind::{IntrinsicType, PrimitiveType, TypeKind, generic::GenericArgumentReference},
+    },
 };
 use hashql_diagnostics::{
-    Diagnostic, DiagnosticIssues, Help, Note, Severity, Status,
+    Diagnostic, DiagnosticIssues, Label, Severity, Status,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
-    label::Label,
+    diagnostic::Message,
 };
 
 use super::specialization::error::SpecializationDiagnosticCategory;
-use crate::node::variable::Variable;
+use crate::{context::SymbolRegistry, node::variable::Variable};
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
@@ -74,11 +79,6 @@ pub(crate) fn generic_argument_mismatch(
     parameters: &[GenericArgumentReference],
     arguments: &[Spanned<TypeId>],
 ) -> LoweringDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        LoweringDiagnosticCategory::GenericArgumentMismatch,
-        Severity::Error,
-    );
-
     let expected = parameters.len();
     let actual = arguments.len();
 
@@ -90,7 +90,11 @@ pub(crate) fn generic_argument_mismatch(
         GenericArgumentContext::Closure => "closure",
     };
 
-    diagnostic.labels.push(Label::new(
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::GenericArgumentMismatch,
+        Severity::Error,
+    )
+    .primary(Label::new(
         variable_span,
         format!(
             "This {context_name} requires {expected} generic argument{}, but {actual} {} provided",
@@ -99,28 +103,17 @@ pub(crate) fn generic_argument_mismatch(
         ),
     ));
 
-    let mut order = -1;
     for missing in missing {
-        diagnostic.labels.push(
-            Label::new(
-                node_span,
-                format!("Add missing parameter `{}`", missing.name.demangle()),
-            )
-            .with_order(order)
-            .with_color(Color::Ansi(AnsiColor::Yellow)),
-        );
-
-        order -= 1;
+        diagnostic.labels.push(Label::new(
+            node_span,
+            format!("Add missing parameter `{}`", missing.name.demangle()),
+        ));
     }
 
     for &extraneous in extraneous {
-        diagnostic.labels.push(
-            Label::new(extraneous.span, "Remove this argument")
-                .with_order(order)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
-
-        order -= 1;
+        diagnostic
+            .labels
+            .push(Label::new(extraneous.span, "Remove this argument"));
     }
 
     let usage = format!(
@@ -147,7 +140,7 @@ pub(crate) fn generic_argument_mismatch(
         Ordering::Equal => format!("Correct usage: {usage}"),
     };
 
-    diagnostic.add_help(Help::new(help));
+    diagnostic.add_message(Message::help(help));
 
     if !parameters.is_empty() {
         let note_message = match context {
@@ -163,7 +156,7 @@ pub(crate) fn generic_argument_mismatch(
             }
         };
 
-        diagnostic.add_note(Note::new(note_message));
+        diagnostic.add_message(Message::note(note_message));
     }
 
     diagnostic
@@ -171,46 +164,95 @@ pub(crate) fn generic_argument_mismatch(
 
 pub(crate) fn argument_override<'heap>(
     variable: &Variable<'heap>,
-    replacement: &Variable<'heap>,
+    replacement: &Spanned<Variable<'heap>>,
+    symbols: &SymbolRegistry<'heap>,
 ) -> LoweringDiagnostic {
     let mut diagnostic = Diagnostic::new(
         LoweringDiagnosticCategory::ArgumentOverride,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        replacement.span,
+        format!(
+            "`{}` was defined with type arguments here",
+            variable.name(symbols)
+        ),
+    ));
 
     let variable_arguments = variable.arguments();
 
-    diagnostic.labels.push(
-        Label::new(
-            replacement.span,
-            format!("`{}` was defined with type arguments here", variable.name()),
-        )
-        .with_color(Color::Ansi(AnsiColor::Blue)),
-    );
-
     for argument in variable_arguments {
-        diagnostic.labels.push(
-            Label::new(
-                argument.span,
-                "... but additional type arguments are provided here",
-            )
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-        );
+        diagnostic.labels.push(Label::new(
+            argument.span,
+            "... but additional type arguments are provided here",
+        ));
     }
 
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "The variable `{}` already represents `{}` with type arguments applied. Use `{}` directly \
          without additional type arguments, or create a new binding if you need different type \
          parameters.",
-        variable.name(),
-        replacement.name(),
-        variable.name()
+        variable.name(symbols),
+        replacement.name(symbols),
+        variable.name(symbols)
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Variables that alias parameterized expressions cannot have additional type arguments \
          applied to them, as this would create ambiguous type parameter bindings.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn type_mismatch_if<'heap>(
+    env: &Environment<'heap>,
+    r#type: Type<'heap>,
+) -> LoweringDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::TypeChecking(TypeCheckDiagnosticCategory::TypeMismatch),
+        Severity::Error,
+    )
+    .primary(Label::new(
+        r#type.span,
+        format!(
+            "expected `Boolean`, found `{}`",
+            r#type.pretty_print(env, PrettyOptions::default())
+        ),
+    ));
+
+    // Add a helpful note for common cases (primitives)
+    #[expect(clippy::wildcard_enum_match_arm)]
+    match r#type.kind {
+        TypeKind::Primitive(PrimitiveType::String) => {
+            diagnostic.add_message(Message::help(
+                "to check if a string is empty, use `core::string::is_empty`",
+            ));
+        }
+        TypeKind::Primitive(PrimitiveType::Number | PrimitiveType::Integer) => {
+            diagnostic.add_message(Message::help(
+                "to check if a number is zero, compare it to zero using `==` or `!=`",
+            ));
+        }
+        TypeKind::Intrinsic(IntrinsicType::List(_)) => {
+            diagnostic.add_message(Message::help(
+                "to check if a list is empty, use `core::list::is_empty`",
+            ));
+        }
+        TypeKind::Intrinsic(IntrinsicType::Dict(_)) => {
+            diagnostic.add_message(Message::help(
+                "to check if a dictionary is empty, use `core::dict::is_empty`",
+            ));
+        }
+        _ => {
+            diagnostic.add_message(Message::help(
+                "add a comparison or boolean conversion to make this a boolean expression",
+            ));
+        }
+    }
+
+    diagnostic.add_message(Message::note(
+        "if conditions require boolean expressions to determine which branch to execute",
     ));
 
     diagnostic

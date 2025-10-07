@@ -15,10 +15,10 @@ import {
 } from "./layout-with-sidebar/page-sidebar";
 
 const Main = styled("main")(({ theme }) => ({
-  minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
   flexGrow: 1,
   marginLeft: "auto",
   marginRight: "auto",
+  minHeight: "100%",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -112,7 +112,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 ? palette.gray[10]
                 : palette.common.white,
               display: "flex",
-              minHeight: "100%",
+              minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
               flex: 1,
               width: "100%",
             })}

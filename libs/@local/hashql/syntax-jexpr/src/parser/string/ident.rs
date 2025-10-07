@@ -30,27 +30,20 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
     let used = (
         one_of(unicode_ident::is_xid_start),
         cut_err(take_while(0.., unicode_ident::is_xid_continue)),
     );
 
-    let unused = (
-        '_',
-        cut_err(take_while(1.., unicode_ident::is_xid_continue)),
-    );
+    let unused = ('_', take_while(1.., unicode_ident::is_xid_continue));
 
-    alt((used, unused))
-        .take()
-        .with_span()
-        .map(|(value, span): (&str, _)| Ident {
-            span: context.span(span),
-            value: intern(context.heap, value),
-            kind: IdentKind::Lexical,
-        })
-        .parse_next(input)
+    let (value, span) = alt((used, unused)).take().with_span().parse_next(input)?;
+
+    Ok(Ident {
+        span: input.state.span(span),
+        value: intern(input.state.heap, value),
+        kind: IdentKind::Lexical,
+    })
 }
 
 fn is_symbol(char: char) -> bool {
@@ -76,8 +69,6 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
     let bare = || take_while(1.., is_symbol);
     let escaped = delimited(
         '`',
@@ -85,14 +76,13 @@ where
         cut_err('`').context(StrContext::Expected(StrContextValue::CharLiteral('`'))),
     );
 
-    alt((escaped, bare()))
-        .with_span()
-        .map(|(value, span): (&str, _)| Ident {
-            span: context.span(span),
-            value: intern(context.heap, value),
-            kind: IdentKind::Symbol,
-        })
-        .parse_next(input)
+    let (value, span): (&str, _) = alt((escaped, bare())).with_span().parse_next(input)?;
+
+    Ok(Ident {
+        span: input.state.span(span),
+        value: intern(input.state.heap, value),
+        kind: IdentKind::Symbol,
+    })
 }
 
 // see: https://www.ietf.org/rfc/rfc3986.txt
@@ -135,8 +125,6 @@ where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
     let url = (one_of(is_url_char), cut_err(take_while(1.., is_url_char)))
         .take()
         .verify(|value: &str| {
@@ -154,18 +142,19 @@ where
             "http(s) url with trailing `/`",
         )));
 
-    delimited(
+    let (url, span) = delimited(
         '`',
         url,
         cut_err('`').context(StrContext::Expected(StrContextValue::CharLiteral('`'))),
     )
     .with_span()
-    .map(|(url, span)| Ident {
-        span: context.span(span),
-        value: intern(context.heap, url),
+    .parse_next(input)?;
+
+    Ok(Ident {
+        span: input.state.span(span),
+        value: intern(input.state.heap, url),
         kind: IdentKind::BaseUrl,
     })
-    .parse_next(input)
 }
 
 pub(crate) fn parse_ident<'heap, 'span, 'source, E>(
@@ -177,7 +166,7 @@ where
 {
     dispatch! {peek(any);
         '`' => cut_err(alt((parse_ident_symbol, parse_ident_url))),
-        char if unicode_ident::is_xid_start(char) || char == '_' => cut_err(parse_ident_lexical),
+        char if unicode_ident::is_xid_start(char) || char == '_' => parse_ident_lexical,
         char if is_symbol(char) => cut_err(parse_ident_symbol),
         _ => fail
     }

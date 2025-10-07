@@ -40,6 +40,19 @@ impl HirId {
     pub const PLACEHOLDER: Self = <Self as id::Id>::MAX;
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct HirPtr {
+    pub id: HirId,
+    pub span: SpanId,
+}
+
+impl HirPtr {
+    pub const PLACEHOLDER: Self = Self {
+        id: HirId::PLACEHOLDER,
+        span: SpanId::SYNTHETIC,
+    };
+}
+
 /// A node in the HashQL High-Level Intermediate Representation (HIR).
 ///
 /// The HIR is an optimized, more refined representation of the program derived from the AST.
@@ -66,6 +79,16 @@ pub struct Node<'heap> {
 
     // Consider if we want to intern the `NodeKind` separately
     pub kind: &'heap NodeKind<'heap>,
+}
+
+impl Node<'_> {
+    #[must_use]
+    pub const fn ptr(&self) -> HirPtr {
+        HirPtr {
+            id: self.id,
+            span: self.span,
+        }
+    }
 }
 
 impl HasId for Node<'_> {

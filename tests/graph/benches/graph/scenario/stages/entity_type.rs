@@ -6,8 +6,8 @@ use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{
     entity_type::{
-        CommonGetEntityTypesParams, EntityTypeStore as _, GetEntityTypesParams,
-        IncludeEntityTypeOption,
+        CommonQueryEntityTypesParams, EntityTypeStore as _, IncludeEntityTypeOption,
+        QueryEntityTypesParams,
     },
     filter::Filter,
     pool::StorePool as _,
@@ -562,13 +562,12 @@ impl BuildEntityTypeRegistryStage {
             .change_context(BuildEntityTypeRegistryError::ReadEntityTypes)?;
 
         let get_entity_types_response = store
-            .get_entity_types(
+            .query_entity_types(
                 ActorEntityUuid::public_actor(),
-                GetEntityTypesParams {
-                    request: CommonGetEntityTypesParams {
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
                         filter: Filter::for_entity_type_uuids(&all_entity_types),
                         temporal_axes: QueryTemporalAxesUnresolved::default(),
-                        include_drafts: false,
                         after: None,
                         limit: None,
                         include_count: false,

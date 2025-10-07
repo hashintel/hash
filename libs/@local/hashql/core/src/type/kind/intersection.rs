@@ -162,8 +162,8 @@ impl<'heap> IntersectionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, Environment<'heap>>,
+        U: PrettyPrint<'heap, Environment<'heap>>,
     {
         // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
         if supertype_variants.is_empty() {
@@ -174,7 +174,7 @@ impl<'heap> IntersectionType<'heap> {
         if self_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> =
-                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, actual));
+                env.record_diagnostic(|env| cannot_be_supertype_of_unknown(env, actual, expected));
 
             return false;
         }
@@ -213,8 +213,8 @@ impl<'heap> IntersectionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap>,
-        U: PrettyPrint<'heap>,
+        T: PrettyPrint<'heap, Environment<'heap>>,
+        U: PrettyPrint<'heap, Environment<'heap>>,
     {
         // Empty intersections are only equivalent to other empty intersections
         // As an empty intersection corresponds to `Unknown`, therefore only `Unknown ≡ Unknown`
@@ -704,7 +704,7 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for IntersectionType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for IntersectionType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

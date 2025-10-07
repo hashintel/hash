@@ -1,19 +1,21 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let greaterThan:0 = ::core::cmp::gt(1, 2) in
-#let greaterThanOrEqual:0 = ::core::cmp::gte(1, 2) in
-#let lessThan:0 = ::core::cmp::lt(1, 2) in
-#let lessThanOrEqual:0 = ::core::cmp::lte(1, 2) in
-#let equal:0 = ::core::cmp::eq(1, 2) in
-#let notEqual:0 = ::core::cmp::ne(1, 2) in
+#let greaterThan:0 = ::core::cmp::gt(1, 2)
+     greaterThanOrEqual:0 = ::core::cmp::gte(1, 2)
+     lessThan:0 = ::core::cmp::lt(1, 2)
+     lessThanOrEqual:0 = ::core::cmp::lte(1, 2)
+     equal:0 = ::core::cmp::eq(1, 2)
+     notEqual:0 = ::core::cmp::ne(1, 2)
+in
 greaterThan:0
 
 ════ HIR after specialization ══════════════════════════════════════════════════
 
-#let greaterThan:0 = (1 > 2) in
-#let greaterThanOrEqual:0 = (1 >= 2) in
-#let lessThan:0 = (1 < 2) in
-#let lessThanOrEqual:0 = (1 <= 2) in
-#let equal:0 = (1 == 2) in
-#let notEqual:0 = (1 != 2) in
+#let greaterThan:0 = (1 > 2)
+     greaterThanOrEqual:0 = (1 >= 2)
+     lessThan:0 = (1 < 2)
+     lessThanOrEqual:0 = (1 <= 2)
+     equal:0 = (1 == 2)
+     notEqual:0 = (1 != 2)
+in
 greaterThan:0

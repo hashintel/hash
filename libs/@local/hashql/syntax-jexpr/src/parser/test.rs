@@ -1,28 +1,27 @@
-use alloc::sync::Arc;
-
 use hashql_ast::format::SyntaxDump as _;
-use hashql_core::{heap::Heap, span::storage::SpanStorage};
+use hashql_core::{heap::Heap, span::SpanTable};
+use hashql_diagnostics::source::SourceId;
 
 use crate::{lexer::Lexer, parser::state::ParserState, span::Span, test::render_diagnostic};
 
 pub(crate) struct TestContext {
     pub input: &'static str,
     pub heap: Heap,
-    pub spans: Arc<SpanStorage<Span>>,
+    pub spans: SpanTable<Span>,
 }
 
 pub(crate) macro bind_context(let $context:ident = $value:expr) {
-    let $context = TestContext {
+    let mut $context = TestContext {
         input: $value,
         heap: Heap::new(),
-        spans: Arc::new(SpanStorage::new()),
+        spans: SpanTable::new(SourceId::new_unchecked(0x00)),
     };
 }
 
 pub(crate) macro bind_state(let mut $name:ident from $context:ident) {
-    let lexer = Lexer::new($context.input.as_bytes(), Arc::clone(&$context.spans));
+    let lexer = Lexer::new($context.input.as_bytes());
 
-    let mut $name = ParserState::new(&$context.heap, lexer, Arc::clone(&$context.spans));
+    let mut $name = ParserState::new(&$context.heap, lexer, &mut $context.spans);
 }
 
 /// Represents the successful result of parsing an expression
@@ -56,7 +55,7 @@ pub(crate) macro bind_parser(fn $name:ident($parser:ident, $expected:expr)) {
                 input,
             }),
             Err(diagnostic) => Err(ParseTestErr {
-                diagnostic: render_diagnostic(context.input, diagnostic, &context.spans),
+                diagnostic: render_diagnostic(context.input, &diagnostic, &context.spans),
                 input,
             }),
         }

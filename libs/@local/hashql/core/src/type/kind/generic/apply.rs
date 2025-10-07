@@ -28,7 +28,7 @@ pub struct GenericSubstitution {
     pub value: TypeId,
 }
 
-impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericSubstitution {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -111,7 +111,7 @@ impl Deref for GenericSubstitutions<'_> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericSubstitutions<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -423,7 +423,7 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Apply<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

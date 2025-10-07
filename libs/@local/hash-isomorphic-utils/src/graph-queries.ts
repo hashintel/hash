@@ -22,6 +22,7 @@ import type {
   Selector,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -29,7 +30,6 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
-import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },
@@ -258,13 +258,9 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 export const pageOrNotificationNotArchivedFilter: Filter = {
   any: [
     {
-      equal: [
-        {
-          path: ["properties", archivedBaseUrl],
-        },
-        // @ts-expect-error -- We will update the type definition of `EntityStructuralQuery` to allow this, see H-1207
-        null,
-      ],
+      exists: {
+        path: ["properties", archivedBaseUrl],
+      },
     },
     {
       equal: [

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Single element type list inference
+{ "#list": [{ "#literal": 42 }, { "#literal": 43 }, { "#literal": 44 }] }

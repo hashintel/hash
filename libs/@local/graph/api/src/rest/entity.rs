@@ -11,13 +11,14 @@ use hash_graph_store::{
     self,
     entity::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityQueryCursor, EntityQuerySortingRecord, EntityQuerySortingToken,
-        EntityQueryToken, EntityStore, EntityTypesError, EntityValidationReport,
-        EntityValidationType, GetEntitiesResponse, HasPermissionForEntitiesParams,
+        DiffEntityResult, EntityPermissions, EntityQueryCursor, EntityQuerySortingRecord,
+        EntityQuerySortingToken, EntityQueryToken, EntityStore, EntityTypesError,
+        EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
         LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
         LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
-        PropertyMetadataValidationReport, QueryConversion, UnexpectedEntityType,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        PropertyMetadataValidationReport, QueryConversion, QueryEntitiesResponse,
+        UnexpectedEntityType, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
     entity_type::EntityTypeResolveDefinitions,
     pool::StorePool,
@@ -74,12 +75,13 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+use super::InteractiveHeader;
 pub use crate::rest::entity_query_request::{
-    EntityQuery, EntityQueryOptions, GetEntitiesRequest, GetEntitySubgraphRequest,
+    EntityQuery, EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest,
 };
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, entity_query_request::CompilationOptions,
+    json::Json, status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -89,8 +91,8 @@ use crate::rest::{
         create_entities,
         validate_entity,
         has_permission_for_entities,
-        get_entities,
-        get_entity_subgraph,
+        query_entities,
+        query_entity_subgraph,
         count_entities,
         patch_entity,
         update_entity_embeddings,
@@ -118,15 +120,16 @@ use crate::rest::{
             HasPermissionForEntitiesParams,
 
             EntityQueryOptions,
-            GetEntitiesRequest,
-            GetEntitySubgraphRequest,
+            QueryEntitiesRequest,
+            QueryEntitySubgraphRequest,
             EntityQueryCursor,
             Ordering,
             NullOrdering,
             EntityQuerySortingRecord,
             EntityQuerySortingToken,
-            GetEntitiesResponse,
-            GetEntitySubgraphResponse,
+            QueryEntitiesResponse,
+            QueryEntitySubgraphResponse,
+            EntityPermissions,
             ClosedMultiEntityTypeMap,
             QueryConversion,
 
@@ -223,8 +226,8 @@ impl EntityResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entities::<S>))
-                        .route("/subgraph", post(get_entity_subgraph::<S>))
+                        .route("/", post(query_entities::<S>))
+                        .route("/subgraph", post(query_entity_subgraph::<S>))
                         .route("/count", post(count_entities::<S>)),
                 ),
         )
@@ -400,10 +403,11 @@ where
 #[utoipa::path(
     post,
     path = "/entities/query",
-    request_body = GetEntitiesRequest,
+    request_body = QueryEntitiesRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the request is used interactively"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -411,20 +415,21 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntitiesResponse,
+            body = QueryEntitiesResponse,
             description = "A list of entities that satisfy the given query.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entities<S>(
+async fn query_entities<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<Box<RawJsonvalue>>,
-) -> Result<Json<GetEntitiesResponse<'static>>, Response>
+) -> Result<Json<QueryEntitiesResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -437,7 +442,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitiesRequest::deserialize(&*request)
+    let request = QueryEntitiesRequest::deserialize(&*request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
@@ -461,29 +466,14 @@ where
         heap.prime();
     }
 
-    let filter = query.compile(&heap).expect(
-        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-    );
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
     let params = options.into_params(filter);
 
     let response = store
-        .get_entities(actor_id, params)
+        .query_entities(actor_id, params)
         .await
-        .map(|response| {
-            Json(GetEntitiesResponse {
-                entities: response.entities,
-                cursor: response.cursor.map(EntityQueryCursor::into_owned),
-                count: response.count,
-                closed_multi_entity_types: response.closed_multi_entity_types,
-                definitions: response.definitions,
-                web_ids: response.web_ids,
-                created_by_ids: response.created_by_ids,
-                edition_created_by_ids: response.edition_created_by_ids,
-                type_ids: response.type_ids,
-                type_titles: response.type_titles,
-            })
-        })
+        .map(Json)
         .map_err(report_to_response);
 
     if let Some(query_logger) = &mut query_logger {
@@ -494,10 +484,12 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntitySubgraphResponse<'r> {
+struct QueryEntitySubgraphResponse<'r> {
     subgraph: Subgraph,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -520,15 +512,19 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
     type_titles: Option<HashMap<VersionedUrl, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    entity_permissions: Option<HashMap<EntityId, EntityPermissions>>,
 }
 
 #[utoipa::path(
     post,
     path = "/entities/query/subgraph",
-    request_body = GetEntitySubgraphRequest,
+    request_body = QueryEntitySubgraphRequest,
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("Interactive" = Option<bool>, Header, description = "Whether the query is interactive"),
         ("after" = Option<String>, Query, description = "The cursor to start reading from"),
         ("limit" = Option<usize>, Query, description = "The maximum number of entities to read"),
     ),
@@ -536,20 +532,21 @@ struct GetEntitySubgraphResponse<'r> {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntitySubgraphResponse,
+            body = QueryEntitySubgraphResponse,
             description = "A subgraph rooted at entities that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_subgraph<S>(
+async fn query_entity_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    InteractiveHeader(interactive): InteractiveHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntitySubgraphResponse<'static>>, Response>
+) -> Result<Json<QueryEntitySubgraphResponse<'static>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -562,7 +559,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitySubgraphRequest::deserialize(&request)
+    let request = QueryEntitySubgraphRequest::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
     let (query, options, traversal) = request.into_parts();
@@ -578,17 +575,15 @@ where
         heap.prime();
     }
 
-    let filter = query.compile(&heap).expect(
-        "https://linear.app/hash/issue/BE-39/hashql-handle-errors-in-the-graph-api-properly",
-    );
+    let filter = query.compile(&heap, CompilationOptions { interactive })?;
 
     let params = options.into_traversal_params(filter, traversal);
 
     let response = store
-        .get_entity_subgraph(actor_id, params)
+        .query_entity_subgraph(actor_id, params)
         .await
         .map(|response| {
-            Json(GetEntitySubgraphResponse {
+            Json(QueryEntitySubgraphResponse {
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
@@ -599,6 +594,7 @@ where
                 edition_created_by_ids: response.edition_created_by_ids,
                 type_ids: response.type_ids,
                 type_titles: response.type_titles,
+                entity_permissions: response.entity_permissions,
             })
         })
         .map_err(report_to_response);

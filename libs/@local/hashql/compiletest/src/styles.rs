@@ -1,4 +1,4 @@
-use anstyle::{AnsiColor, Color, Style};
+use hashql_diagnostics::color::{AnsiColor, Color, Style};
 
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));

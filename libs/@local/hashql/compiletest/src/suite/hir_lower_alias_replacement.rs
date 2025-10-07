@@ -9,7 +9,10 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
-use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
+use hashql_hir::{
+    context::HirContext, fold::Fold as _, intern::Interner, lower::alias::AliasReplacement,
+    node::Node, pretty::PrettyPrintEnvironment,
+};
 
 use super::{Suite, SuiteDiagnostic};
 use crate::suite::common::{Header, process_issues, process_status};
@@ -29,6 +32,9 @@ impl Suite for HirLowerAliasReplacementSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
         let result = lower(
@@ -39,21 +45,23 @@ impl Suite for HirLowerAliasReplacementSuite {
         );
         let types = process_status(diagnostics, result)?;
 
-        let interner = Interner::new(heap);
-        let node = process_status(
-            diagnostics,
-            Node::from_ast(expr, &environment, &interner, &types),
-        )?;
+        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
 
         let _ = writeln!(
             output,
             "{}\n\n{}",
             Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         let mut issues = DiagnosticIssues::new();
-        let mut replacement = AliasReplacement::new(&interner, &mut issues);
+        let mut replacement = AliasReplacement::new(&context, &mut issues);
         let Ok(node) = replacement.fold_node(node);
 
         process_issues(diagnostics, issues)?;
@@ -62,7 +70,13 @@ impl Suite for HirLowerAliasReplacementSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after alias replacement"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         Ok(output)

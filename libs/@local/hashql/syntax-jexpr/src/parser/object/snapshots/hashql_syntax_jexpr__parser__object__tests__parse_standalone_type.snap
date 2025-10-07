@@ -3,17 +3,13 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/mod.rs
 description: "Rejects standalone #type without an associated expression"
 expression: "{\"#type\": \"Int\"}"
 ---
-[31m[parser::object::orphaned-type] Error:[0m Orphaned #type field without parent construct
-   ╭─[ <unknown>:1:2 ]
-   │
- 1 │ {"#type": "Int"}
-   │  ───────┬──────  
-   │         ╰──────── Add a primary construct to use with #type
-   │ 
-   │ Help: The `#type` field must be used alongside a primary construct like `#struct`, `#list`, etc. It cannot be used alone in an object.
-   │ 
-   │ Note: The `#type` field is used to annotate the type of a construct. Valid examples include:
-   │           - `{"#struct": {...}, "#type": "Person"}`
-   │           - `{"#list": [...], "#type": "List<Number>"}`
-   │           - `{"#literal": 42, "#type": "Int"}`
-───╯
+error[parser::object::orphaned-type]: Orphaned #type field without parent construct
+  ╭▸ 
+1 │ {"#type": "Int"}
+  │  ━━━━━━━━━━━━━━ Add a primary construct to use with #type
+  │
+  ├ help: The `#type` field must be used alongside a primary construct like `#struct`, `#list`, etc. It cannot be used alone in an object.
+  ╰ note: The `#type` field is used to annotate the type of a construct. Valid examples include:
+              - `{"#struct": {...}, "#type": "Person"}`
+              - `{"#list": [...], "#type": "List<Number>"}`
+              - `{"#literal": 42, "#type": "Int"}`

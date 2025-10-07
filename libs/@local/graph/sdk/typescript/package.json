@@ -23,14 +23,16 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/graph": "0.4.0-canary.2",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/harpc-client": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
-    "effect": "3.13.11"
+    "@temporalio/client": "1.12.1",
+    "effect": "3.13.11",
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",

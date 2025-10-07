@@ -1,13 +1,10 @@
-[type-extractor::generic-parameter-mismatch] Error: Incorrect number of type parameters
-   ╭─[ <unknown>:6:4 ]
-   │
- 6 │   "Some",
-   │    ──┬─  
-   │      ╰─── Missing parameter `T`
-   │      │   
-   │      ╰─── Type `::core::option::Some` needs 1 type parameter, but only 0 were provided
-   │ 
-   │ Help: Add the missing parameter(s): `::core::option::Some<T>`
-   │ 
-   │ Note: Generic type parameters allow types to work with different data types while maintaining type safety. Each generic type has specific requirements for the number and names of type parameters it accepts. For example, List<T> requires exactly one type parameter, while Dict<K, V> requires two.
-───╯
+error[type-extractor::generic-parameter-mismatch]: Incorrect number of type parameters
+  ╭▸ 
+6 │   "Some",
+  │    ┯━━━
+  │    │
+  │    Type `::core::option::Some` needs 1 type parameter, but only 0 were provided
+  │    Missing parameter `T`
+  │
+  ├ help: Add the missing parameter(s): `::core::option::Some<T>`
+  ╰ note: Generic type parameters allow types to work with different data types while maintaining type safety. Each generic type has specific requirements for the number and names of type parameters it accepts. For example, List<T> requires exactly one type parameter, while Dict<K, V> requires two.

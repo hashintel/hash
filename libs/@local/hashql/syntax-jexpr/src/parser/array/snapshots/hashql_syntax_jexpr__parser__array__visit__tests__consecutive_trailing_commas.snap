@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/visit.rs
 description: Array with consecutive commas should fail
 expression: "[1,,]"
 ---
-[31m[array::trailing-comma] Error:[0m Unexpected trailing comma in array
-   ╭─[ <unknown>:1:4 ]
-   │
- 1 │ [1,,]
-   │   ┬┬  
-   │   │╰── Remove this trailing comma
-   │   │   
-   │   ╰─── ... and this trailing comma
-   │ 
-   │ Help: J-Expr does not support trailing commas in arrays. Use `[item1, item2]` instead of `[item1, item2,]`
-───╯
+error[array::trailing-comma]: Unexpected trailing comma in array
+  ╭▸ 
+1 │ [1,,]
+  │   ┯─ ... and this trailing comma
+  │   │
+  │   Remove this trailing comma
+  │
+  ╰ help: J-Expr does not support trailing commas in arrays. Use `[item1, item2]` instead of `[item1, item2,]`

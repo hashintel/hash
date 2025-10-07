@@ -1,11 +1,10 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -13,10 +12,10 @@ import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/syst
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
@@ -29,11 +28,10 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -53,6 +51,7 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     skip: !authenticatedUser,
@@ -61,9 +60,9 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
 
   return useMemo(() => {
     const subgraph = data
-      ? mapGqlSubgraphFieldsFragmentToSubgraph<
-          EntityRootType<HashEntity<GoogleAccount>>
-        >(data.getEntitySubgraph.subgraph)
+      ? deserializeQueryEntitySubgraphResponse<GoogleAccount>(
+          data.queryEntitySubgraph,
+        ).subgraph
       : undefined;
 
     const accounts = subgraph ? getRoots(subgraph) : [];

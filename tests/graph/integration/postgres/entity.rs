@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _,
-        GetEntitiesParams, PatchEntityParams,
+        PatchEntityParams, QueryEntitiesParams,
     },
     filter::Filter,
     subgraph::temporal_axes::{
@@ -89,9 +89,9 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -114,6 +114,7 @@ async fn insert() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -171,9 +172,9 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -196,6 +197,7 @@ async fn query() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -302,9 +304,9 @@ async fn update() {
     assert_eq!(num_entities, 2);
 
     let entities = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -324,6 +326,7 @@ async fn update() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -338,9 +341,9 @@ async fn update() {
         *v1_entity.metadata.temporal_versioning.decision_time.start();
 
     let mut response_v1 = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -363,6 +366,7 @@ async fn update() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await
@@ -374,9 +378,9 @@ async fn update() {
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_entity.metadata.temporal_versioning.decision_time.start();
     let mut response_v2 = api
-        .get_entities(
+        .query_entities(
             api.account_id,
-            GetEntitiesParams {
+            QueryEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -399,6 +403,7 @@ async fn update() {
                 include_edition_created_by_ids: false,
                 include_type_ids: false,
                 include_type_titles: false,
+                include_permissions: false,
             },
         )
         .await

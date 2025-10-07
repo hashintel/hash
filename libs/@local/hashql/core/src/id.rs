@@ -1,8 +1,11 @@
 use core::{
-    fmt,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display},
     hash::Hash,
+    marker::PhantomData,
+    sync::atomic::Atomic,
 };
+
+use ::core::sync::atomic;
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
@@ -94,14 +97,25 @@ pub trait Id:
     /// Converts this ID to a [`usize`] value.
     fn as_usize(self) -> usize;
 
-    /// Returns the next ID in sequence, if it exists.
+    /// Adds the given amount to this ID.
     ///
     /// # Panics
     ///
-    /// Panics if this ID is already at the maximum value.
-    #[must_use]
-    fn next(self) -> Self {
-        Self::from_usize(self.as_usize() + 1)
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    #[must_use = "Use `increment_by` to modify the id in place"]
+    fn plus(self, amount: usize) -> Self {
+        Self::from_usize(self.as_usize() + amount)
+    }
+
+    /// Mutably adds the given amount to this ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    fn increment_by(&mut self, amount: usize) {
+        *self = self.plus(amount);
     }
 
     /// Returns the previous ID in sequence, if it exists.
@@ -274,34 +288,96 @@ macro_rules! newtype {
     };
 }
 
+#[derive(Debug)]
+pub struct IdProducer<I> {
+    next: Atomic<u32>,
+    _marker: PhantomData<fn() -> I>,
+}
+
+impl<I> IdProducer<I> {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            next: Atomic::<u32>::new(0),
+            _marker: PhantomData,
+        }
+    }
+
+    #[inline]
+    pub fn next(&self) -> I
+    where
+        I: Id,
+    {
+        // Relaxed ordering is sufficient, as this is the only place where interact with the atomic
+        // counter and ordering is of no concern.
+        let value = self.next.fetch_add(1, atomic::Ordering::Relaxed);
+
+        I::from_u32(value)
+    }
+}
+
+impl<I> Default for IdProducer<I> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug)]
+pub struct IdCounter<I> {
+    next: I,
+}
+
+impl<I> IdCounter<I> {
+    #[must_use]
+    pub const fn new() -> Self
+    where
+        I: Id,
+    {
+        Self { next: I::MIN }
+    }
+
+    #[inline]
+    #[expect(
+        clippy::should_implement_trait,
+        reason = "We return `I` instead of `Option<I>`, while similar we don't want to confuse \
+                  users."
+    )]
+    pub fn next(&mut self) -> I
+    where
+        I: Id,
+    {
+        let value = self.next;
+        self.next.increment_by(1);
+
+        value
+    }
+}
+
+impl<I> Default for IdCounter<I>
+where
+    I: Id,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[macro_export]
 macro_rules! newtype_producer {
     ($vis:vis struct $name:ident($id:ty)) => {
-        #[derive(Debug)]
-        $vis struct $name(::core::sync::atomic::AtomicU32);
+        $vis type $name = $crate::id::IdProducer<$id>;
+    };
+}
 
-        impl $name {
-            #[must_use]
-            $vis const fn new() -> Self {
-                Self(::core::sync::atomic::AtomicU32::new(0))
-            }
-
-            $vis fn next(&self) -> $id {
-                // Relaxed ordering is sufficient, as this is the only place where interact with the atomic
-                // counter and ordering is of no concern.
-                <$id>::new(self.0.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed))
-            }
-        }
-
-        impl ::core::default::Default for $name {
-            fn default() -> Self {
-                Self::new()
-            }
-        }
+#[macro_export]
+macro_rules! newtype_counter {
+    ($vis:vis struct $name:ident($id:ty)) => {
+        $vis type $name = $crate::id::IdCounter<$id>;
     };
 }
 
 // TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
 
 pub use newtype;
+pub use newtype_counter;
 pub use newtype_producer;

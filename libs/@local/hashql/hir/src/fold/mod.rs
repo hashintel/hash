@@ -53,6 +53,7 @@ use core::ops::{FromResidual, Try};
 
 use hashql_core::{
     intern::Interned,
+    literal::LiteralKind,
     module::locals::TypeDef,
     span::{SpanId, Spanned},
     symbol::{Ident, Symbol},
@@ -64,23 +65,23 @@ use crate::{
     intern::Interner,
     node::{
         HirId, Node, PartialNode,
-        access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        access::{Access, FieldAccess, IndexAccess},
+        branch::{Branch, If},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, DataKind, Literal},
+        data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         graph::{
-            Graph, GraphKind,
+            Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binder, Binding, Let, VarId},
         operation::{
-            BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
-            r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
+            BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
+            UnaryOperation,
         },
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
 };
@@ -140,6 +141,10 @@ pub trait Fold<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: HirId) {
         // do nothing, no fields to walk
+    }
+
+    fn fold_var_id(&mut self, id: VarId) -> Self::Output<VarId> {
+        Try::from_output(id)
     }
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
@@ -212,8 +217,35 @@ pub trait Fold<'heap> {
         walk_data(self, data)
     }
 
-    fn fold_literal(&mut self, literal: Literal<'heap>) -> Self::Output<Literal<'heap>> {
-        walk_literal(self, literal)
+    fn fold_literal(&mut self, literal: LiteralKind<'heap>) -> Self::Output<LiteralKind<'heap>> {
+        Try::from_output(literal)
+    }
+
+    fn fold_struct_field(&mut self, field: StructField<'heap>) -> Self::Output<StructField<'heap>> {
+        walk_struct_field(self, field)
+    }
+
+    /// Fold a struct
+    ///
+    /// The caller must ensure that the struct fields do not have duplicate field names.
+    fn fold_struct(&mut self, r#struct: Struct<'heap>) -> Self::Output<Struct<'heap>> {
+        walk_struct(self, r#struct)
+    }
+
+    fn fold_tuple(&mut self, tuple: Tuple<'heap>) -> Self::Output<Tuple<'heap>> {
+        walk_tuple(self, tuple)
+    }
+
+    fn fold_list(&mut self, list: List<'heap>) -> Self::Output<List<'heap>> {
+        walk_list(self, list)
+    }
+
+    fn fold_dict(&mut self, dict: Dict<'heap>) -> Self::Output<Dict<'heap>> {
+        walk_dict(self, dict)
+    }
+
+    fn fold_dict_field(&mut self, field: DictField<'heap>) -> Self::Output<DictField<'heap>> {
+        walk_dict_field(self, field)
     }
 
     fn fold_variable(&mut self, variable: Variable<'heap>) -> Self::Output<Variable<'heap>> {
@@ -236,6 +268,14 @@ pub trait Fold<'heap> {
 
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         walk_let(self, r#let)
+    }
+
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
+        walk_binding(self, binding)
+    }
+
+    fn fold_binder(&mut self, binding: Binder<'heap>) -> Self::Output<Binder<'heap>> {
+        walk_binder(self, binding)
     }
 
     fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
@@ -319,6 +359,10 @@ pub trait Fold<'heap> {
 
     fn fold_branch(&mut self, branch: Branch<'heap>) -> Self::Output<Branch<'heap>> {
         walk_branch(self, branch)
+    }
+
+    fn fold_if(&mut self, r#if: If<'heap>) -> Self::Output<If<'heap>> {
+        walk_if(self, r#if)
     }
 
     fn fold_closure(&mut self, closure: Closure<'heap>) -> Self::Output<Closure<'heap>> {
@@ -479,115 +523,179 @@ pub fn walk_nodes<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_data<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Data { span, kind }: Data<'heap>,
+    data: Data<'heap>,
 ) -> T::Output<Data<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    let kind = match kind {
-        DataKind::Literal(literal) => DataKind::Literal(visitor.fold_literal(literal)?),
+    let data = match data {
+        Data::Literal(literal) => Data::Literal(visitor.fold_literal(literal)?),
+        Data::Tuple(tuple) => Data::Tuple(visitor.fold_tuple(tuple)?),
+        Data::Struct(r#struct) => Data::Struct(visitor.fold_struct(r#struct)?),
+        Data::List(list) => Data::List(visitor.fold_list(list)?),
+        Data::Dict(dict) => Data::Dict(visitor.fold_dict(dict)?),
     };
 
-    Try::from_output(Data { span, kind })
+    Try::from_output(data)
 }
 
-pub fn walk_literal<'heap, T: Fold<'heap> + ?Sized>(
+pub fn walk_struct_field<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Literal { span, kind }: Literal<'heap>,
-) -> T::Output<Literal<'heap>> {
-    let span = visitor.fold_span(span)?;
+    StructField { name, value }: StructField<'heap>,
+) -> T::Output<StructField<'heap>> {
+    let name = visitor.fold_ident(name)?;
+    let value = visitor.fold_nested_node(value)?;
 
-    Try::from_output(Literal { span, kind })
+    Try::from_output(StructField { name, value })
+}
+
+pub fn walk_struct<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Struct { fields }: Struct<'heap>,
+) -> T::Output<Struct<'heap>> {
+    let mut fields = Beef::new(fields);
+    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_struct_field(field))?;
+    let fields = fields.finish_with(|slice| visitor.interner().intern_struct_fields(slice));
+
+    Try::from_output(Struct { fields })
+}
+
+pub fn walk_tuple<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Tuple { fields }: Tuple<'heap>,
+) -> T::Output<Tuple<'heap>> {
+    let mut fields = Beef::new(fields);
+    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_nested_node(field))?;
+    let fields = fields.finish(&visitor.interner().nodes);
+
+    Try::from_output(Tuple { fields })
+}
+
+pub fn walk_list<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    List { elements }: List<'heap>,
+) -> T::Output<List<'heap>> {
+    let mut elements = Beef::new(elements);
+    elements.try_map::<_, T::Output<()>>(|element| visitor.fold_nested_node(element))?;
+    let elements = elements.finish(&visitor.interner().nodes);
+
+    Try::from_output(List { elements })
+}
+
+pub fn walk_dict<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Dict { fields }: Dict<'heap>,
+) -> T::Output<Dict<'heap>> {
+    let mut fields = Beef::new(fields);
+    fields.try_map::<_, T::Output<()>>(|field| visitor.fold_dict_field(field))?;
+    let fields = fields.finish(&visitor.interner().dict_fields);
+
+    Try::from_output(Dict { fields })
+}
+
+pub fn walk_dict_field<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    DictField { key, value }: DictField<'heap>,
+) -> T::Output<DictField<'heap>> {
+    let key = visitor.fold_nested_node(key)?;
+    let value = visitor.fold_nested_node(value)?;
+
+    Try::from_output(DictField { key, value })
 }
 
 pub fn walk_variable<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Variable { span, kind }: Variable<'heap>,
+    variable: Variable<'heap>,
 ) -> T::Output<Variable<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    match kind {
-        VariableKind::Local(variable) => {
-            VariableKind::Local(visitor.fold_local_variable(variable)?)
-        }
-        VariableKind::Qualified(variable) => {
-            VariableKind::Qualified(visitor.fold_qualified_variable(variable)?)
+    let variable = match variable {
+        Variable::Local(variable) => Variable::Local(visitor.fold_local_variable(variable)?),
+        Variable::Qualified(variable) => {
+            Variable::Qualified(visitor.fold_qualified_variable(variable)?)
         }
     };
 
-    Try::from_output(Variable { span, kind })
+    Try::from_output(variable)
 }
 
 pub fn walk_local_variable<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    LocalVariable {
-        span,
-        name,
-        arguments,
-    }: LocalVariable<'heap>,
+    LocalVariable { id, arguments }: LocalVariable<'heap>,
 ) -> T::Output<LocalVariable<'heap>> {
-    let span = visitor.fold_span(span)?;
-    let ident = visitor.fold_ident(name)?;
+    let id = Spanned {
+        span: visitor.fold_span(id.span)?,
+        value: visitor.fold_var_id(id.value)?,
+    };
+
     let arguments = visitor.fold_type_ids(arguments)?;
 
-    Try::from_output(LocalVariable {
-        span,
-        name: ident,
-        arguments,
-    })
+    Try::from_output(LocalVariable { id, arguments })
 }
 
 pub fn walk_qualified_variable<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    QualifiedVariable {
-        span,
-        path,
-        arguments,
-    }: QualifiedVariable<'heap>,
+    QualifiedVariable { path, arguments }: QualifiedVariable<'heap>,
 ) -> T::Output<QualifiedVariable<'heap>> {
-    let span = visitor.fold_span(span)?;
     let path = visitor.fold_qualified_path(path)?;
     let arguments = visitor.fold_type_ids(arguments)?;
 
-    Try::from_output(QualifiedVariable {
-        span,
-        path,
-        arguments,
-    })
+    Try::from_output(QualifiedVariable { path, arguments })
 }
 
 pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Let {
-        span,
-        name,
-        value,
-        body,
-    }: Let<'heap>,
+    Let { bindings, body }: Let<'heap>,
 ) -> T::Output<Let<'heap>> {
-    let span = visitor.fold_span(span)?;
-    let name = visitor.fold_ident(name)?;
+    let mut bindings = Beef::new(bindings);
+    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
 
-    let value = visitor.fold_nested_node(value)?;
     let body = visitor.fold_nested_node(body)?;
 
     Try::from_output(Let {
-        span,
-        name,
-        value,
+        bindings: bindings.finish(&visitor.interner().bindings),
         body,
     })
+}
+
+pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binding {
+        span,
+        binder,
+        value,
+    }: Binding<'heap>,
+) -> T::Output<Binding<'heap>> {
+    let span = visitor.fold_span(span)?;
+    let binder = visitor.fold_binder(binder)?;
+    let value = visitor.fold_nested_node(value)?;
+
+    Try::from_output(Binding {
+        span,
+        binder,
+        value,
+    })
+}
+
+pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Binder { id, span, name }: Binder<'heap>,
+) -> T::Output<Binder<'heap>> {
+    let id = visitor.fold_var_id(id)?;
+    let span = visitor.fold_span(span)?;
+
+    let name = if let Some(name) = name {
+        Some(visitor.fold_symbol(name)?)
+    } else {
+        None
+    };
+
+    Try::from_output(Binder { id, span, name })
 }
 
 pub fn walk_input<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Input {
-        span,
         name,
         r#type,
         default,
     }: Input<'heap>,
 ) -> T::Output<Input<'heap>> {
-    let span = visitor.fold_span(span)?;
     let name = visitor.fold_ident(name)?;
 
     let r#type = visitor.fold_type_id(r#type)?;
@@ -599,7 +707,6 @@ pub fn walk_input<'heap, T: Fold<'heap> + ?Sized>(
     };
 
     Try::from_output(Input {
-        span,
         name,
         r#type,
         default,
@@ -608,55 +715,46 @@ pub fn walk_input<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_operation<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Operation { span, kind }: Operation<'heap>,
+    operation: Operation<'heap>,
 ) -> T::Output<Operation<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    let kind = match kind {
-        OperationKind::Type(operation) => {
-            OperationKind::Type(visitor.fold_type_operation(operation)?)
-        }
-        OperationKind::Binary(operation) => {
-            OperationKind::Binary(visitor.fold_binary_operation(operation)?)
+    let operation = match operation {
+        Operation::Type(operation) => Operation::Type(visitor.fold_type_operation(operation)?),
+        Operation::Binary(operation) => {
+            Operation::Binary(visitor.fold_binary_operation(operation)?)
         }
     };
 
-    Try::from_output(Operation { span, kind })
+    Try::from_output(operation)
 }
 
 pub fn walk_type_operation<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    TypeOperation { span, kind }: TypeOperation<'heap>,
+    operation: TypeOperation<'heap>,
 ) -> T::Output<TypeOperation<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    let kind = match kind {
-        TypeOperationKind::Assertion(assertion) => {
-            TypeOperationKind::Assertion(visitor.fold_type_assertion(assertion)?)
+    let operation = match operation {
+        TypeOperation::Assertion(assertion) => {
+            TypeOperation::Assertion(visitor.fold_type_assertion(assertion)?)
         }
-        TypeOperationKind::Constructor(constructor) => {
-            TypeOperationKind::Constructor(visitor.fold_type_constructor(constructor)?)
+        TypeOperation::Constructor(constructor) => {
+            TypeOperation::Constructor(visitor.fold_type_constructor(constructor)?)
         }
     };
 
-    Try::from_output(TypeOperation { span, kind })
+    Try::from_output(operation)
 }
 
 pub fn walk_type_assertion<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     TypeAssertion {
-        span,
         value,
         r#type,
         force,
     }: TypeAssertion<'heap>,
 ) -> T::Output<TypeAssertion<'heap>> {
-    let span = visitor.fold_span(span)?;
     let value = visitor.fold_nested_node(value)?;
     let r#type = visitor.fold_type_id(r#type)?;
 
     Try::from_output(TypeAssertion {
-        span,
         value,
         r#type,
         force,
@@ -666,19 +764,16 @@ pub fn walk_type_assertion<'heap, T: Fold<'heap> + ?Sized>(
 pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
-        span,
         name,
         closure,
         arguments,
     }: TypeConstructor<'heap>,
 ) -> T::Output<TypeConstructor<'heap>> {
-    let span = visitor.fold_span(span)?;
     let name = visitor.fold_symbol(name)?;
     let closure = visitor.fold_type_id(closure)?;
     let arguments = visitor.fold_generic_argument_references(arguments)?;
 
     Try::from_output(TypeConstructor {
-        span,
         name,
         closure,
         arguments,
@@ -687,85 +782,76 @@ pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_binary_operation<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    BinaryOperation {
-        span,
-        op,
-        left,
-        right,
-    }: BinaryOperation<'heap>,
+    BinaryOperation { op, left, right }: BinaryOperation<'heap>,
 ) -> T::Output<BinaryOperation<'heap>> {
-    let span = visitor.fold_span(span)?;
+    let op = Spanned {
+        span: visitor.fold_span(op.span)?,
+        value: op.value,
+    };
+
     let left = visitor.fold_nested_node(left)?;
     let right = visitor.fold_nested_node(right)?;
 
-    Try::from_output(BinaryOperation {
-        span,
-        op,
-        left,
-        right,
-    })
+    Try::from_output(BinaryOperation { op, left, right })
 }
 
 pub fn walk_unary_operation<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    UnaryOperation { span, op, expr }: UnaryOperation<'heap>,
+    UnaryOperation { op, expr }: UnaryOperation<'heap>,
 ) -> T::Output<UnaryOperation<'heap>> {
-    let span = visitor.fold_span(span)?;
+    let op = Spanned {
+        span: visitor.fold_span(op.span)?,
+        value: op.value,
+    };
+
     let expr = visitor.fold_nested_node(expr)?;
 
-    Try::from_output(UnaryOperation { span, op, expr })
+    Try::from_output(UnaryOperation { op, expr })
 }
 
 pub fn walk_access<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Access { span, kind }: Access<'heap>,
+    access: Access<'heap>,
 ) -> T::Output<Access<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    let kind = match kind {
-        AccessKind::Field(access) => AccessKind::Field(visitor.fold_field_access(access)?),
-        AccessKind::Index(access) => AccessKind::Index(visitor.fold_index_access(access)?),
+    let access = match access {
+        Access::Field(access) => Access::Field(visitor.fold_field_access(access)?),
+        Access::Index(access) => Access::Index(visitor.fold_index_access(access)?),
     };
 
-    Try::from_output(Access { span, kind })
+    Try::from_output(access)
 }
 
 pub fn walk_field_access<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    FieldAccess { span, expr, field }: FieldAccess<'heap>,
+    FieldAccess { expr, field }: FieldAccess<'heap>,
 ) -> T::Output<FieldAccess<'heap>> {
-    let span = visitor.fold_span(span)?;
     let expr = visitor.fold_nested_node(expr)?;
     let field = visitor.fold_ident(field)?;
 
-    Try::from_output(FieldAccess { span, expr, field })
+    Try::from_output(FieldAccess { expr, field })
 }
 
 pub fn walk_index_access<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    IndexAccess { span, expr, index }: IndexAccess<'heap>,
+    IndexAccess { expr, index }: IndexAccess<'heap>,
 ) -> T::Output<IndexAccess<'heap>> {
-    let span = visitor.fold_span(span)?;
     let expr = visitor.fold_nested_node(expr)?;
     let index = visitor.fold_nested_node(index)?;
 
-    Try::from_output(IndexAccess { span, expr, index })
+    Try::from_output(IndexAccess { expr, index })
 }
 
 pub fn walk_call<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Call {
-        span,
         function,
         arguments,
     }: Call<'heap>,
 ) -> T::Output<Call<'heap>> {
-    let span = visitor.fold_span(span)?;
     let function = visitor.fold_nested_node(function)?;
     let arguments = visitor.fold_call_arguments(arguments)?;
 
     Try::from_output(Call {
-        span,
         function,
         arguments,
     })
@@ -797,34 +883,34 @@ pub fn walk_call_arguments<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_branch<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Branch {
-        span,
-        kind,
-        _marker: _,
-    }: Branch<'heap>,
+    branch: Branch<'heap>,
 ) -> T::Output<Branch<'heap>> {
-    let _span = visitor.fold_span(span)?;
+    let branch = match branch {
+        Branch::If(r#if) => Branch::If(visitor.fold_if(r#if)?),
+    };
 
-    match kind {}
+    Try::from_output(branch)
+}
+
+pub fn walk_if<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    If { test, then, r#else }: If<'heap>,
+) -> T::Output<If<'heap>> {
+    let test = visitor.fold_node(test)?;
+    let then = visitor.fold_node(then)?;
+    let r#else = visitor.fold_node(r#else)?;
+
+    Try::from_output(If { test, then, r#else })
 }
 
 pub fn walk_closure<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Closure {
-        span,
-        signature,
-        body,
-    }: Closure<'heap>,
+    Closure { signature, body }: Closure<'heap>,
 ) -> T::Output<Closure<'heap>> {
-    let span = visitor.fold_span(span)?;
     let signature = visitor.fold_closure_signature(signature)?;
     let body = visitor.fold_node(body)?;
 
-    Try::from_output(Closure {
-        span,
-        signature,
-        body,
-    })
+    Try::from_output(Closure { signature, body })
 }
 
 pub fn walk_closure_signature<'heap, T: Fold<'heap> + ?Sized>(
@@ -846,7 +932,7 @@ pub fn walk_closure_param<'heap, T: Fold<'heap> + ?Sized>(
 ) -> T::Output<ClosureParam<'heap>> {
     let span = visitor.fold_span(span)?;
 
-    let name = visitor.fold_ident(name)?;
+    let name = visitor.fold_binder(name)?;
 
     Try::from_output(ClosureParam { span, name })
 }
@@ -867,38 +953,24 @@ pub fn walk_closure_params<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_graph<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Graph { span, kind }: Graph<'heap>,
+    graph: Graph<'heap>,
 ) -> T::Output<Graph<'heap>> {
-    let span = visitor.fold_span(span)?;
-
-    let kind = match kind {
-        GraphKind::Read(read) => GraphKind::Read(visitor.fold_graph_read(read)?),
+    let graph = match graph {
+        Graph::Read(read) => Graph::Read(visitor.fold_graph_read(read)?),
     };
 
-    Try::from_output(Graph { span, kind })
+    Try::from_output(graph)
 }
 
 pub fn walk_graph_read<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    GraphRead {
-        span,
-        head,
-        body,
-        tail,
-    }: GraphRead<'heap>,
+    GraphRead { head, body, tail }: GraphRead<'heap>,
 ) -> T::Output<GraphRead<'heap>> {
-    let span = visitor.fold_span(span)?;
-
     let head = visitor.fold_graph_read_head(head)?;
     let body = visitor.fold_graph_read_body(body)?;
     let tail = visitor.fold_graph_read_tail(tail)?;
 
-    Try::from_output(GraphRead {
-        span,
-        head,
-        body,
-        tail,
-    })
+    Try::from_output(GraphRead { head, body, tail })
 }
 
 pub fn walk_graph_read_head<'heap, T: Fold<'heap> + ?Sized>(

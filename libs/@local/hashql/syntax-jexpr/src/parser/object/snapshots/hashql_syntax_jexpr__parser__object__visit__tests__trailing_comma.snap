@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/visit.rs
 description: Object with trailing comma should fail
 expression: "{\"a\": 1, \"b\": 2,}"
 ---
-[31m[object::trailing-comma] Error:[0m Unexpected trailing comma in object
-   ╭─[ <unknown>:1:16 ]
-   │
- 1 │ {"a": 1, "b": 2,}
-   │                ┬  
-   │                ╰── Remove this trailing comma
-   │ 
-   │ Help: J-Expr does not support trailing commas in objects. Use `{"key": value}` instead of `{"key": value,}`
-───╯
+error[object::trailing-comma]: Unexpected trailing comma in object
+  ╭▸ 
+1 │ {"a": 1, "b": 2,}
+  │                ━ Remove this trailing comma
+  │
+  ╰ help: J-Expr does not support trailing commas in objects. Use `{"key": value}` instead of `{"key": value,}`

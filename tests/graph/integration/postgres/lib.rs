@@ -52,15 +52,15 @@ use hash_graph_store::{
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        GetClosedMultiEntityTypesResponse, HasPermissionForEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -590,11 +590,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
         self.store.count_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        mut params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let request = &mut params.request;
 
         let include_count = request.include_count;
@@ -607,12 +607,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
                 CountEntityTypesParams {
                     filter: request.filter.clone(),
                     temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_entity_types(actor_id, params).await?;
+        let mut response = self.store.query_entity_types(actor_id, params).await?;
 
         // We can ensure that `count_entity_types` and `get_entity_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -648,11 +647,11 @@ impl EntityTypeStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
+        mut params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
@@ -665,14 +664,13 @@ impl EntityTypeStore for DatabaseApi<'_> {
                 CountEntityTypesParams {
                     filter: request.filter.clone(),
                     temporal_axes: request.temporal_axes,
-                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
 
         let mut response = self
             .store
-            .get_entity_type_subgraph(actor_id, params)
+            .query_entity_type_subgraph(actor_id, params)
             .await?;
 
         // We can ensure that `count_entity_types` and `get_entity_type_subgraph` return the same
@@ -758,11 +756,11 @@ impl EntityStore for DatabaseApi<'_> {
         self.store.validate_entities(actor_id, params).await
     }
 
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -778,7 +776,7 @@ impl EntityStore for DatabaseApi<'_> {
             )
             .await?;
 
-        let mut response = self.store.get_entities(actor_id, params).await?;
+        let mut response = self.store.query_entities(actor_id, params).await?;
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
@@ -793,11 +791,11 @@ impl EntityStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let request = params.request_mut();
 
         let include_count = request.include_count;
@@ -814,7 +812,7 @@ impl EntityStore for DatabaseApi<'_> {
                 },
             )
             .await?;
-        let mut response = self.store.get_entity_subgraph(actor_id, params).await?;
+        let mut response = self.store.query_entity_subgraph(actor_id, params).await?;
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));

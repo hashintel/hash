@@ -4,7 +4,6 @@ import type {
   EntityRootType,
   EntityVertex,
   GraphEmbedderMessageCallbacks,
-  Subgraph as BpSubgraph,
   Subgraph,
 } from "@blockprotocol/graph";
 import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
@@ -19,7 +18,7 @@ import {
   isEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
+import type { EntityPermissionsMap } from "@local/hash-graph-sdk/entity";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
@@ -72,7 +71,7 @@ export type BlockLoaderProps = {
    */
   fallbackBlockProperties?: PropertyObject;
   onBlockLoaded: () => void;
-  userPermissionsOnEntities?: UserPermissionsOnEntities;
+  userPermissionsOnEntities?: EntityPermissionsMap;
   wrappingEntityId: string;
   readonly: boolean;
   // shouldSandbox?: boolean;
@@ -542,10 +541,10 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               !!(
                 blockEntityId &&
                 userPermissions?.[blockEntityId] &&
-                !userPermissions[blockEntityId].edit
+                !userPermissions[blockEntityId].update
               ),
             blockEntitySubgraph:
-              blockSubgraph as unknown as BpSubgraph<EntityRootType>,
+              blockSubgraph as unknown as Subgraph<EntityRootType>,
           }
         : null,
     [blockEntityId, blockSubgraph, readonly, userPermissions],

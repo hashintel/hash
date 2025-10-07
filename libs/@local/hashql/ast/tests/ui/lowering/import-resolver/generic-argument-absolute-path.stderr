@@ -1,16 +1,12 @@
-[import-resolver::generic-arguments-in-module] Error: Generic arguments only allowed in final path segment
-   ╭─[ <unknown>:3:10 ]
-   │
- 3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
-   │          ┬  
-   │          ╰── Remove this generic argument
-   │ 
-   │ Help: Generic arguments can only appear on the final type in a path. Remove them from this module segment or move them to the final type in the path.
-   │       
-   │       Correct: `module::submodule::Type<T>`
-   │       Incorrect: `module<T>::submodule::Type`
-   │ 
-   │ Note: Module paths don't accept generic parameters because modules themselves aren't generic. Only the final type in a path can have generic parameters.
-   │       
-   │       The path resolution happens before any generic type checking, so generic arguments can only be applied after the item is found.
-───╯
+error[import-resolver::generic-arguments-in-module]: Generic arguments only allowed in final path segment
+  ╭▸ 
+3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+  │          ━ Remove this generic argument
+  │
+  ├ help: Generic arguments can only appear on the final type in a path. Remove them from this module segment or move them to the final type in the path.
+  │       
+  │       Correct: `module::submodule::Type<T>`
+  │       Incorrect: `module<T>::submodule::Type`
+  ╰ note: Module paths don't accept generic parameters because modules themselves aren't generic. Only the final type in a path can have generic parameters.
+          
+          The path resolution happens before any generic type checking, so generic arguments can only be applied after the item is found.

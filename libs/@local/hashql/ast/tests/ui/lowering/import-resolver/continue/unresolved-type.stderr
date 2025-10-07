@@ -1,22 +1,18 @@
-[import-resolver::unresolved-variable] Error: Unresolved variable
-   ╭─[ <unknown>:6:4 ]
-   │
- 6 │   "T",
-   │    ┬  
-   │    ╰── Cannot find variable 'T'
-   │ 
-   │ Help: The name 'T' doesn't exist in this scope.
-   │       
-   │       Did you mean one of these local variables:
-   │         - Foo
-   │       
-   │       Or perhaps you meant one of these imported items:
-   │         - Result
-   │         - Some
-   │         - String
-   │         - Unknown
-   │         - Url
-   │         (13 more available)
-   │ 
-   │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
-───╯
+error[import-resolver::unresolved-variable]: Unresolved variable
+  ╭▸ 
+6 │   "T",
+  │    ━ Cannot find variable 'T'
+  │
+  ├ help: The name 'T' doesn't exist in this scope.
+  │       
+  │       Did you mean one of these local variables:
+  │         - Foo
+  │       
+  │       Or perhaps you meant one of these imported items:
+  │         - Result
+  │         - Some
+  │         - String
+  │         - Unknown
+  │         - Url
+  │         (13 more available)
+  ╰ note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.

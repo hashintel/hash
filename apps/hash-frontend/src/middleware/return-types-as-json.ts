@@ -15,10 +15,10 @@ import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
 import type {
-  GetEntityTypeQuery,
-  GetEntityTypeQueryVariables,
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
   QueryPropertyTypeSubgraphQuery,
   QueryPropertyTypeSubgraphQueryVariables,
 } from "../graphql/api-types.gen";
@@ -95,10 +95,10 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    | GetEntityTypeQuery
+    | QueryEntityTypeSubgraphQuery
     | QueryDataTypeSubgraphQuery
     | QueryPropertyTypeSubgraphQuery,
-    | GetEntityTypeQueryVariables
+    | QueryEntityTypeSubgraphQueryVariables
     | QueryDataTypeSubgraphQueryVariables
     | QueryPropertyTypeSubgraphQueryVariables
   >(query, variables, cookie);
@@ -117,8 +117,8 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   const { roots, vertices } =
     "queryDataTypeSubgraph" in data
       ? data.queryDataTypeSubgraph.subgraph
-      : "getEntityType" in data
-        ? data.getEntityType
+      : "queryEntityTypeSubgraph" in data
+        ? data.queryEntityTypeSubgraph.subgraph
         : data.queryPropertyTypeSubgraph.subgraph;
 
   const root = roots[0] as OntologyTypeVertexId | undefined;

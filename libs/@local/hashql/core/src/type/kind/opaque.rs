@@ -327,7 +327,7 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for OpaqueType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
