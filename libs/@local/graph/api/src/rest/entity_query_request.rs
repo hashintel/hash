@@ -770,8 +770,9 @@ enum QueryEntitySubgraphRequestError {
     )]
     MissingSubgraphTraversal,
     #[display(
-        "Subgraph request has conflicting traversal parameters. Specify only 'graphResolveDepths' \
-         OR 'traversalPaths' OR `ontologyGraphResolveDepths` AND `entityTraversalPaths`."
+        "Subgraph request has conflicting traversal parameters. Specify only \
+         'graphResolveDepths', 'traversalPaths', or `ontologyGraphResolveDepths` with \
+         `entityTraversalPaths` together."
     )]
     ConflictingSubgraphTraversal,
 }
