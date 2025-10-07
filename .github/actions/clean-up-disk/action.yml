@@ -11,28 +11,14 @@ runs:
         df -h
         echo
 
-        echo "Top directories in /usr before cleanup:"
-        du -h --max-depth=1 /usr 2>/dev/null || true
-        echo
-
-        echo "Top directories in /usr/lib before cleanup:"
-        du -h --max-depth=1 /usr/lib 2>/dev/null | head -n 50 || true
-        echo
-
-        echo "Top directories in /usr/local before cleanup:"
-        du -h --max-depth=2 /usr/local 2>/dev/null | head -n 50 || true
-        echo
-
-        echo "Top directories in /usr/share before cleanup:"
-        du -h --max-depth=1 /usr/share 2>/dev/null | head -n 50 || true
-        echo
-
-        echo "Top directories in /var before cleanup:"
-        du -h --max-depth=1 /var 2>/dev/null | head -n 50 || true
-        echo
-
-        echo "Top directories in /opt before cleanup:"
-        du -h --max-depth=1 /opt 2>/dev/null || true
+        echo "Finding largest directories (depth=3, parallel scan):"
+        # Scan multiple paths in parallel for speed
+        {
+          du -h --max-depth=3 /usr 2>/dev/null &
+          du -h --max-depth=3 /opt 2>/dev/null &
+          du -h --max-depth=3 /var 2>/dev/null &
+          wait
+        } | awk '$1 ~ /[0-9.]+G|[5-9][0-9][0-9]M/' | head -n 40 || true
         echo
 
     - name: Remove unused files
