@@ -3,19 +3,15 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
 description: Malformed labeled argument with multiple keys should fail
 expression: "[\"func\", {\":name\": {\"#literal\": \"value\"}, \"extra\": {\"#literal\": true}}]"
 ---
-[31m[parser::array::labeled-argument-missing-prefix] Error:[0m Missing `:` prefix in labeled argument
-   ╭─[ <unknown>:1:43 ]
-   │
- 1 │ ["func", {":name": {"#literal": "value"}, "extra": {"#literal": true}}]
-   │                                           ───┬───  
-   │                                              ╰───── Missing ':' prefix
-   │ 
-   │ Help: Add ':' prefix to 'extra' to make it a valid labeled argument
-   │ 
-   │ Note: In J-Expr, labeled arguments use the format:
-   │       - `["function", {":label": value}]`
-   │       - `["function", {":label1": value1}, {":label2": value2}]`
-   │       - `["function", ":variable1"]`
-   │       
-   │       The colon prefix (':') is required to distinguish labeled arguments from positional arguments.
-───╯
+error[parser::array::labeled-argument-missing-prefix]: Missing `:` prefix in labeled argument
+  ╭▸ 
+1 │ ["func", {":name": {"#literal": "value"}, "extra": {"#literal": true}}]
+  │                                           ━━━━━━━ Missing ':' prefix
+  │
+  ├ help: Add ':' prefix to 'extra' to make it a valid labeled argument
+  ╰ note: In J-Expr, labeled arguments use the format:
+          - `["function", {":label": value}]`
+          - `["function", {":label1": value1}, {":label2": value2}]`
+          - `["function", ":variable1"]`
+          
+          The colon prefix (':') is required to distinguish labeled arguments from positional arguments.

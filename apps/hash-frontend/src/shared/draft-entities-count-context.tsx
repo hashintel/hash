@@ -49,9 +49,11 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
           filter: {
             all: [
               {
-                // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-                //                     @see https://linear.app/hash/issue/H-1207
-                notEqual: [{ path: ["draftId"] }, null],
+                not: {
+                  exists: {
+                    path: ["draftId"],
+                  },
+                },
               },
               {
                 equal: [{ path: ["archived"] }, { parameter: false }],

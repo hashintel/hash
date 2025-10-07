@@ -18,6 +18,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  optimize-ci:
+    runs-on: ubuntu-24.04
+    name: Optimize CI
+    outputs:
+      skip: ${{ steps.check_skip.outputs.skip }}
+    steps:
+      - name: Optimize CI
+        id: check_skip
+        uses: withgraphite/graphite-ci-action@6213dcfab02da542aaf534e087282a928ff4374a
+        with:
+          graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+
   setup:
     runs-on: ubuntu-24.04
     outputs:
@@ -105,6 +117,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
@@ -174,14 +189,17 @@ jobs:
       contents: read
       packages: write
     runs-on: ubuntu-24.04
-    needs: [setup]
+    needs: [setup, optimize-ci]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
-    if: needs.setup.outputs.dockers != '{"name":[],"include":[]}'
+    if: needs.setup.outputs.dockers != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -195,15 +213,18 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup]
+    needs: [setup, optimize-ci]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
-    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+    if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -278,9 +299,6 @@ jobs:
           cp .env.local .env.test.local
           yarn external-services:test up --wait
 
-      - name: Show disk usage
-        run: df -h
-
       - name: Start background tasks
         id: background-tasks
         if: steps.tests.outputs.has-background-tasks == 'true'
@@ -305,6 +323,9 @@ jobs:
           # tests but it this way we can fail the job early if the background tasks are not healthy.
           # Also, the recorded time for the different steps is more accurate.
           turbo run start:test:healthcheck --env-mode=loose
+
+      - name: Show disk usage
+        run: df -h
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -359,6 +380,9 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Find publish jobs to run
         id: publish
         run: |
@@ -382,7 +406,7 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, build, integration-tests, publish]
+    needs: [setup, unit-tests, build, integration-tests, publish, optimize-ci]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -393,9 +417,11 @@ jobs:
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
       - name: Check builds
+        if: needs.optimize-ci.outputs.skip == 'false'
         run: |
           [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check integration tests
+        if: needs.optimize-ci.outputs.skip == 'false'
         run: |
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
       - name: Check publish results

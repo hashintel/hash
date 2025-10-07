@@ -20,10 +20,9 @@
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/graph": "0.4.0-canary.2",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
     "@linear/sdk": "6.0.0",
-    "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
@@ -33,7 +32,7 @@
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",
     "agentkeepalive": "4.6.0",
-    "axios": "1.11.0",
+    "axios": "1.12.0",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.3",
     "typescript": "5.7.3",

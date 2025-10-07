@@ -29,6 +29,7 @@ pub enum Type {
     Struct(Struct),
     Tuple(Tuple),
     List(List),
+    NonEmptyList(List),
     Map(Map),
     Nullable(Box<Self>),
 }

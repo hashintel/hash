@@ -30,7 +30,7 @@ pub enum Parameter<'p> {
     Vector(Embedding<'p>),
     Any(PropertyValue),
     #[serde(skip)]
-    Uuid(Uuid),
+    Uuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid),
     #[serde(skip)]
     OntologyTypeVersion(OntologyTypeVersion),
     #[serde(skip)]

@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: Test dict type checking
+{
+  "#dict": {
+    "key1": { "#literal": 42 },
+    "key2": { "#literal": 43 },
+    "key3": { "#literal": 44 }
+  },
+  "#type": "Dict<String, Number>"
+}

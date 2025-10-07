@@ -4,10 +4,10 @@ import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph"
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
-} from "@local/hash-isomorphic-utils/ai-inference-types";
+} from "@local/hash-graph-sdk/embeddings";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";
@@ -72,52 +72,49 @@ export const gptQueryTypes: RequestHandler<
         .then(({ embeddings }) => embeddings[0])
     : null;
 
-  const queryResponse: GptQueryTypesResponseBody = await req.context.graphApi
-    .getEntityTypeSubgraph(user.accountId, {
-      filter: {
-        all: [
-          ...(webUuids?.length
-            ? [
-                {
-                  any: webUuids.map((webUuid) => ({
-                    equal: [{ path: ["webId"] }, { parameter: webUuid }],
-                  })),
-                },
-              ]
-            : []),
-          ...(semanticSearchString
-            ? [
-                {
-                  cosineDistance: [
-                    { path: ["embedding"] },
-                    { parameter: semanticSearchString },
-                    { parameter: 0.9 },
-                  ],
-                },
-              ]
-            : []),
-        ],
+  const queryResponse: GptQueryTypesResponseBody =
+    await queryEntityTypeSubgraph(
+      req.context.graphApi,
+      { actorId: user.accountId },
+      {
+        filter: {
+          all: [
+            ...(webUuids?.length
+              ? [
+                  {
+                    any: webUuids.map((webUuid) => ({
+                      equal: [{ path: ["webId"] }, { parameter: webUuid }],
+                    })),
+                  },
+                ]
+              : []),
+            ...(semanticSearchString
+              ? [
+                  {
+                    cosineDistance: [
+                      { path: ["embedding"] },
+                      { parameter: semanticSearchString },
+                      { parameter: 0.9 },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          inheritsFrom: { outgoing: 255 },
+          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 255 },
+          constrainsLinksOn: { outgoing: 255 },
+          constrainsLinkDestinationsOn: { outgoing: 255 },
+          isOfType: { outgoing: 1 },
+          hasLeftEntity: { incoming: 0, outgoing: 0 },
+          hasRightEntity: { incoming: 0, outgoing: 0 },
+        },
       },
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: {
-        inheritsFrom: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: 0, outgoing: 0 },
-        hasRightEntity: { incoming: 0, outgoing: 0 },
-      },
-    })
-    .then(async ({ data: response }) => {
+    ).then(async ({ subgraph }) => {
       const entityTypes: SimpleEntityType[] = [];
-
-      const subgraph = mapGraphApiSubgraphToSubgraph(
-        response.subgraph,
-        user.accountId,
-      );
 
       const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
         typedValues(vertex),

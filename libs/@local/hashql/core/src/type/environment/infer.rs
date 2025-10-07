@@ -149,6 +149,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         variable
     }
 
+    pub fn add_variables(&mut self, variables: impl IntoIterator<Item = Variable>) {
+        // This acts like registering variables, because we unify each variable with themselves,
+        // therefore adding the node, but no edges.
+        self.constraints
+            .extend(variables.into_iter().map(|variable| Constraint::Unify {
+                lhs: variable,
+                rhs: variable,
+            }));
+    }
+
     #[must_use]
     pub fn fresh_hole(&self, span: SpanId) -> Variable {
         let hole = self.counter.hole.next();

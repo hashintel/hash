@@ -5,9 +5,9 @@ pub use self::{
     },
     store::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityParams, DiffEntityParams,
-        DiffEntityResult, EntityStore, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion,
+        DiffEntityResult, EntityPermissions, EntityStore, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
         UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityError,
         ValidateEntityParams,
     },

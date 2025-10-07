@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getRoots,
@@ -17,12 +13,13 @@ import {
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -31,13 +28,13 @@ import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
-import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
@@ -257,9 +254,9 @@ export const SearchBar: FunctionComponent = () => {
   );
 
   const { data: entityResultData, loading: entitiesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: queryFilter,
@@ -270,27 +267,29 @@ export const SearchBar: FunctionComponent = () => {
           isOfType: { outgoing: 1 },
         },
         includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     skip: !submittedQuery,
   });
 
   const { data: entityTypeResultData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
     variables: {
-      filter: queryFilter,
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
+      request: {
+        filter: queryFilter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: zeroedGraphResolveDepths,
+      },
     },
     skip: !submittedQuery,
   });
 
   const deserializedEntitySubgraph = entityResultData
     ? deserializeSubgraph<EntityRootType<HashEntity>>(
-        entityResultData.getEntitySubgraph.subgraph,
+        entityResultData.queryEntitySubgraph.subgraph,
       )
     : undefined;
 
@@ -309,9 +308,9 @@ export const SearchBar: FunctionComponent = () => {
      * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
      * H-2489
      */
-    deserializeSubgraph<EntityTypeRootType>(
-      entityTypeResultData.queryEntityTypes,
-    );
+    deserializeQueryEntityTypeSubgraphResponse(
+      entityTypeResultData.queryEntityTypeSubgraph,
+    ).subgraph;
 
   const entityTypeResults = entityTypeSubgraph
     ? getRoots(entityTypeSubgraph)

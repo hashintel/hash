@@ -11,21 +11,27 @@ use hash_graph_authorization::policies::{
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
     entity_type::{
-        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CountEntityTypesParams,
-        CreateEntityTypeParams, EntityTypeQueryPath, EntityTypeResolveDefinitions, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
+        ArchiveEntityTypeParams, ClosedDataTypeDefinition, CommonQueryEntityTypesParams,
+        CountEntityTypesParams, CreateEntityTypeParams, EntityTypeQueryPath,
+        EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypesResponse,
         HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
-    property_type::{GetPropertyTypeSubgraphParams, PropertyTypeStore as _},
+    property_type::{
+        PropertyTypeStore as _, QueryPropertyTypeSubgraphParams, QueryPropertyTypesParams,
+    },
     query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
+        edges::{
+            BorrowedTraversalParams, EdgeDirection, GraphResolveDepths, OntologyEdgeKind,
+            OntologyTraversalEdgeDirection, OutgoingEdgeResolveDepth, SubgraphTraversalParams,
+            TraversalEdge,
+        },
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -227,10 +233,9 @@ where
         }
 
         let property_types = self
-            .get_property_type_subgraph(
+            .query_property_type_subgraph(
                 actor_id,
-                GetPropertyTypeSubgraphParams {
-                    filter: Filter::for_property_type_uuids(&property_type_uuids),
+                QueryPropertyTypeSubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths {
                         constrains_properties_on: OutgoingEdgeResolveDepth {
                             outgoing: 255,
@@ -238,11 +243,13 @@ where
                         },
                         ..GraphResolveDepths::default()
                     },
-                    temporal_axes: QueryTemporalAxesUnresolved::default(),
-                    after: None,
-                    limit: None,
-                    include_drafts: false,
-                    include_count: false,
+                    request: QueryPropertyTypesParams {
+                        filter: Filter::for_property_type_uuids(&property_type_uuids),
+                        temporal_axes: QueryTemporalAxesUnresolved::default(),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                    },
                 },
             )
             .await?
@@ -429,18 +436,18 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
-    async fn get_entity_types_impl(
+    async fn query_entity_types_impl(
         &self,
-        params: GetEntityTypesParams<'_>,
+        params: CommonQueryEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntityType),
             policy_components.optimization_data(ActionName::ViewEntityType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -567,19 +574,18 @@ where
             (entity_types, cursor)
         };
 
-        Ok(GetEntityTypesResponse {
+        Ok(QueryEntityTypesResponse {
             cursor,
             entity_types,
-            closed_entity_types: params.include_entity_types.is_some().then(Vec::new),
-            definitions: (params.include_entity_types == Some(IncludeEntityTypeOption::Resolved))
-                .then(EntityTypeResolveDefinitions::default),
+            closed_entity_types: None,
+            definitions: None,
             count,
             web_ids,
             edition_created_by_ids,
         })
     }
 
-    pub(crate) async fn get_closed_entity_types(
+    pub(crate) async fn query_closed_entity_types(
         &self,
         filter: &Filter<'_, EntityTypeWithMetadata>,
         temporal_axes: QueryTemporalAxesUnresolved,
@@ -625,7 +631,7 @@ where
         &self,
         mut entity_type_queue: Vec<(
             EntityTypeUuid,
-            GraphResolveDepths,
+            BorrowedTraversalParams<'_>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
@@ -633,67 +639,116 @@ where
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         let mut property_type_queue = Vec::new();
+        let mut edges_to_traverse = HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
 
         while !entity_type_queue.is_empty() {
-            let mut edges_to_traverse =
-                HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
+            edges_to_traverse.clear();
 
             #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_type_ontology_id, graph_resolve_depths, traversal_interval) in
+            for (entity_type_ontology_id, subgraph_traversal_params, traversal_interval) in
                 entity_type_queue.drain(..)
             {
-                for edge_kind in [
-                    OntologyEdgeKind::ConstrainsPropertiesOn,
-                    OntologyEdgeKind::InheritsFrom,
-                    OntologyEdgeKind::ConstrainsLinksOn,
-                    OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                ] {
-                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                        .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
-                    {
+                match subgraph_traversal_params {
+                    BorrowedTraversalParams::ResolveDepths {
+                        graph_resolve_depths,
+                    } => {
+                        for edge_kind in [
+                            OntologyEdgeKind::ConstrainsPropertiesOn,
+                            OntologyEdgeKind::InheritsFrom,
+                            OntologyEdgeKind::ConstrainsLinksOn,
+                            OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                        ] {
+                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                                .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                            {
+                                edges_to_traverse.entry(edge_kind).or_default().push(
+                                    OntologyTypeUuid::from(entity_type_ontology_id),
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        graph_resolve_depths: new_graph_resolve_depths,
+                                    },
+                                    traversal_interval,
+                                );
+                            }
+                        }
+                    }
+                    BorrowedTraversalParams::Path { traversal_path } => {
+                        let Some((edge, rest)) = traversal_path.split_first() else {
+                            continue;
+                        };
+
+                        let edge_kind = match edge {
+                            TraversalEdge::InheritsFrom {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::InheritsFrom,
+                            TraversalEdge::ConstrainsLinksOn {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::ConstrainsLinksOn,
+                            TraversalEdge::ConstrainsLinkDestinationsOn {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::ConstrainsLinkDestinationsOn,
+                            TraversalEdge::ConstrainsPropertiesOn {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::ConstrainsPropertiesOn,
+                            TraversalEdge::ConstrainsValuesOn { .. }
+                            | TraversalEdge::IsOfType { .. }
+                            | TraversalEdge::HasLeftEntity { .. }
+                            | TraversalEdge::HasRightEntity { .. } => continue,
+                        };
+
                         edges_to_traverse.entry(edge_kind).or_default().push(
                             OntologyTypeUuid::from(entity_type_ontology_id),
-                            new_graph_resolve_depths,
+                            BorrowedTraversalParams::Path {
+                                traversal_path: rest,
+                            },
                             traversal_interval,
                         );
                     }
                 }
             }
 
-            if let Some(traversal_data) =
-                edges_to_traverse.get(&OntologyEdgeKind::ConstrainsPropertiesOn)
-            {
-                // TODO: Filter for entity types, which were not already added to the
-                //       subgraph to avoid unnecessary lookups.
-                property_type_queue.extend(
-                    Self::filter_property_types_by_permission(
-                        self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
-                            traversal_data,
-                            ReferenceTable::EntityTypeConstrainsPropertiesOn {
-                                // TODO: Use the resolve depths passed to the query
-                                inheritance_depth: Some(0),
-                            },
-                        )
-                        .await?,
-                        provider,
-                        subgraph.temporal_axes.resolved.clone(),
-                    )
-                    .await?
-                    .flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            OntologyEdgeKind::ConstrainsPropertiesOn,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+            for (edge_kind, table) in [(
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+                ReferenceTable::EntityTypeConstrainsPropertiesOn {
+                    // TODO: Use the resolve depths passed to the query
+                    inheritance_depth: Some(0),
+                },
+            )] {
+                let Some(traversal_data) = edges_to_traverse.remove(&edge_kind) else {
+                    continue;
+                };
 
-                        traversal_context.add_property_type_id(
-                            PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
-                            edge.resolve_depths,
-                            edge.traversal_interval,
-                        )
-                    }),
-                );
+                let traversed_edges = self
+                    .read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
+                        &traversal_data,
+                        table,
+                    )
+                    .await?;
+
+                let filtered_traversed_edges = Self::filter_property_types_by_permission(
+                    traversed_edges,
+                    provider,
+                    subgraph.temporal_axes.resolved.clone(),
+                )
+                .await?;
+
+                for edge in filtered_traversed_edges {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        EdgeDirection::Outgoing,
+                        edge.right_endpoint.clone(),
+                    );
+
+                    let next_traversal = traversal_context.add_property_type_id(
+                        PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
+                        edge.traversal_params,
+                        edge.traversal_interval,
+                    );
+
+                    if let Some((property_type_uuid, traversal_params, interval)) = next_traversal {
+                        property_type_queue.push((property_type_uuid, traversal_params, interval));
+                    }
+                }
             }
 
             for (edge_kind, table) in [
@@ -719,33 +774,40 @@ where
                     },
                 ),
             ] {
-                if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
-                    entity_type_queue.extend(
-                        Self::filter_entity_types_by_permission(
-                            self.read_ontology_edges::<EntityTypeVertexId, EntityTypeVertexId>(
-                                traversal_data,
-                                table,
-                            )
-                            .await?,
-                            provider,
-                            subgraph.temporal_axes.resolved.clone(),
-                        )
-                        .await?
-                        .flat_map(|edge| {
-                            subgraph.insert_edge(
-                                &edge.left_endpoint,
-                                edge_kind,
-                                EdgeDirection::Outgoing,
-                                edge.right_endpoint.clone(),
-                            );
+                let Some(traversal_data) = edges_to_traverse.remove(&edge_kind) else {
+                    continue;
+                };
 
-                            traversal_context.add_entity_type_id(
-                                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                        }),
+                let traversed_edges = self
+                    .read_ontology_edges::<EntityTypeVertexId, EntityTypeVertexId>(
+                        &traversal_data,
+                        table,
+                    )
+                    .await?;
+
+                let filtered_traversed_edges = Self::filter_entity_types_by_permission(
+                    traversed_edges,
+                    provider,
+                    subgraph.temporal_axes.resolved.clone(),
+                )
+                .await?;
+
+                for edge in filtered_traversed_edges {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        EdgeDirection::Outgoing,
+                        edge.right_endpoint.clone(),
                     );
+
+                    let next_traversal = traversal_context.add_entity_type_id(
+                        EntityTypeUuid::from(edge.right_endpoint_ontology_id),
+                        edge.traversal_params,
+                        edge.traversal_interval,
+                    );
+                    if let Some((entity_type_uuid, traversal_params, interval)) = next_traversal {
+                        entity_type_queue.push((entity_type_uuid, traversal_params, interval));
+                    }
                 }
             }
         }
@@ -936,26 +998,27 @@ where
             .change_context(InsertionError)?;
 
         transaction
-            .get_entity_types(
+            .query_entity_types(
                 actor_id,
-                GetEntityTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            ParameterList::EntityTypeIds(&required_reference_ids),
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        ParameterList::EntityTypeIds(&required_reference_ids),
-                    ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
                     include_entity_types: None,
-                    include_count: false,
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
                 },
             )
             .await
@@ -1062,7 +1125,7 @@ where
         );
 
         let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -1088,31 +1151,31 @@ where
             .await)
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        mut params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
-        let include_entity_types = params.include_entity_types;
         params
+            .request
             .filter
             .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.clone();
-        let resolved_temporal_axes = temporal_axes.clone().resolve();
+        let temporal_axes = params.request.temporal_axes;
+        let resolved_temporal_axes = temporal_axes.resolve();
         let mut response = self
-            .get_entity_types_impl(params, &resolved_temporal_axes, &policy_components)
+            .query_entity_types_impl(params.request, &resolved_temporal_axes, &policy_components)
             .await?;
 
-        if let Some(include_entity_types) = include_entity_types {
+        if let Some(include_entity_types) = params.include_entity_types {
             let ids = response
                 .entity_types
                 .iter()
@@ -1120,7 +1183,7 @@ where
                 .collect::<Vec<_>>();
 
             response.closed_entity_types = Some(
-                self.get_closed_entity_types(&Filter::for_entity_type_uuids(&ids), temporal_axes)
+                self.query_closed_entity_types(&Filter::for_entity_type_uuids(&ids), temporal_axes)
                     .await?,
             );
 
@@ -1183,7 +1246,7 @@ where
 
         // Fetch all closed entity types in a single database query for efficiency
         let closed_types = self
-            .get_closed_entity_types(
+            .query_closed_entity_types(
                 &Filter::for_entity_type_uuids(&entity_type_uuids),
                 temporal_axes,
             )
@@ -1274,24 +1337,12 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
-        let mut actions = vec![ActionName::ViewEntityType];
-        if params
-            .graph_resolve_depths
-            .constrains_properties_on
-            .outgoing
-            > 0
-        {
-            actions.push(ActionName::ViewPropertyType);
-
-            if params.graph_resolve_depths.constrains_values_on.outgoing > 0 {
-                actions.push(ActionName::ViewDataType);
-            }
-        }
+        params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
+        let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
@@ -1301,16 +1352,19 @@ where
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        params
+        let (mut request, traversal_params) = params.into_request();
+        request
             .filter
             .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.clone().resolve();
+        let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let GetEntityTypesResponse {
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
+
+        let QueryEntityTypesResponse {
             entity_types,
             closed_entity_types: _,
             definitions: _,
@@ -1319,28 +1373,8 @@ where
             web_ids,
             edition_created_by_ids,
         } = self
-            .get_entity_types_impl(
-                GetEntityTypesParams {
-                    filter: params.filter,
-                    temporal_axes: params.temporal_axes.clone(),
-                    after: params.after,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_entity_types: None,
-                    include_count: params.include_count,
-                    include_web_ids: params.include_web_ids,
-                    include_edition_created_by_ids: params.include_edition_created_by_ids,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .query_entity_types_impl(request, &temporal_axes, &policy_components)
             .await?;
-
-        let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            params.temporal_axes,
-            temporal_axes.clone(),
-        );
 
         let (entity_type_ids, entity_type_vertex_ids): (Vec<_>, Vec<_>) = entity_types
             .iter()
@@ -1364,12 +1398,33 @@ where
         self.traverse_entity_types(
             entity_type_ids
                 .into_iter()
-                .map(|id| {
-                    (
-                        id,
-                        subgraph.depths,
-                        subgraph.temporal_axes.resolved.variable_interval(),
-                    )
+                .flat_map(|id| {
+                    match &traversal_params {
+                        // TODO: The `vec` is not ideal as the flattening intermediate type but this
+                        //       branch will be removed anyway after the migration to traversal path
+                        //       based traversal is done
+                        SubgraphTraversalParams::ResolveDepths {
+                            graph_resolve_depths,
+                        } => vec![(
+                            id,
+                            BorrowedTraversalParams::ResolveDepths {
+                                graph_resolve_depths: *graph_resolve_depths,
+                            },
+                            subgraph.temporal_axes.resolved.variable_interval(),
+                        )],
+                        SubgraphTraversalParams::Paths { traversal_paths } => traversal_paths
+                            .iter()
+                            .map(|path| {
+                                (
+                                    id,
+                                    BorrowedTraversalParams::Path {
+                                        traversal_path: &path.edges,
+                                    },
+                                    subgraph.temporal_axes.resolved.variable_interval(),
+                                )
+                            })
+                            .collect(),
+                    }
                 })
                 .collect(),
             &mut traversal_context,
@@ -1379,10 +1434,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetEntityTypeSubgraphResponse {
+        Ok(QueryEntityTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
@@ -1511,26 +1566,27 @@ where
             .change_context(UpdateError)?;
 
         transaction
-            .get_entity_types(
+            .query_entity_types(
                 actor_id,
-                GetEntityTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: EntityTypeQueryPath::OntologyId,
+                QueryEntityTypesParams {
+                    request: CommonQueryEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::OntologyId,
+                            },
+                            ParameterList::EntityTypeIds(&required_reference_ids),
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        ParameterList::EntityTypeIds(&required_reference_ids),
-                    ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
                     include_entity_types: None,
-                    include_count: false,
-                    include_web_ids: false,
-                    include_edition_created_by_ids: false,
                 },
             )
             .await

@@ -1,56 +1,39 @@
 use core::fmt::{self, Display, Write as _};
 
 use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_diagnostics::{
+    DiagnosticIssues, Failure, Status, Success, category::DiagnosticCategory,
+};
 
 use super::SuiteDiagnostic;
 
-/// Process diagnostics from a lowering step.
-///
-/// This will scan through all the reported diagnostics and
-/// push them into the output vector. If a fatal diagnostic is found,
-/// it will be returned as an error.
-pub(crate) fn process_diagnostics<C>(
+pub(crate) fn process_status<T, C>(
     output: &mut Vec<SuiteDiagnostic>,
-    reported: impl IntoIterator<Item = Diagnostic<C, SpanId>>,
+    result: Status<T, C, SpanId>,
+) -> Result<T, SuiteDiagnostic>
+where
+    C: DiagnosticCategory + 'static,
+{
+    match result {
+        Ok(Success { value, advisories }) => {
+            output.extend(advisories.generalize().boxed());
+            Ok(value)
+        }
+        Err(Failure { primary, secondary }) => {
+            output.extend(secondary.boxed());
+            Err(primary.generalize().boxed())
+        }
+    }
+}
+
+pub(crate) fn process_issues<C>(
+    output: &mut Vec<SuiteDiagnostic>,
+    issues: DiagnosticIssues<C, SpanId>,
 ) -> Result<(), SuiteDiagnostic>
 where
     C: DiagnosticCategory + 'static,
 {
-    let mut fatal = None;
-
-    for diagnostic in reported {
-        let diagnostic = diagnostic.boxed();
-
-        if fatal.is_none() && diagnostic.severity.is_fatal() {
-            fatal = Some(diagnostic);
-            continue;
-        }
-
-        output.push(diagnostic);
-    }
-
-    fatal.map_or(Ok(()), Err)
-}
-
-#[track_caller]
-pub(crate) fn process_result<C, T, I>(
-    output: &mut Vec<SuiteDiagnostic>,
-    result: Result<T, I>,
-) -> Result<T, SuiteDiagnostic>
-where
-    I: IntoIterator<Item = Diagnostic<C, SpanId>>,
-    C: DiagnosticCategory + 'static,
-{
-    match result {
-        Ok(value) => Ok(value),
-        Err(diagnostics) => {
-            let diagnostic = process_diagnostics(output, diagnostics)
-                .expect_err("reported diagnostics should always be fatal");
-
-            Err(diagnostic)
-        }
-    }
+    process_status(output, issues.into_status(()))
 }
 
 pub(crate) struct Header(&'static str);

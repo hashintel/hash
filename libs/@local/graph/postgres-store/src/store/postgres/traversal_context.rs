@@ -11,7 +11,9 @@ use hash_graph_store::{
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
-        Subgraph, SubgraphRecord as _, edges::GraphResolveDepths, temporal_axes::VariableAxis,
+        Subgraph, SubgraphRecord as _,
+        edges::{BorrowedTraversalParams, GraphResolveDepths},
+        temporal_axes::VariableAxis,
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
@@ -175,31 +177,46 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
     ///
     /// An iterator is returned that yields the key, graph resolve depths, and interval for each
     /// entry that has to be traversed further. If no entry was added, the iterator will be empty.
-    fn add_id(
+    fn add_id<'edges>(
         &mut self,
         key: K,
-        graph_resolve_depths: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> impl Iterator<
-        Item = (
-            K,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        ),
-    > + use<K> {
+    ) -> Option<(
+        K,
+        BorrowedTraversalParams<'edges>,
+        RightBoundedTemporalInterval<VariableAxis>,
+    )> {
         let values = self.0.entry(key).or_default();
 
-        // TODO: Further optimization could happen here. It's possible to return none, a single, or
-        //       multiple entries depending on the existing depths and traversed interval.
-        //   see https://linear.app/hash/issue/H-3017
-        if values.iter().any(|&(existing_depths, traversed_interval)| {
-            existing_depths.contains(graph_resolve_depths)
-                && traversed_interval.contains_interval(&interval)
-        }) {
-            None.into_iter()
-        } else {
-            values.push((graph_resolve_depths, interval));
-            Some((key, graph_resolve_depths, interval)).into_iter()
+        match traversal_params {
+            BorrowedTraversalParams::ResolveDepths {
+                graph_resolve_depths,
+            } => {
+                // TODO: Further optimization could happen here. It's possible to return none, a
+                //       single, or multiple entries depending on the existing depths and traversed
+                //       interval.
+                //   see https://linear.app/hash/issue/H-3017
+                if values.iter().any(|&(existing_depths, traversed_interval)| {
+                    existing_depths.contains(graph_resolve_depths)
+                        && traversed_interval.contains_interval(&interval)
+                }) {
+                    None
+                } else {
+                    values.push((graph_resolve_depths, interval));
+                    Some((
+                        key,
+                        BorrowedTraversalParams::ResolveDepths {
+                            graph_resolve_depths,
+                        },
+                        interval,
+                    ))
+                }
+            }
+            traversal_path @ BorrowedTraversalParams::Path { .. } => {
+                values.push((GraphResolveDepths::default(), interval));
+                Some((key, traversal_path, interval))
+            }
         }
     }
 }
@@ -264,67 +281,59 @@ impl TraversalContext {
         Ok(())
     }
 
-    pub fn add_data_type_id(
+    pub fn add_data_type_id<'edges>(
         &mut self,
         data_type_id: DataTypeUuid,
-        graph_resolve_depths: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> impl Iterator<
-        Item = (
-            DataTypeUuid,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        ),
-    > + use<> {
+    ) -> Option<(
+        DataTypeUuid,
+        BorrowedTraversalParams<'edges>,
+        RightBoundedTemporalInterval<VariableAxis>,
+    )> {
         self.data_types
-            .add_id(data_type_id, graph_resolve_depths, traversal_interval)
+            .add_id(data_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_property_type_id(
+    pub fn add_property_type_id<'edges>(
         &mut self,
         property_type_id: PropertyTypeUuid,
-        graph_resolve_depths: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> impl Iterator<
-        Item = (
-            PropertyTypeUuid,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        ),
-    > + use<> {
+    ) -> Option<(
+        PropertyTypeUuid,
+        BorrowedTraversalParams<'edges>,
+        RightBoundedTemporalInterval<VariableAxis>,
+    )> {
         self.property_types
-            .add_id(property_type_id, graph_resolve_depths, traversal_interval)
+            .add_id(property_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_entity_type_id(
+    pub fn add_entity_type_id<'edges>(
         &mut self,
         entity_type_id: EntityTypeUuid,
-        graph_resolve_depths: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> impl Iterator<
-        Item = (
-            EntityTypeUuid,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        ),
-    > + use<> {
+    ) -> Option<(
+        EntityTypeUuid,
+        BorrowedTraversalParams<'edges>,
+        RightBoundedTemporalInterval<VariableAxis>,
+    )> {
         self.entity_types
-            .add_id(entity_type_id, graph_resolve_depths, traversal_interval)
+            .add_id(entity_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_entity_id(
+    pub fn add_entity_id<'edges>(
         &mut self,
         edition_id: EntityEditionId,
-        graph_resolve_depths: GraphResolveDepths,
+        traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> impl Iterator<
-        Item = (
-            EntityEditionId,
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        ),
-    > + use<> {
+    ) -> Option<(
+        EntityEditionId,
+        BorrowedTraversalParams<'edges>,
+        RightBoundedTemporalInterval<VariableAxis>,
+    )> {
         self.entities
-            .add_id(edition_id, graph_resolve_depths, traversal_interval)
+            .add_id(edition_id, traversal_params, traversal_interval)
     }
 }

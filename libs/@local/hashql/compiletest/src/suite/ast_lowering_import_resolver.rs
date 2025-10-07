@@ -14,7 +14,7 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringImportResolverSuite;
 
@@ -39,7 +39,7 @@ impl Suite for AstLoweringImportResolverSuite {
         let mut expander = SpecialFormExpander::new(heap);
         expander.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, expander.take_diagnostics())?;
+        process_issues(diagnostics, expander.take_diagnostics())?;
 
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
@@ -47,7 +47,7 @@ impl Suite for AstLoweringImportResolverSuite {
         let mut resolver = ImportResolver::new(heap, namespace);
         resolver.visit_expr(&mut expr);
 
-        process_diagnostics(diagnostics, resolver.take_diagnostics())?;
+        process_issues(diagnostics, resolver.take_diagnostics())?;
 
         Ok(expr.syntax_dump_to_string())
     }

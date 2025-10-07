@@ -1,22 +1,20 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
@@ -30,14 +28,13 @@ export const useOrgsWithLinks = ({
 }): {
   loading: boolean;
   orgs?: Org[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -76,22 +73,23 @@ export const useOrgsWithLinks = ({
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
     skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
   });
 
-  const { getEntitySubgraph: subgraphAndPermissions } = data ?? {};
+  const { queryEntitySubgraph: queryEntitySubgraphResponse } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraphAndPermissions) {
+    if (!queryEntitySubgraphResponse) {
       return undefined;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(subgraphAndPermissions.subgraph);
+    const subgraph = deserializeQueryEntitySubgraphResponse(
+      queryEntitySubgraphResponse,
+    ).subgraph;
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {
@@ -101,7 +99,7 @@ export const useOrgsWithLinks = ({
       }
       return constructOrg({ subgraph, orgEntity });
     });
-  }, [subgraphAndPermissions]);
+  }, [queryEntitySubgraphResponse]);
 
   return {
     loading,

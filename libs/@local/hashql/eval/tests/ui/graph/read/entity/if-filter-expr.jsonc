@@ -1,0 +1,18 @@
+//@ run: fail
+//@ description: Test if filter with branch fails
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.id.entity_id.entity_uuid",
+        ["if", {"#literal": true},
+          "vertex.id.entity_id.entity_uuid",
+          "vertex.id.entity_id.entity_uuid"
+        ]
+        //~^ ERROR conditional expressions are not supported in filter contexts
+      ]
+    ]
+  ]
+]

@@ -14,6 +14,7 @@ pub mod status;
 
 pub mod http_tracing_layer;
 
+mod entity_query_request;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
@@ -47,8 +48,9 @@ use hash_graph_store::{
     property_type::PropertyTypeStore,
     subgraph::{
         edges::{
-            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-            OutgoingEdgeResolveDepth, SharedEdgeKind,
+            EdgeResolveDepths, EntityTraversalEdgeDirection, GraphResolveDepths,
+            KnowledgeGraphEdgeKind, OntologyEdgeKind, OntologyTraversalEdgeDirection,
+            OutgoingEdgeResolveDepth, SharedEdgeKind, TraversalEdge, TraversalPath,
         },
         identifier::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
@@ -70,7 +72,7 @@ use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
-use serde_json::{Number as JsonNumber, Value as JsonValue};
+use serde_json::{Number as JsonNumber, Value as JsonValue, value::RawValue as RawJsonValue};
 use tower::ServiceBuilder;
 use type_system::{
     ontology::{
@@ -128,6 +130,33 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 Cow::Borrowed("`X-Authenticated-User-Actor-Id` header is missing"),
             ))
         }
+    }
+}
+
+pub struct InteractiveHeader(pub bool);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for InteractiveHeader {
+    type Rejection = (StatusCode, Cow<'static, str>);
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let Some(value) = parts.headers.get("Interactive") else {
+            return Ok(Self(false));
+        };
+
+        let bytes = value.as_ref();
+        if bytes.eq_ignore_ascii_case(b"true") || bytes.eq_ignore_ascii_case(b"1") {
+            return Ok(Self(true));
+        }
+
+        if bytes.eq_ignore_ascii_case(b"false") || bytes.eq_ignore_ascii_case(b"0") {
+            return Ok(Self(false));
+        }
+
+        Err((
+            StatusCode::BAD_REQUEST,
+            Cow::Borrowed("`Interactive` header must be either `true` (`1`) or `false` (`0`)"),
+        ))
     }
 }
 
@@ -289,7 +318,7 @@ pub enum OpenApiQuery<'a> {
     GetEntityTypes(&'a JsonValue),
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
-    GetEntities(&'a JsonValue),
+    GetEntities(&'a RawJsonValue),
     CountEntities(&'a JsonValue),
     GetEntitySubgraph(&'a JsonValue),
     ValidateEntity(&'a JsonValue),
@@ -432,6 +461,11 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             OutgoingEdgeResolveDepth,
             Subgraph,
             SubgraphTemporalAxes,
+
+            TraversalEdge,
+            TraversalPath,
+            EntityTraversalEdgeDirection,
+            OntologyTraversalEdgeDirection,
 
             DecisionTime,
             TransactionTime,
@@ -660,6 +694,12 @@ impl Modify for FilterSchemaAddon {
                         )
                         .item(
                             ObjectBuilder::new()
+                                .title(Some("ExistsFilter"))
+                                .property("exists", Ref::from_schema_name("PathExpression"))
+                                .required("exists"),
+                        )
+                        .item(
+                            ObjectBuilder::new()
                                 .title(Some("GreaterFilter"))
                                 .property(
                                     "greater",
@@ -759,45 +799,47 @@ impl Modify for FilterSchemaAddon {
                 .into(),
             );
             components.schemas.insert(
+                "PathExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("PathExpression"))
+                    .property(
+                        "path",
+                        ArrayBuilder::new().items(
+                            OneOfBuilder::new()
+                                .item(Ref::from_schema_name("DataTypeQueryToken"))
+                                .item(Ref::from_schema_name("PropertyTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityTypeQueryToken"))
+                                .item(Ref::from_schema_name("EntityQueryToken"))
+                                .item(Ref::from_schema_name("Selector"))
+                                .item(
+                                    ObjectBuilder::new()
+                                        .schema_type(SchemaType::String)
+                                        .enum_values(Some(["convert"])),
+                                )
+                                .item(ObjectBuilder::new().schema_type(SchemaType::String))
+                                .item(ObjectBuilder::new().schema_type(SchemaType::Number)),
+                        ),
+                    )
+                    .required("path")
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
+                "ParameterExpression".to_owned(),
+                ObjectBuilder::new()
+                    .title(Some("ParameterExpression"))
+                    .property("parameter", Any::schema().1)
+                    .required("parameter")
+                    .property("convert", ParameterConversion::schema().1)
+                    .build()
+                    .into(),
+            );
+            components.schemas.insert(
                 "FilterExpression".to_owned(),
                 schema::Schema::OneOf(
                     OneOfBuilder::new()
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("PathExpression"))
-                                .property(
-                                    "path",
-                                    ArrayBuilder::new().items(
-                                        OneOfBuilder::new()
-                                            .item(Ref::from_schema_name("DataTypeQueryToken"))
-                                            .item(Ref::from_schema_name("PropertyTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityTypeQueryToken"))
-                                            .item(Ref::from_schema_name("EntityQueryToken"))
-                                            .item(Ref::from_schema_name("Selector"))
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String)
-                                                    .enum_values(Some(["convert"])),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::String),
-                                            )
-                                            .item(
-                                                ObjectBuilder::new()
-                                                    .schema_type(SchemaType::Number),
-                                            ),
-                                    ),
-                                )
-                                .required("path"),
-                        )
-                        .item(
-                            ObjectBuilder::new()
-                                .title(Some("ParameterExpression"))
-                                .property("parameter", Any::schema().1)
-                                .required("parameter")
-                                .property("convert", ParameterConversion::schema().1),
-                        )
+                        .item(Ref::from_schema_name("PathExpression"))
+                        .item(Ref::from_schema_name("ParameterExpression"))
                         .build(),
                 )
                 .into(),

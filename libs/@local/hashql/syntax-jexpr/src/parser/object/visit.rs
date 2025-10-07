@@ -29,10 +29,10 @@ pub(crate) struct Key<'source> {
     pub span: TextRange,
 }
 
-pub(crate) fn visit_object_entry<'arena, 'source, C>(
-    state: &mut ParserState<'arena, 'source>,
+pub(crate) fn visit_object_entry<'arena, 'source, 'spans, C>(
+    state: &mut ParserState<'arena, 'source, 'spans>,
     on_item: &mut impl FnMut(
-        &mut ParserState<'arena, 'source>,
+        &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<(), Diagnostic<C, SpanId>>
@@ -82,11 +82,11 @@ where
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn visit_object<'arena, 'source, C>(
-    state: &mut ParserState<'arena, 'source>,
+pub(crate) fn visit_object<'arena, 'source, 'spans, C>(
+    state: &mut ParserState<'arena, 'source, 'spans>,
     token: Token<'source>,
     mut on_item: impl FnMut(
-        &mut ParserState<'arena, 'source>,
+        &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<TextRange, Diagnostic<C, SpanId>>
@@ -151,7 +151,6 @@ where
                 let span = state.insert_span(Span {
                     range: next_span,
                     pointer: Some(state.current_pointer()),
-                    parent_id: None,
                 });
 
                 // do not consume the token, so that we can do recoverable parsing (in the future)
@@ -325,7 +324,7 @@ mod tests {
 
         let diagnostic =
             result.expect_err("should not be able to parse object with trailing comma");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with trailing comma should fail"
@@ -351,7 +350,7 @@ mod tests {
         });
 
         let diagnostic = result.expect_err("should not be able to parse object with missing comma");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with missing comma should fail"
@@ -375,7 +374,7 @@ mod tests {
         });
 
         let diagnostic = result.expect_err("should not be able to parse object with missing colon");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with missing colon should fail"
@@ -398,7 +397,7 @@ mod tests {
 
         let diagnostic =
             result.expect_err("should not be able to parse object with consecutive colons");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with consecutive colons should fail"
@@ -424,7 +423,6 @@ mod tests {
                     state.insert_span(Span {
                         range: token.span,
                         pointer: None,
-                        parent_id: None,
                     }),
                     SyntaxKindSet::COMPLETE,
                 ))
@@ -454,7 +452,7 @@ mod tests {
         });
 
         let diagnostic = result.expect_err("should fail with unclosed object");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Unclosed object should fail"
@@ -657,7 +655,7 @@ mod tests {
 
         let diagnostic =
             result.expect_err("should not be able to parse object with consecutive commas");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with consecutive commas should fail"
@@ -679,7 +677,7 @@ mod tests {
         });
 
         let diagnostic = result.expect_err("should fail with leading comma");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with leading comma should fail"
@@ -701,7 +699,7 @@ mod tests {
         });
 
         let diagnostic = result.expect_err("should fail with multiple leading commas");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with multiple leading commas should fail"
@@ -721,7 +719,7 @@ mod tests {
 
         let diagnostic =
             result.expect_err("should not be able to parse object with non-string key");
-        let report = render_diagnostic(context.input, diagnostic, &context.spans);
+        let report = render_diagnostic(context.input, &diagnostic, &context.spans);
 
         with_settings!({
             description => "Object with non-string key should fail"

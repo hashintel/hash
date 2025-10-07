@@ -1,13 +1,9 @@
-[special-form-expander::duplicate-generic-constraint] Error: Duplicate generic parameter constraint
-   ╭─[ <unknown>:5:16 ]
-   │
- 5 │   "Foo<T: Bar, T>",
-   │        ┬       ┬  
-   │        │       ╰── Remove this duplicate declaration of 'T'
-   │        │          
-   │        ╰────────── 'T' was previously declared here
-   │ 
-   │ Help: Each generic parameter can only be declared once in a function or type definition. Remove the duplicate declaration or use a different name.
-   │ 
-   │ Note: Generic parameter names must be unique within a single generic parameter list. For example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.
-───╯
+error[special-form-expander::duplicate-generic-constraint]: Duplicate generic parameter constraint
+  ╭▸ 
+5 │   "Foo<T: Bar, T>",
+  │        ┬       ━ Remove this duplicate declaration of 'T'
+  │        │
+  │        'T' was previously declared here
+  │
+  ├ help: Each generic parameter can only be declared once in a function or type definition. Remove the duplicate declaration or use a different name.
+  ╰ note: Generic parameter names must be unique within a single generic parameter list. For example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.

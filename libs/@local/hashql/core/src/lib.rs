@@ -22,6 +22,7 @@
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
+    generic_atomic,
     iter_map_windows,
     slice_partition_dedup,
     slice_swap_unchecked,
@@ -30,12 +31,12 @@
 
 extern crate alloc;
 
+pub mod algorithms;
 pub mod collection;
 pub mod heap;
 pub mod id;
 pub mod intern;
 pub mod literal;
-pub mod math;
 pub mod module;
 pub mod pretty;
 pub mod similarity;

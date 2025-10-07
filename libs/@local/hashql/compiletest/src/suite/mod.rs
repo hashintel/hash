@@ -23,7 +23,7 @@ use core::panic::RefUnwindSafe;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{heap::Heap, span::SpanId};
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
+use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 use self::{
     ast_lowering_import_resolver::AstLoweringImportResolverSuite,
@@ -45,8 +45,6 @@ use self::{
 };
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
-pub(crate) type ResolvedSuiteDiagnostic =
-    Diagnostic<Box<dyn DiagnosticCategory>, AbsoluteDiagnosticSpan>;
 
 pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
     fn name(&self) -> &'static str;

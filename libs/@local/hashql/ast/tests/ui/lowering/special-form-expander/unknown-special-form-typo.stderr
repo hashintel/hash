@@ -1,13 +1,10 @@
-[special-form-expander::unknown-special-form] Error: Unknown special form
-   ╭─[ <unknown>:3:27 ]
-   │
- 3 │ ["::kernel::special_form::nuwtype"]
-   │   ───────────────┬───────────┬───  
-   │                  │           ╰───── Replace 'nuwtype' with a valid special form name
-   │                  │                 
-   │                  ╰───────────────── This special form path is invalid
-   │ 
-   │ Help: Did you mean to use 'newtype' instead?
-   │ 
-   │ Note: Available special forms include: if, as, let, type, newtype, use, fn, input, access, index
-───╯
+error[special-form-expander::unknown-special-form]: Unknown special form
+  ╭▸ 
+3 │ ["::kernel::special_form::nuwtype"]
+  │   ┬───────────────────────┯━━━━━━
+  │   │                       │
+  │   │                       Replace 'nuwtype' with a valid special form name
+  │   This special form path is invalid
+  │
+  ├ help: Did you mean to use 'newtype' instead?
+  ╰ note: Available special forms include: if, as, let, type, newtype, use, fn, input, access, index

@@ -76,9 +76,9 @@ impl Type<'_> {
     }
 }
 
-impl<'heap, K> PrettyPrint<'heap> for Type<'heap, K>
+impl<'heap, K> PrettyPrint<'heap, Environment<'heap>> for Type<'heap, K>
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     fn pretty(
         &self,
@@ -93,7 +93,10 @@ where
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
         arguments: kind::GenericArguments<'heap>,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+    ) -> pretty::RcDoc<'heap, anstyle::Style>
+    where
+        Self: PrettyPrint<'heap, Environment<'heap>>,
+    {
         self.kind.pretty_generic(env, boundary, arguments)
     }
 }

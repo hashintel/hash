@@ -24,7 +24,11 @@ use crate::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
-    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    subgraph::{
+        Subgraph,
+        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    },
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,23 +45,59 @@ pub struct CreateDataTypeParams {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypeSubgraphParams<'p> {
-    #[serde(borrow)]
-    pub filter: Filter<'p, DataTypeWithMetadata>,
-    pub graph_resolve_depths: GraphResolveDepths,
-    pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
-    #[serde(default)]
-    pub after: Option<VersionedUrl>,
-    #[serde(default)]
-    pub limit: Option<usize>,
-    #[serde(default)]
-    pub include_count: bool,
+#[serde(untagged, deny_unknown_fields)]
+pub enum QueryDataTypeSubgraphParams<'a> {
+    #[serde(rename_all = "camelCase")]
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: QueryDataTypesParams<'a>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
+        #[serde(borrow, flatten)]
+        request: QueryDataTypesParams<'a>,
+    },
+}
+
+impl<'a> QueryDataTypeSubgraphParams<'a> {
+    #[must_use]
+    pub const fn request(&self) -> &QueryDataTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub const fn request_mut(&mut self) -> &mut QueryDataTypesParams<'a> {
+        match self {
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+        }
+    }
+
+    #[must_use]
+    pub fn into_request(self) -> (QueryDataTypesParams<'a>, SubgraphTraversalParams) {
+        match self {
+            Self::Paths {
+                request,
+                traversal_paths,
+            } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
+            Self::ResolveDepths {
+                request,
+                graph_resolve_depths,
+            } => (
+                request,
+                SubgraphTraversalParams::ResolveDepths {
+                    graph_resolve_depths,
+                },
+            ),
+        }
+    }
 }
 
 #[derive(Debug)]
-pub struct GetDataTypeSubgraphResponse {
+pub struct QueryDataTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
@@ -70,31 +110,36 @@ pub struct CountDataTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, DataTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypesParams<'p> {
+pub struct QueryDataTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, DataTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub after: Option<VersionedUrl>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub limit: Option<usize>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_count: bool,
 }
 
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetDataTypesResponse {
+pub struct QueryDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
 }
 
@@ -139,7 +184,7 @@ pub struct UpdateDataTypeEmbeddingParams<'a> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetDataTypeConversionTargetsParams {
+pub struct FindDataTypeConversionTargetsParams {
     pub data_type_ids: Vec<VersionedUrl>,
 }
 
@@ -154,7 +199,7 @@ pub struct DataTypeConversionTargets {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetDataTypeConversionTargetsResponse {
+pub struct FindDataTypeConversionTargetsResponse {
     pub conversions: HashMap<VersionedUrl, HashMap<VersionedUrl, DataTypeConversionTargets>>,
 }
 
@@ -221,27 +266,27 @@ pub trait DataTypeStore {
         params: CountDataTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
-    /// Get the [`DataType`]s specified by the [`GetDataTypesParams`].
+    /// Get the [`DataType`]s specified by the [`QueryDataTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    fn get_data_types(
+    fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypesParams<'_>,
-    ) -> impl Future<Output = Result<GetDataTypesResponse, Report<QueryError>>> + Send;
+        params: QueryDataTypesParams<'_>,
+    ) -> impl Future<Output = Result<QueryDataTypesResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`] specified by the [`GetDataTypeSubgraphParams`].
+    /// Get the [`Subgraph`] specified by the [`QueryDataTypeSubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    fn get_data_type_subgraph(
+    fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetDataTypeSubgraphResponse, Report<QueryError>>> + Send;
+        params: QueryDataTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<QueryDataTypeSubgraphResponse, Report<QueryError>>> + Send;
 
     /// Update the definition of an existing [`DataType`].
     ///
@@ -306,11 +351,11 @@ pub trait DataTypeStore {
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
-    fn get_data_type_conversion_targets(
+    fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> impl Future<Output = Result<GetDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
+        params: FindDataTypeConversionTargetsParams,
+    ) -> impl Future<Output = Result<FindDataTypeConversionTargetsResponse, Report<QueryError>>> + Send;
 
     /// Re-indexes the cache for data types.
     ///

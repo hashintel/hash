@@ -11,18 +11,23 @@ use hash_graph_store::filter::{Filter, QueryRecord};
 use hashql_core::{
     collection::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
 };
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     node::{
         HirId, Node,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
-        r#let::Let,
+        r#let::{Binding, Let, VarId},
     },
     visit::{self, Visitor},
 };
 use type_system::knowledge::Entity;
 
-use self::{error::GraphReadCompilerDiagnostic, path::CompleteQueryPath, sink::FilterSink};
+use self::{
+    error::{GraphReadCompilerIssues, GraphReadCompilerStatus},
+    path::CompleteQueryPath,
+    sink::FilterSink,
+};
 
 // The FilterSlice is an indirect approach to allow us to easily copy a filter between different
 // nodes.
@@ -44,18 +49,18 @@ impl<'heap> Filters<'heap> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct FilterCompilerContext<'heap> {
+struct FilterCompilerContext {
     span: SpanId,
     current_span: Option<SpanId>,
-    param_name: Symbol<'heap>,
+    param_id: VarId,
 }
 
-impl FilterCompilerContext<'_> {
+impl FilterCompilerContext {
     const fn without_current_span(self) -> Self {
         Self {
             span: self.span,
             current_span: None,
-            param_name: self.param_name,
+            param_id: self.param_id,
         }
     }
 
@@ -63,7 +68,7 @@ impl FilterCompilerContext<'_> {
         Self {
             span: self.span,
             current_span: Some(span),
-            param_name: self.param_name,
+            param_id: self.param_id,
         }
     }
 }
@@ -82,9 +87,9 @@ pub struct GraphReadCompiler<'env, 'heap> {
     heap: &'heap Heap,
     filters: Filters<'heap>,
 
-    diagnostics: Vec<GraphReadCompilerDiagnostic>,
+    diagnostics: GraphReadCompilerIssues,
 
-    locals: FastHashMap<Symbol<'heap>, &'heap Node<'heap>>,
+    locals: FastHashMap<VarId, &'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
     output: FastHashMap<HirId, FilterSlice>,
 }
@@ -95,7 +100,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             current: HirId::PLACEHOLDER,
             heap,
             filters: Filters::default(),
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             locals: FastHashMap::default(),
             inputs,
             output: FastHashMap::default(),
@@ -107,14 +112,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     /// # Errors
     ///
     /// Returns an error if any diagnostics were collected during compilation.
-    pub fn finish(
-        self,
-    ) -> Result<GraphReadCompilerResidual<'heap>, Vec<GraphReadCompilerDiagnostic>> {
-        if !self.diagnostics.is_empty() {
-            return Err(self.diagnostics);
-        }
-
-        Ok(GraphReadCompilerResidual {
+    pub fn finish(self) -> GraphReadCompilerStatus<GraphReadCompilerResidual<'heap>> {
+        self.diagnostics.into_status(GraphReadCompilerResidual {
             filters: self.filters,
             output: self.output,
         })
@@ -142,7 +141,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                         FilterCompilerContext {
                             span: closure.body.span,
                             current_span: None,
-                            param_name: closure.signature.params[0].name.value,
+                            param_id: closure.signature.params[0].name.id,
                         },
                         &closure.body,
                         &mut sink,
@@ -191,9 +190,25 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {
-        self.locals.insert(r#let.name.value, &r#let.value);
+        for Binding {
+            span: _,
+            binder,
+            value,
+        } in &r#let.bindings
+        {
+            self.locals.insert(binder.id, value);
+        }
+
         visit::walk_let(self, r#let);
-        self.locals.remove(&r#let.name.value);
+
+        for Binding {
+            span: _,
+            binder,
+            value: _,
+        } in &r#let.bindings
+        {
+            self.locals.remove(&binder.id);
+        }
 
         if let Some(value) = self.output.get(&r#let.body.id) {
             self.output.insert(self.current, value.clone());

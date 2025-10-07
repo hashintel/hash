@@ -54,6 +54,22 @@ resource "aws_security_group" "alb_internal" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  egress {
+    from_port   = module.alloy.http_port
+    to_port     = module.alloy.http_port
+    protocol    = "tcp"
+    description = "Allow health checks to Alloy"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = module.alloy.profile_port_internal
+    to_port     = module.alloy.profile_port_internal
+    protocol    = "tcp"
+    description = "Allow connecting to the Alloy Profile endpoints"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   tags = {
     Name    = "${var.prefix}-internal-sg"
     Purpose = "Internal observability ALB security group"
@@ -130,6 +146,22 @@ resource "aws_security_group" "alb_external" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  egress {
+    from_port   = module.alloy.http_port
+    to_port     = module.alloy.http_port
+    protocol    = "tcp"
+    description = "Allow health checks to Alloy"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  egress {
+    from_port   = module.alloy.profile_port_external
+    to_port     = module.alloy.profile_port_external
+    protocol    = "tcp"
+    description = "Allow connecting to the Alloy Profile endpoints"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   tags = {
     Name    = "${var.prefix}-external-sg"
     Purpose = "External observability ALB security group"
@@ -193,6 +225,16 @@ resource "aws_lb_listener_rule" "grafana_routing" {
 resource "cloudflare_dns_record" "cname_telemetry" {
   zone_id = data.cloudflare_zones.hash_ai.result[0].id
   name    = "telemetry"
+  type    = "CNAME"
+  content = aws_lb.observability_external.dns_name
+  ttl     = 1
+  proxied = true
+  tags    = ["terraform"]
+}
+
+resource "cloudflare_dns_record" "cname_profile" {
+  zone_id = data.cloudflare_zones.hash_ai.result[0].id
+  name    = "profile"
   type    = "CNAME"
   content = aws_lb.observability_external.dns_name
   ttl     = 1
@@ -317,5 +359,47 @@ resource "aws_lb_listener_rule" "telemetry_internal_grpc_routing" {
 
   tags = {
     Name = "${var.prefix}-telemetry-internal-grpc-routing"
+  }
+}
+
+
+resource "aws_lb_listener_rule" "profile_external_http_routing" {
+  listener_arn = aws_lb_listener.external_https.arn
+  priority     = 102
+
+  action {
+    type             = "forward"
+    target_group_arn = module.alloy.profile_external_target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = ["${cloudflare_dns_record.cname_profile.name}.hash.ai"]
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-profile-external-http-routing"
+  }
+}
+
+
+resource "aws_lb_listener_rule" "profile_internal_http_routing" {
+  listener_arn = aws_lb_listener.internal_https.arn
+  priority     = 102
+
+  action {
+    type             = "forward"
+    target_group_arn = module.alloy.profile_internal_target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = [aws_route53_record.profile.fqdn]
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-profile-internal-http-routing"
   }
 }

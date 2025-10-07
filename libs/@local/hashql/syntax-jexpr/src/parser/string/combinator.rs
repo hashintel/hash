@@ -7,6 +7,11 @@ use winnow::{
     stream::{AsChar, Stream, StreamIsPartial},
 };
 
+pub(crate) enum Alt2<L, R> {
+    Left(L),
+    Right(R),
+}
+
 enum VecOrOneValue<'heap, T> {
     Vec(heap::Vec<'heap, T>),
     One(T),

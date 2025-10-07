@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { DataTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type Conversions,
@@ -9,18 +8,22 @@ import {
 } from "@blockprotocol/type-system";
 import { DataTypeSelector } from "@hashintel/design-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  fullTransactionTimeAxis,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../../../shared/ui/button";
 import { useDataTypesContext } from "../../data-types-context";
 import type { DataTypeFormData } from "../data-type-form";
@@ -78,22 +81,28 @@ export const ConversionTargetEditor = ({
   );
 
   const { data: siblingDataTypesData } = useQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery, {
     variables: {
-      constrainsValuesOn: { outgoing: 0 },
-      filter: {
-        any: nonNumberParentIds.map((id) => ({
-          equal: [
-            { path: ["inheritsFrom(inheritanceDepth=0)", "*", "versionedUrl"] },
-            { parameter: id },
-          ],
-        })),
+      request: {
+        filter: {
+          any: nonNumberParentIds.map((id) => ({
+            equal: [
+              {
+                path: ["inheritsFrom(inheritanceDepth=0)", "*", "versionedUrl"],
+              },
+              { parameter: id },
+            ],
+          })),
+        },
+        temporalAxes: fullTransactionTimeAxis,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          inheritsFrom: { outgoing: 255 },
+          constrainsPropertiesOn: { outgoing: 0 },
+        },
       },
-      includeArchived: true,
-      inheritsFrom: { outgoing: 255 },
-      latestOnly: false,
     },
     skip: !nonNumberParentIds.length,
     fetchPolicy: "cache-and-network",
@@ -110,9 +119,9 @@ export const ConversionTargetEditor = ({
      * If we find one, it is the only conversion target we will allow the user to select.
      */
     const siblings = getRoots(
-      mapGqlSubgraphFieldsFragmentToSubgraph<DataTypeRootType>(
-        siblingDataTypesData.queryDataTypes,
-      ),
+      deserializeQueryDataTypeSubgraphResponse(
+        siblingDataTypesData.queryDataTypeSubgraph,
+      ).subgraph,
     );
 
     for (const sibling of siblings) {

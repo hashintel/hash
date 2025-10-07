@@ -1,13 +1,10 @@
-[lower::generic-argument-mismatch] Error: Incorrect number of type arguments
-   ╭─[ <unknown>:8:6 ]
-   │
- 8 │     "Person<Number, String, Integer>",
-   │      ───────────────┬──────────┬────  
-   │                     │          ╰────── Remove this argument
-   │                     │                 
-   │                     ╰───────────────── This type constructor requires 2 generic arguments, but 3 were provided
-   │ 
-   │ Help: This type constructor accepts exactly 2 generic arguments. Remove the extra parameter: Person<T, U>
-   │ 
-   │ Note: Generic type parameters must be provided when instantiating parameterized types. Each parameter corresponds to a specific type that will be substituted throughout the type definition.
-───╯
+error[lower::generic-argument-mismatch]: Incorrect number of type arguments
+  ╭▸ 
+8 │     "Person<Number, String, Integer>",
+  │      ┯━━━━━━━━━━━━━━━━━━━━━━┬──────━
+  │      │                      │
+  │      │                      Remove this argument
+  │      This type constructor requires 2 generic arguments, but 3 were provided
+  │
+  ├ help: This type constructor accepts exactly 2 generic arguments. Remove the extra parameter: Person<T, U>
+  ╰ note: Generic type parameters must be provided when instantiating parameterized types. Each parameter corresponds to a specific type that will be substituted throughout the type definition.

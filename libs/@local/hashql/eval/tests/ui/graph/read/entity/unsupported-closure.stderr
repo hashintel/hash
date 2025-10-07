@@ -1,35 +1,27 @@
-[graph-read-compiler::closure-unsupported] Error: Closures not supported
-    ╭─[ <unknown>:12:10 ]
-    │
-  9 │ ╭─▶       ["==",
-    ┆ ┆   
- 12 │ │           "identity"
-    │ │            ────┬───  
-    │ │                ╰───── Closure definition not supported here
-    ┆ ┆   
- 14 │ ├─▶       ]
-    │ │             
-    │ ╰───────────── ... within this filter expression
-    │     
-    │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-    │     
-    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
-────╯
+error[graph-read-compiler::closure-unsupported]: Closures not supported
+   ╭▸ 
+ 9 │ ┌       ["==",
+10 │ │         "identity", // This is very silly and isn't something you should probably do
+11 │ │          //~^ ERROR Closure definition not supported here
+12 │ │         "identity"
+   │ │          ━━━━━━━━ Closure definition not supported here
+13 │ │         //~^ ERROR Closure definition not supported here
+14 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+   ╰ note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
 
-
-[graph-read-compiler::closure-unsupported] Error: Closures not supported
-    ╭─[ <unknown>:10:10 ]
-    │
-  9 │ ╭─▶       ["==",
- 10 │ │           "identity", // This is very silly and isn't something you should probably do
-    │ │            ────┬───  
-    │ │                ╰───── Closure definition not supported here
-    ┆ ┆   
- 14 │ ├─▶       ]
-    │ │             
-    │ ╰───────────── ... within this filter expression
-    │     
-    │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-    │     
-    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
-────╯
+error[graph-read-compiler::closure-unsupported]: Closures not supported
+   ╭▸ 
+ 9 │ ┌       ["==",
+10 │ │         "identity", // This is very silly and isn't something you should probably do
+   │ │          ━━━━━━━━ Closure definition not supported here
+11 │ │          //~^ ERROR Closure definition not supported here
+12 │ │         "identity"
+13 │ │         //~^ ERROR Closure definition not supported here
+14 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+   ╰ note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.

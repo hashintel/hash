@@ -17,13 +17,14 @@
 
 extern crate alloc;
 
+pub mod context;
 pub mod error;
 pub mod fold;
 pub mod intern;
 pub mod lower;
 pub mod node;
 pub mod path;
-mod pretty;
+pub mod pretty;
 pub mod reify;
 pub mod visit;
 

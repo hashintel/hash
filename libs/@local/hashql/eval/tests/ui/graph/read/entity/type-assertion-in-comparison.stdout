@@ -13,7 +13,7 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    (vertex:0.id.entity_id.entity_uuid == #is(#ctor(fn(Uuid[String]) ->
+    (vertex:0.id.entity_id.entity_uuid == #as(#ctor(fn(Uuid[String]) ->
     EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
     arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")),
     type: EntityUuid[Uuid[String]]))) |> ::graph::tail::collect
@@ -22,18 +22,14 @@ _1«Boolean» ->
 
 [
     Equal(
-        Some(
-            Path {
-                path: Uuid,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Text(
-                    "e2851dbb-7376-4959-9bca-f72cafc4448f",
-                ),
-                convert: None,
-            },
-        ),
+        Path {
+            path: Uuid,
+        },
+        Parameter {
+            parameter: Text(
+                "e2851dbb-7376-4959-9bca-f72cafc4448f",
+            ),
+            convert: None,
+        },
     ),
 ]

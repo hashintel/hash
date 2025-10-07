@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
 description: "Labeled arguments must start with ':'"
 expression: "[\"greet\", {\"name\": {\"#literal\": \"Alice\"}}]"
 ---
-[31m[parser::object::unknown-key] Error:[0m Unknown or unsupported object key
-   ╭─[ <unknown>:1:12 ]
-   │
- 1 │ ["greet", {"name": {"#literal": "Alice"}}]
-   │            ───┬──  
-   │               ╰──── Replace `name` with a valid key
-   │ 
-   │ Help: This J-Expr object only accepts these specific keys: `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`
-───╯
+error[parser::object::unknown-key]: Unknown or unsupported object key
+  ╭▸ 
+1 │ ["greet", {"name": {"#literal": "Alice"}}]
+  │            ━━━━━━ Replace `name` with a valid key
+  │
+  ╰ help: This J-Expr object only accepts these specific keys: `#literal`, `#struct`, `#dict`, `#tuple`, `#list`, or `#type`

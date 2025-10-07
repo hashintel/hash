@@ -1,7 +1,7 @@
 // This file was generated from `libs/@blockprotocol/type-system/rust/tests/codegen.rs`
 
 import type { Real } from "@rust/hash-codec/types";
-import type { Brand } from "@local/advanced-types/brand";
+import type { Brand } from "@blockprotocol/type-system-rs";
 export type DraftId = Brand<string, "DraftId">;
 export type EntityEditionId = Brand<string, "EntityEditionId">;
 export type EntityUuid = Brand<string, "EntityUuid">;

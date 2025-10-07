@@ -13,6 +13,22 @@ resource "aws_security_group" "alloy" {
     cidr_blocks = [var.vpc.cidr_block]
   }
 
+  # Allow inbound HTTP for profile ingestion
+  ingress {
+    from_port   = local.profile_port_internal
+    to_port     = local.profile_port_internal
+    protocol    = "tcp"
+    description = "Grafana Alloy profile ingestion endpoint"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+  ingress {
+    from_port   = local.profile_port_external
+    to_port     = local.profile_port_external
+    protocol    = "tcp"
+    description = "Grafana Alloy profile ingestion endpoint"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
   # Allow outbound HTTPS for CloudWatch API calls and S3 config download
   egress {
     from_port   = 443
@@ -45,6 +61,15 @@ resource "aws_security_group" "alloy" {
     to_port     = var.mimir_http_port
     protocol    = "tcp"
     description = "HTTP to Mimir for OTLP metrics forwarding"
+    cidr_blocks = [var.vpc.cidr_block]
+  }
+
+  # Allow outbound HTTP to Pyroscope for profile forwarding
+  egress {
+    from_port   = var.pyroscope_http_port
+    to_port     = var.pyroscope_http_port
+    protocol    = "tcp"
+    description = "HTTP to Pyroscope for profile forwarding"
     cidr_blocks = [var.vpc.cidr_block]
   }
 

@@ -1,0 +1,44 @@
+{
+  "name": "@hashintel/petrinaut",
+  "version": "0.0.5",
+  "description": "A visual editor for Petri nets",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/petrinaut"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "sideEffects": false,
+  "type": "module",
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@fortawesome/free-solid-svg-icons": "6.7.2",
+    "@hashintel/block-design-system": "0.0.5",
+    "@hashintel/design-system": "0.0.9-canary.2",
+    "@mui/material": "5.18.0",
+    "@mui/system": "5.18.0",
+    "elkjs": "0.10.0",
+    "reactflow": "11.11.4",
+    "uuid": "11.1.0"
+  },
+  "devDependencies": {
+    "@local/eslint": "0.0.0-private",
+    "eslint": "9.20.1",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "typescript": "5.7.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

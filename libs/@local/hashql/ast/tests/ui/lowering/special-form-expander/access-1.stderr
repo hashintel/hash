@@ -1,11 +1,7 @@
-[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
-   ╭─[ <unknown>:3:1 ]
-   │
- 3 │ ["::kernel::special_form::access", "x"]
-   │ ───────────────────┬───────────────────  
-   │                    ╰───────────────────── Add missing arguments
-   │ 
-   │ Help: The access/2 form should look like: (. object field)
-   │ 
-   │ Note: The access function has 1 variant: access/2
-───╯
+error[special-form-expander::special-form-argument-length]: Incorrect number of arguments for special form
+  ╭▸ 
+3 │ ["::kernel::special_form::access", "x"]
+  │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Add missing arguments
+  │
+  ├ help: The access/2 form should look like: (. object field)
+  ╰ note: The access function has 1 variant: access/2

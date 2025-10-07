@@ -11,7 +11,7 @@ export interface Policy {
 	actions: ActionName[];
 	resource: (ResourceConstraint | null);
 }
-import type { Brand } from "@local/advanced-types/brand";
+import type { Brand } from "@blockprotocol/type-system-rs";
 export type PolicyId = Brand<string, "PolicyId">;
 export interface ResolvedPolicy {
 	effect: Effect;

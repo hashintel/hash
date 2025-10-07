@@ -10,6 +10,7 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
@@ -52,8 +53,11 @@ export const useGetClosedMultiEntityTypes = (): {
     async (multiEntityTypeIds: VersionedUrl[][]) => {
       const response = await getMultiEntityType({
         variables: {
-          entityTypeIds: multiEntityTypeIds,
-          includeArchived: false,
+          request: {
+            entityTypeIds: multiEntityTypeIds,
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeResolved: "resolvedWithDataTypeChildren",
+          },
         },
       });
 
@@ -63,12 +67,12 @@ export const useGetClosedMultiEntityTypes = (): {
         );
       }
 
-      const { closedMultiEntityTypes, definitions } =
+      const { entityTypes, definitions } =
         response.data.getClosedMultiEntityTypes;
 
       return {
-        closedMultiEntityTypes,
-        closedMultiEntityTypesDefinitions: definitions,
+        closedMultiEntityTypes: entityTypes,
+        closedMultiEntityTypesDefinitions: definitions!,
       };
     },
     [getMultiEntityType],

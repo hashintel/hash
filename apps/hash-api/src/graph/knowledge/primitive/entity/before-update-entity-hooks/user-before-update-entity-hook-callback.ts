@@ -1,10 +1,10 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
 import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 

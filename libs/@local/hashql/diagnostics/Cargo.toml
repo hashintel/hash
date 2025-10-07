@@ -8,29 +8,29 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, features = ["unstable"] }
 
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }
-ariadne   = { workspace = true, public = true }
-serde     = { workspace = true, public = true, optional = true, features = ["derive"] }
+serde     = { workspace = true, public = true, optional = true, features = ["derive", "alloc"] }
 text-size = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle-lossy  = { workspace = true, optional = true }
-anstyle-yansi  = { workspace = true }
-derive_more    = { workspace = true, features = ["display"] }
-simple-mermaid = { workspace = true }
+annotate-snippets = { workspace = true, optional = true, features = ["simd"] }
+anstream          = { workspace = true }
+anstyle-lossy     = { workspace = true, optional = true }
+anstyle-svg       = { workspace = true }
+derive_more       = { workspace = true, features = ["display"] }
+simple-mermaid    = { workspace = true }
 
 [dev-dependencies]
-jsonptr    = { workspace = true, features = ["json"] }
 rstest     = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
-serde = ["dep:serde", "dep:anstyle-lossy"]
+serde  = ["dep:serde", "dep:anstyle-lossy"]
+render = ["dep:annotate-snippets"]
 
 [lints]
 workspace = true

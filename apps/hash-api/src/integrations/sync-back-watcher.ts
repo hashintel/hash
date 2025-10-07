@@ -7,9 +7,8 @@ import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import { systemAccountId } from "../graph/system-account";
 import {
@@ -76,24 +75,23 @@ export const createIntegrationSyncBackWatcher = async ({
           return maybeMachineId;
         });
 
-        const entity = (
-          await graphApi
-            .getEntities(linearBotAccountId, {
-              filter: {
-                equal: [
-                  { path: ["editionId"] },
-                  { parameter: entityEdition.entityEditionId },
-                ],
-              },
-              temporalAxes: fullDecisionTimeAxis,
-              includeDrafts: false,
-            })
-            .then(({ data: response }) =>
-              response.entities.map((graphEntity) =>
-                mapGraphApiEntityToEntity(graphEntity, null, true),
-              ),
-            )
-        )[0];
+        const {
+          entities: [entity],
+        } = await queryEntities(
+          { graphApi },
+          { actorId: linearBotAccountId },
+          {
+            filter: {
+              equal: [
+                { path: ["editionId"] },
+                { parameter: entityEdition.entityEditionId },
+              ],
+            },
+            temporalAxes: fullDecisionTimeAxis,
+            includeDrafts: false,
+            includePermissions: false,
+          },
+        );
 
         if (!entity) {
           /**

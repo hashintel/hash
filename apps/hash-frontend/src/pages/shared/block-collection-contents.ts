@@ -27,7 +27,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
-import type { GetEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
+import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
@@ -60,8 +60,7 @@ export const blockCollectionContentsGetEntityVariables = {
 
 export const getBlockCollectionContentsStructuralQueryVariables = (
   pageEntityUuid: EntityUuid,
-): GetEntitySubgraphQueryVariables => ({
-  includePermissions: true,
+): QueryEntitySubgraphQueryVariables => ({
   request: {
     filter: {
       all: [
@@ -76,8 +75,9 @@ export const getBlockCollectionContentsStructuralQueryVariables = (
       ],
     },
     graphResolveDepths: blockCollectionContentsDepths,
-    includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: true,
   },
 });
 

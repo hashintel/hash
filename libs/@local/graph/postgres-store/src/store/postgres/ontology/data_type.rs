@@ -12,17 +12,20 @@ use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
         DataTypeConversionTargets, DataTypeQueryPath, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        edges::{
+            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind,
+            OntologyTraversalEdgeDirection, SubgraphTraversalParams, TraversalEdge,
+        },
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -193,18 +196,18 @@ where
             }))
     }
 
-    async fn get_data_types_impl(
+    async fn query_data_types_impl(
         &self,
-        params: GetDataTypesParams<'_>,
+        params: QueryDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<DataTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewDataType),
             policy_components.optimization_data(ActionName::ViewDataType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -296,7 +299,7 @@ where
             (data_types, cursor)
         };
 
-        Ok(GetDataTypesResponse {
+        Ok(QueryDataTypesResponse {
             cursor,
             data_types,
             count,
@@ -311,30 +314,67 @@ where
         &self,
         mut data_type_queue: Vec<(
             DataTypeUuid,
-            GraphResolveDepths,
+            BorrowedTraversalParams<'_>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
-        while !data_type_queue.is_empty() {
-            let mut edges_to_traverse =
-                HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
+        let mut edges_to_traverse = HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
 
-            for (data_type_ontology_id, graph_resolve_depths, traversal_interval) in
+        while !data_type_queue.is_empty() {
+            edges_to_traverse.clear();
+
+            for (data_type_ontology_id, subgraph_traversal_params, traversal_interval) in
                 mem::take(&mut data_type_queue)
             {
-                for edge_kind in [
-                    OntologyEdgeKind::InheritsFrom,
-                    OntologyEdgeKind::ConstrainsValuesOn,
-                ] {
-                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                        .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
-                    {
+                match subgraph_traversal_params {
+                    BorrowedTraversalParams::ResolveDepths {
+                        graph_resolve_depths,
+                    } => {
+                        for edge_kind in [
+                            OntologyEdgeKind::InheritsFrom,
+                            OntologyEdgeKind::ConstrainsValuesOn,
+                        ] {
+                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                                .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                            {
+                                edges_to_traverse.entry(edge_kind).or_default().push(
+                                    OntologyTypeUuid::from(data_type_ontology_id),
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        graph_resolve_depths: new_graph_resolve_depths,
+                                    },
+                                    traversal_interval,
+                                );
+                            }
+                        }
+                    }
+                    BorrowedTraversalParams::Path { traversal_path } => {
+                        let Some((edge, rest)) = traversal_path.split_first() else {
+                            continue;
+                        };
+
+                        let edge_kind = match edge {
+                            TraversalEdge::InheritsFrom {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::InheritsFrom,
+                            TraversalEdge::ConstrainsValuesOn {
+                                direction: OntologyTraversalEdgeDirection::Outgoing,
+                            } => OntologyEdgeKind::ConstrainsValuesOn,
+                            TraversalEdge::ConstrainsPropertiesOn { .. }
+                            | TraversalEdge::ConstrainsLinksOn { .. }
+                            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
+                            | TraversalEdge::IsOfType { .. }
+                            | TraversalEdge::HasLeftEntity { .. }
+                            | TraversalEdge::HasRightEntity { .. } => continue,
+                        };
+
                         edges_to_traverse.entry(edge_kind).or_default().push(
                             OntologyTypeUuid::from(data_type_ontology_id),
-                            new_graph_resolve_depths,
+                            BorrowedTraversalParams::Path {
+                                traversal_path: rest,
+                            },
                             traversal_interval,
                         );
                     }
@@ -348,33 +388,40 @@ where
                     inheritance_depth: Some(0),
                 },
             )] {
-                if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
-                    data_type_queue.extend(
-                        Self::filter_data_types_by_permission(
-                            self.read_ontology_edges::<DataTypeVertexId, DataTypeVertexId>(
-                                traversal_data,
-                                table,
-                            )
-                            .await?,
-                            provider,
-                            subgraph.temporal_axes.resolved.clone(),
-                        )
-                        .await?
-                        .flat_map(|edge| {
-                            subgraph.insert_edge(
-                                &edge.left_endpoint,
-                                edge_kind,
-                                EdgeDirection::Outgoing,
-                                edge.right_endpoint.clone(),
-                            );
+                let Some(traversal_data) = edges_to_traverse.remove(&edge_kind) else {
+                    continue;
+                };
 
-                            traversal_context.add_data_type_id(
-                                DataTypeUuid::from(edge.right_endpoint_ontology_id),
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                        }),
+                let traversed_edges = self
+                    .read_ontology_edges::<DataTypeVertexId, DataTypeVertexId>(
+                        &traversal_data,
+                        table,
+                    )
+                    .await?;
+
+                let filtered_traversed_edges = Self::filter_data_types_by_permission(
+                    traversed_edges,
+                    provider,
+                    subgraph.temporal_axes.resolved.clone(),
+                )
+                .await?;
+
+                for edge in filtered_traversed_edges {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        EdgeDirection::Outgoing,
+                        edge.right_endpoint.clone(),
                     );
+
+                    let next_traversal = traversal_context.add_data_type_id(
+                        DataTypeUuid::from(edge.right_endpoint_ontology_id),
+                        edge.traversal_params,
+                        edge.traversal_interval,
+                    );
+                    if let Some((data_type_uuid, traversal_params, interval)) = next_traversal {
+                        data_type_queue.push((data_type_uuid, traversal_params, interval));
+                    }
                 }
             }
         }
@@ -567,9 +614,9 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(
+            .query_data_types(
                 actor_id,
-                GetDataTypesParams {
+                QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
@@ -580,7 +627,6 @@ where
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -689,11 +735,11 @@ where
         Ok(inserted_data_type_metadata)
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        mut params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
@@ -706,8 +752,8 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_data_types_impl(params, &temporal_axes, &policy_components)
+        let temporal_axes = params.temporal_axes.resolve();
+        self.query_data_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
 
@@ -734,7 +780,7 @@ where
             .read(
                 &[params.filter],
                 Some(&params.temporal_axes.resolve()),
-                params.include_drafts,
+                false,
             )
             .await?
             .count()
@@ -742,11 +788,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
@@ -755,39 +801,25 @@ where
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        params
+        let (mut request, traversal_params) = params.into_request();
+        request
             .filter
             .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.clone().resolve();
+        let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let GetDataTypesResponse {
+        let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
+
+        let QueryDataTypesResponse {
             data_types,
             cursor,
             count,
         } = self
-            .get_data_types_impl(
-                GetDataTypesParams {
-                    filter: params.filter,
-                    temporal_axes: params.temporal_axes.clone(),
-                    after: params.after,
-                    limit: params.limit,
-                    include_drafts: params.include_drafts,
-                    include_count: params.include_count,
-                },
-                &temporal_axes,
-                &policy_components,
-            )
+            .query_data_types_impl(request, &temporal_axes, &policy_components)
             .await?;
-
-        let mut subgraph = Subgraph::new(
-            params.graph_resolve_depths,
-            params.temporal_axes,
-            temporal_axes.clone(),
-        );
 
         let (data_type_ids, data_type_vertex_ids): (Vec<_>, Vec<_>) = data_types
             .iter()
@@ -811,12 +843,33 @@ where
         self.traverse_data_types(
             data_type_ids
                 .into_iter()
-                .map(|id| {
-                    (
-                        id,
-                        subgraph.depths,
-                        subgraph.temporal_axes.resolved.variable_interval(),
-                    )
+                .flat_map(|id| {
+                    match &traversal_params {
+                        // TODO: The `vec` is not ideal as the flattening intermediate type but this
+                        //       branch will be removed anyway after the migration to traversal path
+                        //       based traversal is done
+                        SubgraphTraversalParams::ResolveDepths {
+                            graph_resolve_depths,
+                        } => vec![(
+                            id,
+                            BorrowedTraversalParams::ResolveDepths {
+                                graph_resolve_depths: *graph_resolve_depths,
+                            },
+                            subgraph.temporal_axes.resolved.variable_interval(),
+                        )],
+                        SubgraphTraversalParams::Paths { traversal_paths } => traversal_paths
+                            .iter()
+                            .map(|path| {
+                                (
+                                    id,
+                                    BorrowedTraversalParams::Path {
+                                        traversal_path: &path.edges,
+                                    },
+                                    subgraph.temporal_axes.resolved.variable_interval(),
+                                )
+                            })
+                            .collect(),
+                    }
                 })
                 .collect(),
             &mut traversal_context,
@@ -826,10 +879,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetDataTypeSubgraphResponse {
+        Ok(QueryDataTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
@@ -964,9 +1017,9 @@ where
             .collect::<HashMap<_, _>>();
 
         transaction
-            .get_data_types(
+            .query_data_types(
                 actor_id,
-                GetDataTypesParams {
+                QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
@@ -977,7 +1030,6 @@ where
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                    include_drafts: false,
                     after: None,
                     limit: None,
                     include_count: false,
@@ -1262,11 +1314,11 @@ where
         clippy::too_many_lines,
         reason = "This function is complex and needs refactoring"
     )]
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
@@ -1314,7 +1366,7 @@ where
                 .change_context(QueryError)?
         };
 
-        let mut response = GetDataTypeConversionTargetsResponse {
+        let mut response = FindDataTypeConversionTargetsResponse {
             conversions: HashMap::with_capacity(params.data_type_ids.len()),
         };
 

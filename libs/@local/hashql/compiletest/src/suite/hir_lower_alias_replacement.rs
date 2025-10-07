@@ -8,11 +8,14 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
-use hashql_diagnostics::Diagnostic;
-use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
+use hashql_diagnostics::DiagnosticIssues;
+use hashql_hir::{
+    context::HirContext, fold::Fold as _, intern::Interner, lower::alias::AliasReplacement,
+    node::Node, pretty::PrettyPrintEnvironment,
+};
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
-use crate::suite::common::Header;
+use super::{Suite, SuiteDiagnostic};
+use crate::suite::common::{Header, process_issues, process_status};
 
 pub(crate) struct HirLowerAliasReplacementSuite;
 
@@ -29,45 +32,51 @@ impl Suite for HirLowerAliasReplacementSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
+        let result = lower(
             heap.intern_symbol("::main"),
             &mut expr,
             &environment,
             &registry,
         );
+        let types = process_status(diagnostics, result)?;
 
-        process_diagnostics(diagnostics, lower_diagnostics)?;
-
-        let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
 
         let _ = writeln!(
             output,
             "{}\n\n{}",
             Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
-        let mut replacement = AliasReplacement::new(&interner);
+        let mut issues = DiagnosticIssues::new();
+        let mut replacement = AliasReplacement::new(&context, &mut issues);
         let Ok(node) = replacement.fold_node(node);
 
-        diagnostics.extend(
-            replacement
-                .take_diagnostics()
-                .into_iter()
-                .map(Diagnostic::boxed),
-        );
+        process_issues(diagnostics, issues)?;
 
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after alias replacement"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         Ok(output)

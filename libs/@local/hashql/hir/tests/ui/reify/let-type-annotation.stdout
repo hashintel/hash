@@ -1,2 +1,3 @@
-#is(#let x:0 = 5 in
+#as(#let x:0 = 5
+in
 x:0, type: Integer)

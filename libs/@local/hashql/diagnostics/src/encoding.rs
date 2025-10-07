@@ -1,25 +1,171 @@
-pub(crate) mod color_option {
-    #![expect(clippy::ref_option, clippy::trivially_copy_pass_by_ref)]
-    use anstyle::Color;
-    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
+pub(crate) mod style_opt {
+    #![expect(clippy::ref_option)]
+    use anstyle::Style;
+    use serde::{Deserialize as _, Deserializer, Serializer};
 
-    #[derive(serde::Serialize, serde::Deserialize)]
-    #[serde(transparent)]
-    struct Wrapped(#[serde(with = "super::color")] Color);
+    use super::style::StyleProxy;
 
-    pub(crate) fn serialize<S: Serializer>(
-        value: &Option<Color>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        value.map(Wrapped).serialize(serializer)
+    pub(crate) fn serialize<S>(value: &Option<Style>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serde::Serialize::serialize(&(*value).map(StyleProxy::from), serializer)
     }
 
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Color>, D::Error> {
-        let wrapped = Option::<Wrapped>::deserialize(deserializer)?;
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Option<Style>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Option::<StyleProxy>::deserialize(deserializer).map(|result| result.map(Style::from))
+    }
+}
 
-        Ok(wrapped.map(|wrapped| wrapped.0))
+pub(crate) mod style {
+    use anstyle::{Effects, Style};
+
+    use super::color::ColorProxy;
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+    pub(crate) struct StyleProxy {
+        #[serde(with = "super::effects")]
+        effects: Effects,
+        foreground: Option<ColorProxy>,
+        background: Option<ColorProxy>,
+        underline: Option<ColorProxy>,
+    }
+
+    const fn const_from<T, U>(value: Option<T>) -> Option<U>
+    where
+        T: [const] Into<U> + Copy,
+    {
+        match value {
+            Some(color) => Some(color.into()),
+            None => None,
+        }
+    }
+
+    impl const From<Style> for StyleProxy {
+        fn from(value: Style) -> Self {
+            Self {
+                effects: value.get_effects(),
+                foreground: const_from(value.get_fg_color()),
+                background: const_from(value.get_bg_color()),
+                underline: const_from(value.get_underline_color()),
+            }
+        }
+    }
+
+    impl const From<StyleProxy> for Style {
+        fn from(value: StyleProxy) -> Self {
+            Self::new()
+                .effects(value.effects)
+                .fg_color(const_from(value.foreground))
+                .bg_color(const_from(value.background))
+                .underline_color(const_from(value.underline))
+        }
+    }
+}
+
+pub(crate) mod effects {
+    #![expect(clippy::trivially_copy_pass_by_ref)]
+    use core::fmt;
+
+    use anstyle::Effects;
+    use serde::{Deserializer, Serializer, de::Visitor};
+
+    const EFFECTS: &[(Effects, EffectProxy)] = &[
+        (Effects::BOLD, EffectProxy::Bold),
+        (Effects::DIMMED, EffectProxy::Dimmed),
+        (Effects::ITALIC, EffectProxy::Italic),
+        (Effects::UNDERLINE, EffectProxy::Underline),
+        (Effects::DOUBLE_UNDERLINE, EffectProxy::DoubleUnderline),
+        (Effects::CURLY_UNDERLINE, EffectProxy::CurlyUnderline),
+        (Effects::DOTTED_UNDERLINE, EffectProxy::DottedUnderline),
+        (Effects::DASHED_UNDERLINE, EffectProxy::DashedUnderline),
+        (Effects::BLINK, EffectProxy::Blink),
+        (Effects::INVERT, EffectProxy::Invert),
+        (Effects::HIDDEN, EffectProxy::Hidden),
+        (Effects::STRIKETHROUGH, EffectProxy::Strikethrough),
+    ];
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+    enum EffectProxy {
+        #[serde(rename = "bold")]
+        Bold,
+        #[serde(rename = "dimmed")]
+        Dimmed,
+        #[serde(rename = "italic")]
+        Italic,
+        #[serde(rename = "underline")]
+        Underline,
+        #[serde(rename = "double-underline")]
+        DoubleUnderline,
+        #[serde(rename = "curly-underline")]
+        CurlyUnderline,
+        #[serde(rename = "dotted-underline")]
+        DottedUnderline,
+        #[serde(rename = "dashed-underline")]
+        DashedUnderline,
+        #[serde(rename = "blink")]
+        Blink,
+        #[serde(rename = "invert")]
+        Invert,
+        #[serde(rename = "hidden")]
+        Hidden,
+        #[serde(rename = "strikethrough")]
+        Strikethrough,
+    }
+
+    impl EffectProxy {
+        fn from_effects(value: Effects) -> Option<Self> {
+            EFFECTS
+                .iter()
+                .find_map(|&(effects, proxy)| (value == effects).then_some(proxy))
+        }
+
+        fn into_effects(self) -> Effects {
+            EFFECTS
+                .iter()
+                .find_map(|&(effects, proxy)| (proxy == self).then_some(effects))
+                .unwrap_or(Effects::new())
+        }
+    }
+
+    pub(crate) fn serialize<S>(value: &Effects, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_seq(value.iter().filter_map(EffectProxy::from_effects))
+    }
+
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Effects, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct EffectsVisitor;
+
+        impl<'de> Visitor<'de> for EffectsVisitor {
+            type Value = Effects;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of effects")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let mut effects = Effects::new();
+
+                while let Some(effect) = seq.next_element::<EffectProxy>()? {
+                    effects |= effect.into_effects();
+                }
+
+                Ok(effects)
+            }
+        }
+
+        deserializer.deserialize_seq(EffectsVisitor)
     }
 }
 
@@ -47,6 +193,39 @@ pub(crate) mod color {
 
         write_hex_digit(&mut buffer[0], value >> 4);
         write_hex_digit(&mut buffer[1], value & 0xF);
+    }
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    pub(crate) struct ColorProxy(Color);
+
+    impl const From<Color> for ColorProxy {
+        fn from(color: Color) -> Self {
+            Self(color)
+        }
+    }
+
+    impl const From<ColorProxy> for Color {
+        fn from(color_proxy: ColorProxy) -> Self {
+            color_proxy.0
+        }
+    }
+
+    impl serde::Serialize for ColorProxy {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serialize(&self.0, serializer)
+        }
+    }
+
+    impl<'de> serde::Deserialize<'de> for ColorProxy {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            deserialize(deserializer).map(ColorProxy)
+        }
     }
 
     pub(crate) fn serialize<S: Serializer>(

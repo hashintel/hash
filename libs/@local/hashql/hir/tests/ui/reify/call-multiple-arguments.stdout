@@ -1,2 +1,3 @@
-#let concat:0 = null in
+#let concat:0 = null
+in
 concat:0("hello", ", ", "world", "!")

@@ -1,17 +1,14 @@
-[special-form-expander::labeled-arguments-not-supported] Error: Labeled arguments not supported in special forms
-    ╭─[ <unknown>:3:1 ]
-    │
-  3 │ ╭─▶ [
-    ┆ ┆   
-  6 │ │       ":test": { "#literal": true }
-    │ │       ──────────────┬──────────────  
-    │ │                     ╰──────────────── Remove this labeled argument
-    ┆ ┆   
- 11 │ ├─▶ ]
-    │ │       
-    │ ╰─────── In this special form call
-    │     
-    │     Help: Special forms only accept positional arguments. Convert all labeled arguments to positional arguments in the correct order.
-    │     
-    │     Note: Unlike regular functions, special forms have fixed parameter positions and cannot use labeled arguments.
-────╯
+error[special-form-expander::labeled-arguments-not-supported]: Labeled arguments not supported in special forms
+   ╭▸ 
+ 3 │ ┏ [
+ 4 │ ┃   "::kernel::special_form::if",
+ 5 │ ┃   {
+ 6 │ ┃     ":test": { "#literal": true }
+   │ ┃     ───────────────────────────── Remove this labeled argument
+   ‡ ┃
+10 │ ┃   { "#literal": false }
+11 │ ┃ ]
+   │ ┗━┛ In this special form call
+   │
+   ├ help: Special forms only accept positional arguments. Convert all labeled arguments to positional arguments in the correct order.
+   ╰ note: Unlike regular functions, special forms have fixed parameter positions and cannot use labeled arguments.

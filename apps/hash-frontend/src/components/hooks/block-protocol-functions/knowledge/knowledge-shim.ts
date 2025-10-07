@@ -10,6 +10,7 @@ import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
   EntityRootType,
+  GraphResolveDepths,
   QueryOperationInput,
   ReadOrModifyResourceError,
   Subgraph,
@@ -33,7 +34,7 @@ import type {
 
 export type GetEntityData = {
   entityId: EntityId;
-  graphResolveDepths?: Partial<Subgraph["depths"]>;
+  graphResolveDepths?: Partial<GraphResolveDepths>;
 };
 
 /** @todo-0.3 - we really want some type safety on these if we can find it, but this doesn't work */
@@ -83,7 +84,7 @@ export type UploadFileRequestCallback = MessageCallback<
 
 export type QueryEntitiesRequest = {
   operation: QueryOperationInput;
-  graphResolveDepths?: Partial<Subgraph["depths"]>;
+  graphResolveDepths?: Partial<GraphResolveDepths>;
 };
 
 export type QueryEntitiesMessageCallback = MessageCallback<

@@ -7,6 +7,7 @@ use pretty::RcDoc;
 pub use self::{
     solver::InferenceSolver,
     variable::{Variable, VariableKind},
+    visit::VariableCollector,
 };
 pub(crate) use self::{variable::VariableLookup, visit::VariableDependencyCollector};
 use super::{
@@ -58,7 +59,7 @@ impl Subject {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Subject {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Subject {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -316,7 +317,7 @@ impl Constraint<'_> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Constraint<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Constraint<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

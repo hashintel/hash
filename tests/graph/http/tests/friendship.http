@@ -100,8 +100,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -264,8 +263,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -466,8 +464,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -563,8 +560,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
           "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -714,8 +710,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
           "end": null
         }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -807,8 +802,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -921,8 +915,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -964,8 +957,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1009,8 +1001,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
           "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1052,8 +1043,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1102,8 +1092,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1139,8 +1128,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1176,8 +1164,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": false
+  }
 }
 
 > {%
@@ -1305,7 +1292,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1314,7 +1302,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}
-
 
 ### Validate person entity to update
 POST http://127.0.0.1:4000/entities/validate
@@ -1507,8 +1494,9 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
+  "includeEntityTypes": "resolved",
   "includeDrafts": true,
-  "includeEntityTypes": "resolved"
+  "includePermissions": false
 }
 
 > {%
@@ -1540,7 +1528,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1682,7 +1671,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1743,7 +1733,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1808,7 +1799,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1850,7 +1842,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 
@@ -1889,7 +1882,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": false
+  "includeDrafts": false,
+  "includePermissions": false
 }
 
 > {%
@@ -1924,8 +1918,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": true
+  }
 }
 
 > {%
@@ -1961,8 +1954,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": true
+  }
 }
 
 > {%
@@ -1998,8 +1990,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         "end": null
       }
     }
-  },
-  "includeDrafts": true
+  }
 }
 
 > {%
@@ -2038,7 +2029,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 > {%
@@ -2076,7 +2068,8 @@ X-Authenticated-User-Actor-Id: {{user_id}}
       }
     }
   },
-  "includeDrafts": true
+  "includeDrafts": true,
+  "includePermissions": false
 }
 
 > {%

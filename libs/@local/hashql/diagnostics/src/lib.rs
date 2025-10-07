@@ -5,26 +5,34 @@
 #![feature(
     // Language Features
     trait_alias,
+    const_trait_impl,
+    const_convert,
+    const_default,
+    never_type,
 
     // Library Features
-    int_from_ascii,
     variant_count,
+    int_from_ascii,
 )]
 
 extern crate alloc;
 
 pub mod category;
-pub mod config;
 pub mod diagnostic;
 #[cfg(feature = "serde")]
-pub mod encoding;
-pub mod error;
-pub mod help;
-pub mod label;
-pub mod note;
+pub(crate) mod encoding;
+pub mod issues;
 pub mod severity;
-pub mod span;
+pub mod source;
+mod status;
 
 pub use anstyle as color;
 
-pub use self::{diagnostic::Diagnostic, help::Help, note::Note, severity::Severity};
+pub use self::{
+    category::DiagnosticCategory,
+    diagnostic::{Diagnostic, Label, Message, Patch, Suggestions},
+    issues::{DiagnosticIssues, DiagnosticSink},
+    severity::Severity,
+    source::{Source, Sources},
+    status::{Failure, Status, StatusExt, Success},
+};
