@@ -23,7 +23,7 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind,
+            BorrowedTraversalParams, EdgeDirection, GraphResolveDepths, OntologyEdgeKind,
             OntologyTraversalEdgeDirection, SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{DataTypeVertexId, GraphElementVertexId},
@@ -310,6 +310,7 @@ where
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
@@ -338,12 +339,16 @@ where
                             OntologyEdgeKind::ConstrainsValuesOn,
                         ] {
                             if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                                .ontology
                                 .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(data_type_ontology_id),
                                     BorrowedTraversalParams::ResolveDepths {
-                                        graph_resolve_depths: new_graph_resolve_depths,
+                                        graph_resolve_depths: GraphResolveDepths {
+                                            ontology: new_graph_resolve_depths,
+                                            ..graph_resolve_depths
+                                        },
                                     },
                                     traversal_interval,
                                 );

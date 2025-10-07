@@ -29,7 +29,7 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, KnowledgeGraphEdgeKind,
+            BorrowedTraversalParams, EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind,
             OntologyTraversalEdgeDirection, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
@@ -164,8 +164,8 @@ where
                     BorrowedTraversalParams::ResolveDepths {
                         graph_resolve_depths,
                     } => {
-                        if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                            .decrement_depth_for_edge(
+                        if let Some(new_graph_resolve_depths) =
+                            graph_resolve_depths.ontology.decrement_depth_for_edge(
                                 SharedEdgeKind::IsOfType,
                                 EdgeDirection::Outgoing,
                             )
@@ -181,7 +181,10 @@ where
                                     entity_vertex_id,
                                     traversal_interval,
                                     BorrowedTraversalParams::ResolveDepths {
-                                        graph_resolve_depths: new_graph_resolve_depths,
+                                        graph_resolve_depths: GraphResolveDepths {
+                                            ontology: new_graph_resolve_depths,
+                                            ..graph_resolve_depths
+                                        },
                                     },
                                 );
                         }

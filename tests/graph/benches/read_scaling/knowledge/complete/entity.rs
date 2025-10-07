@@ -13,7 +13,10 @@ use hash_graph_store::{
     },
     filter::Filter,
     subgraph::{
-        edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, OntologyGraphResolveDepths,
+            OutgoingEdgeResolveDepth,
+        },
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -319,12 +322,14 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
                     account_id,
                     entity_list,
                     GraphResolveDepths {
-                        inherits_from: OutgoingEdgeResolveDepth::default(),
-                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
-                        is_of_type: OutgoingEdgeResolveDepth::default(),
+                        ontology: OntologyGraphResolveDepths {
+                            inherits_from: OutgoingEdgeResolveDepth::default(),
+                            constrains_values_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_properties_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_links_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
+                            is_of_type: OutgoingEdgeResolveDepth::default(),
+                        },
                         has_left_entity: EdgeResolveDepths::default(),
                         has_right_entity: EdgeResolveDepths::default(),
                     },
@@ -372,12 +377,14 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
                     account_id,
                     entity_metadata_list,
                     GraphResolveDepths {
-                        inherits_from: OutgoingEdgeResolveDepth::default(),
-                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
-                        is_of_type: OutgoingEdgeResolveDepth::default(),
+                        ontology: OntologyGraphResolveDepths {
+                            inherits_from: OutgoingEdgeResolveDepth::default(),
+                            constrains_values_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_properties_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_links_on: OutgoingEdgeResolveDepth::default(),
+                            constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
+                            is_of_type: OutgoingEdgeResolveDepth::default(),
+                        },
                         has_left_entity: EdgeResolveDepths {
                             incoming: 1,
                             outgoing: 1,

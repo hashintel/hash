@@ -29,8 +29,8 @@ use hash_graph_store::{
         Subgraph, SubgraphRecord as _,
         edges::{
             BorrowedTraversalParams, EdgeDirection, GraphResolveDepths, OntologyEdgeKind,
-            OntologyTraversalEdgeDirection, OutgoingEdgeResolveDepth, SubgraphTraversalParams,
-            TraversalEdge,
+            OntologyGraphResolveDepths, OntologyTraversalEdgeDirection, OutgoingEdgeResolveDepth,
+            SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -237,9 +237,12 @@ where
                 actor_id,
                 QueryPropertyTypeSubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths {
-                        constrains_properties_on: OutgoingEdgeResolveDepth {
-                            outgoing: 255,
-                            incoming: 0,
+                        ontology: OntologyGraphResolveDepths {
+                            constrains_properties_on: OutgoingEdgeResolveDepth {
+                                outgoing: 255,
+                                incoming: 0,
+                            },
+                            ..OntologyGraphResolveDepths::default()
                         },
                         ..GraphResolveDepths::default()
                     },
@@ -659,12 +662,16 @@ where
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                         ] {
                             if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                                .ontology
                                 .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(entity_type_ontology_id),
                                     BorrowedTraversalParams::ResolveDepths {
-                                        graph_resolve_depths: new_graph_resolve_depths,
+                                        graph_resolve_depths: GraphResolveDepths {
+                                            ontology: new_graph_resolve_depths,
+                                            ..graph_resolve_depths
+                                        },
                                     },
                                     traversal_interval,
                                 );

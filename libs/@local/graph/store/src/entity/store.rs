@@ -362,13 +362,18 @@ impl<'a> QueryEntitySubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.is_of_type.outgoing > 0 {
+                if graph_resolve_depths.ontology.is_of_type.outgoing > 0 {
                     actions.push(ActionName::ViewEntityType);
 
-                    if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                    if graph_resolve_depths
+                        .ontology
+                        .constrains_properties_on
+                        .outgoing
+                        > 0
+                    {
                         actions.push(ActionName::ViewPropertyType);
 
-                        if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                        if graph_resolve_depths.ontology.constrains_values_on.outgoing > 0 {
                             actions.push(ActionName::ViewDataType);
                         }
                     }
