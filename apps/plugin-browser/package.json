@@ -63,7 +63,7 @@
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7",
-    "@types/webextension-polyfill": "0.12.2",
+    "@types/webextension-polyfill": "0.12.4",
     "@types/ws": "8.18.1",
     "babel-loader": "9.2.1",
     "babel-preset-react-app": "10.1.0",
