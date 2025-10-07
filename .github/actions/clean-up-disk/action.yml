@@ -1,0 +1,32 @@
+name: Clean up disk
+description: "Cleans up disk space by removing unnecessary files"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check disk space
+      shell: bash
+      run: df  -h
+
+    - name: Remove unused files
+      shell: bash
+      run: |
+        sudo rm -rf \
+          /usr/share/dotnet \
+          /usr/share/swift \
+          /usr/lib/jvm \
+          /usr/local/.ghcup \
+          /usr/local/lib/android \
+          /usr/local/share/powershell \
+          /opt/ghc
+
+    - name: Remove unused packages
+      shell: bash
+      run: |
+        sudo apt-get autoremove -y
+        sudo apt-get autoclean -y
+
+
+    - name: Check disk space
+      shell: bash
+      run: df  -h
