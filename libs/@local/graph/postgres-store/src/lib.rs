@@ -4,7 +4,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
-    doc_auto_cfg,
+    doc_cfg,
     impl_trait_in_assoc_type,
     never_type,
     trait_alias,
