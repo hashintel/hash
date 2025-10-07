@@ -169,10 +169,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     outgoing: 0,
                     incoming: 0,
                 },
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
+                is_of_type: OutgoingEdgeResolveDepth {
+                    outgoing: 1,
+                    incoming: 0,
+                },
             },
             has_right_entity: EdgeResolveDepths {
                 incoming: 0,
@@ -205,10 +205,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     outgoing: 0,
                     incoming: 0,
                 },
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
+                is_of_type: OutgoingEdgeResolveDepth {
+                    outgoing: 1,
+                    incoming: 0,
+                },
             },
             has_right_entity: EdgeResolveDepths {
                 incoming: 0,
@@ -241,10 +241,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     outgoing: 0,
                     incoming: 0,
                 },
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
+                is_of_type: OutgoingEdgeResolveDepth {
+                    outgoing: 1,
+                    incoming: 0,
+                },
             },
             has_right_entity: EdgeResolveDepths {
                 incoming: 0,
@@ -277,10 +277,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     outgoing: 126,
                     incoming: 0,
                 },
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
+                is_of_type: OutgoingEdgeResolveDepth {
+                    outgoing: 1,
+                    incoming: 0,
+                },
             },
             has_right_entity: EdgeResolveDepths {
                 incoming: 0,
@@ -328,8 +328,8 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     .ontology
                     .constrains_link_destinations_on
                     .outgoing,
-                graph_resolve_depth.is_of_type.incoming,
-                graph_resolve_depth.is_of_type.outgoing,
+                graph_resolve_depth.ontology.is_of_type.incoming,
+                graph_resolve_depth.ontology.is_of_type.outgoing,
             ]
             .iter()
             .sum::<u8>(),
@@ -394,8 +394,8 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     .ontology
                     .constrains_link_destinations_on
                     .outgoing,
-                graph_resolve_depth.is_of_type.incoming,
-                graph_resolve_depth.is_of_type.outgoing,
+                graph_resolve_depth.ontology.is_of_type.incoming,
+                graph_resolve_depth.ontology.is_of_type.outgoing,
             ]
             .iter()
             .sum::<u8>(),
