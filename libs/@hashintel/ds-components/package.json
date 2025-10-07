@@ -51,7 +51,7 @@
     "@types/react": "19.1.9",
     "@types/react-dom": "19.1.7",
     "@vitejs/plugin-react": "5.0.4",
-    "eslint": "9.20.1",
+    "eslint": "9.37.0",
     "eslint-plugin-storybook": "9.1.10",
     "lucide-react": "0.544.0",
     "storybook": "9.1.10",
