@@ -75,14 +75,15 @@ jobs:
     if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Clean up disk
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
@@ -126,6 +127,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Clean up disk
+        if: github.event_name != 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -196,14 +201,15 @@ jobs:
     if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Clean up disk
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
@@ -289,6 +295,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Clean up disk
+        if: github.event_name != 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools

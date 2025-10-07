@@ -114,11 +114,11 @@ jobs:
     if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -195,11 +195,11 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.dockers != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Build image
         uses: ./.github/actions/build-docker-images
@@ -220,11 +220,11 @@ jobs:
     if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -377,11 +377,11 @@ jobs:
     if: needs.setup.outputs.publish != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
-      - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
-
       - name: Checkout source code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Find publish jobs to run
         id: publish
