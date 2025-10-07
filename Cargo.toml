@@ -130,7 +130,6 @@ deadpool-postgres                  = { version = "=0.14.1", default-features = f
 derive-where                       = { version = "=1.6.0", default-features = false, features = ["nightly"] }
 derive_more                        = { version = "=2.0.1", default-features = false }
 dotenv-flow                        = { version = "=0.16.2", default-features = false }
-ecow                               = { version = "=0.2.6", default-features = false }
 either                             = { version = "=1.15.0", default-features = false }
 email_address                      = { version = "=0.2.9", default-features = false }
 ena                                = { version = "=0.14.3", default-features = false }
@@ -166,7 +165,6 @@ itertools                          = { version = "=0.14.0", default-features = f
 json-number                        = { version = "=0.4.9", default-features = false }
 jsonptr                            = { version = "=0.7.1", default-features = false }
 jsonschema                         = { version = "=0.33.0", default-features = false }
-justjson                           = { version = "=0.3.0", default-features = false }
 lexical                            = { version = "=7.0.4", default-features = false }
 libp2p                             = { version = "=0.56.0", default-features = false }
 libp2p-core                        = { version = "=0.43.1", default-features = false }
@@ -243,7 +241,6 @@ tachyonix                          = { version = "=0.3.1", default-features = fa
 tarpc                              = { version = "=0.36.0", default-features = false, git = "https://github.com/google/tarpc", rev = "f55f36d2d876b1868cfcf52f41d0456a60cf726c" }
 temporal-client                    = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
 temporal-sdk-core-protos           = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
-test-fuzz                          = { version = "=7.2.4", default-features = false }
 test-log                           = { version = "=0.2.18", default-features = false }
 test-strategy                      = { version = "=0.4.3", default-features = false }
 text-size                          = { version = "=1.1.1", default-features = false }
@@ -389,6 +386,5 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
-oxc      = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
-justjson = { git = "https://github.com/TimDiekmann/justjson", rev = "d8e8cf1" }
-specta   = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
+oxc    = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
+specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }

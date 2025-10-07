@@ -13,7 +13,6 @@ hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
 anstyle            = { workspace = true, public = true }
-ecow               = { workspace = true, public = true }
 foldhash           = { workspace = true, public = true }
 hashbrown          = { workspace = true, public = true }
 orx-concurrent-vec = { workspace = true, public = true }
