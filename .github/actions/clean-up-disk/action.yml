@@ -11,14 +11,26 @@ runs:
         df -h
         echo
 
-        echo "Finding largest directories (depth=3, parallel scan):"
-        # Scan multiple paths in parallel for speed
-        {
-          du -h --max-depth=3 /usr 2>/dev/null &
-          du -h --max-depth=3 /opt 2>/dev/null &
-          du -h --max-depth=3 /var 2>/dev/null &
-          wait
-        } | awk '$1 ~ /[0-9.]+G|[5-9][0-9][0-9]M/' | head -n 40 || true
+        # Install ncdu if available (fast disk usage analyzer)
+        if command -v apt-get &> /dev/null; then
+          sudo apt-get update -qq && sudo apt-get install -y -qq ncdu 2>/dev/null || true
+        fi
+
+        if command -v ncdu &> /dev/null; then
+          echo "Using ncdu for fast disk analysis:"
+          # ncdu export mode - much faster than du
+          sudo ncdu -x -o- --exclude /proc --exclude /sys --exclude /dev / 2>/dev/null | \
+            grep -E '"asize":[0-9]{10,}' | head -n 30 || true
+        else
+          echo "Finding largest directories (depth=3, parallel scan):"
+          # Fallback to parallel du
+          {
+            du -h --max-depth=3 /usr 2>/dev/null &
+            du -h --max-depth=3 /opt 2>/dev/null &
+            du -h --max-depth=3 /var 2>/dev/null &
+            wait
+          } | awk '$1 ~ /[0-9.]+G|[5-9][0-9][0-9]M/' | head -n 40 || true
+        fi
         echo
 
     - name: Remove unused files
