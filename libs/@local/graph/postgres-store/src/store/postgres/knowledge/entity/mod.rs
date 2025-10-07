@@ -1523,20 +1523,37 @@ where
                             SubgraphTraversalParams::Mixed {
                                 entity_traversal_paths,
                                 ontology_graph_resolve_depths,
-                            } => entity_traversal_paths
-                                .iter()
-                                .map(|path| {
-                                    (
+                            } => {
+                                if entity_traversal_paths.is_empty() {
+                                    // If no entity traversal paths are specified, still initialize
+                                    // the traversal queue with ontology resolve depths to enable
+                                    // traversal of ontology edges (e.g., isOfType, inheritsFrom)
+                                    vec![(
                                         *id,
                                         BorrowedTraversalParams::Mixed {
-                                            entity_traversal_path: &path.edges,
+                                            entity_traversal_path: &[],
                                             ontology_graph_resolve_depths:
                                                 *ontology_graph_resolve_depths,
                                         },
                                         subgraph.temporal_axes.resolved.variable_interval(),
-                                    )
-                                })
-                                .collect(),
+                                    )]
+                                } else {
+                                    entity_traversal_paths
+                                        .iter()
+                                        .map(|path| {
+                                            (
+                                                *id,
+                                                BorrowedTraversalParams::Mixed {
+                                                    entity_traversal_path: &path.edges,
+                                                    ontology_graph_resolve_depths:
+                                                        *ontology_graph_resolve_depths,
+                                                },
+                                                subgraph.temporal_axes.resolved.variable_interval(),
+                                            )
+                                        })
+                                        .collect()
+                                }
+                            }
                         }
                     })
                     .collect(),
