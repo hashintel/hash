@@ -11,7 +11,22 @@ export interface CreateEntityPolicyParams {
 export interface EntityPermissions {
 	update?: [EntityEditionId, ...EntityEditionId[]];
 }
+export type EntityTraversalEdge = {
+	kind: "has-left-entity"
+	direction: EntityTraversalEdgeDirection
+} | {
+	kind: "has-right-entity"
+	direction: EntityTraversalEdgeDirection
+};
 export type EntityTraversalEdgeDirection = "incoming" | "outgoing";
+export type EntityTraversalEdgeKind = {
+	kind: "has-left-entity"
+} | {
+	kind: "has-right-entity"
+};
+export interface EntityTraversalPath {
+	edges: EntityTraversalEdge[];
+}
 export type OntologyTraversalEdgeDirection = "outgoing";
 export type TraversalEdge = {
 	kind: "inherits-from"

@@ -17,7 +17,8 @@ pub use self::{
         OntologyGraphResolveDepths, OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
     traversal::{
-        BorrowedTraversalParams, EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection,
+        BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeDirection,
+        EntityTraversalEdgeKind, EntityTraversalPath, OntologyTraversalEdgeDirection,
         SubgraphTraversalParams, TraversalEdge, TraversalEdgeKind, TraversalPath,
     },
 };

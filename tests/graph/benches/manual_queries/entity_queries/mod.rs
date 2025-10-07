@@ -247,6 +247,31 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
                 .collect::<Vec<_>>()
                 .join(";")
         ),
+        SubgraphTraversalParams::Mixed {
+            entity_traversal_paths,
+            ontology_graph_resolve_depths: depths,
+        } => format!(
+            "traversal_paths={},resolve_depths=inherit:{};values:{};properties:{};links:{};\
+             link_dests:{};;type:{}",
+            entity_traversal_paths
+                .iter()
+                .map(|path| format!(
+                    "({})",
+                    path.edges
+                        .iter()
+                        .map(|edge| format!("{edge:?}"))
+                        .collect::<Vec<_>>()
+                        .join(";")
+                ))
+                .collect::<Vec<_>>()
+                .join(";"),
+            depths.inherits_from.outgoing,
+            depths.constrains_values_on.outgoing,
+            depths.constrains_properties_on.outgoing,
+            depths.constrains_links_on.outgoing,
+            depths.constrains_link_destinations_on.outgoing,
+            depths.is_of_type.outgoing,
+        ),
     }
 }
 

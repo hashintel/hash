@@ -7,7 +7,6 @@ import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   fullDecisionTimeAxis,
   fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
@@ -46,10 +45,8 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
-        },
+        ontologyGraphResolveDepths: fullOntologyResolveDepths,
+        entityTraversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
         includePermissions: false,

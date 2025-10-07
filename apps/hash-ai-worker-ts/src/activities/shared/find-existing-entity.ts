@@ -23,7 +23,6 @@ import {
   currentTimeInstantTemporalAxes,
   fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 
@@ -65,10 +64,8 @@ export const findExistingEntity = async ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
           })),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
-        },
+        ontologyGraphResolveDepths: fullOntologyResolveDepths,
+        entityTraversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     ).then(({ subgraph }) => {
