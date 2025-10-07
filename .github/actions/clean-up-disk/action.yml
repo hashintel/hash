@@ -4,10 +4,9 @@ description: "Cleans up disk space by removing unnecessary files"
 runs:
   using: "composite"
   steps:
-    - name: Check disk space
+    - name: Check disk space before cleanup
       shell: bash
       run: |
-        echo "Overal disk space usage before cleanup:"
         df -h
 
         # Uncomment the following lines to see the largest directories before cleanup
@@ -26,21 +25,29 @@ runs:
     - name: Remove unused files
       shell: bash
       run: |
-        echo "Removing unused files in parallel..."
+        echo "Deleting large directories..."
+        mkdir -p /tmp/empty
 
-        # Delete large directories in parallel background jobs
-        sudo rm -rf /usr/share/dotnet &
-        sudo rm -rf /usr/share/swift &
-        sudo rm -rf /usr/lib/jvm &
-        sudo rm -rf /usr/local/.ghcup &
-        sudo rm -rf /usr/local/lib/android &
-        sudo rm -rf /usr/local/share/powershell &
-        sudo rm -rf /opt/ghc &
+        # rsync --delete is 10-100x faster than rm -rf for directories with many small files
+        for dir in \
+          /usr/share/dotnet \
+          /usr/share/swift \
+          /usr/lib/jvm \
+          /usr/local/.ghcup \
+          /usr/local/lib/android \
+          /usr/local/share/powershell \
+          /opt/ghc \
+        ; do
+          if [ -d "$dir" ]; then
+            size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "  → $dir ($size)"
+            (sudo rsync -a --delete /tmp/empty/ "$dir/" && sudo rmdir "$dir") &
+          fi
+        done
 
-        # Wait for all deletions to complete
         wait
-        echo "Deletion complete"
-        echo
+        rmdir /tmp/empty
+        echo "✓ Deletion complete"
 
     - name: Remove unused packages
       shell: bash
@@ -51,8 +58,6 @@ runs:
         echo
 
 
-    - name: Check disk space
+    - name: Check disk space after cleanup
       shell: bash
-      run: |
-        echo "Overal disk space usage after cleanup:"
-        df -h
+      run: df -h
