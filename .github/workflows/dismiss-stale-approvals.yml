@@ -1,0 +1,19 @@
+name: Dismiss stale pull request approvals
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  dismiss_stale_approvals:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Dismiss stale pull request approvals
+        uses: withgraphite/dismiss-stale-approvals@36620714c84092b9d1bd5123ab3b5e11c48b5119 # v0.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
