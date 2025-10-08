@@ -41,8 +41,8 @@ use crate::{
     subgraph::{
         Subgraph,
         edges::{
-            EntityTraversalPath, GraphResolveDepths, OntologyGraphResolveDepths,
-            SubgraphTraversalParams, TraversalEdgeKind, TraversalPath,
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -288,17 +288,13 @@ pub struct QueryEntitiesResponse<'r> {
 
 #[derive(Debug)]
 pub enum QueryEntitySubgraphParams<'a> {
-    ResolveDepths {
-        graph_resolve_depths: GraphResolveDepths,
-        request: QueryEntitiesParams<'a>,
-    },
     Paths {
         traversal_paths: Vec<TraversalPath>,
         request: QueryEntitiesParams<'a>,
     },
-    Mixed {
-        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
-        entity_traversal_paths: Vec<EntityTraversalPath>,
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_paths: Vec<EntityTraversalPath>,
         request: QueryEntitiesParams<'a>,
     },
 }
@@ -307,18 +303,14 @@ impl<'a> QueryEntitySubgraphParams<'a> {
     #[must_use]
     pub const fn request(&self) -> &QueryEntitiesParams<'a> {
         match self {
-            Self::Paths { request, .. }
-            | Self::ResolveDepths { request, .. }
-            | Self::Mixed { request, .. } => request,
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
     pub const fn request_mut(&mut self) -> &mut QueryEntitiesParams<'a> {
         match self {
-            Self::Paths { request, .. }
-            | Self::ResolveDepths { request, .. }
-            | Self::Mixed { request, .. } => request,
+            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
@@ -331,22 +323,13 @@ impl<'a> QueryEntitySubgraphParams<'a> {
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
                 request,
+                traversal_paths,
                 graph_resolve_depths,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
-                },
-            ),
-            Self::Mixed {
-                request,
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
-            } => (
-                request,
-                SubgraphTraversalParams::Mixed {
-                    entity_traversal_paths,
-                    ontology_graph_resolve_depths,
                 },
             ),
         }
@@ -382,14 +365,7 @@ impl<'a> QueryEntitySubgraphParams<'a> {
                 }
             }
             Self::ResolveDepths {
-                graph_resolve_depths:
-                    GraphResolveDepths {
-                        ontology: depths, ..
-                    },
-                ..
-            }
-            | Self::Mixed {
-                ontology_graph_resolve_depths: depths,
+                graph_resolve_depths: depths,
                 ..
             } => {
                 if depths.is_of_type.outgoing > 0 {
