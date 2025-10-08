@@ -5,7 +5,7 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
   Filter,
-  GraphResolveDepths,
+  TraversalPath,
 } from "@local/hash-graph-client";
 import {
   type ConversionRequest,
@@ -14,7 +14,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
@@ -36,7 +35,7 @@ type UseEntityTypeEntitiesQueryParams = {
   cursor?: EntityQueryCursor | null;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
-  graphResolveDepths?: Partial<GraphResolveDepths>;
+  traversalPaths: TraversalPath[];
   includeArchived?: boolean;
   includeTypeIds?: boolean;
   webIds?: WebId[];
@@ -167,7 +166,7 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
   webIds,
   entityTypeBaseUrl,
   entityTypeIds,
-  graphResolveDepths,
+  traversalPaths,
   includeArchived,
   sort,
   ...rest
@@ -187,10 +186,7 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
         entityTypeBaseUrl,
         entityTypeIds,
       }),
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        ...graphResolveDepths,
-      },
+      traversalPaths,
       sortingPaths: sort ? [sort] : undefined,
       /**
        * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities

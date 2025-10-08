@@ -106,24 +106,26 @@ export const useEntitiesVisualizerData = (params: {
       includeArchived,
       limit,
       webIds: webIdsParam,
-      graphResolveDepths:
+      traversalPaths:
         view === "Graph"
-          ? {
-              /**
-               * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
-               * We skip asking the graph to resolve them.
-               * This does mean that links to entities outside the users' webs are not reflected in the graph view,
-               * unless they have clicked to include entities from other webs.
-               */
-              hasLeftEntity: { outgoing: 0, incoming: 0 },
-              hasRightEntity: { outgoing: 0, incoming: 0 },
-            }
+          ? /**
+             * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
+             * We skip asking the graph to resolve them.
+             * This does mean that links to entities outside the users' webs are not reflected in the graph view,
+             * unless they have clicked to include entities from other webs.
+             */
+            []
           : /**
              * The table view only needs outgoing: 1 for each, in order to be able to display the source and target of links.
-             */ {
-              hasLeftEntity: { outgoing: 1, incoming: 0 },
-              hasRightEntity: { outgoing: 1, incoming: 0 },
-            },
+             */
+            [
+              {
+                edges: [
+                  { kind: "has-left-entity", direction: "outgoing" },
+                  { kind: "has-right-entity", direction: "outgoing" },
+                ],
+              },
+            ],
       sort,
     },
     (data) => {

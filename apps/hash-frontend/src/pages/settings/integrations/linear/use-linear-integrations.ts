@@ -5,10 +5,7 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type { Entity } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -72,11 +69,14 @@ export const useLinearIntegrations = (): {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { outgoing: 0, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 0 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,

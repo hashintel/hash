@@ -62,6 +62,7 @@ export const useBlockProtocolGetEntityType = (): {
               inheritsFrom: { outgoing: 255 },
               ...graphResolveDepths,
             },
+            traversalPaths: [],
           },
         },
       });

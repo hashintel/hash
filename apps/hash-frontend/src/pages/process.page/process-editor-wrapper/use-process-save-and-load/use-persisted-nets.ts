@@ -10,10 +10,7 @@ import type {
   TransitionNodeData,
 } from "@hashintel/petrinaut";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -198,17 +195,26 @@ export const usePersistedNets = () => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasRightEntity: {
-            incoming: 1,
-            outgoing: 1,
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
           },
-          hasLeftEntity: {
-            incoming: 1,
-            outgoing: 1,
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
           },
-        },
+          {
+            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
+          },
+          {
+            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+          },
+        ],
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,
         includePermissions: true,

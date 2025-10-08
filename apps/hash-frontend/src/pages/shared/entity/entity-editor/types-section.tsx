@@ -210,6 +210,7 @@ export const TypesSection = () => {
           constrainsLinkDestinationsOn: { outgoing: 0 },
           inheritsFrom: { outgoing: 255 },
         },
+        traversalPaths: [],
       },
     },
     skip: readonly,

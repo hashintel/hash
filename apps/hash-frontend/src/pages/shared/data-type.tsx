@@ -162,6 +162,7 @@ export const DataType = ({
             inheritsFrom: { outgoing: 255 },
             constrainsValuesOn: { outgoing: 255 },
           },
+          traversalPaths: [],
         },
       },
       skip: !!draftNewDataType,

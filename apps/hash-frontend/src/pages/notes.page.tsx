@@ -32,7 +32,7 @@ import { getLayoutWithSidebar } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
-import { blockCollectionContentsDepths } from "./shared/block-collection-contents";
+import { blockCollectionContentsTraversalParams } from "./shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "./shared/block-collection-context";
 import { TopContextBar } from "./shared/top-context-bar";
 
@@ -64,7 +64,7 @@ const NotesPage: NextPageWithLayout = () => {
             },
           ],
         },
-        graphResolveDepths: blockCollectionContentsDepths,
+        ...blockCollectionContentsTraversalParams,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: true,

@@ -10,13 +10,10 @@ import {
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
+import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   blockProtocolPropertyTypes,
@@ -154,10 +151,9 @@ export const EditableQuickNote: FunctionComponent<{
               : []),
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
-        },
+        traversalPaths: [
+          getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: !!draftId,
         includePermissions: false,

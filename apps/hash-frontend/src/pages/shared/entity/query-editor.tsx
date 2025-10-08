@@ -63,6 +63,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
       const res = await queryEntities({
         data: {
           operation: { multiFilter },
+          traversalPaths: [],
         },
       });
 

@@ -59,6 +59,7 @@ export const useBlockProtocolQueryPropertyTypes = (): {
               constrainsPropertiesOn: { outgoing: 255 },
               ...graphResolveDepths,
             },
+            traversalPaths: [],
           },
         },
       });

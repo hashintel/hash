@@ -12,10 +12,7 @@ import {
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
@@ -325,11 +322,26 @@ export const Entity = ({
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { incoming: 1, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
+          },
+          {
+            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+          },
+        ],
         includeDrafts: !!draftId,
         includeEntityTypes: "resolvedWithDataTypeChildren",
         includePermissions: true,

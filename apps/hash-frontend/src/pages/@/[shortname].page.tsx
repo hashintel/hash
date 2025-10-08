@@ -67,11 +67,8 @@ const ProfilePage: NextPageWithLayout = () => {
   const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
     useUserOrOrg({
       shortname: profileShortname,
-      graphResolveDepths: {
-        // Required to gather the avatar of the user/org (outgoing link), and an org's memberships (incoming links)
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
-      },
+      includeAvatar: true,
+      includeOrgMemberships: true,
       includePermissions: true,
     });
 
@@ -306,6 +303,7 @@ const ProfilePage: NextPageWithLayout = () => {
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
