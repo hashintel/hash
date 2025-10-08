@@ -2,10 +2,11 @@ use std::{fs, io::Write as _, path::PathBuf};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_repo_chores::dependency_diagram::{
+use tracing::{debug, info, instrument};
+
+use crate::dependency_diagram::{
     DependencyDiagramConfig, DependencyDiagramError, LinkMode, generate_dependency_diagram,
 };
-use tracing::{debug, info, instrument};
 
 /// Arguments for the diagram subcommand.
 ///
