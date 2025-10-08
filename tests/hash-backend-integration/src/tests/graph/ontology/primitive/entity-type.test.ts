@@ -441,6 +441,7 @@ describe("Entity type CRU", () => {
           constrainsPropertiesOn: { outgoing: 255 },
           constrainsValuesOn: { outgoing: 255 },
         },
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     );

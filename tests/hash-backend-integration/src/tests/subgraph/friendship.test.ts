@@ -60,7 +60,6 @@ import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
-  zeroedOntologyGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -256,6 +255,7 @@ describe("Ontology queries", () => {
           all: [],
         },
         graphResolveDepths: resolve_depths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -350,7 +350,7 @@ describe("Ontology queries", () => {
       ...zeroedGraphResolveDepths,
       constrainsPropertiesOn: { outgoing: 255 },
     },
-  ])("read property types %#", async (resolve_depths) => {
+  ])("read property types %#", async (graphResolveDepths) => {
     const { subgraph } = await queryPropertyTypeSubgraph(
       graphContext.graphApi,
       authentication,
@@ -358,7 +358,8 @@ describe("Ontology queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: resolve_depths,
+        graphResolveDepths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -467,6 +468,7 @@ describe("Ontology queries", () => {
           all: [],
         },
         graphResolveDepths: resolve_depths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -1108,7 +1110,7 @@ describe("complex resolve depths", () => {
       authentication,
       {
         filter: aliceFilter,
-        entityTraversalPaths: [
+        traversalPaths: [
           {
             edges: [
               {
@@ -1118,8 +1120,8 @@ describe("complex resolve depths", () => {
             ],
           },
         ],
-        ontologyGraphResolveDepths: {
-          ...zeroedOntologyGraphResolveDepths,
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
           isOfType: { outgoing: 1 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
