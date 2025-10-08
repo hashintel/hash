@@ -187,7 +187,6 @@ export const BlockSelectDataModal: FunctionComponent<
   //     const res = await queryEntities({
   //       data: {
   //         operation: { multiFilter },
-  //         graphResolveDepths: zeroedGraphResolveDepths,
   //       },
   //     });
 

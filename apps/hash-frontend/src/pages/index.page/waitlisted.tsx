@@ -8,7 +8,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -17,13 +16,13 @@ import { Box } from "@mui/material";
 import { useCallback, useState } from "react";
 
 import type {
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
   GetWaitlistPositionQuery,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
   SubmitEarlyAccessFormMutation,
   SubmitEarlyAccessFormMutationVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import {
   getWaitlistPositionQuery,
   submitEarlyAccessFormMutation,
@@ -64,23 +63,21 @@ export const Waitlisted = () => {
     "closed" | "open" | "submitted"
   >("closed");
 
-  useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-    queryEntitySubgraphQuery,
+  useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
+    countEntitiesQuery,
     {
       variables: {
         request: {
           filter: generateVersionedUrlMatchingFilter(
             systemEntityTypes.prospectiveUser.entityTypeId,
           ),
-          graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
-          includePermissions: false,
         },
       },
       fetchPolicy: "cache-and-network",
       onCompleted: (data) => {
-        if (data.queryEntitySubgraph.subgraph.roots.length) {
+        if (data.countEntities > 0) {
           setEarlyAccessFormState("submitted");
         }
       },

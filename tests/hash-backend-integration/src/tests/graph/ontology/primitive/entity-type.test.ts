@@ -29,7 +29,6 @@ import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypes,
   getEntityTypeById,
-  getEntityTypeSubgraphById,
   hasPermissionForEntityTypes,
   queryEntityTypes,
   queryEntityTypeSubgraph,
@@ -569,9 +568,8 @@ describe("Entity type CRU", () => {
     ).toBeNull();
 
     expect(
-      await getEntityTypeSubgraphById(graphContext.graphApi, authentication, {
+      await getEntityTypeById(graphContext.graphApi, authentication, {
         entityTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
     ).not.toBeNull();

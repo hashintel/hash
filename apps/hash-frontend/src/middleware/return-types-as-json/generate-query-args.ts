@@ -1,18 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { DocumentNode } from "graphql";
 
 import type {
-  QueryDataTypeSubgraphQueryVariables,
-  QueryEntityTypeSubgraphQueryVariables,
-  QueryPropertyTypeSubgraphQueryVariables,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
  * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string
@@ -35,46 +32,43 @@ export const generateQueryArgs = (
 ): {
   query: string;
   variables:
-    | QueryDataTypeSubgraphQueryVariables
-    | QueryEntityTypeSubgraphQueryVariables
-    | QueryPropertyTypeSubgraphQueryVariables;
+    | QueryDataTypesQueryVariables
+    | QueryEntityTypesQueryVariables
+    | QueryPropertyTypesQueryVariables;
 } => {
   switch (ontologyType) {
     case "data-type":
       return {
-        query: queryStringFromNode(queryDataTypeSubgraphQuery),
+        query: queryStringFromNode(queryDataTypesQuery),
         variables: {
           request: {
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },
       };
     case "entity-type":
       return {
-        query: queryStringFromNode(queryEntityTypeSubgraphQuery),
+        query: queryStringFromNode(queryEntityTypesQuery),
         variables: {
           request: {
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },
       };
     case "property-type":
       return {
-        query: queryStringFromNode(queryPropertyTypeSubgraphQuery),
+        query: queryStringFromNode(queryPropertyTypesQuery),
         variables: {
           request: {
             filter: {
               equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: fullTransactionTimeAxis,
           },
         },

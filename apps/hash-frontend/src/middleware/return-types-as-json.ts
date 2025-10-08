@@ -1,4 +1,3 @@
-import type { OntologyTypeVertexId } from "@blockprotocol/graph";
 import type {
   DataType,
   EntityType,
@@ -15,12 +14,12 @@ import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
 import type {
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
-  QueryPropertyTypeSubgraphQuery,
-  QueryPropertyTypeSubgraphQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
@@ -95,12 +94,10 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    | QueryEntityTypeSubgraphQuery
-    | QueryDataTypeSubgraphQuery
-    | QueryPropertyTypeSubgraphQuery,
-    | QueryEntityTypeSubgraphQueryVariables
-    | QueryDataTypeSubgraphQueryVariables
-    | QueryPropertyTypeSubgraphQueryVariables
+    QueryEntityTypesQuery | QueryDataTypesQuery | QueryPropertyTypesQuery,
+    | QueryEntityTypesQueryVariables
+    | QueryDataTypesQueryVariables
+    | QueryPropertyTypesQueryVariables
   >(query, variables, cookie);
 
   if (errors ?? !data) {
@@ -114,31 +111,20 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  const { roots, vertices } =
-    "queryDataTypeSubgraph" in data
-      ? data.queryDataTypeSubgraph.subgraph
-      : "queryEntityTypeSubgraph" in data
-        ? data.queryEntityTypeSubgraph.subgraph
-        : data.queryPropertyTypeSubgraph.subgraph;
+  const ontologyTypes =
+    "queryDataTypes" in data
+      ? data.queryDataTypes.dataTypes
+      : "queryEntityTypes" in data
+        ? data.queryEntityTypes.entityTypes
+        : data.queryPropertyTypes.propertyTypes;
 
-  const root = roots[0] as OntologyTypeVertexId | undefined;
-  if (!root) {
+  const schema = ontologyTypes[0]?.schema;
+  if (!schema) {
     return generateErrorResponse(
       404,
       `Could not find requested ${ontologyType} type at URL ${url}`,
     );
   }
 
-  const { baseId, revisionId } = root;
-
-  const type = vertices[baseId]?.[revisionId.toString()];
-
-  if (!type) {
-    return generateErrorResponse(
-      500,
-      "Internal error: root vertex not present in vertices",
-    );
-  }
-
-  return generateJsonResponse(type.inner.schema);
+  return generateJsonResponse(schema);
 };

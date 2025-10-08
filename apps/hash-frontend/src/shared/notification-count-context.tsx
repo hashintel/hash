@@ -1,14 +1,12 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ArchivedPropertyValueWithMetadata,
@@ -21,8 +19,8 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import type {
   CountEntitiesQuery,
   CountEntitiesQueryVariables,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
   UpdateEntitiesMutation,
   UpdateEntitiesMutationVariables,
   UpdateEntityMutation,
@@ -30,7 +28,6 @@ import type {
 } from "../graphql/api-types.gen";
 import {
   countEntitiesQuery,
-  queryEntitySubgraphQuery,
   updateEntitiesMutation,
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
@@ -120,10 +117,10 @@ export const NotificationCountContextProvider: FunctionComponent<
     },
   );
 
-  const [queryEntitySubgraph] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+  const [queryEntities] = useLazyQuery<
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     fetchPolicy: "network-only",
   });
 
@@ -143,7 +140,7 @@ export const NotificationCountContextProvider: FunctionComponent<
 
   const getNotificationsLinkingToEntity = useCallback(
     async ({ targetEntityId }: { targetEntityId: EntityId }) => {
-      const relatedNotificationData = await queryEntitySubgraph({
+      const relatedNotificationData = await queryEntities({
         variables: {
           request: {
             filter: {
@@ -168,7 +165,6 @@ export const NotificationCountContextProvider: FunctionComponent<
                 },
               ],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: currentTimeInstantTemporalAxes,
             includeDrafts: false,
             includePermissions: false,
@@ -176,19 +172,13 @@ export const NotificationCountContextProvider: FunctionComponent<
         },
       });
 
-      if (!relatedNotificationData.data?.queryEntitySubgraph.subgraph) {
+      if (!relatedNotificationData.data?.queryEntities) {
         return [];
       }
 
-      const subgraph = deserializeQueryEntitySubgraphResponse(
-        relatedNotificationData.data.queryEntitySubgraph,
-      ).subgraph;
-
-      const notifications = getRoots(subgraph);
-
-      return notifications;
+      return relatedNotificationData.data.queryEntities.entities;
     },
-    [authenticatedUser?.accountId, queryEntitySubgraph],
+    [authenticatedUser?.accountId, queryEntities],
   );
 
   const markNotificationAsRead = useCallback<

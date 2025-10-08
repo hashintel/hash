@@ -40,6 +40,7 @@ import {
   countEntitiesResolver,
   createEntityResolver,
   isEntityPublicResolver,
+  queryEntitiesResolver,
   queryEntitySubgraphResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
@@ -143,6 +144,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       );
     }),
     countEntities: countEntitiesResolver,
+    queryEntities: queryEntitiesResolver,
     queryEntitySubgraph: queryEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
     getMyPendingInvitations: loggedInAndSignedUpMiddleware(
