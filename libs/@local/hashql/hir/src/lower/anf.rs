@@ -18,14 +18,14 @@
 
 use core::convert::Infallible;
 
-use hashql_core::intern::Interned;
+use hashql_core::{intern::Interned, span::Spanned};
 
 use crate::{
     context::HirContext,
     fold::{self, Fold},
     intern::Interner,
     node::{
-        Node,
+        Node, PartialNode,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::{Call, CallArgument},
@@ -36,12 +36,13 @@ use crate::{
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         input::Input,
-        r#let::{Binding, Let},
+        kind::NodeKind,
+        r#let::{Binder, Binding, Let},
         operation::{
-            BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
+            BinOp, BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
             UnaryOperation,
         },
-        variable::Variable,
+        variable::{LocalVariable, Variable},
     },
     path::QualifiedPath,
 };
@@ -67,28 +68,94 @@ use crate::{
 // doesn't matter.
 //
 // So we would just normally fold, and then ensure that the result is an atom where we need an atom.
-// What aren't atoms? control flow expressions, let bindings, closure definitions
+// What aren't atoms? control flow expressions, let bindings, closure definitions, call expressions.
 //
 // An important thing to note is that we need to ensure that we need to call this on the fold node
 // level, why? because that is only where we can switch out the node type, which is necessary.
 //
 // Yea, we can just use the same fold operation!
 
+const fn is_atom(node: &Node<'_>) -> bool {
+    match node.kind {
+        NodeKind::Data(_) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
+        NodeKind::Let(_)
+        | NodeKind::Input(_)
+        | NodeKind::Operation(_)
+        | NodeKind::Call(_)
+        | NodeKind::Branch(_)
+        | NodeKind::Closure(_)
+        | NodeKind::Graph(_) => false,
+    }
+}
+
 struct AnfAtomFold<'ctx, 'env, 'heap> {
     context: &'ctx mut HirContext<'env, 'heap>,
     bindings: Vec<Binding<'heap>>,
 }
 
+impl<'ctx, 'env, 'heap> AnfAtomFold<'ctx, 'env, 'heap> {
+    fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
+        if is_atom(&node) {
+            return node;
+        }
+
+        let binder_id = self.context.counter.var.next();
+        let binding = Binding {
+            span: node.span,
+            binder: Binder {
+                id: binder_id,
+                span: node.span,
+                name: None,
+            },
+            value: node,
+        };
+        self.bindings.push(binding);
+
+        self.context.interner.intern_node(PartialNode {
+            span: node.span,
+            kind: NodeKind::Variable(Variable::Local(LocalVariable {
+                id: Spanned {
+                    span: node.span,
+                    value: binder_id,
+                },
+                arguments: self.context.interner.intern_type_ids(&[]),
+            })),
+        })
+    }
+
+    // fn fold_node(&mut self, node: Node<'heap>) -> Node<'heap> {
+    //     let kind = match node.kind {
+    //         NodeKind::Data(data) => todo!(),
+    //         NodeKind::Variable(variable) => todo!(),
+    //         NodeKind::Let(_) => todo!(),
+    //         NodeKind::Input(input) => todo!(),
+    //         NodeKind::Operation(operation) => todo!(),
+    //         NodeKind::Access(access) => todo!(),
+    //         NodeKind::Call(call) => todo!(),
+    //         NodeKind::Branch(branch) => todo!(),
+    //         NodeKind::Closure(closure) => todo!(),
+    //         NodeKind::Graph(graph) => todo!(),
+    //     };
+    // }
+}
+
 impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     type NestedFilter = fold::nested::Deep;
     type Output<T>
-        = Result<T, !>
+        = Result<T, Node<'heap>>
     where
         T: 'heap;
-    type Residual = Result<Infallible, !>;
+    type Residual = Result<Infallible, Node<'heap>>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.context.interner
+    }
+
+    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+        // trampoline, makes sure that we do not short circuit and always use the node
+        let (Ok(node) | Err(node)) = fold::walk_node(self, node);
+
+        Ok(node)
     }
 
     fn fold_qualified_path(
@@ -96,10 +163,6 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
         path: QualifiedPath<'heap>,
     ) -> Self::Output<QualifiedPath<'heap>> {
         fold::walk_qualified_path(self, path)
-    }
-
-    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
-        fold::walk_node(self, node)
     }
 
     fn fold_data(&mut self, data: Data<'heap>) -> Self::Output<Data<'heap>> {
