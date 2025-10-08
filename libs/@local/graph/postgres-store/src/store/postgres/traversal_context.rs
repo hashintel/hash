@@ -11,9 +11,7 @@ use hash_graph_store::{
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
-        Subgraph, SubgraphRecord as _,
-        edges::{BorrowedTraversalParams, GraphResolveDepths},
-        temporal_axes::VariableAxis,
+        Subgraph, SubgraphRecord as _, edges::BorrowedTraversalParams, temporal_axes::VariableAxis,
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
@@ -153,10 +151,10 @@ where
 struct TraversalContextMap<K>(
     HashMap<
         K,
-        Vec<(
-            GraphResolveDepths,
-            RightBoundedTemporalInterval<VariableAxis>,
-        )>,
+        (), /* Vec<(
+             *     GraphResolveDepths,
+             *     RightBoundedTemporalInterval<VariableAxis>,
+             * )>, */
     >,
 );
 
@@ -190,32 +188,32 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
         let values = self.0.entry(key).or_default();
 
         match traversal_params {
-            BorrowedTraversalParams::ResolveDepths {
-                graph_resolve_depths,
-            } => {
-                // TODO: Further optimization could happen here. It's possible to return none, a
-                //       single, or multiple entries depending on the existing depths and traversed
-                //       interval.
-                //   see https://linear.app/hash/issue/H-3017
-                if values.iter().any(|&(existing_depths, traversed_interval)| {
-                    existing_depths.contains(graph_resolve_depths)
-                        && traversed_interval.contains_interval(&interval)
-                }) {
-                    None
-                } else {
-                    values.push((graph_resolve_depths, interval));
-                    Some((
-                        key,
-                        BorrowedTraversalParams::ResolveDepths {
-                            graph_resolve_depths,
-                        },
-                        interval,
-                    ))
-                }
-            }
+            // BorrowedTraversalParams::ResolveDepths {
+            //     graph_resolve_depths,
+            // } => {
+            //     // TODO: Further optimization could happen here. It's possible to return none, a
+            //     //       single, or multiple entries depending on the existing depths and
+            // traversed     //       interval.
+            //     //   see https://linear.app/hash/issue/H-3017
+            //     if values.iter().any(|&(existing_depths, traversed_interval)| {
+            //         existing_depths.contains(graph_resolve_depths)
+            //             && traversed_interval.contains_interval(&interval)
+            //     }) {
+            //         None
+            //     } else {
+            //         values.push((graph_resolve_depths, interval));
+            //         Some((
+            //             key,
+            //             BorrowedTraversalParams::ResolveDepths {
+            //                 graph_resolve_depths,
+            //             },
+            //             interval,
+            //         ))
+            //     }
+            // }
             traversal_path @ (BorrowedTraversalParams::Path { .. }
-            | BorrowedTraversalParams::Mixed { .. }) => {
-                values.push((GraphResolveDepths::default(), interval));
+            | BorrowedTraversalParams::ResolveDepths { .. }) => {
+                // values.push((GraphResolveDepths::default(), interval));
                 Some((key, traversal_path, interval))
             }
         }

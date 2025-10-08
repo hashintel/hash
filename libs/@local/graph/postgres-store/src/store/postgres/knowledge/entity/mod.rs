@@ -29,9 +29,8 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, GraphResolveDepths,
-            KnowledgeGraphEdgeKind, OntologyTraversalEdgeDirection, SharedEdgeKind,
-            SubgraphTraversalParams, TraversalEdge,
+            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, KnowledgeGraphEdgeKind,
+            OntologyTraversalEdgeDirection, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -162,56 +161,6 @@ where
                 entity_queue.drain(..)
             {
                 match subgraph_traversal_params {
-                    BorrowedTraversalParams::ResolveDepths {
-                        graph_resolve_depths,
-                    } => {
-                        if let Some(new_graph_resolve_depths) =
-                            graph_resolve_depths.ontology.decrement_depth_for_edge(
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                            )
-                        {
-                            shared_edges_to_traverse
-                                .get_or_insert_with(|| {
-                                    EntityEdgeTraversalData::new(
-                                        subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                        variable_axis,
-                                    )
-                                })
-                                .push(
-                                    entity_vertex_id,
-                                    traversal_interval,
-                                    BorrowedTraversalParams::ResolveDepths {
-                                        graph_resolve_depths: GraphResolveDepths {
-                                            ontology: new_graph_resolve_depths,
-                                            ..graph_resolve_depths
-                                        },
-                                    },
-                                );
-                        }
-
-                        for (edge_kind, edge_direction, _) in entity_edges {
-                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                                .decrement_depth_for_edge(edge_kind, edge_direction)
-                            {
-                                knowledge_edges_to_traverse
-                                    .entry((edge_kind, edge_direction))
-                                    .or_insert_with(|| {
-                                        EntityEdgeTraversalData::new(
-                                            subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                            variable_axis,
-                                        )
-                                    })
-                                    .push(
-                                        entity_vertex_id,
-                                        traversal_interval,
-                                        BorrowedTraversalParams::ResolveDepths {
-                                            graph_resolve_depths: new_graph_resolve_depths,
-                                        },
-                                    );
-                            }
-                        }
-                    }
                     BorrowedTraversalParams::Path { traversal_path } => {
                         let Some((edge, rest)) = traversal_path.split_first() else {
                             continue;
@@ -259,11 +208,11 @@ where
                             | TraversalEdge::ConstrainsValuesOn { .. } => {}
                         }
                     }
-                    BorrowedTraversalParams::Mixed {
-                        entity_traversal_path,
-                        ontology_graph_resolve_depths,
+                    BorrowedTraversalParams::ResolveDepths {
+                        traversal_path,
+                        graph_resolve_depths,
                     } => {
-                        if let Some(new_graph_resolve_depths) = ontology_graph_resolve_depths
+                        if let Some(new_graph_resolve_depths) = graph_resolve_depths
                             .decrement_depth_for_edge(
                                 SharedEdgeKind::IsOfType,
                                 EdgeDirection::Outgoing,
@@ -279,14 +228,14 @@ where
                                 .push(
                                     entity_vertex_id,
                                     traversal_interval,
-                                    BorrowedTraversalParams::Mixed {
-                                        ontology_graph_resolve_depths: new_graph_resolve_depths,
-                                        entity_traversal_path,
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        graph_resolve_depths: new_graph_resolve_depths,
+                                        traversal_path,
                                     },
                                 );
                         }
 
-                        let Some((edge, rest)) = entity_traversal_path.split_first() else {
+                        let Some((edge, rest)) = traversal_path.split_first() else {
                             continue;
                         };
                         let default_traversal_data = || {
@@ -295,9 +244,9 @@ where
                                 variable_axis,
                             )
                         };
-                        let traversal_params = BorrowedTraversalParams::Mixed {
-                            entity_traversal_path: rest,
-                            ontology_graph_resolve_depths,
+                        let traversal_params = BorrowedTraversalParams::ResolveDepths {
+                            traversal_path: rest,
+                            graph_resolve_depths,
                         };
 
                         match edge {
@@ -1499,15 +1448,6 @@ where
                             // TODO: The `vec` is not ideal as the flattening intermediate type but
                             //       this branch will be removed anyway after the migration to
                             //       traversal path based traversal is done
-                            SubgraphTraversalParams::ResolveDepths {
-                                graph_resolve_depths,
-                            } => vec![(
-                                *id,
-                                BorrowedTraversalParams::ResolveDepths {
-                                    graph_resolve_depths: *graph_resolve_depths,
-                                },
-                                subgraph.temporal_axes.resolved.variable_interval(),
-                            )],
                             SubgraphTraversalParams::Paths { traversal_paths } => traversal_paths
                                 .iter()
                                 .map(|path| {
@@ -1520,33 +1460,31 @@ where
                                     )
                                 })
                                 .collect(),
-                            SubgraphTraversalParams::Mixed {
-                                entity_traversal_paths,
-                                ontology_graph_resolve_depths,
+                            SubgraphTraversalParams::ResolveDepths {
+                                traversal_paths,
+                                graph_resolve_depths,
                             } => {
-                                if entity_traversal_paths.is_empty() {
+                                if traversal_paths.is_empty() {
                                     // If no entity traversal paths are specified, still initialize
                                     // the traversal queue with ontology resolve depths to enable
                                     // traversal of ontology edges (e.g., isOfType, inheritsFrom)
                                     vec![(
                                         *id,
-                                        BorrowedTraversalParams::Mixed {
-                                            entity_traversal_path: &[],
-                                            ontology_graph_resolve_depths:
-                                                *ontology_graph_resolve_depths,
+                                        BorrowedTraversalParams::ResolveDepths {
+                                            traversal_path: &[],
+                                            graph_resolve_depths: *graph_resolve_depths,
                                         },
                                         subgraph.temporal_axes.resolved.variable_interval(),
                                     )]
                                 } else {
-                                    entity_traversal_paths
+                                    traversal_paths
                                         .iter()
                                         .map(|path| {
                                             (
                                                 *id,
-                                                BorrowedTraversalParams::Mixed {
-                                                    entity_traversal_path: &path.edges,
-                                                    ontology_graph_resolve_depths:
-                                                        *ontology_graph_resolve_depths,
+                                                BorrowedTraversalParams::ResolveDepths {
+                                                    traversal_path: &path.edges,
+                                                    graph_resolve_depths: *graph_resolve_depths,
                                                 },
                                                 subgraph.temporal_axes.resolved.variable_interval(),
                                             )
