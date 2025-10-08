@@ -12,7 +12,7 @@ pub(crate) struct Args {
 pub(super) fn run(args: &Args) {
     clap_complete::generate(
         args.shell,
-        &mut super::super::Args::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
+        &mut crate::cli::Args::augment_args(Command::new(env!("CARGO_PKG_NAME"))),
         env!("CARGO_PKG_NAME"),
         &mut std::io::stdout(),
     );
