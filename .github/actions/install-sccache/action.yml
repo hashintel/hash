@@ -8,14 +8,11 @@ runs:
       uses: mozilla-actions/sccache-action@4097539ece2ebbb6fd759bb45e5f0321071ac87d # v0.0.9
 
     - name: Configure sccache
-      uses: actions/github-script@v7
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       with:
         script: |
-    - name: Configure sccache
-      shell: bash
-      run: |
-        echo "ACTIONS_RESULTS_URL=${ACTIONS_RESULTS_URL:-}" >> $GITHUB_ENV
-        echo "ACTIONS_RUNTIME_TOKEN=${ACTIONS_RUNTIME_TOKEN:-}" >> $GITHUB_ENV
+          core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
     - name: Inject sccache variables into environment
       shell: bash
