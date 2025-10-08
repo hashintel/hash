@@ -104,13 +104,6 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/warm-up-repo
 
-      - name: Cache Rust dependencies
-        if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Run base benches
         if: github.event_name == 'pull_request'
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -232,13 +225,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Cache Rust dependencies
-        if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
