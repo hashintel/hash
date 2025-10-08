@@ -252,7 +252,7 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
             ontology_graph_resolve_depths: depths,
         } => format!(
             "traversal_paths={},resolve_depths=inherit:{};values:{};properties:{};links:{};\
-             link_dests:{};;type:{}",
+             link_dests:{};type:{}",
             entity_traversal_paths
                 .iter()
                 .map(|path| format!(
