@@ -3,10 +3,7 @@ import {
   queryEntitySubgraph,
   serializeQueryEntitySubgraphResponse,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
@@ -17,7 +14,7 @@ export const meResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryMeArgs
-> = async (_, { hasLeftEntity, hasRightEntity }, graphQLContext, __) => {
+> = async (_, __, graphQLContext, ___) => {
   const [webId, entityUuid, draftId] = splitEntityId(
     graphQLContext.user.entity.metadata.recordId.entityId,
   );
@@ -44,11 +41,22 @@ export const meResolver: ResolverFn<
             : []),
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasLeftEntity,
-        hasRightEntity,
-      },
+      // fetch the user's org memberships and the orgs they link to
+      // we fetch more information on the orgs as a follow-up, in the auth context
+      traversalPaths: [
+        {
+          edges: [
+            {
+              kind: "has-left-entity",
+              direction: "incoming",
+            },
+            {
+              kind: "has-right-entity",
+              direction: "outgoing",
+            },
+          ],
+        },
+      ],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: !!draftId,
       includePermissions: false,

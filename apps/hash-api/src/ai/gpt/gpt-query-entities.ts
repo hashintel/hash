@@ -228,9 +228,25 @@ export const gptQueryEntities: RequestHandler<
         constrainsLinksOn: { outgoing: 255 },
         constrainsLinkDestinationsOn: { outgoing: 255 },
         isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: depth, outgoing: depth },
-        hasRightEntity: { incoming: depth, outgoing: depth },
       },
+      traversalPaths: [
+        {
+          edges: Array(depth)
+            .fill([
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ])
+            .flat(),
+        },
+        {
+          edges: Array(depth)
+            .fill([
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ])
+            .flat(),
+        },
+      ],
       includeDrafts: includeDrafts ?? false,
       includePermissions: false,
     },

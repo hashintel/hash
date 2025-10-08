@@ -109,9 +109,8 @@ export const gptQueryTypes: RequestHandler<
           constrainsLinksOn: { outgoing: 255 },
           constrainsLinkDestinationsOn: { outgoing: 255 },
           isOfType: { outgoing: 1 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
         },
+        traversalPaths: [],
       },
     ).then(async ({ subgraph }) => {
       const entityTypes: SimpleEntityType[] = [];
