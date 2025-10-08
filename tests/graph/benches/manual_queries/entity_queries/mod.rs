@@ -238,13 +238,8 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
                 .iter()
                 .map(|path| format!(
                     "({})",
-                    path.edges
-                        .iter()
-                        .map(|edge| format!("{edge:?}"))
-                        .collect::<Vec<_>>()
-                        .join(";")
+                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
                 ))
-                .collect::<Vec<_>>()
                 .join(";")
         ),
         SubgraphTraversalParams::Mixed {
@@ -257,13 +252,8 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
                 .iter()
                 .map(|path| format!(
                     "({})",
-                    path.edges
-                        .iter()
-                        .map(|edge| format!("{edge:?}"))
-                        .collect::<Vec<_>>()
-                        .join(";")
+                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
                 ))
-                .collect::<Vec<_>>()
                 .join(";"),
             depths.inherits_from.outgoing,
             depths.constrains_values_on.outgoing,
