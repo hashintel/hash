@@ -4,6 +4,7 @@ import {
   AsteriskRegularIcon,
   ClockRegularIcon,
 } from "@hashintel/design-system";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -73,7 +74,9 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
       },
     },
   ).then(({ data }) => {
-    const usageRecords = data.queryEntities.entities;
+    const usageRecords = deserializeQueryEntitiesResponse(
+      data.queryEntities,
+    ).entities;
 
     let inputTokens = 0;
     let outputTokens = 0;

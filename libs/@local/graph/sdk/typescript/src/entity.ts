@@ -231,6 +231,16 @@ export type QueryEntitiesResponse<
   permissions?: EntityPermissionsMap;
 };
 
+export type SerializedQueryEntitiesResponse<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = DistributiveReplaceProperties<
+  QueryEntitiesResponse<PropertyMap>,
+  {
+    entities: SerializedEntity<PropertyMap>[];
+  }
+>;
+
 export const queryEntities = async <
   PropertyMap extends
     TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
@@ -1415,3 +1425,23 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
+export const serializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: QueryEntitiesResponse<PropertyMap>,
+): SerializedQueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => entity.toJSON()),
+});
+
+export const deserializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedQueryEntitiesResponse<PropertyMap>,
+): QueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => new HashEntity(entity)),
+});

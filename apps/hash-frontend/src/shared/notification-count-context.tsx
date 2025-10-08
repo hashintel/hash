@@ -1,6 +1,7 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -176,7 +177,9 @@ export const NotificationCountContextProvider: FunctionComponent<
         return [];
       }
 
-      return relatedNotificationData.data.queryEntities.entities;
+      return deserializeQueryEntitiesResponse(
+        relatedNotificationData.data.queryEntities,
+      ).entities;
     },
     [authenticatedUser?.accountId, queryEntities],
   );
