@@ -24,7 +24,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, OntologyGraphResolveDepths,
+            SubgraphTraversalParams, TraversalEdgeKind, TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -55,20 +58,31 @@ pub enum QueryPropertyTypeSubgraphParams<'a> {
         #[serde(borrow, flatten)]
         request: QueryPropertyTypesParams<'a>,
     },
+    #[serde(rename_all = "camelCase")]
+    Mixed {
+        entity_traversal_paths: Vec<EntityTraversalPath>,
+        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: QueryPropertyTypesParams<'a>,
+    },
 }
 
 impl<'a> QueryPropertyTypeSubgraphParams<'a> {
     #[must_use]
     pub const fn request(&self) -> &QueryPropertyTypesParams<'a> {
         match self {
-            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+            Self::Paths { request, .. }
+            | Self::ResolveDepths { request, .. }
+            | Self::Mixed { request, .. } => request,
         }
     }
 
     #[must_use]
     pub const fn request_mut(&mut self) -> &mut QueryPropertyTypesParams<'a> {
         match self {
-            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+            Self::Paths { request, .. }
+            | Self::ResolveDepths { request, .. }
+            | Self::Mixed { request, .. } => request,
         }
     }
 
@@ -86,6 +100,17 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
                 request,
                 SubgraphTraversalParams::ResolveDepths {
                     graph_resolve_depths,
+                },
+            ),
+            Self::Mixed {
+                entity_traversal_paths,
+                ontology_graph_resolve_depths,
+                request,
+            } => (
+                request,
+                SubgraphTraversalParams::Mixed {
+                    entity_traversal_paths,
+                    ontology_graph_resolve_depths,
                 },
             ),
         }
@@ -107,10 +132,17 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
                 }
             }
             Self::ResolveDepths {
-                graph_resolve_depths,
+                graph_resolve_depths:
+                    GraphResolveDepths {
+                        ontology: depths, ..
+                    },
+                ..
+            }
+            | Self::Mixed {
+                ontology_graph_resolve_depths: depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if depths.constrains_values_on.outgoing > 0 {
                     actions.push(ActionName::ViewDataType);
                 }
             }

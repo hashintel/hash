@@ -60,6 +60,7 @@ import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
   zeroedGraphResolveDepths,
+  zeroedOntologyGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -1107,28 +1108,20 @@ describe("complex resolve depths", () => {
       authentication,
       {
         filter: aliceFilter,
-        traversalPaths: [
+        entityTraversalPaths: [
           {
             edges: [
               {
                 kind: "has-left-entity",
                 direction: "incoming",
               },
-              {
-                kind: "is-of-type",
-                direction: "outgoing",
-              },
-            ],
-          },
-          {
-            edges: [
-              {
-                kind: "is-of-type",
-                direction: "outgoing",
-              },
             ],
           },
         ],
+        ontologyGraphResolveDepths: {
+          ...zeroedOntologyGraphResolveDepths,
+          isOfType: { outgoing: 1 },
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,

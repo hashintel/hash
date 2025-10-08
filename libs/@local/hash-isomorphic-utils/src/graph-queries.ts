@@ -18,6 +18,7 @@ import type {
   EntityQueryToken,
   EntityTypeQueryToken,
   Filter,
+  OntologyGraphResolveDepths,
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
@@ -31,21 +32,22 @@ import {
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
 
-export const zeroedGraphResolveDepths: GraphResolveDepths = {
+export const zeroedOntologyGraphResolveDepths: OntologyGraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },
   constrainsValuesOn: { outgoing: 0 },
   constrainsPropertiesOn: { outgoing: 0 },
   constrainsLinksOn: { outgoing: 0 },
   constrainsLinkDestinationsOn: { outgoing: 0 },
   isOfType: { outgoing: 0 },
+};
+
+export const zeroedGraphResolveDepths: GraphResolveDepths = {
+  ...zeroedOntologyGraphResolveDepths,
   hasLeftEntity: { incoming: 0, outgoing: 0 },
   hasRightEntity: { incoming: 0, outgoing: 0 },
 };
 
-export const fullOntologyResolveDepths: Omit<
-  GraphResolveDepths,
-  "hasLeftEntity" | "hasRightEntity"
-> = {
+export const fullOntologyResolveDepths: OntologyGraphResolveDepths = {
   constrainsValuesOn: { outgoing: 255 },
   constrainsPropertiesOn: { outgoing: 255 },
   constrainsLinksOn: { outgoing: 1 },

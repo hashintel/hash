@@ -213,7 +213,8 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
                     ))
                 }
             }
-            traversal_path @ BorrowedTraversalParams::Path { .. } => {
+            traversal_path @ (BorrowedTraversalParams::Path { .. }
+            | BorrowedTraversalParams::Mixed { .. }) => {
                 values.push((GraphResolveDepths::default(), interval));
                 Some((key, traversal_path, interval))
             }

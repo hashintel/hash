@@ -221,12 +221,12 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
         } => format!(
             "resolve_depths=inherit:{};values:{};properties:{};links:{};link_dests:{};type:{};\
              left:{}/{};right:{}/{}",
-            depths.inherits_from.outgoing,
-            depths.constrains_values_on.outgoing,
-            depths.constrains_properties_on.outgoing,
-            depths.constrains_links_on.outgoing,
-            depths.constrains_link_destinations_on.outgoing,
-            depths.is_of_type.outgoing,
+            depths.ontology.inherits_from.outgoing,
+            depths.ontology.constrains_values_on.outgoing,
+            depths.ontology.constrains_properties_on.outgoing,
+            depths.ontology.constrains_links_on.outgoing,
+            depths.ontology.constrains_link_destinations_on.outgoing,
+            depths.ontology.is_of_type.outgoing,
             depths.has_left_entity.incoming,
             depths.has_left_entity.outgoing,
             depths.has_right_entity.incoming,
@@ -238,14 +238,29 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
                 .iter()
                 .map(|path| format!(
                     "({})",
-                    path.edges
-                        .iter()
-                        .map(|edge| format!("{edge:?}"))
-                        .collect::<Vec<_>>()
-                        .join(";")
+                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
                 ))
-                .collect::<Vec<_>>()
                 .join(";")
+        ),
+        SubgraphTraversalParams::Mixed {
+            entity_traversal_paths,
+            ontology_graph_resolve_depths: depths,
+        } => format!(
+            "traversal_paths={},resolve_depths=inherit:{};values:{};properties:{};links:{};\
+             link_dests:{};type:{}",
+            entity_traversal_paths
+                .iter()
+                .map(|path| format!(
+                    "({})",
+                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
+                ))
+                .join(";"),
+            depths.inherits_from.outgoing,
+            depths.constrains_values_on.outgoing,
+            depths.constrains_properties_on.outgoing,
+            depths.constrains_links_on.outgoing,
+            depths.constrains_link_destinations_on.outgoing,
+            depths.is_of_type.outgoing,
         ),
     }
 }

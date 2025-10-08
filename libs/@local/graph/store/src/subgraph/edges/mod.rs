@@ -14,10 +14,11 @@ pub use self::{
     edge::{EdgeDirection, OutwardEdge},
     kind::{
         EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OutgoingEdgeResolveDepth, SharedEdgeKind,
+        OntologyGraphResolveDepths, OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
     traversal::{
-        BorrowedTraversalParams, EntityTraversalEdgeDirection, OntologyTraversalEdgeDirection,
+        BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeDirection,
+        EntityTraversalEdgeKind, EntityTraversalPath, OntologyTraversalEdgeDirection,
         SubgraphTraversalParams, TraversalEdge, TraversalEdgeKind, TraversalPath,
     },
 };

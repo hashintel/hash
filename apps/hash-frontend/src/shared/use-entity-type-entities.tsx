@@ -1,16 +1,15 @@
 import { useQuery } from "@apollo/client";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type { DistributiveField } from "@local/advanced-types/distribute";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
+  Filter,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
 import {
   type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
-  type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -56,84 +55,82 @@ export const generateUseEntityTypeEntitiesFilter = ({
   "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
   excludeWebIds?: WebId[];
-}): DistributiveField<QueryEntitySubgraphRequest, "filter"> => {
-  return {
-    all: [
-      ...(!includeArchived
-        ? [
-            {
-              notEqual: [{ path: ["archived"] }, { parameter: true }],
-            },
-            {
-              any: [
-                {
-                  exists: {
+}): Filter => ({
+  all: [
+    ...(!includeArchived
+      ? [
+          {
+            notEqual: [{ path: ["archived"] }, { parameter: true }],
+          },
+          {
+            any: [
+              {
+                exists: {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
+                  ],
+                },
+              },
+              {
+                equal: [
+                  {
                     path: [
                       "properties",
                       systemPropertyTypes.archived.propertyTypeBaseUrl,
                     ],
                   },
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        systemPropertyTypes.archived.propertyTypeBaseUrl,
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
-          ]
-        : []),
-      ...(webIds?.length
-        ? [
-            {
-              any: webIds.map((webId) => ({
-                equal: [{ path: ["webId"] }, { parameter: webId }],
-              })),
-            },
-          ]
-        : []),
-      ...(excludeWebIds?.length
-        ? [
-            {
-              all: excludeWebIds.map((webId) => ({
-                notEqual: [{ path: ["webId"] }, { parameter: webId }],
-              })),
-            },
-          ]
-        : []),
-      ...(entityTypeBaseUrl
-        ? [
-            {
-              equal: [
-                { path: ["type", "baseUrl"] },
-                { parameter: entityTypeBaseUrl },
-              ],
-            },
-          ]
-        : entityTypeIds?.length
-          ? [
-              {
-                any: entityTypeIds.map((entityTypeId) => ({
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: entityTypeId },
-                  ],
-                })),
+                  { parameter: false },
+                ],
               },
-            ]
-          : []),
-      ...(!entityTypeIds && !entityTypeBaseUrl
-        ? [ignoreNoisySystemTypesFilter]
+            ],
+          },
+        ]
+      : []),
+    ...(webIds?.length
+      ? [
+          {
+            any: webIds.map((webId) => ({
+              equal: [{ path: ["webId"] }, { parameter: webId }],
+            })),
+          },
+        ]
+      : []),
+    ...(excludeWebIds?.length
+      ? [
+          {
+            all: excludeWebIds.map((webId) => ({
+              notEqual: [{ path: ["webId"] }, { parameter: webId }],
+            })),
+          },
+        ]
+      : []),
+    ...(entityTypeBaseUrl
+      ? [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: entityTypeBaseUrl },
+            ],
+          },
+        ]
+      : entityTypeIds?.length
+        ? [
+            {
+              any: entityTypeIds.map((entityTypeId) => ({
+                equal: [
+                  { path: ["type", "versionedUrl"] },
+                  { parameter: entityTypeId },
+                ],
+              })),
+            },
+          ]
         : []),
-    ],
-  };
-};
+    ...(!entityTypeIds && !entityTypeBaseUrl
+      ? [ignoreNoisySystemTypesFilter]
+      : []),
+  ],
+});
 
 /**
  * These are the variables for the query which populates the "Entities" section of the sidebar,

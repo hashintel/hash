@@ -7,7 +7,11 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type {
+  DistributiveOmit,
+  DistributiveReplaceProperties,
+  ExclusiveUnion,
+} from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   ClosedEntityType as ClosedEntityTypeGraphApi,
@@ -115,12 +119,14 @@ export const queryEntityTypes = (
         | undefined,
     }));
 
-export type QueryEntityTypeSubgraphParams = DistributiveOmit<
-  QueryEntityTypeSubgraphParamsGraphApi,
-  "after"
-> & {
-  after?: VersionedUrl;
-};
+export type QueryEntityTypeSubgraphParams = ExclusiveUnion<
+  DistributiveReplaceProperties<
+    QueryEntityTypeSubgraphParamsGraphApi,
+    {
+      after?: VersionedUrl;
+    }
+  >
+>;
 
 export type QueryEntityTypeSubgraphResponse = DistributiveOmit<
   QueryEntityTypeSubgraphResponseGraphApi,

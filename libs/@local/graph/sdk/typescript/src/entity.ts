@@ -46,7 +46,11 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type {
+  DistributiveOmit,
+  DistributiveReplaceProperties,
+  ExclusiveUnion,
+} from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
@@ -290,12 +294,14 @@ export const queryEntities = async <
     }));
 };
 
-export type QueryEntitySubgraphRequest = DistributiveOmit<
-  QueryEntitySubgraphRequestGraphApi,
-  "conversions"
-> & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
-};
+export type QueryEntitySubgraphRequest = ExclusiveUnion<
+  DistributiveReplaceProperties<
+    QueryEntitySubgraphRequestGraphApi,
+    {
+      conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+    }
+  >
+>;
 
 export type QueryEntitySubgraphResponse<
   PropertyMap extends

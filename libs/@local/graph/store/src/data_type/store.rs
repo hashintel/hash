@@ -26,7 +26,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, OntologyGraphResolveDepths,
+            SubgraphTraversalParams, TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -59,20 +62,31 @@ pub enum QueryDataTypeSubgraphParams<'a> {
         #[serde(borrow, flatten)]
         request: QueryDataTypesParams<'a>,
     },
+    #[serde(rename_all = "camelCase")]
+    Mixed {
+        entity_traversal_paths: Vec<EntityTraversalPath>,
+        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
+        #[serde(borrow, flatten)]
+        request: QueryDataTypesParams<'a>,
+    },
 }
 
 impl<'a> QueryDataTypeSubgraphParams<'a> {
     #[must_use]
     pub const fn request(&self) -> &QueryDataTypesParams<'a> {
         match self {
-            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+            Self::Paths { request, .. }
+            | Self::ResolveDepths { request, .. }
+            | Self::Mixed { request, .. } => request,
         }
     }
 
     #[must_use]
     pub const fn request_mut(&mut self) -> &mut QueryDataTypesParams<'a> {
         match self {
-            Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
+            Self::Paths { request, .. }
+            | Self::ResolveDepths { request, .. }
+            | Self::Mixed { request, .. } => request,
         }
     }
 
@@ -90,6 +104,17 @@ impl<'a> QueryDataTypeSubgraphParams<'a> {
                 request,
                 SubgraphTraversalParams::ResolveDepths {
                     graph_resolve_depths,
+                },
+            ),
+            Self::Mixed {
+                entity_traversal_paths,
+                ontology_graph_resolve_depths,
+                request,
+            } => (
+                request,
+                SubgraphTraversalParams::Mixed {
+                    entity_traversal_paths,
+                    ontology_graph_resolve_depths,
                 },
             ),
         }

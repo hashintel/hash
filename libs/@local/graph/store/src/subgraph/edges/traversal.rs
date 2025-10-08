@@ -1,4 +1,4 @@
-use super::GraphResolveDepths;
+use super::{GraphResolveDepths, OntologyGraphResolveDepths};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
@@ -15,6 +15,21 @@ pub enum EntityTraversalEdgeDirection {
 #[serde(rename_all = "kebab-case")]
 pub enum OntologyTraversalEdgeDirection {
     Outgoing,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case", tag = "kind")]
+pub enum EntityTraversalEdge {
+    #[cfg_attr(feature = "utoipa", schema(title = "HasLeftEntityEdge"))]
+    HasLeftEntity {
+        direction: EntityTraversalEdgeDirection,
+    },
+    #[cfg_attr(feature = "utoipa", schema(title = "HasRightEntityEdge"))]
+    HasRightEntity {
+        direction: EntityTraversalEdgeDirection,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -60,6 +75,24 @@ pub enum TraversalEdge {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case", tag = "kind")]
+pub enum EntityTraversalEdgeKind {
+    HasLeftEntity,
+    HasRightEntity,
+}
+
+impl From<&EntityTraversalEdge> for EntityTraversalEdgeKind {
+    fn from(edge: &EntityTraversalEdge) -> Self {
+        match edge {
+            EntityTraversalEdge::HasLeftEntity { .. } => Self::HasLeftEntity,
+            EntityTraversalEdge::HasRightEntity { .. } => Self::HasRightEntity,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case", tag = "kind")]
 pub enum TraversalEdgeKind {
     InheritsFrom,
     ConstrainsValuesOn,
@@ -92,6 +125,14 @@ impl From<&TraversalEdge> for TraversalEdgeKind {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntityTraversalPath {
+    pub edges: Vec<EntityTraversalEdge>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TraversalPath {
     pub edges: Vec<TraversalEdge>,
 }
@@ -99,6 +140,10 @@ pub struct TraversalPath {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase")]
 pub enum SubgraphTraversalParams {
+    Mixed {
+        entity_traversal_paths: Vec<EntityTraversalPath>,
+        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
+    },
     ResolveDepths {
         graph_resolve_depths: GraphResolveDepths,
     },
@@ -109,12 +154,25 @@ pub enum SubgraphTraversalParams {
 
 #[derive(Debug, Copy, Clone)]
 pub enum BorrowedTraversalParams<'e> {
+    Mixed {
+        entity_traversal_path: &'e [EntityTraversalEdge],
+        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
+    },
     ResolveDepths {
         graph_resolve_depths: GraphResolveDepths,
     },
     Path {
         traversal_path: &'e [TraversalEdge],
     },
+}
+
+impl EntityTraversalPath {
+    #[must_use]
+    pub fn has_edge_kind(&self, kind: EntityTraversalEdgeKind) -> bool {
+        self.edges
+            .iter()
+            .any(|edge| EntityTraversalEdgeKind::from(edge) == kind)
+    }
 }
 
 impl TraversalPath {
