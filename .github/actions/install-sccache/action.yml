@@ -14,10 +14,6 @@ runs:
           core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-    - name: Show sccache statistics
-      shell: bash
-      run: ${SCCACHE_PATH} --show-stats
-
     - name: Inject sccache variables into environment
       shell: bash
       run: |
