@@ -63,7 +63,7 @@ export const scalars = {
   ConstructPropertyTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 
-  SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
+  Entity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityValidationReport:
@@ -111,7 +111,7 @@ export const scalars = {
 
   GraphElementVertexId: "@blockprotocol/graph#GraphElementVertexId",
   Edges: "@blockprotocol/graph#Edges",
-  SerializedVertices: "@local/hash-graph-sdk/entity#SerializedVertices",
+  Vertices: "@local/hash-graph-sdk/entity#SerializedVertices",
   LinkData: "@blockprotocol/type-system#LinkData",
   SubgraphTemporalAxes: "@blockprotocol/graph#SubgraphTemporalAxes",
 

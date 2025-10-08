@@ -20,7 +20,6 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -89,12 +88,14 @@ export const getWebServiceUsage = async (
               },
             ],
           },
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            // Depths required to retrieve the service the usage record relates to
-            hasLeftEntity: { incoming: 1, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 1 },
-          },
+          traversalPaths: [
+            {
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
           temporalAxes: decisionTimeInterval
             ? {
                 pinned: {

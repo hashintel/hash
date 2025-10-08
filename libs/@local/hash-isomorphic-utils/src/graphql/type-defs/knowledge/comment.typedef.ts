@@ -27,12 +27,12 @@ export const commentTypedef = gql`
     """
     User that created the comment
     """
-    author: SerializedEntity!
+    author: Entity!
 
     """
     Parent entity the comment belongs to
     """
-    parent: SerializedEntity!
+    parent: Entity!
 
     """
     Array of comments created in response to this comment

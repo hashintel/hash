@@ -69,6 +69,6 @@ export const linearTypedef = gql`
     syncLinearIntegrationWithWebs(
       linearIntegrationEntityId: EntityId!
       syncWithWebs: [SyncWithWeb!]!
-    ): SerializedEntity
+    ): Entity
   }
 `;

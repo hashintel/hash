@@ -22,7 +22,7 @@ import type { Node } from "prosemirror-model";
 import { v4 as uuid } from "uuid";
 
 import {
-  getBlockCollectionResolveDepth,
+  getBlockCollectionTraversalPath,
   sortBlockCollectionLinks,
 } from "./block-collection.js";
 import type { ComponentIdHashBlockMap } from "./blocks.js";
@@ -32,10 +32,7 @@ import {
   getDraftEntityByEntityId,
   isDraftBlockEntity,
 } from "./entity-store.js";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "./graph-queries.js";
+import { currentTimeInstantTemporalAxes } from "./graph-queries.js";
 import type {
   Block as GqlBlock,
   QueryEntitySubgraphQuery,
@@ -519,10 +516,9 @@ export const save = async ({
                 : []),
             ],
           },
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
-          },
+          traversalPaths: [
+            getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
+          ],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: !!draftId,
           includePermissions: false,

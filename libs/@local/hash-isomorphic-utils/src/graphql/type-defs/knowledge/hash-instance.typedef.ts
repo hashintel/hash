@@ -7,7 +7,7 @@ export const hashInstanceTypedef = gql`
   }
 
   type HashInstanceSettings {
-    entity: SerializedEntity!
+    entity: Entity!
     isUserAdmin: Boolean!
     enabledIntegrations: EnabledIntegrations!
   }
