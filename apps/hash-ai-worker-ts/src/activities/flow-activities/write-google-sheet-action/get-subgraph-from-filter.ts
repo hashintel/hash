@@ -1,5 +1,9 @@
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { Filter, GraphApi } from "@local/hash-graph-client";
+import type {
+  EntityTraversalPath,
+  Filter,
+  GraphApi,
+} from "@local/hash-graph-client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -10,27 +14,23 @@ export const getSubgraphFromFilter = async ({
   authentication,
   filter,
   graphApiClient,
-  traversalDepth,
+  traversalPaths,
 }: {
   authentication: { actorId: ActorEntityUuid };
   filter: Filter;
   graphApiClient: GraphApi;
-  traversalDepth: number;
+  traversalPaths: EntityTraversalPath[];
 }) =>
   queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
-      isOfType: { outgoing: 255 },
+      isOfType: { outgoing: 1 },
       inheritsFrom: { outgoing: 255 },
       constrainsPropertiesOn: { outgoing: 255 },
       constrainsLinksOn: { outgoing: 255 },
-      hasRightEntity: {
-        outgoing: traversalDepth,
-        incoming: traversalDepth,
-      },
-      hasLeftEntity: { incoming: traversalDepth, outgoing: traversalDepth },
     },
+    traversalPaths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
     includePermissions: false,

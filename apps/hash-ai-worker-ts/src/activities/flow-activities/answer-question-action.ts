@@ -447,9 +447,37 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
           constrainsLinkDestinationsOn: { outgoing: 1 },
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
         },
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
         includePermissions: false,
