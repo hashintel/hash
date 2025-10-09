@@ -480,24 +480,6 @@ type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
 
-const isSerializedEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is SerializedEntity => {
-  return (
-    "entityTypeId" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
-
-const isGraphApiEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is GraphApiEntity => {
-  return (
-    "entityTypeIds" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
-
 export const propertyObjectToPatches = (
   object: PropertyObjectWithMetadata,
 ): PropertyPatchOperation[] =>
@@ -1180,13 +1162,7 @@ export class HashEntity<
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
-    if (isSerializedEntity(entity) || isGraphApiEntity(entity)) {
-      this.#entity = entity as EntityData<PropertyMap>;
-    } else {
-      throw new Error(
-        `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,
-      );
-    }
+    this.#entity = entity as EntityData<PropertyMap>;
   }
 
   public static async create<T extends TypeIdsAndPropertiesForEntity>(
