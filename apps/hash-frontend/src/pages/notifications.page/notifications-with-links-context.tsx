@@ -19,7 +19,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -149,7 +148,6 @@ export const useNotificationsWithLinksContextValue =
             ],
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
             inheritsFrom: 255,
             isOfType: true,
           },

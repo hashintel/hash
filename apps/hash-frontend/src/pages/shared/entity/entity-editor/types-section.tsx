@@ -15,10 +15,7 @@ import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@hashintel/type-editor/src/shared/urls";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";
 import { useMemo, useState } from "react";
 
@@ -203,7 +200,6 @@ export const TypesSection = () => {
         filter: { all: [] },
         temporalAxes: fullTransactionTimeAxis,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
           constrainsPropertiesOn: 255,
           constrainsLinksOn: 1,
           inheritsFrom: 255,

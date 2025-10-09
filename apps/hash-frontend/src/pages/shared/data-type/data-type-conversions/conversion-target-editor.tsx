@@ -10,10 +10,7 @@ import { DataTypeSelector } from "@hashintel/design-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
@@ -98,7 +95,6 @@ export const ConversionTargetEditor = ({
         },
         temporalAxes: fullTransactionTimeAxis,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
           inheritsFrom: 255,
         },
         traversalPaths: [],

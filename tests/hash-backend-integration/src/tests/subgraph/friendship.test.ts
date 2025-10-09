@@ -59,7 +59,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -237,7 +236,7 @@ afterAll(async () => {
 
 describe("Ontology queries", () => {
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
       inheritsFrom: 1,
     },
@@ -334,7 +333,7 @@ describe("Ontology queries", () => {
   });
 
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
       constrainsValuesOn: 1,
       constrainsPropertiesOn: 1,
@@ -430,7 +429,7 @@ describe("Ontology queries", () => {
   });
 
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
       inheritsFrom: 1,
       constrainsPropertiesOn: 1,
