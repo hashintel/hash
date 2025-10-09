@@ -31,7 +31,7 @@
     "@local/eslint": "0.0.0-private",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "eslint": "9.20.1",
+    "eslint": "9.37.0",
     "eslint-plugin-storybook": "9.1.10",
     "react": "19.1.1",
     "react-dom": "19.1.1",
