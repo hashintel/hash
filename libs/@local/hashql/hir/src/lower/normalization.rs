@@ -32,6 +32,7 @@ use crate::{
         closure::Closure,
         data::{Data, DictField, List, StructField, Tuple},
         graph::read::GraphReadHead,
+        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
@@ -374,7 +375,20 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         })
     }
 
-    // TODO: fold input?! it's actually a thunk?
+    fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
+        let Ok(Input {
+            name,
+            r#type,
+            default,
+        }) = fold::walk_input(self, input);
+
+        // Ensure that the default is an atom
+        Ok(Input {
+            name,
+            r#type,
+            default: default.map(|default| self.ensure_atom(default)),
+        })
+    }
 
     fn fold_index_access(
         &mut self,
