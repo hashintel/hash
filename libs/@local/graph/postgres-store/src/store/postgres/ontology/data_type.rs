@@ -310,7 +310,6 @@ where
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
-    #[expect(clippy::too_many_lines)]
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(

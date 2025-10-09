@@ -8,7 +8,7 @@ use hash_graph_store::{
     },
     filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SubgraphTraversalParams},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -85,57 +85,60 @@ pub fn bench_query_entities_by_property(
     runtime: &Runtime,
     store: &Store,
     actor_id: ActorEntityUuid,
-    graph_resolve_depths: GraphResolveDepths,
+    traversal_params: &SubgraphTraversalParams,
 ) {
-    bencher.to_async(runtime).iter(|| async move {
-        let filter = Filter::Equal(
-            FilterExpression::Path {
-                path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
-                    PathToken::Field(Cow::Borrowed(
-                        "https://blockprotocol.org/@alice/types/property-type/name/",
-                    )),
-                ]))),
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("Alice")),
-                convert: None,
-            },
-        );
-        let response = store
-            .query_entity_subgraph(
-                actor_id,
-                QueryEntitySubgraphParams::ResolveDepths {
-                    graph_resolve_depths,
-                    request: QueryEntitiesParams {
-                        filter,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        conversions: Vec::new(),
-                        include_count: false,
-                        include_entity_types: None,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
-                        include_type_titles: false,
-                        include_permissions: false,
-                    },
+    bencher.to_async(runtime).iter(|| {
+        let traversal_params = traversal_params.clone();
+        async move {
+            let filter = Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                        PathToken::Field(Cow::Borrowed(
+                            "https://blockprotocol.org/@alice/types/property-type/name/",
+                        )),
+                    ]))),
                 },
-            )
-            .await
-            .expect("failed to read entity from store");
-        assert_eq!(response.subgraph.roots.len(), 100);
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                    convert: None,
+                },
+            );
+            let response = store
+                .query_entity_subgraph(
+                    actor_id,
+                    QueryEntitySubgraphParams::from_parts(
+                        QueryEntitiesParams {
+                            filter,
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            sorting: EntityQuerySorting {
+                                paths: Vec::new(),
+                                cursor: None,
+                            },
+                            limit: None,
+                            conversions: Vec::new(),
+                            include_count: false,
+                            include_entity_types: None,
+                            include_drafts: false,
+                            include_web_ids: false,
+                            include_created_by_ids: false,
+                            include_edition_created_by_ids: false,
+                            include_type_ids: false,
+                            include_type_titles: false,
+                            include_permissions: false,
+                        },
+                        traversal_params,
+                    ),
+                )
+                .await
+                .expect("failed to read entity from store");
+            assert_eq!(response.subgraph.roots.len(), 100);
+        }
     });
 }
 
@@ -144,60 +147,63 @@ pub fn bench_get_link_by_target_by_property(
     runtime: &Runtime,
     store: &Store,
     actor_id: ActorEntityUuid,
-    graph_resolve_depths: GraphResolveDepths,
+    traversal_params: &SubgraphTraversalParams,
 ) {
-    bencher.to_async(runtime).iter(|| async move {
-        let filter = Filter::Equal(
-            FilterExpression::Path {
-                path: EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::Properties(Some(
-                        JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                            "https://blockprotocol.org/@alice/types/property-type/name/",
-                        ))]),
-                    ))),
-                    direction: EdgeDirection::Outgoing,
-                },
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("Alice")),
-                convert: None,
-            },
-        );
-        let response = store
-            .query_entity_subgraph(
-                actor_id,
-                QueryEntitySubgraphParams::ResolveDepths {
-                    graph_resolve_depths,
-                    request: QueryEntitiesParams {
-                        filter,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        conversions: Vec::new(),
-                        include_count: false,
-                        include_entity_types: None,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
-                        include_type_titles: false,
-                        include_permissions: false,
+    bencher.to_async(runtime).iter(|| {
+        let traversal_params = traversal_params.clone();
+        async move {
+            let filter = Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::Properties(Some(
+                            JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+                                "https://blockprotocol.org/@alice/types/property-type/name/",
+                            ))]),
+                        ))),
+                        direction: EdgeDirection::Outgoing,
                     },
                 },
-            )
-            .await
-            .expect("failed to read entity from store");
-        assert_eq!(response.subgraph.roots.len(), 100);
+                FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                    convert: None,
+                },
+            );
+            let response = store
+                .query_entity_subgraph(
+                    actor_id,
+                    QueryEntitySubgraphParams::from_parts(
+                        QueryEntitiesParams {
+                            filter,
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(
+                                    Some(TemporalBound::Unbounded),
+                                    None,
+                                ),
+                            },
+                            sorting: EntityQuerySorting {
+                                paths: Vec::new(),
+                                cursor: None,
+                            },
+                            limit: None,
+                            conversions: Vec::new(),
+                            include_count: false,
+                            include_entity_types: None,
+                            include_drafts: false,
+                            include_web_ids: false,
+                            include_created_by_ids: false,
+                            include_edition_created_by_ids: false,
+                            include_type_ids: false,
+                            include_type_titles: false,
+                            include_permissions: false,
+                        },
+                        traversal_params,
+                    ),
+                )
+                .await
+                .expect("failed to read entity from store");
+            assert_eq!(response.subgraph.roots.len(), 100);
+        }
     });
 }

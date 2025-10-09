@@ -216,45 +216,25 @@ struct QueryEntitySubgraphQuery<'q, 's, 'p> {
 
 fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
     match params {
-        SubgraphTraversalParams::ResolveDepths {
-            graph_resolve_depths: depths,
-        } => format!(
-            "resolve_depths=inherit:{};values:{};properties:{};links:{};link_dests:{};type:{};\
-             left:{}/{};right:{}/{}",
-            depths.ontology.inherits_from.outgoing,
-            depths.ontology.constrains_values_on.outgoing,
-            depths.ontology.constrains_properties_on.outgoing,
-            depths.ontology.constrains_links_on.outgoing,
-            depths.ontology.constrains_link_destinations_on.outgoing,
-            depths.ontology.is_of_type.outgoing,
-            depths.has_left_entity.incoming,
-            depths.has_left_entity.outgoing,
-            depths.has_right_entity.incoming,
-            depths.has_right_entity.outgoing
-        ),
         SubgraphTraversalParams::Paths { traversal_paths } => format!(
-            "traversal_paths={}",
+            "traversal_paths={}|{}",
             traversal_paths
                 .iter()
-                .map(|path| format!(
-                    "({})",
-                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
-                ))
-                .join(";")
+                .map(|path| path.edges.len())
+                .sum::<usize>(),
+            traversal_paths.len(),
         ),
-        SubgraphTraversalParams::Mixed {
-            entity_traversal_paths,
-            ontology_graph_resolve_depths: depths,
+        SubgraphTraversalParams::ResolveDepths {
+            traversal_paths,
+            graph_resolve_depths: depths,
         } => format!(
-            "traversal_paths={},resolve_depths=inherit:{};values:{};properties:{};links:{};\
+            "traversal_paths={}|{},resolve_depths=inherit:{};values:{};properties:{};links:{};\
              link_dests:{};type:{}",
-            entity_traversal_paths
+            traversal_paths
                 .iter()
-                .map(|path| format!(
-                    "({})",
-                    path.edges.iter().map(|edge| format!("{edge:?}")).join(";")
-                ))
-                .join(";"),
+                .map(|path| path.edges.len())
+                .sum::<usize>(),
+            traversal_paths.len(),
             depths.inherits_from.outgoing,
             depths.constrains_values_on.outgoing,
             depths.constrains_properties_on.outgoing,

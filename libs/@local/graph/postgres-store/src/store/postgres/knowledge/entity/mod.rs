@@ -1395,7 +1395,7 @@ where
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        let (mut request, traversal_params) = params.into_request();
+        let (mut request, traversal_params) = params.into_parts();
         request
             .filter
             .convert_parameters(&provider)

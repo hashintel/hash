@@ -315,7 +315,28 @@ impl<'a> QueryEntitySubgraphParams<'a> {
     }
 
     #[must_use]
-    pub fn into_request(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
+    pub fn from_parts(
+        request: QueryEntitiesParams<'a>,
+        traversal_params: SubgraphTraversalParams,
+    ) -> Self {
+        match traversal_params {
+            SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
+                request,
+                traversal_paths,
+            },
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => Self::ResolveDepths {
+                request,
+                traversal_paths,
+                graph_resolve_depths,
+            },
+        }
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
         match self {
             Self::Paths {
                 request,
