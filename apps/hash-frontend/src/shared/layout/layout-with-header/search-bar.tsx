@@ -261,7 +261,6 @@ export const SearchBar: FunctionComponent = () => {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
           inheritsFrom: 255,
           isOfType: true,
         },
