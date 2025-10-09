@@ -237,6 +237,7 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_uuids),
             |bencher, (_account_id, entity_list)| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(bencher, &runtime, store, account_id, entity_list);
             },

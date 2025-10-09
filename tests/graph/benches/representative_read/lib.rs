@@ -81,6 +81,7 @@ fn bench_representative_read_entity(crit: &mut Criterion) {
                 BenchmarkId::new(function_id, &parameter),
                 &(account_id, entity_type_id, entity_uuids),
                 |bencher, (_account_id, _entity_type_id, entity_uuids)| {
+                    let _enter = runtime.enter();
                     let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                     knowledge::entity::bench_get_entity_by_id(
                         bencher,
@@ -296,7 +297,7 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     for graph_resolve_depth in graph_resolve_depths {
         let function_id = "entity_by_property";
         let parameter = format!(
-            "depths: DT={}, PT={}, ET={}, E={}",
+            "depths: DT={} PT={} ET={} E={}",
             [
                 graph_resolve_depth.ontology.constrains_values_on.incoming,
                 graph_resolve_depth.ontology.constrains_values_on.outgoing,
@@ -347,6 +348,7 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &graph_resolve_depth,
             |bencher, graph_resolve_depth| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 knowledge::entity::bench_query_entities_by_property(
                     bencher,
@@ -362,7 +364,7 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     for graph_resolve_depth in graph_resolve_depths {
         let function_id = "link_by_source_by_property";
         let parameter = format!(
-            "depths: DT={}, PT={}, ET={}, E={}",
+            "depths: DT={} PT={} ET={} E={}",
             [
                 graph_resolve_depth.ontology.constrains_values_on.incoming,
                 graph_resolve_depth.ontology.constrains_values_on.outgoing,
@@ -413,6 +415,7 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &graph_resolve_depth,
             |bencher, graph_resolve_depth| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 knowledge::entity::bench_get_link_by_target_by_property(
                     bencher,
@@ -448,6 +451,7 @@ fn bench_representative_read_entity_type(crit: &mut Criterion) {
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_type_ids),
             |bencher, (_account_id, entity_type_ids)| {
+                let _enter = runtime.enter();
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 ontology::entity_type::bench_get_entity_type_by_id(
                     bencher,
