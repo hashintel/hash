@@ -123,6 +123,34 @@ const fn is_projection(node: &Node<'_>) -> bool {
     }
 }
 
+/// Configuration options for HIR(ANF) normalization.
+///
+/// This struct controls various aspects of the normalization process, primarily
+/// focused on performance optimizations and resource management.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct NormalizationOptions {
+    /// Maximum number of binding vectors to cache in the recycler pool.
+    ///
+    /// The normalization process frequently creates temporary vectors to accumulate
+    /// `let` bindings at boundary points. To reduce allocation overhead, completed
+    /// vectors are cached in a recycler pool for reuse.
+    ///
+    /// A higher value reduces allocations at the cost of increased memory usage.
+    /// A value of 0 disables recycling entirely.
+    ///
+    /// # Default Value
+    ///
+    /// The default is 4, which provides a good balance between memory usage and
+    /// allocation reduction for typical workloads.
+    pub max_recycle: usize,
+}
+
+impl Default for NormalizationOptions {
+    fn default() -> Self {
+        Self { max_recycle: 4 }
+    }
+}
+
 /// HIR to HIR(ANF) normalization transformer.
 ///
 /// This struct implements the [`Fold`] trait to transform HIR nodes into Administrative
@@ -143,13 +171,21 @@ pub struct Normalization<'ctx, 'env, 'heap> {
 
 impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// Creates a new normalization transformer.
-    pub const fn new(context: &'ctx mut HirContext<'env, 'heap>, max_recycle: usize) -> Self {
+    ///
+    /// # Arguments
+    ///
+    /// - `context`: Mutable reference to the HIR context for interning and variable generation
+    /// - `options`: Configuration options controlling the normalization behavior
+    pub const fn new(
+        context: &'ctx mut HirContext<'env, 'heap>,
+        options: NormalizationOptions,
+    ) -> Self {
         Self {
             context,
             bindings: Vec::new(),
             trampoline: None,
             recycler: Vec::new(),
-            max_recycle,
+            max_recycle: options.max_recycle,
         }
     }
 

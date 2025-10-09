@@ -8,7 +8,7 @@ use self::{
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
     inference::TypeInference,
-    normalization::Normalization,
+    normalization::{Normalization, NormalizationOptions},
     specialization::Specialization,
 };
 use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
@@ -95,7 +95,7 @@ pub fn lower<'heap>(
     );
     let Ok(node) = specialization.fold_node(node);
 
-    let normalization = Normalization::new(context, 4);
+    let normalization = Normalization::new(context, NormalizationOptions::default());
     let node = normalization.run(node);
 
     diagnostics.into_status(node)
