@@ -231,7 +231,7 @@ export const gptQueryEntities: RequestHandler<
       },
       traversalPaths: [
         {
-          edges: Array(depth)
+          edges: Array(Math.min(depth, 10))
             .fill([
               { kind: "has-left-entity", direction: "incoming" },
               { kind: "has-right-entity", direction: "outgoing" },
@@ -239,7 +239,7 @@ export const gptQueryEntities: RequestHandler<
             .flat(),
         },
         {
-          edges: Array(depth)
+          edges: Array(Math.min(depth, 10))
             .fill([
               { kind: "has-right-entity", direction: "incoming" },
               { kind: "has-left-entity", direction: "outgoing" },
