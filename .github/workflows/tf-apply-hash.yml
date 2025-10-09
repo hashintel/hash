@@ -63,11 +63,11 @@ jobs:
           env: ${{ matrix.env }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2.3.3
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error applying Terraform configuration <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>" # Notifies C & T
+          SLACK_MESSAGE: "Error applying Terraform configuration <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Terraform apply failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
