@@ -38,7 +38,6 @@ export const getDereferencedEntityTypesActivity = async (params: {
             })),
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
             constrainsValuesOn: 255,
             constrainsPropertiesOn: 255,
             inheritsFrom: 255,

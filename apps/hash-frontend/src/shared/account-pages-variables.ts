@@ -25,7 +25,6 @@ export const getAccountPagesVariables = ({
       ],
     },
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
       isOfType: true,
     },
     traversalPaths: [

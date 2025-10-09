@@ -364,7 +364,6 @@ export const updateEntityEmbeddings = async (
             })),
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
             inheritsFrom: 255,
             constrainsPropertiesOn: 1,
           },

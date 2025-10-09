@@ -24,7 +24,6 @@ export const getSubgraphFromFilter = async ({
   queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter,
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
       isOfType: true,
       inheritsFrom: 255,
       constrainsPropertiesOn: 255,

@@ -239,11 +239,9 @@ describe("Ontology queries", () => {
   it.each([
     zeroedGraphResolveDepths,
     {
-      ...zeroedGraphResolveDepths,
       inheritsFrom: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
       inheritsFrom: 255,
     },
   ])("read data types %#", async (resolve_depths) => {
@@ -338,16 +336,13 @@ describe("Ontology queries", () => {
   it.each([
     zeroedGraphResolveDepths,
     {
-      ...zeroedGraphResolveDepths,
       constrainsValuesOn: 1,
       constrainsPropertiesOn: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
       constrainsValuesOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
       constrainsPropertiesOn: 255,
     },
   ])("read property types %#", async (graphResolveDepths) => {
@@ -437,26 +432,21 @@ describe("Ontology queries", () => {
   it.each([
     zeroedGraphResolveDepths,
     {
-      ...zeroedGraphResolveDepths,
       inheritsFrom: 1,
       constrainsPropertiesOn: 1,
       constrainsLinksOn: 1,
       constrainsLinkDestinationsOn: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
       inheritsFrom: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
       constrainsPropertiesOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
       constrainsLinksOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
       constrainsLinkDestinationsOn: 255,
     },
   ])("read entity types %#", async (resolve_depths) => {

@@ -437,7 +437,6 @@ describe("Entity type CRU", () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
           constrainsPropertiesOn: 255,
           constrainsValuesOn: 255,
         },

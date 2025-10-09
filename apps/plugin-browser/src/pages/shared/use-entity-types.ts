@@ -39,7 +39,6 @@ export const useEntityTypes = () => {
       filter: { all: [] },
       temporalAxes: fullTransactionTimeAxis,
       graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
         constrainsValuesOn: 255,
         constrainsPropertiesOn: 255,
         inheritsFrom: 255,

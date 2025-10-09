@@ -164,11 +164,17 @@ impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
+    #[serde(default)]
     pub inherits_from: u8,
+    #[serde(default)]
     pub constrains_values_on: u8,
+    #[serde(default)]
     pub constrains_properties_on: u8,
+    #[serde(default)]
     pub constrains_links_on: u8,
+    #[serde(default)]
     pub constrains_link_destinations_on: u8,
+    #[serde(default)]
     pub is_of_type: bool,
 }
 

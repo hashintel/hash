@@ -5413,14 +5413,6 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "required": [
-          "inheritsFrom",
-          "constrainsValuesOn",
-          "constrainsPropertiesOn",
-          "constrainsLinksOn",
-          "constrainsLinkDestinationsOn",
-          "isOfType"
-        ],
         "properties": {
           "constrainsLinkDestinationsOn": {
             "type": "integer",

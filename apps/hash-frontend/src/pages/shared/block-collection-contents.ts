@@ -51,7 +51,6 @@ export const blockCollectionContentsTraversalParams: {
   traversalPaths: EntityTraversalPath[];
 } = {
   graphResolveDepths: {
-    ...zeroedGraphResolveDepths,
     isOfType: true,
   },
   traversalPaths: [
