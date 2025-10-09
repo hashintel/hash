@@ -80,7 +80,7 @@ const fn is_atom(node: &Node<'_>) -> bool {
     }
 }
 
-struct AnfAtomFold<'ctx, 'env, 'heap> {
+pub struct Normalization<'ctx, 'env, 'heap> {
     context: &'ctx mut HirContext<'env, 'heap>,
     bindings: Vec<Binding<'heap>>,
     trampoline: Option<Node<'heap>>,
@@ -88,7 +88,17 @@ struct AnfAtomFold<'ctx, 'env, 'heap> {
     max_recycle: usize,
 }
 
-impl<'ctx, 'env, 'heap> AnfAtomFold<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
+    pub const fn new(context: &'ctx mut HirContext<'env, 'heap>, max_recycle: usize) -> Self {
+        Self {
+            context,
+            bindings: Vec::new(),
+            trampoline: None,
+            recycler: Vec::new(),
+            max_recycle,
+        }
+    }
+
     fn ensure_local_variable(&mut self, node: Node<'heap>) -> Node<'heap> {
         if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
             return node;
@@ -175,7 +185,7 @@ impl<'ctx, 'env, 'heap> AnfAtomFold<'ctx, 'env, 'heap> {
     }
 }
 
-impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
+impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     type NestedFilter = fold::nested::Deep;
     type Output<T>
         = Result<T, !>
@@ -190,7 +200,6 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
 
-        // trampoline, makes sure that we do not short circuit and always use the node
         let Ok(mut node) = fold::walk_node(self, node);
 
         let trampoline = core::mem::replace(&mut self.trampoline, backup);
@@ -257,10 +266,10 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         let Ok(Let { bindings: _, body }) = fold::walk_let(self, r#let);
 
-        // replace with the body as we have upstreamed any bindings and therefore is superfluous
+        // Replace with the body as we have up-streamed any bindings and therefore is superfluous
         self.trampoline(body);
 
-        // return the same value, so that interner does not double intern
+        // Return the same value, so that the interner does not double intern
         Ok(r#let)
     }
 
@@ -274,10 +283,10 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
             force: _,
         }) = fold::walk_type_assertion(self, assertion);
 
-        // at this point type assertions are superfluous and can be safely removed
+        // At this point type assertions are superfluous and can be safely removed
         self.trampoline(value);
 
-        // return the same value, so that interner does not double intern
+        // Return the same value, so that the interner does not double intern
         Ok(assertion)
     }
 
