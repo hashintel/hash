@@ -78,15 +78,9 @@ export const deduplicateSources = (
      * These values may be undefined or empty strings.
      * Set them if they're falsy in the first encountered source.
      */
-    if (!clonedSource.location.uri) {
-      clonedSource.location.uri = source.location?.uri;
-    }
-    if (!clonedSource.location.name) {
-      clonedSource.location.name = source.location?.name;
-    }
-    if (!clonedSource.firstPublished) {
-      clonedSource.firstPublished = source.firstPublished;
-    }
+    clonedSource.location.uri ??= source.location?.uri;
+    clonedSource.location.name ??= source.location?.name;
+    clonedSource.firstPublished ??= source.firstPublished;
 
     if (!clonedSource.lastUpdated) {
       clonedSource.lastUpdated = source.lastUpdated;

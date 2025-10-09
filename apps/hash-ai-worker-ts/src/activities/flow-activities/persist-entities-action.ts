@@ -183,7 +183,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
       ],
     });
 
-    const output = persistedEntityOutputs.contents[0]?.outputs?.[0]?.payload;
+    const output = persistedEntityOutputs.contents[0]?.outputs[0]?.payload;
 
     if (output && output.kind !== "PersistedEntity") {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
