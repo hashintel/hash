@@ -2,8 +2,8 @@ import { useLazyQuery } from "@apollo/client";
 import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
 import {
   currentTimeInstantTemporalAxes,
+  fullGraphResolveDepths,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
@@ -55,12 +55,7 @@ export const useBlockProtocolQueryEntityTypes = (): {
               ? fullTransactionTimeAxis
               : currentTimeInstantTemporalAxes,
             graphResolveDepths: {
-              ...zeroedGraphResolveDepths,
-              constrainsValuesOn: { outgoing: 255 },
-              constrainsPropertiesOn: { outgoing: 255 },
-              constrainsLinksOn: { outgoing: 1 },
-              constrainsLinkDestinationsOn: { outgoing: 1 },
-              inheritsFrom: { outgoing: 255 },
+              ...fullGraphResolveDepths,
               ...graphResolveDepths,
             },
             traversalPaths: [],

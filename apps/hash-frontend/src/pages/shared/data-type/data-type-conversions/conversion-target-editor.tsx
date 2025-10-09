@@ -99,8 +99,7 @@ export const ConversionTargetEditor = ({
         temporalAxes: fullTransactionTimeAxis,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 0 },
+          inheritsFrom: 255,
         },
         traversalPaths: [],
       },

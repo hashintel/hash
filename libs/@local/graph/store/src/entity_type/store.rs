@@ -128,10 +128,10 @@ impl<'a> QueryEntityTypeSubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                if graph_resolve_depths.constrains_properties_on > 0 {
                     actions.push(ActionName::ViewPropertyType);
 
-                    if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                    if graph_resolve_depths.constrains_values_on > 0 {
                         actions.push(ActionName::ViewDataType);
                     }
                 }

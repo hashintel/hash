@@ -39,9 +39,9 @@ export const getDereferencedEntityTypesActivity = async (params: {
           },
           graphResolveDepths: {
             ...zeroedGraphResolveDepths,
-            constrainsValuesOn: { outgoing: 255 },
-            constrainsPropertiesOn: { outgoing: 255 },
-            inheritsFrom: { outgoing: 255 },
+            constrainsValuesOn: 255,
+            constrainsPropertiesOn: 255,
+            inheritsFrom: 255,
           },
           traversalPaths: [],
           temporalAxes: currentTimeInstantTemporalAxes,

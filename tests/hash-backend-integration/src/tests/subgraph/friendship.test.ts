@@ -240,11 +240,11 @@ describe("Ontology queries", () => {
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 1 },
+      inheritsFrom: 1,
     },
     {
       ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 255 },
+      inheritsFrom: 255,
     },
   ])("read data types %#", async (resolve_depths) => {
     const { subgraph } = await queryDataTypeSubgraph(
@@ -339,16 +339,16 @@ describe("Ontology queries", () => {
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
-      constrainsValuesOn: { outgoing: 1 },
-      constrainsPropertiesOn: { outgoing: 1 },
+      constrainsValuesOn: 1,
+      constrainsPropertiesOn: 1,
     },
     {
       ...zeroedGraphResolveDepths,
-      constrainsValuesOn: { outgoing: 255 },
+      constrainsValuesOn: 255,
     },
     {
       ...zeroedGraphResolveDepths,
-      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsPropertiesOn: 255,
     },
   ])("read property types %#", async (graphResolveDepths) => {
     const { subgraph } = await queryPropertyTypeSubgraph(
@@ -438,26 +438,26 @@ describe("Ontology queries", () => {
     zeroedGraphResolveDepths,
     {
       ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 1 },
-      constrainsPropertiesOn: { outgoing: 1 },
-      constrainsLinksOn: { outgoing: 1 },
-      constrainsLinkDestinationsOn: { outgoing: 1 },
+      inheritsFrom: 1,
+      constrainsPropertiesOn: 1,
+      constrainsLinksOn: 1,
+      constrainsLinkDestinationsOn: 1,
     },
     {
       ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 255 },
+      inheritsFrom: 255,
     },
     {
       ...zeroedGraphResolveDepths,
-      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsPropertiesOn: 255,
     },
     {
       ...zeroedGraphResolveDepths,
-      constrainsLinksOn: { outgoing: 255 },
+      constrainsLinksOn: 255,
     },
     {
       ...zeroedGraphResolveDepths,
-      constrainsLinkDestinationsOn: { outgoing: 255 },
+      constrainsLinkDestinationsOn: 255,
     },
   ])("read entity types %#", async (resolve_depths) => {
     const { subgraph } = await queryEntityTypeSubgraph(
@@ -950,7 +950,6 @@ describe("non-zero, simple resolve depths", () => {
             edges: [
               {
                 kind: "is-of-type",
-                direction: "outgoing",
               },
             ],
           },
@@ -1122,7 +1121,7 @@ describe("complex resolve depths", () => {
         ],
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
+          isOfType: true,
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,

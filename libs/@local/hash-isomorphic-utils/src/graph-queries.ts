@@ -1,6 +1,5 @@
 import type {
   EntityRootType,
-  GraphResolveDepths,
   QueryTemporalAxesUnresolved,
   SubgraphRootType,
 } from "@blockprotocol/graph";
@@ -23,6 +22,7 @@ import type {
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import {
@@ -32,21 +32,21 @@ import {
 } from "./ontology-type-ids.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
-  inheritsFrom: { outgoing: 0 },
-  constrainsValuesOn: { outgoing: 0 },
-  constrainsPropertiesOn: { outgoing: 0 },
-  constrainsLinksOn: { outgoing: 0 },
-  constrainsLinkDestinationsOn: { outgoing: 0 },
-  isOfType: { outgoing: 0 },
+  inheritsFrom: 0,
+  constrainsValuesOn: 0,
+  constrainsPropertiesOn: 0,
+  constrainsLinksOn: 0,
+  constrainsLinkDestinationsOn: 0,
+  isOfType: false,
 };
 
 export const fullGraphResolveDepths: GraphResolveDepths = {
-  constrainsValuesOn: { outgoing: 255 },
-  constrainsPropertiesOn: { outgoing: 255 },
-  constrainsLinksOn: { outgoing: 1 },
-  constrainsLinkDestinationsOn: { outgoing: 1 },
-  inheritsFrom: { outgoing: 255 },
-  isOfType: { outgoing: 1 },
+  constrainsValuesOn: 255,
+  constrainsPropertiesOn: 255,
+  constrainsLinksOn: 1,
+  constrainsLinkDestinationsOn: 1,
+  inheritsFrom: 255,
+  isOfType: true,
 };
 
 /**

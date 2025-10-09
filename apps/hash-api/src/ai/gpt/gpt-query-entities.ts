@@ -17,7 +17,10 @@ import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  fullGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   OrganizationProperties,
   UserProperties,
@@ -222,12 +225,9 @@ export const gptQueryEntities: RequestHandler<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
+        ...fullGraphResolveDepths,
+        constrainsLinkDestinationsOn: 255,
+        constrainsLinksOn: 255,
       },
       traversalPaths: [
         {

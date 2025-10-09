@@ -116,7 +116,7 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if graph_resolve_depths.constrains_values_on > 0 {
                     actions.push(ActionName::ViewDataType);
                 }
             }

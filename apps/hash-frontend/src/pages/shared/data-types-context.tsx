@@ -43,8 +43,8 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
         temporalAxes: fullTransactionTimeAxis,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
+          inheritsFrom: 255,
+          constrainsValuesOn: 255,
         },
         traversalPaths: [],
       },

@@ -389,13 +389,13 @@ impl<'a> QueryEntitySubgraphParams<'a> {
                 graph_resolve_depths: depths,
                 ..
             } => {
-                if depths.is_of_type.outgoing > 0 {
+                if depths.is_of_type {
                     actions.push(ActionName::ViewEntityType);
 
-                    if depths.constrains_properties_on.outgoing > 0 {
+                    if depths.constrains_properties_on > 0 {
                         actions.push(ActionName::ViewPropertyType);
 
-                        if depths.constrains_values_on.outgoing > 0 {
+                        if depths.constrains_values_on > 0 {
                             actions.push(ActionName::ViewDataType);
                         }
                     }

@@ -10,47 +10,23 @@
       "traversalParams": [
         {
           "graphResolveDepths": {
-            "inheritsFrom": {
-              "outgoing": 255
-            },
-            "constrainsValuesOn": {
-              "outgoing": 255
-            },
-            "constrainsPropertiesOn": {
-              "outgoing": 255
-            },
-            "constrainsLinksOn": {
-              "outgoing": 255
-            },
-            "constrainsLinkDestinationsOn": {
-              "outgoing": 255
-            },
-            "isOfType": {
-              "outgoing": 255
-            }
+            "inheritsFrom": 255,
+            "constrainsValuesOn": 255,
+            "constrainsPropertiesOn": 255,
+            "constrainsLinksOn": 255,
+            "constrainsLinkDestinationsOn": 255,
+            "isOfType": true
           },
           "traversalPaths": []
         },
         {
           "graphResolveDepths": {
-            "inheritsFrom": {
-              "outgoing": 255
-            },
-            "constrainsValuesOn": {
-              "outgoing": 255
-            },
-            "constrainsPropertiesOn": {
-              "outgoing": 255
-            },
-            "constrainsLinksOn": {
-              "outgoing": 255
-            },
-            "constrainsLinkDestinationsOn": {
-              "outgoing": 255
-            },
-            "isOfType": {
-              "outgoing": 255
-            }
+            "inheritsFrom": 255,
+            "constrainsValuesOn": 255,
+            "constrainsPropertiesOn": 255,
+            "constrainsLinksOn": 255,
+            "constrainsLinkDestinationsOn": 255,
+            "isOfType": true
           },
           "traversalPaths": [
             {
@@ -100,24 +76,12 @@
       }
     },
     "graphResolveDepths": {
-      "inheritsFrom": {
-        "outgoing": 0
-      },
-      "constrainsValuesOn": {
-        "outgoing": 0
-      },
-      "constrainsPropertiesOn": {
-        "outgoing": 0
-      },
-      "constrainsLinksOn": {
-        "outgoing": 0
-      },
-      "constrainsLinkDestinationsOn": {
-        "outgoing": 0
-      },
-      "isOfType": {
-        "outgoing": 0
-      }
+      "inheritsFrom": 0,
+      "constrainsValuesOn": 0,
+      "constrainsPropertiesOn": 0,
+      "constrainsLinksOn": 0,
+      "constrainsLinkDestinationsOn": 0,
+      "isOfType": false
     },
     "traversalPaths": [],
     "includeDrafts": false,

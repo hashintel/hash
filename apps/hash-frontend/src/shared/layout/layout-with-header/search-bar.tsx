@@ -262,8 +262,8 @@ export const SearchBar: FunctionComponent = () => {
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
         traversalPaths: [],
         includeDrafts: false,

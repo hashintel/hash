@@ -49,7 +49,7 @@ use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_store::subgraph::edges::{
     EntityTraversalEdge, EntityTraversalEdgeDirection, EntityTraversalPath, GraphResolveDepths,
-    OutgoingEdgeResolveDepth, SubgraphTraversalParams,
+    SubgraphTraversalParams,
 };
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
@@ -115,31 +115,23 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: Vec::new(),
         },
         SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths::default(),
+            traversal_paths: vec![EntityTraversalPath {
+                edges: vec![
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EntityTraversalEdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EntityTraversalEdgeDirection::Outgoing,
+                    },
+                ],
+            }],
+        },
+        SubgraphTraversalParams::ResolveDepths {
             graph_resolve_depths: GraphResolveDepths {
-                inherits_from: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_values_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_properties_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_links_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                is_of_type: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
@@ -154,30 +146,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
         },
         SubgraphTraversalParams::ResolveDepths {
             graph_resolve_depths: GraphResolveDepths {
-                inherits_from: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_values_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_properties_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_links_on: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
-                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                is_of_type: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
+                constrains_properties_on: 2,
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
@@ -192,30 +164,11 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
         },
         SubgraphTraversalParams::ResolveDepths {
             graph_resolve_depths: GraphResolveDepths {
-                inherits_from: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_values_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_properties_on: OutgoingEdgeResolveDepth {
-                    outgoing: 2,
-                    incoming: 0,
-                },
-                constrains_links_on: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
-                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                is_of_type: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
+                constrains_values_on: 2,
+                constrains_properties_on: 2,
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
@@ -230,68 +183,12 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
         },
         SubgraphTraversalParams::ResolveDepths {
             graph_resolve_depths: GraphResolveDepths {
-                inherits_from: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                constrains_values_on: OutgoingEdgeResolveDepth {
-                    outgoing: 2,
-                    incoming: 0,
-                },
-                constrains_properties_on: OutgoingEdgeResolveDepth {
-                    outgoing: 2,
-                    incoming: 0,
-                },
-                constrains_links_on: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
-                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                    outgoing: 0,
-                    incoming: 0,
-                },
-                is_of_type: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
-            },
-            traversal_paths: vec![EntityTraversalPath {
-                edges: vec![
-                    EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
-                    },
-                    EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
-                    },
-                ],
-            }],
-        },
-        SubgraphTraversalParams::ResolveDepths {
-            graph_resolve_depths: GraphResolveDepths {
-                inherits_from: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
-                constrains_values_on: OutgoingEdgeResolveDepth {
-                    outgoing: 255,
-                    incoming: 0,
-                },
-                constrains_properties_on: OutgoingEdgeResolveDepth {
-                    outgoing: 255,
-                    incoming: 0,
-                },
-                constrains_links_on: OutgoingEdgeResolveDepth {
-                    outgoing: 127,
-                    incoming: 0,
-                },
-                constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                    outgoing: 126,
-                    incoming: 0,
-                },
-                is_of_type: OutgoingEdgeResolveDepth {
-                    outgoing: 1,
-                    incoming: 0,
-                },
+                inherits_from: 1,
+                constrains_values_on: 255,
+                constrains_properties_on: 255,
+                constrains_links_on: 127,
+                constrains_link_destinations_on: 126,
+                is_of_type: true,
             },
             traversal_paths: vec![EntityTraversalPath {
                 edges: iter::repeat([
@@ -331,12 +228,12 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
                     .map(|path| path.edges.len())
                     .sum::<usize>(),
                 traversal_paths.len(),
-                depths.inherits_from.outgoing,
-                depths.constrains_values_on.outgoing,
-                depths.constrains_properties_on.outgoing,
-                depths.constrains_links_on.outgoing,
-                depths.constrains_link_destinations_on.outgoing,
-                depths.is_of_type.outgoing,
+                depths.inherits_from,
+                depths.constrains_values_on,
+                depths.constrains_properties_on,
+                depths.constrains_links_on,
+                depths.constrains_link_destinations_on,
+                depths.is_of_type,
             ),
         })
         .collect::<Vec<_>>();

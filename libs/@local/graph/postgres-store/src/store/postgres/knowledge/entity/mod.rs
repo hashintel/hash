@@ -29,8 +29,8 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, KnowledgeGraphEdgeKind,
-            OntologyTraversalEdgeDirection, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
+            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, GraphResolveDepths,
+            KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -176,9 +176,7 @@ where
                         };
 
                         match edge {
-                            TraversalEdge::IsOfType {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => {
+                            TraversalEdge::IsOfType => {
                                 shared_edges_to_traverse
                                     .get_or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
@@ -201,23 +199,22 @@ where
                                     .or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
                             }
-                            TraversalEdge::InheritsFrom { .. }
-                            | TraversalEdge::ConstrainsLinksOn { .. }
-                            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
-                            | TraversalEdge::ConstrainsPropertiesOn { .. }
-                            | TraversalEdge::ConstrainsValuesOn { .. } => {}
+                            TraversalEdge::InheritsFrom
+                            | TraversalEdge::ConstrainsLinksOn
+                            | TraversalEdge::ConstrainsLinkDestinationsOn
+                            | TraversalEdge::ConstrainsPropertiesOn
+                            | TraversalEdge::ConstrainsValuesOn => {}
                         }
                     }
                     BorrowedTraversalParams::ResolveDepths {
                         traversal_path,
                         graph_resolve_depths,
                     } => {
-                        if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                            .decrement_depth_for_edge(
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                            )
-                        {
+                        if graph_resolve_depths.is_of_type {
+                            let new_graph_resolve_depths = GraphResolveDepths {
+                                is_of_type: false,
+                                ..graph_resolve_depths
+                            };
                             shared_edges_to_traverse
                                 .get_or_insert_with(|| {
                                     EntityEdgeTraversalData::new(

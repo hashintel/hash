@@ -5,6 +5,7 @@ import {
   makeOntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
+import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
@@ -314,12 +315,7 @@ export const CreateEntityTypeForm = ({
                       title: titleToValidate,
                       version: makeOntologyTypeVersion({ major: 1 }),
                     }).versionedUrl,
-                    graphResolveDepths: {
-                      constrainsValuesOn: { outgoing: 0 },
-                      constrainsPropertiesOn: { outgoing: 0 },
-                      constrainsLinksOn: { outgoing: 0 },
-                      constrainsLinkDestinationsOn: { outgoing: 0 },
-                    },
+                    graphResolveDepths: zeroedGraphResolveDepths,
                   },
                 });
 

@@ -8,7 +8,7 @@
     "bench:integration:manual": "cargo bench --bench manual-queries",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:integration": "cargo test --bench graph --bench read-scaling --bench representative-read --bench policy",
+    "test:integration": "cargo test --benches",
     "test:integration:manual": "cargo test --bench manual-queries"
   },
   "devDependencies": {
