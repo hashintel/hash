@@ -16,35 +16,26 @@
 // This removes some easy potential for deduplication, but that is deemed to not really be a concern
 // here.
 
-use core::convert::Infallible;
+use core::{convert::Infallible, mem};
 
-use hashql_core::{intern::Interned, span::Spanned};
+use hashql_core::span::Spanned;
 
 use crate::{
     context::HirContext,
-    fold::{self, Fold},
+    fold::{self, Fold, beef::Beef},
     intern::Interner,
     node::{
         Node, PartialNode,
-        access::{Access, FieldAccess, IndexAccess},
-        branch::{Branch, If},
+        access::{FieldAccess, IndexAccess},
+        branch::If,
         call::{Call, CallArgument},
-        closure::{Closure, ClosureParam, ClosureSignature},
-        data::Data,
-        graph::{
-            Graph,
-            read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
-        },
-        input::Input,
+        closure::Closure,
+        data::{Data, DictField, List, StructField, Tuple},
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
-        operation::{
-            BinOp, BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
-            UnaryOperation,
-        },
+        operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
         variable::{LocalVariable, Variable},
     },
-    path::QualifiedPath,
 };
 
 // How do we do this transformation? in theory it should be relatively straightforward, we have two
@@ -91,11 +82,14 @@ const fn is_atom(node: &Node<'_>) -> bool {
 struct AnfAtomFold<'ctx, 'env, 'heap> {
     context: &'ctx mut HirContext<'env, 'heap>,
     bindings: Vec<Binding<'heap>>,
+    trampoline: Option<Node<'heap>>,
+    recycler: Vec<Vec<Binding<'heap>>>,
+    max_recycle: usize,
 }
 
 impl<'ctx, 'env, 'heap> AnfAtomFold<'ctx, 'env, 'heap> {
-    fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
-        if is_atom(&node) {
+    fn ensure_local_variable(&mut self, node: Node<'heap>) -> Node<'heap> {
+        if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
             return node;
         }
 
@@ -123,209 +117,297 @@ impl<'ctx, 'env, 'heap> AnfAtomFold<'ctx, 'env, 'heap> {
         })
     }
 
-    // fn fold_node(&mut self, node: Node<'heap>) -> Node<'heap> {
-    //     let kind = match node.kind {
-    //         NodeKind::Data(data) => todo!(),
-    //         NodeKind::Variable(variable) => todo!(),
-    //         NodeKind::Let(_) => todo!(),
-    //         NodeKind::Input(input) => todo!(),
-    //         NodeKind::Operation(operation) => todo!(),
-    //         NodeKind::Access(access) => todo!(),
-    //         NodeKind::Call(call) => todo!(),
-    //         NodeKind::Branch(branch) => todo!(),
-    //         NodeKind::Closure(closure) => todo!(),
-    //         NodeKind::Graph(graph) => todo!(),
-    //     };
-    // }
+    fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
+        if is_atom(&node) {
+            return node;
+        }
+
+        self.ensure_local_variable(node)
+    }
+
+    fn trampoline(&mut self, node: Node<'heap>) {
+        match &mut self.trampoline {
+            None => {
+                self.trampoline = Some(node);
+            }
+            Some(_) => {
+                panic!("trampoline has been inserted to multiple times");
+            }
+        }
+    }
+
+    fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
+        // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
+        let bindings = self.recycler.pop().unwrap_or_else(|| {
+            // The current amount of bindings is a good indicator for the size of vector we're
+            // expecting
+            Vec::with_capacity(self.bindings.len())
+        });
+
+        // Save the current bindings vector, to be restored once we've exited the boundary
+        let outer = mem::replace(&mut self.bindings, bindings);
+
+        let Ok(mut node) = fold::walk_nested_node(self, node);
+
+        // Restore the outer vector and retrieve the collected bindings
+        let mut bindings = core::mem::replace(&mut self.bindings, outer);
+
+        if !bindings.is_empty() {
+            // We need to wrap the collected bindings into a new let node
+            node = self.context.interner.intern_node(PartialNode {
+                span: node.span,
+                kind: NodeKind::Let(Let {
+                    bindings: self.context.interner.bindings.intern_slice(&bindings),
+                    body: node,
+                }),
+            });
+
+            bindings.clear();
+        }
+
+        // If we haven't reached the limit, add the vector to the recycler
+        if self.recycler.len() < self.max_recycle {
+            self.recycler.push(bindings);
+        }
+
+        node
+    }
 }
 
 impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     type NestedFilter = fold::nested::Deep;
     type Output<T>
-        = Result<T, Node<'heap>>
+        = Result<T, !>
     where
         T: 'heap;
-    type Residual = Result<Infallible, Node<'heap>>;
+    type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.context.interner
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+        let backup = self.trampoline.take();
+
         // trampoline, makes sure that we do not short circuit and always use the node
-        let (Ok(node) | Err(node)) = fold::walk_node(self, node);
+        let Ok(mut node) = fold::walk_node(self, node);
+
+        let trampoline = core::mem::replace(&mut self.trampoline, backup);
+        if let Some(trampoline) = trampoline {
+            node = trampoline;
+        }
 
         Ok(node)
     }
 
-    fn fold_qualified_path(
-        &mut self,
-        path: QualifiedPath<'heap>,
-    ) -> Self::Output<QualifiedPath<'heap>> {
-        fold::walk_qualified_path(self, path)
-    }
-
     fn fold_data(&mut self, data: Data<'heap>) -> Self::Output<Data<'heap>> {
-        // data does not need to be done separately as it is already in ANF form
-        // TODO: stack construction of non-literal data should be done here as well?
         fold::walk_data(self, data)
     }
 
-    fn fold_variable(&mut self, variable: Variable<'heap>) -> Self::Output<Variable<'heap>> {
-        // variables are per definition already in ANF form
-        fold::walk_variable(self, variable)
+    fn fold_struct_field(&mut self, field: StructField<'heap>) -> Self::Output<StructField<'heap>> {
+        let Ok(StructField { name, value }) = fold::walk_struct_field(self, field);
+
+        let value = self.ensure_atom(value);
+
+        Ok(StructField { name, value })
+    }
+
+    fn fold_tuple(&mut self, Tuple { fields }: Tuple<'heap>) -> Self::Output<Tuple<'heap>> {
+        let mut fields = Beef::new(fields);
+        let Ok(()) = fields.try_map::<_, Self::Output<()>>(|field| {
+            self.fold_nested_node(field)
+                .map(|node| self.ensure_atom(node))
+        });
+
+        let fields = fields.finish(&self.context.interner.nodes);
+
+        Ok(Tuple { fields })
+    }
+
+    fn fold_list(&mut self, List { elements }: List<'heap>) -> Self::Output<List<'heap>> {
+        let mut elements = Beef::new(elements);
+        let Ok(()) = elements.try_map::<_, Self::Output<()>>(|element| {
+            self.fold_nested_node(element)
+                .map(|node| self.ensure_atom(node))
+        });
+        let elements = elements.finish(&self.context.interner.nodes);
+
+        Ok(List { elements })
+    }
+
+    fn fold_dict_field(&mut self, field: DictField<'heap>) -> Self::Output<DictField<'heap>> {
+        let Ok(DictField { mut key, mut value }) = fold::walk_dict_field(self, field);
+        key = self.ensure_atom(key);
+        value = self.ensure_atom(value);
+
+        Ok(DictField { key, value })
+    }
+
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
+        // We put the bindings into the current stack *after* they have been evaluated, this makes
+        // sure that evaluation order is preserved.
+        let Ok(modified) = fold::walk_binding(self, binding);
+        self.bindings.push(modified);
+
+        // We return the old binding, so that underlying beef implementation does not double intern
+        Ok(binding)
     }
 
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
-        // TODO: how to handle let bindings? They still need to be in ANF form as well
-        fold::walk_let(self, r#let)
-    }
+        let Ok(Let { bindings: _, body }) = fold::walk_let(self, r#let);
 
-    fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
-        // TODO: input is just a plain function call, therefore valid, as long as the default is an
-        // atom
-        fold::walk_input(self, input)
-    }
+        // replace with the body as we have upstreamed any bindings and therefore is superfluous
+        self.trampoline(body);
 
-    fn fold_operation(&mut self, operation: Operation<'heap>) -> Self::Output<Operation<'heap>> {
-        fold::walk_operation(self, operation)
-    }
-
-    fn fold_type_operation(
-        &mut self,
-        operation: TypeOperation<'heap>,
-    ) -> Self::Output<TypeOperation<'heap>> {
-        fold::walk_type_operation(self, operation)
+        // return the same value, so that interner does not double intern
+        Ok(r#let)
     }
 
     fn fold_type_assertion(
         &mut self,
         assertion: TypeAssertion<'heap>,
     ) -> Self::Output<TypeAssertion<'heap>> {
-        fold::walk_type_assertion(self, assertion)
+        let Ok(TypeAssertion {
+            value,
+            r#type: _,
+            force: _,
+        }) = fold::walk_type_assertion(self, assertion);
+
+        // at this point type assertions are superfluous and can be safely removed
+        self.trampoline(value);
+
+        // return the same value, so that interner does not double intern
+        Ok(assertion)
     }
 
-    fn fold_type_constructor(
-        &mut self,
-        constructor: TypeConstructor<'heap>,
-    ) -> Self::Output<TypeConstructor<'heap>> {
-        // TODO: is an ordinary function call, therefore valid, as long as the arguments are atoms
-        fold::walk_type_constructor(self, constructor)
-    }
+    // A type constructor is just an opaque closure definition and can therefore be skipped
 
     fn fold_binary_operation(
         &mut self,
         operation: BinaryOperation<'heap>,
     ) -> Self::Output<BinaryOperation<'heap>> {
-        fold::walk_binary_operation(self, operation)
+        if operation.op.value == BinOp::And || operation.op.value == BinOp::Or {
+            // These have special properties from the other operations, because they are
+            // short-circuiting, and therefore are actually boundaries, given: `A && B`,
+            // `B` should only be evaluated if `A` is true `A || B`, `B` should only be
+            // evaluated if `A` is false (if they are complex operations)
+            //
+            // To encode this we can say that `A && B` is equivalent to `if A then B else false`
+            // and `A || B` is equivalent to `if A then true else B`
+            // Therefore `&&` and `||` are naturally classified as boundaries, but(!) only for the
+            // right side, as `A` is always evaluated
+            let BinaryOperation { op, left, right } = operation;
+
+            // inlined version of `fold::walk_binary_operation`
+            let op = Spanned {
+                span: self.fold_span(op.span)?,
+                value: op.value,
+            };
+
+            // Proceed as normal, as `left` is equivalent to the `test` expression
+            let Ok(left) = self.fold_nested_node(left);
+
+            // The right side is a boundary
+            let right = self.boundary(right);
+
+            return Ok(BinaryOperation { op, left, right });
+        }
+
+        let Ok(BinaryOperation { op, left, right }) = fold::walk_binary_operation(self, operation);
+
+        // Arguments to a function call must be atoms
+        Ok(BinaryOperation {
+            op,
+            left: self.ensure_atom(left),
+            right: self.ensure_atom(right),
+        })
     }
 
     fn fold_unary_operation(
         &mut self,
         operation: UnaryOperation<'heap>,
     ) -> Self::Output<UnaryOperation<'heap>> {
-        fold::walk_unary_operation(self, operation)
-    }
+        let Ok(UnaryOperation { op, expr }) = fold::walk_unary_operation(self, operation);
 
-    fn fold_access(&mut self, access: Access<'heap>) -> Self::Output<Access<'heap>> {
-        fold::walk_access(self, access)
+        // Arguments to a function call must be atoms
+        Ok(UnaryOperation {
+            op,
+            expr: self.ensure_atom(expr),
+        })
     }
 
     fn fold_field_access(
         &mut self,
         access: FieldAccess<'heap>,
     ) -> Self::Output<FieldAccess<'heap>> {
-        fold::walk_field_access(self, access)
+        let Ok(FieldAccess { expr, field }) = fold::walk_field_access(self, access);
+        // To be a valid projection the inner body must be an atom
+        Ok(FieldAccess {
+            expr: self.ensure_atom(expr),
+            field,
+        })
     }
 
     fn fold_index_access(
         &mut self,
         access: IndexAccess<'heap>,
     ) -> Self::Output<IndexAccess<'heap>> {
-        fold::walk_index_access(self, access)
+        let Ok(IndexAccess { expr, index }) = fold::walk_index_access(self, access);
+
+        let expr = self.ensure_atom(expr);
+        // The *index* must be a local variable
+        let index = self.ensure_local_variable(index);
+
+        Ok(IndexAccess { expr, index })
     }
 
     fn fold_call(&mut self, call: Call<'heap>) -> Self::Output<Call<'heap>> {
-        fold::walk_call(self, call)
+        let Ok(Call {
+            function,
+            arguments,
+        }) = fold::walk_call(self, call);
+
+        Ok(Call {
+            function: self.ensure_atom(function),
+            arguments,
+        })
     }
 
     fn fold_call_argument(
         &mut self,
         argument: CallArgument<'heap>,
     ) -> Self::Output<CallArgument<'heap>> {
-        fold::walk_call_argument(self, argument)
+        let Ok(CallArgument { span, value }) = fold::walk_call_argument(self, argument);
+
+        // call arguments must be atoms
+        Ok(CallArgument {
+            span,
+            value: self.ensure_atom(value),
+        })
     }
 
-    fn fold_call_arguments(
+    fn fold_if(&mut self, If { test, then, r#else }: If<'heap>) -> Self::Output<If<'heap>> {
+        // If is a bit more complex, it is considered a "boundary", `test` is evaluated in the outer
+        // boundary, whereas `then` and `else` are both their own boundaries.
+        let Ok(test) = fold::walk_nested_node(self, test);
+
+        let then = self.boundary(then);
+        let r#else = self.boundary(r#else);
+
+        Ok(If { test, then, r#else })
+    }
+
+    fn fold_closure(
         &mut self,
-        arguments: Interned<'heap, [CallArgument<'heap>]>,
-    ) -> Self::Output<Interned<'heap, [CallArgument<'heap>]>> {
-        fold::walk_call_arguments(self, arguments)
+        Closure { signature, body }: Closure<'heap>,
+    ) -> Self::Output<Closure<'heap>> {
+        let Ok(signature) = self.fold_closure_signature(signature);
+
+        // The `body` is natural boundary
+        let body = self.boundary(body);
+
+        Ok(Closure { signature, body })
     }
 
-    fn fold_branch(&mut self, branch: Branch<'heap>) -> Self::Output<Branch<'heap>> {
-        fold::walk_branch(self, branch)
-    }
-
-    fn fold_if(&mut self, r#if: If<'heap>) -> Self::Output<If<'heap>> {
-        fold::walk_if(self, r#if)
-    }
-
-    fn fold_closure(&mut self, closure: Closure<'heap>) -> Self::Output<Closure<'heap>> {
-        fold::walk_closure(self, closure)
-    }
-
-    fn fold_closure_signature(
-        &mut self,
-        signature: ClosureSignature<'heap>,
-    ) -> Self::Output<ClosureSignature<'heap>> {
-        fold::walk_closure_signature(self, signature)
-    }
-
-    fn fold_closure_param(
-        &mut self,
-        param: ClosureParam<'heap>,
-    ) -> Self::Output<ClosureParam<'heap>> {
-        fold::walk_closure_param(self, param)
-    }
-
-    fn fold_closure_params(
-        &mut self,
-        params: Interned<'heap, [ClosureParam<'heap>]>,
-    ) -> Self::Output<Interned<'heap, [ClosureParam<'heap>]>> {
-        fold::walk_closure_params(self, params)
-    }
-
-    fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
-        fold::walk_graph(self, graph)
-    }
-
-    fn fold_graph_read(&mut self, read: GraphRead<'heap>) -> Self::Output<GraphRead<'heap>> {
-        fold::walk_graph_read(self, read)
-    }
-
-    fn fold_graph_read_head(
-        &mut self,
-        head: GraphReadHead<'heap>,
-    ) -> Self::Output<GraphReadHead<'heap>> {
-        fold::walk_graph_read_head(self, head)
-    }
-
-    fn fold_graph_read_body(
-        &mut self,
-        body: Interned<'heap, [GraphReadBody<'heap>]>,
-    ) -> Self::Output<Interned<'heap, [GraphReadBody<'heap>]>> {
-        fold::walk_graph_read_body(self, body)
-    }
-
-    fn fold_graph_read_body_step(
-        &mut self,
-        body: GraphReadBody<'heap>,
-    ) -> Self::Output<GraphReadBody<'heap>> {
-        fold::walk_graph_read_body_step(self, body)
-    }
-
-    fn fold_graph_read_tail(&mut self, tail: GraphReadTail) -> Self::Output<GraphReadTail> {
-        fold::walk_graph_read_tail(self, tail)
-    }
+    // Graph operations are already normalized and handled by the other fold operations
 }
