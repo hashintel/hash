@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Dismiss stale pull request approvals
-        uses: withgraphite/dismiss-stale-approvals@36620714c84092b9d1bd5123ab3b5e11c48b5119 # v0.1.2
+        # see: https://github.com/withgraphite/dismiss-stale-approvals/pull/8#issuecomment-3386592574
+        uses: turnage/dismiss-stale-approvals@ff3fc67f2978497c420e446f704b9502dd911fd8 # fork
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
