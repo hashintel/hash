@@ -12,12 +12,12 @@ export interface EntityPermissions {
 	update?: [EntityEditionId, ...EntityEditionId[]];
 }
 export interface GraphResolveDepths {
-	inheritsFrom: number;
-	constrainsValuesOn: number;
-	constrainsPropertiesOn: number;
-	constrainsLinksOn: number;
-	constrainsLinkDestinationsOn: number;
-	isOfType: boolean;
+	inheritsFrom?: number;
+	constrainsValuesOn?: number;
+	constrainsPropertiesOn?: number;
+	constrainsLinksOn?: number;
+	constrainsLinkDestinationsOn?: number;
+	isOfType?: boolean;
 }
 export type EntityTraversalEdge = {
 	kind: "has-left-entity"

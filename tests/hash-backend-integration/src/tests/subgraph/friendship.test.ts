@@ -1110,7 +1110,6 @@ describe("complex resolve depths", () => {
           },
         ],
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
           isOfType: true,
         },
         temporalAxes: currentTimeInstantTemporalAxes,

@@ -7,7 +7,10 @@ import type {
 } from "@local/hash-graph-sdk/embeddings";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  fullGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";

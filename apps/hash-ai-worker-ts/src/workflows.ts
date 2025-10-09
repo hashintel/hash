@@ -19,7 +19,6 @@ import {
   deserializeQueryEntitiesResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {

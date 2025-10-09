@@ -40,7 +40,6 @@ import type {
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,

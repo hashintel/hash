@@ -4,10 +4,7 @@ import {
   deserializeQueryEntityTypeSubgraphResponse,
   type QueryEntityTypeSubgraphParams,
 } from "@local/hash-graph-sdk/entity-type";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { useEffect } from "react";
 
 import type {
