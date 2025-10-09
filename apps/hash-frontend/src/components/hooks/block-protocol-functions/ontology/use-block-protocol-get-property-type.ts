@@ -1,7 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { fullGraphResolveDepths } from "@local/hash-isomorphic-utils/src/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  fullGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
