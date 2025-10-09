@@ -1,10 +1,12 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
- EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-  EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
+#let %1 = ::graph::tmp::decision_time_now
+     %2 = %1()
+in
+::graph::head::entities(%2) |> ::graph::body::filter(#fn(vertex:0:
+_0«Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+  entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+   entity_uuid: EntityUuid[Uuid[String]], web_id:
    WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
   | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
      | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
@@ -13,10 +15,12 @@
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    (vertex:0.id.entity_id.entity_uuid == #ctor(fn(Uuid[String]) ->
-    EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
-    arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f"))))
-|> ::graph::tail::collect
+    #let %3 = #ctor(fn(String) -> Uuid[String], arguments: [])
+         %4 = %3("e2851dbb-7376-4959-9bca-f72cafc4448f")
+         %5 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]], arguments: [])
+         %6 = %5(%4)
+    in
+    (vertex:0.id.entity_id.entity_uuid == %6)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 

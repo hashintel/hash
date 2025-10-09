@@ -1,10 +1,12 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
- EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-  EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
+#let %2 = ::graph::tmp::decision_time_now
+     %3 = %2()
+in
+::graph::head::entities(%3) |> ::graph::body::filter(#fn(vertex:0:
+_0«Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+  entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+   entity_uuid: EntityUuid[Uuid[String]], web_id:
    WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
   | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
      | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
