@@ -31,6 +31,7 @@ use crate::{
         call::{Call, CallArgument},
         closure::Closure,
         data::{Data, DictField, List, StructField, Tuple},
+        graph::read::GraphReadHead,
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
@@ -354,11 +355,12 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     ) -> Self::Output<IndexAccess<'heap>> {
         let Ok(IndexAccess { expr, index }) = fold::walk_index_access(self, access);
 
-        let expr = self.ensure_atom(expr);
-        // The *index* must be a local variable
-        let index = self.ensure_local_variable(index);
-
-        Ok(IndexAccess { expr, index })
+        // To be a valid projection, the inner body must be an atom, and the index must be a local
+        // variable
+        Ok(IndexAccess {
+            expr: self.ensure_atom(expr),
+            index: self.ensure_local_variable(index),
+        })
     }
 
     fn fold_call(&mut self, call: Call<'heap>) -> Self::Output<Call<'heap>> {
@@ -410,4 +412,19 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for AnfAtomFold<'ctx, 'env, 'heap> {
     }
 
     // Graph operations are already normalized and handled by the other fold operations
+    // We do *not* ensure atoms on the `GraphRead` body (or tail) as these closures are handled
+    // separately in the MIR step.
+    fn fold_graph_read_head(
+        &mut self,
+        head: GraphReadHead<'heap>,
+    ) -> Self::Output<GraphReadHead<'heap>> {
+        let Ok(head) = fold::walk_graph_read_head(self, head);
+
+        Ok(match head {
+            GraphReadHead::Entity { axis } => GraphReadHead::Entity {
+                // Ensure that the axis is evaluated *before* the pipeline is initiated
+                axis: self.ensure_atom(axis),
+            },
+        })
+    }
 }
