@@ -67,7 +67,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error applying Terraform configuration <@S09KH99698T>" # Notifies @devops
+          SLACK_MESSAGE: "Error applying Terraform configuration <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Terraform apply failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
