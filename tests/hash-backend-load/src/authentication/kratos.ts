@@ -15,16 +15,14 @@ export type SessionContext = {
 
 let __oryKratosClient: FrontendApi | undefined;
 export const getOryKratosClient = () => {
-  if (!__oryKratosClient) {
-    __oryKratosClient = new FrontendApi(
-      new Configuration({
-        basePath: `${getRequiredEnv("API_ORIGIN")}/auth`,
-        baseOptions: {
-          withCredentials: true,
-        },
-      }),
-    );
-  }
+  __oryKratosClient ??= new FrontendApi(
+    new Configuration({
+      basePath: `${getRequiredEnv("API_ORIGIN")}/auth`,
+      baseOptions: {
+        withCredentials: true,
+      },
+    }),
+  );
 
   return __oryKratosClient;
 };
