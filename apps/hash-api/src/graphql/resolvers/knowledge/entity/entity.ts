@@ -8,6 +8,7 @@ import {
   HashEntity,
   queryEntities,
   queryEntitySubgraph,
+  serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
 } from "@local/hash-graph-sdk/entity";
 import {
@@ -135,7 +136,7 @@ export const queryEntitiesResolver: ResolverFn<
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
-  );
+  ).then(serializeQueryEntitiesResponse);
 
 export const queryEntitySubgraphResolver: ResolverFn<
   Query["queryEntitySubgraph"],

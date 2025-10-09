@@ -1,5 +1,6 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -52,14 +53,16 @@ export const useOrgs = (): {
         return undefined;
       }
 
-      return queryEntities.entities.map((orgEntity) => {
-        if (!isEntityOrgEntity(orgEntity)) {
-          throw new Error(
-            `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
-          );
-        }
-        return constructMinimalOrg({ orgEntity });
-      });
+      return deserializeQueryEntitiesResponse(queryEntities).entities.map(
+        (orgEntity) => {
+          if (!isEntityOrgEntity(orgEntity)) {
+            throw new Error(
+              `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
+            );
+          }
+          return constructMinimalOrg({ orgEntity });
+        },
+      );
     },
     [queryEntities],
     /**

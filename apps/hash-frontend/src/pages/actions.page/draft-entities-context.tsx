@@ -1,6 +1,9 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitiesResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
@@ -90,8 +93,10 @@ export const DraftEntitiesContextProvider: FunctionComponent<
   const draftEntities = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
-        ? (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-            .queryEntities.entities
+        ? deserializeQueryEntitiesResponse(
+            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
+              .queryEntities,
+          ).entities
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
   );

@@ -1,5 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitiesResponse,
+  type HashEntity,
+  type SerializedQueryEntitiesResponse,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -55,10 +59,14 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   });
 
   return useMemo(() => {
-    const accounts = data ? data.queryEntities.entities : [];
+    const accounts = data
+      ? deserializeQueryEntitiesResponse(
+          data.queryEntities as SerializedQueryEntitiesResponse<GoogleAccount>,
+        ).entities
+      : [];
 
     return {
-      accounts: accounts as HashEntity<GoogleAccount>[],
+      accounts,
       loading,
       refetch,
     };

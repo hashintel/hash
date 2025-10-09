@@ -70,7 +70,8 @@ export const scalars = {
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
-  QueryEntitiesResponse: "@local/hash-graph-sdk/entity#QueryEntitiesResponse",
+  QueryEntitiesResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitiesResponse",
   QueryEntitySubgraphRequest:
     "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
   QueryEntitySubgraphResponse:

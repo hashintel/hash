@@ -13,6 +13,7 @@ import type {
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
+  deserializeQueryEntitiesResponse,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
@@ -87,7 +88,7 @@ export const EntitySelector = <Multiple extends boolean>({
   });
 
   const entities = entitiesData
-    ? entitiesData.queryEntities.entities
+    ? deserializeQueryEntitiesResponse(entitiesData.queryEntities).entities
     : undefined;
 
   const closedMultiEntityTypesRootMap =

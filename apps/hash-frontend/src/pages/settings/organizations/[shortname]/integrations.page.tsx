@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -93,8 +94,9 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
       return [];
     }
 
-    const { permissions, entities: links } =
-      linearIntegrationSyncLinksData.queryEntities;
+    const { permissions, entities: links } = deserializeQueryEntitiesResponse(
+      linearIntegrationSyncLinksData.queryEntities,
+    );
 
     return links.map(({ metadata, entityId }) => {
       const canEdit = !!permissions?.[entityId]?.update;
