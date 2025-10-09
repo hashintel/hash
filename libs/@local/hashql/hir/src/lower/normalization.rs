@@ -84,6 +84,21 @@ const fn is_atom(node: &Node<'_>) -> bool {
     }
 }
 
+const fn is_projection(node: &Node<'_>) -> bool {
+    match node.kind {
+        NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
+        NodeKind::Data(_)
+        | NodeKind::Variable(Variable::Qualified(_))
+        | NodeKind::Let(_)
+        | NodeKind::Input(_)
+        | NodeKind::Operation(_)
+        | NodeKind::Call(_)
+        | NodeKind::Branch(_)
+        | NodeKind::Closure(_)
+        | NodeKind::Graph(_) => false,
+    }
+}
+
 pub struct Normalization<'ctx, 'env, 'heap> {
     context: &'ctx mut HirContext<'env, 'heap>,
     bindings: Vec<Binding<'heap>>,
@@ -145,6 +160,14 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         })
     }
 
+    fn ensure_projection(&mut self, node: Node<'heap>) -> Node<'heap> {
+        if is_projection(&node) {
+            return node;
+        }
+
+        self.ensure_local_variable(node)
+    }
+
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_atom(&node) {
             return node;
@@ -176,6 +199,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         let outer = mem::replace(&mut self.bindings, bindings);
 
         let Ok(mut node) = fold::walk_nested_node(self, node);
+        node = self.ensure_atom(node);
 
         // Restore the outer vector and retrieve the collected bindings
         let mut bindings = core::mem::replace(&mut self.bindings, outer);
@@ -337,7 +361,11 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
             // The right side is a boundary
             let right = self.boundary(right);
 
-            return Ok(BinaryOperation { op, left, right });
+            return Ok(BinaryOperation {
+                op,
+                left: self.ensure_atom(left),
+                right,
+            });
         }
 
         let Ok(BinaryOperation { op, left, right }) = fold::walk_binary_operation(self, operation);
@@ -385,7 +413,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         let Ok(FieldAccess { expr, field }) = fold::walk_field_access(self, access);
         // To be a valid projection the inner body must be an atom
         Ok(FieldAccess {
-            expr: self.ensure_atom(expr),
+            expr: self.ensure_projection(expr),
             field,
         })
     }
@@ -399,7 +427,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         // To be a valid projection, the inner body must be an atom, and the index must be a local
         // variable
         Ok(IndexAccess {
-            expr: self.ensure_atom(expr),
+            expr: self.ensure_projection(expr),
             index: self.ensure_local_variable(index),
         })
     }
@@ -437,7 +465,11 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         let then = self.boundary(then);
         let r#else = self.boundary(r#else);
 
-        Ok(If { test, then, r#else })
+        Ok(If {
+            test: self.ensure_atom(test),
+            then,
+            r#else,
+        })
     }
 
     fn fold_closure(

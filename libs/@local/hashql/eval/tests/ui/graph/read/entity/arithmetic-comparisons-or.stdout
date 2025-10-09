@@ -15,7 +15,17 @@ _0«Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    ((1 > 2) || ((1 >= 2) || ((1 < 2) || (1 <= 2))))) |> ::graph::tail::collect
+    #let %8 = (1 > 2)
+    in
+    (%8 || #let %6 = (1 >= 2)
+         %7 = (%6 || #let %4 = (1 < 2)
+                  %5 = (%4 || #let %3 = (1 <= 2)
+                      in
+                      %3)
+             in
+             %5)
+    in
+    %7)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 

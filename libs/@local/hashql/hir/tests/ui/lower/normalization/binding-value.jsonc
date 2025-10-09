@@ -3,6 +3,6 @@
 [
   "let",
   "foo",
-  ["+", ["*", { "#literal": 2 }, { "#literal": 3 }], { "#literal": 4 }],
+  ["&&", ["<=", { "#literal": 2 }, { "#literal": 3 }], { "#literal": true }],
   "foo"
 ]

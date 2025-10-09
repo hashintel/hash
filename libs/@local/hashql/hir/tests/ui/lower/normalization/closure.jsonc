@@ -7,8 +7,8 @@
     "fn",
     { "#tuple": [] },
     { "#struct": { "foo": "Number" } },
-    "Number",
-    ["+", "foo", ["*", "foo", "foo"]]
+    "Boolean",
+    ["&&", ["==", "foo", "foo"], { "#literal": true }]
   ],
   ["foo", { "#literal": 1 }]
 ]

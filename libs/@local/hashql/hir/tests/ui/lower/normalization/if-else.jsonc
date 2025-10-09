@@ -3,6 +3,6 @@
 [
   "if",
   { "#literal": true },
-  { "#literal": 4 },
-  ["+", { "#literal": 3 }, { "#literal": 4 }]
+  { "#literal": false },
+  ["<=", { "#literal": 3 }, { "#literal": 4 }]
 ]

@@ -15,7 +15,9 @@ _0«Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
     EntityUuid[Uuid[String]], web_id:
     WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
 _1«Boolean» ->
-    ((1,).0 == 1)) |> ::graph::tail::collect
+    #let %3 = (1,)
+    in
+    (%3.0 == 1)) |> ::graph::tail::collect
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
