@@ -12,13 +12,15 @@ use std::{
 use bytes::Bytes;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_repo_chores::benches::{
-    analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
-    report::Benchmark,
-};
 use inferno::flamegraph;
 
-use crate::subcommand::benches::{criterion_directory, current_commit, target_directory};
+use crate::{
+    benches::{
+        analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
+        report::Benchmark,
+    },
+    cli::subcommand::benches::{criterion_directory, current_commit, target_directory},
+};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]

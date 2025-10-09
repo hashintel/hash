@@ -1,0 +1,21 @@
+name: Install sccache
+description: Setup sccache for Rust project caching
+
+runs:
+  using: composite
+  steps:
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@4097539ece2ebbb6fd759bb45e5f0321071ac87d # v0.0.9
+
+    - name: Configure sccache
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      with:
+        script: |
+          core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+    - name: Inject sccache variables into environment
+      shell: bash
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        echo "RUSTC_WRAPPER=${SCCACHE_PATH}" >> $GITHUB_ENV

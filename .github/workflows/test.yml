@@ -151,13 +151,6 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
 
-      - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Show disk usage
         run: df -h
 
@@ -274,13 +267,6 @@ jobs:
           timeout_minutes: 10
           shell: bash
           command: npx playwright install --with-deps chromium
-
-      - name: Cache Rust dependencies
-        if: steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Show disk usage
         run: df -h

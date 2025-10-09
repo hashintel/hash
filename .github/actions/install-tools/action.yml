@@ -39,3 +39,7 @@ runs:
         max_attempts: 5
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
+
+    - name: "Install sccache"
+      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      uses: ./.github/actions/install-sccache

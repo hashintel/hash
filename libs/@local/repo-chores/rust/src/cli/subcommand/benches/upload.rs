@@ -4,13 +4,15 @@ use std::path::PathBuf;
 use aws_config::BehaviorVersion;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_repo_chores::benches::{
-    analyze::BenchmarkAnalysis,
-    report::Benchmark,
-    storage::{S3Storage, UploadError},
-};
 
-use crate::subcommand::benches::{criterion_directory, current_commit, target_directory};
+use crate::{
+    benches::{
+        analyze::BenchmarkAnalysis,
+        report::Benchmark,
+        storage::{S3Storage, UploadError},
+    },
+    cli::subcommand::benches::{criterion_directory, current_commit, target_directory},
+};
 
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None)]
