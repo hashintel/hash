@@ -2,7 +2,7 @@ import { noise } from "@chainsafe/libp2p-noise";
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { type Identify, identify } from "@libp2p/identify";
 import { isPeerId, type PeerId } from "@libp2p/interface";
-import { type PingService, ping } from "@libp2p/ping";
+import { type Ping, ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
 import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
@@ -50,7 +50,7 @@ interface TransportState {
 /** @internal */
 export type Transport = Libp2p<{
   identify: Identify;
-  ping: PingService;
+  ping: Ping;
   state: TransportState;
 }>;
 

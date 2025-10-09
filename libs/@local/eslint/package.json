@@ -22,7 +22,6 @@
   "dependencies": {
     "@babel/core": "7.28.0",
     "@babel/eslint-parser": "7.28.0",
-    "@eslint/compat": "1.4.0",
     "@eslint/eslintrc": "3.3.1",
     "effect": "3.13.11",
     "eslint": "9.37.0",
