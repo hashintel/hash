@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+["[]", { "#list": [{ "#literal": true }] }, { "#literal": 0 }]

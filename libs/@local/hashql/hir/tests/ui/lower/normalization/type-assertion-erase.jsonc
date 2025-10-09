@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+["as", { "#literal": 4 }, "Number"]

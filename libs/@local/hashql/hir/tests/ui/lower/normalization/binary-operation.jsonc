@@ -1,0 +1,7 @@
+//@ run: pass
+//@ description: TODO
+[
+  "==",
+  [">=", { "#literal": 4 }, { "#literal": 3 }],
+  ["<=", { "#literal": 4 }, { "#literal": 5 }]
+]

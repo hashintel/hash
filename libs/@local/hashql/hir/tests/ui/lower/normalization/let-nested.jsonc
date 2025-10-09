@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "foo",
+  { "#literal": 3 },
+  [
+    "+",
+    ["*", { "#literal": 2 }, "foo"],
+    ["let", "bar", { "#literal": 4 }, "bar"]
+  ]
+]

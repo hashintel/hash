@@ -363,18 +363,6 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         })
     }
 
-    fn fold_field_access(
-        &mut self,
-        access: FieldAccess<'heap>,
-    ) -> Self::Output<FieldAccess<'heap>> {
-        let Ok(FieldAccess { expr, field }) = fold::walk_field_access(self, access);
-        // To be a valid projection the inner body must be an atom
-        Ok(FieldAccess {
-            expr: self.ensure_atom(expr),
-            field,
-        })
-    }
-
     fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
         let Ok(Input {
             name,
@@ -387,6 +375,18 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
             name,
             r#type,
             default: default.map(|default| self.ensure_atom(default)),
+        })
+    }
+
+    fn fold_field_access(
+        &mut self,
+        access: FieldAccess<'heap>,
+    ) -> Self::Output<FieldAccess<'heap>> {
+        let Ok(FieldAccess { expr, field }) = fold::walk_field_access(self, access);
+        // To be a valid projection the inner body must be an atom
+        Ok(FieldAccess {
+            expr: self.ensure_atom(expr),
+            field,
         })
     }
 
