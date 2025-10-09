@@ -18,6 +18,7 @@ use hashql_hir::{
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
         r#let::{Binding, Let, VarId},
+        variable::LocalVariable,
     },
     visit::{self, Visitor},
 };
@@ -92,6 +93,7 @@ pub struct GraphReadCompiler<'env, 'heap> {
     locals: FastHashMap<VarId, &'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
     output: FastHashMap<HirId, FilterSlice>,
+    variables: FastHashMap<VarId, FilterSlice>,
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
@@ -104,6 +106,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             locals: FastHashMap::default(),
             inputs,
             output: FastHashMap::default(),
+            variables: FastHashMap::default(),
         }
     }
 
@@ -187,6 +190,23 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
         visit::walk_node(self, node);
 
         self.current = previous;
+    }
+
+    fn visit_binding(&mut self, binding: &'heap Binding<'heap>) {
+        visit::walk_binding(self, binding);
+
+        // Check if the binder has been assigned to an output
+        if let Some(output) = self.output.get(&binding.value.id) {
+            self.variables.insert(binding.binder.id, output.clone());
+        }
+    }
+
+    fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
+        visit::walk_local_variable(self, variable);
+
+        if let Some(output) = self.variables.get(&variable.id.value) {
+            self.output.insert(self.current, output.clone());
+        }
     }
 
     fn visit_let(&mut self, r#let: &'heap Let<'heap>) {

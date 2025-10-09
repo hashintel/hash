@@ -1,0 +1,15 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+#let foo:0 = #fn(foo:1: Boolean): Boolean ->
+             foo:1
+in
+foo:0(::core::cmp::lte(1, 2))
+
+════ HIR after normalization ═══════════════════════════════════════════════════
+
+#let foo:0 = #fn(foo:1: Boolean): Boolean ->
+             foo:1
+     %2 = (1 <= 2)
+     %3 = foo:0(%2)
+in
+%3

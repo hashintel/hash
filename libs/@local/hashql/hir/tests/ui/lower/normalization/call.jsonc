@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "foo",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "foo": "Boolean" } },
+    "Boolean",
+    "foo"
+  ],
+  ["foo", ["<=", { "#literal": 1 }, { "#literal": 2 }]]
+]

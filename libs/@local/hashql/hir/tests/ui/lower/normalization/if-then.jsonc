@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: TODO
+[
+  "if",
+  { "#literal": true },
+  ["<=", { "#literal": 3 }, { "#literal": 4 }],
+  { "#literal": false }
+]

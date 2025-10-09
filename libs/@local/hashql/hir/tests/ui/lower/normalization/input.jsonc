@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+["input", "foo", "Boolean", ["<=", { "#literal": 2 }, { "#literal": 3 }]]

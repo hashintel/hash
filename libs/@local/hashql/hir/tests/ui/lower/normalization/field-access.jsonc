@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+[".", { "#struct": { "foo": { "#literal": true } } }, "foo"]

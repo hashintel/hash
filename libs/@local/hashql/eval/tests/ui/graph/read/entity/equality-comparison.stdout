@@ -1,19 +1,30 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
- EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-  EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
-   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
-  | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-     | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-    web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-    EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-_1«Boolean» ->
-    ((true == false) || (true != false))) |> ::graph::tail::collect
+#let %1 = ::graph::tmp::decision_time_now
+     %2 = %1()
+     %6 = ::graph::head::entities(%2) |> ::graph::body::filter(#fn(vertex:0:
+         _0«Entity[(id: EntityRecordId[(edition_id:
+           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
+            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+            EntityUuid[Uuid[String]], web_id:
+            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+          (None[Null]
+           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+              | Some[DraftId[Uuid[String]]]), entity_uuid:
+             EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+             entity_uuid: EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+         _1«Boolean» ->
+             #let %4 = (true == false)
+                  %5 = (%4 || #let %3 = (true != false)
+                      in
+                      %3)
+             in
+             %5) |> ::graph::tail::collect
+in
+%6
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 

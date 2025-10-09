@@ -397,7 +397,7 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &context)
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &mut context)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
             })
