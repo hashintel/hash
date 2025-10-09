@@ -236,7 +236,7 @@ where
                 actor_id,
                 QueryPropertyTypeSubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths {
-                        constrains_properties_on: 255,
+                        constrains_properties_on: u8::MAX,
                         ..GraphResolveDepths::default()
                     },
                     traversal_paths: Vec::new(),
