@@ -54,16 +54,16 @@ enum Fold<'heap> {
 // TODO: we might want to contemplate moving this into a separate crate, to completely separate
 // HashQL's AST and HIR. (like done in rustc)
 #[derive(Debug)]
-struct ReificationContext<'ctx, 'env, 'heap> {
+struct ReificationContext<'ctx, 'types, 'env, 'heap> {
     context: &'ctx mut HirContext<'env, 'heap>,
-    types: &'env ExtractedTypes<'heap>,
+    types: &'types ExtractedTypes<'heap>,
     diagnostics: ReificationDiagnosticIssues,
     binder_scope: FastHashMap<Symbol<'heap>, VarId>,
 
     scratch_ident: Vec<Ident<'heap>>,
 }
 
-impl<'heap> ReificationContext<'_, '_, 'heap> {
+impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     fn call_arguments(
         &mut self,
         args: heap::Vec<'heap, Argument<'heap>>,
@@ -802,7 +802,7 @@ impl<'heap> Node<'heap> {
     pub fn from_ast<'env>(
         expr: Expr<'heap>,
         context: &mut HirContext<'env, 'heap>,
-        types: &'env ExtractedTypes<'heap>,
+        types: &ExtractedTypes<'heap>,
     ) -> ReificationStatus<Self> {
         // pre-populate the binder_scope and symbol table with types, as ctor might reference them
         // once `ConvertTypeConstructor` is run, these variables are no longer referenced inside the

@@ -53,9 +53,9 @@ pub struct TypeInferenceResidual<'heap> {
     pub types: FastHashMap<HirId, TypeId>,
 }
 
-pub struct TypeInference<'env, 'heap> {
+pub struct TypeInference<'env, 'ctx, 'heap> {
     env: &'env Environment<'heap>,
-    context: &'env HirContext<'env, 'heap>,
+    context: &'ctx HirContext<'ctx, 'heap>,
 
     inference: InferenceEnvironment<'env, 'heap>,
     collector: VariableCollector<'env, 'heap>,
@@ -70,8 +70,8 @@ pub struct TypeInference<'env, 'heap> {
     intrinsics: FastHashMap<HirId, &'static str>,
 }
 
-impl<'env, 'heap> TypeInference<'env, 'heap> {
-    pub fn new(env: &'env Environment<'heap>, context: &'env HirContext<'env, 'heap>) -> Self {
+impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {
+    pub fn new(env: &'env Environment<'heap>, context: &'ctx HirContext<'ctx, 'heap>) -> Self {
         Self {
             env,
             context,
@@ -146,7 +146,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
     fn visit_type_id(&mut self, id: TypeId) {
         self.collector.visit_id(id);
     }
