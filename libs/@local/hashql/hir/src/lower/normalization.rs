@@ -69,8 +69,11 @@ use crate::{
 
 const fn is_atom(node: &Node<'_>) -> bool {
     match node.kind {
-        NodeKind::Data(_) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
-        NodeKind::Let(_)
+        NodeKind::Data(_) | NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
+        // Qualified variables are *not* atoms, because of module thunking in the future
+        // see: https://linear.app/hash/issue/BE-67/hashql-implement-modules
+        NodeKind::Variable(Variable::Qualified(_))
+        | NodeKind::Let(_)
         | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
@@ -97,6 +100,19 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
             recycler: Vec::new(),
             max_recycle,
         }
+    }
+
+    pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
+        // `boundary` uses nested node, but this is fine here, because we use the `Deep` filter
+        // anyway, so depth doesn't matter.
+        let node = self.boundary(node);
+
+        assert!(
+            self.trampoline.is_none(),
+            "The trampoline should be None after normalization"
+        );
+
+        node
     }
 
     fn ensure_local_variable(&mut self, node: Node<'heap>) -> Node<'heap> {
@@ -357,6 +373,8 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
             field,
         })
     }
+
+    // TODO: fold input?! it's actually a thunk?
 
     fn fold_index_access(
         &mut self,

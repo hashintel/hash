@@ -50,7 +50,7 @@ impl Suite for EvalGraphReadEntitySuite {
         let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
         let node = process_status(
             diagnostics,
-            hashql_hir::lower::lower(node, &types, &mut environment, &context),
+            hashql_hir::lower::lower(node, &types, &mut environment, &mut context),
         )?;
 
         let _ = writeln!(

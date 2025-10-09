@@ -8,16 +8,17 @@ use self::{
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
     inference::TypeInference,
+    normalization::Normalization,
     specialization::Specialization,
 };
 use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
 pub mod alias;
-pub mod anf;
 pub mod checking;
 pub mod ctor;
 pub mod error;
 pub mod inference;
+pub mod normalization;
 pub mod specialization;
 
 /// Lowers the given node by performing different phases.
@@ -33,7 +34,7 @@ pub fn lower<'heap>(
     node: Node<'heap>,
     types: &ExtractedTypes<'heap>,
     env: &mut Environment<'heap>,
-    context: &HirContext<'_, 'heap>,
+    context: &mut HirContext<'_, 'heap>,
 ) -> LoweringDiagnosticStatus<Node<'heap>> {
     let mut diagnostics = DiagnosticIssues::new();
     let mut replacement = AliasReplacement::new(context, &mut diagnostics);
@@ -93,6 +94,9 @@ pub fn lower<'heap>(
         &mut diagnostics,
     );
     let Ok(node) = specialization.fold_node(node);
+
+    let normalization = Normalization::new(context, 4);
+    let node = normalization.run(node);
 
     diagnostics.into_status(node)
 }
