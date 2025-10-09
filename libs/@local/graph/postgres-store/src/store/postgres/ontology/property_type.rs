@@ -263,14 +263,14 @@ where
         clippy::too_many_lines,
         reason = "We currenty have two traversal approaches"
     )]
-    pub(crate) async fn traverse_property_types(
+    pub(crate) async fn traverse_property_types<'edges>(
         &self,
         mut property_type_queue: Vec<(
             PropertyTypeUuid,
-            BorrowedTraversalParams<'_>,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        traversal_context: &mut TraversalContext,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {

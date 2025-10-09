@@ -197,6 +197,33 @@ pub enum BorrowedTraversalParams<'e> {
     },
 }
 
+impl BorrowedTraversalParams<'_> {
+    #[must_use]
+    pub fn contains(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                BorrowedTraversalParams::ResolveDepths {
+                    graph_resolve_depths: self_depths,
+                    traversal_path: self_path,
+                },
+                BorrowedTraversalParams::ResolveDepths {
+                    graph_resolve_depths: other_depths,
+                    traversal_path: other_path,
+                },
+            ) => self_path.starts_with(other_path) && self_depths.contains(*other_depths),
+            (
+                BorrowedTraversalParams::Path {
+                    traversal_path: self_path,
+                },
+                BorrowedTraversalParams::Path {
+                    traversal_path: other_path,
+                },
+            ) => self_path.starts_with(other_path),
+            _ => false,
+        }
+    }
+}
+
 impl EntityTraversalPath {
     #[must_use]
     pub fn has_edge_kind(&self, kind: EntityTraversalEdgeKind) -> bool {

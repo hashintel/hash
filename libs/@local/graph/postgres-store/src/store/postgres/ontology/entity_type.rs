@@ -628,14 +628,14 @@ where
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn traverse_entity_types(
+    pub(crate) async fn traverse_entity_types<'edges>(
         &self,
         mut entity_type_queue: Vec<(
             EntityTypeUuid,
-            BorrowedTraversalParams<'_>,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        traversal_context: &mut TraversalContext,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {

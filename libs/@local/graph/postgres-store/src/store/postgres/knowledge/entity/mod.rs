@@ -113,14 +113,14 @@ where
         skip(self, entity_queue, traversal_context, provider, subgraph)
     )]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn traverse_entities(
+    pub(crate) async fn traverse_entities<'edges>(
         &self,
         mut entity_queue: Vec<(
             EntityVertexId,
-            BorrowedTraversalParams<'_>,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        traversal_context: &mut TraversalContext,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
