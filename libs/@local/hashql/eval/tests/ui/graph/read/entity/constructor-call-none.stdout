@@ -2,25 +2,30 @@
 
 #let %1 = ::graph::tmp::decision_time_now
      %2 = %1()
+     %8 = ::graph::head::entities(%2) |> ::graph::body::filter(#fn(vertex:0:
+         _0«Entity[(id: EntityRecordId[(edition_id:
+           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
+            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+            EntityUuid[Uuid[String]], web_id:
+            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+          (None[Null]
+           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+              | Some[DraftId[Uuid[String]]]), entity_uuid:
+             EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+             entity_uuid: EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+         _1«Boolean» ->
+             #let %3 = #ctor(fn() -> None[Null], arguments: [])
+                  %4 = #ctor(fn() -> None[Null], arguments: [])
+                  %5 = %3()
+                  %6 = %4()
+                  %7 = (%5 == %6)
+             in
+             %7) |> ::graph::tail::collect
 in
-::graph::head::entities(%2) |> ::graph::body::filter(#fn(vertex:0:
-_0«Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-  entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
-   entity_uuid: EntityUuid[Uuid[String]], web_id:
-   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
-  | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-     | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-    web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-    EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-_1«Boolean» ->
-    #let %3 = #ctor(fn() -> None[Null], arguments: [])
-         %4 = #ctor(fn() -> None[Null], arguments: [])
-         %5 = %3()
-         %6 = %4()
-    in
-    (%5 == %6)) |> ::graph::tail::collect
+%8
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
