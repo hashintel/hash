@@ -1,8 +1,6 @@
 import react from "eslint-plugin-react";
-// @ts-expect-error - react-hooks does not expose types
 import reactHooks from "eslint-plugin-react-hooks";
 import unicorn from "eslint-plugin-unicorn";
-import { fixupPluginRules } from "@eslint/compat";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
 import type { ESConfig } from "../utils.js";
@@ -15,8 +13,7 @@ export const create = (projectDirectory: string) =>
     {
       plugins: {
         "@typescript-eslint": typescriptEslint,
-        /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
-        "react-hooks": fixupPluginRules(reactHooks),
+        "react-hooks": reactHooks,
         react,
         unicorn,
       },
