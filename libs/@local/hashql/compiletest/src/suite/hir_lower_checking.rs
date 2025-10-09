@@ -1,21 +1,16 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
 };
-use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext,
-    fold::Fold as _,
     intern::Interner,
-    lower::{
-        alias::AliasReplacement, checking::TypeChecking, ctor::ConvertTypeConstructor,
-        inference::TypeInference,
-    },
+    lower::checking::{TypeChecking, TypeCheckingResidual},
     node::Node,
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
@@ -24,8 +19,31 @@ use hashql_hir::{
 use super::{
     Suite, SuiteDiagnostic,
     common::{Annotated, Header},
+    hir_lower_alias_replacement::TestOptions,
+    hir_lower_inference::hir_lower_inference,
 };
-use crate::suite::common::{process_issues, process_status};
+use crate::suite::common::process_status;
+
+pub(crate) fn hir_lower_checking<'heap>(
+    heap: &'heap Heap,
+    expr: Expr<'heap>,
+    environment: &mut Environment<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    options: &mut TestOptions,
+) -> Result<(Node<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
+    let (node, solver, inference_residual) =
+        hir_lower_inference(heap, expr, environment, context, options)?;
+
+    let substitution = process_status(options.diagnostics, solver.solve())?;
+
+    environment.substitution = substitution;
+
+    let mut checking = TypeChecking::new(environment, context, inference_residual);
+    checking.visit_node(&node);
+
+    let residual = process_status(options.diagnostics, checking.finish())?;
+    Ok((node, residual))
+}
 
 pub(crate) struct HirLowerTypeCheckingSuite;
 
@@ -34,11 +52,10 @@ impl Suite for HirLowerTypeCheckingSuite {
         "hir/lower/type-checking"
     }
 
-    #[expect(clippy::too_many_lines, reason = "test suite")]
     fn run<'heap>(
         &self,
         heap: &'heap Heap,
-        mut expr: Expr<'heap>,
+        expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
@@ -48,53 +65,17 @@ impl Suite for HirLowerTypeCheckingSuite {
 
         let mut output = String::new();
 
-        let result = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
-            &environment,
-            &registry,
-        );
-        let types = process_status(diagnostics, result)?;
-
-        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
-
-        let _ = writeln!(
-            output,
-            "{}\n\n{}",
-            Header::new("Initial HIR"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                },
-                PrettyOptions::default().without_color()
-            )
-        );
-
-        let mut issues = DiagnosticIssues::new();
-        let mut replacement = AliasReplacement::new(&context, &mut issues);
-        let Ok(node) = replacement.fold_node(node);
-
-        let mut converter =
-            ConvertTypeConstructor::new(&context, &types.locals, &environment, &mut issues);
-        let Ok(node) = converter.fold_node(node);
-
-        process_issues(diagnostics, issues)?;
-
-        let mut inference = TypeInference::new(&environment, &context);
-        inference.visit_node(&node);
-
-        let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_issues(diagnostics, inference_diagnostics)?;
-
-        let substitution = process_status(diagnostics, solver.solve())?;
-
-        environment.substitution = substitution;
-
-        let mut checking = TypeChecking::new(&environment, &context, inference_residual);
-        checking.visit_node(&node);
-
-        let residual = process_status(diagnostics, checking.finish())?;
+        let (node, residual) = hir_lower_checking(
+            heap,
+            expr,
+            &mut environment,
+            &mut context,
+            &mut TestOptions {
+                skip_alias_replacement: false,
+                output: &mut output,
+                diagnostics,
+            },
+        )?;
 
         // We sort so that the output is deterministic
         let mut checking_types: Vec<_> = residual
