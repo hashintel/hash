@@ -22,11 +22,11 @@
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
-    generic_atomic,
     iter_map_windows,
     slice_partition_dedup,
     slice_swap_unchecked,
     variant_count,
+    get_disjoint_mut_helpers
 )]
 
 extern crate alloc;

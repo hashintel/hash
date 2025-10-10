@@ -1,8 +1,12 @@
+mod index;
+pub mod slice;
+pub mod vec;
+
 use core::{
     fmt::{self, Debug, Display},
     hash::Hash,
     marker::PhantomData,
-    sync::atomic::Atomic,
+    sync::atomic::AtomicU32,
 };
 
 use ::core::sync::atomic;
@@ -290,7 +294,7 @@ macro_rules! newtype {
 
 #[derive(Debug)]
 pub struct IdProducer<I> {
-    next: Atomic<u32>,
+    next: AtomicU32,
     _marker: PhantomData<fn() -> I>,
 }
 
@@ -298,7 +302,7 @@ impl<I> IdProducer<I> {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            next: Atomic::<u32>::new(0),
+            next: AtomicU32::new(0),
             _marker: PhantomData,
         }
     }
