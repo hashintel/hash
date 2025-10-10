@@ -13,8 +13,8 @@ import { sleep } from "@local/hash-backend-utils/utils";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -419,7 +419,7 @@ export const getLlmAnalysisOfDoc = async ({
 
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
-        ...fullOntologyResolveDepths,
+        ...almostFullOntologyResolveDepths,
         constrainsLinkDestinationsOn: 255,
         constrainsLinksOn: 255,
       },

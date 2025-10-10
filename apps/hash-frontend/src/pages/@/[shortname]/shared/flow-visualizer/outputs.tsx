@@ -33,7 +33,7 @@ import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-f
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
+  almostFullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { SvgIconProps } from "@mui/material";
@@ -427,7 +427,7 @@ export const Outputs = ({
       variables: {
         request: {
           filter: persistedEntitiesFilter,
-          graphResolveDepths: fullOntologyResolveDepths,
+          graphResolveDepths: almostFullOntologyResolveDepths,
           traversalPaths: [],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,

@@ -8,8 +8,8 @@ import type {
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { RequestHandler } from "express";
 
@@ -106,7 +106,7 @@ export const gptQueryTypes: RequestHandler<
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
-          ...fullOntologyResolveDepths,
+          ...almostFullOntologyResolveDepths,
           constrainsLinkDestinationsOn: 255,
           constrainsLinksOn: 255,
         },

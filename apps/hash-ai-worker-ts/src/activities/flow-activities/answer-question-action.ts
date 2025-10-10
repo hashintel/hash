@@ -8,8 +8,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -443,7 +443,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: fullOntologyResolveDepths,
+        graphResolveDepths: almostFullOntologyResolveDepths,
         traversalPaths: [
           {
             edges: [

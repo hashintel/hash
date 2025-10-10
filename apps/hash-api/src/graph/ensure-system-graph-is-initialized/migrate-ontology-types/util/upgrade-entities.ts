@@ -21,7 +21,7 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
+  almostFullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -98,7 +98,7 @@ export const upgradeWebEntities = async ({
           },
         ],
       },
-      graphResolveDepths: fullOntologyResolveDepths,
+      graphResolveDepths: almostFullOntologyResolveDepths,
       traversalPaths: [],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: true,

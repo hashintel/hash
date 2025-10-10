@@ -6,7 +6,7 @@ import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   fullDecisionTimeAxis,
-  fullOntologyResolveDepths,
+  almostFullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
@@ -45,7 +45,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
             },
           ],
         },
-        graphResolveDepths: fullOntologyResolveDepths,
+        graphResolveDepths: almostFullOntologyResolveDepths,
         traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
