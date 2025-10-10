@@ -31,6 +31,22 @@ import {
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
 
+/**
+ * Ontology resolve depths that traverse most relationships fully, except for link constraints.
+ *
+ * Follows the complete chain of:
+ * - Data type constraints (`constrainsValuesOn`)
+ * - Property type constraints (`constrainsPropertiesOn`)
+ * - Inheritance hierarchies (`inheritsFrom`)
+ * - Entity type definitions (`isOfType`)
+ *
+ * But only resolves one level deep for:
+ * - Link type constraints (`constrainsLinksOn`)
+ * - Link destination constraints (`constrainsLinkDestinationsOn`)
+ *
+ * This is "almost full" because nested link constraints (links that constrain other links,
+ * or link destinations with their own link destinations) won't be fully traversed.
+ */
 export const almostFullOntologyResolveDepths: GraphResolveDepths = {
   constrainsValuesOn: 255,
   constrainsPropertiesOn: 255,
