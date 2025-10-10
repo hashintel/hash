@@ -40,6 +40,11 @@ runs:
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
 
+    - name: "Add Cargo to PATH"
+      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      shell: bash
+      run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
     - name: "Install sccache"
       if: ${{ inputs.rust == true || inputs.rust == 'true' }}
       uses: ./.github/actions/install-sccache
