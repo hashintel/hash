@@ -4344,6 +4344,13 @@
         },
         "additionalProperties": false
       },
+      "EdgeDirection": {
+        "type": "string",
+        "enum": [
+          "incoming",
+          "outgoing"
+        ]
+      },
       "Edges": {
         "type": "object",
         "additionalProperties": {
@@ -4723,7 +4730,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",
@@ -4742,7 +4749,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",
@@ -4756,13 +4763,6 @@
         "discriminator": {
           "propertyName": "kind"
         }
-      },
-      "EntityTraversalEdgeDirection": {
-        "type": "string",
-        "enum": [
-          "incoming",
-          "outgoing"
-        ]
       },
       "EntityTraversalPath": {
         "type": "object",
@@ -6530,12 +6530,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "OntologyTraversalEdgeDirection": {
-        "type": "string",
-        "enum": [
-          "outgoing"
-        ]
       },
       "OntologyTypeRecordId": {
         "type": "object",
@@ -9041,7 +9035,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",
@@ -9060,7 +9054,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",

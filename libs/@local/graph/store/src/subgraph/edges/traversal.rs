@@ -1,23 +1,6 @@
 use core::error::Error;
 
-use super::GraphResolveDepths;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "kebab-case")]
-pub enum EntityTraversalEdgeDirection {
-    Incoming,
-    Outgoing,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "kebab-case")]
-pub enum OntologyTraversalEdgeDirection {
-    Outgoing,
-}
+use super::{EdgeDirection, GraphResolveDepths};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
@@ -25,13 +8,9 @@ pub enum OntologyTraversalEdgeDirection {
 #[serde(rename_all = "kebab-case", tag = "kind")]
 pub enum EntityTraversalEdge {
     #[cfg_attr(feature = "utoipa", schema(title = "HasLeftEntityEdge"))]
-    HasLeftEntity {
-        direction: EntityTraversalEdgeDirection,
-    },
+    HasLeftEntity { direction: EdgeDirection },
     #[cfg_attr(feature = "utoipa", schema(title = "HasRightEntityEdge"))]
-    HasRightEntity {
-        direction: EntityTraversalEdgeDirection,
-    },
+    HasRightEntity { direction: EdgeDirection },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -52,13 +31,9 @@ pub enum TraversalEdge {
     #[cfg_attr(feature = "utoipa", schema(title = "IsOfTypeEdge"))]
     IsOfType,
     #[cfg_attr(feature = "utoipa", schema(title = "HasLeftEntityEdge"))]
-    HasLeftEntity {
-        direction: EntityTraversalEdgeDirection,
-    },
+    HasLeftEntity { direction: EdgeDirection },
     #[cfg_attr(feature = "utoipa", schema(title = "HasRightEntityEdge"))]
-    HasRightEntity {
-        direction: EntityTraversalEdgeDirection,
-    },
+    HasRightEntity { direction: EdgeDirection },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
