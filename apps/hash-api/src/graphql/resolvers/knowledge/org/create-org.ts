@@ -1,6 +1,5 @@
-import type { Subgraph } from "@blockprotocol/graph";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
-import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../../../../graph/knowledge/system-types/org-membership";
 import type { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
@@ -8,15 +7,11 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createOrgResolver: ResolverFn<
-  Promise<Subgraph>,
+  Promise<SerializedEntity>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
-> = async (
-  _,
-  { name, shortname, websiteUrl, hasLeftEntity, hasRightEntity },
-  graphQLContext,
-) => {
+> = async (_, { name, shortname, websiteUrl }, graphQLContext) => {
   const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
@@ -38,11 +33,5 @@ export const createOrgResolver: ResolverFn<
     userEntityId: user.entity.metadata.recordId.entityId,
   });
 
-  return await getLatestEntityRootedSubgraph(context, authentication, {
-    entityId: org.entity.metadata.recordId.entityId,
-    graphResolveDepths: {
-      hasLeftEntity,
-      hasRightEntity,
-    },
-  });
+  return org.entity.toJSON();
 };

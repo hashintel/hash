@@ -46,6 +46,7 @@ export const useEntityTypes = () => {
         constrainsLinkDestinationsOn: { outgoing: 0 },
         inheritsFrom: { outgoing: 255 },
       },
+      traversalPaths: [],
     }).then((response) => {
       const mappedSubgraph =
         deserializeQueryEntityTypeSubgraphResponse(response).subgraph;

@@ -22,7 +22,7 @@ export const entityTypedef = gql`
   scalar PropertyObjectWithMetadata
   scalar PropertyPatchOperation
   scalar QueryOperationInput
-  scalar SerializedEntity
+  scalar Entity
   scalar TypeIdsMap
   scalar TypeTitlesMap
   scalar UserPermissions
@@ -220,17 +220,17 @@ export const entityTypedef = gql`
       Set the permission relations on the entity
       """
       relationships: [EntityRelationAndSubject!]
-    ): SerializedEntity!
+    ): Entity!
 
     """
     Update an entity.
     """
-    updateEntity(entityUpdate: EntityUpdateDefinition!): SerializedEntity!
+    updateEntity(entityUpdate: EntityUpdateDefinition!): Entity!
 
     """
     Update multiple entities.
     """
-    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): SerializedEntity!
+    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): Entity!
 
     """
     Archive an entity.

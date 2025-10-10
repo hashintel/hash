@@ -54,6 +54,7 @@ export const useBlockProtocolQueryDataTypes = (): {
               inheritsFrom: { outgoing: 255 },
               constrainsValuesOn: { outgoing: 255 },
             },
+            traversalPaths: [],
           },
         },
       });

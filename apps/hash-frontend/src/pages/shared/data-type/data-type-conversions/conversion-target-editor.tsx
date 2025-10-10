@@ -102,6 +102,7 @@ export const ConversionTargetEditor = ({
           inheritsFrom: { outgoing: 255 },
           constrainsPropertiesOn: { outgoing: 0 },
         },
+        traversalPaths: [],
       },
     },
     skip: !nonNumberParentIds.length,

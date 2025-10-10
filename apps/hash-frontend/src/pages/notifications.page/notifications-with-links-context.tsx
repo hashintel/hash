@@ -152,10 +152,16 @@ export const useNotificationsWithLinksContextValue =
             ...zeroedGraphResolveDepths,
             inheritsFrom: { outgoing: 255 },
             isOfType: { outgoing: 1 },
-            // Retrieve the outgoing linked entities of the notification entity at depth 1
-            hasLeftEntity: { outgoing: 0, incoming: 1 },
-            hasRightEntity: { outgoing: 1, incoming: 0 },
           },
+          traversalPaths: [
+            // Retrieve the outgoing linked entities of the notification entity at depth 1
+            {
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
           includePermissions: false,

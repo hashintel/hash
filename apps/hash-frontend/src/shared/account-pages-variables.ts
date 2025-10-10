@@ -1,4 +1,5 @@
 import type { WebId } from "@blockprotocol/type-system";
+import type { QueryEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   pageOrNotificationNotArchivedFilter,
@@ -12,7 +13,7 @@ export const getAccountPagesVariables = ({
 }: {
   webId?: WebId;
   includeArchived?: boolean;
-}) => ({
+}): { request: QueryEntitySubgraphRequest } => ({
   request: {
     filter: {
       all: [
@@ -26,11 +27,16 @@ export const getAccountPagesVariables = ({
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
       isOfType: { outgoing: 1 },
-      // These depths are chosen to cover the following:
-      //  - the page's parent page (page -> [hasLeftEntity incoming 1] parent [hasRightEntity outgoing 1] -> page)
-      hasLeftEntity: { incoming: 1, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 1 },
     },
+    traversalPaths: [
+      {
+        // the page's parent page (page -> [hasLeftEntity incoming 1] parent [hasRightEntity outgoing 1] -> page)
+        edges: [
+          { kind: "has-left-entity", direction: "incoming" },
+          { kind: "has-right-entity", direction: "outgoing" },
+        ],
+      },
+    ],
     temporalAxes: currentTimeInstantTemporalAxes,
     /**
      * When we support draft/published versions of pages, this will need to be varied depending on the calling context,

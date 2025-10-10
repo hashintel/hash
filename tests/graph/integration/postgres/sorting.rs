@@ -10,7 +10,6 @@ use hash_graph_store::{
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::GraphResolveDepths,
         identifier::GraphElementVertexId,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -82,8 +81,8 @@ async fn test_root_sorting(
         } = api
             .query_entity_subgraph(
                 api.account_id,
-                QueryEntitySubgraphParams::ResolveDepths {
-                    graph_resolve_depths: GraphResolveDepths::default(),
+                QueryEntitySubgraphParams::Paths {
+                    traversal_paths: Vec::new(),
                     request: QueryEntitiesParams {
                         filter: Filter::All(Vec::new()),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {

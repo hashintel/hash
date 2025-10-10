@@ -1,4 +1,6 @@
-use super::{GraphResolveDepths, OntologyGraphResolveDepths};
+use core::error::Error;
+
+use super::GraphResolveDepths;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
@@ -121,6 +123,29 @@ impl From<&TraversalEdge> for TraversalEdgeKind {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("Cannot convert traversal path edge of kind {_0:?} to entity traversal edge")]
+pub struct TraversalPathConversionError(TraversalEdgeKind);
+
+impl Error for TraversalPathConversionError {}
+
+impl TryFrom<TraversalEdge> for EntityTraversalEdge {
+    type Error = TraversalPathConversionError;
+
+    fn try_from(value: TraversalEdge) -> Result<Self, Self::Error> {
+        match value {
+            TraversalEdge::HasLeftEntity { direction } => Ok(Self::HasLeftEntity { direction }),
+            TraversalEdge::HasRightEntity { direction } => Ok(Self::HasRightEntity { direction }),
+            ref edge @ (TraversalEdge::InheritsFrom { .. }
+            | TraversalEdge::ConstrainsValuesOn { .. }
+            | TraversalEdge::ConstrainsPropertiesOn { .. }
+            | TraversalEdge::ConstrainsLinksOn { .. }
+            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
+            | TraversalEdge::IsOfType { .. }) => Err(TraversalPathConversionError(edge.into())),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -137,14 +162,23 @@ pub struct TraversalPath {
     pub edges: Vec<TraversalEdge>,
 }
 
+impl TryFrom<TraversalPath> for EntityTraversalPath {
+    type Error = TraversalPathConversionError;
+
+    fn try_from(path: TraversalPath) -> Result<Self, Self::Error> {
+        path.edges
+            .into_iter()
+            .map(EntityTraversalEdge::try_from)
+            .collect::<Result<Vec<_>, _>>()
+            .map(|edges| Self { edges })
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(untagged, rename_all_fields = "camelCase")]
 pub enum SubgraphTraversalParams {
-    Mixed {
-        entity_traversal_paths: Vec<EntityTraversalPath>,
-        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
-    },
     ResolveDepths {
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
     },
     Paths {
@@ -154,16 +188,40 @@ pub enum SubgraphTraversalParams {
 
 #[derive(Debug, Copy, Clone)]
 pub enum BorrowedTraversalParams<'e> {
-    Mixed {
-        entity_traversal_path: &'e [EntityTraversalEdge],
-        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
-    },
     ResolveDepths {
+        traversal_path: &'e [EntityTraversalEdge],
         graph_resolve_depths: GraphResolveDepths,
     },
     Path {
         traversal_path: &'e [TraversalEdge],
     },
+}
+
+impl BorrowedTraversalParams<'_> {
+    #[must_use]
+    pub fn contains(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                BorrowedTraversalParams::ResolveDepths {
+                    graph_resolve_depths: self_depths,
+                    traversal_path: self_path,
+                },
+                BorrowedTraversalParams::ResolveDepths {
+                    graph_resolve_depths: other_depths,
+                    traversal_path: other_path,
+                },
+            ) => self_path.starts_with(other_path) && self_depths.contains(*other_depths),
+            (
+                BorrowedTraversalParams::Path {
+                    traversal_path: self_path,
+                },
+                BorrowedTraversalParams::Path {
+                    traversal_path: other_path,
+                },
+            ) => self_path.starts_with(other_path),
+            _ => false,
+        }
+    }
 }
 
 impl EntityTraversalPath {

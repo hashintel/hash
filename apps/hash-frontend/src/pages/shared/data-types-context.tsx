@@ -46,6 +46,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
           inheritsFrom: { outgoing: 255 },
           constrainsValuesOn: { outgoing: 255 },
         },
+        traversalPaths: [],
       },
     },
   });

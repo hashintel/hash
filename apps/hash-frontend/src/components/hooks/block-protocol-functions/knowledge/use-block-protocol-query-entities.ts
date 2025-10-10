@@ -34,7 +34,7 @@ export const useBlockProtocolQueryEntities = (): {
         };
       }
 
-      const { operation, graphResolveDepths } = data;
+      const { operation, ...additionalParams } = data;
 
       if (operation.multiSort !== undefined && operation.multiSort !== null) {
         throw new Error(
@@ -54,17 +54,7 @@ export const useBlockProtocolQueryEntities = (): {
             filter: operation.multiFilter
               ? convertBpFilterToGraphFilter(operation.multiFilter)
               : { any: [] },
-            graphResolveDepths: {
-              constrainsValuesOn: { outgoing: 255 },
-              constrainsPropertiesOn: { outgoing: 255 },
-              constrainsLinksOn: { outgoing: 1 },
-              constrainsLinkDestinationsOn: { outgoing: 1 },
-              inheritsFrom: { outgoing: 255 },
-              isOfType: { outgoing: 1 },
-              hasLeftEntity: { outgoing: 1, incoming: 1 },
-              hasRightEntity: { outgoing: 1, incoming: 1 },
-              ...graphResolveDepths,
-            },
+            ...additionalParams,
             temporalAxes: currentTimeInstantTemporalAxes,
             includeDrafts: false,
             includePermissions: false,

@@ -21,7 +21,7 @@ import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { GlobeRegularIcon } from "../../../shared/icons/globe-regular-icon";
 import { BlockCollection } from "../../shared/block-collection/block-collection";
 import {
-  blockCollectionContentsGetEntityVariables,
+  blockCollectionContentsTraversalParams,
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
 } from "../../shared/block-collection-contents";
@@ -38,8 +38,6 @@ export const ProfileBio: FunctionComponent<{
     // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain -- potential crash otherwise
     profile.hasBio?.profileBioEntity.metadata.recordId.entityId!,
   );
-  const { includePermissions, ...graphResolveDepths } =
-    blockCollectionContentsGetEntityVariables;
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
@@ -63,10 +61,11 @@ export const ProfileBio: FunctionComponent<{
               : []),
           ],
         },
-        graphResolveDepths,
+        ...blockCollectionContentsTraversalParams,
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: !!draftId,
-        includePermissions,
+        includePermissions: true,
       },
     },
     skip: !profile.hasBio,

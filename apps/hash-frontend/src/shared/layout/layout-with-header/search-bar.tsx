@@ -265,6 +265,7 @@ export const SearchBar: FunctionComponent = () => {
           inheritsFrom: { outgoing: 255 },
           isOfType: { outgoing: 1 },
         },
+        traversalPaths: [],
         includeDrafts: false,
         includePermissions: false,
       },

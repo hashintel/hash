@@ -58,19 +58,34 @@ export const useOrgsWithLinks = ({
             ),
           ],
         },
-        graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          inheritsFrom: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          // These depths are chosen to cover the following:
-          // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
-          // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { incoming: 1, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,

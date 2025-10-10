@@ -17,7 +17,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -257,11 +256,16 @@ export const getMentionNotification: ImpureGraphFunction<
           pageOrNotificationNotArchivedFilter,
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
+      traversalPaths: [
+        {
+          edges: [
+            {
+              kind: "has-left-entity",
+              direction: "incoming",
+            },
+          ],
+        },
+      ],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
       includePermissions: false,
@@ -534,11 +538,17 @@ export const getCommentNotification: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
+      traversalPaths: [
+        {
+          // Get the outgoing links of the entities
+          edges: [
+            {
+              kind: "has-left-entity",
+              direction: "incoming",
+            },
+          ],
+        },
+      ],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
       includePermissions: false,

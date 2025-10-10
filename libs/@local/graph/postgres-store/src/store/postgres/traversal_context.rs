@@ -11,9 +11,7 @@ use hash_graph_store::{
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
-        Subgraph, SubgraphRecord as _,
-        edges::{BorrowedTraversalParams, GraphResolveDepths},
-        temporal_axes::VariableAxis,
+        Subgraph, SubgraphRecord as _, edges::BorrowedTraversalParams, temporal_axes::VariableAxis,
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
@@ -150,34 +148,34 @@ where
 }
 
 #[derive(Debug)]
-struct TraversalContextMap<K>(
+struct TraversalContextMap<'edges, K>(
     HashMap<
         K,
         Vec<(
-            GraphResolveDepths,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
     >,
 );
 
-impl<K> Default for TraversalContextMap<K> {
+impl<K> Default for TraversalContextMap<'_, K> {
     fn default() -> Self {
         Self(HashMap::new())
     }
 }
 
-impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
+impl<'edges, K: Eq + Hash + Copy> TraversalContextMap<'edges, K> {
     /// Adds a new entry to the map if it does not already exist.
     ///
     /// Inserting the entry is skipped if there is already an existing entry with:
     ///  - the same key
-    ///  - **and** a `GraphResolveDepths` where all entries are greater than or equal to the new
-    ///    resolve depth,
-    ///  - **and** the new interval is contained in the existing interval.
+    ///  - **and** traversal parameters that fully cover the new parameters (either a longer
+    ///    traversal path or greater/equal resolve depths for all edge types),
+    ///  - **and** a temporal interval that fully contains the new interval.
     ///
-    /// An iterator is returned that yields the key, graph resolve depths, and interval for each
-    /// entry that has to be traversed further. If no entry was added, the iterator will be empty.
-    fn add_id<'edges>(
+    /// Returns `Some` with the key, traversal parameters, and interval if the entry should be
+    /// traversed further. Returns `None` if the traversal is already covered by an existing entry.
+    fn add_id(
         &mut self,
         key: K,
         traversal_params: BorrowedTraversalParams<'edges>,
@@ -189,48 +187,33 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
     )> {
         let values = self.0.entry(key).or_default();
 
-        match traversal_params {
-            BorrowedTraversalParams::ResolveDepths {
-                graph_resolve_depths,
-            } => {
-                // TODO: Further optimization could happen here. It's possible to return none, a
-                //       single, or multiple entries depending on the existing depths and traversed
-                //       interval.
-                //   see https://linear.app/hash/issue/H-3017
-                if values.iter().any(|&(existing_depths, traversed_interval)| {
-                    existing_depths.contains(graph_resolve_depths)
-                        && traversed_interval.contains_interval(&interval)
-                }) {
-                    None
-                } else {
-                    values.push((graph_resolve_depths, interval));
-                    Some((
-                        key,
-                        BorrowedTraversalParams::ResolveDepths {
-                            graph_resolve_depths,
-                        },
-                        interval,
-                    ))
-                }
-            }
-            traversal_path @ (BorrowedTraversalParams::Path { .. }
-            | BorrowedTraversalParams::Mixed { .. }) => {
-                values.push((GraphResolveDepths::default(), interval));
-                Some((key, traversal_path, interval))
-            }
+        // TODO: Further optimization could happen here. It's possible to return none, a single, or
+        //       multiple entries depending on the existing depths and traversed interval.
+        //   see https://linear.app/hash/issue/H-3017
+        if values
+            .iter()
+            .any(|&(existing_traversal_params, traversed_interval)| {
+                existing_traversal_params.contains(&traversal_params)
+                    && traversed_interval.contains_interval(&interval)
+            })
+        {
+            None
+        } else {
+            values.push((traversal_params, interval));
+            Some((key, traversal_params, interval))
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct TraversalContext {
-    data_types: TraversalContextMap<DataTypeUuid>,
-    property_types: TraversalContextMap<PropertyTypeUuid>,
-    entity_types: TraversalContextMap<EntityTypeUuid>,
-    entities: TraversalContextMap<EntityEditionId>,
+pub struct TraversalContext<'edges> {
+    data_types: TraversalContextMap<'edges, DataTypeUuid>,
+    property_types: TraversalContextMap<'edges, PropertyTypeUuid>,
+    entity_types: TraversalContextMap<'edges, EntityTypeUuid>,
+    entities: TraversalContextMap<'edges, EntityEditionId>,
 }
 
-impl TraversalContext {
+impl<'edges> TraversalContext<'edges> {
     /// Reads all vertices that have been marked for traversal and inserts them into the subgraph.
     ///
     /// # Errors
@@ -282,7 +265,7 @@ impl TraversalContext {
         Ok(())
     }
 
-    pub fn add_data_type_id<'edges>(
+    pub fn add_data_type_id(
         &mut self,
         data_type_id: DataTypeUuid,
         traversal_params: BorrowedTraversalParams<'edges>,
@@ -296,7 +279,7 @@ impl TraversalContext {
             .add_id(data_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_property_type_id<'edges>(
+    pub fn add_property_type_id(
         &mut self,
         property_type_id: PropertyTypeUuid,
         traversal_params: BorrowedTraversalParams<'edges>,
@@ -310,7 +293,7 @@ impl TraversalContext {
             .add_id(property_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_entity_type_id<'edges>(
+    pub fn add_entity_type_id(
         &mut self,
         entity_type_id: EntityTypeUuid,
         traversal_params: BorrowedTraversalParams<'edges>,
@@ -324,7 +307,7 @@ impl TraversalContext {
             .add_id(entity_type_id, traversal_params, traversal_interval)
     }
 
-    pub fn add_entity_id<'edges>(
+    pub fn add_entity_id(
         &mut self,
         edition_id: EntityEditionId,
         traversal_params: BorrowedTraversalParams<'edges>,

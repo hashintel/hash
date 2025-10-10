@@ -426,6 +426,7 @@ export const getLlmAnalysisOfDoc = async ({
         constrainsPropertiesOn: { outgoing: 255 },
         inheritsFrom: { outgoing: 255 },
       },
+      traversalPaths: [],
     },
   );
 

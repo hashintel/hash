@@ -14,12 +14,13 @@ pub use self::{
     edge::{EdgeDirection, OutwardEdge},
     kind::{
         EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OntologyGraphResolveDepths, OutgoingEdgeResolveDepth, SharedEdgeKind,
+        OutgoingEdgeResolveDepth, SharedEdgeKind,
     },
     traversal::{
         BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeDirection,
         EntityTraversalEdgeKind, EntityTraversalPath, OntologyTraversalEdgeDirection,
         SubgraphTraversalParams, TraversalEdge, TraversalEdgeKind, TraversalPath,
+        TraversalPathConversionError,
     },
 };
 use crate::subgraph::{

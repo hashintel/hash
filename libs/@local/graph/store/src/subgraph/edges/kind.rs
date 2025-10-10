@@ -194,40 +194,10 @@ impl OutgoingEdgeResolveDepth {
     }
 }
 
-// TODO: Add documentation for depths parameters
-//   see https://linear.app/hash/issue/H-3018 (sub-task noted in desc)
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
-    #[serde(flatten)]
-    pub ontology: OntologyGraphResolveDepths,
-    pub has_left_entity: EdgeResolveDepths,
-    pub has_right_entity: EdgeResolveDepths,
-}
-
-impl GraphResolveDepths {
-    #[must_use]
-    pub fn is_empty(self) -> bool {
-        self == Self::default()
-    }
-
-    #[must_use]
-    pub fn contains(self, other: Self) -> bool {
-        [
-            self.ontology.contains(other.ontology),
-            self.has_left_entity.contains(other.has_left_entity),
-            self.has_right_entity.contains(other.has_right_entity),
-        ]
-        .into_iter()
-        .all(identity)
-    }
-}
-
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct OntologyGraphResolveDepths {
     pub inherits_from: OutgoingEdgeResolveDepth,
     pub constrains_values_on: OutgoingEdgeResolveDepth,
     pub constrains_properties_on: OutgoingEdgeResolveDepth,
@@ -236,7 +206,7 @@ pub struct OntologyGraphResolveDepths {
     pub is_of_type: OutgoingEdgeResolveDepth,
 }
 
-impl OntologyGraphResolveDepths {
+impl GraphResolveDepths {
     #[must_use]
     pub fn is_empty(self) -> bool {
         self == Self::default()
@@ -261,15 +231,11 @@ impl OntologyGraphResolveDepths {
 }
 
 pub trait GraphResolveDepthIndex {
-    type ResolveDepths;
-
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut Self::ResolveDepths) -> &mut u8;
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8;
 }
 
 impl GraphResolveDepthIndex for OntologyEdgeKind {
-    type ResolveDepths = OntologyGraphResolveDepths;
-
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut Self::ResolveDepths) -> &mut u8 {
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
         match self {
             Self::InheritsFrom => match direction {
                 EdgeDirection::Incoming => &mut depths.inherits_from.incoming,
@@ -296,9 +262,7 @@ impl GraphResolveDepthIndex for OntologyEdgeKind {
 }
 
 impl GraphResolveDepthIndex for SharedEdgeKind {
-    type ResolveDepths = OntologyGraphResolveDepths;
-
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut Self::ResolveDepths) -> &mut u8 {
+    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
         match self {
             Self::IsOfType => match direction {
                 EdgeDirection::Incoming => &mut depths.is_of_type.incoming,
@@ -308,67 +272,15 @@ impl GraphResolveDepthIndex for SharedEdgeKind {
     }
 }
 
-impl GraphResolveDepthIndex for KnowledgeGraphEdgeKind {
-    type ResolveDepths = GraphResolveDepths;
-
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut Self::ResolveDepths) -> &mut u8 {
-        match self {
-            Self::HasLeftEntity => match direction {
-                EdgeDirection::Incoming => &mut depths.has_left_entity.incoming,
-                EdgeDirection::Outgoing => &mut depths.has_left_entity.outgoing,
-            },
-            Self::HasRightEntity => match direction {
-                EdgeDirection::Incoming => &mut depths.has_right_entity.incoming,
-                EdgeDirection::Outgoing => &mut depths.has_right_entity.outgoing,
-            },
-        }
-    }
-}
-
 impl GraphResolveDepths {
     #[must_use]
     pub fn decrement_depth_for_edge(
         mut self,
-        kind: impl GraphResolveDepthIndex<ResolveDepths = Self>,
+        kind: impl GraphResolveDepthIndex,
         direction: EdgeDirection,
     ) -> Option<Self> {
         let depths = kind.depth_mut(direction, &mut self);
         *depths = depths.checked_sub(1)?;
         Some(self)
-    }
-
-    #[must_use]
-    pub fn zero_depth_for_edge(
-        mut self,
-        kind: impl GraphResolveDepthIndex<ResolveDepths = Self>,
-        direction: EdgeDirection,
-    ) -> Self {
-        let depths = kind.depth_mut(direction, &mut self);
-        *depths = 0;
-        self
-    }
-}
-
-impl OntologyGraphResolveDepths {
-    #[must_use]
-    pub fn decrement_depth_for_edge(
-        mut self,
-        kind: impl GraphResolveDepthIndex<ResolveDepths = Self>,
-        direction: EdgeDirection,
-    ) -> Option<Self> {
-        let depths = kind.depth_mut(direction, &mut self);
-        *depths = depths.checked_sub(1)?;
-        Some(self)
-    }
-
-    #[must_use]
-    pub fn zero_depth_for_edge(
-        mut self,
-        kind: impl GraphResolveDepthIndex<ResolveDepths = Self>,
-        direction: EdgeDirection,
-    ) -> Self {
-        let depths = kind.depth_mut(direction, &mut self);
-        *depths = 0;
-        self
     }
 }

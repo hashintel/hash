@@ -177,15 +177,25 @@ export const useFetchBlockSubgraph = (): ((
               constrainsLinkDestinationsOn: { outgoing: 1 },
               inheritsFrom: { outgoing: 255 },
               isOfType: { outgoing: 1 },
-              hasRightEntity: {
-                incoming: 2,
-                outgoing: 2,
-              },
-              hasLeftEntity: {
-                incoming: 2,
-                outgoing: 2,
-              },
             },
+            traversalPaths: [
+              {
+                edges: Array(2)
+                  .fill([
+                    { kind: "has-left-entity", direction: "incoming" },
+                    { kind: "has-right-entity", direction: "outgoing" },
+                  ])
+                  .flat(),
+              },
+              {
+                edges: Array(2)
+                  .fill([
+                    { kind: "has-right-entity", direction: "incoming" },
+                    { kind: "has-left-entity", direction: "outgoing" },
+                  ])
+                  .flat(),
+              },
+            ],
             temporalAxes: currentTimeInstantTemporalAxes,
             includeDrafts: !!draftId,
             includePermissions: true,

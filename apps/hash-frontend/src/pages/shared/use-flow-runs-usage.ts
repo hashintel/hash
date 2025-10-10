@@ -9,7 +9,6 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -84,12 +83,15 @@ export const useFlowRunsUsage = ({
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          // Depths required to retrieve the service the usage record relates to, and the Flow it is associated with
-          hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            // Required to retrieve the service the usage record relates to, and the Flow it is associated with
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         includeDrafts: false,
         includePermissions: false,
       },

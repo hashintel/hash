@@ -31,7 +31,6 @@ import type {
   CountEntitiesParams,
   DiffEntityResult,
   Filter,
-  GraphResolveDepths,
   HasPermissionForEntitiesParams,
 } from "@local/hash-graph-client";
 import type {
@@ -47,12 +46,10 @@ import {
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { ApolloError } from "apollo-server-errors";
 
 import type {
@@ -671,13 +668,13 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
     entityId: EntityId;
-    graphResolveDepths: Partial<GraphResolveDepths>;
+    traversalPaths: TraversalPath[];
   },
   Promise<Subgraph<EntityRootType<HashEntity>>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entityId, graphResolveDepths } = params;
+  const { entityId, traversalPaths } = params;
 
   const { subgraph } = await queryEntitySubgraph(context, authentication, {
     filter: {
@@ -701,10 +698,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
         { equal: [{ path: ["archived"] }, { parameter: false }] },
       ],
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-    },
+    traversalPaths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
     includePermissions: false,

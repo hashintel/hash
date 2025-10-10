@@ -26,6 +26,7 @@ import type {
   HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
 import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
@@ -46,16 +47,32 @@ import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.
  * Equivalent to providing each block with the graph resolved to a depth of 2 around the block entity.
  * Most blocks will require at least 1 (e.g. a table entity with an attached query), and many 2
  */
-export const blockCollectionContentsDepths: GraphResolveDepths = {
-  ...zeroedGraphResolveDepths,
-  hasLeftEntity: { incoming: 4, outgoing: 4 },
-  hasRightEntity: { incoming: 4, outgoing: 4 },
-  isOfType: { outgoing: 1 },
-};
-
-export const blockCollectionContentsGetEntityVariables = {
-  ...blockCollectionContentsDepths,
-  includePermissions: true,
+export const blockCollectionContentsTraversalParams: {
+  graphResolveDepths: GraphResolveDepths;
+  traversalPaths: EntityTraversalPath[];
+} = {
+  graphResolveDepths: {
+    ...zeroedGraphResolveDepths,
+    isOfType: { outgoing: 1 },
+  },
+  traversalPaths: [
+    {
+      edges: Array(4)
+        .fill([
+          { kind: "has-left-entity", direction: "incoming" },
+          { kind: "has-right-entity", direction: "outgoing" },
+        ])
+        .flat(),
+    },
+    {
+      edges: Array(4)
+        .fill([
+          { kind: "has-right-entity", direction: "incoming" },
+          { kind: "has-left-entity", direction: "outgoing" },
+        ])
+        .flat(),
+    },
+  ],
 };
 
 export const getBlockCollectionContentsStructuralQueryVariables = (
@@ -74,7 +91,7 @@ export const getBlockCollectionContentsStructuralQueryVariables = (
         },
       ],
     },
-    graphResolveDepths: blockCollectionContentsDepths,
+    ...blockCollectionContentsTraversalParams,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
     includePermissions: true,

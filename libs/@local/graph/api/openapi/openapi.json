@@ -5432,26 +5432,36 @@
         ]
       },
       "GraphResolveDepths": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/OntologyGraphResolveDepths"
+        "type": "object",
+        "required": [
+          "inheritsFrom",
+          "constrainsValuesOn",
+          "constrainsPropertiesOn",
+          "constrainsLinksOn",
+          "constrainsLinkDestinationsOn",
+          "isOfType"
+        ],
+        "properties": {
+          "constrainsLinkDestinationsOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
           },
-          {
-            "type": "object",
-            "required": [
-              "hasLeftEntity",
-              "hasRightEntity"
-            ],
-            "properties": {
-              "hasLeftEntity": {
-                "$ref": "#/components/schemas/EdgeResolveDepths"
-              },
-              "hasRightEntity": {
-                "$ref": "#/components/schemas/EdgeResolveDepths"
-              }
-            }
+          "constrainsLinksOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsPropertiesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "constrainsValuesOn": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "inheritsFrom": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          },
+          "isOfType": {
+            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
           }
-        ]
+        },
+        "additionalProperties": false
       },
       "HasPermissionForDataTypesParams": {
         "type": "object",
@@ -6469,38 +6479,6 @@
           }
         ],
         "description": "Provenance information for a specific edition of an ontology type.\n\nContains comprehensive tracking of who created and potentially archived this\nedition, along with user-provided context about the creation process."
-      },
-      "OntologyGraphResolveDepths": {
-        "type": "object",
-        "required": [
-          "inheritsFrom",
-          "constrainsValuesOn",
-          "constrainsPropertiesOn",
-          "constrainsLinksOn",
-          "constrainsLinkDestinationsOn",
-          "isOfType"
-        ],
-        "properties": {
-          "constrainsLinkDestinationsOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "constrainsLinksOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "constrainsPropertiesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "constrainsValuesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "inheritsFrom": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "isOfType": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          }
-        },
-        "additionalProperties": false
       },
       "OntologyOutwardEdge": {
         "oneOf": [
@@ -7882,24 +7860,6 @@
               {
                 "type": "object",
                 "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/QueryDataTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
                   "traversalPaths"
                 ],
                 "properties": {
@@ -7921,18 +7881,18 @@
               {
                 "type": "object",
                 "required": [
-                  "entityTraversalPaths",
-                  "ontologyGraphResolveDepths"
+                  "traversalPaths",
+                  "graphResolveDepths"
                 ],
                 "properties": {
-                  "entityTraversalPaths": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
                     "type": "array",
                     "items": {
                       "$ref": "#/components/schemas/EntityTraversalPath"
                     }
-                  },
-                  "ontologyGraphResolveDepths": {
-                    "$ref": "#/components/schemas/OntologyGraphResolveDepths"
                   }
                 }
               }
@@ -8142,13 +8102,20 @@
                 "type": "object",
                 "required": [
                   "query",
+                  "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
                   },
-                  "query": {}
+                  "query": {},
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
                 }
               }
             ]
@@ -8162,6 +8129,7 @@
                 "type": "object",
                 "required": [
                   "filter",
+                  "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
@@ -8170,6 +8138,12 @@
                   },
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
                   }
                 }
               }
@@ -8218,62 +8192,6 @@
                     "items": {
                       "$ref": "#/components/schemas/TraversalPath"
                     }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "query",
-                  "entityTraversalPaths",
-                  "ontologyGraphResolveDepths"
-                ],
-                "properties": {
-                  "entityTraversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  },
-                  "ontologyGraphResolveDepths": {
-                    "$ref": "#/components/schemas/OntologyGraphResolveDepths"
-                  },
-                  "query": {}
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryOptions"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "filter",
-                  "entityTraversalPaths",
-                  "ontologyGraphResolveDepths"
-                ],
-                "properties": {
-                  "entityTraversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  },
-                  "filter": {
-                    "$ref": "#/components/schemas/Filter"
-                  },
-                  "ontologyGraphResolveDepths": {
-                    "$ref": "#/components/schemas/OntologyGraphResolveDepths"
                   }
                 }
               }
@@ -8367,11 +8285,18 @@
               {
                 "type": "object",
                 "required": [
+                  "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
                   }
                 }
               }
@@ -8393,31 +8318,6 @@
                     "items": {
                       "$ref": "#/components/schemas/TraversalPath"
                     }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CommonQueryEntityTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "entityTraversalPaths",
-                  "ontologyGraphResolveDepths"
-                ],
-                "properties": {
-                  "entityTraversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  },
-                  "ontologyGraphResolveDepths": {
-                    "$ref": "#/components/schemas/OntologyGraphResolveDepths"
                   }
                 }
               }
@@ -8543,11 +8443,18 @@
               {
                 "type": "object",
                 "required": [
+                  "traversalPaths",
                   "graphResolveDepths"
                 ],
                 "properties": {
                   "graphResolveDepths": {
                     "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
                   }
                 }
               }
@@ -8569,31 +8476,6 @@
                     "items": {
                       "$ref": "#/components/schemas/TraversalPath"
                     }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/QueryPropertyTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "entityTraversalPaths",
-                  "ontologyGraphResolveDepths"
-                ],
-                "properties": {
-                  "entityTraversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/EntityTraversalPath"
-                    }
-                  },
-                  "ontologyGraphResolveDepths": {
-                    "$ref": "#/components/schemas/OntologyGraphResolveDepths"
                   }
                 }
               }

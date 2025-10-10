@@ -31,8 +31,8 @@ use hash_graph_store::{
     query::Ordering,
     subgraph::{
         edges::{
-            EntityTraversalPath, GraphResolveDepths, OntologyGraphResolveDepths,
-            SubgraphTraversalParams, TraversalPath,
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalPath,
+            TraversalPathConversionError,
         },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
@@ -203,14 +203,8 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     include_type_titles: bool,
     include_permissions: bool,
 
-    // `QueryEntitySubgraphRequest::ResolveDepths`
-    graph_resolve_depths: Option<GraphResolveDepths>,
-    // `QueryEntitySubgraphRequest::Paths`
     traversal_paths: Option<Vec<TraversalPath>>,
-    // `QueryEntitySubgraphRequest::Mixed`
-    ontology_graph_resolve_depths: Option<OntologyGraphResolveDepths>,
-    // `QueryEntitySubgraphRequest::Mixed`
-    entity_traversal_paths: Option<Vec<EntityTraversalPath>>,
+    graph_resolve_depths: Option<GraphResolveDepths>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -559,8 +553,6 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             include_permissions,
             graph_resolve_depths,
             traversal_paths,
-            ontology_graph_resolve_depths,
-            entity_traversal_paths,
         } = value;
 
         if filter.is_some() {
@@ -580,18 +572,6 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
         if traversal_paths.is_some() {
             return Err(EntityQueryOptionsError::InvalidFieldForEntityQuery {
                 field: "traversalPaths",
-            });
-        }
-
-        if ontology_graph_resolve_depths.is_some() {
-            return Err(EntityQueryOptionsError::InvalidFieldForEntityQuery {
-                field: "ontologyGraphResolveDepths",
-            });
-        }
-
-        if entity_traversal_paths.is_some() {
-            return Err(EntityQueryOptionsError::InvalidFieldForEntityQuery {
-                field: "entityTraversalPaths",
             });
         }
 
@@ -653,24 +633,18 @@ impl<'p> EntityQueryOptions<'_, 'p> {
         'p: 'q,
     {
         match traversal {
-            SubgraphTraversalParams::ResolveDepths {
-                graph_resolve_depths,
-            } => QueryEntitySubgraphParams::ResolveDepths {
-                graph_resolve_depths,
-                request: self.into_params(filter),
-            },
             SubgraphTraversalParams::Paths { traversal_paths } => {
                 QueryEntitySubgraphParams::Paths {
                     traversal_paths,
                     request: self.into_params(filter),
                 }
             }
-            SubgraphTraversalParams::Mixed {
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
-            } => QueryEntitySubgraphParams::Mixed {
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => QueryEntitySubgraphParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
                 request: self.into_params(filter),
             },
         }
@@ -764,17 +738,13 @@ impl<'q, 's, 'p> QueryEntitiesRequest<'q, 's, 'p> {
 enum QueryEntitySubgraphRequestError {
     #[from]
     QueryEntityRequest(QueryEntitiesRequestError),
+    #[from]
+    UnsupportedGraphTraversalPath(TraversalPathConversionError),
     #[display(
-        "Subgraph request missing traversal parameters. Specify either 'graphResolveDepths' or \
-         'traversalPaths'."
+        "Subgraph request missing traversal parameters. Specify either 'traversalPaths` and \
+         optionally `graphResolveDepths'."
     )]
     MissingSubgraphTraversal,
-    #[display(
-        "Subgraph request has conflicting traversal parameters. Specify only \
-         'graphResolveDepths', 'traversalPaths', or `ontologyGraphResolveDepths` with \
-         `entityTraversalPaths` together."
-    )]
-    ConflictingSubgraphTraversal,
 }
 
 impl core::error::Error for QueryEntitySubgraphRequestError {}
@@ -791,6 +761,7 @@ pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
         #[serde(borrow)]
         #[schema(value_type = utoipa::openapi::schema::Value)]
         query: &'q RawJsonValue,
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
@@ -799,6 +770,7 @@ pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
     ResolveDepthsWithFilter {
         #[serde(borrow)]
         filter: Filter<'q, Entity>,
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
@@ -820,25 +792,6 @@ pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
     },
-    #[serde(rename_all = "camelCase")]
-    MixedWithQuery {
-        #[serde(borrow)]
-        #[schema(value_type = utoipa::openapi::schema::Value)]
-        query: &'q RawJsonValue,
-        entity_traversal_paths: Vec<EntityTraversalPath>,
-        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
-        #[serde(borrow, flatten)]
-        options: EntityQueryOptions<'s, 'p>,
-    },
-    #[serde(rename_all = "camelCase")]
-    MixedWithFilter {
-        #[serde(borrow)]
-        filter: Filter<'q, Entity>,
-        entity_traversal_paths: Vec<EntityTraversalPath>,
-        ontology_graph_resolve_depths: OntologyGraphResolveDepths,
-        #[serde(borrow, flatten)]
-        options: EntityQueryOptions<'s, 'p>,
-    },
 }
 
 impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
@@ -848,91 +801,50 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
 
     fn try_from(mut value: FlatQueryEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
         let graph_resolve_depths = value.graph_resolve_depths.take();
-        let traversal_paths = value.traversal_paths.take();
-        let ontology_graph_resolve_depths = value.ontology_graph_resolve_depths.take();
-        let entity_traversal_paths = value.entity_traversal_paths.take();
+        let traversal_paths = value
+            .traversal_paths
+            .take()
+            .ok_or(QueryEntitySubgraphRequestError::MissingSubgraphTraversal)?;
 
         let request = value.try_into()?;
 
-        match (
-            graph_resolve_depths,
-            traversal_paths,
-            ontology_graph_resolve_depths,
-            entity_traversal_paths,
-            request,
-        ) {
-            (None, None, None, None, _) => {
-                Err(QueryEntitySubgraphRequestError::MissingSubgraphTraversal)
+        match (graph_resolve_depths, request) {
+            (None, QueryEntitiesRequest::Filter { filter, options }) => {
+                Ok(QueryEntitySubgraphRequest::PathsWithFilter {
+                    traversal_paths,
+                    filter,
+                    options,
+                })
             }
-            (
-                Some(graph_resolve_depths),
-                None,
-                None,
-                None,
-                QueryEntitiesRequest::Filter { filter, options },
-            ) => Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
-                graph_resolve_depths,
-                filter,
-                options,
-            }),
-            (
-                Some(graph_resolve_depths),
-                None,
-                None,
-                None,
-                QueryEntitiesRequest::Query { query, options },
-            ) => Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
-                graph_resolve_depths,
-                query,
-                options,
-            }),
-            (
-                None,
-                Some(traversal_paths),
-                None,
-                None,
-                QueryEntitiesRequest::Filter { filter, options },
-            ) => Ok(QueryEntitySubgraphRequest::PathsWithFilter {
-                traversal_paths,
-                filter,
-                options,
-            }),
-            (
-                None,
-                Some(traversal_paths),
-                None,
-                None,
-                QueryEntitiesRequest::Query { query, options },
-            ) => Ok(QueryEntitySubgraphRequest::PathsWithQuery {
-                traversal_paths,
-                query,
-                options,
-            }),
-            (
-                None,
-                None,
-                Some(ontology_graph_resolve_depths),
-                Some(entity_traversal_paths),
-                QueryEntitiesRequest::Filter { filter, options },
-            ) => Ok(QueryEntitySubgraphRequest::MixedWithFilter {
-                ontology_graph_resolve_depths,
-                entity_traversal_paths,
-                filter,
-                options,
-            }),
-            (
-                None,
-                None,
-                Some(ontology_graph_resolve_depths),
-                Some(entity_traversal_paths),
-                QueryEntitiesRequest::Query { query, options },
-            ) => Ok(QueryEntitySubgraphRequest::MixedWithQuery {
-                ontology_graph_resolve_depths,
-                entity_traversal_paths,
-                query,
-                options,
-            }),
-            _ => Err(QueryEntitySubgraphRequestError::ConflictingSubgraphTraversal),
+            (None, QueryEntitiesRequest::Query { query, options }) => {
+                Ok(QueryEntitySubgraphRequest::PathsWithQuery {
+                    traversal_paths,
+                    query,
+                    options,
+                })
+            }
+            (Some(graph_resolve_depths), QueryEntitiesRequest::Filter { filter, options }) => {
+                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
+                    traversal_paths: traversal_paths
+                        .into_iter()
+                        .map(EntityTraversalPath::try_from)
+                        .collect::<Result<_, _>>()?,
+                    graph_resolve_depths,
+                    filter,
+                    options,
+                })
+            }
+            (Some(graph_resolve_depths), QueryEntitiesRequest::Query { query, options }) => {
+                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
+                    traversal_paths: traversal_paths
+                        .into_iter()
+                        .map(EntityTraversalPath::try_from)
+                        .collect::<Result<_, _>>()?,
+                    graph_resolve_depths,
+                    query,
+                    options,
+                })
+            }
         }
     }
 }
@@ -963,46 +875,26 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
             (
                 EntityQuery::Filter { filter },
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ) => Self::ResolveDepthsWithFilter {
                 filter,
                 options,
+                traversal_paths,
                 graph_resolve_depths,
             },
             (
                 EntityQuery::Query { query },
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ) => Self::ResolveDepthsWithQuery {
                 query,
                 options,
+                traversal_paths,
                 graph_resolve_depths,
-            },
-            (
-                EntityQuery::Filter { filter },
-                SubgraphTraversalParams::Mixed {
-                    entity_traversal_paths,
-                    ontology_graph_resolve_depths,
-                },
-            ) => Self::MixedWithFilter {
-                filter,
-                options,
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
-            },
-            (
-                EntityQuery::Query { query },
-                SubgraphTraversalParams::Mixed {
-                    entity_traversal_paths,
-                    ontology_graph_resolve_depths,
-                },
-            ) => Self::MixedWithQuery {
-                query,
-                options,
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
             },
         }
     }
@@ -1016,28 +908,6 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
         SubgraphTraversalParams,
     ) {
         match self {
-            QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
-                query,
-                graph_resolve_depths,
-                options,
-            } => (
-                EntityQuery::Query { query },
-                options,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
-            QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
-                filter,
-                graph_resolve_depths,
-                options,
-            } => (
-                EntityQuery::Filter { filter },
-                options,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
             QueryEntitySubgraphRequest::PathsWithQuery {
                 query,
                 traversal_paths,
@@ -1056,30 +926,30 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
                 options,
                 SubgraphTraversalParams::Paths { traversal_paths },
             ),
-            QueryEntitySubgraphRequest::MixedWithQuery {
+            QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
                 query,
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
+                traversal_paths,
+                graph_resolve_depths,
                 options,
             } => (
                 EntityQuery::Query { query },
                 options,
-                SubgraphTraversalParams::Mixed {
-                    entity_traversal_paths,
-                    ontology_graph_resolve_depths,
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
                 },
             ),
-            QueryEntitySubgraphRequest::MixedWithFilter {
+            QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
                 filter,
-                entity_traversal_paths,
-                ontology_graph_resolve_depths,
+                traversal_paths,
+                graph_resolve_depths,
                 options,
             } => (
                 EntityQuery::Filter { filter },
                 options,
-                SubgraphTraversalParams::Mixed {
-                    entity_traversal_paths,
-                    ontology_graph_resolve_depths,
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
                 },
             ),
         }

@@ -43,6 +43,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
             constrainsPropertiesOn: { outgoing: 255 },
             inheritsFrom: { outgoing: 255 },
           },
+          traversalPaths: [],
           temporalAxes: currentTimeInstantTemporalAxes,
         },
       ),

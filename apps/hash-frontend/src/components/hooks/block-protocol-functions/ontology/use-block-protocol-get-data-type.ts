@@ -48,6 +48,7 @@ export const useBlockProtocolGetDataType = (): {
               ...zeroedGraphResolveDepths,
               constrainsValuesOn: { outgoing: 255 },
             },
+            traversalPaths: [],
           },
         },
       });

@@ -63,6 +63,7 @@ export const useBlockProtocolQueryEntityTypes = (): {
               inheritsFrom: { outgoing: 255 },
               ...graphResolveDepths,
             },
+            traversalPaths: [],
           },
         },
       });

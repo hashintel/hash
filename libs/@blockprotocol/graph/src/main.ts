@@ -72,7 +72,6 @@ export type {
   OntologyTypeVertexId,
   OntologyVertex,
   OntologyVertices,
-  OutgoingEdgeResolveDepth,
   OutgoingLinkEdge,
   OutwardEdge,
   PinnedTemporalAxis,

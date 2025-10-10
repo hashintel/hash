@@ -49,11 +49,23 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     entityId,
     graphResolveDepths: {
       ...zeroedGraphResolveDepths,
-      isOfType: { outgoing: 1 },
       inheritsFrom: { outgoing: 255 },
-      hasLeftEntity: { incoming: 1, outgoing: 0 },
-      hasRightEntity: { incoming: 0, outgoing: 1 },
+      isOfType: { outgoing: 1 },
     },
+    traversalPaths: [
+      {
+        edges: [
+          {
+            kind: "has-left-entity",
+            direction: "incoming",
+          },
+          {
+            kind: "has-right-entity",
+            direction: "outgoing",
+          },
+        ],
+      },
+    ],
     // Poll for the latest version every 5 seconds
     pollInterval: 5_000,
   });
