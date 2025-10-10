@@ -32,8 +32,8 @@ import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
-  currentTimeInstantTemporalAxes,
   almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { SvgIconProps } from "@mui/material";

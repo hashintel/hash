@@ -20,8 +20,8 @@ import {
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import {
-  currentTimeInstantTemporalAxes,
   almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
