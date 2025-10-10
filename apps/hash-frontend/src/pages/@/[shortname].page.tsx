@@ -68,7 +68,7 @@ const ProfilePage: NextPageWithLayout = () => {
     useUserOrOrg({
       shortname: profileShortname,
       includeAvatar: true,
-      includeOrgMemberships: true,
+      includeMembersOfOrg: true,
       includePermissions: true,
     });
 

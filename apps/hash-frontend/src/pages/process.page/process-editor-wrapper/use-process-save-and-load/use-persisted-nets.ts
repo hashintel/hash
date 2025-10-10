@@ -208,12 +208,6 @@ export const usePersistedNets = () => {
               { kind: "has-left-entity", direction: "outgoing" },
             ],
           },
-          {
-            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
-          },
-          {
-            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
-          },
         ],
         includeDrafts: false,
         temporalAxes: currentTimeInstantTemporalAxes,

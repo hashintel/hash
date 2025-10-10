@@ -30,7 +30,7 @@ export const useUserOrOrg = (
   params: {
     includePermissions?: boolean;
     includeAvatar?: boolean;
-    includeOrgMemberships?: boolean;
+    includeMembersOfOrg?: boolean;
     traversalPaths?: TraversalPath[];
   } & (
     | { shortname?: string }
@@ -100,7 +100,7 @@ export const useUserOrOrg = (
                 },
               ]
             : []),
-          ...(params.includeOrgMemberships
+          ...(params.includeMembersOfOrg
             ? [
                 {
                   edges: [
