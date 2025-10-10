@@ -42,7 +42,7 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
 
   const [canUpdate, canInstantiateEntities] = await Promise.all([
     isPublicUser
-      ? false
+      ? Promise.resolve(false)
       : await hasPermissionForEntityTypes(
           graphContext.graphApi,
           { actorId },
@@ -52,7 +52,7 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
           },
         ).then((permitted) => permitted.includes(entityTypeId)),
     isPublicUser
-      ? false
+      ? Promise.resolve(false)
       : await hasPermissionForEntityTypes(
           graphContext.graphApi,
           { actorId },

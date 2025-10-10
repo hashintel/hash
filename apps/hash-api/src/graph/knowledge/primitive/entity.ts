@@ -768,7 +768,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const [entityEditable, membersEditable] = await Promise.all([
     isPublicUser
-      ? false
+      ? Promise.resolve(false)
       : await checkEntityPermission(
           graphContext,
           { actorId },
@@ -776,7 +776,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
         ),
     isAccountGroup
       ? isPublicUser
-        ? false
+        ? Promise.resolve(false)
         : await getActorGroupRole(
             graphContext.graphApi,
             { actorId },

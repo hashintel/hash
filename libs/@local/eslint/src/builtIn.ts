@@ -1,19 +1,38 @@
 import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
 import type { PartialDeep } from "type-fest";
-import { baseNoRestrictedSyntaxRules } from "eslint-config-sheriff";
 
-import type { NoRestrictedImportsRule } from "./types.js";
+import type {
+  NoRestrictedImportsRule,
+  NormalizedNoRestrictedImportsRule,
+  ValidNoRestrictedImportPatternOptions,
+} from "./types.js";
 import { defineConfig, type ESConfig } from "./utils.js";
 
 import type { Options } from "./index.js";
 
-const mergeRestrictedImports = (
-  current: NoRestrictedImportsRule,
-  override: NoRestrictedImportsRule,
-): NoRestrictedImportsRule => ({
-  paths: [...current.paths, ...override.paths],
-  patterns: [...current.patterns, ...override.patterns],
+const normalizeRestrictedImports = (
+  rule: Partial<NoRestrictedImportsRule>,
+): NormalizedNoRestrictedImportsRule => ({
+  paths: rule.paths ?? [],
+  // This mimics the behaviour of eslint: https://github.com/eslint/eslint/blob/4168a18b7efd8facbbd71cd44a62942a9f656a30/lib/rules/no-restricted-imports.js#L288-L294
+  patterns: (rule.patterns &&
+  rule.patterns.length > 0 &&
+  typeof rule.patterns[0] === "string"
+    ? [{ group: rule.patterns }]
+    : rule.patterns) as ValidNoRestrictedImportPatternOptions[],
 });
+
+const mergeRestrictedImports = (
+  current: NormalizedNoRestrictedImportsRule,
+  override: Partial<NoRestrictedImportsRule>,
+): NormalizedNoRestrictedImportsRule => {
+  const overrideNormalized = normalizeRestrictedImports(override);
+
+  return {
+    paths: [...current.paths, ...overrideNormalized.paths],
+    patterns: [...current.patterns, ...overrideNormalized.patterns],
+  };
+};
 
 const noRestrictedImports = (
   config: readonly ESConfig[],
@@ -45,7 +64,10 @@ const noRestrictedImports = (
     throw new Error("expected patterns to be an array of objects");
   }
 
-  const currentRule = current as NoRestrictedImportsRule;
+  const currentRule = {
+    paths: current.paths ?? [],
+    patterns: current.patterns ?? [],
+  } as NormalizedNoRestrictedImportsRule;
 
   return defineConfig([
     {
@@ -90,18 +112,8 @@ export const builtIn =
               allowAsStatement: true,
             },
           ],
-          // remap the `ClassDeclaration` rule to exclude `Error` classes
-          "no-restricted-syntax": [
-            "error",
-            ...baseNoRestrictedSyntaxRules.map((rule) =>
-              rule.selector === "ClassDeclaration"
-                ? {
-                    selector: "ClassDeclaration[id.name!=/Error$/]",
-                    message: rule.message,
-                  }
-                : rule,
-            ),
-          ],
+          // Allow for classes
+          "no-restricted-syntax/noClasses": "off",
           // exclude forEach from `array-callback-return`, as it only checks by name, not by type and clashes with effect.
           "array-callback-return": ["error", { allowImplicit: true }],
         },

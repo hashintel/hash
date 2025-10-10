@@ -547,9 +547,7 @@ export const TypesTable: FunctionComponent<{
                 ${maxTableHeight},
                 calc(
                   ${gridHeaderHeightWithBorder}px +
-                  (${
-                    filteredRows?.length ? filteredRows.length : 1
-                  } * ${gridRowHeight}px) +
+                  (${filteredRows?.length ?? 1} * ${gridRowHeight}px) +
                   ${gridHorizontalScrollbarHeight}px
                 )
               )`}

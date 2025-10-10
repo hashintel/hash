@@ -11,48 +11,44 @@ import opentelemetry from "@opentelemetry/api";
 
 let __graphApi: GraphApi | undefined;
 export const getGraphApiClient = (): GraphApi => {
-  if (!__graphApi) {
-    __graphApi = createGraphClient(
-      new Logger({
-        environment: "development",
-        serviceName: "hash-backend-load",
-      }),
-      {
-        host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
-        port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
-        requestInterceptor: (request) => {
-          opentelemetry.propagation.inject(
-            opentelemetry.context.active(),
-            request,
-          );
-          return request;
-        },
+  __graphApi ??= createGraphClient(
+    new Logger({
+      environment: "development",
+      serviceName: "hash-backend-load",
+    }),
+    {
+      host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
+      port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
+      requestInterceptor: (request) => {
+        opentelemetry.propagation.inject(
+          opentelemetry.context.active(),
+          request,
+        );
+        return request;
       },
-    );
-  }
+    },
+  );
 
   return __graphApi;
 };
 
 let __systemAccountId: ActorEntityUuid | undefined;
 export const getSystemAccountId = async (): Promise<ActorEntityUuid> => {
-  if (!__systemAccountId) {
-    __systemAccountId = await getEntityTypeById(
-      getGraphApiClient(),
-      { actorId: publicUserAccountId },
-      {
-        entityTypeId: systemEntityTypes.organization.entityTypeId,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    ).then((entityType) => {
-      if (!entityType) {
-        throw new Error(
-          "Critical: No organization entity type found in the graph. Did you forgot to migrate the Node API?",
-        );
-      }
-      return entityType.metadata.provenance.edition.createdById;
-    });
-  }
+  __systemAccountId ??= await getEntityTypeById(
+    getGraphApiClient(),
+    { actorId: publicUserAccountId },
+    {
+      entityTypeId: systemEntityTypes.organization.entityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  ).then((entityType) => {
+    if (!entityType) {
+      throw new Error(
+        "Critical: No organization entity type found in the graph. Did you forgot to migrate the Node API?",
+      );
+    }
+    return entityType.metadata.provenance.edition.createdById;
+  });
 
   return __systemAccountId!;
 };

@@ -15,14 +15,7 @@ const enforcedDevDependencies = {
   crossEnv: { commands: ["cross-env"], ident: "cross-env" },
 };
 
-const ignoredDependencies = [
-  "@blockprotocol/graph",
-  "@sentry/webpack-plugin",
-  // Storybook dependencies are ignored until we deprecate the previous design system
-  "eslint-plugin-storybook",
-  "storybook",
-  "@storybook/react",
-];
+const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
 const ignoredWorkspaces = ["@blocks/embed", "@blocks/person"];
 
 const allowedGitDependencies = [];
