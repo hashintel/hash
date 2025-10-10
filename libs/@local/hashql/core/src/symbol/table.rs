@@ -178,12 +178,13 @@ where
     pub fn insert(&mut self, id: I, symbol: Symbol<'heap>) {
         match &mut self.inner {
             SymbolTableInner::Dense(vec) => {
-                let actual = vec.push(symbol);
-
                 assert_eq!(
-                    actual, id,
+                    id,
+                    vec.bound(),
                     "insertions into dense symbol tables must be sequential and contiguous"
                 );
+
+                vec.push(symbol);
             }
             SymbolTableInner::Gapped(vec) => {
                 vec.insert(id, symbol);
