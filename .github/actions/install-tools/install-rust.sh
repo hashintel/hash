@@ -35,6 +35,17 @@ MIRRORS=(
 
 echo -e "${PURPLE}🌐 Available mirrors: ${#MIRRORS[@]}${NC}"
 
+install_rustup() {
+  if command -v rustup &> /dev/null; then
+    echo -e "${GREEN}✅ rustup is already installed${NC}"
+  else
+    echo -e "${BLUE}🔧 Installing rustup...${NC}"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
+    source "$HOME/.cargo/env"
+    echo -e "${GREEN}✅ rustup installed successfully${NC}"
+  fi
+}
+
 # Function to try toolchain installation with different mirrors
 install_toolchain() {
   local mirror=$1
@@ -51,6 +62,9 @@ install_component() {
   export RUSTUP_DIST_SERVER="$mirror"
   rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
 }
+
+# Ensure rustup is installed
+install_rustup
 
 # Try toolchain installation with different mirrors
 echo -e "${CYAN}🚀 Installing toolchain...${NC}"
