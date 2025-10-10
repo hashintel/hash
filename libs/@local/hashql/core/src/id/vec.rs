@@ -56,8 +56,10 @@ where
     }
 
     #[inline]
-    pub fn push(&mut self, value: T) {
+    pub fn push(&mut self, value: T) -> I {
+        let id = self.next_id();
         self.raw.push(value);
+        id
     }
 
     #[inline]
@@ -78,9 +80,28 @@ where
     // Additional methods are added as needed
 }
 
-impl<I, T, A> Debug for IdVec<I, T, A>
+// Map like API's for IdVec
+impl<I, T> IdVec<I, Option<T>>
 where
     I: Id,
+{
+    pub fn insert(&mut self, index: I, value: T) {
+        // fill the vec with default values up to the index
+        self.raw.resize_with(index.as_usize() + 1, || None);
+        self.raw[index.as_usize()] = Some(value);
+    }
+
+    pub fn remove(&mut self, index: I) -> Option<T> {
+        self.get_mut(index)?.take()
+    }
+
+    pub fn contains(&self, index: I) -> bool {
+        self.get(index).and_then(Option::as_ref).is_some()
+    }
+}
+
+impl<I, T, A> Debug for IdVec<I, T, A>
+where
     A: Allocator,
     T: Debug,
 {

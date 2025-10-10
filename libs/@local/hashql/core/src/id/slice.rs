@@ -78,10 +78,12 @@ where
         self.raw.is_empty()
     }
 
-    pub fn indices(
-        &self,
-    ) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
+    pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
         (0..self.len()).map(I::from_usize)
+    }
+
+    pub fn next_id(&self) -> I {
+        I::from_usize(self.len())
     }
 
     #[inline]

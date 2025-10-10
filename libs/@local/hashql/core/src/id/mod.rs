@@ -1,6 +1,6 @@
 mod index;
-pub mod slice;
-pub mod vec;
+mod slice;
+mod vec;
 
 use core::{
     fmt::{self, Debug, Display},
@@ -10,6 +10,8 @@ use core::{
 };
 
 use ::core::sync::atomic;
+
+pub use self::{index::IntoSliceIndex, slice::IdSlice, vec::IdVec};
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
