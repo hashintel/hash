@@ -48,7 +48,7 @@ use core::{iter, str::FromStr as _};
 use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_store::subgraph::edges::{
-    EntityTraversalEdge, EntityTraversalEdgeDirection, EntityTraversalPath, GraphResolveDepths,
+    EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
     SubgraphTraversalParams,
 };
 use type_system::principal::actor::ActorEntityUuid;
@@ -119,10 +119,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
                     EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
+                        direction: EdgeDirection::Incoming,
                     },
                     EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
+                        direction: EdgeDirection::Outgoing,
                     },
                 ],
             }],
@@ -136,10 +136,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
                     EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
+                        direction: EdgeDirection::Incoming,
                     },
                     EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
+                        direction: EdgeDirection::Outgoing,
                     },
                 ],
             }],
@@ -154,10 +154,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
                     EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
+                        direction: EdgeDirection::Incoming,
                     },
                     EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
+                        direction: EdgeDirection::Outgoing,
                     },
                 ],
             }],
@@ -173,10 +173,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: vec![EntityTraversalPath {
                 edges: vec![
                     EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
+                        direction: EdgeDirection::Incoming,
                     },
                     EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
+                        direction: EdgeDirection::Outgoing,
                     },
                 ],
             }],
@@ -193,10 +193,10 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
             traversal_paths: vec![EntityTraversalPath {
                 edges: iter::repeat([
                     EntityTraversalEdge::HasLeftEntity {
-                        direction: EntityTraversalEdgeDirection::Incoming,
+                        direction: EdgeDirection::Incoming,
                     },
                     EntityTraversalEdge::HasRightEntity {
-                        direction: EntityTraversalEdgeDirection::Outgoing,
+                        direction: EdgeDirection::Outgoing,
                     },
                 ])
                 .flatten()

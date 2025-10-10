@@ -11,6 +11,7 @@ export interface CreateEntityPolicyParams {
 export interface EntityPermissions {
 	update?: [EntityEditionId, ...EntityEditionId[]];
 }
+export type EdgeDirection = "incoming" | "outgoing";
 export interface GraphResolveDepths {
 	inheritsFrom?: number;
 	constrainsValuesOn?: number;
@@ -21,12 +22,11 @@ export interface GraphResolveDepths {
 }
 export type EntityTraversalEdge = {
 	kind: "has-left-entity"
-	direction: EntityTraversalEdgeDirection
+	direction: EdgeDirection
 } | {
 	kind: "has-right-entity"
-	direction: EntityTraversalEdgeDirection
+	direction: EdgeDirection
 };
-export type EntityTraversalEdgeDirection = "incoming" | "outgoing";
 export type EntityTraversalEdgeKind = {
 	kind: "has-left-entity"
 } | {
@@ -35,7 +35,6 @@ export type EntityTraversalEdgeKind = {
 export interface EntityTraversalPath {
 	edges: EntityTraversalEdge[];
 }
-export type OntologyTraversalEdgeDirection = "outgoing";
 export type TraversalEdge = {
 	kind: "inherits-from"
 } | {
@@ -50,10 +49,10 @@ export type TraversalEdge = {
 	kind: "is-of-type"
 } | {
 	kind: "has-left-entity"
-	direction: EntityTraversalEdgeDirection
+	direction: EdgeDirection
 } | {
 	kind: "has-right-entity"
-	direction: EntityTraversalEdgeDirection
+	direction: EdgeDirection
 };
 export type TraversalEdgeKind = {
 	kind: "inherits-from"

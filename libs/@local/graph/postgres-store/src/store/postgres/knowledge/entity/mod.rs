@@ -183,19 +183,13 @@ where
                             }
                             TraversalEdge::HasLeftEntity { direction } => {
                                 knowledge_edges_to_traverse
-                                    .entry((
-                                        KnowledgeGraphEdgeKind::HasLeftEntity,
-                                        EdgeDirection::from(*direction),
-                                    ))
+                                    .entry((KnowledgeGraphEdgeKind::HasLeftEntity, *direction))
                                     .or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
                             }
                             TraversalEdge::HasRightEntity { direction } => {
                                 knowledge_edges_to_traverse
-                                    .entry((
-                                        KnowledgeGraphEdgeKind::HasRightEntity,
-                                        EdgeDirection::from(*direction),
-                                    ))
+                                    .entry((KnowledgeGraphEdgeKind::HasRightEntity, *direction))
                                     .or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
                             }
@@ -249,19 +243,13 @@ where
                         match edge {
                             EntityTraversalEdge::HasLeftEntity { direction } => {
                                 knowledge_edges_to_traverse
-                                    .entry((
-                                        KnowledgeGraphEdgeKind::HasLeftEntity,
-                                        EdgeDirection::from(*direction),
-                                    ))
+                                    .entry((KnowledgeGraphEdgeKind::HasLeftEntity, *direction))
                                     .or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
                             }
                             EntityTraversalEdge::HasRightEntity { direction } => {
                                 knowledge_edges_to_traverse
-                                    .entry((
-                                        KnowledgeGraphEdgeKind::HasRightEntity,
-                                        EdgeDirection::from(*direction),
-                                    ))
+                                    .entry((KnowledgeGraphEdgeKind::HasRightEntity, *direction))
                                     .or_insert_with(default_traversal_data)
                                     .push(entity_vertex_id, traversal_interval, traversal_params);
                             }

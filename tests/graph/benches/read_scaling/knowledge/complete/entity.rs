@@ -13,9 +13,7 @@ use hash_graph_store::{
     },
     filter::Filter,
     subgraph::{
-        edges::{
-            EntityTraversalEdgeDirection, SubgraphTraversalParams, TraversalEdge, TraversalPath,
-        },
+        edges::{EdgeDirection, SubgraphTraversalParams, TraversalEdge, TraversalPath},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -328,31 +326,31 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
                             TraversalPath {
                                 edges: vec![
                                     TraversalEdge::HasLeftEntity {
-                                        direction: EntityTraversalEdgeDirection::Incoming,
+                                        direction: EdgeDirection::Incoming,
                                     },
                                     TraversalEdge::HasRightEntity {
-                                        direction: EntityTraversalEdgeDirection::Outgoing,
+                                        direction: EdgeDirection::Outgoing,
                                     },
                                 ],
                             },
                             TraversalPath {
                                 edges: vec![
                                     TraversalEdge::HasRightEntity {
-                                        direction: EntityTraversalEdgeDirection::Incoming,
+                                        direction: EdgeDirection::Incoming,
                                     },
                                     TraversalEdge::HasLeftEntity {
-                                        direction: EntityTraversalEdgeDirection::Outgoing,
+                                        direction: EdgeDirection::Outgoing,
                                     },
                                 ],
                             },
                             TraversalPath {
                                 edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EntityTraversalEdgeDirection::Outgoing,
+                                    direction: EdgeDirection::Outgoing,
                                 }],
                             },
                             TraversalPath {
                                 edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EntityTraversalEdgeDirection::Outgoing,
+                                    direction: EdgeDirection::Outgoing,
                                 }],
                             },
                         ],
@@ -405,31 +403,31 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
                             TraversalPath {
                                 edges: vec![
                                     TraversalEdge::HasLeftEntity {
-                                        direction: EntityTraversalEdgeDirection::Incoming,
+                                        direction: EdgeDirection::Incoming,
                                     },
                                     TraversalEdge::HasRightEntity {
-                                        direction: EntityTraversalEdgeDirection::Outgoing,
+                                        direction: EdgeDirection::Outgoing,
                                     },
                                 ],
                             },
                             TraversalPath {
                                 edges: vec![
                                     TraversalEdge::HasRightEntity {
-                                        direction: EntityTraversalEdgeDirection::Incoming,
+                                        direction: EdgeDirection::Incoming,
                                     },
                                     TraversalEdge::HasLeftEntity {
-                                        direction: EntityTraversalEdgeDirection::Outgoing,
+                                        direction: EdgeDirection::Outgoing,
                                     },
                                 ],
                             },
                             TraversalPath {
                                 edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EntityTraversalEdgeDirection::Outgoing,
+                                    direction: EdgeDirection::Outgoing,
                                 }],
                             },
                             TraversalPath {
                                 edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EntityTraversalEdgeDirection::Outgoing,
+                                    direction: EdgeDirection::Outgoing,
                                 }],
                             },
                         ],
