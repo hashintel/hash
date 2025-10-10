@@ -9,4 +9,5 @@ export const meQuery = /* GraphQL */ `
       }
     }
   }
+  ${print(subgraphFieldsFragment)}
 `;
