@@ -1,7 +1,7 @@
 // HashQL type system
 
 pub mod builder;
-mod collection;
+mod collections;
 pub mod environment;
 pub mod error;
 pub mod inference;

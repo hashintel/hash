@@ -2,7 +2,7 @@ use core::fmt::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     heap::Heap,
     literal::{IntegerLiteral, LiteralKind, StringLiteral},
     module::ModuleRegistry,

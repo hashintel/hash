@@ -12,7 +12,7 @@ use super::{
     },
 };
 use crate::{
-    collection::{FastHashMap, FastHashSet},
+    collections::{FastHashMap, FastHashSet},
     intern::Provisioned,
     r#type::{
         PartialType, TypeId,

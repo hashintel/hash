@@ -47,7 +47,7 @@ use super::{
     },
 };
 use crate::{
-    collection::{FastHashMap, SmallVec},
+    collections::{FastHashMap, SmallVec},
     heap::Heap,
     intern::Provisioned,
     span::SpanId,

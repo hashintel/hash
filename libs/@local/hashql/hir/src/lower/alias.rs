@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::{FastHashMap, HashMapExt as _, TinyVec},
+    collections::{FastHashMap, HashMapExt as _, TinyVec},
     span::{SpanId, Spanned},
 };
 

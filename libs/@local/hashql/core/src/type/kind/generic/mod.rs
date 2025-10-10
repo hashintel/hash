@@ -11,7 +11,7 @@ pub use self::{
 };
 use super::TypeKind;
 use crate::{
-    collection::{SmallVec, TinyVec},
+    collections::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
     pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},

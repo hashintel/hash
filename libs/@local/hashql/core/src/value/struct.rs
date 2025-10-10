@@ -1,7 +1,7 @@
 use core::ops::Index;
 
 use super::{Tuple, Value};
-use crate::{collection::SmallVec, heap::Heap, symbol::Symbol};
+use crate::{collections::SmallVec, heap::Heap, symbol::Symbol};
 
 /// Errors that can occur when working with [`Struct`] fields.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -119,7 +119,7 @@ impl<'heap> Struct<'heap> {
         // This is an assert, as previous stages in the compilation should have ensured that there
         // are no duplicate fields.
         if cfg!(debug_assertions) {
-            let mut seen = crate::collection::fast_hash_set(fields.len());
+            let mut seen = crate::collections::fast_hash_set(fields.len());
             for field in &fields {
                 assert!(seen.insert(*field), "Duplicate field: {field}");
             }

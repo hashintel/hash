@@ -9,7 +9,7 @@ use core::{fmt::Debug, ops::Range};
 
 use hash_graph_store::filter::{Filter, QueryRecord};
 use hashql_core::{
-    collection::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
+    collections::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{

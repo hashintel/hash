@@ -382,8 +382,23 @@ macro_rules! newtype_counter {
     };
 }
 
+#[macro_export]
+macro_rules! newtype_collections {
+    ($vis:vis type $name:ident($id:ty)) => {
+        $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
+        $vis type ${concat($name, Vec)}<T> = $crate::id::IdVec<$id, T>;
+
+        $vis type ${concat($name, Set)}<A = ::alloc::alloc::Global> = $crate::collections::FastHashSet<$id, A>;
+        $vis type ${concat($name, SetEntry)}<'set, A = ::alloc::alloc::Global> = $crate::collections::FastHashSetEntry<'set, $id, A>;
+
+        $vis type ${concat($name, Map)}<V, A = ::alloc::alloc::Global> = $crate::collections::FastHashMap<$id, V, A>;
+        $vis type ${concat($name, MapEntry)}<'map, V, A = ::alloc::alloc::Global> = $crate::collections::FastHashMapEntry<'map, $id, V, A>;
+    };
+}
+
 // TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
 
 pub use newtype;
+pub use newtype_collections;
 pub use newtype_counter;
 pub use newtype_producer;

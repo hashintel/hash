@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_core::{
-    collection::{FastHashMap, TinyVec, fast_hash_map},
+    collections::{FastHashMap, TinyVec, fast_hash_map},
     module::{
         ModuleRegistry,
         locals::{Local, Locals, TypeLocals},

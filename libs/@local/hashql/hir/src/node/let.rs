@@ -18,6 +18,8 @@ id::newtype!(
     pub struct VarId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type Var(VarId));
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Binder<'heap> {
     pub id: VarId,

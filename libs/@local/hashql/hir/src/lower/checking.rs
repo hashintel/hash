@@ -1,7 +1,7 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet, HashMapExt as _},
     literal::LiteralKind,
     module::{
         Universe,

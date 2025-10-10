@@ -3,7 +3,7 @@ pub mod error;
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::{FastHashMap, HashMapExt as _, SmallVec},
+    collections::{FastHashMap, HashMapExt as _, SmallVec},
     span::{SpanId, Spanned},
     r#type::{TypeId, environment::Environment},
 };

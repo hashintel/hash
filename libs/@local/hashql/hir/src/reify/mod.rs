@@ -15,7 +15,7 @@ use hashql_ast::{
     },
 };
 use hashql_core::{
-    collection::{FastHashMap, HashMapExt as _, SmallVec},
+    collections::{FastHashMap, HashMapExt as _, SmallVec},
     heap,
     intern::Interned,
     span::{SpanId, Spanned},

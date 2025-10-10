@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     intern::Interned,
     module::{
         Universe,

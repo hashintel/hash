@@ -1,7 +1,7 @@
 use alloc::rc::Rc;
 use core::cell::RefCell;
 
-use crate::{collection::FastHashMap, id::Id, intern::Provisioned};
+use crate::{collections::FastHashMap, id::Id, intern::Provisioned};
 
 pub struct ProvisionedGuard<T: Id> {
     inner: Rc<ProvisionedScope<T>>,

@@ -2,7 +2,7 @@ use core::ops::Index;
 
 use super::Symbol;
 use crate::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     id::{Id, IdVec},
 };
 

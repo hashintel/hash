@@ -7,7 +7,7 @@ use alloc::borrow::Cow;
 use core::ops::Index;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     module::{
         ModuleRegistry,
         locals::{TypeDef, TypeLocals},

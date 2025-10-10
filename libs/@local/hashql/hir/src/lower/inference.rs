@@ -1,5 +1,5 @@
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet, HashMapExt as _},
     intern::Interned,
     literal::LiteralKind,
     module::{

@@ -8,7 +8,7 @@
 use alloc::borrow::Cow;
 
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
+    collections::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
     intern::Provisioned,
     module::{
         ModuleRegistry, Universe,
