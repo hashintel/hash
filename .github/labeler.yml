@@ -11,10 +11,6 @@ area/apps > hash-api:
   - changed-files:
       - any-glob-to-any-file: apps/hash-api/**
 
-area/apps > hash.design:
-  - changed-files:
-      - any-glob-to-any-file: apps/hashdotdesign/**
-
 area/apps > hash-graph:
   - changed-files:
       - any-glob-to-any-file: apps/hash-graph/**
