@@ -19,7 +19,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -149,9 +148,8 @@ export const useNotificationsWithLinksContextValue =
             ],
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            inheritsFrom: { outgoing: 255 },
-            isOfType: { outgoing: 1 },
+            inheritsFrom: 255,
+            isOfType: true,
           },
           traversalPaths: [
             // Retrieve the outgoing linked entities of the notification entity at depth 1

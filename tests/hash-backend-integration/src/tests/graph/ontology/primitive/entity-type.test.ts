@@ -40,7 +40,6 @@ import type {
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
@@ -437,9 +436,8 @@ describe("Entity type CRU", () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: 255,
+          constrainsValuesOn: 255,
         },
         traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,

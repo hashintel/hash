@@ -15,10 +15,7 @@ import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -261,9 +258,8 @@ export const SearchBar: FunctionComponent = () => {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
         traversalPaths: [],
         includeDrafts: false,

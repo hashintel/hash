@@ -16,7 +16,10 @@ import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { useCallback } from "react";
 
@@ -170,14 +173,7 @@ export const useFetchBlockSubgraph = (): ((
                   : []),
               ],
             },
-            graphResolveDepths: {
-              constrainsValuesOn: { outgoing: 255 },
-              constrainsPropertiesOn: { outgoing: 255 },
-              constrainsLinksOn: { outgoing: 1 },
-              constrainsLinkDestinationsOn: { outgoing: 1 },
-              inheritsFrom: { outgoing: 255 },
-              isOfType: { outgoing: 1 },
-            },
+            graphResolveDepths: almostFullOntologyResolveDepths,
             traversalPaths: [
               {
                 edges: Array(2)

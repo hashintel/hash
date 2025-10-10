@@ -4344,26 +4344,6 @@
         },
         "additionalProperties": false
       },
-      "EdgeResolveDepths": {
-        "type": "object",
-        "required": [
-          "incoming",
-          "outgoing"
-        ],
-        "properties": {
-          "incoming": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "outgoing": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        },
-        "additionalProperties": false
-      },
       "Edges": {
         "type": "object",
         "additionalProperties": {
@@ -5433,32 +5413,34 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "required": [
-          "inheritsFrom",
-          "constrainsValuesOn",
-          "constrainsPropertiesOn",
-          "constrainsLinksOn",
-          "constrainsLinkDestinationsOn",
-          "isOfType"
-        ],
         "properties": {
           "constrainsLinkDestinationsOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsLinksOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsPropertiesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsValuesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "inheritsFrom": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "isOfType": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -6961,20 +6943,6 @@
             }
           }
         ]
-      },
-      "OutgoingEdgeResolveDepth": {
-        "type": "object",
-        "required": [
-          "outgoing"
-        ],
-        "properties": {
-          "outgoing": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        },
-        "additionalProperties": false
       },
       "ParameterExpression": {
         "type": "object",
@@ -8978,13 +8946,9 @@
             "type": "object",
             "title": "InheritsFromEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8997,13 +8961,9 @@
             "type": "object",
             "title": "ConstrainsValuesOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -9016,13 +8976,9 @@
             "type": "object",
             "title": "ConstrainsPropertiesOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -9035,13 +8991,9 @@
             "type": "object",
             "title": "ConstrainsLinksOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -9054,13 +9006,9 @@
             "type": "object",
             "title": "ConstrainsLinkDestinationsOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -9073,13 +9021,9 @@
             "type": "object",
             "title": "IsOfTypeEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [

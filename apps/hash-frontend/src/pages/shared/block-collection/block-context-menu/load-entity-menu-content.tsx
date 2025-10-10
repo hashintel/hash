@@ -70,7 +70,7 @@ export const LoadEntityMenuContent: FunctionComponent<
         temporalAxes: currentTimeInstantTemporalAxes,
         traversalPaths: [
           {
-            edges: [{ kind: "is-of-type", direction: "outgoing" }],
+            edges: [{ kind: "is-of-type" }],
           },
         ],
         includeDrafts: false,

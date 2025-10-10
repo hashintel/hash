@@ -10,7 +10,6 @@ import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
   EntityRootType,
-  GraphResolveDepths,
   QueryOperationInput,
   ReadOrModifyResourceError,
   Subgraph,
@@ -26,6 +25,7 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   EntityTraversalPath,
+  GraphResolveDepths,
   TraversalPath,
 } from "@rust/hash-graph-store/types";
 

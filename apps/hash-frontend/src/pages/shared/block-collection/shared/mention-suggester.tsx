@@ -24,7 +24,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -177,9 +176,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
         traversalPaths: [
           {

@@ -1,8 +1,4 @@
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -11,10 +7,7 @@ import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -26,7 +19,10 @@ import type {
   HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
+import type {
+  EntityTraversalPath,
+  GraphResolveDepths,
+} from "@rust/hash-graph-store/types";
 
 import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
@@ -52,8 +48,7 @@ export const blockCollectionContentsTraversalParams: {
   traversalPaths: EntityTraversalPath[];
 } = {
   graphResolveDepths: {
-    ...zeroedGraphResolveDepths,
-    isOfType: { outgoing: 1 },
+    isOfType: true,
   },
   traversalPaths: [
     {

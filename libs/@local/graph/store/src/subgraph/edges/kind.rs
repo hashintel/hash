@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 
 use crate::subgraph::{
     edges::{
-        AdjacencyList, EdgeDirection, Edges,
+        AdjacencyList, Edges,
         endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
     },
     identifier::{
@@ -161,49 +161,21 @@ impl EdgeKind<EntityVertexId, EntityTypeVertexId> for SharedEdgeKind {
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(deny_unknown_fields)]
-pub struct EdgeResolveDepths {
-    pub incoming: u8,
-    pub outgoing: u8,
-}
-
-impl EdgeResolveDepths {
-    #[must_use]
-    pub const fn contains(self, other: Self) -> bool {
-        self.outgoing >= other.outgoing && self.incoming >= other.incoming
-    }
-}
-
-// TODO: Replace with `EdgeResolveDepths`
-//   see https://linear.app/hash/issue/H-3018
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[serde(deny_unknown_fields)]
-pub struct OutgoingEdgeResolveDepth {
-    #[serde(default, skip)]
-    #[doc(hidden)]
-    /// This is not used yet, but will be used in the future to support incoming edges.
-    pub incoming: u8,
-    pub outgoing: u8,
-}
-
-impl OutgoingEdgeResolveDepth {
-    #[must_use]
-    pub const fn contains(self, other: Self) -> bool {
-        self.outgoing >= other.outgoing && self.incoming >= other.incoming
-    }
-}
-
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GraphResolveDepths {
-    pub inherits_from: OutgoingEdgeResolveDepth,
-    pub constrains_values_on: OutgoingEdgeResolveDepth,
-    pub constrains_properties_on: OutgoingEdgeResolveDepth,
-    pub constrains_links_on: OutgoingEdgeResolveDepth,
-    pub constrains_link_destinations_on: OutgoingEdgeResolveDepth,
-    pub is_of_type: OutgoingEdgeResolveDepth,
+    #[serde(default)]
+    pub inherits_from: u8,
+    #[serde(default)]
+    pub constrains_values_on: u8,
+    #[serde(default)]
+    pub constrains_properties_on: u8,
+    #[serde(default)]
+    pub constrains_links_on: u8,
+    #[serde(default)]
+    pub constrains_link_destinations_on: u8,
+    #[serde(default)]
+    pub is_of_type: bool,
 }
 
 impl GraphResolveDepths {
@@ -215,71 +187,28 @@ impl GraphResolveDepths {
     #[must_use]
     pub fn contains(self, other: Self) -> bool {
         [
-            self.inherits_from.contains(other.inherits_from),
-            self.constrains_values_on
-                .contains(other.constrains_values_on),
-            self.constrains_properties_on
-                .contains(other.constrains_properties_on),
-            self.constrains_links_on.contains(other.constrains_links_on),
-            self.constrains_link_destinations_on
-                .contains(other.constrains_link_destinations_on),
-            self.is_of_type.contains(other.is_of_type),
+            self.inherits_from >= other.inherits_from,
+            self.constrains_values_on >= other.constrains_values_on,
+            self.constrains_properties_on >= other.constrains_properties_on,
+            self.constrains_links_on >= other.constrains_links_on,
+            self.constrains_link_destinations_on >= other.constrains_link_destinations_on,
+            self.is_of_type >= other.is_of_type,
         ]
         .into_iter()
         .all(identity)
     }
-}
 
-pub trait GraphResolveDepthIndex {
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8;
-}
-
-impl GraphResolveDepthIndex for OntologyEdgeKind {
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
-        match self {
-            Self::InheritsFrom => match direction {
-                EdgeDirection::Incoming => &mut depths.inherits_from.incoming,
-                EdgeDirection::Outgoing => &mut depths.inherits_from.outgoing,
-            },
-            Self::ConstrainsValuesOn => match direction {
-                EdgeDirection::Incoming => &mut depths.constrains_values_on.incoming,
-                EdgeDirection::Outgoing => &mut depths.constrains_values_on.outgoing,
-            },
-            Self::ConstrainsPropertiesOn => match direction {
-                EdgeDirection::Incoming => &mut depths.constrains_properties_on.incoming,
-                EdgeDirection::Outgoing => &mut depths.constrains_properties_on.outgoing,
-            },
-            Self::ConstrainsLinksOn => match direction {
-                EdgeDirection::Incoming => &mut depths.constrains_links_on.incoming,
-                EdgeDirection::Outgoing => &mut depths.constrains_links_on.outgoing,
-            },
-            Self::ConstrainsLinkDestinationsOn => match direction {
-                EdgeDirection::Incoming => &mut depths.constrains_link_destinations_on.incoming,
-                EdgeDirection::Outgoing => &mut depths.constrains_link_destinations_on.outgoing,
-            },
-        }
-    }
-}
-
-impl GraphResolveDepthIndex for SharedEdgeKind {
-    fn depth_mut(self, direction: EdgeDirection, depths: &mut GraphResolveDepths) -> &mut u8 {
-        match self {
-            Self::IsOfType => match direction {
-                EdgeDirection::Incoming => &mut depths.is_of_type.incoming,
-                EdgeDirection::Outgoing => &mut depths.is_of_type.outgoing,
-            },
-        }
-    }
-}
-
-impl GraphResolveDepths {
     #[must_use]
-    pub fn decrement_depth_for_edge(
-        mut self,
-        kind: impl GraphResolveDepthIndex,
-        direction: EdgeDirection,
-    ) -> Option<Self> {
-        let depths = kind.depth_mut(direction, &mut self);
+    pub fn decrement_depth_for_edge_kind(mut self, kind: OntologyEdgeKind) -> Option<Self> {
+        let depths = match kind {
+            OntologyEdgeKind::InheritsFrom => &mut self.inherits_from,
+            OntologyEdgeKind::ConstrainsValuesOn => &mut self.constrains_values_on,
+            OntologyEdgeKind::ConstrainsPropertiesOn => &mut self.constrains_properties_on,
+            OntologyEdgeKind::ConstrainsLinksOn => &mut self.constrains_links_on,
+            OntologyEdgeKind::ConstrainsLinkDestinationsOn => {
+                &mut self.constrains_link_destinations_on
+            }
+        };
         *depths = depths.checked_sub(1)?;
         Some(self)
     }

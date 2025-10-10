@@ -15,7 +15,6 @@ import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
@@ -299,9 +298,8 @@ const ProfilePage: NextPageWithLayout = () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
         traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,

@@ -10,7 +10,6 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -48,9 +47,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const { entitySubgraph, loading } = useEntityById({
     entityId,
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 255 },
-      isOfType: { outgoing: 1 },
+      inheritsFrom: 255,
+      isOfType: true,
     },
     traversalPaths: [
       {

@@ -21,8 +21,8 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind,
-            OntologyTraversalEdgeDirection, SubgraphTraversalParams, TraversalEdge,
+            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind, SubgraphTraversalParams,
+            TraversalEdge,
         },
         identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -294,7 +294,7 @@ where
                             OntologyEdgeKind::ConstrainsPropertiesOn,
                         ] {
                             if let Some(new_graph_resolve_depths) =
-                                depths.decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                                depths.decrement_depth_for_edge_kind(edge_kind)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(property_type_ontology_id),
@@ -313,16 +313,16 @@ where
                         };
 
                         let edge_kind = match edge {
-                            TraversalEdge::ConstrainsPropertiesOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsPropertiesOn,
-                            TraversalEdge::ConstrainsValuesOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsValuesOn,
-                            TraversalEdge::InheritsFrom { .. }
-                            | TraversalEdge::ConstrainsLinksOn { .. }
-                            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
-                            | TraversalEdge::IsOfType { .. }
+                            TraversalEdge::ConstrainsPropertiesOn => {
+                                OntologyEdgeKind::ConstrainsPropertiesOn
+                            }
+                            TraversalEdge::ConstrainsValuesOn => {
+                                OntologyEdgeKind::ConstrainsValuesOn
+                            }
+                            TraversalEdge::InheritsFrom
+                            | TraversalEdge::ConstrainsLinksOn
+                            | TraversalEdge::ConstrainsLinkDestinationsOn
+                            | TraversalEdge::IsOfType
                             | TraversalEdge::HasLeftEntity { .. }
                             | TraversalEdge::HasRightEntity { .. } => continue,
                         };

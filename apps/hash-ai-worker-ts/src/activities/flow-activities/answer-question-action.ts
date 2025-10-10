@@ -7,7 +7,10 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -440,14 +443,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
         traversalPaths: [
           {
             edges: [

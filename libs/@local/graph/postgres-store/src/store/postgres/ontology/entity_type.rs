@@ -29,8 +29,7 @@ use hash_graph_store::{
         Subgraph, SubgraphRecord as _,
         edges::{
             BorrowedTraversalParams, EdgeDirection, GraphResolveDepths, OntologyEdgeKind,
-            OntologyTraversalEdgeDirection, OutgoingEdgeResolveDepth, SubgraphTraversalParams,
-            TraversalEdge,
+            SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -237,10 +236,7 @@ where
                 actor_id,
                 QueryPropertyTypeSubgraphParams::ResolveDepths {
                     graph_resolve_depths: GraphResolveDepths {
-                        constrains_properties_on: OutgoingEdgeResolveDepth {
-                            outgoing: 255,
-                            incoming: 0,
-                        },
+                        constrains_properties_on: u8::MAX,
                         ..GraphResolveDepths::default()
                     },
                     traversal_paths: Vec::new(),
@@ -661,7 +657,7 @@ where
                             OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                         ] {
                             if let Some(new_graph_resolve_depths) =
-                                depths.decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                                depths.decrement_depth_for_edge_kind(edge_kind)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(entity_type_ontology_id),
@@ -680,20 +676,16 @@ where
                         };
 
                         let edge_kind = match edge {
-                            TraversalEdge::InheritsFrom {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::InheritsFrom,
-                            TraversalEdge::ConstrainsLinksOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsLinksOn,
-                            TraversalEdge::ConstrainsLinkDestinationsOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsLinkDestinationsOn,
-                            TraversalEdge::ConstrainsPropertiesOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsPropertiesOn,
-                            TraversalEdge::ConstrainsValuesOn { .. }
-                            | TraversalEdge::IsOfType { .. }
+                            TraversalEdge::InheritsFrom => OntologyEdgeKind::InheritsFrom,
+                            TraversalEdge::ConstrainsLinksOn => OntologyEdgeKind::ConstrainsLinksOn,
+                            TraversalEdge::ConstrainsLinkDestinationsOn => {
+                                OntologyEdgeKind::ConstrainsLinkDestinationsOn
+                            }
+                            TraversalEdge::ConstrainsPropertiesOn => {
+                                OntologyEdgeKind::ConstrainsPropertiesOn
+                            }
+                            TraversalEdge::ConstrainsValuesOn
+                            | TraversalEdge::IsOfType
                             | TraversalEdge::HasLeftEntity { .. }
                             | TraversalEdge::HasRightEntity { .. } => continue,
                         };

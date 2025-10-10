@@ -7,7 +7,10 @@ import type {
 } from "@local/hash-graph-sdk/embeddings";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";
@@ -103,12 +106,9 @@ export const gptQueryTypes: RequestHandler<
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
-          inheritsFrom: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 255 },
-          constrainsLinkDestinationsOn: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          ...almostFullOntologyResolveDepths,
+          constrainsLinkDestinationsOn: 255,
+          constrainsLinksOn: 255,
         },
         traversalPaths: [],
       },

@@ -13,8 +13,7 @@ use std::collections::{HashMap, HashSet};
 pub use self::{
     edge::{EdgeDirection, OutwardEdge},
     kind::{
-        EdgeKind, EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OutgoingEdgeResolveDepth, SharedEdgeKind,
+        EdgeKind, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind,
     },
     traversal::{
         BorrowedTraversalParams, EntityTraversalEdge, EntityTraversalEdgeDirection,

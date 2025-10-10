@@ -3,7 +3,6 @@ import type { QueryEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
@@ -25,8 +24,7 @@ export const getAccountPagesVariables = ({
       ],
     },
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      isOfType: { outgoing: 1 },
+      isOfType: true,
     },
     traversalPaths: [
       {

@@ -40,29 +40,17 @@ pub enum EntityTraversalEdge {
 #[serde(rename_all = "kebab-case", tag = "kind")]
 pub enum TraversalEdge {
     #[cfg_attr(feature = "utoipa", schema(title = "InheritsFromEdge"))]
-    InheritsFrom {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    InheritsFrom,
     #[cfg_attr(feature = "utoipa", schema(title = "ConstrainsValuesOnEdge"))]
-    ConstrainsValuesOn {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    ConstrainsValuesOn,
     #[cfg_attr(feature = "utoipa", schema(title = "ConstrainsPropertiesOnEdge"))]
-    ConstrainsPropertiesOn {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    ConstrainsPropertiesOn,
     #[cfg_attr(feature = "utoipa", schema(title = "ConstrainsLinksOnEdge"))]
-    ConstrainsLinksOn {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    ConstrainsLinksOn,
     #[cfg_attr(feature = "utoipa", schema(title = "ConstrainsLinkDestinationsOnEdge"))]
-    ConstrainsLinkDestinationsOn {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    ConstrainsLinkDestinationsOn,
     #[cfg_attr(feature = "utoipa", schema(title = "IsOfTypeEdge"))]
-    IsOfType {
-        direction: OntologyTraversalEdgeDirection,
-    },
+    IsOfType,
     #[cfg_attr(feature = "utoipa", schema(title = "HasLeftEntityEdge"))]
     HasLeftEntity {
         direction: EntityTraversalEdgeDirection,
@@ -109,14 +97,12 @@ pub enum TraversalEdgeKind {
 impl From<&TraversalEdge> for TraversalEdgeKind {
     fn from(edge: &TraversalEdge) -> Self {
         match edge {
-            TraversalEdge::InheritsFrom { .. } => Self::InheritsFrom,
-            TraversalEdge::ConstrainsValuesOn { .. } => Self::ConstrainsValuesOn,
-            TraversalEdge::ConstrainsPropertiesOn { .. } => Self::ConstrainsPropertiesOn,
-            TraversalEdge::ConstrainsLinksOn { .. } => Self::ConstrainsLinksOn,
-            TraversalEdge::ConstrainsLinkDestinationsOn { .. } => {
-                Self::ConstrainsLinkDestinationsOn
-            }
-            TraversalEdge::IsOfType { .. } => Self::IsOfType,
+            TraversalEdge::InheritsFrom => Self::InheritsFrom,
+            TraversalEdge::ConstrainsValuesOn => Self::ConstrainsValuesOn,
+            TraversalEdge::ConstrainsPropertiesOn => Self::ConstrainsPropertiesOn,
+            TraversalEdge::ConstrainsLinksOn => Self::ConstrainsLinksOn,
+            TraversalEdge::ConstrainsLinkDestinationsOn => Self::ConstrainsLinkDestinationsOn,
+            TraversalEdge::IsOfType => Self::IsOfType,
             TraversalEdge::HasLeftEntity { .. } => Self::HasLeftEntity,
             TraversalEdge::HasRightEntity { .. } => Self::HasRightEntity,
         }
@@ -136,12 +122,12 @@ impl TryFrom<TraversalEdge> for EntityTraversalEdge {
         match value {
             TraversalEdge::HasLeftEntity { direction } => Ok(Self::HasLeftEntity { direction }),
             TraversalEdge::HasRightEntity { direction } => Ok(Self::HasRightEntity { direction }),
-            ref edge @ (TraversalEdge::InheritsFrom { .. }
-            | TraversalEdge::ConstrainsValuesOn { .. }
-            | TraversalEdge::ConstrainsPropertiesOn { .. }
-            | TraversalEdge::ConstrainsLinksOn { .. }
-            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
-            | TraversalEdge::IsOfType { .. }) => Err(TraversalPathConversionError(edge.into())),
+            ref edge @ (TraversalEdge::InheritsFrom
+            | TraversalEdge::ConstrainsValuesOn
+            | TraversalEdge::ConstrainsPropertiesOn
+            | TraversalEdge::ConstrainsLinksOn
+            | TraversalEdge::ConstrainsLinkDestinationsOn
+            | TraversalEdge::IsOfType) => Err(TraversalPathConversionError(edge.into())),
         }
     }
 }

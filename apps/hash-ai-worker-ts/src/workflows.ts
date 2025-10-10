@@ -19,7 +19,6 @@ import {
   deserializeQueryEntitiesResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -364,12 +363,8 @@ export const updateEntityEmbeddings = async (
             })),
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            inheritsFrom: { outgoing: 255 },
-            constrainsPropertiesOn: { outgoing: 1 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
+            inheritsFrom: 255,
+            constrainsPropertiesOn: 1,
           },
           traversalPaths: [],
           temporalAxes,

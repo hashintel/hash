@@ -14,10 +14,7 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Theme } from "@mui/material";
 import { Box, Container, Stack } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
@@ -158,9 +155,8 @@ export const DataType = ({
           },
           temporalAxes: fullTransactionTimeAxis,
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            inheritsFrom: { outgoing: 255 },
-            constrainsValuesOn: { outgoing: 255 },
+            inheritsFrom: 255,
+            constrainsValuesOn: 255,
           },
           traversalPaths: [],
         },

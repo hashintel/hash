@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import { type EntityId, splitEntityId } from "@blockprotocol/type-system";
 import {
   deserializeQueryEntitySubgraphResponse,
@@ -11,7 +7,10 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
+import type {
+  EntityTraversalPath,
+  GraphResolveDepths,
+} from "@rust/hash-graph-store/types";
 import { useMemo } from "react";
 
 import type {

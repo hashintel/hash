@@ -5,10 +5,7 @@ import type {
   GraphApi,
 } from "@local/hash-graph-client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const getSubgraphFromFilter = async ({
   authentication,
@@ -24,11 +21,10 @@ export const getSubgraphFromFilter = async ({
   queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter,
     graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      isOfType: { outgoing: 1 },
-      inheritsFrom: { outgoing: 255 },
-      constrainsPropertiesOn: { outgoing: 255 },
-      constrainsLinksOn: { outgoing: 255 },
+      isOfType: true,
+      inheritsFrom: 255,
+      constrainsPropertiesOn: 255,
+      constrainsLinksOn: 255,
     },
     traversalPaths,
     temporalAxes: currentTimeInstantTemporalAxes,

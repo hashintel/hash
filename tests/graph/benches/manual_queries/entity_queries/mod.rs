@@ -235,12 +235,12 @@ fn format_traversal_params(params: &SubgraphTraversalParams) -> String {
                 .map(|path| path.edges.len())
                 .sum::<usize>(),
             traversal_paths.len(),
-            depths.inherits_from.outgoing,
-            depths.constrains_values_on.outgoing,
-            depths.constrains_properties_on.outgoing,
-            depths.constrains_links_on.outgoing,
-            depths.constrains_link_destinations_on.outgoing,
-            depths.is_of_type.outgoing,
+            depths.inherits_from,
+            depths.constrains_values_on,
+            depths.constrains_properties_on,
+            depths.constrains_links_on,
+            depths.constrains_link_destinations_on,
+            depths.is_of_type,
         ),
     }
 }

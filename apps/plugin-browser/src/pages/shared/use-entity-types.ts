@@ -4,10 +4,7 @@ import {
   deserializeQueryEntityTypeSubgraphResponse,
   type QueryEntityTypeSubgraphParams,
 } from "@local/hash-graph-sdk/entity-type";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { useEffect } from "react";
 
 import type {
@@ -39,12 +36,9 @@ export const useEntityTypes = () => {
       filter: { all: [] },
       temporalAxes: fullTransactionTimeAxis,
       graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 0 },
-        constrainsLinkDestinationsOn: { outgoing: 0 },
-        inheritsFrom: { outgoing: 255 },
+        constrainsValuesOn: 255,
+        constrainsPropertiesOn: 255,
+        inheritsFrom: 255,
       },
       traversalPaths: [],
     }).then((response) => {

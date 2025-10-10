@@ -7,10 +7,7 @@ import type {
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
-import {
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -42,9 +39,8 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
         filter: { all: [] },
         temporalAxes: fullTransactionTimeAxis,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
+          inheritsFrom: 255,
+          constrainsValuesOn: 255,
         },
         traversalPaths: [],
       },
