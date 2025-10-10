@@ -812,7 +812,7 @@ __metadata:
     react: "npm:19.1.1"
     react-dom: "npm:19.1.1"
     react-refresh: "npm:0.17.0"
-    react-refresh-typescript: "npm:2.0.10"
+    react-refresh-typescript: "npm:2.0.11"
     rimraf: "npm:6.0.1"
     sass: "npm:1.89.2"
     sass-loader: "npm:13.3.3"
@@ -41467,13 +41467,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-refresh-typescript@npm:2.0.10":
-  version: 2.0.10
-  resolution: "react-refresh-typescript@npm:2.0.10"
+"react-refresh-typescript@npm:2.0.11":
+  version: 2.0.11
+  resolution: "react-refresh-typescript@npm:2.0.11"
   peerDependencies:
-    react-refresh: 0.10.x || 0.11.x || 0.12.x || 0.13.x || 0.14.x || 0.15.x || 0.16.x || 0.17.x
+    react-refresh: 0.10.x || 0.11.x || 0.12.x || 0.13.x || 0.14.x || 0.15.x || 0.16.x || 0.17.x || 0.18.x || 0.19.x
     typescript: ^4.8 || ^5.0
-  checksum: 10c0/671fa613da5c87c5e6c3bed34ad265dc87c107913e54398fd42ecbd6135c85a7d72cfe0eafa874ad4f6d63234f77e607486128a096753a4df4d346ecf6f59c09
+  checksum: 10c0/bf8448cfa92da611a5ca6777a1f7a56904a0cdd0d67a69708c65c3c8b6a4a9841f3494f1914a0ce1d308c338e294a20532ea607ebc712f7c400a566a403f58bf
   languageName: node
   linkType: hard
 
