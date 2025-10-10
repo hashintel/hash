@@ -8,6 +8,24 @@ use core::{
 
 use super::{Id, index::IntoSliceIndex, vec::IdVec};
 
+/// A slice that uses typed IDs for indexing instead of raw `usize` values.
+///
+/// `IdSlice<I, T>` is a transparent wrapper around `[T]` that enforces type-safe indexing
+/// using ID types that implement the [`Id`] trait.
+///
+/// The API is not complete by design, new methods will be added as needed.
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{id::{IdSlice, Id as _}, newtype};
+/// # newtype!(struct UserId(u32 is 0..=0xFFFF_FF00));
+/// let data = [10, 20, 30];
+/// let slice = IdSlice::<UserId, _>::from_raw(&data);
+///
+/// let user_id = UserId::from_usize(1);
+/// assert_eq!(slice[user_id], 20);
+/// ```
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct IdSlice<I, T> {
@@ -15,16 +33,19 @@ pub struct IdSlice<I, T> {
     raw: [T],
 }
 
+#[coverage(off)] // reason: trivial implementation
 impl<I, T> IdSlice<I, T>
 where
     I: Id,
 {
+    /// Creates a reference to an empty `IdSlice`.
     #[inline]
     #[must_use]
     pub const fn empty<'this>() -> &'this Self {
         Self::from_raw(&[])
     }
 
+    /// Creates an `IdSlice` from a raw slice reference.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn from_raw(raw: &[T]) -> &Self {
@@ -32,6 +53,7 @@ where
         unsafe { &*(ptr::from_ref::<[T]>(raw) as *const Self) }
     }
 
+    /// Creates a mutable `IdSlice` from a raw mutable slice reference.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn from_raw_mut(raw: &mut [T]) -> &mut Self {
@@ -39,6 +61,9 @@ where
         unsafe { &mut *(ptr::from_mut(raw) as *mut Self) }
     }
 
+    /// Gets a reference to an element or subslice by ID index.
+    ///
+    /// See [`slice::get`] for details.
     #[inline]
     pub fn get<R>(&self, index: R) -> Option<&<R::SliceIndex as SliceIndex<[T]>>::Output>
     where
@@ -47,6 +72,9 @@ where
         self.raw.get(index.into_slice_index())
     }
 
+    /// Gets a mutable reference to an element or subslice by ID index.
+    ///
+    /// See [`slice::get_mut`] for details.
     #[inline]
     pub fn get_mut<R>(
         &mut self,
@@ -58,7 +86,15 @@ where
         self.raw.get_mut(index.into_slice_index())
     }
 
+    /// Gets mutable references to multiple disjoint elements or subslices.
+    ///
+    /// See [`slice::get_disjoint_mut`] for details.
+    ///
+    /// # Errors
+    ///
+    /// If any of the indices are out of bounds or overlap.
     #[inline]
+    #[expect(clippy::type_complexity, reason = "there isn't much to refactor")]
     pub fn get_disjoint_mut<R, const N: usize>(
         &mut self,
         index: [R; N],
@@ -70,27 +106,46 @@ where
             .get_disjoint_mut(index.map(IntoSliceIndex::into_slice_index))
     }
 
-    pub fn len(&self) -> usize {
+    /// Returns the number of elements in the slice.
+    ///
+    /// See [`slice::len`] for details.
+    pub const fn len(&self) -> usize {
         self.raw.len()
     }
 
-    pub fn is_empty(&self) -> bool {
+    /// Returns the exclusive upper bound ID for this slice.
+    ///
+    /// This is equivalent to the ID that would be assigned to a new element if one were added.
+    /// Useful for bounds checking: `id < slice.bound()` tests if `id` is valid for this slice.
+    pub fn bound(&self) -> I {
+        I::from_usize(self.len())
+    }
+
+    /// Returns `true` if the slice has a length of 0.
+    ///
+    /// See [`slice::is_empty`] for details.
+    pub const fn is_empty(&self) -> bool {
         self.raw.is_empty()
     }
 
+    /// Returns an iterator over all valid IDs for this slice.
+    ///
+    /// The iterator yields IDs from 0 up to (but not including) `bound()`.
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
         (0..self.len()).map(I::from_usize)
     }
 
-    pub fn next_id(&self) -> I {
-        I::from_usize(self.len())
-    }
-
+    /// Returns an iterator over the elements.
+    ///
+    /// See [`slice::iter`] for details.
     #[inline]
     pub fn iter(&self) -> slice::Iter<'_, T> {
         self.raw.iter()
     }
 
+    /// Returns an iterator over ID-element pairs.
+    ///
+    /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
     pub fn iter_enumerated(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &T)> + ExactSizeIterator + Clone {
@@ -100,11 +155,17 @@ where
             .map(|(index, value)| (I::from_usize(index), value))
     }
 
+    /// Returns a mutable iterator over the elements.
+    ///
+    /// See [`slice::iter_mut`] for details.
     #[inline]
     pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
         self.raw.iter_mut()
     }
 
+    /// Returns a mutable iterator over ID-element pairs.
+    ///
+    /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
     pub fn iter_enumerated_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = (I, &mut T)> + ExactSizeIterator {
@@ -113,8 +174,6 @@ where
             .enumerate()
             .map(|(index, value)| (I::from_usize(index), value))
     }
-
-    // Additional methods are added as needed
 }
 
 impl<I, T> Debug for IdSlice<I, T>
