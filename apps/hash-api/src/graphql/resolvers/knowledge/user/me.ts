@@ -5,7 +5,7 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
+import type { Query, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
@@ -13,7 +13,7 @@ export const meResolver: ResolverFn<
   Query["me"],
   Record<string, never>,
   LoggedInGraphQLContext,
-  QueryMeArgs
+  Record<string, never>
 > = async (_, __, graphQLContext, ___) => {
   const [webId, entityUuid, draftId] = splitEntityId(
     graphQLContext.user.entity.metadata.recordId.entityId,
