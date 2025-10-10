@@ -384,7 +384,7 @@ macro_rules! newtype_counter {
 
 #[macro_export]
 macro_rules! newtype_collections {
-    ($vis:vis type $name:ident($id:ty)) => {
+    ($vis:vis type $name:ident* from $id:ty) => {
         $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
         $vis type ${concat($name, Vec)}<T> = $crate::id::IdVec<$id, T>;
 

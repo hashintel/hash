@@ -18,14 +18,14 @@ use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        HirId, Node, PartialNode,
+        HirIdMap, Node, PartialNode,
         call::Call,
         graph::{
             Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         kind::NodeKind,
-        r#let::{Binding, VarId},
+        r#let::{Binding, VarIdMap},
         operation::{BinOp, BinaryOperation, Operation},
         variable::Variable,
     },
@@ -36,12 +36,12 @@ pub struct Specialization<'env, 'heap, 'diag> {
     env: &'env Environment<'heap>,
     context: &'env HirContext<'env, 'heap>,
 
-    types: &'env mut FastHashMap<HirId, TypeId>,
-    intrinsics: FastHashMap<HirId, &'static str>,
+    types: &'env mut HirIdMap<TypeId>,
+    intrinsics: HirIdMap<&'static str>,
 
     current_span: SpanId,
-    visited: FastHashMap<HirId, Node<'heap>>,
-    locals: FastHashMap<VarId, Node<'heap>>,
+    visited: HirIdMap<Node<'heap>>,
+    locals: VarIdMap<Node<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
@@ -49,8 +49,8 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     pub fn new(
         env: &'env Environment<'heap>,
         context: &'env HirContext<'env, 'heap>,
-        types: &'env mut FastHashMap<HirId, TypeId>,
-        intrinsics: FastHashMap<HirId, &'static str>,
+        types: &'env mut HirIdMap<TypeId>,
+        intrinsics: HirIdMap<&'static str>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {

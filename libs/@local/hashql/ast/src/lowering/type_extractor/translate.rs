@@ -23,7 +23,7 @@ use hashql_core::{
         kind::{
             Apply, ClosureType, Generic, Infer, IntersectionType, IntrinsicType, OpaqueType, Param,
             StructType, TupleType, TypeKind, UnionType,
-            generic::{GenericArgumentId, GenericArgumentReference, GenericSubstitution},
+            generic::{GenericArgumentMap, GenericArgumentReference, GenericSubstitution},
             intrinsic::{DictType, ListType},
             r#struct::StructField,
         },
@@ -722,7 +722,7 @@ where
     fn generic_variable(
         &mut self,
         variable: &LocalVariable<'_, 'heap>,
-        constraints: &FastHashMap<GenericArgumentId, Option<TypeId>>,
+        constraints: &GenericArgumentMap<Option<TypeId>>,
     ) -> TypeKind<'heap> {
         let mut arguments: TinyVec<_> = variable
             .arguments
@@ -742,7 +742,7 @@ where
     fn variable_verify(
         &mut self,
         variable: &LocalVariable<'_, 'heap>,
-        constraints: &FastHashMap<GenericArgumentId, Option<TypeId>>,
+        constraints: &GenericArgumentMap<Option<TypeId>>,
     ) -> (TypeKind<'heap>, TinyVec<GenericArgumentReference<'heap>>) {
         if let Some(kind) = self.verify_unused_variables(variable.r#type, &variable.arguments) {
             return (kind, TinyVec::new());
@@ -768,7 +768,7 @@ where
     pub(crate) fn variable(
         &mut self,
         variable: &LocalVariable<'_, 'heap>,
-        constraints: &FastHashMap<GenericArgumentId, Option<TypeId>>,
+        constraints: &GenericArgumentMap<Option<TypeId>>,
     ) -> TypeDef<'heap> {
         let (kind, arguments) = self.variable_verify(variable, constraints);
 

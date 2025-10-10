@@ -15,14 +15,14 @@ use crate::{
     collections::{FastHashMap, FastHashSet},
     intern::Provisioned,
     r#type::{
-        PartialType, TypeId,
+        PartialType, TypeId, TypeIdMap,
         error::{TypeCheckDiagnostic, TypeCheckDiagnosticIssues},
         inference::Inference as _,
         kind::{
             Param, TypeKind,
             generic::{
-                GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
-                GenericSubstitutions,
+                GenericArgument, GenericArgumentId, GenericArgumentSet, GenericArguments,
+                GenericSubstitution, GenericSubstitutions,
             },
         },
     },
@@ -53,10 +53,10 @@ pub struct InstantiateEnvironment<'env, 'heap> {
     substitutions_scope: Rc<ReplacementScope<GenericArgumentId>>,
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
     // Arguments that are overridden / are allowed to not be unscoped
-    unscoped_arguments: FastHashSet<GenericArgumentId>,
+    unscoped_arguments: GenericArgumentSet,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
-    substitutions: FastHashMap<TypeId, Option<TypeId>>,
+    substitutions: TypeIdMap<Option<TypeId>>,
 }
 
 impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
@@ -271,13 +271,13 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn enter_unscoped(
         &mut self,
         arguments: impl IntoIterator<Item = GenericArgumentId>,
-    ) -> FastHashSet<GenericArgumentId> {
+    ) -> GenericArgumentSet {
         let old = mem::take(&mut self.unscoped_arguments);
         self.unscoped_arguments.extend(arguments);
         old
     }
 
-    pub fn exit_unscoped(&mut self, arguments: FastHashSet<GenericArgumentId>) {
+    pub fn exit_unscoped(&mut self, arguments: GenericArgumentSet) {
         self.unscoped_arguments = arguments;
     }
 }

@@ -32,6 +32,8 @@ id::newtype!(
     pub struct HirId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type HirId* from HirId);
+
 impl HirId {
     /// A placeholder ID used during initial parsing.
     ///

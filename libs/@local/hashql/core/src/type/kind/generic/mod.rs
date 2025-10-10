@@ -13,7 +13,7 @@ use super::TypeKind;
 use crate::{
     collections::{SmallVec, TinyVec},
     intern::Interned,
-    newtype, newtype_producer,
+    newtype, newtype_collections, newtype_producer,
     pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -34,6 +34,8 @@ newtype!(
 );
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
+
+newtype_collections!(pub type GenericArgument* from GenericArgumentId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GenericArgumentReference<'heap> {
