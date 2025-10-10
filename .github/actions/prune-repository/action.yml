@@ -8,6 +8,9 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Fix git ownership for container
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
     - name: Prune repository
       shell: bash
       run: |
