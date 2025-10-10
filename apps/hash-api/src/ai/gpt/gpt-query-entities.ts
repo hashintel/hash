@@ -19,7 +19,7 @@ import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths"
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
-  fullGraphResolveDepths,
+  fullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   OrganizationProperties,
@@ -225,7 +225,7 @@ export const gptQueryEntities: RequestHandler<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
-        ...fullGraphResolveDepths,
+        ...fullOntologyResolveDepths,
         constrainsLinkDestinationsOn: 255,
         constrainsLinksOn: 255,
       },

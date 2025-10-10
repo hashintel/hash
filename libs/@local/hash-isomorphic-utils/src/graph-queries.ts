@@ -31,7 +31,7 @@ import {
   systemPropertyTypes,
 } from "./ontology-type-ids.js";
 
-export const fullGraphResolveDepths: GraphResolveDepths = {
+export const fullOntologyResolveDepths: GraphResolveDepths = {
   constrainsValuesOn: 255,
   constrainsPropertiesOn: 255,
   constrainsLinksOn: 1,

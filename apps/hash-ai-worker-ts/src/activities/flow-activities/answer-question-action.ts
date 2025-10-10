@@ -9,7 +9,7 @@ import type {
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
-  fullGraphResolveDepths,
+  fullOntologyResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -443,7 +443,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: fullGraphResolveDepths,
+        graphResolveDepths: fullOntologyResolveDepths,
         traversalPaths: [
           {
             edges: [

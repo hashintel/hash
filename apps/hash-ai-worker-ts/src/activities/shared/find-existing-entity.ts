@@ -21,7 +21,7 @@ import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
-  fullGraphResolveDepths,
+  fullOntologyResolveDepths,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
@@ -64,7 +64,7 @@ export const findExistingEntity = async ({
             equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
           })),
         },
-        graphResolveDepths: fullGraphResolveDepths,
+        graphResolveDepths: fullOntologyResolveDepths,
         traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
       },
