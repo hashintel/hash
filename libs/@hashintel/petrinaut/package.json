@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
@@ -22,8 +22,8 @@
   "dependencies": {
     "@emotion/react": "11.14.0",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@hashintel/block-design-system": "0.0.5",
-    "@hashintel/design-system": "0.0.9-canary.2",
+    "@hashintel/block-design-system": "0.0.6",
+    "@hashintel/design-system": "0.0.9",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "elkjs": "0.10.0",
