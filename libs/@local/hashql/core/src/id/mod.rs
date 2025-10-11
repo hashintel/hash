@@ -149,18 +149,18 @@ pub trait HasId {
 /// This creates a newtype wrapper around [`u32`] with the Id trait fully implemented.
 #[macro_export]
 macro_rules! newtype {
-    (@internal in_bounds; $value:ident, $type:ty, $min:literal, $max:literal) => {
+    (@internal in_bounds; $value:ident, $type:ty, $min:literal, $max:expr) => {
         $value >= ($min as $type) && $value <= ($max as $type)
     };
 
-    (@internal error; $value:ident, $min:literal, $max:literal) => {
+    (@internal error; $value:ident, $min:literal, $max:expr) => {
         concat!("ID value must be between ", stringify!($min), " and ", stringify!($max))
     };
 
-    ($(#[$attr:meta])* $vis:vis struct $name:ident(u32 is $min:literal..=$max:literal)) => {
+    ($(#[$attr:meta])* $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
         $(#[$attr])*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        $vis struct $name(u32);
+        $vis struct $name($type);
 
         #[expect(clippy::allow_attributes)]
         #[allow(dead_code)]
@@ -171,9 +171,9 @@ macro_rules! newtype {
             ///
             /// When value is outside the valid range of $min..$max.
             #[must_use]
-            $vis const fn new(value: u32) -> Self {
+            $vis const fn new(value: $type) -> Self {
                 assert!(
-                    $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max),
+                    $crate::id::newtype!(@internal in_bounds; value, $type, $min, $max),
                     $crate::id::newtype!(@internal error; value, $min, $max)
                 );
 
@@ -181,6 +181,9 @@ macro_rules! newtype {
             }
         }
 
+        #[automatically_derived]
+        #[expect(clippy::allow_attributes, reason = "automatically generated")]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
         impl $crate::id::Id for $name {
             const MIN: Self = Self($min);
             const MAX: Self = Self($max);
@@ -192,35 +195,33 @@ macro_rules! newtype {
                     $crate::id::newtype!(@internal error; value, $min, $max)
                 );
 
-                Self(value)
+                Self(value as $type)
             }
 
-            #[expect(clippy::cast_possible_truncation)]
             fn from_u64(value: u64) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max),
                     $crate::id::newtype!(@internal error; value, $min, $max)
                 );
 
-                Self(value as u32)
+                Self(value as $type)
             }
 
-            #[expect(clippy::cast_possible_truncation)]
             fn from_usize(value: usize) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max),
                     $crate::id::newtype!(@internal error; value, $min, $max)
                 );
 
-                Self(value as u32)
+                Self(value as $type)
             }
 
             fn as_u32(self) -> u32 {
-                self.0
+                self.0 as u32
             }
 
             fn as_u64(self) -> u64 {
-                u64::from(self.0)
+                self.0 as u64
             }
 
             fn as_usize(self) -> usize {
@@ -247,7 +248,7 @@ macro_rules! newtype {
 
             fn try_from(value: u32) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max) {
-                    Ok(Self(value))
+                    Ok(Self(value as $type))
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value: u64::from(value),
@@ -264,7 +265,7 @@ macro_rules! newtype {
             #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: u64) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max) {
-                    Ok(Self(value as u32))
+                    Ok(Self(value as $type))
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value,
@@ -281,7 +282,7 @@ macro_rules! newtype {
             #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: usize) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max) {
-                    Ok(Self(value as u32))
+                    Ok(Self(value as $type))
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value: value as u64,
