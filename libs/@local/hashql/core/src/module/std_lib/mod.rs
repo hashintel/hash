@@ -6,7 +6,7 @@ use ::core::iter;
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
-    collection::SmallVec,
+    collections::SmallVec,
     heap::Heap,
     module::{
         PartialModule,

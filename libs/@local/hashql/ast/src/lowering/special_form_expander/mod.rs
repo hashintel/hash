@@ -6,7 +6,7 @@ use core::{
 };
 
 use hashql_core::{
-    collection::{FastHashMap, fast_hash_map},
+    collections::{FastHashMap, fast_hash_map},
     heap::{self, Heap},
     literal::LiteralKind,
     span::SpanId,

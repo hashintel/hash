@@ -1,5 +1,5 @@
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet, HashMapExt as _},
     intern::Interned,
     literal::LiteralKind,
     module::{
@@ -26,7 +26,7 @@ use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     context::HirContext,
     node::{
-        HirId, HirPtr, Node,
+        HirIdMap, HirIdSet, HirPtr, Node,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -34,7 +34,7 @@ use crate::{
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::{Binding, Let, VarId},
+        r#let::{Binding, Let, VarIdMap},
         operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -48,9 +48,9 @@ pub struct Local<'heap> {
 }
 
 pub struct TypeInferenceResidual<'heap> {
-    pub locals: FastHashMap<VarId, Local<'heap>>,
-    pub intrinsics: FastHashMap<HirId, &'static str>,
-    pub types: FastHashMap<HirId, TypeId>,
+    pub locals: VarIdMap<Local<'heap>>,
+    pub intrinsics: HirIdMap<&'static str>,
+    pub types: HirIdMap<TypeId>,
 }
 
 pub struct TypeInference<'env, 'ctx, 'heap> {
@@ -63,11 +63,11 @@ pub struct TypeInference<'env, 'ctx, 'heap> {
 
     current: HirPtr,
 
-    visited: FastHashSet<HirId>,
-    locals: FastHashMap<VarId, Local<'heap>>,
-    types: FastHashMap<HirId, TypeId>,
-    arguments: FastHashMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
-    intrinsics: FastHashMap<HirId, &'static str>,
+    visited: HirIdSet,
+    locals: VarIdMap<Local<'heap>>,
+    types: HirIdMap<TypeId>,
+    arguments: HirIdMap<Interned<'heap, [GenericArgumentReference<'heap>]>>,
+    intrinsics: HirIdMap<&'static str>,
 }
 
 impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {

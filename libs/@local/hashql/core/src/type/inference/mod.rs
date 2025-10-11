@@ -16,7 +16,7 @@ use super::{
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
 use crate::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
 };

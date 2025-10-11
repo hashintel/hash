@@ -9,15 +9,15 @@ use core::{fmt::Debug, ops::Range};
 
 use hash_graph_store::filter::{Filter, QueryRecord};
 use hashql_core::{
-    collection::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
+    collections::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     node::{
-        HirId, Node,
+        HirId, HirIdMap, Node,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
-        r#let::{Binding, Let, VarId},
+        r#let::{Binding, Let, VarId, VarIdMap},
         variable::LocalVariable,
     },
     visit::{self, Visitor},
@@ -77,7 +77,7 @@ impl FilterCompilerContext {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphReadCompilerResidual<'heap> {
     pub filters: Filters<'heap>,
-    pub output: FastHashMap<HirId, FilterSlice>,
+    pub output: HirIdMap<FilterSlice>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -90,10 +90,10 @@ pub struct GraphReadCompiler<'env, 'heap> {
 
     diagnostics: GraphReadCompilerIssues,
 
-    locals: FastHashMap<VarId, &'heap Node<'heap>>,
+    locals: VarIdMap<&'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
-    output: FastHashMap<HirId, FilterSlice>,
-    variables: FastHashMap<VarId, FilterSlice>,
+    output: HirIdMap<FilterSlice>,
+    variables: VarIdMap<FilterSlice>,
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {

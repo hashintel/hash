@@ -5,7 +5,7 @@ use ena::unify::{NoError, UnifyKey, UnifyValue};
 use pretty::RcDoc;
 
 use crate::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     r#type::{

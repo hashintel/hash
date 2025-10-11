@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     intern::Interned,
     module::{
         Universe,
@@ -23,7 +23,7 @@ use crate::{
     fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
-        HirId, Node, PartialNode,
+        HirIdMap, Node, PartialNode,
         kind::NodeKind,
         operation::{Operation, TypeConstructor, TypeOperation},
         variable::{LocalVariable, QualifiedVariable, Variable},
@@ -38,7 +38,7 @@ pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
     current_span: SpanId,
-    cache: FastHashMap<HirId, Node<'heap>>,
+    cache: HirIdMap<Node<'heap>>,
 
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }

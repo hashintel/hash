@@ -40,7 +40,7 @@ pub trait HashMapExt<K, V, S> {
     /// #![feature(allocator_api)]
     /// use std::alloc::Global;
     ///
-    /// use hashql_core::collection::{FastHashMap, HashMapExt as _};
+    /// use hashql_core::collections::{FastHashMap, HashMapExt as _};
     ///
     /// let mut map = FastHashMap::<_, _, Global>::default();
     ///
@@ -59,7 +59,7 @@ pub trait HashMapExt<K, V, S> {
     /// #![feature(allocator_api)]
     /// use std::alloc::Global;
     ///
-    /// use hashql_core::collection::{FastHashMap, HashMapExt as _};
+    /// use hashql_core::collections::{FastHashMap, HashMapExt as _};
     ///
     /// let mut map = FastHashMap::<_, _, Global>::default();
     /// map.insert("key1", 42);

@@ -8,9 +8,11 @@
     associated_type_defaults,
     coverage_attribute,
     exhaustive_patterns,
+    macro_metavar_expr_concat,
     never_type,
 
     // Library Features
+    allocator_api,
     iter_intersperse,
     try_trait_v2,
 )]

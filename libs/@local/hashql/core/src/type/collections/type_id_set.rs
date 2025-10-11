@@ -151,7 +151,7 @@ mod test {
         heap::Heap,
         span::SpanId,
         r#type::{
-            collection::TypeIdSet,
+            collections::TypeIdSet,
             environment::Environment,
             kind::{TypeKind, primitive::PrimitiveType, test::primitive},
             tests::instantiate,

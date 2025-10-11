@@ -1,11 +1,17 @@
+mod index;
+mod slice;
+mod vec;
+
 use core::{
     fmt::{self, Debug, Display},
     hash::Hash,
     marker::PhantomData,
-    sync::atomic::Atomic,
+    sync::atomic::AtomicU32,
 };
 
 use ::core::sync::atomic;
+
+pub use self::{index::IntoSliceIndex, slice::IdSlice, vec::IdVec};
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
@@ -290,7 +296,7 @@ macro_rules! newtype {
 
 #[derive(Debug)]
 pub struct IdProducer<I> {
-    next: Atomic<u32>,
+    next: AtomicU32,
     _marker: PhantomData<fn() -> I>,
 }
 
@@ -298,7 +304,7 @@ impl<I> IdProducer<I> {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            next: Atomic::<u32>::new(0),
+            next: AtomicU32::new(0),
             _marker: PhantomData,
         }
     }
@@ -376,8 +382,23 @@ macro_rules! newtype_counter {
     };
 }
 
+#[macro_export]
+macro_rules! newtype_collections {
+    ($vis:vis type $name:ident* from $id:ty) => {
+        $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
+        $vis type ${concat($name, Vec)}<T> = $crate::id::IdVec<$id, T>;
+
+        $vis type ${concat($name, Set)}<A = ::alloc::alloc::Global> = $crate::collections::FastHashSet<$id, A>;
+        $vis type ${concat($name, SetEntry)}<'set, A = ::alloc::alloc::Global> = $crate::collections::FastHashSetEntry<'set, $id, A>;
+
+        $vis type ${concat($name, Map)}<V, A = ::alloc::alloc::Global> = $crate::collections::FastHashMap<$id, V, A>;
+        $vis type ${concat($name, MapEntry)}<'map, V, A = ::alloc::alloc::Global> = $crate::collections::FastHashMapEntry<'map, $id, V, A>;
+    };
+}
+
 // TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
 
 pub use newtype;
+pub use newtype_collections;
 pub use newtype_counter;
 pub use newtype_producer;

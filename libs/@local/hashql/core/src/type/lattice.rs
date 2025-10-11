@@ -5,7 +5,7 @@ use super::{
     },
 };
 use crate::{
-    collection::{SmallVec, TinyVec},
+    collections::{SmallVec, TinyVec},
     symbol::Ident,
 };
 

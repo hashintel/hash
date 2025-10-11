@@ -44,7 +44,7 @@ use bumpalo::Bump;
 use hashbrown::HashSet;
 
 use crate::{
-    collection::{FastHashSet, fast_hash_set},
+    collections::{FastHashSet, fast_hash_set},
     symbol::{Symbol, sym::TABLES},
 };
 

@@ -1,7 +1,7 @@
 use core::ops::ControlFlow;
 
 use super::{Type, kind::TypeKind};
-use crate::{collection::FastHashSet, intern::Interned};
+use crate::{collections::FastHashSet, intern::Interned};
 
 /// Recursive Cycle
 ///

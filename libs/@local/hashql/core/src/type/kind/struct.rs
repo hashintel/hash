@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     algorithms::cartesian_product,
-    collection::FastHashMap,
+    collections::FastHashMap,
     intern::Interned,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},

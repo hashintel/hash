@@ -40,7 +40,7 @@ use super::{
     variable::{VariableId, VariableLookup, VariableProvenance},
 };
 use crate::{
-    collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
+    collections::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
         environment::{InferenceEnvironment, LatticeEnvironment, Variance},
