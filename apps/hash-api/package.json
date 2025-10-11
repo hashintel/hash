@@ -76,7 +76,7 @@
     "cors": "2.8.5",
     "cross-env": "7.0.3",
     "dedent": "0.7.0",
-    "effect": "3.13.11",
+    "effect": "3.18.4",
     "exponential-backoff": "3.1.2",
     "express": "4.21.2",
     "express-handlebars": "7.1.3",
