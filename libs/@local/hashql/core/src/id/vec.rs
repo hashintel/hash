@@ -2,7 +2,9 @@ use alloc::{alloc::Global, vec};
 use core::{
     alloc::Allocator,
     borrow::{Borrow, BorrowMut},
+    cmp::Ordering,
     fmt::{self, Debug},
+    hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
@@ -25,7 +27,6 @@ use super::{Id, slice::IdSlice};
 /// let user_id = users.push("Alice".to_string());
 /// assert_eq!(users[user_id], "Alice");
 /// ```
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[expect(
     clippy::field_scoped_visibility_modifiers,
     reason = "needed for `ToOwned` implementation"
@@ -206,6 +207,70 @@ where
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.raw, fmt)
+    }
+}
+
+impl<I, T, A> Clone for IdVec<I, T, A>
+where
+    T: Clone,
+    A: Allocator + Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            _marker: PhantomData,
+            raw: self.raw.clone(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.raw.clone_from(&source.raw);
+    }
+}
+
+impl<I, T, A> PartialEq for IdVec<I, T, A>
+where
+    T: PartialEq,
+    A: Allocator,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.raw == other.raw
+    }
+}
+
+impl<I, T, A> Eq for IdVec<I, T, A>
+where
+    T: Eq,
+    A: Allocator,
+{
+}
+
+impl<I, T, A> PartialOrd for IdVec<I, T, A>
+where
+    T: PartialOrd,
+    A: Allocator,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.raw.partial_cmp(&other.raw)
+    }
+}
+
+impl<I, T, A> Ord for IdVec<I, T, A>
+where
+    T: Ord,
+    A: Allocator,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.raw.cmp(&other.raw)
+    }
+}
+
+impl<I, T, A> Hash for IdVec<I, T, A>
+where
+    T: Hash,
+    A: Allocator,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.raw.hash(state);
     }
 }
 

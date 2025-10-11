@@ -23,7 +23,7 @@ pub enum IdError {
     ///
     /// Contains the value that was provided, along with the minimum and maximum
     /// allowed values.
-    OutOfRange { value: u64, min: u32, max: u32 },
+    OutOfRange { value: u64, min: u64, max: u64 },
 }
 
 impl Display for IdError {
@@ -252,8 +252,8 @@ macro_rules! newtype {
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value: u64::from(value),
-                        min: $min,
-                        max: $max,
+                        min: $min as u64,
+                        max: $max as u64,
                     })
                 }
             }
@@ -269,8 +269,8 @@ macro_rules! newtype {
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value,
-                        min: $min,
-                        max: $max,
+                        min: $min as u64,
+                        max: $max as u64,
                     })
                 }
             }
@@ -286,8 +286,8 @@ macro_rules! newtype {
                 } else {
                     Err($crate::id::IdError::OutOfRange {
                         value: value as u64,
-                        min: $min,
-                        max: $max,
+                        min: $min as u64,
+                        max: $max as u64,
                     })
                 }
             }
@@ -387,7 +387,7 @@ macro_rules! newtype_counter {
 macro_rules! newtype_collections {
     ($vis:vis type $name:ident* from $id:ty) => {
         $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
-        $vis type ${concat($name, Vec)}<T> = $crate::id::IdVec<$id, T>;
+        $vis type ${concat($name, Vec)}<T, A = ::alloc::alloc::Global> = $crate::id::IdVec<$id, T, A>;
 
         $vis type ${concat($name, Set)}<A = ::alloc::alloc::Global> = $crate::collections::FastHashSet<$id, A>;
         $vis type ${concat($name, SetEntry)}<'set, A = ::alloc::alloc::Global> = $crate::collections::FastHashSetEntry<'set, $id, A>;

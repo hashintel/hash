@@ -9,6 +9,9 @@ id::newtype!(
     pub struct BasicBlockId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type BasicBlock* from BasicBlockId);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BasicBlock<'heap> {
     pub statements: heap::Vec<'heap, Statement<'heap>>,
     pub terminator: Terminator<'heap>,
