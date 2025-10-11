@@ -1,5 +1,6 @@
 mod call;
 mod goto;
+mod graph;
 
 pub use call::Call;
 pub use goto::Goto;

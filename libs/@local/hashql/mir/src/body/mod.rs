@@ -11,6 +11,9 @@ pub mod rvalue;
 pub mod statement;
 pub mod terminator;
 
+// we're doing something different this time, instead of just adding spans everywhere, we're going
+// to add them only in specific places, and then more when needed.
+
 pub struct Body<'heap> {
     pub basic_blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     pub entry_block: BasicBlockId,
