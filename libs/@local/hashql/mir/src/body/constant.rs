@@ -1,4 +1,9 @@
 use hashql_core::literal::LiteralKind;
 
+use crate::def::DefId;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Constant<'heap>(LiteralKind<'heap>);
+pub enum Constant<'heap> {
+    Primitive(LiteralKind<'heap>),
+    FnPtr(DefId),
+}

@@ -1,10 +1,18 @@
 mod call;
 mod goto;
 mod graph;
+mod r#return;
+mod target;
 
-pub use call::Call;
-pub use goto::Goto;
 use hashql_core::span::SpanId;
+
+pub use self::{
+    call::Call,
+    goto::Goto,
+    graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+    r#return::Return,
+    target::Target,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Terminator<'heap> {
@@ -15,8 +23,9 @@ pub struct Terminator<'heap> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TerminatorKind<'heap> {
-    Goto(Goto),
+    Goto(Goto<'heap>),
     Call(Call<'heap>),
-    Return,
+    Return(Return<'heap>),
+    GraphRead(GraphRead<'heap>),
     Unreachable,
 }

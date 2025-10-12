@@ -1,4 +1,10 @@
-use crate::body::{operand::Operand, place::Place};
+use hashql_core::heap;
+
+use super::target::Target;
+use crate::{
+    body::{local::Local, operand::Operand},
+    def::DefId,
+};
 
 /// The starting point for a graph read operation.
 ///
@@ -17,29 +23,31 @@ pub enum GraphReadHead<'heap> {
 /// that process the data selected by the [`GraphReadHead`]. These operations are
 /// applied sequentially to refine the result set.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum GraphReadBody<'heap> {
+pub enum GraphReadBody {
     /// Apply a filter predicate to narrow down results.
     ///
-    /// The [`Operand`] refers to the function that implements the filter predicate, which must be
-    /// of arity 1.
-    Filter(Operand<'heap>),
+    /// The [`DefId`] refers to the function that implements the filter predicate, which must be
+    /// of arity 1, whereas `Local` refers to the variable that holds the environment.
+    Filter(DefId, Local),
 }
 
-// TODO: does this work? what about captured variables?
-// TODO: closures just take an implicit first argument of their captured environment and are
-// therefore just another body! This means that we need to analyze the captured environment to
-// determine what we need to put there, this means that the graph read body needs to have the
-// captured environment as a parameter. We can directly associate this with the closure when it is
-// defined, because everything is static.
-// But this means that we would need to implement thunking a bit earlier, no? because otherwise we
-// can't do the "body trick" for every top level closure.
-
-// TODO: what I am not yet sure about is how to do calling convention - like how do I know *what* I
-// need to call?
+/// The final operation that determines how the query results are returned.
+///
+/// Specifies how the processed data should be finalized and returned to the caller.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum GraphReadTail {
+    /// Collect all results into a collection.
+    ///
+    /// Gathers all items that pass through the query pipeline and returns them as a list of
+    /// entities.
+    Collect,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GraphRead<'heap> {
     pub head: GraphReadHead<'heap>,
+    pub body: heap::Vec<'heap, GraphReadBody>,
+    pub tail: GraphReadTail,
 
-    pub destination: Place<'heap>,
+    pub target: Target<'heap>,
 }

@@ -1,6 +1,6 @@
-use hashql_core::{heap, id};
+use hashql_core::{heap, id, intern::Interned};
 
-use super::{statement::Statement, terminator::Terminator};
+use super::{local::Local, statement::Statement, terminator::Terminator};
 
 id::newtype!(
     /// A unique identifier for a basic block in the HashQL MIR.
@@ -13,6 +13,8 @@ id::newtype_collections!(pub type BasicBlock* from BasicBlockId);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BasicBlock<'heap> {
+    pub params: Interned<'heap, [Local]>,
+
     pub statements: heap::Vec<'heap, Statement<'heap>>,
     pub terminator: Terminator<'heap>,
 }

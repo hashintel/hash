@@ -2,6 +2,7 @@
 extern crate alloc;
 
 pub mod body;
+pub mod def;
 
 #[cfg(test)]
 mod tests {

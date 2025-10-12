@@ -1,6 +1,6 @@
-use crate::body::basic_block::BasicBlockId;
+use super::target::Target;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Goto {
-    pub target: BasicBlockId,
+pub struct Goto<'heap> {
+    pub target: Target<'heap>,
 }

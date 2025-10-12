@@ -4,7 +4,3 @@ id::newtype!(
     /// Represents a local variable
     pub struct Local(usize is 0..=usize::MAX)
 );
-
-impl Local {
-    pub const RETURN: Self = Self(0);
-}
