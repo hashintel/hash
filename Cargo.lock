@@ -3923,6 +3923,8 @@ name = "hashql-mir"
 version = "0.0.0"
 dependencies = [
  "hashql-compiletest",
+ "hashql-core",
+ "hashql-hir",
 ]
 
 [[package]]
