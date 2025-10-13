@@ -290,27 +290,25 @@ where
                     }
                 }
 
-                if !shared_edge_data.is_empty() {
-                    let entity_types = self
-                        .resolve_is_of_type_edge(
-                            shared_edge_data,
-                            BorrowedTraversalParams::ResolveDepths {
-                                // We have consumed all edges in the traversal path
-                                traversal_path: &[],
-                                graph_resolve_depths: GraphResolveDepths {
-                                    is_of_type: false,
-                                    ..graph_resolve_depths
-                                },
+                let entity_types = self
+                    .resolve_is_of_type_edge(
+                        shared_edge_data,
+                        BorrowedTraversalParams::ResolveDepths {
+                            // We have consumed all edges in the traversal path
+                            traversal_path: &[],
+                            graph_resolve_depths: GraphResolveDepths {
+                                is_of_type: false,
+                                ..graph_resolve_depths
                             },
-                            traversal_context,
-                            provider,
-                            subgraph,
-                        )
-                        .await?;
+                        },
+                        traversal_context,
+                        provider,
+                        subgraph,
+                    )
+                    .await?;
 
-                    self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
-                        .await?;
-                }
+                self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                    .await?;
             }
             BorrowedTraversalParams::Path { mut traversal_path } => {
                 // Unlike `ResolveDepths`, in Path mode `IsOfType` edges are part of the traversal
