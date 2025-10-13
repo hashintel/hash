@@ -255,10 +255,16 @@ where
                 mut traversal_path,
                 graph_resolve_depths,
             } => {
+                // Collect all entities (original + discovered during traversal) for `is_of_type`
+                // resolution. The `is_of_type` flag applies to all entities encountered, not just
+                // the starting set.
                 let mut shared_edge_data = Vec::new();
                 if graph_resolve_depths.is_of_type {
                     shared_edge_data.extend(entities.iter().copied());
                 }
+
+                // Sequentially traverse all entity edges in the path. Each iteration processes
+                // one edge and updates `entities` with the discovered entities for the next hop.
                 while let Some((edge, next_traversal_path)) = traversal_path.split_first()
                     && !entities.is_empty()
                 {
@@ -284,27 +290,31 @@ where
                     }
                 }
 
-                let entity_types = self
-                    .resolve_is_of_type_edge(
-                        shared_edge_data,
-                        BorrowedTraversalParams::ResolveDepths {
-                            // We have consumed all edges in the traversal path
-                            traversal_path: &[],
-                            graph_resolve_depths: GraphResolveDepths {
-                                is_of_type: false,
-                                ..graph_resolve_depths
+                if !shared_edge_data.is_empty() {
+                    let entity_types = self
+                        .resolve_is_of_type_edge(
+                            shared_edge_data,
+                            BorrowedTraversalParams::ResolveDepths {
+                                // We have consumed all edges in the traversal path
+                                traversal_path: &[],
+                                graph_resolve_depths: GraphResolveDepths {
+                                    is_of_type: false,
+                                    ..graph_resolve_depths
+                                },
                             },
-                        },
-                        traversal_context,
-                        provider,
-                        subgraph,
-                    )
-                    .await?;
+                            traversal_context,
+                            provider,
+                            subgraph,
+                        )
+                        .await?;
 
-                self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
-                    .await?;
+                    self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                        .await?;
+                }
             }
             BorrowedTraversalParams::Path { mut traversal_path } => {
+                // Unlike `ResolveDepths`, in Path mode `IsOfType` edges are part of the traversal
+                // path array itself and are handled inline during iteration (see match below).
                 while let Some((edge, next_traversal_path)) = traversal_path.split_first()
                     && !entities.is_empty()
                 {
