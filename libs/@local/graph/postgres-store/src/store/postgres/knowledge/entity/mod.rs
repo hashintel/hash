@@ -105,6 +105,27 @@ impl<C> PostgresStore<C>
 where
     C: AsClient,
 {
+    /// Resolves `is-of-type` edges from entities to their entity types.
+    ///
+    /// Queries the database for `is-of-type` edges connecting the provided entities to their
+    /// corresponding [`EntityType`]s, applies permission filtering, and inserts the discovered
+    /// edges into the subgraph. Returns the discovered entity types for further traversal.
+    ///
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
+    ///   from
+    /// * `next_traversal` - Traversal parameters to apply to discovered entity types
+    /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
+    /// * `provider` - Store provider for permission checks
+    /// * `subgraph` - Subgraph to populate with discovered edges and vertices
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails or permission filtering encounters an
+    /// error.
     async fn resolve_is_of_type_edge<'edges>(
         &self,
         entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
@@ -165,6 +186,25 @@ where
         Ok(entity_type_queue)
     }
 
+    /// Resolves a single entity edge type for a collection of entities.
+    ///
+    /// Queries the database for edges of the specified [`EntityTraversalEdge`] connecting the
+    /// provided entities to other entities. Discovered edges are inserted into the subgraph, and
+    /// newly discovered entities are returned for the next traversal hop.
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
+    ///   from
+    /// * `edge` - The type of entity edge to traverse
+    /// * `next_traversal` - Traversal parameters to apply to discovered entities
+    /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
+    /// * `provider` - Store provider for permission checks
+    /// * `subgraph` - Subgraph to populate with discovered edges and vertices
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails.
     async fn resolve_entity_edge<'edges>(
         &self,
         entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
