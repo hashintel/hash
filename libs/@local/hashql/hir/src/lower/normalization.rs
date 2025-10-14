@@ -161,12 +161,15 @@ const fn is_projection(node: &Node<'_>) -> bool {
     }
 }
 
-/// Configuration options for HIR(ANF) normalization.
+/// State and configuration for HIR(ANF) normalization.
 ///
-/// This struct controls various aspects of the normalization process, primarily
-/// focused on performance optimizations and resource management.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct NormalizationOptions {
+/// This struct contains performance optimizations and reusable resources for
+/// the normalization process, primarily focused on reducing allocations.
+///
+/// This struct can be reused across multiple normalization runs to avoid
+/// unnecessary reallocations.
+#[derive(Debug)]
+pub struct NormalizationState<'heap> {
     /// Maximum number of binding vectors to cache in the recycler pool.
     ///
     /// The normalization process frequently creates temporary vectors to accumulate
@@ -181,11 +184,17 @@ pub struct NormalizationOptions {
     /// The default is 4, which provides a good balance between memory usage and
     /// allocation reduction for typical workloads.
     pub max_recycle: usize,
+
+    /// Pool of reusable binding vectors to reduce allocations
+    recycler: Vec<Vec<Binding<'heap>>>,
 }
 
-impl Default for NormalizationOptions {
+impl Default for NormalizationState<'_> {
     fn default() -> Self {
-        Self { max_recycle: 4 }
+        Self {
+            max_recycle: 4,
+            recycler: Vec::new(),
+        }
     }
 }
 
@@ -201,10 +210,8 @@ pub struct Normalization<'ctx, 'env, 'heap> {
     bindings: Vec<Binding<'heap>>,
     /// Optional node replacement mechanism for structural transformations
     trampoline: Option<Node<'heap>>,
-    /// Pool of reusable binding vectors to reduce allocations
-    recycler: Vec<Vec<Binding<'heap>>>,
-    /// Maximum number of vectors to keep in the recycler pool
-    max_recycle: usize,
+    /// State that is shared during multiple normalization passes
+    state: &'ctx mut NormalizationState<'heap>,
 }
 
 impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
@@ -213,17 +220,16 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// # Arguments
     ///
     /// - `context`: Mutable reference to the HIR context for interning and variable generation
-    /// - `options`: Configuration options controlling the normalization behavior
+    /// - `state`: Shared state containing configuration and reusable resources
     pub const fn new(
         context: &'ctx mut HirContext<'env, 'heap>,
-        options: NormalizationOptions,
+        state: &'ctx mut NormalizationState<'heap>,
     ) -> Self {
         Self {
             context,
             bindings: Vec::new(),
             trampoline: None,
-            recycler: Vec::new(),
-            max_recycle: options.max_recycle,
+            state,
         }
     }
 
@@ -311,7 +317,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// transformation process.
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
-        let bindings = self.recycler.pop().unwrap_or_else(|| {
+        let bindings = self.state.recycler.pop().unwrap_or_else(|| {
             // The current amount of bindings is a good indicator for the size of vector we're
             // expecting
             Vec::with_capacity(self.bindings.len())
@@ -340,8 +346,8 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         }
 
         // If we haven't reached the limit, add the vector to the recycler
-        if self.recycler.len() < self.max_recycle {
-            self.recycler.push(bindings);
+        if self.state.recycler.len() < self.state.max_recycle {
+            self.state.recycler.push(bindings);
         }
 
         node

@@ -32,14 +32,20 @@
 //!
 //! Selected bindings are wrapped in thunks:
 //! ```text
-//! let x = computation;  // becomes: let x = thunk(() -> computation);
+//! let friday_night_thunkin = computation;
+//!
+//! // becomes:
+//! let friday_night_thunkin = thunk(() -> computation);
 //! ```
 //!
 //! ## Call Insertion
 //!
 //! References to thunked variables are converted to calls:
 //! ```text
-//! x  // becomes: x()
+//! x
+//!
+//! // becomes:
+//! x()
 //! ```
 //!
 //! This happens for both local and qualified variables that reference thunked bindings.
