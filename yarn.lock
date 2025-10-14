@@ -7129,6 +7129,7 @@ __metadata:
     react: "npm:19.1.1"
     react-dom: "npm:19.1.1"
     reactflow: "npm:11.11.4"
+    storybook: "npm:9.1.10"
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
   peerDependencies:
@@ -7155,6 +7156,7 @@ __metadata:
     react: "npm:19.1.1"
     react-dom: "npm:19.1.1"
     react-hook-form: "npm:7.61.1"
+    storybook: "npm:9.1.10"
     typescript: "npm:5.7.3"
   peerDependencies:
     "@mui/material": ^5.14.0
@@ -7191,6 +7193,7 @@ __metadata:
     react-hook-form: "npm:7.61.1"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
+    storybook: "npm:9.1.10"
     typescript: "npm:5.7.3"
   peerDependencies:
     "@mui/material": ^5.14.0
