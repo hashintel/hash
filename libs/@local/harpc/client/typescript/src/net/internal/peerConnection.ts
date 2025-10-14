@@ -105,7 +105,7 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
   removeEventListener(
     event: string,
     listener: EventHandler<unknown>,
-    options: boolean | EventListenerOptions | undefined,
+    options: boolean | { capture?: boolean } | undefined,
   ) {
     (this as PeerConnection).inner.removeEventListener(
       event,
