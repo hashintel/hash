@@ -85,12 +85,10 @@ use crate::{
 ///
 /// Non-atoms include control flow, operations, calls, and qualified variables
 /// (which require module thunking in the future).
-const fn is_atom(node: &Node<'_>) -> bool {
+pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
     match node.kind {
-        NodeKind::Data(_) | NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
-        // Qualified variables are *not* atoms, because of module thunking in the future
-        // see: https://linear.app/hash/issue/BE-67/hashql-implement-modules
-        NodeKind::Variable(Variable::Qualified(_))
+        NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
+        NodeKind::Data(_)
         | NodeKind::Let(_)
         | NodeKind::Input(_)
         | NodeKind::Operation(_)
@@ -112,9 +110,8 @@ const fn is_atom(node: &Node<'_>) -> bool {
 /// Projections are a subset of atoms that represent addressable locations.
 const fn is_projection(node: &Node<'_>) -> bool {
     match node.kind {
-        NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
+        NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
-        | NodeKind::Variable(Variable::Qualified(_))
         | NodeKind::Let(_)
         | NodeKind::Input(_)
         | NodeKind::Operation(_)
@@ -267,7 +264,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// If the node is already an atom, returns it unchanged. Otherwise,
     /// converts it to a local variable binding.
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
-        if is_atom(&node) {
+        if is_anf_atom(&node) {
             return node;
         }
 

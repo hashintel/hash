@@ -20,6 +20,7 @@ pub mod error;
 pub mod inference;
 pub mod normalization;
 pub mod specialization;
+pub mod thunking;
 
 /// Lowers the given node by performing different phases.
 ///
