@@ -5130,6 +5130,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@effect/sql@npm:0.46.0":
+  version: 0.46.0
+  resolution: "@effect/sql@npm:0.46.0"
+  dependencies:
+    uuid: "npm:^11.0.3"
+  peerDependencies:
+    "@effect/experimental": ^0.56.0
+    "@effect/platform": ^0.92.0
+    effect: ^3.18.0
+  checksum: 10c0/a28382d4d35e30ac917f69b2f7a10567a31084c5285b81d007edb3181791e6013d935d211b132e85bea38075b915fe78e040df4eb8d6da22d1d79dda7eaf02b8
+  languageName: node
+  linkType: hard
+
 "@effect/vitest@npm:0.26.0":
   version: 0.26.0
   resolution: "@effect/vitest@npm:0.26.0"
@@ -8951,6 +8964,7 @@ __metadata:
     "@effect/platform": "npm:0.92.1"
     "@effect/platform-node": "npm:0.98.3"
     "@effect/rpc": "npm:0.71.0"
+    "@effect/sql": "npm:0.46.0"
     "@effect/vitest": "npm:0.26.0"
     "@libp2p/crypto": "npm:5.1.5"
     "@libp2p/identify": "npm:3.0.33"
@@ -45165,7 +45179,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:11.1.0, uuid@npm:^11.0.1":
+"uuid@npm:11.1.0, uuid@npm:^11.0.1, uuid@npm:^11.0.3":
   version: 11.1.0
   resolution: "uuid@npm:11.1.0"
   bin:

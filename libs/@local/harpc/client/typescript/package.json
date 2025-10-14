@@ -43,6 +43,7 @@
     "@effect/platform": "0.92.1",
     "@effect/platform-node": "0.98.3",
     "@effect/rpc": "0.71.0",
+    "@effect/sql": "0.46.0",
     "@effect/vitest": "0.26.0",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
