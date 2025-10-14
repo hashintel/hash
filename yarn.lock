@@ -5070,6 +5070,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@effect/experimental@npm:0.56.0":
+  version: 0.56.0
+  resolution: "@effect/experimental@npm:0.56.0"
+  dependencies:
+    uuid: "npm:^11.0.3"
+  peerDependencies:
+    "@effect/platform": ^0.92.0
+    effect: ^3.18.0
+    ioredis: ^5
+    lmdb: ^3
+  peerDependenciesMeta:
+    ioredis:
+      optional: true
+    lmdb:
+      optional: true
+  checksum: 10c0/0355701bf6bae36947e621649398816de4b07ed5225d8604ce43e0b51da07d65148adb60831fcd03f4baf51f4fd5db22aa4c5651b3a64d6f3b476b32cd15e389
+  languageName: node
+  linkType: hard
+
 "@effect/platform-node-shared@npm:^0.51.3":
   version: 0.51.4
   resolution: "@effect/platform-node-shared@npm:0.51.4"
@@ -8961,6 +8980,7 @@ __metadata:
     "@chainsafe/libp2p-noise": "npm:16.1.4"
     "@chainsafe/libp2p-yamux": "npm:7.0.4"
     "@effect/cluster": "npm:0.50.4"
+    "@effect/experimental": "npm:0.56.0"
     "@effect/platform": "npm:0.92.1"
     "@effect/platform-node": "npm:0.98.3"
     "@effect/rpc": "npm:0.71.0"
