@@ -51,11 +51,11 @@ impl<'heap> Float<'heap> {
     ///
     /// # Examples
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     /// let heap = Heap::new();
-    /// let float = FloatLiteral::new_unchecked(heap.intern_symbol("42.0"));
+    /// let float = Float::new_unchecked(heap.intern_symbol("42.0"));
     ///
-    /// assert_eq!(float.as_f32(), Some(42.0));
+    /// assert_eq!(float.as_f32(), 42.0);
     /// ```
     #[inline]
     #[must_use]
@@ -82,13 +82,11 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| FloatLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Standard decimal
     /// assert_eq!(float("123.456").as_f32(), 123.456);
@@ -121,13 +119,11 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| FloatLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
     ///
     /// // High precision decimal
     /// assert_eq!(float("123.456789012345").as_f64(), 123.456789012345);
@@ -160,17 +156,15 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| FloatLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Whole number (can convert)
     /// assert!(float("42").as_integer().is_some());
-    /// assert_eq!(float("42").as_integer().unwrap().value.as_str(), "42");
+    /// assert_eq!(float("42").as_integer().unwrap().as_symbol().as_str(), "42");
     ///
     /// // Negative whole number
     /// assert!(float("-123").as_integer().is_some());
@@ -196,13 +190,11 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| FloatLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Standard decimal
     /// let real = float("3.14159").as_real();
@@ -232,13 +224,11 @@ impl<'heap> Float<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// use hashql_core::{heap::Heap, value::Float};
     ///
     /// let heap = Heap::new();
     ///
-    /// let float = |value: &'static str| FloatLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let float = |value: &'static str| Float::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Standard decimal
     /// let symbol = float("3.14159").as_symbol();

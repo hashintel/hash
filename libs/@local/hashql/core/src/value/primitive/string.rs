@@ -32,10 +32,10 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    /// use hashql_core::{heap::Heap, value::String};
     ///
     /// let heap = Heap::new();
-    /// let literal = StringLiteral::new(heap.intern_symbol("Hello, world!"));
+    /// let literal = String::new(heap.intern_symbol("Hello, world!"));
     ///
     /// assert_eq!(literal.as_str(), "Hello, world!");
     /// ```
@@ -49,12 +49,10 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    /// use hashql_core::{heap::Heap, value::String};
     ///
     /// let heap = Heap::new();
-    /// let literal = StringLiteral {
-    ///     value: heap.intern_symbol("Hello, world!"),
-    /// };
+    /// let literal = String::new(heap.intern_symbol("Hello, world!"));
     ///
     /// assert_eq!(literal.as_str(), "Hello, world!");
     /// ```
@@ -68,12 +66,10 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    /// use hashql_core::{heap::Heap, value::String};
     ///
     /// let heap = Heap::new();
-    /// let literal = StringLiteral {
-    ///     value: heap.intern_symbol("Hello"),
-    /// };
+    /// let literal = String::new(heap.intern_symbol("Hello"));
     ///
     /// assert_eq!(literal.as_bytes(), b"Hello");
     /// ```
@@ -87,10 +83,10 @@ impl<'heap> String<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    /// use hashql_core::{heap::Heap, value::String};
     ///
     /// let heap = Heap::new();
-    /// let literal = StringLiteral::new(heap.intern_symbol("Hello"));
+    /// let literal = String::new(heap.intern_symbol("Hello"));
     ///
     /// assert_eq!(literal.as_symbol(), heap.intern_symbol("Hello"));
     /// ```

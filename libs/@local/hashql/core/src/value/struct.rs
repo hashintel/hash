@@ -22,14 +22,13 @@ impl core::error::Error for StructError<'_> {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+///     value::{Integer, Primitive, String, Struct, Value},
 ///     symbol::Symbol,
-///     value::{Struct, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
 ///
 /// // Create a struct representing a person
 /// let name_field = heap.intern_symbol("name");
@@ -89,15 +88,14 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Float, Integer, Primitive, String, Struct, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
-    /// # let float = |value: &'static str| Value::Primitive(LiteralKind::Float(FloatLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
+    /// # let float = |value: &'static str| Value::Primitive(Primitive::Float(Float::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let fields = [
     ///     (heap.intern_symbol("id"), integer("42")),
@@ -144,14 +142,13 @@ impl<'heap> Struct<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String, Struct, StructError, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, StructError, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let name_field = heap.intern_symbol("name");
     /// let age_field = heap.intern_symbol("age");
@@ -189,13 +186,12 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{Struct, Value},
+    ///     value::{Integer, Primitive, String, Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let empty_struct = Struct::from_fields(&heap, []);
     /// assert_eq!(empty_struct.len(), 0);
@@ -222,12 +218,11 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Struct, Value},
+    ///     value::{Primitive, String, Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_struct = Struct::from_fields(&heap, []);
     /// assert!(empty_struct.is_empty());
@@ -252,14 +247,13 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String, Struct, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let person = Struct::from_fields(
     ///     &heap,

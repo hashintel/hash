@@ -56,14 +56,13 @@ impl core::error::Error for IndexAccessError {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-///     value::{Dict, List, Struct, Tuple, Value},
+///     value::{Dict, Integer, List, Primitive, String, Struct, Tuple, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
-/// # let boolean = |value: bool| Value::Primitive(LiteralKind::Boolean(value));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
+/// # let boolean = |value: bool| Value::Primitive(Primitive::Boolean(value));
 ///
 /// // Primitive values
 /// let number = integer("42");
@@ -112,13 +111,12 @@ impl<'heap> Value<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::Value,
+    ///     value::{Integer, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let number = integer("42");
     /// assert_eq!(number.type_name(), "integer");
@@ -126,7 +124,7 @@ impl<'heap> Value<'heap> {
     /// let text = string("hello");
     /// assert_eq!(text.type_name(), "string");
     ///
-    /// let flag = Value::Primitive(LiteralKind::Boolean(true));
+    /// let flag = Value::Primitive(Primitive::Boolean(true));
     /// assert_eq!(flag.type_name(), "boolean");
     /// ```
     #[must_use]
@@ -160,13 +158,12 @@ impl<'heap> Value<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{FieldAccessError, Struct, Tuple, Value},
+    ///     value::{FieldAccessError, Integer, Primitive, String, Struct, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// // Struct field access
     /// let person = Value::Struct(Struct::from_fields(
@@ -218,13 +215,12 @@ impl<'heap> Value<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{Dict, IndexAccessError, List, Value},
+    ///     value::{Dict, IndexAccessError, Integer, List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// // List index access
     /// let list = Value::List(List::from_values([
