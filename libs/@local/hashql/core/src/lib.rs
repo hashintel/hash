@@ -36,7 +36,6 @@ pub mod collections;
 pub mod heap;
 pub mod id;
 pub mod intern;
-pub mod literal;
 pub mod module;
 pub mod pretty;
 pub mod similarity;

@@ -53,11 +53,11 @@ use core::ops::{FromResidual, Try};
 
 use hashql_core::{
     intern::Interned,
-    literal::LiteralKind,
     module::locals::TypeDef,
     span::{SpanId, Spanned},
     symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
+    value::Primitive,
 };
 
 use self::{beef::Beef, nested::NestedFilter};
@@ -217,8 +217,8 @@ pub trait Fold<'heap> {
         walk_data(self, data)
     }
 
-    fn fold_literal(&mut self, literal: LiteralKind<'heap>) -> Self::Output<LiteralKind<'heap>> {
-        Try::from_output(literal)
+    fn fold_primitive(&mut self, primitive: Primitive<'heap>) -> Self::Output<Primitive<'heap>> {
+        Try::from_output(primitive)
     }
 
     fn fold_struct_field(&mut self, field: StructField<'heap>) -> Self::Output<StructField<'heap>> {
@@ -526,7 +526,7 @@ pub fn walk_data<'heap, T: Fold<'heap> + ?Sized>(
     data: Data<'heap>,
 ) -> T::Output<Data<'heap>> {
     let data = match data {
-        Data::Literal(literal) => Data::Literal(visitor.fold_literal(literal)?),
+        Data::Primitive(primitive) => Data::Primitive(visitor.fold_primitive(primitive)?),
         Data::Tuple(tuple) => Data::Tuple(visitor.fold_tuple(tuple)?),
         Data::Struct(r#struct) => Data::Struct(visitor.fold_struct(r#struct)?),
         Data::List(list) => Data::List(visitor.fold_list(list)?),

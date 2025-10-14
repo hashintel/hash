@@ -22,5 +22,5 @@ Expr#4294967040@21
                                 Expr#4294967040@9
                                   ExprKind (Literal)
                                     LiteralExpr#4294967040@8
-                                      LiteralKind (String)
-                                        StringLiteral (nested)
+                                      Primitive (String)
+                                        String (nested)

@@ -4,7 +4,7 @@ Expr#4294967040@20
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8
-            LiteralKind (True)
+            Primitive (True)
       Type#4294967040@18
         TypeKind (Tuple)
           TupleType#4294967040@18

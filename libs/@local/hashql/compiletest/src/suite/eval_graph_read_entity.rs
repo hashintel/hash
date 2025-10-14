@@ -4,11 +4,10 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collections::FastHashMap,
     heap::Heap,
-    literal::{IntegerLiteral, LiteralKind, StringLiteral},
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
-    value::{List, Opaque, Struct, Value},
+    value::{self, List, Opaque, Primitive, Struct, Value},
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{
@@ -70,18 +69,18 @@ impl Suite for EvalGraphReadEntitySuite {
             heap.intern_symbol("::graph::types::knowledge::entity::EntityUuid"),
             Value::Opaque(Opaque::new(
                 heap.intern_symbol("::core::uuid::Uuid"),
-                Value::Primitive(LiteralKind::String(StringLiteral {
-                    value: heap.intern_symbol("e2851dbb-7376-4959-9bca-f72cafc4448f"),
-                })),
+                Value::Primitive(Primitive::String(value::String::new(
+                    heap.intern_symbol("e2851dbb-7376-4959-9bca-f72cafc4448f"),
+                ))),
             )),
         ));
 
         let mut inputs = FastHashMap::default();
         inputs.insert(
             heap.intern_symbol("example_integer"),
-            Value::Primitive(LiteralKind::Integer(IntegerLiteral {
-                value: heap.intern_symbol("42"),
-            })),
+            Value::Primitive(Primitive::Integer(value::Integer::new_unchecked(
+                heap.intern_symbol("42"),
+            ))),
         );
         inputs.insert(heap.intern_symbol("user_id"), user_id_value.clone());
         inputs.insert(

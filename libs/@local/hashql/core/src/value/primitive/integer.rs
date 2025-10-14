@@ -36,11 +36,30 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// 9223372036854775807  // Large integers are preserved exactly
 /// ```
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct IntegerLiteral<'heap> {
-    pub value: Symbol<'heap>,
+pub struct Integer<'heap> {
+    value: Symbol<'heap>,
 }
 
-impl IntegerLiteral<'_> {
+impl<'heap> Integer<'heap> {
+    /// Creates a new integer literal without checking the value.
+    ///
+    /// The caller must ensure that the value is a valid integer literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, value::Integer};
+    ///
+    /// let heap = Heap::new();
+    /// let integer = Integer::new_unchecked(heap.intern_symbol("42"));
+    ///
+    /// assert_eq!(integer.as_i32(), Some(42));
+    /// ```
+    #[must_use]
+    pub const fn new_unchecked(value: Symbol<'heap>) -> Self {
+        Self { value }
+    }
+
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].
@@ -48,13 +67,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_u8(), Some(42));
@@ -77,13 +94,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("1000").as_u16(), Some(1000));
@@ -106,13 +121,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("100000").as_u32(), Some(100000));
@@ -135,13 +148,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("1234567890").as_u64(), Some(1234567890));
@@ -164,13 +175,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(
@@ -199,13 +208,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("12345").as_usize(), Some(12345));
@@ -228,13 +235,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("100").as_i8(), Some(100));
@@ -257,13 +262,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("5000").as_i16(), Some(5000));
@@ -286,13 +289,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_i32(), Some(42));
@@ -315,13 +316,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("9876543210").as_i64(), Some(9876543210));
@@ -344,13 +343,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(
@@ -382,13 +379,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("54321").as_isize(), Some(54321));
@@ -412,13 +407,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("42").as_f32(), 42.0);
@@ -448,13 +441,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// assert_eq!(integer("123").as_f64(), 123.0);
@@ -483,13 +474,11 @@ impl IntegerLiteral<'_> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    /// use hashql_core::{heap::Heap, value::Integer};
     ///
     /// let heap = Heap::new();
     ///
-    /// let integer = |value: &'static str| IntegerLiteral {
-    ///     value: heap.intern_symbol(value),
-    /// };
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
     ///
     /// // Positive value
     /// let real = integer("9999").as_real();
@@ -513,9 +502,37 @@ impl IntegerLiteral<'_> {
         Real::from_str(self.value.as_str())
             .expect("integer literal should be formatted according to JSON specification")
     }
+
+    /// Returns the raw representation of the integer literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, value::Integer};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let integer = |value: &'static str| Integer::new_unchecked(heap.intern_symbol(value));
+    ///
+    /// // Positive value
+    /// let symbol = integer("9999").as_symbol();
+    /// assert_eq!(symbol.as_str(), "9999");
+    ///
+    /// // Negative value
+    /// let symbol = integer("-1234").as_symbol();
+    /// assert_eq!(symbol.as_str(), "-1234");
+    ///
+    /// // Large value
+    /// let symbol = integer("123456789012345678901234567890").as_symbol();
+    /// assert_eq!(symbol.as_str(), "123456789012345678901234567890");
+    /// ```
+    #[must_use]
+    pub const fn as_symbol(&self) -> Symbol<'heap> {
+        self.value
+    }
 }
 
-impl Display for IntegerLiteral<'_> {
+impl Display for Integer<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.value, fmt)
     }
@@ -523,13 +540,13 @@ impl Display for IntegerLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{heap::Heap, literal::IntegerLiteral};
+    use crate::{heap::Heap, value::primitive::Integer};
 
     #[test]
     fn invalid_formats() {
         let heap = Heap::new();
 
-        let invalid = IntegerLiteral {
+        let invalid = Integer {
             value: heap.intern_symbol("not_a_number"),
         };
 

@@ -1,7 +1,6 @@
 use hashql_core::{
     collections::{FastHashMap, FastHashSet, HashMapExt as _},
     intern::Interned,
-    literal::LiteralKind,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -20,6 +19,7 @@ use hashql_core::{
         },
         visit::Visitor as _,
     },
+    value::Primitive,
 };
 
 use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
@@ -164,14 +164,14 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         self.current = previous;
     }
 
-    fn visit_literal(&mut self, literal: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, literal: &'heap Primitive<'heap>) {
         let builder = TypeBuilder::spanned(self.current.span, self.env);
         let id = match literal {
-            LiteralKind::Null => builder.null(),
-            LiteralKind::Boolean(_) => builder.boolean(),
-            LiteralKind::Float(_) => builder.number(),
-            LiteralKind::Integer(_) => builder.integer(),
-            LiteralKind::String(_) => builder.string(),
+            Primitive::Null => builder.null(),
+            Primitive::Boolean(_) => builder.boolean(),
+            Primitive::Float(_) => builder.number(),
+            Primitive::Integer(_) => builder.integer(),
+            Primitive::String(_) => builder.string(),
         };
 
         self.types.insert_unique(self.current.id, id);

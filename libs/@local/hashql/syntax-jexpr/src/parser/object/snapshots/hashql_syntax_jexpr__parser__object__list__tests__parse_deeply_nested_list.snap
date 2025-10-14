@@ -18,5 +18,5 @@ Expr#4294967040@7
                         Expr#4294967040@1
                           ExprKind (Literal)
                             LiteralExpr#4294967040@0
-                              LiteralKind (String)
-                                StringLiteral (deep)
+                              Primitive (String)
+                                String (deep)
