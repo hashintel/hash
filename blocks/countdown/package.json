@@ -37,7 +37,7 @@
     "@types/react-datepicker": "4.19.6",
     "@types/react-dom": "19.1.7",
     "block-scripts": "0.3.4",
-    "eslint": "9.20.1",
+    "eslint": "9.37.0",
     "mock-block-dock": "0.1.9",
     "prettier": "3.6.2",
     "react": "19.1.1",
