@@ -5057,6 +5057,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@effect/cluster@npm:0.50.4":
+  version: 0.50.4
+  resolution: "@effect/cluster@npm:0.50.4"
+  peerDependencies:
+    "@effect/platform": ^0.92.1
+    "@effect/rpc": ^0.71.0
+    "@effect/sql": ^0.46.0
+    "@effect/workflow": ^0.11.3
+    effect: ^3.18.4
+  checksum: 10c0/4a630d2b9e11a00a654212d5cb499d23150faf78a6f402c59ca0c2ae9299599e1bd814bdc71688d39e9752b1a83baedbaf5f19686badf751d02f0afb98aa8a75
+  languageName: node
+  linkType: hard
+
 "@effect/platform-node-shared@npm:^0.51.3":
   version: 0.51.4
   resolution: "@effect/platform-node-shared@npm:0.51.4"
@@ -8922,6 +8935,7 @@ __metadata:
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.1.4"
     "@chainsafe/libp2p-yamux": "npm:7.0.4"
+    "@effect/cluster": "npm:0.50.4"
     "@effect/platform": "npm:0.92.1"
     "@effect/platform-node": "npm:0.98.3"
     "@effect/vitest": "npm:0.26.0"

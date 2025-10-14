@@ -39,6 +39,7 @@
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
+    "@effect/cluster": "0.50.4",
     "@effect/platform": "0.92.1",
     "@effect/platform-node": "0.98.3",
     "@effect/vitest": "0.26.0",
