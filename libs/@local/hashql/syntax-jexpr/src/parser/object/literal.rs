@@ -2,7 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, LiteralExpr},
     id::NodeId,
 };
-use hashql_core::literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral};
+use hashql_core::value::{self, Primitive};
 use text_size::TextRange;
 
 use super::{
@@ -86,20 +86,20 @@ fn parse_literal<'heap>(
     let span = state.insert_range(token.span);
 
     let kind = match token.kind {
-        TokenKind::Null => LiteralKind::Null,
+        TokenKind::Null => Primitive::Null,
         TokenKind::Number(number) => {
             if number.has_fraction() || number.has_exponent() {
-                LiteralKind::Float(FloatLiteral {
+                Primitive::Float(value::Float {
                     value: state.intern_symbol(number.as_str()),
                 })
             } else {
-                LiteralKind::Integer(IntegerLiteral {
+                Primitive::Integer(value::Integer {
                     value: state.intern_symbol(number.as_str()),
                 })
             }
         }
-        TokenKind::Bool(value) => LiteralKind::Boolean(value),
-        TokenKind::String(value) => LiteralKind::String(StringLiteral {
+        TokenKind::Bool(value) => Primitive::Boolean(value),
+        TokenKind::String(value) => Primitive::String(value::String {
             value: state.intern_symbol(value),
         }),
         kind @ (TokenKind::LBrace

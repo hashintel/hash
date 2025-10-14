@@ -3,9 +3,8 @@ use core::fmt::Debug;
 
 use hash_graph_store::filter::{FilterExpression, QueryRecord};
 use hashql_core::{
-    literal::LiteralKind,
     span::SpanId,
-    value::{self, Opaque, Value},
+    value::{self, Opaque, Primitive, Value},
 };
 use hashql_hir::node::{
     Node,
@@ -102,7 +101,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         P: PartialQueryPath<'heap> + Debug,
     {
         match data {
-            Data::Literal(literal) => Ok(IntermediateExpression::Value {
+            Data::Primitive(literal) => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Primitive(*literal)),
                 span,
             }),
@@ -517,8 +516,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     }
                 };
 
-                let value =
-                    value.unwrap_or_else(|| Cow::Owned(Value::Primitive(LiteralKind::Null)));
+                let value = value.unwrap_or_else(|| Cow::Owned(Value::Primitive(Primitive::Null)));
 
                 IntermediateExpression::Value { value, span }
             }
@@ -616,7 +614,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             [] => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Opaque(Opaque::new(
                     ctor.name,
-                    Value::Primitive(LiteralKind::Null),
+                    Value::Primitive(Primitive::Null),
                 ))),
                 span,
             }),

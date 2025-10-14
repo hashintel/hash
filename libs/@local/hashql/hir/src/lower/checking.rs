@@ -2,7 +2,6 @@ use core::fmt::Display;
 
 use hashql_core::{
     collections::{FastHashMap, FastHashSet, HashMapExt as _},
-    literal::LiteralKind,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -18,6 +17,7 @@ use hashql_core::{
         error::TypeCheckDiagnosticIssues,
         kind::{PrimitiveType, TypeKind, generic::GenericArgumentReference},
     },
+    value::Primitive,
 };
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -240,7 +240,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.current = previous;
     }
 
-    fn visit_literal(&mut self, _: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, _: &'heap Primitive<'heap>) {
         self.transfer_type(self.current.id);
     }
 

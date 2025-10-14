@@ -5,8 +5,8 @@ use hashql_ast::node::{
     id::NodeId,
 };
 use hashql_core::{
-    literal::{IntegerLiteral, LiteralKind},
     symbol::{Ident, IdentKind},
+    value::{self, Primitive},
 };
 use winnow::{
     ModalResult, Parser as _,
@@ -81,7 +81,7 @@ where
             Access::IndexByLiteral(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
                 span: input.state.span(range),
-                kind: LiteralKind::Integer(IntegerLiteral {
+                kind: Primitive::Integer(value::Integer {
                     value: input.state.heap.intern_symbol(digit),
                 }),
                 r#type: None,

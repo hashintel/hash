@@ -22,11 +22,11 @@ use crate::symbol::Symbol;
 /// "😊 🚀 🌍"        // Emoji and other Unicode characters
 /// ```
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct StringLiteral<'heap> {
+pub struct String<'heap> {
     pub value: Symbol<'heap>,
 }
 
-impl StringLiteral<'_> {
+impl String<'_> {
     /// Returns the string value as a string slice.
     ///
     /// # Examples

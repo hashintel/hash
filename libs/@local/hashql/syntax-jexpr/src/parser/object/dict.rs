@@ -2,7 +2,7 @@ use hashql_ast::node::{
     expr::{DictExpr, Expr, ExprKind, LiteralExpr, dict::DictEntry},
     id::NodeId,
 };
-use hashql_core::literal::{LiteralKind, StringLiteral};
+use hashql_core::value::{self, Primitive};
 use text_size::TextRange;
 
 use super::{
@@ -91,7 +91,7 @@ fn parse_dict_object<'heap, 'source>(
             kind: ExprKind::Literal(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
                 span: key_span_id,
-                kind: LiteralKind::String(StringLiteral {
+                kind: Primitive::String(value::String {
                     value: state.intern_symbol(key.value),
                 }),
                 r#type: None,

@@ -3,7 +3,7 @@
 //! Constants represent compile-time known values that can be used directly
 //! in MIR operations without requiring memory access or computation.
 
-use hashql_core::literal::LiteralKind;
+use hashql_core::value::Primitive;
 
 use crate::def::DefId;
 
@@ -27,9 +27,8 @@ pub enum Constant<'heap> {
     ///
     /// This variant contains immediate primitive values such as integers,
     /// floating-point numbers, strings, booleans, and other literal types
-    /// supported by the HashQL type system. The [`LiteralKind`] provides
-    /// the specific value and type information.
-    Primitive(LiteralKind<'heap>),
+    /// supported by the HashQL type system.
+    Primitive(Primitive<'heap>),
 
     /// The unit constant representing a zero-sized type (ZST).
     ///

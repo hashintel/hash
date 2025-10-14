@@ -47,7 +47,7 @@
 //! - [`IntegerLiteral`]: Representation of integer literals
 //! - [`FloatLiteral`]: Representation of floating-point literals
 //! - [`StringLiteral`]: Representation of string literals
-pub use self::{float::FloatLiteral, integer::IntegerLiteral, string::StringLiteral};
+pub use self::{float::Float, integer::Integer, string::String};
 
 mod float;
 mod integer;
@@ -59,7 +59,7 @@ mod string;
 /// Literals are constant values that are directly expressed in the source code
 /// rather than being computed at runtime.
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub enum LiteralKind<'heap> {
+pub enum Primitive<'heap> {
     /// Represents a null value.
     ///
     /// The null literal represents the absence of a value or an undefined state.
@@ -120,7 +120,7 @@ pub enum LiteralKind<'heap> {
     /// 3.14
     /// 1e-3
     /// ```
-    Float(FloatLiteral<'heap>),
+    Float(Float<'heap>),
 
     /// Represents an integer literal.
     ///
@@ -142,7 +142,7 @@ pub enum LiteralKind<'heap> {
     /// 123
     /// -456
     /// ```
-    Integer(IntegerLiteral<'heap>),
+    Integer(Integer<'heap>),
 
     /// Represents a string literal.
     ///
@@ -163,5 +163,5 @@ pub enum LiteralKind<'heap> {
     /// "hello"
     /// "world"
     /// ```
-    String(StringLiteral<'heap>),
+    String(String<'heap>),
 }

@@ -8,9 +8,9 @@ use core::{
 use hashql_core::{
     collections::{FastHashMap, fast_hash_map},
     heap::{self, Heap},
-    literal::LiteralKind,
     span::SpanId,
     symbol::{Ident, IdentKind},
+    value::Primitive,
 };
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -474,7 +474,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                     .push(field_literal_type_annotation(r#type.span));
             }
 
-            let LiteralKind::Integer(integer) = literal.kind else {
+            let Primitive::Integer(integer) = literal.kind else {
                 self.diagnostics
                     .push(invalid_field_literal_type(literal.span));
                 return None;

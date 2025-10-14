@@ -36,11 +36,11 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// 9223372036854775807  // Large integers are preserved exactly
 /// ```
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct IntegerLiteral<'heap> {
+pub struct Integer<'heap> {
     pub value: Symbol<'heap>,
 }
 
-impl IntegerLiteral<'_> {
+impl Integer<'_> {
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].
@@ -515,7 +515,7 @@ impl IntegerLiteral<'_> {
     }
 }
 
-impl Display for IntegerLiteral<'_> {
+impl Display for Integer<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.value, fmt)
     }
@@ -523,13 +523,13 @@ impl Display for IntegerLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{heap::Heap, literal::IntegerLiteral};
+    use crate::{heap::Heap, value::primitive::Integer};
 
     #[test]
     fn invalid_formats() {
         let heap = Heap::new();
 
-        let invalid = IntegerLiteral {
+        let invalid = Integer {
             value: heap.intern_symbol("not_a_number"),
         };
 

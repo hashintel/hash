@@ -3,7 +3,7 @@ mod list;
 mod r#struct;
 mod tuple;
 
-use hashql_core::literal::LiteralKind;
+use hashql_core::value::Primitive;
 
 pub use self::{
     dict::{Dict, DictField},
@@ -28,5 +28,5 @@ pub enum Data<'heap> {
     /// A homogeneous list of elements
     List(List<'heap>),
     /// A primitive literal value
-    Literal(LiteralKind<'heap>),
+    Primitive(Primitive<'heap>),
 }

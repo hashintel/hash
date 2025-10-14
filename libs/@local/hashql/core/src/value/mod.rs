@@ -2,6 +2,7 @@ mod dict;
 mod list;
 
 mod opaque;
+mod primitive;
 mod r#struct;
 mod tuple;
 
@@ -9,10 +10,11 @@ pub use self::{
     dict::Dict,
     list::List,
     opaque::Opaque,
+    primitive::{Float, Integer, Primitive, String},
     r#struct::{Struct, StructError},
     tuple::{Tuple, TupleError},
 };
-use crate::{literal::LiteralKind, symbol::Symbol};
+use crate::symbol::Symbol;
 
 /// Errors that can occur when accessing fields on values.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
@@ -89,7 +91,7 @@ impl core::error::Error for IndexAccessError {}
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, derive_more::From)]
 pub enum Value<'heap> {
     /// A primitive literal value (null, boolean, integer, float, or string).
-    Primitive(LiteralKind<'heap>),
+    Primitive(Primitive<'heap>),
     /// A structured value with named fields.
     Struct(Struct<'heap>),
     /// A fixed-size sequence of values accessed by position.
@@ -130,11 +132,11 @@ impl<'heap> Value<'heap> {
     #[must_use]
     pub const fn type_name(&self) -> &'static str {
         match self {
-            Self::Primitive(LiteralKind::Null) => "null",
-            Self::Primitive(LiteralKind::Boolean(_)) => "boolean",
-            Self::Primitive(LiteralKind::Integer(_)) => "integer",
-            Self::Primitive(LiteralKind::Float(_)) => "float",
-            Self::Primitive(LiteralKind::String(_)) => "string",
+            Self::Primitive(Primitive::Null) => "null",
+            Self::Primitive(Primitive::Boolean(_)) => "boolean",
+            Self::Primitive(Primitive::Integer(_)) => "integer",
+            Self::Primitive(Primitive::Float(_)) => "float",
+            Self::Primitive(Primitive::String(_)) => "string",
             Self::Struct(_) => "struct",
             Self::Tuple(_) => "tuple",
             Self::List(_) => "list",
@@ -263,8 +265,8 @@ impl<'heap> Value<'heap> {
         match self {
             Value::List(list) => {
                 let integer = match index {
-                    &Self::Primitive(LiteralKind::Integer(integer)) => integer,
-                    Self::Primitive(LiteralKind::Float(float))
+                    &Self::Primitive(Primitive::Integer(integer)) => integer,
+                    Self::Primitive(Primitive::Float(float))
                         if let Some(integer) = float.as_integer() =>
                     {
                         integer

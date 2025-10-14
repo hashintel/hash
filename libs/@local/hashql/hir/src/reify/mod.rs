@@ -311,7 +311,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             r#type,
         }: LiteralExpr<'heap>,
     ) -> NodeKind<'heap> {
-        let kind = NodeKind::Data(Data::Literal(kind));
+        let kind = NodeKind::Data(Data::Primitive(kind));
         self.wrap_type_assertion(span, kind, r#type)
     }
 

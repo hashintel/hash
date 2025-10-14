@@ -53,10 +53,10 @@
 //!
 //! [`Fold`]: crate::fold::Fold
 use hashql_core::{
-    literal::LiteralKind,
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
+    value::Primitive,
 };
 
 use crate::{
@@ -166,7 +166,7 @@ pub trait Visitor<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
-    fn visit_literal(&mut self, literal: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, literal: &'heap Primitive<'heap>) {
         // do nothing, no fields to walk
     }
 
@@ -339,7 +339,7 @@ pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, data: &'heap Data<'heap>) {
     match data {
-        Data::Literal(literal) => visitor.visit_literal(literal),
+        Data::Primitive(primitive) => visitor.visit_primitive(primitive),
         Data::Tuple(tuple) => visitor.visit_tuple(tuple),
         Data::Struct(r#struct) => visitor.visit_struct(r#struct),
         Data::List(list) => visitor.visit_list(list),

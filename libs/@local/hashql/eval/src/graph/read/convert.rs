@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
 use hash_graph_store::filter::Parameter;
-use hashql_core::{literal::LiteralKind, value::Value};
+use hashql_core::value::{Primitive, Value};
 use type_system::knowledge::PropertyValue;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -12,7 +12,7 @@ pub(crate) enum ConversionError {
 
 fn value_to_string(value: &Value<'_>) -> Option<String> {
     match value {
-        Value::Primitive(LiteralKind::String(string)) => Some(string.as_str().to_owned()),
+        Value::Primitive(Primitive::String(string)) => Some(string.as_str().to_owned()),
         Value::Opaque(opaque) => value_to_string(opaque.value()),
         Value::Primitive(_)
         | Value::Struct(_)
@@ -24,13 +24,13 @@ fn value_to_string(value: &Value<'_>) -> Option<String> {
 
 fn value_to_property_value(value: &Value<'_>) -> Result<PropertyValue, ConversionError> {
     match value {
-        Value::Primitive(LiteralKind::Null) => Ok(PropertyValue::Null),
-        &Value::Primitive(LiteralKind::Boolean(bool)) => Ok(PropertyValue::Bool(bool)),
-        Value::Primitive(LiteralKind::Integer(integer)) => {
+        Value::Primitive(Primitive::Null) => Ok(PropertyValue::Null),
+        &Value::Primitive(Primitive::Boolean(bool)) => Ok(PropertyValue::Bool(bool)),
+        Value::Primitive(Primitive::Integer(integer)) => {
             Ok(PropertyValue::Number(integer.as_real()))
         }
-        Value::Primitive(LiteralKind::Float(float)) => Ok(PropertyValue::Number(float.as_real())),
-        Value::Primitive(LiteralKind::String(string)) => {
+        Value::Primitive(Primitive::Float(float)) => Ok(PropertyValue::Number(float.as_real())),
+        Value::Primitive(Primitive::String(string)) => {
             Ok(PropertyValue::String(string.as_str().to_owned()))
         }
         Value::Struct(r#struct) => r#struct
@@ -71,15 +71,13 @@ pub(super) fn convert_value_to_parameter<'heap>(
     value: &Value<'heap>,
 ) -> Result<Parameter<'heap>, ConversionError> {
     match value {
-        &Value::Primitive(LiteralKind::Boolean(bool)) => Ok(Parameter::Boolean(bool)),
-        Value::Primitive(LiteralKind::Integer(integer)) => {
-            Ok(Parameter::Decimal(integer.as_real()))
-        }
-        Value::Primitive(LiteralKind::Float(float)) => Ok(Parameter::Decimal(float.as_real())),
-        Value::Primitive(LiteralKind::String(string)) => {
+        &Value::Primitive(Primitive::Boolean(bool)) => Ok(Parameter::Boolean(bool)),
+        Value::Primitive(Primitive::Integer(integer)) => Ok(Parameter::Decimal(integer.as_real())),
+        Value::Primitive(Primitive::Float(float)) => Ok(Parameter::Decimal(float.as_real())),
+        Value::Primitive(Primitive::String(string)) => {
             Ok(Parameter::Text(Cow::Borrowed(string.value.unwrap())))
         }
-        Value::Primitive(LiteralKind::Null)
+        Value::Primitive(Primitive::Null)
         | Value::Struct(_)
         | Value::Tuple(_)
         | Value::List(_)

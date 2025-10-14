@@ -3,7 +3,7 @@ use core::str::FromStr as _;
 use hash_codec::numeric::Real;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
-use super::IntegerLiteral;
+use super::Integer;
 use crate::symbol::Symbol;
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
@@ -39,11 +39,11 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 ///
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct FloatLiteral<'heap> {
+pub struct Float<'heap> {
     pub value: Symbol<'heap>,
 }
 
-impl<'heap> FloatLiteral<'heap> {
+impl<'heap> Float<'heap> {
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
     //
@@ -163,10 +163,10 @@ impl<'heap> FloatLiteral<'heap> {
     /// assert!(float("1.23e4").as_integer().is_none());
     /// ```
     #[must_use]
-    pub fn as_integer(self) -> Option<IntegerLiteral<'heap>> {
+    pub fn as_integer(self) -> Option<Integer<'heap>> {
         let is_integer = memchr::memchr3(b'.', b'e', b'E', self.value.as_bytes()).is_none();
 
-        is_integer.then_some(IntegerLiteral { value: self.value })
+        is_integer.then_some(Integer { value: self.value })
     }
 
     /// Converts the float literal to a real literal.
@@ -211,14 +211,15 @@ impl<'heap> FloatLiteral<'heap> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{heap::Heap, literal::FloatLiteral};
+    use super::Float;
+    use crate::heap::Heap;
 
     #[test]
     #[should_panic(expected = "float literal should be formatted according to JSON specification")]
     fn invalid_float() {
         let heap = Heap::new();
 
-        let literal = FloatLiteral {
+        let literal = Float {
             value: heap.intern_symbol("not-a-number"),
         };
 

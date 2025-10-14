@@ -21,10 +21,7 @@
 
 use core::fmt::{self, Display, Formatter, FormattingOptions};
 
-use hashql_core::{
-    literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
-    span::SpanId,
-};
+use hashql_core::{span::SpanId, value};
 
 use crate::node::{
     expr::{
@@ -280,7 +277,7 @@ impl_syntax_dump!(struct TupleExpr(); []elements ?r#type);
 impl_syntax_dump!(struct ListElement(); value);
 impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
 
-impl SyntaxDump for FloatLiteral<'_> {
+impl SyntaxDump for value::Float<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -295,7 +292,7 @@ impl SyntaxDump for FloatLiteral<'_> {
     }
 }
 
-impl SyntaxDump for IntegerLiteral<'_> {
+impl SyntaxDump for value::Integer<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -310,7 +307,7 @@ impl SyntaxDump for IntegerLiteral<'_> {
     }
 }
 
-impl SyntaxDump for StringLiteral<'_> {
+impl SyntaxDump for value::String<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -325,7 +322,7 @@ impl SyntaxDump for StringLiteral<'_> {
     }
 }
 
-impl SyntaxDump for LiteralKind<'_> {
+impl SyntaxDump for value::Primitive<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
             Self::Null => write_header(fmt, depth, "LiteralKind", None, None, Some("Null")),
