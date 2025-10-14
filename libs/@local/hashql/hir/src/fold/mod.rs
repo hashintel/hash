@@ -275,6 +275,13 @@ pub trait Fold<'heap> {
         walk_binding(self, binding)
     }
 
+    fn fold_bindings(
+        &mut self,
+        bindings: Interned<'heap, [Binding<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [Binding<'heap>]>> {
+        walk_bindings(self, bindings)
+    }
+
     fn fold_binder(&mut self, binding: Binder<'heap>) -> Self::Output<Binder<'heap>> {
         walk_binder(self, binding)
     }
@@ -648,15 +655,10 @@ pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Let { bindings, body }: Let<'heap>,
 ) -> T::Output<Let<'heap>> {
-    let mut bindings = Beef::new(bindings);
-    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
-
+    let bindings = visitor.fold_bindings(bindings)?;
     let body = visitor.fold_nested_node(body)?;
 
-    Try::from_output(Let {
-        bindings: bindings.finish(&visitor.interner().bindings),
-        body,
-    })
+    Try::from_output(Let { bindings, body })
 }
 
 pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
@@ -676,6 +678,20 @@ pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
         binder,
         value,
     })
+}
+
+pub fn walk_bindings<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    bindings: Interned<'heap, [Binding<'heap>]>,
+) -> T::Output<Interned<'heap, [Binding<'heap>]>> {
+    if bindings.is_empty() {
+        return Try::from_output(bindings);
+    }
+
+    let mut bindings = Beef::new(bindings);
+    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
+
+    Try::from_output(bindings.finish(&visitor.interner().bindings))
 }
 
 pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(

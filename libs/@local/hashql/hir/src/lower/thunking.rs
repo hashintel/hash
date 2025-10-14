@@ -4,31 +4,44 @@ use crate::{
     context::HirContext,
     fold::{self, Fold, nested::Deep},
     intern::Interner,
-    lower::normalization::is_anf_atom,
+    lower::normalization::{ensure_local_variable, is_anf_atom},
     node::{
         Node, PartialNode,
         call::{Call, PointerKind},
+        data::Data,
         kind::NodeKind,
         r#let::{Let, VarIdSet},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
 };
 
 pub struct Thunking<'ctx, 'env, 'heap> {
-    context: &'ctx HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'env, 'heap>,
     thunked: VarIdSet,
     current_node: Option<Node<'heap>>,
     trampoline: Option<Node<'heap>>,
 }
 
 impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
-    pub fn new(context: &'ctx HirContext<'env, 'heap>) -> Self {
+    pub fn new(context: &'ctx mut HirContext<'env, 'heap>) -> Self {
         Self {
             context,
             thunked: VarIdSet::default(),
             current_node: None,
             trampoline: None,
         }
+    }
+
+    fn thunkify(&self, node: Node<'heap>) -> Node<'heap> {
+        if matches!(node.kind, NodeKind::Thunk(_)) {
+            return node;
+        }
+
+        self.context.interner.intern_node(PartialNode {
+            span: node.span,
+            kind: NodeKind::Thunk(Thunk { body: node }),
+        })
     }
 
     pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
@@ -40,7 +53,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             // from HIR(ANF)
             debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
 
-            // otherwise we simply have no bindings to thunk
+            // Otherwise, we simply have no bindings to thunk
             return node;
         };
 
@@ -75,16 +88,42 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
 
         // We do not touch the body of the `let` (the atom), meaning we just always return a thunk
         // or a primitive value.
-
-        let Ok(node) = self.fold_node(node); // TODO: fold_bindings
+        //
+        let Ok(bindings) = self.fold_bindings(*bindings);
+        let mut bindings = bindings.to_vec();
 
         // Check if the underlying node already refers to a thunk (such as a re-export or any
         // binding). If that is the case we can skip the next step (of explicit thunking), otherwise
         // we need to create a thunk and reference it.
+        let body = match body.kind {
+            NodeKind::Variable(_) => {
+                // The variable is already referencing a thunk, so we can skip the next step
+                *body
+            }
+            NodeKind::Data(Data::Primitive(_)) | NodeKind::Access(_) => {
+                ensure_local_variable(self.context, &mut bindings, *body)
+            }
+            NodeKind::Data(_)
+            | NodeKind::Let(_)
+            | NodeKind::Input(_)
+            | NodeKind::Operation(_)
+            | NodeKind::Call(_)
+            | NodeKind::Branch(_)
+            | NodeKind::Closure(_)
+            | NodeKind::Thunk(_)
+            | NodeKind::Graph(_) => unreachable!("HIR should be in ANF"),
+        };
 
-        // the body is still an atom
+        for binding in &mut bindings {
+            binding.value = self.thunkify(node);
+        }
 
-        node
+        let bindings = self.context.interner.bindings.intern_slice(&bindings);
+
+        self.context.interner.intern_node(PartialNode {
+            span: node.span,
+            kind: NodeKind::Let(Let { bindings, body }),
+        })
     }
 
     #[inline]

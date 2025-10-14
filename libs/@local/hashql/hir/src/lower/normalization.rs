@@ -100,6 +100,44 @@ pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
     }
 }
 
+/// Ensures that a node is represented as a local variable.
+///
+/// If the node is already a local variable, returns it unchanged. Otherwise,
+/// creates a new binding with a fresh variable and adds it to the current
+/// binding stack.
+pub(crate) fn ensure_local_variable<'heap>(
+    context: &mut HirContext<'_, 'heap>,
+    bindings: &mut Vec<Binding<'heap>>,
+    node: Node<'heap>,
+) -> Node<'heap> {
+    if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
+        return node;
+    }
+
+    let binder_id = context.counter.var.next();
+    let binding = Binding {
+        span: node.span,
+        binder: Binder {
+            id: binder_id,
+            span: node.span,
+            name: None,
+        },
+        value: node,
+    };
+    bindings.push(binding);
+
+    context.interner.intern_node(PartialNode {
+        span: node.span,
+        kind: NodeKind::Variable(Variable::Local(LocalVariable {
+            id: Spanned {
+                span: node.span,
+                value: binder_id,
+            },
+            arguments: context.interner.intern_type_ids(&[]),
+        })),
+    })
+}
+
 /// Determines if a node is a projection (place expression).
 ///
 /// Projections are memory locations that can be read from or written to.
@@ -213,38 +251,8 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         node
     }
 
-    /// Ensures that a node is represented as a local variable.
-    ///
-    /// If the node is already a local variable, returns it unchanged. Otherwise,
-    /// creates a new binding with a fresh variable and adds it to the current
-    /// binding stack.
     fn ensure_local_variable(&mut self, node: Node<'heap>) -> Node<'heap> {
-        if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
-            return node;
-        }
-
-        let binder_id = self.context.counter.var.next();
-        let binding = Binding {
-            span: node.span,
-            binder: Binder {
-                id: binder_id,
-                span: node.span,
-                name: None,
-            },
-            value: node,
-        };
-        self.bindings.push(binding);
-
-        self.context.interner.intern_node(PartialNode {
-            span: node.span,
-            kind: NodeKind::Variable(Variable::Local(LocalVariable {
-                id: Spanned {
-                    span: node.span,
-                    value: binder_id,
-                },
-                arguments: self.context.interner.intern_type_ids(&[]),
-            })),
-        })
+        ensure_local_variable(self.context, &mut self.bindings, node)
     }
 
     /// Ensures that a node is a valid projection (place expression).
