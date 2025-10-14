@@ -2,6 +2,7 @@ import {
   type AbortOptions,
   type Connection,
   connectionSymbol,
+  type EventHandler,
   type NewStreamOptions,
 } from "@libp2p/interface";
 import { Equal, Hash, Inspectable, pipe, Pipeable, Predicate } from "effect";
@@ -41,6 +42,10 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
     return (this as PeerConnection).inner.remotePeer;
   },
 
+  get streams() {
+    return (this as PeerConnection).inner.streams;
+  },
+
   get direction() {
     return (this as PeerConnection).inner.direction;
   },
@@ -61,20 +66,20 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
     return (this as PeerConnection).inner.status;
   },
 
+  get direct() {
+    return (this as PeerConnection).inner.direct;
+  },
+
   get limits() {
     return (this as PeerConnection).inner.limits;
   },
 
+  get rtt() {
+    return (this as PeerConnection).inner.rtt;
+  },
+
   get log() {
     return (this as PeerConnection).inner.log;
-  },
-
-  get tags() {
-    return (this as PeerConnection).inner.tags;
-  },
-
-  get streams() {
-    return (this as PeerConnection).inner.streams;
   },
 
   newStream(protocols: string | string[], options?: NewStreamOptions) {
@@ -87,6 +92,34 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
 
   abort(error: Error) {
     (this as PeerConnection).inner.abort(error);
+  },
+
+  addEventListener(event, listener, options) {
+    (this as PeerConnection).inner.addEventListener(event, listener, options);
+  },
+
+  listenerCount(event) {
+    return (this as PeerConnection).inner.listenerCount(event);
+  },
+
+  removeEventListener(
+    event: string,
+    listener: EventHandler<unknown>,
+    options: boolean | EventListenerOptions | undefined,
+  ) {
+    (this as PeerConnection).inner.removeEventListener(
+      event,
+      listener,
+      options,
+    );
+  },
+
+  dispatchEvent(event) {
+    return (this as PeerConnection).inner.dispatchEvent(event);
+  },
+
+  safeDispatchEvent(event, detail) {
+    return (this as PeerConnection).inner.safeDispatchEvent(event, detail);
   },
 
   [Equal.symbol](this: PeerConnection, that: unknown): boolean {

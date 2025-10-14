@@ -6,9 +6,9 @@ import { type Ping, ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
 import { type DNS, dns as defaultDns } from "@multiformats/dns";
 import {
+  type Component,
   multiaddr as makeMultiaddr,
-  protocols as getProtocol,
-  resolvers as multiaddrResolvers,
+  registry,
 } from "@multiformats/multiaddr";
 import {
   Array,
@@ -18,8 +18,6 @@ import {
   Effect,
   Either,
   flow,
-  Function,
-  Iterable,
   Match,
   Option,
   pipe,
@@ -31,7 +29,7 @@ import type { NonEmptyArray } from "effect/Array";
 import { type Libp2p, createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
-import type { DNSConfig, Multiaddr, TransportConfig } from "../Transport.js";
+import type { Multiaddr, TransportConfig } from "../Transport.js";
 
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
@@ -75,16 +73,16 @@ export class InitializationError extends Data.TaggedError(
   }
 }
 
-const DNS_PROTOCOL = getProtocol("dns");
-const DNS4_PROTOCOL = getProtocol("dns4");
-const DNS6_PROTOCOL = getProtocol("dns6");
+const DNS_PROTOCOL = registry.getProtocol("dns");
+const DNS4_PROTOCOL = registry.getProtocol("dns4");
+const DNS6_PROTOCOL = registry.getProtocol("dns6");
 const DNS_CODES = [DNS_PROTOCOL.code, DNS4_PROTOCOL.code, DNS6_PROTOCOL.code];
 
-const IPV4_PROTOCOL = getProtocol("ip4");
-const IPV6_PROTOCOL = getProtocol("ip6");
+const IPV4_PROTOCOL = registry.getProtocol("ip4");
+const IPV6_PROTOCOL = registry.getProtocol("ip6");
 
 const resolveDnsMultiaddrSegment = Effect.fn("resolveDnsMultiaddrSegment")(
-  function* (code: number, value?: string) {
+  function* ({ code, value }: Component) {
     if (!DNS_CODES.includes(code)) {
       return [[code, value] as const];
     }
@@ -139,8 +137,8 @@ const resolveDnsMultiaddrSegment = Effect.fn("resolveDnsMultiaddrSegment")(
 const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
   (multiaddr: Multiaddr) =>
     pipe(
-      Stream.fromIterable(multiaddr.stringTuples()),
-      Stream.mapEffect(Function.tupled(resolveDnsMultiaddrSegment), {
+      Stream.fromIterable(multiaddr.getComponents()),
+      Stream.mapEffect(resolveDnsMultiaddrSegment, {
         concurrency: "unbounded",
       }),
       Stream.runFold(
@@ -167,7 +165,7 @@ const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
           flow(
             Array.filter(Predicate.isNotUndefined),
             Array.map((part) =>
-              Predicate.isNumber(part) ? getProtocol(part).name : part,
+              Predicate.isNumber(part) ? registry.getProtocol(part).name : part,
             ),
             Array.map((part) => `/${part}`),
             Array.join(""),
@@ -186,68 +184,23 @@ const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
     ),
 );
 
-/**
- * Recursively resolve DNSADDR multiaddrs.
- *
- * Adapted from: https://github.com/libp2p/js-libp2p/blob/92f9acbc1d2aa7b1bb5a8e460e4e0b5770f4455c/packages/libp2p/src/connection-manager/utils.ts#L9.
- */
-const resolveDnsaddrMultiaddr = Effect.fn("resolveDnsaddrMultiaddr")(function* (
-  multiaddr: Multiaddr,
-  options: DNSConfig,
-) {
-  // check multiaddr resolvers
-  const resolvable = Iterable.some(multiaddrResolvers.keys(), (key) =>
-    multiaddr.protoNames().includes(key),
-  );
-
-  // return multiaddr if it is not resolvable
-  if (!resolvable) {
-    return [multiaddr];
-  }
-
-  const resolved = yield* Effect.tryPromise({
-    try: (signal) =>
-      multiaddr.resolve({
-        signal,
-        dns: options.resolver,
-        maxRecursiveDepth: options.maxRecursiveDepth,
-      }),
-    catch: (cause) => new TransportError({ cause }),
-  });
-
-  yield* Effect.logDebug("resolved DNSADDR multiaddr").pipe(
-    Effect.annotateLogs({
-      multiaddr: multiaddr.toString(),
-      resolved: resolved.map((address) => address.toString()),
+const resolveMultiaddr = Effect.fn("resolveMultiaddr")((address: Multiaddr) =>
+  pipe(
+    Stream.make(address),
+    Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
+      concurrency: "unbounded",
     }),
-  );
-
-  return resolved;
-});
-
-const resolveMultiaddr = Effect.fn("resolveMultiaddr")(
-  (transport: Transport, address: Multiaddr) =>
-    pipe(
-      resolveDnsaddrMultiaddr(address, {
-        resolver: transport.services.state.dns,
-        maxRecursiveDepth:
-          transport.services.state.config.dns?.maxRecursiveDepth,
-      }),
-      Stream.fromIterableEffect,
-      Stream.flatMap((multiaddr) => resolveDnsMultiaddr(multiaddr), {
-        concurrency: "unbounded",
-      }),
-      Stream.runCollect,
-      Effect.map(Chunk.toReadonlyArray),
-      Effect.map(Array.flatten),
-    ),
+    Stream.runCollect,
+    Effect.map(Chunk.toReadonlyArray),
+    Effect.map(Array.flatten),
+  ),
 );
 
 const lookupPeer = Effect.fn("lookupPeer")(function* (
   transport: Transport,
   address: Multiaddr,
 ) {
-  const resolved = yield* resolveMultiaddr(transport, address);
+  const resolved = yield* resolveMultiaddr(address);
 
   const peers = yield* Effect.tryPromise({
     try: () => transport.peerStore.all(),
@@ -378,7 +331,7 @@ export const connect = Effect.fn("connect")(function* (
   if (isPeerId(address)) {
     resolved = address;
   } else {
-    resolved = yield* resolveMultiaddr(transport, address);
+    resolved = yield* resolveMultiaddr(address);
   }
 
   const connection = yield* Effect.tryPromise({
