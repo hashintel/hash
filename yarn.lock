@@ -5118,6 +5118,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@effect/rpc@npm:0.71.0":
+  version: 0.71.0
+  resolution: "@effect/rpc@npm:0.71.0"
+  dependencies:
+    msgpackr: "npm:^1.11.4"
+  peerDependencies:
+    "@effect/platform": ^0.92.0
+    effect: ^3.18.0
+  checksum: 10c0/496eaacb3da16a2085f4350053df2dfb176020732036c76da41713bc55d8675407c1249e4168404571288bdba47a510fe43c7b24401963c45ec8ba86154ed1a2
+  languageName: node
+  linkType: hard
+
 "@effect/vitest@npm:0.26.0":
   version: 0.26.0
   resolution: "@effect/vitest@npm:0.26.0"
@@ -8938,6 +8950,7 @@ __metadata:
     "@effect/cluster": "npm:0.50.4"
     "@effect/platform": "npm:0.92.1"
     "@effect/platform-node": "npm:0.98.3"
+    "@effect/rpc": "npm:0.71.0"
     "@effect/vitest": "npm:0.26.0"
     "@libp2p/crypto": "npm:5.1.5"
     "@libp2p/identify": "npm:3.0.33"
