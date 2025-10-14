@@ -10,8 +10,8 @@ Expr#4294967040@20
         Expr#4294967040@1
           ExprKind (Literal)
             LiteralExpr#4294967040@0
-              LiteralKind (String)
-                StringLiteral (key1)
+              Primitive (String)
+                String (key1)
         Expr#4294967040@8
           ExprKind (Struct)
             StructExpr#4294967040@7
@@ -19,14 +19,14 @@ Expr#4294967040@20
                 Expr#4294967040@5
                   ExprKind (Literal)
                     LiteralExpr#4294967040@4
-                      LiteralKind (String)
-                        StringLiteral (Bob)
+                      Primitive (String)
+                        String (Bob)
       DictEntry#4294967040@18
         Expr#4294967040@11
           ExprKind (Literal)
             LiteralExpr#4294967040@10
-              LiteralKind (String)
-                StringLiteral (key2)
+              Primitive (String)
+                String (key2)
         Expr#4294967040@17
           ExprKind (List)
             ListExpr#4294967040@16
@@ -34,11 +34,11 @@ Expr#4294967040@20
                 Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@12
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               ListElement#4294967040@15
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)

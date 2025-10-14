@@ -14,12 +14,12 @@ Expr#4294967040@11
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
-              LiteralKind (String)
-                StringLiteral (template)
+              Primitive (String)
+                String (template)
       LabeledArgument#4294967040@10 (label: value)
         Argument#4294967040@9
           Expr#4294967040@9
             ExprKind (Literal)
               LiteralExpr#4294967040@8
-                LiteralKind (Integer)
-                  IntegerLiteral (42)
+                Primitive (Integer)
+                  Integer (42)

@@ -18,20 +18,20 @@ Expr#4294967040@18
                 Expr#4294967040@5
                   ExprKind (Literal)
                     LiteralExpr#4294967040@4
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               Argument#4294967040@7
                 Expr#4294967040@7
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)
       ListElement#4294967040@10
         Expr#4294967040@10
           ExprKind (Literal)
             LiteralExpr#4294967040@9
-              LiteralKind (String)
-                StringLiteral (simple)
+              Primitive (String)
+                String (simple)
       ListElement#4294967040@16
         Expr#4294967040@16
           ExprKind (Dict)
@@ -40,10 +40,10 @@ Expr#4294967040@18
                 Expr#4294967040@11
                   ExprKind (Literal)
                     LiteralExpr#4294967040@11
-                      LiteralKind (String)
-                        StringLiteral (key)
+                      Primitive (String)
+                        String (key)
                 Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@12
-                      LiteralKind (String)
-                        StringLiteral (value)
+                      Primitive (String)
+                        String (value)
