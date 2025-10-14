@@ -10,6 +10,7 @@ use self::{
     inference::TypeInference,
     normalization::{Normalization, NormalizationOptions},
     specialization::Specialization,
+    thunking::Thunking,
 };
 use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
@@ -98,6 +99,9 @@ pub fn lower<'heap>(
 
     let normalization = Normalization::new(context, NormalizationOptions::default());
     let node = normalization.run(node);
+
+    let thunking = Thunking::new(context);
+    let node = thunking.run(node);
 
     diagnostics.into_status(node)
 }

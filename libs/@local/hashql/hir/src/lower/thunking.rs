@@ -44,11 +44,12 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         })
     }
 
+    #[must_use]
     pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
         // First collect all the variables that need to be thunked, these are simply the top level
         // let-bindings, we know that the top level are let bindings, because we expect everything
         // to be in HIR(ANF).
-        let NodeKind::Let(Let { bindings, body }) = &node.kind else {
+        let NodeKind::Let(Let { bindings, body }) = node.kind else {
             // Ensure that the underlying node is an atom, if it isn't -> we're not being called
             // from HIR(ANF)
             debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
