@@ -47,12 +47,13 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Pr
             Primitive::Null => RcDoc::text("null"),
             Primitive::Boolean(true) => RcDoc::text("true"),
             Primitive::Boolean(false) => RcDoc::text("false"),
-            Primitive::Float(float_literal) => RcDoc::text(float_literal.value.unwrap()),
-            Primitive::Integer(integer_literal) => RcDoc::text(integer_literal.value.unwrap()),
-            Primitive::String(string_literal) => RcDoc::text(format!(
-                r#""{}""#,
-                string_literal.value.as_str().escape_debug()
-            )),
+            Primitive::Float(float_literal) => RcDoc::text(float_literal.as_symbol().unwrap()),
+            Primitive::Integer(integer_literal) => {
+                RcDoc::text(integer_literal.as_symbol().unwrap())
+            }
+            Primitive::String(string_literal) => {
+                RcDoc::text(format!(r#""{}""#, string_literal.as_str().escape_debug()))
+            }
         }
     }
 }

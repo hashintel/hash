@@ -40,10 +40,29 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Float<'heap> {
-    pub value: Symbol<'heap>,
+    value: Symbol<'heap>,
 }
 
 impl<'heap> Float<'heap> {
+    /// Creates a new float literal without checking the value.
+    ///
+    /// The caller must ensure that the provided `value` is a valid float literal according to the
+    /// JSON specification.
+    ///
+    /// # Examples
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    /// let heap = Heap::new();
+    /// let float = FloatLiteral::new_unchecked(heap.intern_symbol("42.0"));
+    ///
+    /// assert_eq!(float.as_f32(), Some(42.0));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn new_unchecked(value: Symbol<'heap>) -> Self {
+        Self { value }
+    }
+
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
     //
@@ -135,7 +154,7 @@ impl<'heap> Float<'heap> {
     /// Returns `Some` if the float literal represents a whole number (no decimal point,
     /// scientific notation, or exponent). Returns `None` otherwise.
     ///
-    /// Conversion is lossless, meaning that the resulting [`IntegerLiteral`] value will be exactly
+    /// Conversion is lossless, meaning that the resulting [`Integer`] value will be exactly
     /// equal to the original value.
     ///
     /// # Examples
@@ -166,7 +185,7 @@ impl<'heap> Float<'heap> {
     pub fn as_integer(self) -> Option<Integer<'heap>> {
         let is_integer = memchr::memchr3(b'.', b'e', b'E', self.value.as_bytes()).is_none();
 
-        is_integer.then_some(Integer { value: self.value })
+        is_integer.then_some(Integer::new_unchecked(self.value))
     }
 
     /// Converts the float literal to a real literal.
@@ -206,6 +225,36 @@ impl<'heap> Float<'heap> {
     pub fn as_real(self) -> Real {
         Real::from_str(self.value.as_str())
             .expect("float literal should be formatted according to JSON specification")
+    }
+
+    /// Returns the raw representation of the float literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::FloatLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let float = |value: &'static str| FloatLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // Standard decimal
+    /// let symbol = float("3.14159").as_symbol();
+    /// assert_eq!(symbol.as_str(), "3.14159");
+    ///
+    /// // Negative value
+    /// let symbol = float("-2.718").as_symbol();
+    /// assert_eq!(symbol.as_str(), "-2.718");
+    ///
+    /// // Scientific notation
+    /// let symbol = float("1.23e4").as_symbol();
+    /// assert_eq!(symbol.as_str(), "1.23e4");
+    /// ```
+    #[must_use]
+    pub const fn as_symbol(&self) -> Symbol<'heap> {
+        self.value
     }
 }
 

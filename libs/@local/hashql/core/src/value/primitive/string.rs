@@ -23,10 +23,27 @@ use crate::symbol::Symbol;
 /// ```
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct String<'heap> {
-    pub value: Symbol<'heap>,
+    value: Symbol<'heap>,
 }
 
-impl String<'_> {
+impl<'heap> String<'heap> {
+    /// Creates a new string literal with the given value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    ///
+    /// let heap = Heap::new();
+    /// let literal = StringLiteral::new(heap.intern_symbol("Hello, world!"));
+    ///
+    /// assert_eq!(literal.as_str(), "Hello, world!");
+    /// ```
+    #[must_use]
+    pub const fn new(value: Symbol<'heap>) -> Self {
+        Self { value }
+    }
+
     /// Returns the string value as a string slice.
     ///
     /// # Examples
@@ -63,5 +80,22 @@ impl String<'_> {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8] {
         self.value.as_bytes()
+    }
+
+    /// Returns the string value as a symbol.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    ///
+    /// let heap = Heap::new();
+    /// let literal = StringLiteral::new(heap.intern_symbol("Hello"));
+    ///
+    /// assert_eq!(literal.as_symbol(), heap.intern_symbol("Hello"));
+    /// ```
+    #[must_use]
+    pub const fn as_symbol(&self) -> Symbol<'heap> {
+        self.value
     }
 }

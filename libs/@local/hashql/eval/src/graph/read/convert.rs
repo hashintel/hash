@@ -75,7 +75,7 @@ pub(super) fn convert_value_to_parameter<'heap>(
         Value::Primitive(Primitive::Integer(integer)) => Ok(Parameter::Decimal(integer.as_real())),
         Value::Primitive(Primitive::Float(float)) => Ok(Parameter::Decimal(float.as_real())),
         Value::Primitive(Primitive::String(string)) => {
-            Ok(Parameter::Text(Cow::Borrowed(string.value.unwrap())))
+            Ok(Parameter::Text(Cow::Borrowed(string.as_symbol().unwrap())))
         }
         Value::Primitive(Primitive::Null)
         | Value::Struct(_)

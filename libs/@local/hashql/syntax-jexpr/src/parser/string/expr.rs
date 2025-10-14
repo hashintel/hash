@@ -81,9 +81,9 @@ where
             Access::IndexByLiteral(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
                 span: input.state.span(range),
-                kind: Primitive::Integer(value::Integer {
-                    value: input.state.heap.intern_symbol(digit),
-                }),
+                kind: Primitive::Integer(value::Integer::new_unchecked(
+                    input.state.heap.intern_symbol(digit),
+                )),
                 r#type: None,
             })
         }

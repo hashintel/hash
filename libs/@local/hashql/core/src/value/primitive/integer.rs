@@ -37,10 +37,29 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// ```
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Integer<'heap> {
-    pub value: Symbol<'heap>,
+    value: Symbol<'heap>,
 }
 
-impl Integer<'_> {
+impl<'heap> Integer<'heap> {
+    /// Creates a new integer literal without checking the value.
+    ///
+    /// The caller must ensure that the value is a valid integer literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::heap::Heap;
+    ///
+    /// let heap = Heap::new();
+    /// let integer = Integer::new_unchecked(heap.intern_symbol("42"));
+    ///
+    /// assert_eq!(integer.as_i32(), Some(42));
+    /// ```
+    #[must_use]
+    pub const fn new_unchecked(value: Symbol<'heap>) -> Self {
+        Self { value }
+    }
+
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].
@@ -512,6 +531,36 @@ impl Integer<'_> {
     pub fn as_real(&self) -> Real {
         Real::from_str(self.value.as_str())
             .expect("integer literal should be formatted according to JSON specification")
+    }
+
+    /// Returns the raw representation of the integer literal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::IntegerLiteral};
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// let integer = |value: &'static str| IntegerLiteral {
+    ///     value: heap.intern_symbol(value),
+    /// };
+    ///
+    /// // Positive value
+    /// let symbol = integer("9999").as_symbol();
+    /// assert_eq!(symbol.as_str(), "9999");
+    ///
+    /// // Negative value
+    /// let symbol = integer("-1234").as_symbol();
+    /// assert_eq!(symbol.as_str(), "-1234");
+    ///
+    /// // Large value
+    /// let symbol = integer("123456789012345678901234567890").as_symbol();
+    /// assert_eq!(symbol.as_str(), "123456789012345678901234567890");
+    /// ```
+    #[must_use]
+    pub const fn as_symbol(&self) -> Symbol<'heap> {
+        self.value
     }
 }
 

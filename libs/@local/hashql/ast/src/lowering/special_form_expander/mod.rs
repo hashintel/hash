@@ -488,7 +488,7 @@ impl<'heap> SpecialFormExpander<'heap> {
 
             return Some(Ident {
                 span: literal.span,
-                value: integer.value,
+                value: integer.as_symbol(),
                 kind: IdentKind::Lexical,
             });
         }

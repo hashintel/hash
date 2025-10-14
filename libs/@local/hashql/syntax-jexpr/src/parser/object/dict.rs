@@ -91,9 +91,7 @@ fn parse_dict_object<'heap, 'source>(
             kind: ExprKind::Literal(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
                 span: key_span_id,
-                kind: Primitive::String(value::String {
-                    value: state.intern_symbol(key.value),
-                }),
+                kind: Primitive::String(value::String::new(state.intern_symbol(key.value))),
                 r#type: None,
             }),
         };

@@ -89,19 +89,19 @@ fn parse_literal<'heap>(
         TokenKind::Null => Primitive::Null,
         TokenKind::Number(number) => {
             if number.has_fraction() || number.has_exponent() {
-                Primitive::Float(value::Float {
-                    value: state.intern_symbol(number.as_str()),
-                })
+                Primitive::Float(value::Float::new_unchecked(
+                    state.intern_symbol(number.as_str()),
+                ))
             } else {
-                Primitive::Integer(value::Integer {
-                    value: state.intern_symbol(number.as_str()),
-                })
+                Primitive::Integer(value::Integer::new_unchecked(
+                    state.intern_symbol(number.as_str()),
+                ))
             }
         }
         TokenKind::Bool(value) => Primitive::Boolean(value),
-        TokenKind::String(value) => Primitive::String(value::String {
-            value: state.intern_symbol(value),
-        }),
+        TokenKind::String(value) => {
+            Primitive::String(value::String::new(state.intern_symbol(value)))
+        }
         kind @ (TokenKind::LBrace
         | TokenKind::RBrace
         | TokenKind::LBracket
