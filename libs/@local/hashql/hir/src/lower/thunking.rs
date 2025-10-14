@@ -1,3 +1,71 @@
+//! Top-level binding thunking transformation within HIR(ANF).
+//!
+//! This module implements a transformation that wraps top-level bindings in thunks
+//! to enable lazy evaluation and proper handling of recursive definitions. The
+//! transformation operates on HIR(ANF) but **breaks ANF properties**, requiring
+//! re-normalization afterward.
+//!
+//! # Scope and Limitations
+//!
+//! **Important**: This transformation only affects **top-level bindings** in a module.
+//! Nested expressions, local bindings, and function bodies remain unchanged. The
+//! transformation is specifically designed for module-level definitions where lazy
+//! evaluation semantics are required.
+//!
+//! # ANF Violation
+//!
+//! After thunking, the HIR is no longer in Administrative Normal Form because:
+//! - Thunk calls are inserted at variable reference sites
+//! - These calls are not bound to intermediate variables
+//! - The distinction between atoms and computations is temporarily broken
+//!
+//! **Re-normalization is required** after thunking to restore ANF properties.
+//!
+//! # Transformation Process
+//!
+//! ## Top-Level Binding Identification
+//!
+//! The transformation identifies top-level `let` bindings and marks non-thunk
+//! bindings for thunking. Only bindings at the module's root level are affected.
+//!
+//! ## Thunk Wrapping
+//!
+//! Selected bindings are wrapped in thunks:
+//! ```text
+//! let x = computation;  // becomes: let x = thunk(() -> computation);
+//! ```
+//!
+//! ## Call Insertion
+//!
+//! References to thunked variables are converted to calls:
+//! ```text
+//! x  // becomes: x()
+//! ```
+//!
+//! This happens for both local and qualified variables that reference thunked bindings.
+//!
+//! # Examples
+//!
+//! ```text
+//! // Before thunking (HIR-ANF):
+//! let factorial = fn(n) -> if n <= 1 then 1 else n * factorial(n - 1)
+//!     result = factorial(5) in
+//! result
+//!
+//! // After thunking (breaks ANF):
+//! let factorial = thunk(() -> fn(n) -> if n <= 1 then 1 else n * factorial()(n - 1))
+//!     result = thunk(() -> factorial()(5)) in
+//! result
+//!
+//! // After re-normalization (restores ANF):
+//! let factorial = thunk(() -> fn(n) -> if n <= 1 then 1 else n * factorial()(n - 1))
+//!     result = thunk(() ->
+//!         let %1 = factorial() in
+//!         %1(5)
+//!     ) in
+//! result
+//! ```
+
 use core::convert::Infallible;
 
 use crate::{
@@ -16,14 +84,24 @@ use crate::{
     },
 };
 
+/// Top-level binding thunking transformer.
+///
+/// This transformer operates exclusively on top-level module bindings, wrapping
+/// them in thunks and inserting calls at reference sites. It does not recurse
+/// into nested expressions or function bodies.
 pub struct Thunking<'ctx, 'env, 'heap> {
+    /// Mutable reference to the HIR context for interning and variable generation
     context: &'ctx mut HirContext<'env, 'heap>,
+    /// Set of top-level variable IDs that have been wrapped in thunks
     thunked: VarIdSet,
+    /// The currently processing node during folding operations
     current_node: Option<Node<'heap>>,
+    /// Optional node replacement mechanism for call insertion
     trampoline: Option<Node<'heap>>,
 }
 
 impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
+    /// Creates a new top-level thunking transformer.
     pub fn new(context: &'ctx mut HirContext<'env, 'heap>) -> Self {
         Self {
             context,
@@ -33,6 +111,10 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         }
     }
 
+    /// Wraps a node in a thunk if it isn't already thunked.
+    ///
+    /// If the node is already a thunk, it returns the node unchanged to avoid
+    /// incorrect double-thunking, which would break the calling semantics.
     fn thunkify(&self, node: Node<'heap>) -> Node<'heap> {
         if matches!(node.kind, NodeKind::Thunk(_)) {
             return node;
@@ -44,6 +126,23 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         })
     }
 
+    /// Executes the top-level thunking transformation.
+    ///
+    /// This method processes only the top-level `let` bindings of a module,
+    /// wrapping non-thunk bindings in thunks and inserting calls at reference
+    /// sites. The transformation breaks ANF properties and requires subsequent
+    /// re-normalization.
+    ///
+    /// # Panics
+    ///
+    /// This method includes debug assertions that will panic in debug builds if the input is not in
+    /// proper ANF form
+    ///
+    /// # Returns
+    ///
+    /// A transformed HIR node where top-level bindings are thunked and variable
+    /// references include call insertion. The result is **not** in ANF and requires
+    /// re-normalization.
     #[must_use]
     pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
         // First collect all the variables that need to be thunked, these are simply the top level
@@ -58,20 +157,6 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             return node;
         };
 
-        // TODO: the return value of a module must be... nothing? but then how do we know what to
-        // call?
-        // because let's say the output is:
-        // `fn() -> 12`, then we would say:
-        // `let %1 = fn() -> 12 in %1`
-        // we then thunk, so we'd get:
-        // `let %1 = thunk(() -> fn() -> 12) in %1()`, which then would mean we got:
-        // `let %1 = thunk(() -> fn() -> 12), %2 = thunk(() -> %1()) in %2()`.
-        // This is an endless loop, we can fix this by just always thunking the body, then returning
-        // a thunk, OR(!) we say that the export value must always be `()` <- maybe because `export`
-        // already ran.
-        // Then how does that work for eval? We could just say that if you export something, it's
-        // always just exported as `main` or something like that?
-
         // Ensure that the underlying node is an atom, if it isn't -> we're not being called
         // from HIR(ANF)
         debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
@@ -84,21 +169,16 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
                 .map(|binding| binding.binder.id),
         );
 
-        // TODO: the value always returned should be a thunk, in the future we can lift the
-        // restriction once we properly handle entrypoints.
-
-        // We do not touch the body of the `let` (the atom), meaning we just always return a thunk
-        // or a primitive value.
-        //
+        // Transform the bindings to insert thunk calls at variable reference sites
         let Ok(bindings) = self.fold_bindings(*bindings);
         let mut bindings = bindings.to_vec();
 
-        // Check if the underlying node already refers to a thunk (such as a re-export or any
-        // binding). If that is the case we can skip the next step (of explicit thunking), otherwise
-        // we need to create a thunk and reference it.
+        // Handle the body based on its type. Variables already reference thunks, while
+        // primitives and access expressions need to be bound to local variables for
+        // consistent handling in the module output.
         let body = match body.kind {
             NodeKind::Variable(_) => {
-                // The variable is already referencing a thunk, so we can skip the next step
+                // Variable already references a thunk, no additional binding needed
                 *body
             }
             NodeKind::Data(Data::Primitive(_)) | NodeKind::Access(_) => {
@@ -127,6 +207,16 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         })
     }
 
+    /// Returns the currently processing node.
+    ///
+    /// This is used during folding operations to access the node being transformed.
+    /// Should only be called within fold methods where `current_node` is guaranteed
+    /// to be set.
+    ///
+    /// # Panics
+    ///
+    /// Panics if called when no current node is set, which indicates a bug in the
+    /// folding logic.
     #[inline]
     fn current_node(&self) -> Node<'heap> {
         self.current_node.unwrap_or_else(|| {
@@ -134,6 +224,16 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         })
     }
 
+    /// Schedules a node replacement via the trampoline mechanism.
+    ///
+    /// The trampoline allows the folder to replace the current node with a different
+    /// one during traversal. This is used to insert thunk calls when thunked variables
+    /// are referenced.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the trampoline is already set, which would indicate multiple
+    /// replacement attempts for the same node.
     fn trampoline(&mut self, node: Node<'heap>) {
         match &mut self.trampoline {
             None => {
@@ -158,6 +258,10 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
         self.context.interner
     }
 
+    /// Folds a node while managing trampoline state for call insertions.
+    ///
+    /// This method handles the core folding logic while maintaining proper
+    /// trampoline state isolation between nested node processing.
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup_trampoline = self.trampoline.take();
         let backup_current_node = self.current_node.take();
@@ -165,17 +269,20 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
         let Ok(mut node) = fold::walk_node(self, node);
 
         let trampoline = core::mem::replace(&mut self.trampoline, backup_trampoline);
-        let current_node = core::mem::replace(&mut self.current_node, backup_current_node);
         if let Some(trampoline) = trampoline {
             node = trampoline;
         }
-        if let Some(current_node) = current_node {
-            self.current_node = Some(current_node);
-        }
+
+        self.current_node = backup_current_node;
 
         Ok(node)
     }
 
+    /// Processes local variable references, inserting thunk calls when needed.
+    ///
+    /// If the local variable references a top-level binding that has been thunked,
+    /// this method schedules a call to be inserted via the trampoline mechanism,
+    /// effectively transforming `%var` into `%var()`.
     fn fold_local_variable(
         &mut self,
         variable: LocalVariable<'heap>,
@@ -199,13 +306,19 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
         Ok(variable)
     }
 
+    /// Processes qualified variable references, inserting thunk calls.
+    ///
+    /// All top-level items exported from modules are thunks, so qualified variables
+    /// always reference thunked bindings. Calls are inserted automatically to ensure
+    /// proper lazy evaluation across module boundaries.
     fn fold_qualified_variable(
         &mut self,
         variable: QualifiedVariable<'heap>,
     ) -> Self::Output<QualifiedVariable<'heap>> {
         let Ok(variable) = fold::walk_qualified_variable(self, variable);
 
-        // `fold_call` ensures that this is not yet a thunked call
+        // Insert a call to force the thunk. The `fold_call` method ensures this
+        // doesn't lead to wrong calling conventions for already-thunked qualified variables.
         self.trampoline(self.context.interner.intern_node(PartialNode {
             span: self.current_node().span,
             kind: NodeKind::Call(Call {
@@ -219,6 +332,10 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
         Ok(variable)
     }
 
+    /// Processes function calls, avoiding double-thunking of qualified variables.
+    ///
+    /// For correctness, this method ensures that we don't double-thunk qualified variables, doing
+    /// so would result in incorrect calling conventions.
     fn fold_call(&mut self, call: Call<'heap>) -> Self::Output<Call<'heap>> {
         // Check if we already call a thunked function when it is a qualified variable, if that is
         // the case this is just a no-op

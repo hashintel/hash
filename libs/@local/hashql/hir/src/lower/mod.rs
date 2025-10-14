@@ -103,5 +103,9 @@ pub fn lower<'heap>(
     let thunking = Thunking::new(context);
     let node = thunking.run(node);
 
+    // Thunking breaks normalization, so re-normalize
+    let normalization = Normalization::new(context, NormalizationOptions::default());
+    let node = normalization.run(node);
+
     diagnostics.into_status(node)
 }
