@@ -70,6 +70,7 @@ use crate::{
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
+        thunk::Thunk,
         variable::{LocalVariable, Variable},
     },
 };
@@ -96,6 +97,7 @@ const fn is_atom(node: &Node<'_>) -> bool {
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
         | NodeKind::Closure(_)
+        | NodeKind::Thunk(_)
         | NodeKind::Graph(_) => false,
     }
 }
@@ -119,6 +121,7 @@ const fn is_projection(node: &Node<'_>) -> bool {
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
         | NodeKind::Closure(_)
+        | NodeKind::Thunk(_)
         | NodeKind::Graph(_) => false,
     }
 }
@@ -611,11 +614,13 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// arguments are handled separately by `fold_call_argument`.
     fn fold_call(&mut self, call: Call<'heap>) -> Self::Output<Call<'heap>> {
         let Ok(Call {
+            kind,
             function,
             arguments,
         }) = fold::walk_call(self, call);
 
         Ok(Call {
+            kind,
             function: self.ensure_atom(function),
             arguments,
         })
@@ -674,6 +679,16 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         let body = self.boundary(body);
 
         Ok(Closure { signature, body })
+    }
+
+    /// Folds thunk definitions with boundary handling.
+    ///
+    /// Thunk bodies form natural boundaries since they represent module-level
+    /// delayed computations. The body is wrapped in its own normalization boundary.
+    fn fold_thunk(&mut self, Thunk { body }: Thunk<'heap>) -> Self::Output<Thunk<'heap>> {
+        let body = self.boundary(body);
+
+        Ok(Thunk { body })
     }
 
     /// Folds graph read head operations with axis atomicity requirements.

@@ -8,6 +8,7 @@ pub mod input;
 pub mod kind;
 pub mod r#let;
 pub mod operation;
+pub mod thunk;
 pub mod variable;
 
 use hashql_core::{

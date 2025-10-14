@@ -27,6 +27,7 @@ use crate::{
         kind::NodeKind,
         r#let::{Binding, Let},
         operation::{BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
@@ -631,6 +632,25 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Cl
     }
 }
 
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Thunk<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text("thunk(() ->")
+            .append(RcDoc::line())
+            .append(
+                RcAllocator
+                    .nil()
+                    .append(self.body.pretty(env, boundary))
+                    .nest(4),
+            )
+            .append(RcDoc::line_())
+            .append(")")
+    }
+}
+
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphReadHead<'heap> {
     fn pretty(
         &self,
@@ -738,6 +758,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for No
             NodeKind::Call(call) => call.pretty(env, boundary),
             NodeKind::Branch(branch) => branch.pretty(env, boundary),
             NodeKind::Closure(closure) => closure.pretty(env, boundary),
+            NodeKind::Thunk(thunk) => thunk.pretty(env, boundary),
             NodeKind::Graph(graph) => graph.pretty(env, boundary),
         }
     }
