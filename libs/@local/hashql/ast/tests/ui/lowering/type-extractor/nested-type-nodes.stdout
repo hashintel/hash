@@ -16,8 +16,8 @@ Expr#0@47
                               Expr#11@29
                                 ExprKind (Literal)
                                   LiteralExpr#12@28
-                                    LiteralKind (Integer)
-                                      IntegerLiteral (1)
+                                    Primitive (Integer)
+                                      Integer (1)
                     ListElement#13@39
                       Expr#14@39
                         ExprKind (Struct)
@@ -26,8 +26,8 @@ Expr#0@47
                               Expr#17@36
                                 ExprKind (Literal)
                                   LiteralExpr#18@35
-                                    LiteralKind (Integer)
-                                      IntegerLiteral (2)
+                                    Primitive (Integer)
+                                      Integer (2)
       Type#19@22
         TypeKind (Struct)
           StructType#20@22

@@ -8,8 +8,8 @@ Expr#0@48
               Expr#14@33
                 ExprKind (Literal)
                   LiteralExpr#15@32
-                    LiteralKind (Integer)
-                      IntegerLiteral (42)
+                    Primitive (Integer)
+                      Integer (42)
             Type#4@44
               TypeKind (Path)
                 Path#5@44 (rooted: false)
