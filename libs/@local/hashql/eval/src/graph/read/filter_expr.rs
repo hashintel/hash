@@ -9,13 +9,14 @@ use hashql_core::{
 use hashql_hir::node::{
     Node,
     access::{Access, FieldAccess, IndexAccess},
-    call::Call,
+    call::{Call, PointerKind},
     data::{Data, DictField},
     graph::Graph,
     input::Input,
     kind::NodeKind,
     r#let::{Binding, Let},
     operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+    thunk::Thunk,
     variable::{LocalVariable, Variable},
 };
 
@@ -586,6 +587,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             | NodeKind::Call(_)
             | NodeKind::Branch(_)
             | NodeKind::Closure(_)
+            | NodeKind::Thunk(_)
             | NodeKind::Graph(_) => {
                 self.diagnostics.push(call_unsupported(context, span));
                 Err(CompilationError)
@@ -601,6 +603,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         context: FilterCompilerContext,
         span: SpanId,
         Call {
+            kind,
             function,
             arguments,
         }: &'heap Call<'heap>,
@@ -608,6 +611,14 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     where
         P: PartialQueryPath<'heap> + Debug,
     {
+        if *kind == PointerKind::Thin
+            && let NodeKind::Variable(Variable::Local(local)) = function.kind
+        {
+            // Thin pointer to a local variable = calling a thunk
+            let node = self.locals[&local.id.value];
+            return self.compile_filter_expr(context, node);
+        }
+
         let ctor = self.compile_filter_expr_call_ctor(context, span, function)?;
 
         match &**arguments {
@@ -670,6 +681,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 ));
                 Err(CompilationError)
             }
+            NodeKind::Thunk(Thunk { body }) => self.compile_filter_expr(context, body),
             NodeKind::Graph(graph) => match graph {
                 Graph::Read(_) => {
                     self.diagnostics.push(nested_graph_read_unsupported(

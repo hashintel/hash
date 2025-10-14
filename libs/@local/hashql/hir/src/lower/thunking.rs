@@ -38,7 +38,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         let NodeKind::Let(Let { bindings, body }) = &node.kind else {
             // Ensure that the underlying node is an atom, if it isn't -> we're not being called
             // from HIR(ANF)
-            assert!(is_anf_atom(&node), "The HIR is not in ANF");
+            debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
 
             // otherwise we simply have no bindings to thunk
             return node;
@@ -60,7 +60,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
 
         // Ensure that the underlying node is an atom, if it isn't -> we're not being called
         // from HIR(ANF)
-        assert!(is_anf_atom(body), "The HIR is not in ANF");
+        debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
 
         // When thunking, do not double thunk
         self.thunked.extend(
@@ -76,7 +76,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         // We do not touch the body of the `let` (the atom), meaning we just always return a thunk
         // or a primitive value.
 
-        let Ok(node) = self.fold_node(node);
+        let Ok(node) = self.fold_node(node); // TODO: fold_bindings
 
         // Check if the underlying node already refers to a thunk (such as a re-export or any
         // binding). If that is the case we can skip the next step (of explicit thunking), otherwise
