@@ -112,7 +112,7 @@ export const validateVersionedUrl = (
 
     if (draftMatch) {
       // It's a draft version
-      const [, majorStr, lane, revisionStr] = draftMatch;
+      const [, majorStr, _lane, revisionStr] = draftMatch;
       const major = Number(majorStr);
       const revision = Number(revisionStr);
 
@@ -121,7 +121,13 @@ export const validateVersionedUrl = (
           type: "Err",
           inner: {
             reason: "InvalidVersion",
-            inner: [version, "number too large to fit in target type"],
+            inner: [
+              version,
+              {
+                reason: "ParseVersion",
+                inner: "number too large to fit in target type",
+              },
+            ],
           },
         };
       }
@@ -131,7 +137,10 @@ export const validateVersionedUrl = (
           type: "Err",
           inner: {
             reason: "InvalidVersion",
-            inner: [version, "revision number too large"],
+            inner: [
+              version,
+              { reason: "ParseVersion", inner: "revision number too large" },
+            ],
           },
         };
       }
@@ -145,15 +154,27 @@ export const validateVersionedUrl = (
           type: "Err",
           inner: {
             reason: "InvalidVersion",
-            inner: [version, "invalid digit found in string"],
+            inner: [
+              version,
+              {
+                reason: "ParseVersion",
+                inner: "invalid digit found in string",
+              },
+            ],
           },
         };
       } else if (index > 0) {
         return {
           type: "Err",
           inner: {
-            reason: "AdditionalEndContent",
-            inner: version.substring(index),
+            reason: "InvalidVersion",
+            inner: [
+              version,
+              {
+                reason: "ParseVersion",
+                inner: `additional content at end: \`${version.substring(index)}\``,
+              },
+            ],
           },
         };
       }
@@ -164,7 +185,13 @@ export const validateVersionedUrl = (
           type: "Err",
           inner: {
             reason: "InvalidVersion",
-            inner: [version, "number too large to fit in target type"],
+            inner: [
+              version,
+              {
+                reason: "ParseVersion",
+                inner: "number too large to fit in target type",
+              },
+            ],
           },
         };
       }

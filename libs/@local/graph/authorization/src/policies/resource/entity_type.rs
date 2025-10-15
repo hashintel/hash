@@ -89,8 +89,8 @@ impl EntityTypeResource<'_> {
                 (
                     SmolStr::new_static("version"),
                     ast::PartialValue::Value(ast::Value::new(
-                        ast::ValueKind::Lit(ast::Literal::String(SmolStr::from(
-                            self.id.as_url().version.to_string(),
+                        ast::ValueKind::Lit(ast::Literal::Long(ast::Integer::from(
+                            self.id.as_url().version.major,
                         ))),
                         None,
                     )),

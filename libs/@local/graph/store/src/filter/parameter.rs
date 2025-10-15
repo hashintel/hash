@@ -216,7 +216,7 @@ impl Parameter<'_> {
                 // Special case for checking `version == "latest"
                 if text != "latest" {
                     *self = Parameter::OntologyTypeVersion(Cow::Owned(
-                        OntologyTypeVersion::from_str(&*text).change_context_lazy(|| {
+                        text.parse().change_context_lazy(|| {
                             ParameterConversionError::InvalidParameterType {
                                 actual: self.to_owned().into(),
                                 expected: ParameterType::OntologyTypeVersion,

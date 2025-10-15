@@ -276,9 +276,13 @@ impl FromStr for PreRelease {
 /// assert_eq!(version.inner(), 1);
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-#[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
+#[cfg_attr(feature = "codegen", derive(specta::Type), specta(transparent))]
 pub struct OntologyTypeVersion {
+    // We don't really have a way to inform specta that this type is a string so we fake the type
+    // to be a transparent type with only a single string type
+    #[cfg_attr(feature = "codegen", specta(type = String))]
     pub major: u32,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub pre_release: Option<PreRelease>,
 }
 
@@ -292,15 +296,6 @@ impl ToSchema<'_> for OntologyTypeVersion {
                 .into(),
         )
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-mod ontology_type_version_patch {
-    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-    #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(value_type = String))]
-    struct OntologyTypeVersion(
-        #[tsify(type = "`${number}` | `${number}-draft.${string}.${number}`")] String,
-    );
 }
 
 impl fmt::Display for OntologyTypeVersion {
@@ -486,7 +481,7 @@ pub struct VersionedUrl {
 mod patch {
     #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-    struct VersionedUrl(#[tsify(type = "`${string}v/${OntologyTypeVersion}`")] String);
+    struct VersionedUrl(#[tsify(type = "`${string}v/${string}`")] String);
 }
 
 impl VersionedUrl {
