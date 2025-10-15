@@ -31,7 +31,7 @@
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
     "@temporalio/client": "1.12.1",
-    "effect": "3.13.11",
+    "effect": "3.18.4",
     "uuid": "11.1.0"
   },
   "devDependencies": {
