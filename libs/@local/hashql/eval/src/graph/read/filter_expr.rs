@@ -616,7 +616,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         {
             // Thin pointer to a local variable = calling a thunk
             let node = self.locals[&local.id.value];
-            return self.compile_filter_expr(context, node);
+            return self.compile_filter_expr(context.with_current_span(span), node);
         }
 
         let ctor = self.compile_filter_expr_call_ctor(context, span, function)?;
