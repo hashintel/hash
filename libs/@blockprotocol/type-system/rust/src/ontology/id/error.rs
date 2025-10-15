@@ -43,7 +43,7 @@ pub enum ParseVersionedUrlError {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Error)]
 #[serde(tag = "reason", content = "inner")]
 pub enum ParseOntologyTypeVersionError {
-    #[error("missing lane")]
+    #[error("missing version")]
     MissingVersion,
     #[error("not an integer: `{0}`")]
     ParseVersion(String),
@@ -59,8 +59,6 @@ pub enum ParseOntologyTypeVersionError {
 pub enum ParseDraftInfoError {
     #[error("incorrect formatting")]
     IncorrectFormatting,
-    #[error("missing lane")]
-    MissingVersion,
     #[error("missing revision")]
     MissingRevision,
     #[error("invalid revision `{0}`: {1}")]
