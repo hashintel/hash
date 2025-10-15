@@ -1,10 +1,12 @@
 error[graph-read-compiler::closure-unsupported]: Closures not supported
    ╭▸ 
+ 4 │   ["let", "identity", ["fn", {"#tuple": ["T"]}, {"#struct": {"value": "T"}}, "T", "value"],
+   │                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Closure definition not supported here
+   ‡
  9 │ ┌       ["==",
 10 │ │         "identity", // This is very silly and isn't something you should probably do
 11 │ │          //~^ ERROR Closure definition not supported here
 12 │ │         "identity"
-   │ │          ━━━━━━━━ Closure definition not supported here
 13 │ │         //~^ ERROR Closure definition not supported here
 14 │ │       ]
    │ └───────┘ ... within this filter expression
@@ -14,9 +16,11 @@ error[graph-read-compiler::closure-unsupported]: Closures not supported
 
 error[graph-read-compiler::closure-unsupported]: Closures not supported
    ╭▸ 
+ 4 │   ["let", "identity", ["fn", {"#tuple": ["T"]}, {"#struct": {"value": "T"}}, "T", "value"],
+   │                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Closure definition not supported here
+   ‡
  9 │ ┌       ["==",
 10 │ │         "identity", // This is very silly and isn't something you should probably do
-   │ │          ━━━━━━━━ Closure definition not supported here
 11 │ │          //~^ ERROR Closure definition not supported here
 12 │ │         "identity"
 13 │ │         //~^ ERROR Closure definition not supported here

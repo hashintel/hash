@@ -72,7 +72,7 @@
 //! result
 //! ```
 
-use core::convert::Infallible;
+use core::{convert::Infallible, mem};
 
 use crate::{
     context::HirContext,
@@ -154,30 +154,30 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         // First collect all the variables that need to be thunked, these are simply the top level
         // let-bindings, we know that the top level are let bindings, because we expect everything
         // to be in HIR(ANF).
-        let NodeKind::Let(Let { bindings, body }) = node.kind else {
+        let (mut bindings, body) = if let NodeKind::Let(Let { bindings, body }) = node.kind {
+            // Ensure that the underlying node is an atom, if it isn't -> we're not being called
+            // from HIR(ANF)
+            debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
+
+            // When thunking, do not double thunk
+            self.thunked.extend(
+                bindings
+                    .iter()
+                    .filter(|binding| !matches!(binding.value.kind, NodeKind::Thunk(_)))
+                    .map(|binding| binding.binder.id),
+            );
+
+            // Transform the bindings to insert thunk calls at variable reference sites
+            let Ok(bindings) = self.fold_bindings(*bindings);
+
+            (bindings.to_vec(), body)
+        } else {
             // Ensure that the underlying node is an atom, if it isn't -> we're not being called
             // from HIR(ANF)
             debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
 
-            // Otherwise, we simply have no bindings to thunk
-            return node;
+            (Vec::new(), &node)
         };
-
-        // Ensure that the underlying node is an atom, if it isn't -> we're not being called
-        // from HIR(ANF)
-        debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
-
-        // When thunking, do not double thunk
-        self.thunked.extend(
-            bindings
-                .iter()
-                .filter(|binding| !matches!(binding.value.kind, NodeKind::Thunk(_)))
-                .map(|binding| binding.binder.id),
-        );
-
-        // Transform the bindings to insert thunk calls at variable reference sites
-        let Ok(bindings) = self.fold_bindings(*bindings);
-        let mut bindings = bindings.to_vec();
 
         // Handle the body based on its type. Variables already reference thunks, while
         // primitives and access expressions need to be bound to local variables for
@@ -201,8 +201,14 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             | NodeKind::Graph(_) => unreachable!("HIR should be in ANF"),
         };
 
+        if bindings.is_empty() {
+            // We changed nothing (the body was a variable - a qualified one - and no additional
+            // bindings were declared), therefore we can safely return the original node
+            return body;
+        }
+
         for binding in &mut bindings {
-            binding.value = self.thunkify(node);
+            binding.value = self.thunkify(binding.value);
         }
 
         let bindings = self.context.interner.bindings.intern_slice(&bindings);
@@ -270,11 +276,11 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
     /// trampoline state isolation between nested node processing.
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup_trampoline = self.trampoline.take();
-        let backup_current_node = self.current_node.take();
+        let backup_current_node = self.current_node.replace(node);
 
         let Ok(mut node) = fold::walk_node(self, node);
 
-        let trampoline = core::mem::replace(&mut self.trampoline, backup_trampoline);
+        let trampoline = mem::replace(&mut self.trampoline, backup_trampoline);
         if let Some(trampoline) = trampoline {
             node = trampoline;
         }

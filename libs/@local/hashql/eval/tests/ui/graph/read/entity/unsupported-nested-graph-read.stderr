@@ -1,10 +1,17 @@
 error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
    ╭▸ 
+ 5 │ ┏   ["::graph::tail::collect",
+ 6 │ ┃     ["::graph::body::filter",
+ 7 │ ┃       ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+ 8 │ ┃       ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+   ‡ ┃
+14 │ ┃     ]],
+   │ ┗━━━━━━┛ Nested graph read operations not supported here
+   ‡
 19 │ ┌       ["==",
 20 │ │         "read",
 21 │ │         //~^ ERROR Nested graph read operations not supported here
 22 │ │         "read"
-   │ │          ━━━━ Nested graph read operations not supported here
 23 │ │         //~^ ERROR Nested graph read operations not supported here
 24 │ │       ]
    │ └───────┘ ... within this filter expression
@@ -14,9 +21,16 @@ error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read ope
 
 error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
    ╭▸ 
+ 5 │ ┏   ["::graph::tail::collect",
+ 6 │ ┃     ["::graph::body::filter",
+ 7 │ ┃       ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+ 8 │ ┃       ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+   ‡ ┃
+14 │ ┃     ]],
+   │ ┗━━━━━━┛ Nested graph read operations not supported here
+   ‡
 19 │ ┌       ["==",
 20 │ │         "read",
-   │ │          ━━━━ Nested graph read operations not supported here
 21 │ │         //~^ ERROR Nested graph read operations not supported here
 22 │ │         "read"
 23 │ │         //~^ ERROR Nested graph read operations not supported here

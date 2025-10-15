@@ -1,36 +1,77 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let %1 = ::graph::tmp::decision_time_now
-     %2 = %1()
-     %10 = ::graph::head::entities(%2) |> ::graph::body::filter(#fn(vertex:0:
-         _0«Entity[(id: EntityRecordId[(edition_id:
-           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-            EntityUuid[Uuid[String]], web_id:
-            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-          (None[Null]
-           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-              | Some[DraftId[Uuid[String]]]), entity_uuid:
-             EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
-             entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-         _1«Boolean» ->
-             #let %8 = (1 > 2)
-                  %9 = (%8 || #let %6 = (1 >= 2)
-                           %7 = (%6 || #let %4 = (1 < 2)
-                                    %5 = (%4 || #let %3 = (1 <= 2)
-                                        in
-                                        %3)
-                               in
-                               %5)
-                      in
-                      %7)
+#let %1 = thunk(() ->
+         #let %1 = ::graph::tmp::decision_time_now()
+                  %9 = ::graph::head::entities(%1)
+                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                       EntityRecordId[(edition_id:
+                        EntityEditionId[Uuid[String]], entity_id:
+                        EntityId[(draft_id: (None[Null]
+                          | Some[DraftId[Uuid[String]]]), entity_uuid:
+                         EntityUuid[Uuid[String]], web_id:
+                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
+                       link_data: (None[Null]
+                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
+                          (None[Null] | Some[DraftId[Uuid[String]]]),
+                          entity_uuid: EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
+                         right_entity_id: EntityId[(draft_id: (None[Null]
+                           | Some[DraftId[Uuid[String]]]), entity_uuid:
+                          EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
+                       properties: ?)]»): _1«Boolean» ->
+                          #let %7 = (1 > 2)
+                               %8 = (%7 || #let %5 = (1 >= 2)
+                                        %6 = (%5 || #let %3 = (1 < 2)
+                                                 %4 = (%3 || #let %2 = (1 <= 2)
+                                                     in
+                                                     %2)
+                                            in
+                                            %4)
+                                   in
+                                   %6)
+                          in
+                          %8) |> ::graph::tail::collect
              in
-             %9) |> ::graph::tail::collect
+             %9
+         )
+     %9 = thunk(() ->
+         #let %1 = ::graph::tmp::decision_time_now()
+                  %9 = ::graph::head::entities(%1)
+                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                       EntityRecordId[(edition_id:
+                        EntityEditionId[Uuid[String]], entity_id:
+                        EntityId[(draft_id: (None[Null]
+                          | Some[DraftId[Uuid[String]]]), entity_uuid:
+                         EntityUuid[Uuid[String]], web_id:
+                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
+                       link_data: (None[Null]
+                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
+                          (None[Null] | Some[DraftId[Uuid[String]]]),
+                          entity_uuid: EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
+                         right_entity_id: EntityId[(draft_id: (None[Null]
+                           | Some[DraftId[Uuid[String]]]), entity_uuid:
+                          EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
+                       properties: ?)]»): _1«Boolean» ->
+                          #let %7 = (1 > 2)
+                               %8 = (%7 || #let %5 = (1 >= 2)
+                                        %6 = (%5 || #let %3 = (1 < 2)
+                                                 %4 = (%3 || #let %2 = (1 <= 2)
+                                                     in
+                                                     %2)
+                                            in
+                                            %4)
+                                   in
+                                   %6)
+                          in
+                          %8) |> ::graph::tail::collect
+             in
+             %9
+         )
 in
-%10
+%9
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
