@@ -312,12 +312,9 @@ impl<'edges> TraversalContext<'edges> {
         edition_id: EntityEditionId,
         traversal_params: BorrowedTraversalParams<'edges>,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> Option<(
-        EntityEditionId,
-        BorrowedTraversalParams<'edges>,
-        RightBoundedTemporalInterval<VariableAxis>,
-    )> {
+    ) -> bool {
         self.entities
             .add_id(edition_id, traversal_params, traversal_interval)
+            .is_some()
     }
 }

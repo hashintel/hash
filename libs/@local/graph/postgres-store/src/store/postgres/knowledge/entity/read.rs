@@ -10,11 +10,11 @@ use hash_graph_store::{
     error::QueryError,
     filter::Filter,
     subgraph::{
-        edges::{BorrowedTraversalParams, EdgeDirection},
+        edges::EdgeDirection,
         identifier::{EntityTypeVertexId, EntityVertexId},
         temporal_axes::{
-            PinnedAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
-            VariableTemporalAxisUnresolved,
+            PinnedAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
+            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxisUnresolved,
         },
     },
 };
@@ -43,26 +43,24 @@ use crate::store::{
 };
 
 #[derive(Debug)]
-pub struct EntityEdgeTraversalData<'edges> {
+pub struct EntityEdgeTraversalData {
     web_ids: Vec<WebId>,
     entity_uuids: Vec<EntityUuid>,
     entity_revision_ids: Vec<Timestamp<VariableAxis>>,
     intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
-    traversal_params: Vec<BorrowedTraversalParams<'edges>>,
     pinned_timestamp: Timestamp<PinnedAxis>,
     variable_axis: TimeAxis,
 }
 
-impl<'edges> EntityEdgeTraversalData<'edges> {
-    pub const fn new(pinned_timestamp: Timestamp<PinnedAxis>, variable_axis: TimeAxis) -> Self {
+impl EntityEdgeTraversalData {
+    pub fn new(temporal_axes: &QueryTemporalAxes) -> Self {
         Self {
             web_ids: Vec::new(),
             entity_uuids: Vec::new(),
             entity_revision_ids: Vec::new(),
             intervals: Vec::new(),
-            traversal_params: Vec::new(),
-            pinned_timestamp,
-            variable_axis,
+            pinned_timestamp: temporal_axes.pinned_timestamp(),
+            variable_axis: temporal_axes.variable_time_axis(),
         }
     }
 
@@ -70,30 +68,34 @@ impl<'edges> EntityEdgeTraversalData<'edges> {
         &mut self,
         vertex_id: EntityVertexId,
         interval: RightBoundedTemporalInterval<VariableAxis>,
-        traversal_params: BorrowedTraversalParams<'edges>,
     ) {
         self.web_ids.push(vertex_id.base_id.web_id);
         self.entity_uuids.push(vertex_id.base_id.entity_uuid);
         self.entity_revision_ids.push(vertex_id.revision_id);
         self.intervals.push(interval);
-        self.traversal_params.push(traversal_params);
+    }
+
+    pub const fn len(&self) -> usize {
+        self.web_ids.len()
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
 /// The result of an entity-to-ontology edge traversal.
-pub struct SharedEdgeTraversal<'edges> {
+pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
     pub right_endpoint_ontology_id: OntologyTypeUuid,
-    pub traversal_params: BorrowedTraversalParams<'edges>,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-pub struct KnowledgeEdgeTraversal<'edges> {
+pub struct KnowledgeEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityVertexId,
     pub right_endpoint_edition_id: EntityEditionId,
-    pub traversal_params: BorrowedTraversalParams<'edges>,
     pub edge_interval: LeftClosedTemporalInterval<VariableAxis>,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -103,12 +105,12 @@ where
     C: AsClient,
 {
     #[tracing::instrument(level = "info", skip(self))]
-    pub(crate) async fn read_shared_edges<'t, 'edges>(
+    pub(crate) async fn read_shared_edges<'t>(
         &self,
-        traversal_data: &'t EntityEdgeTraversalData<'edges>,
+        traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
     ) -> Result<
-        impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal<'edges>)> + 't,
+        impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't,
         Report<QueryError>,
     > {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
@@ -193,7 +195,6 @@ where
                             revision_id: row.get(2),
                         },
                         right_endpoint_ontology_id,
-                        traversal_params: traversal_data.traversal_params[index],
                         traversal_interval: row.get(4),
                     },
                 )
@@ -202,13 +203,13 @@ where
 
     #[tracing::instrument(level = "info", skip(self, provider))]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges<'t, 'edges>(
+    pub(crate) async fn read_knowledge_edges<'t>(
         &self,
-        traversal_data: &'t EntityEdgeTraversalData<'edges>,
+        traversal_data: &'t EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
         provider: &StoreProvider<'_, Self>,
-    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal<'edges>> + 't, Report<QueryError>> {
+    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, Report<QueryError>> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -322,7 +323,6 @@ where
                         },
                         right_endpoint_edition_id,
                         edge_interval: row.get(5),
-                        traversal_params: traversal_data.traversal_params[index],
                         traversal_interval: row.get(6),
                     },
                 )
