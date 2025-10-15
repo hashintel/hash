@@ -296,14 +296,12 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// Panics if the trampoline is already occupied, indicating multiple
     /// replacements attempted for the same node.
     fn trampoline(&mut self, node: Node<'heap>) {
-        match &mut self.trampoline {
-            None => {
-                self.trampoline = Some(node);
-            }
-            Some(_) => {
-                panic!("trampoline has been inserted to multiple times");
-            }
-        }
+        assert!(
+            self.trampoline.is_none(),
+            "trampoline has been inserted to multiple times"
+        );
+
+        self.trampoline = Some(node);
     }
 
     /// Processes a node within a normalization boundary.
