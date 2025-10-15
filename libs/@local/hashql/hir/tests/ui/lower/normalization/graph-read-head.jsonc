@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: todo
+//@ description: Graph head entities read operation
 [
   "::graph::tail::collect",
   ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]

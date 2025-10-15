@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Nested function call thunking transformation
 [
   "let",
   "foo",

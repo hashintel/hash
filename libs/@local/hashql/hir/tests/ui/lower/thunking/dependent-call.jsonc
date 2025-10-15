@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Dependent variable call thunking transformation
 [
   "let",
   "a",

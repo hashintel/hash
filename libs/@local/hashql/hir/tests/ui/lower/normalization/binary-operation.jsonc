@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Binary operations with nested complex expressions
 [
   "==",
   [">=", { "#literal": 4 }, { "#literal": 3 }],

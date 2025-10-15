@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: If-else with complex then expression
 [
   "if",
   { "#literal": true },
