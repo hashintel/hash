@@ -365,11 +365,12 @@ impl PolicyExpressionTree {
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(Self::BaseUrl)
             }
-            (AttributeType::OntologyTypeVersion, ast::ExprKind::Lit(ast::Literal::Long(long))) => {
-                u32::try_from(*long)
-                    .change_context(ParseBinaryExpressionError::Right)
-                    .map(|version| Self::OntologyTypeVersion(OntologyTypeVersion::new(version)))
-            }
+            (
+                AttributeType::OntologyTypeVersion,
+                ast::ExprKind::Lit(ast::Literal::String(version)),
+            ) => OntologyTypeVersion::from_str(version)
+                .change_context(ParseBinaryExpressionError::Right)
+                .map(Self::OntologyTypeVersion),
             (AttributeType::CreatedBy, _) => Self::expect_principal_id(rhs)
                 .change_context(ParseBinaryExpressionError::Right)
                 .map(|()| Self::CreatedByPrincipal),

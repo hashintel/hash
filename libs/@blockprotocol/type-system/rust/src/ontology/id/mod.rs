@@ -33,11 +33,11 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, num::IntErrorKind, str::FromStr};
+use core::{cmp, fmt, num::IntErrorKind, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
+pub use error::{ParseBaseUrlError, ParseDraftInfoError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -45,6 +45,8 @@ use url::Url;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
+
+use self::error::ParseOntologyTypeVersionError;
 
 mod error;
 // #[cfg(target_arch = "wasm32")]
@@ -217,6 +219,48 @@ impl<'a> FromSql<'a> for BaseUrl {
     }
 }
 
+/// Pre-release version information for an ontology type.
+///
+/// Represents different pre-release stages following semantic versioning conventions.
+/// Currently only draft stages are supported, but this can be extended to include
+/// alpha, beta, release candidate stages in the future.
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
+pub enum PreRelease {
+    /// Draft pre-release with lane identifier and revision number
+    Draft {
+        /// Lane identifier for isolating parallel draft work
+        lane: String,
+        /// Monotonic revision number within this lane
+        revision: u32,
+    },
+}
+
+impl FromStr for PreRelease {
+    type Err = ParseDraftInfoError;
+
+    fn from_str(draft_info: &str) -> Result<Self, Self::Err> {
+        draft_info.rsplit_once('.').map_or(
+            Err(ParseDraftInfoError::IncorrectFormatting),
+            |(lane, revision)| {
+                Ok(Self::Draft {
+                    lane: lane.to_owned(),
+                    revision: u32::from_str(revision).map_err(|error| {
+                        if *error.kind() == IntErrorKind::Empty {
+                            ParseDraftInfoError::MissingRevision
+                        } else {
+                            ParseDraftInfoError::InvalidRevision(
+                                revision.to_owned(),
+                                error.to_string(),
+                            )
+                        }
+                    })?,
+                })
+            },
+        )
+    }
+}
+
 /// A strongly-typed wrapper for ontology type version numbers.
 ///
 /// [`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].
@@ -231,23 +275,85 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// let version = OntologyTypeVersion::new(1);
 /// assert_eq!(version.inner(), 1);
 /// ```
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(value_type = String))]
-#[repr(transparent)]
-pub struct OntologyTypeVersion(
-    // We aim to replace the simple `u32` with a more complex type in the future.
-    // For now, we use `u32` to represent the version number. but we export it as an
-    // `Opaque` type to ensure that it is not used directly in TypeScript.
-    #[cfg_attr(feature = "codegen", specta(type = String))] u32,
-);
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
+pub struct OntologyTypeVersion {
+    pub major: u32,
+    pub pre_release: Option<PreRelease>,
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for OntologyTypeVersion {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "OntologyTypeVersion",
+            openapi::schema::ObjectBuilder::new()
+                .schema_type(openapi::SchemaType::String)
+                .into(),
+        )
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod ontology_type_version_patch {
+    #[expect(dead_code, reason = "Used in the generated TypeScript types")]
+    #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(value_type = String))]
+    struct OntologyTypeVersion(
+        #[tsify(type = "`${number}` | `${number}-draft.${string}.${number}`")] String,
+    );
+}
+
+impl fmt::Display for OntologyTypeVersion {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.major)?;
+
+        if let Some(PreRelease::Draft { lane, revision }) = &self.pre_release {
+            write!(fmt, "-draft.{lane}.{revision}")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl FromStr for OntologyTypeVersion {
+    type Err = ParseOntologyTypeVersionError;
+
+    fn from_str(ontology_version: &str) -> Result<Self, Self::Err> {
+        let (version, draft_info) =
+            if let Some((version, draft_info)) = ontology_version.rsplit_once("-draft.") {
+                (version, Some(draft_info))
+            } else {
+                (ontology_version, None)
+            };
+
+        Ok(Self {
+            major: u32::from_str(version).map_err(|error| {
+                if *error.kind() == IntErrorKind::Empty {
+                    ParseOntologyTypeVersionError::MissingVersion
+                } else {
+                    ParseOntologyTypeVersionError::ParseVersion(error.to_string())
+                }
+            })?,
+            pre_release: draft_info
+                .map(|draft_info| {
+                    draft_info.parse().map_err(|error| {
+                        ParseOntologyTypeVersionError::InvalidPreRelease(
+                            draft_info.to_owned(),
+                            error,
+                        )
+                    })
+                })
+                .transpose()?,
+        })
+    }
+}
 
 impl Serialize for OntologyTypeVersion {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        self.0.to_string().serialize(serializer)
+        self.to_string().serialize(serializer)
     }
 }
 
@@ -258,28 +364,32 @@ impl<'de> Deserialize<'de> for OntologyTypeVersion {
     {
         <&str>::deserialize(deserializer)?
             .parse()
-            .map(Self::new)
             .map_err(de::Error::custom)
     }
 }
 
-impl OntologyTypeVersion {
-    /// Creates a new version identifier with the specified value.
-    ///
-    /// This constructor creates a strongly-typed version number wrapper that provides
-    /// type safety when working with ontology type versions.
-    #[must_use]
-    pub const fn new(inner: u32) -> Self {
-        Self(inner)
+impl Ord for OntologyTypeVersion {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        // First compare major version numbers
+        match self.major.cmp(&other.major) {
+            cmp::Ordering::Equal => {
+                // Per SemVer: published versions have higher precedence than pre-release versions
+                // i.e., v/2 > v/2-draft.lane.5
+                match (&self.pre_release, &other.pre_release) {
+                    (None, None) => cmp::Ordering::Equal,
+                    (None, Some(_)) => cmp::Ordering::Greater,
+                    (Some(_), None) => cmp::Ordering::Less,
+                    (Some(pr1), Some(pr2)) => pr1.cmp(pr2),
+                }
+            }
+            ord @ (cmp::Ordering::Less | cmp::Ordering::Greater) => ord,
+        }
     }
+}
 
-    /// Returns the underlying version number.
-    ///
-    /// This method extracts the raw version number from the wrapper type for when
-    /// the numeric value is needed directly.
-    #[must_use]
-    pub const fn inner(self) -> u32 {
-        self.0
+impl PartialOrd for OntologyTypeVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -289,11 +399,15 @@ impl ToSql for OntologyTypeVersion {
 
     postgres_types::to_sql_checked!();
 
+    #[expect(clippy::todo, reason = "Draft versions are not yet supported")]
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
     where
         Self: Sized,
     {
-        i64::from(self.0).to_sql(ty, out)
+        if self.pre_release.is_some() {
+            todo!("https://linear.app/hash/issue/BE-161/allow-ids-for-pre-release-type-to-be-stored-in-postgres");
+        }
+        i64::from(self.major).to_sql(ty, out)
     }
 }
 
@@ -302,7 +416,10 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
     postgres_types::accepts!(INT8);
 
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i64::from_sql(ty, raw)?.try_into()?))
+        Ok(Self {
+            major: i64::from_sql(ty, raw)?.try_into()?,
+            pre_release: None,
+        })
     }
 }
 
@@ -369,7 +486,7 @@ pub struct VersionedUrl {
 mod patch {
     #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-    struct VersionedUrl(#[tsify(type = "`${string}v/${string}`")] String);
+    struct VersionedUrl(#[tsify(type = "`${string}v/${OntologyTypeVersion}`")] String);
 }
 
 impl VersionedUrl {
@@ -386,7 +503,7 @@ impl VersionedUrl {
         let mut url = self.base_url.to_url();
         url.path_segments_mut()
             .expect("invalid Base URL, we should have caught an invalid base already")
-            .extend(["v", &self.version.0.to_string()]);
+            .extend(["v", &self.version.to_string()]);
 
         url
     }
@@ -394,7 +511,7 @@ impl VersionedUrl {
 
 impl fmt::Display for VersionedUrl {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version.0)
+        write!(fmt, "{}v/{}", self.base_url.as_str(), self.version)
     }
 }
 
@@ -409,41 +526,16 @@ impl FromStr for VersionedUrl {
         url.rsplit_once("v/").map_or(
             Err(ParseVersionedUrlError::IncorrectFormatting),
             |(base_url, version)| {
+                if version.is_empty() {
+                    return Err(ParseVersionedUrlError::MissingVersion);
+                }
+
                 Ok(Self {
                     base_url: BaseUrl::new(base_url.to_owned())
                         .map_err(ParseVersionedUrlError::InvalidBaseUrl)?,
-                    version: version.parse().map(OntologyTypeVersion).map_err(
-                        |error| match error.kind() {
-                            IntErrorKind::Empty => ParseVersionedUrlError::MissingVersion,
-                            IntErrorKind::InvalidDigit => {
-                                let invalid_digit_index =
-                                    version.find(|ch: char| !ch.is_numeric()).unwrap_or(0);
-
-                                if invalid_digit_index == 0 {
-                                    ParseVersionedUrlError::InvalidVersion(
-                                        version.to_owned(),
-                                        error.to_string(),
-                                    )
-                                } else {
-                                    #[expect(
-                                        clippy::string_slice,
-                                        reason = "we just found the index of the first \
-                                                  non-numeric character"
-                                    )]
-                                    ParseVersionedUrlError::AdditionalEndContent(
-                                        version[invalid_digit_index..].to_owned(),
-                                    )
-                                }
-                            }
-                            IntErrorKind::PosOverflow
-                            | IntErrorKind::NegOverflow
-                            | IntErrorKind::Zero
-                            | _ => ParseVersionedUrlError::InvalidVersion(
-                                version.to_owned(),
-                                error.to_string(),
-                            ),
-                        },
-                    )?,
+                    version: OntologyTypeVersion::from_str(version).map_err(|error| {
+                        ParseVersionedUrlError::InvalidVersion(version.to_owned(), error)
+                    })?,
                 })
             },
         )
@@ -553,7 +645,7 @@ pub struct OntologyTypeRecordId {
 
 impl fmt::Display for OntologyTypeRecordId {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}v/{}", self.base_url, self.version.inner())
+        write!(fmt, "{}v/{}", self.base_url, self.version)
     }
 }
 
@@ -677,6 +769,7 @@ mod tests {
         assert_eq!(&url.to_string(), input_str);
     }
 
+    #[track_caller]
     fn versioned_url_test(input_str: &str, expected: &ParseVersionedUrlError) {
         assert_eq!(
             VersionedUrl::from_str(input_str).expect_err("able to parse VersionedUrl"),
@@ -695,7 +788,13 @@ mod tests {
             record_id.base_url.as_str(),
             "https://example.com/types/data-type/text/"
         );
-        assert_eq!(record_id.version.inner(), 3);
+        assert_eq!(
+            record_id.version,
+            OntologyTypeVersion {
+                major: 3,
+                pre_release: None
+            }
+        );
 
         // Check round-trip conversion
         let converted_url = VersionedUrl::from(record_id);
@@ -721,25 +820,217 @@ mod tests {
         );
         versioned_url_test(
             "http://example.com/v/0.2",
-            &ParseVersionedUrlError::AdditionalEndContent(".2".to_owned()),
+            &ParseVersionedUrlError::InvalidVersion(
+                "0.2".to_owned(),
+                ParseOntologyTypeVersionError::ParseVersion(
+                    "invalid digit found in string".to_owned(),
+                ),
+            ),
         );
         versioned_url_test(
             "http://example.com/v//20",
             &ParseVersionedUrlError::InvalidVersion(
                 "/20".to_owned(),
-                "invalid digit found in string".to_owned(),
+                ParseOntologyTypeVersionError::ParseVersion(
+                    "invalid digit found in string".to_owned(),
+                ),
             ),
         );
         versioned_url_test(
             "http://example.com/v/30/1",
-            &ParseVersionedUrlError::AdditionalEndContent("/1".to_owned()),
+            &ParseVersionedUrlError::InvalidVersion(
+                "30/1".to_owned(),
+                ParseOntologyTypeVersionError::ParseVersion(
+                    "invalid digit found in string".to_owned(),
+                ),
+            ),
         );
         versioned_url_test(
             "http://example.com/v/foo",
             &ParseVersionedUrlError::InvalidVersion(
                 "foo".to_owned(),
-                "invalid digit found in string".to_owned(),
+                ParseOntologyTypeVersionError::ParseVersion(
+                    "invalid digit found in string".to_owned(),
+                ),
             ),
         );
+    }
+
+    #[test]
+    fn ontology_version_parsing() {
+        // Test published versions
+        let v1: OntologyTypeVersion = "1".parse().expect("should parse v1");
+        assert_eq!(v1.major, 1);
+        assert_eq!(v1.pre_release, None);
+        assert_eq!(v1.to_string(), "1");
+
+        let v42: OntologyTypeVersion = "42".parse().expect("should parse v42");
+        assert_eq!(v42.major, 42);
+        assert_eq!(v42.pre_release, None);
+
+        // Test draft versions
+        let draft: OntologyTypeVersion = "2-draft.abcd1234.5".parse().expect("should parse draft");
+        assert_eq!(draft.major, 2);
+        let Some(PreRelease::Draft { lane, revision }) = draft.pre_release.as_ref() else {
+            panic!("draft should have pre-release information");
+        };
+        assert_eq!(lane, "abcd1234");
+        assert_eq!(*revision, 5);
+        assert_eq!(draft.to_string(), "2-draft.abcd1234.5");
+    }
+
+    #[test]
+    fn ontology_version_roundtrip() {
+        let versions = ["1", "42", "2-draft.lane1234.1", "5-draft.xyz98765.999"];
+
+        for v_str in versions {
+            let parsed: OntologyTypeVersion = v_str.parse().expect("should parse");
+            assert_eq!(parsed.to_string(), v_str, "roundtrip failed for {v_str}");
+        }
+    }
+
+    #[test]
+    fn ontology_version_ordering_same_major() {
+        let published = OntologyTypeVersion {
+            major: 2,
+            pre_release: None,
+        };
+
+        let draft1 = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "aaaa1111".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        let draft2 = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "aaaa1111".to_owned(),
+                revision: 2,
+            }),
+        };
+
+        // Per SemVer: published > draft (same major version)
+        assert!(published > draft1, "v/2 should be > v/2-draft");
+        assert!(published > draft2, "v/2 should be > v/2-draft");
+
+        // Draft with higher revision > lower revision
+        assert!(draft2 > draft1, "draft.2 should be > draft.1");
+    }
+
+    #[test]
+    fn ontology_version_ordering_different_major() {
+        let v1 = OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        };
+
+        let v2_draft = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "lane1234".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        let v2 = OntologyTypeVersion {
+            major: 2,
+            pre_release: None,
+        };
+
+        let v3 = OntologyTypeVersion {
+            major: 3,
+            pre_release: None,
+        };
+
+        // Major version takes precedence
+        assert!(v1 < v2_draft, "v/1 < v/2-draft");
+        assert!(
+            v2_draft < v2,
+            "v/2-draft < v/2 (same major, published > draft)"
+        );
+        assert!(v2 < v3, "v/2 < v/3");
+
+        // Transitive
+        assert!(v1 < v2, "v/1 < v/2");
+        assert!(v1 < v3, "v/1 < v/3");
+    }
+
+    #[test]
+    fn ontology_version_ordering_different_lanes() {
+        let draft_lane_a = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "aaaa1111".to_owned(),
+                revision: 5,
+            }),
+        };
+
+        let draft_lane_b = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "bbbb2222".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        // Lexicographic ordering by lane
+        assert!(
+            draft_lane_a < draft_lane_b,
+            "lane 'aaaa' should be < lane 'bbbb'"
+        );
+    }
+
+    #[test]
+    fn ontology_version_equality() {
+        let v1_a = OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        };
+
+        let v1_b = OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        };
+
+        let draft_a = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "lane1234".to_owned(),
+                revision: 5,
+            }),
+        };
+
+        let draft_b = OntologyTypeVersion {
+            major: 2,
+            pre_release: Some(PreRelease::Draft {
+                lane: "lane1234".to_owned(),
+                revision: 5,
+            }),
+        };
+
+        assert_eq!(v1_a, v1_b);
+        assert_eq!(draft_a, draft_b);
+        assert_ne!(v1_a, draft_a);
+    }
+
+    #[test]
+    fn draft_url_parsing() {
+        let url_str = "https://example.com/person/v/2-draft.abcd1234.3";
+        let parsed = VersionedUrl::from_str(url_str).expect("should parse draft URL");
+
+        assert_eq!(parsed.base_url.as_str(), "https://example.com/person/");
+        assert_eq!(parsed.version.major, 2);
+
+        let Some(PreRelease::Draft { lane, revision }) = parsed.version.pre_release.as_ref() else {
+            panic!("should have pre-release draft info");
+        };
+        assert_eq!(lane, "abcd1234");
+        assert_eq!(*revision, 3);
+
+        // Roundtrip
+        assert_eq!(parsed.to_string(), url_str);
     }
 }

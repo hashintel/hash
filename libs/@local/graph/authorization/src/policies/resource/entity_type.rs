@@ -89,8 +89,8 @@ impl EntityTypeResource<'_> {
                 (
                     SmolStr::new_static("version"),
                     ast::PartialValue::Value(ast::Value::new(
-                        ast::ValueKind::Lit(ast::Literal::Long(ast::Integer::from(
-                            self.id.as_url().version.inner(),
+                        ast::ValueKind::Lit(ast::Literal::String(SmolStr::from(
+                            self.id.as_url().version.to_string(),
                         ))),
                         None,
                     )),
@@ -198,7 +198,7 @@ impl ToCedarExpr for EntityTypeResourceFilter {
                     ast::Expr::var(ast::Var::Resource),
                     SmolStr::new_static("version"),
                 ),
-                ast::Expr::val(version.inner().to_string()),
+                ast::Expr::val(version.to_string()),
             ),
             Self::IsRemote => ast::Expr::get_attr(
                 ast::Expr::var(ast::Var::Resource),
