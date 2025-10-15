@@ -18,6 +18,7 @@ use hashql_hir::{
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
         r#let::{Binding, Let, VarId, VarIdMap},
+        thunk::Thunk,
         variable::LocalVariable,
     },
     visit::{self, Visitor},
@@ -68,7 +69,10 @@ impl FilterCompilerContext {
     const fn with_current_span(self, span: SpanId) -> Self {
         Self {
             span: self.span,
-            current_span: Some(span),
+            current_span: match self.current_span {
+                None => Some(span),
+                Some(_) => self.current_span,
+            },
             param_id: self.param_id,
         }
     }
@@ -205,6 +209,14 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
         visit::walk_local_variable(self, variable);
 
         if let Some(output) = self.variables.get(&variable.id.value) {
+            self.output.insert(self.current, output.clone());
+        }
+    }
+
+    fn visit_thunk(&mut self, thunk: &'heap Thunk<'heap>) {
+        visit::walk_thunk(self, thunk);
+
+        if let Some(output) = self.output.get(&thunk.body.id) {
             self.output.insert(self.current, output.clone());
         }
     }

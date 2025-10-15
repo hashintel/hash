@@ -81,6 +81,7 @@ use crate::{
             BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
             UnaryOperation,
         },
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
@@ -274,6 +275,13 @@ pub trait Fold<'heap> {
         walk_binding(self, binding)
     }
 
+    fn fold_bindings(
+        &mut self,
+        bindings: Interned<'heap, [Binding<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [Binding<'heap>]>> {
+        walk_bindings(self, bindings)
+    }
+
     fn fold_binder(&mut self, binding: Binder<'heap>) -> Self::Output<Binder<'heap>> {
         walk_binder(self, binding)
     }
@@ -390,6 +398,10 @@ pub trait Fold<'heap> {
         walk_closure_params(self, params)
     }
 
+    fn fold_thunk(&mut self, thunk: Thunk<'heap>) -> Self::Output<Thunk<'heap>> {
+        walk_thunk(self, thunk)
+    }
+
     fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
         walk_graph(self, graph)
     }
@@ -484,6 +496,7 @@ pub fn walk_node<'heap, T: Fold<'heap> + ?Sized>(
         NodeKind::Call(call) => NodeKind::Call(visitor.fold_call(call)?),
         NodeKind::Branch(branch) => NodeKind::Branch(visitor.fold_branch(branch)?),
         NodeKind::Closure(closure) => NodeKind::Closure(visitor.fold_closure(closure)?),
+        NodeKind::Thunk(thunk) => NodeKind::Thunk(visitor.fold_thunk(thunk)?),
         NodeKind::Graph(graph) => NodeKind::Graph(visitor.fold_graph(graph)?),
     };
 
@@ -642,15 +655,10 @@ pub fn walk_let<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Let { bindings, body }: Let<'heap>,
 ) -> T::Output<Let<'heap>> {
-    let mut bindings = Beef::new(bindings);
-    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
-
+    let bindings = visitor.fold_bindings(bindings)?;
     let body = visitor.fold_nested_node(body)?;
 
-    Try::from_output(Let {
-        bindings: bindings.finish(&visitor.interner().bindings),
-        body,
-    })
+    Try::from_output(Let { bindings, body })
 }
 
 pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
@@ -670,6 +678,20 @@ pub fn walk_binding<'heap, T: Fold<'heap> + ?Sized>(
         binder,
         value,
     })
+}
+
+pub fn walk_bindings<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    bindings: Interned<'heap, [Binding<'heap>]>,
+) -> T::Output<Interned<'heap, [Binding<'heap>]>> {
+    if bindings.is_empty() {
+        return Try::from_output(bindings);
+    }
+
+    let mut bindings = Beef::new(bindings);
+    bindings.try_map::<_, T::Output<()>>(|binding| visitor.fold_binding(binding))?;
+
+    Try::from_output(bindings.finish(&visitor.interner().bindings))
 }
 
 pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(
@@ -844,6 +866,7 @@ pub fn walk_index_access<'heap, T: Fold<'heap> + ?Sized>(
 pub fn walk_call<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Call {
+        kind,
         function,
         arguments,
     }: Call<'heap>,
@@ -852,6 +875,7 @@ pub fn walk_call<'heap, T: Fold<'heap> + ?Sized>(
     let arguments = visitor.fold_call_arguments(arguments)?;
 
     Try::from_output(Call {
+        kind,
         function,
         arguments,
     })
@@ -949,6 +973,15 @@ pub fn walk_closure_params<'heap, T: Fold<'heap> + ?Sized>(
     params.try_map::<_, T::Output<()>>(|param| visitor.fold_closure_param(param))?;
 
     Try::from_output(params.finish(&visitor.interner().closure_params))
+}
+
+pub fn walk_thunk<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    Thunk { body }: Thunk<'heap>,
+) -> T::Output<Thunk<'heap>> {
+    let body = visitor.fold_nested_node(body)?;
+
+    Try::from_output(Thunk { body })
 }
 
 pub fn walk_graph<'heap, T: Fold<'heap> + ?Sized>(

@@ -6,6 +6,7 @@ use hashql_hir::node::{
     kind::NodeKind,
     r#let::{Binding, Let},
     operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeOperation},
+    thunk::Thunk,
     variable::{LocalVariable, Variable},
 };
 
@@ -122,6 +123,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 r#type: _,
                 force: _,
             }))) => self.compile_filter(context, value, sink),
+            NodeKind::Thunk(Thunk { body }) => self.compile_filter(context, body, sink),
             // If we came to this match arm using these nodes, then that means that the filter
             // must have evaluated to a boolean expression. Therefore we can just check if the
             // expression evaluates to true.

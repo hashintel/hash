@@ -36,6 +36,7 @@ use crate::{
         input::Input,
         r#let::{Binding, Let, VarIdMap},
         operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
@@ -564,6 +565,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         self.types.insert(self.current.id, def.id);
         self.arguments.insert(self.current.id, def.arguments);
+    }
+
+    fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {
+        unreachable!("thunk operations shouldn't be present yet");
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {

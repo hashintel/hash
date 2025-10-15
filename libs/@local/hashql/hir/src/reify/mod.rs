@@ -34,7 +34,7 @@ use crate::{
         Node, PartialNode,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
-        call::{Call, CallArgument},
+        call::{Call, CallArgument, PointerKind},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         input::Input,
@@ -114,6 +114,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let (function, arguments) = Option::zip(function, arguments)?;
 
         Some(NodeKind::Call(Call {
+            kind: PointerKind::Fat,
             function,
             arguments,
         }))
@@ -652,6 +653,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let partial = PartialNode {
             span: node.span,
             kind: NodeKind::Call(Call {
+                kind: PointerKind::Fat,
                 function: some,
                 arguments: self.context.interner.intern_call_arguments(&[CallArgument {
                     span: node.span,
@@ -672,6 +674,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         let partial = PartialNode {
             span,
             kind: NodeKind::Call(Call {
+                kind: PointerKind::Fat,
                 function: none,
                 arguments: self.context.interner.intern_call_arguments(&[]),
             }),

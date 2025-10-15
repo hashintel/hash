@@ -10,25 +10,31 @@ use hashql_core::{
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
-    lower::normalization::{Normalization, NormalizationState},
+    lower::{
+        normalization::{Normalization, NormalizationState},
+        thunking::Thunking,
+    },
     node::Node,
     pretty::PrettyPrintEnvironment,
 };
 
 use super::{
     Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
-    hir_lower_specialization::hir_lower_specialization,
+    hir_lower_normalization::hir_lower_normalization,
 };
 use crate::suite::common::Header;
 
-pub(crate) fn hir_lower_normalization<'heap>(
+pub(crate) fn hir_lower_thunking<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
 ) -> Result<Node<'heap>, SuiteDiagnostic> {
-    let node = hir_lower_specialization(heap, expr, environment, context, options)?;
+    let node = hir_lower_normalization(heap, expr, environment, context, options)?;
+
+    let thunking = Thunking::new(context);
+    let node = thunking.run(node);
 
     let mut normalization_state = NormalizationState::default();
     let normalization = Normalization::new(context, &mut normalization_state);
@@ -37,11 +43,11 @@ pub(crate) fn hir_lower_normalization<'heap>(
     Ok(node)
 }
 
-pub(crate) struct HirLowerNormalizationSuite;
+pub(crate) struct HirLowerThunkingSuite;
 
-impl Suite for HirLowerNormalizationSuite {
+impl Suite for HirLowerThunkingSuite {
     fn name(&self) -> &'static str {
-        "hir/lower/normalization"
+        "hir/lower/thunking"
     }
 
     fn run<'heap>(
@@ -57,7 +63,7 @@ impl Suite for HirLowerNormalizationSuite {
 
         let mut output = String::new();
 
-        let node = hir_lower_normalization(
+        let node = hir_lower_thunking(
             heap,
             expr,
             &mut environment,
@@ -72,7 +78,7 @@ impl Suite for HirLowerNormalizationSuite {
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
-            Header::new("HIR after normalization"),
+            Header::new("HIR after thunking"),
             node.pretty_print(
                 &PrettyPrintEnvironment {
                     env: &environment,

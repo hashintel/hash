@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Type assertion with erasure normalization
 ["as", { "#literal": 4 }, "Number"]

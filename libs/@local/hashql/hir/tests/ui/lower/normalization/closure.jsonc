@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Closure definition with complex body expression
 [
   "let",
   "foo",

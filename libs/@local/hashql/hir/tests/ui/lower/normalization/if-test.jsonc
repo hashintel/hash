@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: If-else with complex test condition
 [
   "if",
   [">=", { "#literal": 1 }, { "#literal": 2 }],

@@ -8,8 +8,9 @@ use self::{
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
     inference::TypeInference,
-    normalization::{Normalization, NormalizationOptions},
+    normalization::{Normalization, NormalizationState},
     specialization::Specialization,
+    thunking::Thunking,
 };
 use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
@@ -20,6 +21,7 @@ pub mod error;
 pub mod inference;
 pub mod normalization;
 pub mod specialization;
+pub mod thunking;
 
 /// Lowers the given node by performing different phases.
 ///
@@ -95,7 +97,15 @@ pub fn lower<'heap>(
     );
     let Ok(node) = specialization.fold_node(node);
 
-    let normalization = Normalization::new(context, NormalizationOptions::default());
+    let mut norm_state = NormalizationState::default();
+    let normalization = Normalization::new(context, &mut norm_state);
+    let node = normalization.run(node);
+
+    let thunking = Thunking::new(context);
+    let node = thunking.run(node);
+
+    // Thunking breaks normalization, so re-normalize
+    let normalization = Normalization::new(context, &mut norm_state);
     let node = normalization.run(node);
 
     diagnostics.into_status(node)
