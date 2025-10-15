@@ -66,7 +66,7 @@ import type { ProposedEntityOutput } from "./shared/types";
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents?.[0]?.outputs;
+  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
 
   const deliverables: DeliverableData[] = [];
 

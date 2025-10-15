@@ -82,7 +82,7 @@
     "@types/lodash.isequal": "4.5.8",
     "@types/node": "22.16.5",
     "@types/react": "19.1.9",
-    "eslint": "9.20.1",
+    "eslint": "9.37.0",
     "rimraf": "6.0.1",
     "tsx": "4.20.3",
     "typescript": "5.7.3"

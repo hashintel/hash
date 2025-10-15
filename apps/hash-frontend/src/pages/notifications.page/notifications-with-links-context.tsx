@@ -373,7 +373,7 @@ export const useNotificationsWithLinksContextValue =
             );
 
             const linkRightEntityId =
-              occurredInEntityLink?.linkEntity[0]?.linkData?.rightEntityId;
+              occurredInEntityLink?.linkEntity[0]?.linkData.rightEntityId;
 
             if (!occurredInEntityLink || !linkRightEntityId) {
               throw new Error(
