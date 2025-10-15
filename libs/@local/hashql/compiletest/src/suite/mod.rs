@@ -17,6 +17,7 @@ mod hir_lower_inference;
 mod hir_lower_inference_intrinsics;
 mod hir_lower_normalization;
 mod hir_lower_specialization;
+mod hir_lower_thunking;
 mod hir_reify;
 mod parse_syntax_dump;
 
@@ -42,7 +43,8 @@ use self::{
     hir_lower_inference::HirLowerTypeInferenceSuite,
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
-    hir_lower_specialization::HirLowerSpecializationSuite, hir_reify::HirReifySuite,
+    hir_lower_specialization::HirLowerSpecializationSuite,
+    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -74,6 +76,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerCtorSuite,
     &HirLowerNormalizationSuite,
     &HirLowerSpecializationSuite,
+    &HirLowerThunkingSuite,
     &HirLowerTypeCheckingSuite,
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
