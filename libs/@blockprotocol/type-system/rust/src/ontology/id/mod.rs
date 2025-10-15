@@ -222,16 +222,48 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// Pre-release version information for an ontology type.
 ///
 /// Represents different pre-release stages following semantic versioning conventions.
-/// Currently only draft stages are supported, but this can be extended to include
-/// alpha, beta, release candidate stages in the future.
+/// Currently only draft stages are supported, but this enum is designed to be extended
+/// with additional variants like `Alpha`, `Beta`, and `ReleaseCandidate` in the future.
+///
+/// # Draft Lanes
+///
+/// The `Draft` variant uses a lane-based system to enable multiple developers or teams to work
+/// on parallel draft versions targeting the same published version. Each lane is identified by
+/// a string, and revisions within a lane are monotonically increasing.
+///
+/// # Examples
+///
+/// ```
+/// use std::str::FromStr;
+/// use type_system::ontology::id::PreRelease;
+///
+/// // Parse draft pre-release information
+/// let draft = PreRelease::from_str("lane123.5").unwrap();
+/// assert!(matches!(draft, PreRelease::Draft { lane, revision } if lane == "lane123" && revision == 5));
+///
+/// // Draft ordering: lane first, then revision
+/// let draft_a1 = PreRelease::from_str("laneA.1").unwrap();
+/// let draft_a2 = PreRelease::from_str("laneA.2").unwrap();
+/// let draft_b1 = PreRelease::from_str("laneB.1").unwrap();
+/// assert!(draft_a1 < draft_a2);  // Same lane, higher revision
+/// assert!(draft_a2 < draft_b1);  // "laneA" < "laneB" lexicographically
+/// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
 pub enum PreRelease {
-    /// Draft pre-release with lane identifier and revision number
+    /// Draft pre-release with lane identifier and revision number.
+    ///
+    /// Format: `lane.revision` (e.g., `abc123.5`)
     Draft {
-        /// Lane identifier for isolating parallel draft work
+        /// Lane identifier for isolating parallel draft work.
+        ///
+        /// Typically a UUID, username, or team identifier to prevent conflicts
+        /// when multiple parties are drafting versions targeting the same published version.
         lane: String,
-        /// Monotonic revision number within this lane
+        /// Monotonic revision number within this lane.
+        ///
+        /// Should increment with each new draft in the same lane. Revisions are
+        /// compared numerically when ordering drafts in the same lane.
         revision: u32,
     },
 }
@@ -261,19 +293,44 @@ impl FromStr for PreRelease {
     }
 }
 
-/// A strongly-typed wrapper for ontology type version numbers.
+/// A semantic version number for ontology types, supporting both published and pre-release
+/// versions.
 ///
-/// [`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].
-/// It ensures that version numbers are always valid unsigned integers and provides
-/// type safety throughout the system.
+/// [`OntologyTypeVersion`] represents the version component of a [`VersionedUrl`], following
+/// semantic versioning conventions. It supports:
+///
+/// - **Published versions**: Simple major version numbers (e.g., `1`, `2`, `3`)
+/// - **Pre-release versions**: Major version with pre-release metadata (e.g., `2-draft.lane.5`)
+///
+/// # Ordering Semantics
+///
+/// Versions follow semantic versioning rules:
+/// - Major version takes precedence: `v/3` > `v/2` > `v/1`
+/// - Published versions have higher precedence than pre-release versions with the same major
+///   version
+/// - Pre-release versions are ordered lexicographically by lane, then numerically by revision
 ///
 /// # Examples
 ///
 /// ```
-/// use type_system::ontology::id::OntologyTypeVersion;
+/// use std::str::FromStr;
 ///
-/// let version = OntologyTypeVersion::new(1);
-/// assert_eq!(version.inner(), 1);
+/// use type_system::ontology::id::{OntologyTypeVersion, PreRelease};
+///
+/// // Published version
+/// let v1 = OntologyTypeVersion::from_str("1").unwrap();
+/// assert_eq!(v1.major, 1);
+/// assert!(v1.pre_release.is_none());
+///
+/// // Draft version
+/// let draft = OntologyTypeVersion::from_str("2-draft.lane123.5").unwrap();
+/// assert_eq!(draft.major, 2);
+/// assert!(matches!(draft.pre_release, Some(PreRelease::Draft { .. })));
+///
+/// // Ordering: published > draft (same major)
+/// assert!(v1 < draft); // v/1 < v/2-draft.lane123.5
+/// let v2 = OntologyTypeVersion::from_str("2").unwrap();
+/// assert!(draft < v2); // v/2-draft.lane123.5 < v/2
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(transparent))]
@@ -457,15 +514,13 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 /// - [`TooLong`] if the URL exceeds 2048 characters
 /// - [`IncorrectFormatting`] if the URL doesn't follow the required pattern
 /// - [`MissingVersion`] if no version number is provided after "v/"
-/// - [`InvalidVersion`] if the version is not a valid integer
-/// - [`AdditionalEndContent`] if there's content after the version number
+/// - [`InvalidVersion`] if the version is not a valid integer or has invalid format
 /// - [`InvalidBaseUrl`] if the base URL part is invalid
 ///
 /// [`TooLong`]: ParseVersionedUrlError::TooLong
 /// [`IncorrectFormatting`]: ParseVersionedUrlError::IncorrectFormatting
 /// [`MissingVersion`]: ParseVersionedUrlError::MissingVersion
 /// [`InvalidVersion`]: ParseVersionedUrlError::InvalidVersion
-/// [`AdditionalEndContent`]: ParseVersionedUrlError::AdditionalEndContent
 /// [`InvalidBaseUrl`]: ParseVersionedUrlError::InvalidBaseUrl
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
@@ -616,7 +671,7 @@ impl ToSchema<'_> for VersionedUrl {
 ///
 /// // Create from individual components
 /// let base_url = BaseUrl::new("https://example.com/types/data-type/text/".to_owned())?;
-/// let version = OntologyTypeVersion::new(1);
+/// let version = OntologyTypeVersion::from_str("1")?;
 /// let record_id = OntologyTypeRecordId { base_url, version };
 ///
 /// // Convert between VersionedUrl and OntologyTypeRecordId

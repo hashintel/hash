@@ -70,7 +70,10 @@ async fn insert() {
                         "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    version: OntologyTypeVersion::new(1),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
                 }]),
                 properties: PropertyObjectWithMetadata::from_parts(person.clone(), None)
                     .expect("could not create property with metadata object"),
@@ -153,7 +156,10 @@ async fn query() {
                             .to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    version: OntologyTypeVersion::new(1),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
                 }]),
                 properties: PropertyObjectWithMetadata::from_parts(organization.clone(), None)
                     .expect("could not create property with metadata object"),
@@ -238,7 +244,10 @@ async fn update() {
                         "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    version: OntologyTypeVersion::new(1),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
                 }]),
                 properties: PropertyObjectWithMetadata::from_parts(page_v1.clone(), None)
                     .expect("could not create property with metadata object"),
