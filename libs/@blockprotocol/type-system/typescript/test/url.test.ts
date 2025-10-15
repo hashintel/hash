@@ -1,9 +1,17 @@
 import { describe, expect, test } from "vitest";
 
-import type { BaseUrl, VersionedUrl } from "../src/main.js";
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "../src/main.js";
 import {
+  compareOntologyTypeVersions,
   extractBaseUrl,
+  extractMajorVersion,
   extractVersion,
+  haveSameMajorVersion,
+  isDraftVersion,
   validateBaseUrl,
   validateVersionedUrl,
 } from "../src/main.js";
@@ -104,4 +112,204 @@ describe("extractVersion", () => {
       expect(extractVersion(input)).toEqual(expected);
     },
   );
+});
+
+describe("Draft version support", () => {
+  describe("validateVersionedUrl with drafts", () => {
+    test.each([
+      ["http://example.com/v/1-draft.abc12345.1"],
+      ["http://example.com/v/2-draft.xyz98765.999"],
+      ["http://example.com/person/v/5-draft.lane1234.42"],
+    ])("validateVersionedUrl(%s) with draft succeeds", (input) => {
+      expect(validateVersionedUrl(input)).toEqual({ type: "Ok", inner: input });
+    });
+
+    test.each([
+      "http://example.com/v/1-draft", // Missing lane and revision
+      "http://example.com/v/1-draft.", // Missing lane and revision
+      "http://example.com/v/1-draft.lane", // Missing revision
+      "http://example.com/v/1-draft.lane.", // Missing revision number
+      "http://example.com/v/1-draft.lane.abc", // Invalid revision (not a number)
+    ])("validateVersionedUrl(%s) with invalid draft fails", (input) => {
+      const result = validateVersionedUrl(input);
+      expect(result.type).toBe("Err");
+    });
+  });
+
+  describe("extractVersion with drafts", () => {
+    test.each([
+      [
+        "http://example.com/v/1-draft.abc12345.1" as VersionedUrl,
+        "1-draft.abc12345.1",
+      ],
+      [
+        "http://example.com/v/2-draft.xyz98765.999" as VersionedUrl,
+        "2-draft.xyz98765.999",
+      ],
+    ])("extractVersion(%s) returns draft version", (input, expected) => {
+      expect(extractVersion(input).toString()).toEqual(expected);
+    });
+  });
+
+  describe("isDraftVersion", () => {
+    test("returns true for draft versions", () => {
+      expect(isDraftVersion("1-draft.abc12345.1" as OntologyTypeVersion)).toBe(
+        true,
+      );
+      expect(
+        isDraftVersion("2-draft.xyz98765.999" as OntologyTypeVersion),
+      ).toBe(true);
+    });
+
+    test("returns false for published versions", () => {
+      expect(isDraftVersion("1" as OntologyTypeVersion)).toBe(false);
+      expect(isDraftVersion("42" as OntologyTypeVersion)).toBe(false);
+    });
+  });
+
+  describe("extractMajorVersion", () => {
+    test("extracts major from published versions", () => {
+      expect(extractMajorVersion("1" as OntologyTypeVersion)).toBe(1);
+      expect(extractMajorVersion("42" as OntologyTypeVersion)).toBe(42);
+    });
+
+    test("extracts major from draft versions", () => {
+      expect(
+        extractMajorVersion("1-draft.abc12345.1" as OntologyTypeVersion),
+      ).toBe(1);
+      expect(
+        extractMajorVersion("5-draft.xyz98765.3" as OntologyTypeVersion),
+      ).toBe(5);
+    });
+  });
+
+  describe("haveSameMajorVersion", () => {
+    test("returns true for same major versions", () => {
+      expect(
+        haveSameMajorVersion(
+          "2" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(true);
+
+      expect(
+        haveSameMajorVersion(
+          "2" as OntologyTypeVersion,
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+        ),
+      ).toBe(true);
+
+      expect(
+        haveSameMajorVersion(
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+          "2-draft.xyz98765.5" as OntologyTypeVersion,
+        ),
+      ).toBe(true);
+    });
+
+    test("returns false for different major versions", () => {
+      expect(
+        haveSameMajorVersion(
+          "1" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(false);
+
+      expect(
+        haveSameMajorVersion(
+          "1-draft.abc12345.1" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("compareOntologyTypeVersions with SemVer", () => {
+    test("compares major versions correctly", () => {
+      expect(
+        compareOntologyTypeVersions(
+          "1" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(-1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "3" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "2" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(0);
+    });
+
+    test("published > draft (same major)", () => {
+      expect(
+        compareOntologyTypeVersions(
+          "2" as OntologyTypeVersion,
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+        ),
+      ).toBe(1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(-1);
+    });
+
+    test("compares draft versions by lane and revision", () => {
+      // Same lane, different revision
+      expect(
+        compareOntologyTypeVersions(
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+          "2-draft.abc12345.2" as OntologyTypeVersion,
+        ),
+      ).toBe(-1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "2-draft.abc12345.5" as OntologyTypeVersion,
+          "2-draft.abc12345.3" as OntologyTypeVersion,
+        ),
+      ).toBe(1);
+
+      // Different lanes (lexicographic)
+      expect(
+        compareOntologyTypeVersions(
+          "2-draft.aaaa1111.1" as OntologyTypeVersion,
+          "2-draft.bbbb2222.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "2-draft.xyz98765.1" as OntologyTypeVersion,
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+        ),
+      ).toBe(1);
+    });
+
+    test("major version takes precedence over draft status", () => {
+      expect(
+        compareOntologyTypeVersions(
+          "1" as OntologyTypeVersion,
+          "2-draft.abc12345.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1);
+
+      expect(
+        compareOntologyTypeVersions(
+          "3-draft.abc12345.1" as OntologyTypeVersion,
+          "2" as OntologyTypeVersion,
+        ),
+      ).toBe(1);
+    });
+  });
 });

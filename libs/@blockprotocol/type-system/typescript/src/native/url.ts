@@ -63,6 +63,7 @@ export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
   return validateBaseUrl(baseUrl).type === "Ok";
 };
 
+// Matches both published versions (v/1) and draft versions (v/2-draft.lane.5)
 const versionedUrlRegExp = /(.+\/)v\/(.*)/;
 
 /**
@@ -106,34 +107,67 @@ export const validateVersionedUrl = (
       };
     }
 
-    const index = version.search(/[^0-9]/);
-    if (index === 0) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "InvalidVersion",
-          inner: [version, "invalid digit found in string"],
-        },
-      };
-    } else if (index > 0) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "AdditionalEndContent",
-          inner: version.substring(index),
-        },
-      };
-    }
+    // Try to match draft version format first: "2-draft.lane.5"
+    const draftMatch = version.match(/^(\d+)-draft\.([^.]+)\.(\d+)$/);
 
-    const versionNumber = Number(version);
-    if (versionNumber > 4294967295) {
-      return {
-        type: "Err",
-        inner: {
-          reason: "InvalidVersion",
-          inner: [version, "number too large to fit in target type"],
-        },
-      };
+    if (draftMatch) {
+      // It's a draft version
+      const [, majorStr, lane, revisionStr] = draftMatch;
+      const major = Number(majorStr);
+      const revision = Number(revisionStr);
+
+      if (major > 4294967295) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [version, "number too large to fit in target type"],
+          },
+        };
+      }
+
+      if (revision > 4294967295) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [version, "revision number too large"],
+          },
+        };
+      }
+
+      // Valid draft version
+    } else {
+      // Not a draft, validate as published version (plain number)
+      const index = version.search(/[^0-9]/);
+      if (index === 0) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [version, "invalid digit found in string"],
+          },
+        };
+      } else if (index > 0) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "AdditionalEndContent",
+            inner: version.substring(index),
+          },
+        };
+      }
+
+      const versionNumber = Number(version);
+      if (versionNumber > 4294967295) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [version, "number too large to fit in target type"],
+          },
+        };
+      }
     }
 
     const validBaseUrlResult = validateBaseUrl(baseUrl);
@@ -284,17 +318,100 @@ export const incrementOntologyTypeVersion = (
     major: Number.parseInt(version.toString(), 10) + 1,
   });
 
+/**
+ * Parse an OntologyTypeVersion string into its components
+ */
+const parseVersionComponents = (version: OntologyTypeVersion) => {
+  const match = version.toString().match(/^(\d+)(?:-draft\.([^.]+)\.(\d+))?$/);
+
+  if (!match) {
+    throw new Error(`Invalid version format: ${version}`);
+  }
+
+  const [, majorStr, lane, revisionStr] = match;
+
+  if (!majorStr) {
+    throw new Error(
+      `Invalid version format: missing major version in ${version}`,
+    );
+  }
+
+  return {
+    major: Number.parseInt(majorStr, 10),
+    preRelease:
+      lane && revisionStr
+        ? { lane, revision: Number.parseInt(revisionStr, 10) }
+        : null,
+  };
+};
+
+/**
+ * Compare two ontology type versions following SemVer semantics.
+ *
+ * Rules:
+ * - Major version takes precedence
+ * - Published versions (v/2) > pre-release versions (v/2-draft.x.y)
+ * - Pre-release versions are compared lexicographically by lane, then by revision
+ */
 export const compareOntologyTypeVersions = (
   versionA: OntologyTypeVersion,
   versionB: OntologyTypeVersion,
 ): -1 | 0 | 1 => {
-  const parsedVersionA = Number.parseInt(versionA.toString(), 10);
-  const parsedVersionB = Number.parseInt(versionB.toString(), 10);
-  if (parsedVersionA < parsedVersionB) {
-    return -1;
-  } else if (parsedVersionA > parsedVersionB) {
-    return 1;
-  } else {
+  const a = parseVersionComponents(versionA);
+  const b = parseVersionComponents(versionB);
+
+  // First compare major version
+  if (a.major !== b.major) {
+    return a.major < b.major ? -1 : 1;
+  }
+
+  // Same major version - check pre-release
+  // Per SemVer: published > pre-release
+  if (!a.preRelease && !b.preRelease) {
+    return 0; // Both published, same major
+  }
+  if (!a.preRelease && b.preRelease) {
+    return 1; // A is published, B is pre-release → A > B
+  }
+  if (a.preRelease && !b.preRelease) {
+    return -1; // A is pre-release, B is published → A < B
+  }
+
+  // Both are pre-release - compare lane then revision
+  if (a.preRelease && b.preRelease) {
+    if (a.preRelease.lane !== b.preRelease.lane) {
+      return a.preRelease.lane < b.preRelease.lane ? -1 : 1;
+    }
+    if (a.preRelease.revision !== b.preRelease.revision) {
+      return a.preRelease.revision < b.preRelease.revision ? -1 : 1;
+    }
     return 0;
   }
+
+  return 0;
+};
+
+/**
+ * Check if a version is a draft (pre-release)
+ */
+export const isDraftVersion = (version: OntologyTypeVersion): boolean => {
+  return version.toString().includes("-draft.");
+};
+
+/**
+ * Extract the major version number from an OntologyTypeVersion
+ */
+export const extractMajorVersion = (version: OntologyTypeVersion): number => {
+  const components = parseVersionComponents(version);
+  return components.major;
+};
+
+/**
+ * Check if two versions have the same major version
+ */
+export const haveSameMajorVersion = (
+  versionA: OntologyTypeVersion,
+  versionB: OntologyTypeVersion,
+): boolean => {
+  return extractMajorVersion(versionA) === extractMajorVersion(versionB);
 };
