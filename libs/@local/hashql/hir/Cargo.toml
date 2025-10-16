@@ -17,6 +17,7 @@ hashql-core = { workspace = true, public = true }
 hashql-diagnostics = { workspace = true }
 
 # Private third-party dependencies
+ena            = { workspace = true }
 pretty         = { workspace = true }
 simple-mermaid = { workspace = true }
 tracing        = { workspace = true }
