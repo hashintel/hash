@@ -13,7 +13,7 @@ import { calculateSpecularImage } from "./maps/specular";
 import { CONVEX } from "./surface-equations";
 import { useToMotion } from "./use-to-motion";
 
-const LATERAL_PART_SIZE = 3; // 3 pixels for top/left/right/bottom parts
+const LATERAL_PART_SIZE = 1; // 3 pixels for top/left/right/bottom parts
 
 // Each part is a Base64-encoded PNG image
 type Parts = {
@@ -34,56 +34,68 @@ type Parts = {
 
 function splitImageDataToParts(
   imageData: ImageData,
-  radius_: number,
+  cornerWidth_: number,
   pixelRatio: number,
 ): Parts {
-  const radius = radius_ * pixelRatio;
+  const cornerWidth = cornerWidth_ * pixelRatio;
   const lateralPartSize = LATERAL_PART_SIZE * pixelRatio;
 
-  if (imageData.width !== radius * 2 + lateralPartSize) {
-    throw new Error("ImageData width is too small for the given radius");
+  if (imageData.width !== cornerWidth * 2 + lateralPartSize) {
+    throw new Error("ImageData width is too small for the given corner width");
   }
   if (imageData.height !== imageData.width) {
     throw new Error("ImageData should be square");
   }
 
-  const topLeft = imageDataToUrl(imageData, radius, radius, 0, 0);
-  const top = imageDataToUrl(imageData, lateralPartSize, radius, radius, 0);
-  const topRight = imageDataToUrl(
+  const topLeft = imageDataToUrl(imageData, cornerWidth, cornerWidth, 0, 0);
+  const top = imageDataToUrl(
     imageData,
-    radius,
-    radius,
-    radius + lateralPartSize,
+    lateralPartSize,
+    cornerWidth,
+    cornerWidth,
     0,
   );
-  const left = imageDataToUrl(imageData, radius, lateralPartSize, 0, radius);
+  const topRight = imageDataToUrl(
+    imageData,
+    cornerWidth,
+    cornerWidth,
+    cornerWidth + lateralPartSize,
+    0,
+  );
+  const left = imageDataToUrl(
+    imageData,
+    cornerWidth,
+    lateralPartSize,
+    0,
+    cornerWidth,
+  );
   const right = imageDataToUrl(
     imageData,
-    radius,
+    cornerWidth,
     lateralPartSize,
-    radius + lateralPartSize,
-    radius,
+    cornerWidth + lateralPartSize,
+    cornerWidth,
   );
   const bottomLeft = imageDataToUrl(
     imageData,
-    radius,
-    radius,
+    cornerWidth,
+    cornerWidth,
     0,
-    radius + lateralPartSize,
+    cornerWidth + lateralPartSize,
   );
   const bottom = imageDataToUrl(
     imageData,
     lateralPartSize,
-    radius,
-    radius,
-    radius + lateralPartSize,
+    cornerWidth,
+    cornerWidth,
+    cornerWidth + lateralPartSize,
   );
   const bottomRight = imageDataToUrl(
     imageData,
-    radius,
-    radius,
-    radius + lateralPartSize,
-    radius + lateralPartSize,
+    cornerWidth,
+    cornerWidth,
+    cornerWidth + lateralPartSize,
+    cornerWidth + lateralPartSize,
   );
 
   return {
@@ -105,7 +117,7 @@ function splitImageDataToParts(
 
 type CompositePartsProps = {
   imageData: MotionValue<ImageData>;
-  radius: MotionValue<number>;
+  cornerWidth: MotionValue<number>;
   pixelRatio: number;
   width: MotionValue<number>;
   height: MotionValue<number>;
@@ -119,7 +131,7 @@ type CompositePartsProps = {
 const CompositeParts: React.FC<CompositePartsProps> = memo(
   ({
     imageData,
-    radius,
+    cornerWidth,
     width,
     height,
     pixelRatio,
@@ -130,7 +142,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
     hideRight,
   }) => {
     const parts = useTransform(() =>
-      splitImageDataToParts(imageData.get(), radius.get(), pixelRatio),
+      splitImageDataToParts(imageData.get(), cornerWidth.get(), pixelRatio),
     );
 
     return (
@@ -140,8 +152,8 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           href={useTransform(parts, (_) => _.topLeft)}
           x={0}
           y={0}
-          width={radius}
-          height={radius}
+          width={cornerWidth}
+          height={cornerWidth}
           result={`${result}_topLeft`}
           preserveAspectRatio="none"
         />
@@ -150,16 +162,16 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           x={0}
           y={0}
           width={width}
-          height={radius}
+          height={cornerWidth}
           result={`${result}_top`}
           preserveAspectRatio="none"
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.topRight)}
-          x={useTransform(() => width.get() - radius.get())}
+          x={useTransform(() => width.get() - cornerWidth.get())}
           y={0}
-          width={radius}
-          height={radius}
+          width={cornerWidth}
+          height={cornerWidth}
           result={`${result}_topRight`}
           preserveAspectRatio="none"
         />
@@ -167,16 +179,16 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           href={useTransform(parts, (_) => _.left)}
           x={0}
           y={0}
-          width={radius}
+          width={cornerWidth}
           height={height}
           result={`${result}_left`}
           preserveAspectRatio="none"
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.right)}
-          x={useTransform(() => width.get() - radius.get())}
+          x={useTransform(() => width.get() - cornerWidth.get())}
           y={0}
-          width={radius}
+          width={cornerWidth}
           height={height}
           result={`${result}_right`}
           preserveAspectRatio="none"
@@ -184,27 +196,27 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
         <motion.feImage
           href={useTransform(parts, (_) => _.bottomLeft)}
           x={0}
-          y={useTransform(() => height.get() - radius.get())}
-          width={radius}
-          height={radius}
+          y={useTransform(() => height.get() - cornerWidth.get())}
+          width={cornerWidth}
+          height={cornerWidth}
           result={`${result}_bottomLeft`}
           preserveAspectRatio="none"
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.bottom)}
           x={0}
-          y={useTransform(() => height.get() - radius.get())}
+          y={useTransform(() => height.get() - cornerWidth.get())}
           width={width}
-          height={radius}
+          height={cornerWidth}
           result={`${result}_bottom`}
           preserveAspectRatio="none"
         />
         <motion.feImage
           href={useTransform(parts, (_) => _.bottomRight)}
-          x={useTransform(() => width.get() - radius.get())}
-          y={useTransform(() => height.get() - radius.get())}
-          width={radius}
-          height={radius}
+          x={useTransform(() => width.get() - cornerWidth.get())}
+          y={useTransform(() => height.get() - cornerWidth.get())}
+          width={cornerWidth}
+          height={cornerWidth}
           result={`${result}_bottomRight`}
           preserveAspectRatio="none"
         />
@@ -292,8 +304,17 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     hideLeft,
     hideRight,
   }) => {
-    // Calculated image will always be a square that contains 4 corners + 3 pixels for middle
-    const imageSide = useTransform(() => radius.get() * 2 + LATERAL_PART_SIZE);
+    // Size of each corner area
+    // If bezelWidth < radius, corners will be in a circle shape
+    // If bezelWidth >= radius, corners will be in a rounded square shape
+    const cornerWidth = useTransform(() =>
+      Math.max(radius.get(), bezelWidth.get()),
+    );
+
+    // Calculated image will always be a square that contains 4 corners + 1 pixel for middle
+    const imageSide = useTransform(
+      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE,
+    );
 
     const map = useTransform(() => {
       return calculateDisplacementMapRadius(
@@ -346,7 +367,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           imageData={displacementMap}
           width={width}
           height={height}
-          radius={radius}
+          cornerWidth={cornerWidth}
           pixelRatio={pixelRatio}
           result="displacement_map"
           hideTop={hideTop}
@@ -359,7 +380,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
           imageData={specularMap}
           width={width}
           height={height}
-          radius={radius}
+          cornerWidth={cornerWidth}
           pixelRatio={pixelRatio}
           result="specular_map"
           hideTop={hideTop}

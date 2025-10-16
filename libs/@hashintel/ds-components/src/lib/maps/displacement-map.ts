@@ -1,6 +1,6 @@
 /* eslint-disable id-length */
 /* eslint-disable no-param-reassign */
-import { calculateCircleMap } from "./calculate-circle-map";
+import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
 
 export function calculateDisplacementMapRadius(
   glassThickness: number = 200,
@@ -68,24 +68,33 @@ export function calculateDisplacementMap(props: {
   const height = Math.round(props.height * pixelRatio);
 
   const radius = Math.min(props.radius * pixelRatio, width / 2, height / 2);
-  const bezel = Math.min(props.bezelWidth * pixelRatio, radius - 1);
+  const bezel = Math.min(props.bezelWidth * pixelRatio, width / 2, height / 2);
 
-  return calculateCircleMap({
+  return calculateRoundedSquareMap({
     width,
     height,
     radius,
     maximumDistanceToBorder: bezel,
     fillColor: 0xff008080,
-    processPixel(x, y, buffer, offset, distanceFromCenter, opacity) {
-      const distanceFromSide = radius - distanceFromCenter;
-
+    processPixel(
+      _x,
+      _y,
+      buffer,
+      offset,
+      _distanceFromCenter,
+      distanceFromBorder,
+      distanceFromBorderRatio,
+      angle,
+      opacity,
+    ) {
       // Viewed from top
-      const cos = x / distanceFromCenter;
-      const sin = y / distanceFromCenter;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
 
-      const bezelIndex = Math.round(
-        (distanceFromSide / bezel) * precomputedDisplacementMap.length,
-      );
+      const ratio =
+        bezel > radius ? distanceFromBorderRatio : distanceFromBorder / bezel;
+
+      const bezelIndex = Math.round(ratio * precomputedDisplacementMap.length);
       const distance = precomputedDisplacementMap[bezelIndex] ?? 0;
 
       const dX = (-cos * distance) / maximumDisplacement;
