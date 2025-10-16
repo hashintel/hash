@@ -44,9 +44,6 @@
 //! // Unify elements 1 and 2 (transitively connects 0 and 2)
 //! uf.unify(id1, id2);
 //! assert!(uf.equiv(id0, id2));
-//!
-//! // Check the size of the set containing element 0
-//! assert_eq!(uf.size(id0), 3);
 //! ```
 //!
 //! [`find`]: IdUnionFind::find
@@ -104,12 +101,10 @@ where
     ///
     /// let mut uf = IdUnionFind::<NodeId>::new(10);
     ///
-    /// // Each element starts in its own set with size 1
+    /// // Starting out elements are not equivalent to each other
     /// let id0 = NodeId::new(0);
     /// let id5 = NodeId::new(5);
     ///
-    /// assert_eq!(uf.size(id0), 1);
-    /// assert_eq!(uf.size(id5), 1);
     /// assert!(!uf.equiv(id0, id5));
     /// ```
     #[inline]
@@ -141,8 +136,11 @@ where
     ///
     /// let mut uf = IdUnionFind::<NodeId, _>::new_in(10, Global);
     ///
+    /// // Starting out elements are not equivalent to each other
     /// let id0 = NodeId::new(0);
-    /// assert_eq!(uf.size(id0), 1);
+    /// let id5 = NodeId::new(5);
+    ///
+    /// assert!(!uf.equiv(id0, id5));
     /// ```
     ///
     /// [`new`]: IdUnionFind::new
