@@ -197,7 +197,6 @@ where
     /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
     ///   from
     /// * `edge` - The type of entity edge to traverse
-    /// * `next_traversal` - Traversal parameters to apply to discovered entities
     /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
     /// * `provider` - Store provider for permission checks
     /// * `subgraph` - Subgraph to populate with discovered edges and vertices
@@ -205,12 +204,11 @@ where
     /// # Errors
     ///
     /// Returns [`QueryError`] if the database query fails.
-    async fn resolve_entity_edge<'edges>(
+    async fn resolve_entity_edge(
         &self,
         entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
         edge: &EntityTraversalEdge,
-        next_traversal: BorrowedTraversalParams<'edges>,
-        traversal_context: &mut TraversalContext<'edges>,
+        traversal_context: &mut TraversalContext<'_>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>, Report<QueryError>>
@@ -255,170 +253,163 @@ where
                 },
             );
 
-            let new_entity = traversal_context.add_entity_id(
+            traversal_context.add_entity_id(
                 edge.right_endpoint_edition_id,
-                next_traversal,
+                edge.right_endpoint,
                 edge.traversal_interval,
             );
-
-            if new_entity {
-                entity_queue.push((edge.right_endpoint, edge.traversal_interval));
-            }
+            entity_queue.push((edge.right_endpoint, edge.traversal_interval));
         }
 
         Ok(entity_queue)
     }
 
-    /// Internal method to read an [`Entity`] into a [`TraversalContext`].
+    /// Sequentially resolves a chain of entity edges, starting from the given entities.
     ///
-    /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(
-        level = "info",
-        skip(self, entity_ids, traversal_context, provider, subgraph)
-    )]
-    #[expect(clippy::too_many_lines)]
-    pub(crate) async fn traverse_entities<'edges>(
+    /// This method traverses through each edge in the path, using the output entities from one
+    /// edge as the input for the next. The traversal stops early if no entities remain after
+    /// any edge.
+    ///
+    /// # Returns
+    ///
+    /// Returns the entities reached after traversing all edges. If the entity set becomes empty
+    /// at any point during traversal (e.g., no entities match an edge's criteria), an empty
+    /// vector is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during edge resolution.
+    async fn resolve_entity_edges(
         &self,
-        entity_ids: impl IntoIterator<Item = EntityVertexId>,
-        traversal_params: BorrowedTraversalParams<'edges>,
+        mut entities: Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        edges: &[EntityTraversalEdge],
+        traversal_context: &mut TraversalContext<'_>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>, Report<QueryError>>
+    {
+        for edge in edges {
+            if entities.is_empty() {
+                break;
+            }
+
+            entities = self
+                .resolve_entity_edge(entities, edge, traversal_context, provider, subgraph)
+                .await?;
+        }
+
+        Ok(entities)
+    }
+
+    /// Traverses entities along a specified path, optionally continuing into ontology types.
+    ///
+    /// This method performs a two-phase traversal:
+    /// 1. **Entity phase**: Follows the provided entity edges sequentially, starting from entities
+    ///    already in the subgraph
+    /// 2. **Ontology phase** (optional): If an ontology traversal path is provided, resolves the
+    ///    types of the leaf entities and continues traversing through the type system
+    ///
+    /// All discovered entities and types are added to the subgraph and tracked in the traversal
+    /// context.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during traversal.
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    pub(crate) async fn traverse_entities_with_path<'edges>(
+        &self,
+        entity_traversal_path: &[EntityTraversalEdge],
+        ontology_traversal_path: Option<&'edges [TraversalEdge]>,
         traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
-        let mut entities = entity_ids
-            .into_iter()
-            .map(|id| (id, subgraph.temporal_axes.resolved.variable_interval()))
-            .collect::<Vec<_>>();
+        let entities = subgraph.entity_with_intervals().collect::<Vec<_>>();
 
-        match traversal_params {
-            BorrowedTraversalParams::ResolveDepths {
-                mut traversal_path,
-                graph_resolve_depths,
-            } => {
-                // Collect all entities (original + discovered during traversal) for `is_of_type`
-                // resolution. The `is_of_type` flag applies to all entities encountered, not just
-                // the starting set.
-                let mut shared_edge_data = Vec::new();
-                if graph_resolve_depths.is_of_type {
-                    shared_edge_data.extend(entities.iter().copied());
-                }
+        let leaf_entities = self
+            .resolve_entity_edges(
+                entities,
+                entity_traversal_path,
+                traversal_context,
+                provider,
+                subgraph,
+            )
+            .await?;
 
-                // Sequentially traverse all entity edges in the path. Each iteration processes
-                // one edge and updates `entities` with the discovered entities for the next hop.
-                while let Some((edge, next_traversal_path)) = traversal_path.split_first()
-                    && !entities.is_empty()
-                {
-                    traversal_path = next_traversal_path;
+        if let Some(traversal_path) = ontology_traversal_path {
+            let entity_types = self
+                .resolve_is_of_type_edge(
+                    leaf_entities,
+                    BorrowedTraversalParams::Path { traversal_path },
+                    traversal_context,
+                    provider,
+                    subgraph,
+                )
+                .await?;
 
-                    entities = self
-                        .resolve_entity_edge(
-                            entities,
-                            edge,
-                            BorrowedTraversalParams::ResolveDepths {
-                                traversal_path,
-                                graph_resolve_depths,
-                            },
-                            traversal_context,
-                            provider,
-                            subgraph,
-                        )
-                        .await?;
+            self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                .await?;
+        }
 
-                    // Also collect entities discovered during traversal for `is_of_type` resolution
-                    if graph_resolve_depths.is_of_type {
-                        shared_edge_data.extend(entities.iter().copied());
-                    }
-                }
+        Ok(())
+    }
 
-                let entity_types = self
-                    .resolve_is_of_type_edge(
-                        shared_edge_data,
-                        BorrowedTraversalParams::ResolveDepths {
-                            // We have consumed all edges in the traversal path
-                            traversal_path: &[],
-                            graph_resolve_depths: GraphResolveDepths {
-                                is_of_type: false,
-                                ..graph_resolve_depths
-                            },
+    /// Traverses entities using depth-based resolution parameters.
+    ///
+    /// This method traverses entity edges sequentially, then optionally resolves entity types if
+    /// [`GraphResolveDepths::is_of_type`] is enabled. Unlike
+    /// [`traverse_entities_with_path`](Self::traverse_entities_with_path), this method collects
+    /// ALL entities encountered during traversal (not just leaf entities) before resolving their
+    /// types, enabling type resolution across the entire entity subgraph.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if any database query fails during traversal.
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    pub(crate) async fn traverse_entities_with_resolve_depths<'edges>(
+        &self,
+        entity_traversal_path: &'edges [EntityTraversalEdge],
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_context: &mut TraversalContext<'edges>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<(), Report<QueryError>> {
+        let entities = subgraph.entity_with_intervals().collect::<Vec<_>>();
+
+        let _leafs = self
+            .resolve_entity_edges(
+                entities,
+                entity_traversal_path,
+                traversal_context,
+                provider,
+                subgraph,
+            )
+            .await?;
+
+        if graph_resolve_depths.is_of_type {
+            let entities = subgraph
+                .entity_with_intervals()
+                .chain(traversal_context.entity_intervals())
+                .collect::<Vec<_>>();
+
+            let entity_types = self
+                .resolve_is_of_type_edge(
+                    entities,
+                    BorrowedTraversalParams::ResolveDepths {
+                        traversal_path: &[],
+                        graph_resolve_depths: GraphResolveDepths {
+                            is_of_type: false,
+                            ..graph_resolve_depths
                         },
-                        traversal_context,
-                        provider,
-                        subgraph,
-                    )
-                    .await?;
+                    },
+                    traversal_context,
+                    provider,
+                    subgraph,
+                )
+                .await?;
 
-                self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
-                    .await?;
-            }
-            BorrowedTraversalParams::Path { mut traversal_path } => {
-                // Unlike `ResolveDepths`, in Path mode `IsOfType` edges are part of the traversal
-                // path array itself and are handled inline during iteration (see match below).
-                while let Some((edge, next_traversal_path)) = traversal_path.split_first()
-                    && !entities.is_empty()
-                {
-                    traversal_path = next_traversal_path;
-                    let next_traversal = BorrowedTraversalParams::Path { traversal_path };
-
-                    match edge {
-                        TraversalEdge::IsOfType => {
-                            let entity_types = self
-                                .resolve_is_of_type_edge(
-                                    entities,
-                                    next_traversal,
-                                    traversal_context,
-                                    provider,
-                                    subgraph,
-                                )
-                                .await?;
-
-                            self.traverse_entity_types(
-                                entity_types,
-                                traversal_context,
-                                provider,
-                                subgraph,
-                            )
-                            .await?;
-
-                            // We have finished the traversal here, as the rest will be handled in
-                            // the entity types traversal.
-                            break;
-                        }
-                        TraversalEdge::HasLeftEntity { direction } => {
-                            entities = self
-                                .resolve_entity_edge(
-                                    entities,
-                                    &EntityTraversalEdge::HasLeftEntity {
-                                        direction: *direction,
-                                    },
-                                    next_traversal,
-                                    traversal_context,
-                                    provider,
-                                    subgraph,
-                                )
-                                .await?;
-                        }
-                        TraversalEdge::HasRightEntity { direction } => {
-                            entities = self
-                                .resolve_entity_edge(
-                                    entities,
-                                    &EntityTraversalEdge::HasRightEntity {
-                                        direction: *direction,
-                                    },
-                                    next_traversal,
-                                    traversal_context,
-                                    provider,
-                                    subgraph,
-                                )
-                                .await?;
-                        }
-                        TraversalEdge::InheritsFrom
-                        | TraversalEdge::ConstrainsLinksOn
-                        | TraversalEdge::ConstrainsLinkDestinationsOn
-                        | TraversalEdge::ConstrainsPropertiesOn
-                        | TraversalEdge::ConstrainsValuesOn => {}
-                    }
-                }
-            }
+            self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                .await?;
         }
 
         Ok(())
@@ -1512,22 +1503,15 @@ where
 
             let mut traversal_context = TraversalContext::default();
 
-            let entity_ids = subgraph
-                .vertices
-                .entities
-                .keys()
-                .copied()
-                .collect::<Vec<_>>();
-
             // Iterate over each traversal path and call traverse_entities separately
             match &traversal_params {
                 SubgraphTraversalParams::Paths { traversal_paths } => {
                     for path in traversal_paths {
-                        self.traverse_entities(
-                            entity_ids.iter().copied(),
-                            BorrowedTraversalParams::Path {
-                                traversal_path: &path.edges,
-                            },
+                        let (entity_traversal_path, ontology_traversal_path) =
+                            path.split_entity_path();
+                        self.traverse_entities_with_path(
+                            &entity_traversal_path,
+                            ontology_traversal_path,
                             &mut traversal_context,
                             &provider,
                             &mut subgraph,
@@ -1544,12 +1528,9 @@ where
                             // If no entity traversal paths are specified, still initialize
                             // the traversal with ontology resolve depths to enable
                             // traversal of ontology edges (e.g., isOfType, inheritsFrom)
-                            self.traverse_entities(
-                                entity_ids,
-                                BorrowedTraversalParams::ResolveDepths {
-                                    traversal_path: &[],
-                                    graph_resolve_depths: *graph_resolve_depths,
-                                },
+                            self.traverse_entities_with_resolve_depths(
+                                &[],
+                                *graph_resolve_depths,
                                 &mut traversal_context,
                                 &provider,
                                 &mut subgraph,
@@ -1558,12 +1539,9 @@ where
                         }
                     } else {
                         for path in traversal_paths {
-                            self.traverse_entities(
-                                entity_ids.iter().copied(),
-                                BorrowedTraversalParams::ResolveDepths {
-                                    traversal_path: &path.edges,
-                                    graph_resolve_depths: *graph_resolve_depths,
-                                },
+                            self.traverse_entities_with_resolve_depths(
+                                &path.edges,
+                                *graph_resolve_depths,
                                 &mut traversal_context,
                                 &provider,
                                 &mut subgraph,
