@@ -1150,4 +1150,11 @@ mod tests {
         assert_eq!(lane.as_str(), "my-draft");
         assert_eq!(*revision, 2);
     }
+
+    #[test]
+    fn build_is_rejected() {
+        // Build metadata is not supported in our format
+        OntologyTypeVersion::from_str("1-draft.lane.1+build.123")
+            .expect_err("Should reject build metadata in version string");
+    }
 }
