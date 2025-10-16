@@ -69,6 +69,54 @@ export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
 const versionedUrlRegExp = /(.+\/)v\/(.*)/;
 
 /**
+ * Convert an OntologyTypeVersion to a SemVer object for comparison.
+ * Maps "1" → "1.0.0" and "1-draft.lane.5" → "1.0.0-draft.lane.5"
+ */
+const toSemVer = (version: OntologyTypeVersion): SemVer => {
+  const versionStr = version.toString();
+  const match = versionStr.match(/^(\d+)(?:-(.+))?$/);
+
+  if (!match) {
+    throw new Error(`Invalid version format: ${version}`);
+  }
+
+  const [, majorStr, preRelease] = match;
+
+  if (!majorStr) {
+    throw new Error(
+      `Invalid version format: missing major version in ${version}`,
+    );
+  }
+
+  // Build and parse SemVer string
+  const semverVersionString = preRelease
+    ? `${majorStr}.0.0-${preRelease}`
+    : `${majorStr}.0.0`;
+
+  const parsed = semver.parse(semverVersionString);
+  if (!parsed) {
+    throw new Error(
+      `Invalid pre-release identifier: ${preRelease ?? ""}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
+    );
+  }
+
+  // Validate draft format: must be exactly ["draft", "lane", "revision"]
+  if (parsed.prerelease.length > 0) {
+    if (
+      parsed.prerelease.length < 3 ||
+      parsed.prerelease[0] !== "draft" ||
+      typeof parsed.prerelease[parsed.prerelease.length - 1] !== "number"
+    ) {
+      throw new Error(
+        `Invalid draft format: ${preRelease}. Expected format: draft.lane.revision`,
+      );
+    }
+  }
+
+  return parsed;
+};
+
+/**
  * Checks if a given URL string is a Block Protocol compliant Versioned URL.
  *
  * @param {string} url - The URL string.
@@ -111,16 +159,11 @@ export const validateVersionedUrl = (
       };
     }
 
-    // Try to match draft version format first: "2-draft.lane.5"
-    const draftMatch = version.match(/^(\d+)-draft\.([^.]+)\.(\d+)$/);
+    // Validate version using toSemVer which handles both published and draft versions
+    try {
+      const parsedVersion = toSemVer(version as OntologyTypeVersion);
 
-    if (draftMatch) {
-      // It's a draft version
-      const [, majorStr, lane, revisionStr] = draftMatch;
-      const major = Number(majorStr);
-      const revision = Number(revisionStr);
-
-      if (major > U32_MAX) {
+      if (parsedVersion.major > U32_MAX) {
         return {
           type: "Err",
           inner: {
@@ -136,94 +179,39 @@ export const validateVersionedUrl = (
         };
       }
 
-      if (revision > U32_MAX) {
-        return {
-          type: "Err",
-          inner: {
-            reason: "InvalidVersion",
-            inner: [
-              version,
-              { reason: "ParseVersion", inner: "revision number too large" },
-            ],
-          },
-        };
+      // Check U32_MAX for revision in draft versions
+      if (parsedVersion.prerelease.length > 0) {
+        // Format is ["draft", "lane", "revision"] - revision is last element
+        const revision =
+          parsedVersion.prerelease[parsedVersion.prerelease.length - 1];
+        if (typeof revision === "number" && revision > U32_MAX) {
+          return {
+            type: "Err",
+            inner: {
+              reason: "InvalidVersion",
+              inner: [
+                version,
+                { reason: "ParseVersion", inner: "revision number too large" },
+              ],
+            },
+          };
+        }
       }
-
-      // Validate lane identifier using semver
-      // SemVer spec only allows [0-9A-Za-z-] in pre-release identifiers
-      const testVersion = `1.0.0-${lane}`;
-      if (!semver.valid(testVersion)) {
-        return {
-          type: "Err",
-          inner: {
-            reason: "InvalidVersion",
-            inner: [
-              version,
-              {
-                reason: "InvalidPreRelease",
-                inner: [
-                  `draft.${lane}`,
-                  {
-                    reason: "Invalid",
-                    inner: `Invalid pre-release identifier: ${lane}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
-                  },
-                ],
-              },
-            ],
-          },
-        };
-      }
-
-      // Valid draft version
-    } else {
-      // Not a draft, validate as published version (plain number)
-      const index = version.search(/[^0-9]/);
-      if (index === 0) {
-        return {
-          type: "Err",
-          inner: {
-            reason: "InvalidVersion",
-            inner: [
-              version,
-              {
-                reason: "ParseVersion",
-                inner: "invalid digit found in string",
-              },
-            ],
-          },
-        };
-      } else if (index > 0) {
-        return {
-          type: "Err",
-          inner: {
-            reason: "InvalidVersion",
-            inner: [
-              version,
-              {
-                reason: "ParseVersion",
-                inner: `additional content at end: \`${version.substring(index)}\``,
-              },
-            ],
-          },
-        };
-      }
-
-      const versionNumber = Number(version);
-      if (versionNumber > U32_MAX) {
-        return {
-          type: "Err",
-          inner: {
-            reason: "InvalidVersion",
-            inner: [
-              version,
-              {
-                reason: "ParseVersion",
-                inner: "number too large to fit in target type",
-              },
-            ],
-          },
-        };
-      }
+    } catch (error) {
+      // toSemVer throws for invalid versions
+      return {
+        type: "Err",
+        inner: {
+          reason: "InvalidVersion",
+          inner: [
+            version,
+            {
+              reason: "ParseVersion",
+              inner: error instanceof Error ? error.message : String(error),
+            },
+          ],
+        },
+      };
     }
 
     const validBaseUrlResult = validateBaseUrl(baseUrl);
@@ -373,41 +361,6 @@ export const incrementOntologyTypeVersion = (
   makeOntologyTypeVersion({
     major: Number.parseInt(version.toString(), 10) + 1,
   });
-
-/**
- * Convert an OntologyTypeVersion to a SemVer object for comparison.
- * Maps "1" → "1.0.0" and "1-draft.lane.5" → "1.0.0-draft.lane.5"
- */
-const toSemVer = (version: OntologyTypeVersion): SemVer => {
-  const versionStr = version.toString();
-  const match = versionStr.match(/^(\d+)(?:-(.+))?$/);
-
-  if (!match) {
-    throw new Error(`Invalid version format: ${version}`);
-  }
-
-  const [, majorStr, preRelease] = match;
-
-  if (!majorStr) {
-    throw new Error(
-      `Invalid version format: missing major version in ${version}`,
-    );
-  }
-
-  // Validate pre-release identifier using semver if present
-  const semverVersionString = preRelease
-    ? `${majorStr}.0.0-${preRelease}`
-    : `${majorStr}.0.0`;
-
-  const parsed = semver.parse(semverVersionString);
-  if (!parsed) {
-    throw new Error(
-      `Invalid pre-release identifier: ${preRelease ?? ""}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
-    );
-  }
-
-  return parsed;
-};
 
 /**
  * Compare two ontology type versions following SemVer semantics.

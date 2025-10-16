@@ -96,7 +96,7 @@ exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v//20) r
     "inner": [
       "/20",
       {
-        "inner": "invalid digit found in string",
+        "inner": "Invalid version format: /20",
         "reason": "ParseVersion",
       },
     ],
@@ -112,7 +112,7 @@ exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/0.2) r
     "inner": [
       "0.2",
       {
-        "inner": "additional content at end: \`.2\`",
+        "inner": "Invalid version format: 0.2",
         "reason": "ParseVersion",
       },
     ],
@@ -128,7 +128,7 @@ exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/30/1) 
     "inner": [
       "30/1",
       {
-        "inner": "additional content at end: \`/1\`",
+        "inner": "Invalid version format: 30/1",
         "reason": "ParseVersion",
       },
     ],
@@ -144,7 +144,7 @@ exports[`validateVersionedUrl > validateVersionedUrl(http://example.com/v/foo) r
     "inner": [
       "foo",
       {
-        "inner": "invalid digit found in string",
+        "inner": "Invalid version format: foo",
         "reason": "ParseVersion",
       },
     ],
