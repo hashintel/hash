@@ -3915,6 +3915,7 @@ dependencies = [
 name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
+ "ena",
  "hashql-ast",
  "hashql-compiletest",
  "hashql-core",
