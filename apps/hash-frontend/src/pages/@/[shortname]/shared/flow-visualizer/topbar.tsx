@@ -237,7 +237,7 @@ export const Topbar = ({
         />
         <Link href="/workers" noLinkStyle>
           <Typography sx={typographySx} variant="smallTextParagraphs">
-            Workers
+            Agents
           </Typography>
         </Link>
         <Divider topOffset={0.1} />
