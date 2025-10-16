@@ -28,6 +28,7 @@
     variant_count,
     get_disjoint_mut_helpers
 )]
+#![cfg_attr(test, feature(test))]
 
 extern crate alloc;
 
