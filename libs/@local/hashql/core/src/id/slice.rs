@@ -132,7 +132,12 @@ where
     ///
     /// The iterator yields IDs from 0 up to (but not including) `bound()`.
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
-        (0..self.len()).map(I::from_usize)
+        let length = self.len();
+
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(length);
+
+        (0..length).map(I::from_usize)
     }
 
     /// Returns an iterator over the elements.

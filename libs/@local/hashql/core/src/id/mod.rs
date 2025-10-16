@@ -1,5 +1,6 @@
 mod index;
 mod slice;
+mod union_find;
 mod vec;
 
 use core::{
@@ -11,7 +12,7 @@ use core::{
 
 use ::core::sync::atomic;
 
-pub use self::{index::IntoSliceIndex, slice::IdSlice, vec::IdVec};
+pub use self::{index::IntoSliceIndex, slice::IdSlice, union_find::IdUnionFind, vec::IdVec};
 
 /// Represents errors that can occur when converting values to an [`Id`].
 ///
@@ -343,6 +344,14 @@ impl<I> IdCounter<I> {
         Self { next: I::MIN }
     }
 
+    #[must_use]
+    pub fn size(&self) -> usize
+    where
+        I: Id,
+    {
+        self.next.as_usize()
+    }
+
     #[inline]
     #[expect(
         clippy::should_implement_trait,
@@ -388,6 +397,7 @@ macro_rules! newtype_collections {
     ($vis:vis type $name:ident* from $id:ty) => {
         $vis type ${concat($name, Slice)}<T> = $crate::id::IdSlice<$id, T>;
         $vis type ${concat($name, Vec)}<T, A = ::alloc::alloc::Global> = $crate::id::IdVec<$id, T, A>;
+        $vis type ${concat($name, UnionFind)}<A = ::alloc::alloc::Global> = $crate::id::IdUnionFind<$id, A>;
 
         $vis type ${concat($name, Set)}<A = ::alloc::alloc::Global> = $crate::collections::FastHashSet<$id, A>;
         $vis type ${concat($name, SetEntry)}<'set, A = ::alloc::alloc::Global> = $crate::collections::FastHashSetEntry<'set, $id, A>;
