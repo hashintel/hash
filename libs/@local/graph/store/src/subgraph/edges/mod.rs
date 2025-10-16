@@ -45,8 +45,7 @@ where
 
 impl<V, K, E> AdjacencyList<V, K, E>
 where
-    V: VertexId,
-    V::BaseId: Clone,
+    V: VertexId<BaseId: Clone, RevisionId: Clone>,
     E: EdgeEndpointSet,
 {
     pub fn insert(
@@ -61,11 +60,10 @@ where
         K: Hash + Eq,
         E: Default,
     {
-        let vertex_base_id = vertex_id.base_id();
         self.edges
-            .entry(vertex_base_id.clone())
+            .entry(vertex_id.base_id().clone())
             .or_default()
-            .entry(vertex_id.revision_id())
+            .entry(vertex_id.revision_id().clone())
             .or_default()
             .entry(EdgeData {
                 kind: edge_kind,

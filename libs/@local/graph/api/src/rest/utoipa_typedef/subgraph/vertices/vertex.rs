@@ -21,21 +21,11 @@ pub(crate) enum OntologyTypeVertexId {
 }
 
 impl OntologyTypeVertexId {
-    #[must_use]
-    pub(crate) const fn base_id(&self) -> &BaseUrl {
+    pub(crate) fn into_parts(self) -> (BaseUrl, OntologyTypeVersion) {
         match self {
-            Self::DataType(id) => &id.base_id,
-            Self::PropertyType(id) => &id.base_id,
-            Self::EntityType(id) => &id.base_id,
-        }
-    }
-
-    #[must_use]
-    pub(crate) const fn revision_id(&self) -> OntologyTypeVersion {
-        match self {
-            Self::DataType(id) => id.revision_id,
-            Self::PropertyType(id) => id.revision_id,
-            Self::EntityType(id) => id.revision_id,
+            Self::DataType(id) => (id.base_id, id.revision_id),
+            Self::PropertyType(id) => (id.base_id, id.revision_id),
+            Self::EntityType(id) => (id.base_id, id.revision_id),
         }
     }
 }

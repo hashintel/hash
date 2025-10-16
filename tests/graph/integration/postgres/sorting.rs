@@ -78,37 +78,36 @@ async fn test_root_sorting(
             type_ids: _,
             type_titles: _,
             entity_permissions: _,
-        } = api
-            .query_entity_subgraph(
-                api.account_id,
-                QueryEntitySubgraphParams::Paths {
-                    traversal_paths: Vec::new(),
-                    request: QueryEntitiesParams {
-                        filter: Filter::All(Vec::new()),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: sorting_paths.clone(),
-                            cursor: Option::take(&mut cursor),
-                        },
-                        limit: Some(chunk_size),
-                        conversions: Vec::new(),
-                        include_count: true,
-                        include_entity_types: None,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
-                        include_type_titles: false,
-                        include_permissions: false,
+        } = Box::pin(api.query_entity_subgraph(
+            api.account_id,
+            QueryEntitySubgraphParams::Paths {
+                traversal_paths: Vec::new(),
+                request: QueryEntitiesParams {
+                    filter: Filter::All(Vec::new()),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
+                    sorting: EntityQuerySorting {
+                        paths: sorting_paths.clone(),
+                        cursor: Option::take(&mut cursor),
+                    },
+                    limit: Some(chunk_size),
+                    conversions: Vec::new(),
+                    include_count: true,
+                    include_entity_types: None,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                    include_type_titles: false,
+                    include_permissions: false,
                 },
-            )
-            .await
-            .expect("could not get entity");
+            },
+        ))
+        .await
+        .expect("could not get entity");
         let new_entities = subgraph
             .roots
             .into_iter()
@@ -182,14 +181,20 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
     let page_entity_type = VersionedUrl {
         base_url: BaseUrl::new(
             "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
     let entities_properties = [
         (entity::PERSON_ALICE_V1, &person_entity_type),

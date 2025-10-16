@@ -51,16 +51,19 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
+    "semver": "7.7.3",
     "uuid": "11.1.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-commonjs": "28.0.6",
     "@rollup/plugin-node-resolve": "16.0.1",
     "@rollup/plugin-typescript": "12.1.4",
     "@rollup/plugin-wasm": "6.2.2",
     "@types/node": "22.16.5",
     "@types/react": "19.1.9",
+    "@types/semver": "7.7.1",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.37.0",
     "react": "19.1.1",

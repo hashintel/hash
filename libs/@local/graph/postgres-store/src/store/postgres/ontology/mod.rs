@@ -174,10 +174,10 @@ macro_rules! impl_ontology_cursor {
             type CompilationParameters = VersionedUrlCursorParameters<'s>;
             type Error = !;
 
-            fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
+            fn encode(&'s self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
                 Ok(self.cursor().map(|cursor| VersionedUrlCursorParameters {
                     base_url: Parameter::Text(Cow::Owned(cursor.base_url.to_string())),
-                    version: Parameter::OntologyTypeVersion(cursor.version),
+                    version: Parameter::OntologyTypeVersion(Cow::Borrowed(&cursor.version)),
                 }))
             }
 
