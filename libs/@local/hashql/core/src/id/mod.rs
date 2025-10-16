@@ -172,6 +172,7 @@ macro_rules! newtype {
             ///
             /// When value is outside the valid range of $min..$max.
             #[must_use]
+            #[inline]
             $vis const fn new(value: $type) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, $type, $min, $max),
@@ -190,6 +191,7 @@ macro_rules! newtype {
             const MAX: Self = Self($max);
 
             // fast path that does not go through the default implementation
+            #[inline]
             fn from_u32(value: u32) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max),
@@ -199,6 +201,7 @@ macro_rules! newtype {
                 Self(value as $type)
             }
 
+            #[inline]
             fn from_u64(value: u64) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max),
@@ -208,6 +211,7 @@ macro_rules! newtype {
                 Self(value as $type)
             }
 
+            #[inline]
             fn from_usize(value: usize) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max),
@@ -217,18 +221,22 @@ macro_rules! newtype {
                 Self(value as $type)
             }
 
+            #[inline]
             fn as_u32(self) -> u32 {
                 self.0 as u32
             }
 
+            #[inline]
             fn as_u64(self) -> u64 {
                 self.0 as u64
             }
 
+            #[inline]
             fn as_usize(self) -> usize {
                 self.0 as usize
             }
 
+            #[inline]
             fn prev(self) -> ::core::option::Option<Self> {
                 if self.0 == $min {
                     None
