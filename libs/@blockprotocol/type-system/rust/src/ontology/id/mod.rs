@@ -1090,20 +1090,66 @@ mod tests {
         // The URL parser rejects special characters and non-ASCII characters
 
         // Special characters in lane - rejected
-        OntologyTypeVersion::from_str("1-draft.abc,def.123")
+        let err = OntologyTypeVersion::from_str("1-draft.abc,def.123")
             .expect_err("Should reject special characters in lane identifier");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidLane(msg),
+        ) = err
+        else {
+            panic!("Expected `InvalidLane` error, got: {err:?}");
+        };
+        assert_eq!(input, "abc,def.123");
+        assert!(
+            msg.contains("unexpected character"),
+            "Error message should mention unexpected character, got: {msg}"
+        );
 
         // Unicode characters - rejected
-        OntologyTypeVersion::from_str("2-draft.lane\u{1f680}test.5")
+        let err = OntologyTypeVersion::from_str("2-draft.lane\u{1f680}test.5")
             .expect_err("Should reject Unicode characters in lane identifier");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidLane(msg),
+        ) = err
+        else {
+            panic!("Expected `InvalidLane` error, got: {err:?}");
+        };
+        assert_eq!(input, "lane\u{1f680}test.5");
+        assert!(
+            msg.contains("unexpected character"),
+            "Error message should mention unexpected character, got: {msg}"
+        );
 
         // Empty lane - rejected
-        OntologyTypeVersion::from_str("3-draft..1")
+        let err = OntologyTypeVersion::from_str("3-draft..1")
             .expect_err("Should reject empty lane identifier");
+        assert!(
+            matches!(
+                err,
+                ParseOntologyTypeVersionError::InvalidPreRelease(
+                    _,
+                    ParseDraftInfoError::IncorrectFormatting
+                )
+            ),
+            "Expected `IncorrectFormatting` error, got: {err:?}"
+        );
 
         // Spaces - rejected
-        OntologyTypeVersion::from_str("4-draft.lane 123.1")
+        let err = OntologyTypeVersion::from_str("4-draft.lane 123.1")
             .expect_err("Should reject spaces in lane identifier");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidLane(msg),
+        ) = err
+        else {
+            panic!("Expected `InvalidLane` error, got: {err:?}");
+        };
+        assert_eq!(input, "lane 123.1");
+        assert!(
+            msg.contains("unexpected character"),
+            "Error message should mention unexpected character, got: {msg}"
+        );
     }
 
     #[test]
@@ -1154,15 +1200,41 @@ mod tests {
     #[test]
     fn build_is_rejected() {
         // Build metadata is not supported in our format
-        OntologyTypeVersion::from_str("1-draft.lane.1+build.123")
+        let err = OntologyTypeVersion::from_str("1-draft.lane.1+build.123")
             .expect_err("Should reject build metadata in version string");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidLane(msg),
+        ) = err
+        else {
+            panic!("Expected `InvalidLane` error for build metadata in draft, got: {err:?}");
+        };
+        assert_eq!(input, "lane.1+build.123");
+        assert!(
+            msg.contains("unexpected character"),
+            "Error message should mention unexpected character, got: {msg}"
+        );
 
         // Build metadata is not supported in our format
-        OntologyTypeVersion::from_str("1+build.123")
+        let err = OntologyTypeVersion::from_str("1+build.123")
             .expect_err("Should reject build metadata in version string");
+        let ParseOntologyTypeVersionError::ParseVersion(error_msg) = err else {
+            panic!("Expected `ParseVersion` error for build metadata, got: {err:?}");
+        };
+        assert!(
+            error_msg.contains("invalid digit"),
+            "Error message should mention invalid digit, got: {error_msg}"
+        );
 
         // Build metadata is not supported in our format
-        OntologyTypeVersion::from_str("1+build-draft.123")
+        let err = OntologyTypeVersion::from_str("1+build-draft.123")
             .expect_err("Should reject build metadata in version string");
+        let ParseOntologyTypeVersionError::ParseVersion(error_msg) = err else {
+            panic!("Expected `ParseVersion` error for build metadata, got: {err:?}");
+        };
+        assert!(
+            error_msg.contains("invalid digit"),
+            "Error message should mention invalid digit, got: {error_msg}"
+        );
     }
 }
