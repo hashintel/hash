@@ -381,7 +381,7 @@ impl FromStr for OntologyTypeVersion {
 
     fn from_str(ontology_version: &str) -> Result<Self, Self::Err> {
         let (version, draft_info) =
-            if let Some((version, draft_info)) = ontology_version.rsplit_once("-draft.") {
+            if let Some((version, draft_info)) = ontology_version.split_once("-draft.") {
                 (version, Some(draft_info))
             } else {
                 (ontology_version, None)
@@ -1135,5 +1135,19 @@ mod tests {
         };
         assert_eq!(lane2.as_str(), "v1.alpha.3");
         assert_eq!(*rev2, 10);
+    }
+
+    #[test]
+    fn draft_in_lane_accepted() {
+        // The lane identifier can contain "draft" as part of its name
+        let version = OntologyTypeVersion::from_str("3-draft.my-draft.2")
+            .expect("Should accept 'draft' in lane identifier");
+
+        assert_eq!(version.major, 3);
+        let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
+            panic!("should have pre-release draft info");
+        };
+        assert_eq!(lane.as_str(), "my-draft");
+        assert_eq!(*revision, 2);
     }
 }
