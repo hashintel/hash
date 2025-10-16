@@ -1,13 +1,4 @@
-use hashql_core::span::Spanned;
-
-use crate::{
-    context::HirContext,
-    node::{
-        r#let::{VarId, VarIdUnionFind},
-        variable::LocalVariable,
-    },
-    visit::Visitor,
-};
+use crate::{context::HirContext, node::r#let::VarIdUnionFind};
 
 // TODO: think about hoisting of nested graph reads, that will be a bit more complicated
 //
@@ -41,11 +32,6 @@ use crate::{
 //
 // But this algorithm works for *any* hoistable expression -> means it needs a rename.
 
-struct UnificationVisitor<'ctx> {
-    source: VarId,
-    unify: &'ctx mut VarIdUnionFind,
-}
-
 // The idea is the following: for any let binding inside the function (as the body is an anf_atom),
 // union name of the binding with any variables that have been mentioned.
 // This allows us to create "sets" of variables that are used together.
@@ -57,20 +43,6 @@ struct UnificationVisitor<'ctx> {
 // The problem is just: union-find data structures, `InPlaceUnificationTable` requires us to have
 // the `Key` be sequential, something we cannot guarantee, we might also just be in the "middle", so
 // this would be memory blowup.
-impl<'heap> Visitor<'heap> for UnificationVisitor<'_> {
-    fn visit_local_variable(
-        &mut self,
-        LocalVariable {
-            id: Spanned {
-                span: _,
-                value: var,
-            },
-            arguments: _,
-        }: &'heap LocalVariable<'heap>,
-    ) {
-        self.unify.unify(self.source, *var);
-    }
-}
 
 pub struct GraphHoist<'ctx, 'env, 'heap> {
     context: &'ctx HirContext<'env, 'heap>,
