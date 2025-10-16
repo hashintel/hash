@@ -21,7 +21,7 @@ import { Switch } from "../components/Switch/switch";
 import { ExampleArticle } from "./example-article";
 
 const PADDING = 6;
-const RADIUS = 25;
+const RADIUS = 11;
 
 const Playground = () => {
   const [switchChecked, setSwitchChecked] = useState(false);
@@ -122,10 +122,10 @@ const Playground = () => {
               >
                 <RefractivePane
                   radius={RADIUS}
-                  blur={2}
+                  blur={1}
                   specularOpacity={0.7}
                   scaleRatio={1}
-                  bezelWidth={RADIUS - 1}
+                  bezelWidth={RADIUS * 6}
                   glassThickness={70}
                   refractiveIndex={1.5}
                   className={css({
@@ -134,7 +134,7 @@ const Playground = () => {
                     flexDirection: "column",
                     gap: "1",
                     alignItems: "center",
-                    backgroundColor: "gray.20/40",
+                    backgroundColor: "gray.20/60",
                     pointerEvents: "auto",
                   })}
                   style={{
@@ -416,10 +416,10 @@ const Playground = () => {
             },
             pointerEvents: "auto",
           })}
-          radius={22}
-          bezelWidth={19}
-          blur={2}
-          specularOpacity={0.8}
+          radius={13}
+          bezelWidth={25}
+          blur={0.5}
+          specularOpacity={0.5}
           glassThickness={40}
           refractiveIndex={1.5}
           scaleRatio={1}
