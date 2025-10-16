@@ -77,6 +77,8 @@ const versionedUrlRegExp = /(.+\/)v\/(.*)/;
 export const validateVersionedUrl = (
   url: string,
 ): Result<VersionedUrl, ParseVersionedUrlError> => {
+  const U32_MAX = 4294967295;
+
   if (url.length > 2048) {
     return {
       type: "Err",
@@ -116,7 +118,7 @@ export const validateVersionedUrl = (
       const major = Number(majorStr);
       const revision = Number(revisionStr);
 
-      if (major > 4294967295) {
+      if (major > U32_MAX) {
         return {
           type: "Err",
           inner: {
@@ -132,7 +134,7 @@ export const validateVersionedUrl = (
         };
       }
 
-      if (revision > 4294967295) {
+      if (revision > U32_MAX) {
         return {
           type: "Err",
           inner: {
@@ -180,7 +182,7 @@ export const validateVersionedUrl = (
       }
 
       const versionNumber = Number(version);
-      if (versionNumber > 4294967295) {
+      if (versionNumber > U32_MAX) {
         return {
           type: "Err",
           inner: {
@@ -373,12 +375,22 @@ const parseVersionComponents = (version: OntologyTypeVersion) => {
 };
 
 /**
+ * Check if a string consists only of ASCII digits
+ */
+const isNumericIdentifier = (str: string): boolean => {
+  return /^\d+$/.test(str);
+};
+
+/**
  * Compare two ontology type versions following SemVer semantics.
  *
  * Rules:
  * - Major version takes precedence
  * - Published versions (v/2) > pre-release versions (v/2-draft.x.y)
- * - Pre-release versions are compared lexicographically by lane, then by revision
+ * - Pre-release identifiers follow SemVer rules:
+ *   1. Numeric identifiers are compared numerically
+ *   2. Alphanumeric identifiers are compared lexically
+ *   3. Numeric identifiers have lower precedence than alphanumeric
  */
 export const compareOntologyTypeVersions = (
   versionA: OntologyTypeVersion,
@@ -404,10 +416,27 @@ export const compareOntologyTypeVersions = (
     return -1; // A is pre-release, B is published → A < B
   }
 
-  // Both are pre-release - compare lane then revision
+  // Both are pre-release - compare lane then revision following SemVer rules
   if (a.preRelease && b.preRelease) {
     if (a.preRelease.lane !== b.preRelease.lane) {
-      return a.preRelease.lane < b.preRelease.lane ? -1 : 1;
+      const aIsNumeric = isNumericIdentifier(a.preRelease.lane);
+      const bIsNumeric = isNumericIdentifier(b.preRelease.lane);
+
+      if (aIsNumeric && bIsNumeric) {
+        // Both numeric - compare as numbers
+        const aNum = Number.parseInt(a.preRelease.lane, 10);
+        const bNum = Number.parseInt(b.preRelease.lane, 10);
+        return aNum < bNum ? -1 : aNum > bNum ? 1 : 0;
+      } else if (aIsNumeric && !bIsNumeric) {
+        // a is numeric, b is alphanumeric - numeric < alphanumeric
+        return -1;
+      } else if (!aIsNumeric && bIsNumeric) {
+        // a is alphanumeric, b is numeric - alphanumeric > numeric
+        return 1;
+      } else {
+        // Both alphanumeric - compare lexically
+        return a.preRelease.lane < b.preRelease.lane ? -1 : 1;
+      }
     }
     if (a.preRelease.revision !== b.preRelease.revision) {
       return a.preRelease.revision < b.preRelease.revision ? -1 : 1;

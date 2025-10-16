@@ -241,14 +241,19 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// let draft = PreRelease::from_str("lane123.5").unwrap();
 /// assert!(matches!(draft, PreRelease::Draft { lane, revision } if lane == "lane123" && revision == 5));
 ///
-/// // Draft ordering: lane first, then revision
-/// let draft_a1 = PreRelease::from_str("laneA.1").unwrap();
-/// let draft_a2 = PreRelease::from_str("laneA.2").unwrap();
-/// let draft_b1 = PreRelease::from_str("laneB.1").unwrap();
-/// assert!(draft_a1 < draft_a2);  // Same lane, higher revision
-/// assert!(draft_a2 < draft_b1);  // "laneA" < "laneB" lexicographically
+/// // Draft ordering follows SemVer rules
+/// let draft_2 = PreRelease::from_str("2.1").unwrap();
+/// let draft_10 = PreRelease::from_str("10.1").unwrap();
+/// assert!(draft_2 < draft_10);  // Numeric lanes: 2 < 10
+///
+/// let draft_alpha = PreRelease::from_str("alpha.1").unwrap();
+/// let draft_beta = PreRelease::from_str("beta.1").unwrap();
+/// assert!(draft_alpha < draft_beta);  // Alphanumeric: lexicographic
+///
+/// let draft_99 = PreRelease::from_str("99.1").unwrap();
+/// assert!(draft_99 < draft_alpha);  // Numeric < alphanumeric
 /// ```
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
 pub enum PreRelease {
     /// Draft pre-release with lane identifier and revision number.
@@ -290,6 +295,53 @@ impl FromStr for PreRelease {
                 })
             },
         )
+    }
+}
+
+impl Ord for PreRelease {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        match (self, other) {
+            (
+                Self::Draft {
+                    lane: lane_a,
+                    revision: rev_a,
+                },
+                Self::Draft {
+                    lane: lane_b,
+                    revision: rev_b,
+                },
+            ) => {
+                // SemVer rules for pre-release identifier comparison:
+                // 1. Identifiers consisting only of digits are compared numerically
+                // 2. Identifiers with letters or hyphens are compared lexically in ASCII sort order
+                // 3. Numeric identifiers always have lower precedence than non-numeric identifiers
+
+                match (u32::from_str(lane_a), u32::from_str(lane_b)) {
+                    (Ok(num_a), Ok(num_b)) => {
+                        // Both numeric - compare as numbers
+                        num_a.cmp(&num_b).then_with(|| rev_a.cmp(rev_b))
+                    }
+                    (Err(_), Err(_)) => {
+                        // Both alphanumeric - compare lexically
+                        lane_a.cmp(lane_b).then_with(|| rev_a.cmp(rev_b))
+                    }
+                    (Ok(_), Err(_)) => {
+                        // a is numeric, b is alphanumeric - numeric < alphanumeric
+                        cmp::Ordering::Less
+                    }
+                    (Err(_), Ok(_)) => {
+                        // a is alphanumeric, b is numeric - alphanumeric > numeric
+                        cmp::Ordering::Greater
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl PartialOrd for PreRelease {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -1030,6 +1082,100 @@ mod tests {
         assert!(
             draft_lane_a < draft_lane_b,
             "lane 'aaaa' should be < lane 'bbbb'"
+        );
+    }
+
+    #[test]
+    fn ontology_version_ordering_semver_prerelease_rules() {
+        // SemVer Rule 1: Identifiers consisting of only digits are compared numerically
+        let draft_2 = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "2".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        let draft_10 = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "10".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        // SemVer: numeric lanes are compared numerically
+        assert!(
+            draft_2 < draft_10,
+            "SemVer: numeric lanes compared numerically (2 < 10)"
+        );
+
+        // SemVer Rule 2: Identifiers with letters or hyphens are compared lexically
+        let draft_alpha = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "alpha".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        let draft_beta = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "beta".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        assert!(
+            draft_alpha < draft_beta,
+            "SemVer: alphanumeric lanes compared lexicographically"
+        );
+
+        // SemVer Rule 3: Numeric identifiers always have lower precedence than non-numeric
+        let draft_numeric = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "999".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        let draft_mixed = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "123abc".to_owned(),
+                revision: 1,
+            }),
+        };
+
+        assert!(
+            draft_numeric < draft_mixed,
+            "SemVer: purely numeric (999) < mixed alphanumeric (123abc)"
+        );
+
+        // SemVer Rule 4: Larger set of pre-release fields has higher precedence
+        // Our format is "lane.revision" so this doesn't directly apply,
+        // but we test that revision number comparison works correctly
+        let draft_rev_1 = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "same-lane".to_owned(),
+                revision: 2,
+            }),
+        };
+
+        let draft_rev_2 = OntologyTypeVersion {
+            major: 1,
+            pre_release: Some(PreRelease::Draft {
+                lane: "same-lane".to_owned(),
+                revision: 10,
+            }),
+        };
+
+        assert!(
+            draft_rev_1 < draft_rev_2,
+            "same lane, revision 1 < revision 2"
         );
     }
 

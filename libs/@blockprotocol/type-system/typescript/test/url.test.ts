@@ -312,4 +312,84 @@ describe("Draft version support", () => {
       ).toBe(1);
     });
   });
+
+  describe("compareOntologyTypeVersions - SemVer Pre-Release Rules", () => {
+    test("Rule 1: Numeric identifiers are compared numerically", () => {
+      // SemVer: numeric lanes are compared numerically
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.2.1" as OntologyTypeVersion,
+          "1-draft.10.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // SemVer: 2 < 10
+
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.100.1" as OntologyTypeVersion,
+          "1-draft.20.1" as OntologyTypeVersion,
+        ),
+      ).toBe(1); // SemVer: 100 > 20
+    });
+
+    test("Rule 2: Alphanumeric identifiers are compared lexically", () => {
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.alpha.1" as OntologyTypeVersion,
+          "1-draft.beta.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // "alpha" < "beta"
+
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.rc1.1" as OntologyTypeVersion,
+          "1-draft.rc2.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // "rc1" < "rc2"
+    });
+
+    test("Rule 3: Numeric identifiers have lower precedence than non-numeric", () => {
+      // SemVer: purely numeric < mixed alphanumeric
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.999.1" as OntologyTypeVersion,
+          "1-draft.123abc.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // 999 < "123abc"
+    });
+
+    test("Rule 4: Revision comparison (analogous to larger set of fields)", () => {
+      // Within the same lane, higher revision wins
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.same-lane.1" as OntologyTypeVersion,
+          "1-draft.same-lane.2" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // revision 1 < revision 2
+
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.same-lane.10" as OntologyTypeVersion,
+          "1-draft.same-lane.5" as OntologyTypeVersion,
+        ),
+      ).toBe(1); // revision 10 > revision 5 (numeric comparison)
+    });
+
+    test("Complex lane comparison scenarios", () => {
+      // Mixed alphanumeric lanes
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.user-123.1" as OntologyTypeVersion,
+          "1-draft.user-456.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // "user-123" < "user-456"
+
+      // UUID-like lanes (lexicographic)
+      expect(
+        compareOntologyTypeVersions(
+          "1-draft.a1b2c3d4.1" as OntologyTypeVersion,
+          "1-draft.z9y8x7w6.1" as OntologyTypeVersion,
+        ),
+      ).toBe(-1); // "a..." < "z..."
+    });
+  });
 });
