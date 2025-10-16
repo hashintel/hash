@@ -4419,7 +4419,7 @@ __metadata:
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.16.5"
     "@types/react": "npm:19.1.9"
-    "@types/semver": "npm:^7"
+    "@types/semver": "npm:7.7.1"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.37.0"
     react: "npm:19.1.1"
@@ -18291,24 +18291,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/semver@npm:^6.0.0":
-  version: 6.2.7
-  resolution: "@types/semver@npm:6.2.7"
-  checksum: 10c0/2df6dde2b6d3e366032841c320977b401245f93a4265b6e344a16c144161562ed9862743a543da5030e11ebcaf70181fa39bfae402ef70a37ee498b9ae9215e2
-  languageName: node
-  linkType: hard
-
-"@types/semver@npm:^7":
+"@types/semver@npm:7.7.1, @types/semver@npm:^7.5.0":
   version: 7.7.1
   resolution: "@types/semver@npm:7.7.1"
   checksum: 10c0/c938aef3bf79a73f0f3f6037c16e2e759ff40c54122ddf0b2583703393d8d3127130823facb880e694caa324eb6845628186aac1997ee8b31dc2d18fafe26268
   languageName: node
   linkType: hard
 
-"@types/semver@npm:^7.5.0":
-  version: 7.5.8
-  resolution: "@types/semver@npm:7.5.8"
-  checksum: 10c0/8663ff927234d1c5fcc04b33062cb2b9fcfbe0f5f351ed26c4d1e1581657deebd506b41ff7fdf89e787e3d33ce05854bc01686379b89e9c49b564c4cfa988efa
+"@types/semver@npm:^6.0.0":
+  version: 6.2.7
+  resolution: "@types/semver@npm:6.2.7"
+  checksum: 10c0/2df6dde2b6d3e366032841c320977b401245f93a4265b6e344a16c144161562ed9862743a543da5030e11ebcaf70181fa39bfae402ef70a37ee498b9ae9215e2
   languageName: node
   linkType: hard
 
