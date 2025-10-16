@@ -15,6 +15,7 @@
 //!   - `index` -> `as_usize`
 //!   - `new` -> `from_usize`
 //! - Mask helpers are no longer generic over `Id` (we do not implement `Id` for `usize`).
+//! - Use `MixedBitSet` instead of `DenseBitSet` for `SparseBitMatrix`.
 //!
 //! Implementation and maintenance:
 //! - Removed rustc-specific serialization code.
@@ -1719,7 +1720,7 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 /// sparse representation.
 ///
 /// Initially, every row has no explicit representation. If any bit within a row
-/// is set, the entire row is instantiated as `Some(<DenseBitSet>)`.
+/// is set, the entire row is instantiated as `Some(<MixedBitSet>)`.
 /// Furthermore, any previously uninstantiated rows prior to it will be
 /// instantiated as `None`. Those prior rows may themselves become fully
 /// instantiated later on if any of their bits are set.
@@ -1733,7 +1734,7 @@ where
     C: Id,
 {
     num_columns: usize,
-    rows: IdVec<R, Option<DenseBitSet<C>>>,
+    rows: IdVec<R, Option<MixedBitSet<C>>>,
 }
 
 impl<R: Id, C: Id> SparseBitMatrix<R, C> {
@@ -1746,11 +1747,11 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         }
     }
 
-    fn ensure_row(&mut self, row: R) -> &mut DenseBitSet<C> {
+    fn ensure_row(&mut self, row: R) -> &mut MixedBitSet<C> {
         // Instantiate any missing rows up to and including row `row` with an empty `DenseBitSet`.
         // Then replace row `row` with a full `DenseBitSet` if necessary.
         self.rows
-            .get_or_insert_with(row, || DenseBitSet::new_empty(self.num_columns))
+            .get_or_insert_with(row, || MixedBitSet::new_empty(self.num_columns))
     }
 
     /// Sets the cell at `(row, column)` to true. Put another way, insert
@@ -1824,7 +1825,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         self.row(row).into_iter().flat_map(|row| row.iter())
     }
 
-    pub fn row(&self, row: R) -> Option<&DenseBitSet<C>> {
+    pub fn row(&self, row: R) -> Option<&MixedBitSet<C>> {
         self.rows.get(row)?.as_ref()
     }
 
@@ -1834,7 +1835,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn intersect_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        DenseBitSet<C>: BitRelations<Set>,
+        MixedBitSet<C>: BitRelations<Set>,
     {
         match self.rows.get_mut(row) {
             Some(Some(row)) => row.intersect(set),
@@ -1848,7 +1849,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn subtract_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        DenseBitSet<C>: BitRelations<Set>,
+        MixedBitSet<C>: BitRelations<Set>,
     {
         match self.rows.get_mut(row) {
             Some(Some(row)) => row.subtract(set),
@@ -1862,7 +1863,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn union_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        DenseBitSet<C>: BitRelations<Set>,
+        MixedBitSet<C>: BitRelations<Set>,
     {
         self.ensure_row(row).union(set)
     }

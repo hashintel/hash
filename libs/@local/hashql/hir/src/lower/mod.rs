@@ -17,6 +17,7 @@ use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as 
 pub mod alias;
 pub mod checking;
 pub mod ctor;
+pub mod dataflow;
 pub mod error;
 pub mod graph_hoist;
 pub mod inference;
