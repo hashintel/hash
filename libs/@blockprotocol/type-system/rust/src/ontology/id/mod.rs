@@ -1254,4 +1254,35 @@ mod tests {
         OntologyTypeVersion::from_str("4-draft.lane 123.1")
             .expect_err("Should reject spaces in lane identifier");
     }
+
+    #[test]
+    fn multiple_dots_in_lane_accepted() {
+        // SemVer allows multiple identifiers separated by dots
+        // e.g., "draft.lane.with.dots" is valid as it becomes ["draft", "lane", "with", "dots"]
+
+        let version = OntologyTypeVersion::from_str("1-draft.lane.with.dots.5")
+            .expect("Should accept multiple dots in lane identifier");
+
+        assert_eq!(version.major, 1);
+        let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
+            panic!("should have pre-release draft info");
+        };
+        assert_eq!(lane, "lane.with.dots");
+        assert_eq!(*revision, 5);
+
+        // Another example with numeric segments
+        let version2 = OntologyTypeVersion::from_str("2-draft.v1.alpha.3.10")
+            .expect("Should accept lane with numbers and dots");
+
+        assert_eq!(version2.major, 2);
+        let Some(PreRelease::Draft {
+            lane: lane2,
+            revision: rev2,
+        }) = version2.pre_release.as_ref()
+        else {
+            panic!("should have pre-release draft info");
+        };
+        assert_eq!(lane2, "v1.alpha.3");
+        assert_eq!(*rev2, 10);
+    }
 }

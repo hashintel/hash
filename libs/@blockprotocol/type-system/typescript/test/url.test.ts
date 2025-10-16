@@ -344,5 +344,27 @@ describe("Draft version support", () => {
       );
       expect(result4.type).toBe("Err");
     });
+
+    test("Multiple dots in lane are accepted", () => {
+      // SemVer allows multiple identifiers separated by dots
+      // e.g., "draft.lane.with.dots" is valid as it becomes ["draft", "lane", "with", "dots"]
+
+      const result1 = validateVersionedUrl(
+        "https://example.com/type/v/1-draft.lane.with.dots.5",
+      );
+      expect(result1.type).toBe("Ok");
+      if (result1.type === "Ok") {
+        expect(extractVersion(result1.inner)).toBe("1-draft.lane.with.dots.5");
+      }
+
+      // Another example with numeric segments
+      const result2 = validateVersionedUrl(
+        "https://example.com/type/v/2-draft.v1.alpha.3.10",
+      );
+      expect(result2.type).toBe("Ok");
+      if (result2.type === "Ok") {
+        expect(extractVersion(result2.inner)).toBe("2-draft.v1.alpha.3.10");
+      }
+    });
   });
 });
