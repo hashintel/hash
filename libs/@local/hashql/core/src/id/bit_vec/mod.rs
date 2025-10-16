@@ -25,6 +25,11 @@
 //! - Removed inherent impls for bit relations.
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
 //! - Removed mentions of `IntervalSet`.
+<<<<<<< HEAD
+=======
+//! - Implement `MixedBitSet::intersect`
+#![coverage(off)] // Vendored in module with tests
+>>>>>>> a067b31212 (feat: checkpoint)
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -1346,8 +1351,12 @@ impl<T: Id> BitRelations<Self> for MixedBitSet<T> {
         }
     }
 
-    fn intersect(&mut self, _other: &Self) -> bool {
-        unimplemented!("implement if/when necessary");
+    fn intersect(&mut self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Small(set), Self::Small(other)) => set.intersect(other),
+            (Self::Large(set), Self::Large(other)) => set.intersect(other),
+            _ => panic!("MixedBitSet size mismatch"),
+        }
     }
 }
 
