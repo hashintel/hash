@@ -37,7 +37,7 @@ use core::{cmp, fmt, num::IntErrorKind, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-pub use error::{ParseBaseUrlError, ParsePrereleaseInfoError, ParseVersionedUrlError};
+pub use error::{ParseBaseUrlError, ParseDraftInfoError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -253,7 +253,7 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// let draft_99 = PreRelease::from_str("99.1").unwrap();
 /// assert!(draft_99 < draft_alpha);  // Numeric < alphanumeric
 /// ```
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
 pub enum PreRelease {
     /// Draft pre-release with lane identifier and revision number.
@@ -264,7 +264,8 @@ pub enum PreRelease {
         ///
         /// Typically a UUID, username, or team identifier to prevent conflicts
         /// when multiple parties are drafting versions targeting the same published version.
-        lane: String,
+        #[cfg_attr(feature = "codegen", specta(type = String))]
+        lane: semver::Prerelease,
         /// Monotonic revision number within this lane.
         ///
         /// Should increment with each new draft in the same lane. Revisions are
@@ -274,77 +275,28 @@ pub enum PreRelease {
 }
 
 impl FromStr for PreRelease {
-    type Err = ParsePrereleaseInfoError;
+    type Err = ParseDraftInfoError;
 
     fn from_str(draft_info: &str) -> Result<Self, Self::Err> {
-        semver::Prerelease::new(draft_info)
-            .map_err(|error| ParsePrereleaseInfoError::Invalid(error.to_string()))?;
+        let (lane, revision) = draft_info
+            .rsplit_once('.')
+            .ok_or(ParseDraftInfoError::IncorrectFormatting)?;
 
-        draft_info.rsplit_once('.').map_or(
-            Err(ParsePrereleaseInfoError::IncorrectFormatting),
-            |(lane, revision)| {
-                Ok(Self::Draft {
-                    lane: lane.to_owned(),
-                    revision: u32::from_str(revision).map_err(|error| {
-                        if *error.kind() == IntErrorKind::Empty {
-                            ParsePrereleaseInfoError::MissingRevision
-                        } else {
-                            ParsePrereleaseInfoError::InvalidRevision(
-                                revision.to_owned(),
-                                error.to_string(),
-                            )
-                        }
-                    })?,
-                })
-            },
-        )
-    }
-}
-
-impl Ord for PreRelease {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        match (self, other) {
-            (
-                Self::Draft {
-                    lane: lane_a,
-                    revision: rev_a,
-                },
-                Self::Draft {
-                    lane: lane_b,
-                    revision: rev_b,
-                },
-            ) => {
-                // SemVer rules for pre-release identifier comparison:
-                // 1. Identifiers consisting only of digits are compared numerically
-                // 2. Identifiers with letters or hyphens are compared lexically in ASCII sort order
-                // 3. Numeric identifiers always have lower precedence than non-numeric identifiers
-
-                match (u32::from_str(lane_a), u32::from_str(lane_b)) {
-                    (Ok(num_a), Ok(num_b)) => {
-                        // Both numeric - compare as numbers
-                        num_a.cmp(&num_b).then_with(|| rev_a.cmp(rev_b))
-                    }
-                    (Err(_), Err(_)) => {
-                        // Both alphanumeric - compare lexically
-                        lane_a.cmp(lane_b).then_with(|| rev_a.cmp(rev_b))
-                    }
-                    (Ok(_), Err(_)) => {
-                        // a is numeric, b is alphanumeric - numeric < alphanumeric
-                        cmp::Ordering::Less
-                    }
-                    (Err(_), Ok(_)) => {
-                        // a is alphanumeric, b is numeric - alphanumeric > numeric
-                        cmp::Ordering::Greater
-                    }
-                }
-            }
+        if lane.is_empty() {
+            return Err(ParseDraftInfoError::IncorrectFormatting);
         }
-    }
-}
 
-impl PartialOrd for PreRelease {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
+        Ok(Self::Draft {
+            lane: semver::Prerelease::new(lane)
+                .map_err(|error| ParseDraftInfoError::InvalidLane(error.to_string()))?,
+            revision: u32::from_str(revision).map_err(|error| {
+                if *error.kind() == IntErrorKind::Empty {
+                    ParseDraftInfoError::MissingRevision
+                } else {
+                    ParseDraftInfoError::InvalidRevision(revision.to_owned(), error.to_string())
+                }
+            })?,
+        })
     }
 }
 
@@ -478,19 +430,16 @@ impl<'de> Deserialize<'de> for OntologyTypeVersion {
 impl Ord for OntologyTypeVersion {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         // First compare major version numbers
-        match self.major.cmp(&other.major) {
-            cmp::Ordering::Equal => {
-                // Per SemVer: published versions have higher precedence than pre-release versions
-                // i.e., v/2 > v/2-draft.lane.5
-                match (&self.pre_release, &other.pre_release) {
-                    (None, None) => cmp::Ordering::Equal,
-                    (None, Some(_)) => cmp::Ordering::Greater,
-                    (Some(_), None) => cmp::Ordering::Less,
-                    (Some(pr1), Some(pr2)) => pr1.cmp(pr2),
-                }
+        self.major.cmp(&other.major).then_with(|| {
+            // Per SemVer: published versions have higher precedence than pre-release versions
+            // i.e., v/2 > v/2-draft.lane.5
+            match (&self.pre_release, &other.pre_release) {
+                (None, None) => cmp::Ordering::Equal,
+                (None, Some(_)) => cmp::Ordering::Greater,
+                (Some(_), None) => cmp::Ordering::Less,
+                (Some(pr1), Some(pr2)) => pr1.cmp(pr2),
             }
-            ord @ (cmp::Ordering::Less | cmp::Ordering::Greater) => ord,
-        }
+        })
     }
 }
 
@@ -812,6 +761,10 @@ impl OntologyTypeUuid {
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::panic_in_result_fn)]
+
+    use core::error::Error;
+
     use super::*;
 
     #[test]
@@ -962,93 +915,67 @@ mod tests {
     }
 
     #[test]
-    fn ontology_version_parsing() {
+    fn ontology_version_parsing() -> Result<(), Box<dyn Error>> {
         // Test published versions
-        let v1: OntologyTypeVersion = "1".parse().expect("should parse v1");
+        let v1 = OntologyTypeVersion::from_str("1")?;
         assert_eq!(v1.major, 1);
         assert_eq!(v1.pre_release, None);
         assert_eq!(v1.to_string(), "1");
 
-        let v42: OntologyTypeVersion = "42".parse().expect("should parse v42");
+        let v42 = OntologyTypeVersion::from_str("42")?;
         assert_eq!(v42.major, 42);
         assert_eq!(v42.pre_release, None);
 
         // Test draft versions
-        let draft: OntologyTypeVersion = "2-draft.abcd1234.5".parse().expect("should parse draft");
+        let draft = OntologyTypeVersion::from_str("2-draft.abcd1234.5")?;
         assert_eq!(draft.major, 2);
         let Some(PreRelease::Draft { lane, revision }) = draft.pre_release.as_ref() else {
             panic!("draft should have pre-release information");
         };
-        assert_eq!(lane, "abcd1234");
+        assert_eq!(lane.as_str(), "abcd1234");
         assert_eq!(*revision, 5);
         assert_eq!(draft.to_string(), "2-draft.abcd1234.5");
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_roundtrip() {
+    fn ontology_version_roundtrip() -> Result<(), Box<dyn Error>> {
         let versions = ["1", "42", "2-draft.lane1234.1", "5-draft.xyz98765.999"];
 
         for v_str in versions {
-            let parsed: OntologyTypeVersion = v_str.parse().expect("should parse");
+            let parsed = OntologyTypeVersion::from_str(v_str)?;
             assert_eq!(parsed.to_string(), v_str, "roundtrip failed for {v_str}");
         }
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_ordering_same_major() {
+    fn ontology_version_ordering_same_major() -> Result<(), Box<dyn Error>> {
         let published = OntologyTypeVersion {
             major: 2,
             pre_release: None,
         };
 
-        let draft1 = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "aaaa1111".to_owned(),
-                revision: 1,
-            }),
-        };
-
-        let draft2 = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "aaaa1111".to_owned(),
-                revision: 2,
-            }),
-        };
-
+        let draft1 = OntologyTypeVersion::from_str("2-draft.aaaa1111.1")?;
+        let draft2 = OntologyTypeVersion::from_str("2-draft.aaaa1111.2")?;
         // Per SemVer: published > draft (same major version)
         assert!(published > draft1, "v/2 should be > v/2-draft");
         assert!(published > draft2, "v/2 should be > v/2-draft");
 
         // Draft with higher revision > lower revision
         assert!(draft2 > draft1, "draft.2 should be > draft.1");
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_ordering_different_major() {
-        let v1 = OntologyTypeVersion {
-            major: 1,
-            pre_release: None,
-        };
-
-        let v2_draft = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "lane1234".to_owned(),
-                revision: 1,
-            }),
-        };
-
-        let v2 = OntologyTypeVersion {
-            major: 2,
-            pre_release: None,
-        };
-
-        let v3 = OntologyTypeVersion {
-            major: 3,
-            pre_release: None,
-        };
+    fn ontology_version_ordering_different_major() -> Result<(), Box<dyn Error>> {
+        let v1 = OntologyTypeVersion::from_str("1")?;
+        let v2_draft = OntologyTypeVersion::from_str("2-draft.lane1234.1")?;
+        let v2 = OntologyTypeVersion::from_str("2")?;
+        let v3 = OntologyTypeVersion::from_str("3")?;
 
         // Major version takes precedence
         assert!(v1 < v2_draft, "v/1 < v/2-draft");
@@ -1061,51 +988,29 @@ mod tests {
         // Transitive
         assert!(v1 < v2, "v/1 < v/2");
         assert!(v1 < v3, "v/1 < v/3");
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_ordering_different_lanes() {
-        let draft_lane_a = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "aaaa1111".to_owned(),
-                revision: 5,
-            }),
-        };
-
-        let draft_lane_b = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "bbbb2222".to_owned(),
-                revision: 1,
-            }),
-        };
+    fn ontology_version_ordering_different_lanes() -> Result<(), Box<dyn Error>> {
+        let draft_lane_a = OntologyTypeVersion::from_str("2-draft.aaaa1111.5")?;
+        let draft_lane_b = OntologyTypeVersion::from_str("2-draft.bbbb2222.1")?;
 
         // Lexicographic ordering by lane
         assert!(
             draft_lane_a < draft_lane_b,
             "lane 'aaaa' should be < lane 'bbbb'"
         );
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_ordering_semver_prerelease_rules() {
+    fn ontology_version_ordering_semver_prerelease_rules() -> Result<(), Box<dyn Error>> {
         // SemVer Rule 1: Identifiers consisting of only digits are compared numerically
-        let draft_2 = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "2".to_owned(),
-                revision: 1,
-            }),
-        };
-
-        let draft_10 = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "10".to_owned(),
-                revision: 1,
-            }),
-        };
+        let draft_2 = OntologyTypeVersion::from_str("1-draft.2.1")?;
+        let draft_10 = OntologyTypeVersion::from_str("1-draft.10.1")?;
 
         // SemVer: numeric lanes are compared numerically
         assert!(
@@ -1114,21 +1019,8 @@ mod tests {
         );
 
         // SemVer Rule 2: Identifiers with letters or hyphens are compared lexically
-        let draft_alpha = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "alpha".to_owned(),
-                revision: 1,
-            }),
-        };
-
-        let draft_beta = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "beta".to_owned(),
-                revision: 1,
-            }),
-        };
+        let draft_alpha = OntologyTypeVersion::from_str("1-draft.alpha.1")?;
+        let draft_beta = OntologyTypeVersion::from_str("1-draft.beta.1")?;
 
         assert!(
             draft_alpha < draft_beta,
@@ -1136,21 +1028,8 @@ mod tests {
         );
 
         // SemVer Rule 3: Numeric identifiers always have lower precedence than non-numeric
-        let draft_numeric = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "999".to_owned(),
-                revision: 1,
-            }),
-        };
-
-        let draft_mixed = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "123abc".to_owned(),
-                revision: 1,
-            }),
-        };
+        let draft_numeric = OntologyTypeVersion::from_str("1-draft.999.1")?;
+        let draft_mixed = OntologyTypeVersion::from_str("1-draft.123abc.1")?;
 
         assert!(
             draft_numeric < draft_mixed,
@@ -1160,59 +1039,29 @@ mod tests {
         // SemVer Rule 4: Larger set of pre-release fields has higher precedence
         // Our format is "lane.revision" so this doesn't directly apply,
         // but we test that revision number comparison works correctly
-        let draft_rev_1 = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "same-lane".to_owned(),
-                revision: 2,
-            }),
-        };
-
-        let draft_rev_2 = OntologyTypeVersion {
-            major: 1,
-            pre_release: Some(PreRelease::Draft {
-                lane: "same-lane".to_owned(),
-                revision: 10,
-            }),
-        };
+        let draft_rev_1 = OntologyTypeVersion::from_str("1-draft.same-lane.2")?;
+        let draft_rev_2 = OntologyTypeVersion::from_str("1-draft.same-lane.10")?;
 
         assert!(
             draft_rev_1 < draft_rev_2,
             "same lane, revision 1 < revision 2"
         );
+
+        Ok(())
     }
 
     #[test]
-    fn ontology_version_equality() {
-        let v1_a = OntologyTypeVersion {
-            major: 1,
-            pre_release: None,
-        };
-
-        let v1_b = OntologyTypeVersion {
-            major: 1,
-            pre_release: None,
-        };
-
-        let draft_a = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "lane1234".to_owned(),
-                revision: 5,
-            }),
-        };
-
-        let draft_b = OntologyTypeVersion {
-            major: 2,
-            pre_release: Some(PreRelease::Draft {
-                lane: "lane1234".to_owned(),
-                revision: 5,
-            }),
-        };
+    fn ontology_version_equality() -> Result<(), Box<dyn Error>> {
+        let v1_a = OntologyTypeVersion::from_str("1")?;
+        let v1_b = OntologyTypeVersion::from_str("1")?;
+        let draft_a = OntologyTypeVersion::from_str("2-draft.lane1234.5")?;
+        let draft_b = OntologyTypeVersion::from_str("2-draft.lane1234.5")?;
 
         assert_eq!(v1_a, v1_b);
         assert_eq!(draft_a, draft_b);
         assert_ne!(v1_a, draft_a);
+
+        Ok(())
     }
 
     #[test]
@@ -1226,7 +1075,7 @@ mod tests {
         let Some(PreRelease::Draft { lane, revision }) = parsed.version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };
-        assert_eq!(lane, "abcd1234");
+        assert_eq!(lane.as_str(), "abcd1234");
         assert_eq!(*revision, 3);
 
         // Roundtrip
@@ -1267,7 +1116,7 @@ mod tests {
         let Some(PreRelease::Draft { lane, revision }) = version.pre_release.as_ref() else {
             panic!("should have pre-release draft info");
         };
-        assert_eq!(lane, "lane.with.dots");
+        assert_eq!(lane.as_str(), "lane.with.dots");
         assert_eq!(*revision, 5);
 
         // Another example with numeric segments
@@ -1282,7 +1131,7 @@ mod tests {
         else {
             panic!("should have pre-release draft info");
         };
-        assert_eq!(lane2, "v1.alpha.3");
+        assert_eq!(lane2.as_str(), "v1.alpha.3");
         assert_eq!(*rev2, 10);
     }
 }

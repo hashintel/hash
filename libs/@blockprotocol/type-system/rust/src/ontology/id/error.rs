@@ -48,7 +48,7 @@ pub enum ParseOntologyTypeVersionError {
     #[error("not an integer: `{0}`")]
     ParseVersion(String),
     #[error("invalid pre-release `{0}`: {1}")]
-    InvalidPreRelease(String, ParsePrereleaseInfoError),
+    InvalidPreRelease(String, ParseDraftInfoError),
 }
 
 // TODO: Use error-stack
@@ -56,11 +56,11 @@ pub enum ParseOntologyTypeVersionError {
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Error)]
 #[serde(tag = "reason", content = "inner")]
-pub enum ParsePrereleaseInfoError {
+pub enum ParseDraftInfoError {
     #[error("incorrect formatting")]
     IncorrectFormatting,
-    #[error("{0}")]
-    Invalid(String),
+    #[error("invalid lane: {0}")]
+    InvalidLane(String),
     #[error("missing revision")]
     MissingRevision,
     #[error("invalid revision `{0}`: {1}")]
