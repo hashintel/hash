@@ -4414,6 +4414,7 @@ __metadata:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@rollup/plugin-commonjs": "npm:28.0.6"
     "@rollup/plugin-node-resolve": "npm:16.0.1"
     "@rollup/plugin-typescript": "npm:12.1.4"
     "@rollup/plugin-wasm": "npm:6.2.2"
