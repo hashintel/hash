@@ -1,4 +1,19 @@
-use crate::{context::HirContext, node::r#let::VarIdUnionFind};
+use core::convert::Infallible;
+
+use hashql_core::id::bit_vec::{BitRelations, MixedBitSet};
+
+use crate::{
+    context::HirContext,
+    fold::Fold,
+    intern::Interner,
+    lower::{dataflow::VariableDependencies, normalization::is_anf_atom},
+    node::{
+        closure::Closure,
+        kind::NodeKind,
+        r#let::{Binding, Let, VarId, VarIdUnionFind},
+    },
+    visit::Visitor,
+};
 
 // TODO: think about hoisting of nested graph reads, that will be a bit more complicated
 //
@@ -46,14 +61,91 @@ use crate::{context::HirContext, node::r#let::VarIdUnionFind};
 
 pub struct GraphHoist<'ctx, 'env, 'heap> {
     context: &'ctx HirContext<'env, 'heap>,
-    unify: VarIdUnionFind,
+    lifted: Vec<Binding<'heap>>,
 }
 
 impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
     pub fn new(context: &'ctx HirContext<'env, 'heap>) -> Self {
         Self {
             context,
-            unify: VarIdUnionFind::new(context.counter.var.size()),
+            lifted: Vec::new(),
         }
+    }
+}
+
+impl<'ctx, 'env, 'heap> Fold<'heap> for GraphHoist<'ctx, 'env, 'heap> {
+    type NestedFilter = crate::fold::nested::Deep;
+    type Output<T>
+        = Result<T, !>
+    where
+        T: 'heap;
+    type Residual = Result<Infallible, !>;
+
+    fn interner(&self) -> &Interner<'heap> {
+        self.context.interner
+    }
+
+    fn fold_closure(
+        &mut self,
+        Closure { signature, body }: Closure<'heap>,
+    ) -> Self::Output<Closure<'heap>> {
+        let mut dependent = MixedBitSet::new_empty(self.context.counter.var.size());
+
+        for param in signature.params {
+            dependent.insert(param.name.id);
+        }
+
+        // The body should be in ANF, meaning that the first node is either a let binding, or an
+        // anf_atom
+        let body = match body.kind {
+            NodeKind::Let(Let { bindings, body }) => {
+                let mut actual = Vec::new();
+
+                // TODO: recycler (move into own type)
+                let mut outer = core::mem::take(&mut self.lifted);
+
+                for &Binding {
+                    span,
+                    binder,
+                    value,
+                } in bindings
+                {
+                    // TODO: recycler
+                    let mut deps = VariableDependencies::new(self.context);
+                    deps.visit_node(&value);
+                    let mut deps = deps.finish();
+
+                    // TODO: walk and drain lifted, here it's important that we ensure that we
+                    // continue to lift (if we can)
+
+                    if deps.intersect(&dependent) {
+                        // There were variables mentioned in the body that are dependent on the
+                        // closure's parameters
+                        dependent.insert(binder.id);
+                        actual.push(Binding {
+                            span,
+                            binder,
+                            value,
+                        });
+                    } else {
+                        // No variable dependencies, therefore save to lift
+                        outer.push(Binding {
+                            span,
+                            binder,
+                            value,
+                        });
+                    }
+                }
+
+                todo!()
+            }
+            _ => {
+                debug_assert!(is_anf_atom(&body), "Body must be an ANF atom");
+
+                body
+            }
+        };
+
+        todo!()
     }
 }
