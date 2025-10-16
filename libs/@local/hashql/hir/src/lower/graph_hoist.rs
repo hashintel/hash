@@ -116,7 +116,8 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for GraphHoist<'ctx, 'env, 'heap> {
                     let mut deps = deps.finish();
 
                     // TODO: walk and drain lifted, here it's important that we ensure that we
-                    // continue to lift (if we can)
+                    // continue to lift (if we can) <- this logically means that we need to properly
+                    // encapsulate the logic using a worklist
 
                     if deps.intersect(&dependent) {
                         // There were variables mentioned in the body that are dependent on the
@@ -128,7 +129,7 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for GraphHoist<'ctx, 'env, 'heap> {
                             value,
                         });
                     } else {
-                        // No variable dependencies, therefore save to lift
+                        // No variable dependencies, therefore safe to lift
                         outer.push(Binding {
                             span,
                             binder,
@@ -147,5 +148,40 @@ impl<'ctx, 'env, 'heap> Fold<'heap> for GraphHoist<'ctx, 'env, 'heap> {
         };
 
         todo!()
+    }
+}
+
+fn work_boundary<'heap>(
+    upper: &mut Vec<Binding<'heap>>,
+    current_scope: &mut Vec<Binding<'heap>>,
+    bindings: &[Binding<'heap>],
+    infected: &mut MixedBitSet<VarId>,
+) {
+    for &binding in bindings {
+        let Binding {
+            span,
+            binder,
+            value,
+        } = binding;
+
+        // TODO: walk_bindings to get current bindings in the new scope, then decide if the new
+        // scope has the variables we require
+        let mut scope = Vec::new();
+
+        scope.push(binding);
+        for binding in scope.drain(..) {
+            let mut deps = VariableDependencies::new(/* TODO */);
+            deps.visit_node(&value);
+            let mut deps = deps.finish();
+
+            // We have a binding that belongs to the current scope
+            if deps.intersect(&infected) {
+                infected.insert(binder.id);
+                current_scope.push(binding);
+            } else {
+                // There are no references to the variables in the current scope
+                upper.push(binding);
+            }
+        }
     }
 }
