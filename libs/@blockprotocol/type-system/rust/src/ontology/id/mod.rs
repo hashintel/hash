@@ -1237,4 +1237,18 @@ mod tests {
             "Error message should mention invalid digit, got: {error_msg}"
         );
     }
+
+    #[test]
+    fn absent_lane_is_rejected() {
+        let err = OntologyTypeVersion::from_str("1-draft.123")
+            .expect_err("Should reject build metadata in version string");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::IncorrectFormatting,
+        ) = err
+        else {
+            panic!("Expected `InvalidPreRelease` error for build metadata in draft, got: {err:?}");
+        };
+        assert_eq!(input, "123");
+    }
 }
