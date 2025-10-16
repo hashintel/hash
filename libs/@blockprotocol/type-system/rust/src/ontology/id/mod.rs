@@ -1153,6 +1153,92 @@ mod tests {
     }
 
     #[test]
+    fn missing_lane_rejected() {
+        // Edge case: only revision without lane (no dot separator)
+        let err = OntologyTypeVersion::from_str("1-draft.123")
+            .expect_err("Should reject draft with only revision, no lane");
+        assert!(
+            matches!(
+                err,
+                ParseOntologyTypeVersionError::InvalidPreRelease(
+                    _,
+                    ParseDraftInfoError::IncorrectFormatting
+                )
+            ),
+            "Expected IncorrectFormatting error, got: {err:?}"
+        );
+    }
+
+    #[test]
+    fn missing_revision_rejected() {
+        // Edge case: lane present but revision missing
+        let err = OntologyTypeVersion::from_str("1-draft.lane.")
+            .expect_err("Should reject draft with missing revision");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::MissingRevision,
+        ) = err
+        else {
+            panic!("Expected MissingRevision error, got: {err:?}");
+        };
+        assert_eq!(input, "lane.");
+    }
+
+    #[test]
+    fn invalid_revision_rejected() {
+        // Non-numeric revision should be rejected
+        let err = OntologyTypeVersion::from_str("1-draft.lane.abc")
+            .expect_err("Should reject non-numeric revision");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidRevision(invalid_rev, msg),
+        ) = err
+        else {
+            panic!("Expected InvalidRevision error, got: {err:?}");
+        };
+        assert_eq!(input, "lane.abc");
+        assert_eq!(invalid_rev, "abc");
+        assert!(
+            msg.contains("invalid digit"),
+            "Error message should mention invalid digit, got: {msg}"
+        );
+
+        // Negative revision should be rejected
+        let err = OntologyTypeVersion::from_str("2-draft.lane.-5")
+            .expect_err("Should reject negative revision");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidRevision(invalid_rev, msg),
+        ) = err
+        else {
+            panic!("Expected InvalidRevision error, got: {err:?}");
+        };
+        assert_eq!(input, "lane.-5");
+        assert_eq!(invalid_rev, "-5");
+        assert!(
+            msg.contains("invalid digit"),
+            "Error message should mention invalid digit, got: {msg}"
+        );
+
+        // Overflow should be rejected
+        let err = OntologyTypeVersion::from_str("3-draft.lane.99999999999999999999")
+            .expect_err("Should reject revision overflow");
+        let ParseOntologyTypeVersionError::InvalidPreRelease(
+            input,
+            ParseDraftInfoError::InvalidRevision(invalid_rev, msg),
+        ) = err
+        else {
+            panic!("Expected InvalidRevision error, got: {err:?}");
+        };
+        assert_eq!(input, "lane.99999999999999999999");
+        assert_eq!(invalid_rev, "99999999999999999999");
+        assert!(
+            msg.contains("invalid digit") || msg.contains("too large"),
+            "Error message should mention overflow or invalid digit, got: {msg}"
+        );
+    }
+
+    #[test]
     fn multiple_dots_in_lane_accepted() {
         // SemVer allows multiple identifiers separated by dots
         // e.g., "draft.lane.with.dots" is valid as it becomes ["draft", "lane", "with", "dots"]
@@ -1236,19 +1322,5 @@ mod tests {
             error_msg.contains("invalid digit"),
             "Error message should mention invalid digit, got: {error_msg}"
         );
-    }
-
-    #[test]
-    fn absent_lane_is_rejected() {
-        let err = OntologyTypeVersion::from_str("1-draft.123")
-            .expect_err("Should reject build metadata in version string");
-        let ParseOntologyTypeVersionError::InvalidPreRelease(
-            input,
-            ParseDraftInfoError::IncorrectFormatting,
-        ) = err
-        else {
-            panic!("Expected `InvalidPreRelease` error for build metadata in draft, got: {err:?}");
-        };
-        assert_eq!(input, "123");
     }
 }
