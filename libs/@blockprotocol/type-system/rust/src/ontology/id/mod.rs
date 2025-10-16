@@ -238,20 +238,22 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// use type_system::ontology::id::PreRelease;
 ///
 /// // Parse draft pre-release information
-/// let draft = PreRelease::from_str("lane123.5").unwrap();
-/// assert!(matches!(draft, PreRelease::Draft { lane, revision } if lane == "lane123" && revision == 5));
+/// let draft = PreRelease::from_str("lane123.5")?;
+/// assert!(matches!(draft, PreRelease::Draft { lane, revision } if lane.as_str() == "lane123" && revision == 5));
 ///
 /// // Draft ordering follows SemVer rules
-/// let draft_2 = PreRelease::from_str("2.1").unwrap();
-/// let draft_10 = PreRelease::from_str("10.1").unwrap();
+/// let draft_2 = PreRelease::from_str("2.1")?;
+/// let draft_10 = PreRelease::from_str("10.1")?;
 /// assert!(draft_2 < draft_10);  // Numeric lanes: 2 < 10
 ///
-/// let draft_alpha = PreRelease::from_str("alpha.1").unwrap();
-/// let draft_beta = PreRelease::from_str("beta.1").unwrap();
+/// let draft_alpha = PreRelease::from_str("alpha.1")?;
+/// let draft_beta = PreRelease::from_str("beta.1")?;
 /// assert!(draft_alpha < draft_beta);  // Alphanumeric: lexicographic
 ///
-/// let draft_99 = PreRelease::from_str("99.1").unwrap();
+/// let draft_99 = PreRelease::from_str("99.1")?;
 /// assert!(draft_99 < draft_alpha);  // Numeric < alphanumeric
+///
+/// # Ok::<_, Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
