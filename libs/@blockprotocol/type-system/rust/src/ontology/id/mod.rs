@@ -1156,5 +1156,13 @@ mod tests {
         // Build metadata is not supported in our format
         OntologyTypeVersion::from_str("1-draft.lane.1+build.123")
             .expect_err("Should reject build metadata in version string");
+
+        // Build metadata is not supported in our format
+        OntologyTypeVersion::from_str("1+build.123")
+            .expect_err("Should reject build metadata in version string");
+
+        // Build metadata is not supported in our format
+        OntologyTypeVersion::from_str("1+build-draft.123")
+            .expect_err("Should reject build metadata in version string");
     }
 }
