@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import commonjs from "@rollup/plugin-commonjs";
 import nodeResolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import { wasm } from "@rollup/plugin-wasm";
@@ -37,6 +38,7 @@ const rolls = (fmt, env) => ({
       outputToFilesystem: false,
     }),
     nodeResolve(),
+    commonjs(),
     {
       name: "copy-pkg",
       resolveImportMeta: () => `""`,

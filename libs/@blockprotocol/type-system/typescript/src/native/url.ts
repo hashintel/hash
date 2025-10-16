@@ -10,7 +10,7 @@ import type {
   OntologyTypeVersion,
 } from "@blockprotocol/type-system-rs/types";
 import type { SemVer } from "semver";
-import { parse as parseSemVer } from "semver";
+import * as semver from "semver";
 
 /**
  * Checks if a given URL string is a valid base URL.
@@ -93,7 +93,7 @@ const toSemVer = (version: OntologyTypeVersion): SemVer => {
     ? `${majorStr}.0.0-${preRelease}`
     : `${majorStr}.0.0`;
 
-  const parsed = parseSemVer(semverVersionString);
+  const parsed = semver.parse(semverVersionString);
   if (!parsed) {
     throw new Error(
       `Invalid pre-release identifier: ${preRelease ?? ""}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
