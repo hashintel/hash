@@ -37,7 +37,7 @@ use core::{cmp, fmt, num::IntErrorKind, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-pub use error::{ParseBaseUrlError, ParseDraftInfoError, ParseVersionedUrlError};
+pub use error::{ParseBaseUrlError, ParsePrereleaseInfoError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -274,19 +274,22 @@ pub enum PreRelease {
 }
 
 impl FromStr for PreRelease {
-    type Err = ParseDraftInfoError;
+    type Err = ParsePrereleaseInfoError;
 
     fn from_str(draft_info: &str) -> Result<Self, Self::Err> {
+        semver::Prerelease::new(draft_info)
+            .map_err(|error| ParsePrereleaseInfoError::Invalid(error.to_string()))?;
+
         draft_info.rsplit_once('.').map_or(
-            Err(ParseDraftInfoError::IncorrectFormatting),
+            Err(ParsePrereleaseInfoError::IncorrectFormatting),
             |(lane, revision)| {
                 Ok(Self::Draft {
                     lane: lane.to_owned(),
                     revision: u32::from_str(revision).map_err(|error| {
                         if *error.kind() == IntErrorKind::Empty {
-                            ParseDraftInfoError::MissingRevision
+                            ParsePrereleaseInfoError::MissingRevision
                         } else {
-                            ParseDraftInfoError::InvalidRevision(
+                            ParsePrereleaseInfoError::InvalidRevision(
                                 revision.to_owned(),
                                 error.to_string(),
                             )
@@ -1228,5 +1231,27 @@ mod tests {
 
         // Roundtrip
         assert_eq!(parsed.to_string(), url_str);
+    }
+
+    #[test]
+    fn invalid_prerelease_identifiers_rejected() {
+        // According to SemVer, identifiers should only contain [0-9A-Za-z-]
+        // The URL parser rejects special characters and non-ASCII characters
+
+        // Special characters in lane - rejected
+        OntologyTypeVersion::from_str("1-draft.abc,def.123")
+            .expect_err("Should reject special characters in lane identifier");
+
+        // Unicode characters - rejected
+        OntologyTypeVersion::from_str("2-draft.lane\u{1f680}test.5")
+            .expect_err("Should reject Unicode characters in lane identifier");
+
+        // Empty lane - rejected
+        OntologyTypeVersion::from_str("3-draft..1")
+            .expect_err("Should reject empty lane identifier");
+
+        // Spaces - rejected
+        OntologyTypeVersion::from_str("4-draft.lane 123.1")
+            .expect_err("Should reject spaces in lane identifier");
     }
 }

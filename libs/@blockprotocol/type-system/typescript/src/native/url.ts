@@ -9,6 +9,8 @@ import type {
   BaseUrl,
   OntologyTypeVersion,
 } from "@blockprotocol/type-system-rs/types";
+import type { SemVer } from "semver";
+import * as semver from "semver";
 
 /**
  * Checks if a given URL string is a valid base URL.
@@ -114,7 +116,7 @@ export const validateVersionedUrl = (
 
     if (draftMatch) {
       // It's a draft version
-      const [, majorStr, _lane, revisionStr] = draftMatch;
+      const [, majorStr, lane, revisionStr] = draftMatch;
       const major = Number(majorStr);
       const revision = Number(revisionStr);
 
@@ -142,6 +144,31 @@ export const validateVersionedUrl = (
             inner: [
               version,
               { reason: "ParseVersion", inner: "revision number too large" },
+            ],
+          },
+        };
+      }
+
+      // Validate lane identifier using semver
+      // SemVer spec only allows [0-9A-Za-z-] in pre-release identifiers
+      const testVersion = `1.0.0-${lane}`;
+      if (!semver.valid(testVersion)) {
+        return {
+          type: "Err",
+          inner: {
+            reason: "InvalidVersion",
+            inner: [
+              version,
+              {
+                reason: "InvalidPreRelease",
+                inner: [
+                  `draft.${lane}`,
+                  {
+                    reason: "Invalid",
+                    inner: `Invalid pre-release identifier: ${lane}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
+                  },
+                ],
+              },
             ],
           },
         };
@@ -348,16 +375,18 @@ export const incrementOntologyTypeVersion = (
   });
 
 /**
- * Parse an OntologyTypeVersion string into its components
+ * Convert an OntologyTypeVersion to a SemVer object for comparison.
+ * Maps "1" → "1.0.0" and "1-draft.lane.5" → "1.0.0-draft.lane.5"
  */
-const parseVersionComponents = (version: OntologyTypeVersion) => {
-  const match = version.toString().match(/^(\d+)(?:-draft\.([^.]+)\.(\d+))?$/);
+const toSemVer = (version: OntologyTypeVersion): SemVer => {
+  const versionStr = version.toString();
+  const match = versionStr.match(/^(\d+)(?:-(.+))?$/);
 
   if (!match) {
     throw new Error(`Invalid version format: ${version}`);
   }
 
-  const [, majorStr, lane, revisionStr] = match;
+  const [, majorStr, preRelease] = match;
 
   if (!majorStr) {
     throw new Error(
@@ -365,109 +394,38 @@ const parseVersionComponents = (version: OntologyTypeVersion) => {
     );
   }
 
-  return {
-    major: Number.parseInt(majorStr, 10),
-    preRelease:
-      lane && revisionStr
-        ? { lane, revision: Number.parseInt(revisionStr, 10) }
-        : null,
-  };
-};
+  // Validate pre-release identifier using semver if present
+  const semverVersionString = preRelease
+    ? `${majorStr}.0.0-${preRelease}`
+    : `${majorStr}.0.0`;
 
-/**
- * Check if a string consists only of ASCII digits
- */
-const isNumericIdentifier = (str: string): boolean => {
-  return /^\d+$/.test(str);
+  const parsed = semver.parse(semverVersionString);
+  if (!parsed) {
+    throw new Error(
+      `Invalid pre-release identifier: ${preRelease ?? ""}. Only [0-9A-Za-z-] are allowed per SemVer spec.`,
+    );
+  }
+
+  return parsed;
 };
 
 /**
  * Compare two ontology type versions following SemVer semantics.
  *
- * Rules:
+ * Converts versions to SemVer format and uses semver.compare:
+ * - "1" → "1.0.0"
+ * - "1-draft.lane.5" → "1.0.0-draft.lane.5"
+ *
+ * SemVer rules automatically applied:
  * - Major version takes precedence
- * - Published versions (v/2) > pre-release versions (v/2-draft.x.y)
+ * - Published versions (1.0.0) > pre-release versions (1.0.0-draft.x)
  * - Pre-release identifiers follow SemVer rules:
- *   1. Numeric identifiers are compared numerically
- *   2. Alphanumeric identifiers are compared lexically
+ *   1. Numeric identifiers compared numerically
+ *   2. Alphanumeric identifiers compared lexically
  *   3. Numeric identifiers have lower precedence than alphanumeric
+ *   4. Larger set of fields has higher precedence
  */
 export const compareOntologyTypeVersions = (
   versionA: OntologyTypeVersion,
   versionB: OntologyTypeVersion,
-): -1 | 0 | 1 => {
-  const a = parseVersionComponents(versionA);
-  const b = parseVersionComponents(versionB);
-
-  // First compare major version
-  if (a.major !== b.major) {
-    return a.major < b.major ? -1 : 1;
-  }
-
-  // Same major version - check pre-release
-  // Per SemVer: published > pre-release
-  if (!a.preRelease && !b.preRelease) {
-    return 0; // Both published, same major
-  }
-  if (!a.preRelease && b.preRelease) {
-    return 1; // A is published, B is pre-release → A > B
-  }
-  if (a.preRelease && !b.preRelease) {
-    return -1; // A is pre-release, B is published → A < B
-  }
-
-  // Both are pre-release - compare lane then revision following SemVer rules
-  if (a.preRelease && b.preRelease) {
-    if (a.preRelease.lane !== b.preRelease.lane) {
-      const aIsNumeric = isNumericIdentifier(a.preRelease.lane);
-      const bIsNumeric = isNumericIdentifier(b.preRelease.lane);
-
-      if (aIsNumeric && bIsNumeric) {
-        // Both numeric - compare as numbers
-        const aNum = Number.parseInt(a.preRelease.lane, 10);
-        const bNum = Number.parseInt(b.preRelease.lane, 10);
-        return aNum < bNum ? -1 : aNum > bNum ? 1 : 0;
-      } else if (aIsNumeric && !bIsNumeric) {
-        // a is numeric, b is alphanumeric - numeric < alphanumeric
-        return -1;
-      } else if (!aIsNumeric && bIsNumeric) {
-        // a is alphanumeric, b is numeric - alphanumeric > numeric
-        return 1;
-      } else {
-        // Both alphanumeric - compare lexically
-        return a.preRelease.lane < b.preRelease.lane ? -1 : 1;
-      }
-    }
-    if (a.preRelease.revision !== b.preRelease.revision) {
-      return a.preRelease.revision < b.preRelease.revision ? -1 : 1;
-    }
-    return 0;
-  }
-
-  return 0;
-};
-
-/**
- * Check if a version is a draft (pre-release)
- */
-export const isDraftVersion = (version: OntologyTypeVersion): boolean => {
-  return version.toString().includes("-draft.");
-};
-
-/**
- * Extract the major version number from an OntologyTypeVersion
- */
-export const extractMajorVersion = (version: OntologyTypeVersion): number => {
-  const components = parseVersionComponents(version);
-  return components.major;
-};
-
-/**
- * Check if two versions have the same major version
- */
-export const haveSameMajorVersion = (
-  versionA: OntologyTypeVersion,
-  versionB: OntologyTypeVersion,
-): boolean => {
-  return extractMajorVersion(versionA) === extractMajorVersion(versionB);
-};
+): -1 | 0 | 1 => semver.compare(toSemVer(versionA), toSemVer(versionB));

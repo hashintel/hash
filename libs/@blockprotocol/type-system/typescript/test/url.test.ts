@@ -8,10 +8,7 @@ import type {
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
-  extractMajorVersion,
   extractVersion,
-  haveSameMajorVersion,
-  isDraftVersion,
   validateBaseUrl,
   validateVersionedUrl,
 } from "../src/main.js";
@@ -148,79 +145,6 @@ describe("Draft version support", () => {
       ],
     ])("extractVersion(%s) returns draft version", (input, expected) => {
       expect(extractVersion(input).toString()).toEqual(expected);
-    });
-  });
-
-  describe("isDraftVersion", () => {
-    test("returns true for draft versions", () => {
-      expect(isDraftVersion("1-draft.abc12345.1" as OntologyTypeVersion)).toBe(
-        true,
-      );
-      expect(
-        isDraftVersion("2-draft.xyz98765.999" as OntologyTypeVersion),
-      ).toBe(true);
-    });
-
-    test("returns false for published versions", () => {
-      expect(isDraftVersion("1" as OntologyTypeVersion)).toBe(false);
-      expect(isDraftVersion("42" as OntologyTypeVersion)).toBe(false);
-    });
-  });
-
-  describe("extractMajorVersion", () => {
-    test("extracts major from published versions", () => {
-      expect(extractMajorVersion("1" as OntologyTypeVersion)).toBe(1);
-      expect(extractMajorVersion("42" as OntologyTypeVersion)).toBe(42);
-    });
-
-    test("extracts major from draft versions", () => {
-      expect(
-        extractMajorVersion("1-draft.abc12345.1" as OntologyTypeVersion),
-      ).toBe(1);
-      expect(
-        extractMajorVersion("5-draft.xyz98765.3" as OntologyTypeVersion),
-      ).toBe(5);
-    });
-  });
-
-  describe("haveSameMajorVersion", () => {
-    test("returns true for same major versions", () => {
-      expect(
-        haveSameMajorVersion(
-          "2" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
-      ).toBe(true);
-
-      expect(
-        haveSameMajorVersion(
-          "2" as OntologyTypeVersion,
-          "2-draft.abc12345.1" as OntologyTypeVersion,
-        ),
-      ).toBe(true);
-
-      expect(
-        haveSameMajorVersion(
-          "2-draft.abc12345.1" as OntologyTypeVersion,
-          "2-draft.xyz98765.5" as OntologyTypeVersion,
-        ),
-      ).toBe(true);
-    });
-
-    test("returns false for different major versions", () => {
-      expect(
-        haveSameMajorVersion(
-          "1" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
-      ).toBe(false);
-
-      expect(
-        haveSameMajorVersion(
-          "1-draft.abc12345.1" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
-      ).toBe(false);
     });
   });
 
@@ -390,6 +314,35 @@ describe("Draft version support", () => {
           "1-draft.z9y8x7w6.1" as OntologyTypeVersion,
         ),
       ).toBe(-1); // "a..." < "z..."
+    });
+
+    test("Invalid pre-release identifiers are rejected", () => {
+      // According to SemVer, identifiers should only contain [0-9A-Za-z-]
+      // The parser should reject special characters and non-ASCII characters
+
+      // Special characters in lane - rejected
+      const result1 = validateVersionedUrl(
+        "https://example.com/type/v/1-draft.abc,def.123",
+      );
+      expect(result1.type).toBe("Err");
+
+      // Unicode characters - rejected
+      const result2 = validateVersionedUrl(
+        "https://example.com/type/v/2-draft.lane🚀test.5",
+      );
+      expect(result2.type).toBe("Err");
+
+      // Empty lane - rejected (this fails the regex match itself)
+      const result3 = validateVersionedUrl(
+        "https://example.com/type/v/3-draft..1",
+      );
+      expect(result3.type).toBe("Err");
+
+      // Spaces - rejected
+      const result4 = validateVersionedUrl(
+        "https://example.com/type/v/4-draft.lane 123.1",
+      );
+      expect(result4.type).toBe("Err");
     });
   });
 });
