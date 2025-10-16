@@ -81,7 +81,7 @@ Use the controls below to adjust the parameters and see how they affect the disp
       control: {
         type: "range",
         min: 0,
-        max: 50,
+        max: 100,
         step: 1,
       },
       description: "Corner radius of the object",
@@ -246,7 +246,8 @@ export const Preview: Story = {
       <div
         style={{
           textAlign: "center",
-          backgroundColor: "#000",
+          backgroundColor: "#808000",
+          borderRadius: 20,
           padding: 70,
         }}
       >
