@@ -19,7 +19,7 @@ pub mod checking;
 pub mod ctor;
 pub mod dataflow;
 pub mod error;
-pub mod graph_hoist;
+pub mod hoist;
 pub mod inference;
 pub mod normalization;
 pub mod specialization;
