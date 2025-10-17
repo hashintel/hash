@@ -172,7 +172,6 @@ macro_rules! newtype {
             ///
             /// When value is outside the valid range of $min..$max.
             #[must_use]
-            #[inline]
             $vis const fn new(value: $type) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, $type, $min, $max),

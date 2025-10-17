@@ -134,7 +134,6 @@ where
     /// Returns an iterator over all valid IDs for this slice.
     ///
     /// The iterator yields IDs from 0 up to (but not including) `bound()`.
-    #[inline]
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
         let length = self.len();
 
@@ -155,7 +154,6 @@ where
     /// Returns an iterator over ID-element pairs.
     ///
     /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
-    #[inline]
     pub fn iter_enumerated(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &T)> + ExactSizeIterator + Clone {
@@ -179,7 +177,6 @@ where
     /// Returns a mutable iterator over ID-element pairs.
     ///
     /// Similar to [`Iterator::enumerate`] but yields typed IDs instead of `usize` indices.
-    #[inline]
     pub fn iter_enumerated_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = (I, &mut T)> + ExactSizeIterator {
