@@ -425,7 +425,7 @@ const NewGoalPageContent = () => {
             />
           </Question>
           <Question
-            description="Your web will be populated with entities matching your research goal."
+            description="Your web will be populated with entities matching your research goal"
             number={2}
             text="What do you want to research?"
           >
