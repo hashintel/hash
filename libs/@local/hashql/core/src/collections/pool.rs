@@ -267,10 +267,11 @@ impl<T, R> Pool<T, R> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::collections::pool::{MixedBitSetRecycler, Pool};
+    /// use hashql_core::collections::pool::{MixedBitSetPool, MixedBitSetRecycler};
+    /// # hashql_core::id::newtype!(struct VarId(u32 is 0..=u32::MAX));
     ///
     /// let recycler = MixedBitSetRecycler { domain_size: 1000 };
-    /// let mut pool = Pool::with_recycler(5, recycler);
+    /// let mut pool = MixedBitSetPool::<VarId>::with_recycler(5, recycler);
     /// ```
     pub fn with_recycler(capacity: usize, recycler: R) -> Self {
         Self {
@@ -321,8 +322,8 @@ where
             self.free.truncate(new_max_size);
         }
 
-        if self.free.capacity() < new_max_size {
-            self.free.reserve(new_max_size - self.free.capacity());
+        if self.free.len() < new_max_size {
+            self.free.reserve(new_max_size - self.free.len());
         }
     }
 
@@ -388,12 +389,13 @@ where
     ///
     /// ```
     /// use hashql_core::{
-    ///     collections::pool::{MixedBitSetRecycler, Pool},
+    ///     collections::pool::{MixedBitSetPool, MixedBitSetRecycler},
     ///     id::bit_vec::MixedBitSet,
     /// };
+    /// # hashql_core::id::newtype!(struct VarId(u32 is 0..=u32::MAX));
     ///
     /// let recycler = MixedBitSetRecycler { domain_size: 100 };
-    /// let mut pool = Pool::with_recycler(5, recycler);
+    /// let mut pool = MixedBitSetPool::<VarId>::with_recycler(5, recycler);
     ///
     /// let bitset = pool.acquire(); // No config needed
     /// // Use bitset...
@@ -527,8 +529,8 @@ impl<T> Recycler<Vec<T>> for VecRecycler {
     /// objects often have adequate capacity.
     fn prepare(&mut self, item: &mut Vec<T>, config: Self::Config) {
         // Only *grow* the vector if it's smaller than the requested capacity
-        if item.capacity() < config {
-            item.reserve(config - item.capacity());
+        if item.len() < config {
+            item.reserve(config - item.len());
         }
     }
 }
@@ -582,13 +584,14 @@ pub type VecPool<T> = Pool<Vec<T>, VecRecycler>;
 ///
 /// ```
 /// use hashql_core::{
-///     collections::pool::{MixedBitSetRecycler, Pool},
+///     collections::pool::{MixedBitSetPool, MixedBitSetRecycler, Pool},
 ///     id::bit_vec::MixedBitSet,
 /// };
+/// # hashql_core::id::newtype!(struct VarId(u32 is 0..=u32::MAX));
 ///
 /// // Create recycler for bit sets with domain size 1000
 /// let recycler = MixedBitSetRecycler { domain_size: 1000 };
-/// let mut pool = Pool::with_recycler(5, recycler);
+/// let mut pool: MixedBitSetPool<VarId> = Pool::with_recycler(5, recycler);
 ///
 /// // All acquired bit sets will have domain size 1000
 /// let bitset1 = pool.acquire();
@@ -654,10 +657,11 @@ where
 ///     collections::pool::{MixedBitSetPool, MixedBitSetRecycler, Pool},
 ///     id::bit_vec::MixedBitSet,
 /// };
+/// # hashql_core::id::newtype!(struct VarId(u32 is 0..=u32::MAX));
 ///
 /// // Create pool for bit sets with domain size 500
 /// let recycler = MixedBitSetRecycler { domain_size: 500 };
-/// let mut pool: MixedBitSetPool<usize> = Pool::with_recycler(10, recycler);
+/// let mut pool: MixedBitSetPool<VarId> = Pool::with_recycler(10, recycler);
 ///
 /// // Acquire and use bit sets
 /// let mut bitset = pool.acquire();
