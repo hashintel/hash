@@ -191,7 +191,6 @@ macro_rules! newtype {
             const MAX: Self = Self($max);
 
             // fast path that does not go through the default implementation
-            #[inline]
             fn from_u32(value: u32) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u32, $min, $max),
@@ -201,7 +200,6 @@ macro_rules! newtype {
                 Self(value as $type)
             }
 
-            #[inline]
             fn from_u64(value: u64) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max),
@@ -211,7 +209,6 @@ macro_rules! newtype {
                 Self(value as $type)
             }
 
-            #[inline]
             fn from_usize(value: usize) -> Self {
                 assert!(
                     $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max),

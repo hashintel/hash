@@ -378,6 +378,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::similar_names, reason = "test code")]
     use super::*;
 
     // Define a test ID type
@@ -403,5 +404,196 @@ mod tests {
         assert_eq!(uf.entries[id1].parent, root);
         assert_eq!(uf.entries[id2].parent, root);
         assert_eq!(uf.entries[id3].parent, root);
+    }
+
+    #[test]
+    fn empty_union_find() {
+        let uf = IdUnionFind::<TestId>::new(0);
+        assert_eq!(uf.entries.len(), 0);
+    }
+
+    #[test]
+    fn path_compression_reduces_depth() {
+        let mut uf = IdUnionFind::<TestId>::new(8);
+        let ids: Vec<_> = (0..8).map(TestId::new).collect();
+
+        // Build a deliberately deep chain: 0 <- 1 <- 2 <- 3 <- 4 <- 5 <- 6 <- 7
+        // This creates maximum depth without path compression
+        for i in 1..8 {
+            uf.entries[ids[i - 1]].parent = ids[i];
+        }
+
+        // Before compression: id0 requires 7 hops to reach root (id7)
+        // Manually verify the deep structure
+        assert_eq!(uf.entries[ids[0]].parent, ids[1]);
+        assert_eq!(uf.entries[ids[1]].parent, ids[2]);
+        assert_eq!(uf.entries[ids[6]].parent, ids[7]);
+        assert_eq!(uf.entries[ids[7]].parent, ids[7]); // root
+
+        // After path compression via find(), paths should be much shorter
+        let root = uf.find(ids[0]);
+        assert_eq!(root, ids[7]);
+
+        // Path compression should have shortened paths significantly
+        // With path splitting, nodes should now point to their grandparents or closer
+        let path_length_after = {
+            let mut current = ids[0];
+            let mut hops = 0;
+            while current != uf.entries[current].parent {
+                current = uf.entries[current].parent;
+                hops += 1;
+                if hops > 8 {
+                    break;
+                } // Safety check
+            }
+            hops
+        };
+
+        // Path should be significantly shorter than original 7 hops
+        assert!(
+            path_length_after < 7,
+            "Expected path compression, but path length is {path_length_after}"
+        );
+    }
+
+    #[test]
+    fn union_by_rank_prevents_degenerate_trees() {
+        let mut uf = IdUnionFind::<TestId>::new(16);
+        let ids: Vec<_> = (0..16).map(TestId::new).collect();
+
+        // Build a balanced binary tree bottom-up using union-by-rank
+        // This should create a tree with logarithmic height
+        let mut current_level = ids.clone();
+
+        while current_level.len() > 1 {
+            let mut next_level = Vec::new();
+
+            // Pair up nodes and union them
+            for i in (0..current_level.len()).step_by(2) {
+                if i + 1 < current_level.len() {
+                    let root = uf.unify(current_level[i], current_level[i + 1]);
+                    next_level.push(root);
+                } else {
+                    // Odd node carries to next level
+                    next_level.push(current_level[i]);
+                }
+            }
+
+            current_level = next_level;
+        }
+
+        let final_root = current_level[0];
+
+        // With union-by-rank, the tree height should be logarithmic
+        // For 16 elements, rank should be at most log2(16) = 4
+        assert!(
+            uf.entries[final_root].rank <= 4,
+            "Expected rank <= 4, got {}",
+            uf.entries[final_root].rank
+        );
+
+        // Verify all elements are connected
+        for &id in &ids {
+            assert_eq!(uf.find(id), final_root);
+        }
+    }
+
+    #[test]
+    fn union_by_rank_equal_ranks_increase_rank() {
+        let mut uf = IdUnionFind::<TestId>::new(8);
+        let ids: Vec<_> = (0..8).map(TestId::new).collect();
+
+        // Create two rank-1 trees
+        let tree1 = uf.unify(ids[0], ids[1]); // rank 1
+        let tree2 = uf.unify(ids[2], ids[3]); // rank 1
+        assert_eq!(uf.entries[tree1].rank, 1);
+        assert_eq!(uf.entries[tree2].rank, 1);
+
+        // Union equal-rank trees - rank should increase
+        let combined = uf.unify(tree1, tree2); // rank 2
+        assert_eq!(uf.entries[combined].rank, 2);
+
+        // Create another rank-2 tree
+        let tree3 = uf.unify(ids[4], ids[5]); // rank 1
+        let tree4 = uf.unify(ids[6], ids[7]); // rank 1
+        let tree34 = uf.unify(tree3, tree4); // rank 2
+        assert_eq!(uf.entries[tree34].rank, 2);
+
+        // Union two rank-2 trees - rank should increase to 3
+        let final_root = uf.unify(combined, tree34);
+        assert_eq!(uf.entries[final_root].rank, 3);
+    }
+
+    #[test]
+    fn union_by_rank_different_ranks_preserve_rank() {
+        let mut uf = IdUnionFind::<TestId>::new(5);
+        let ids: Vec<_> = (0..5).map(TestId::new).collect();
+
+        // Create rank-2 tree: ((0,1), (2,3))
+        let rank1_a = uf.unify(ids[0], ids[1]); // rank 1
+        let rank1_b = uf.unify(ids[2], ids[3]); // rank 1
+        let rank2_tree = uf.unify(rank1_a, rank1_b); // rank 2
+        assert_eq!(uf.entries[rank2_tree].rank, 2);
+
+        // Union with rank-0 element (ids[4] is still singleton)
+        let combined = uf.unify(rank2_tree, ids[4]); // should stay rank 2
+        assert_eq!(combined, rank2_tree); // Higher rank tree becomes root
+        assert_eq!(uf.entries[combined].rank, 2); // Rank unchanged
+    }
+
+    #[test]
+    fn unify_already_connected_elements_preserves_structure() {
+        let mut uf = IdUnionFind::<TestId>::new(4);
+        let ids: Vec<_> = (0..4).map(TestId::new).collect();
+
+        // Build initial structure
+        let root1 = uf.unify(ids[0], ids[1]);
+        let final_root = uf.unify(root1, ids[2]);
+
+        let initial_rank = uf.entries[final_root].rank;
+        let initial_structure: Vec<_> = (0..4).map(|i| uf.entries[ids[i]].parent).collect();
+
+        // Unify already-connected elements multiple times
+        for _ in 0..5 {
+            let returned_root = uf.unify(ids[0], ids[2]);
+            assert_eq!(returned_root, final_root);
+            assert_eq!(uf.entries[final_root].rank, initial_rank); // Rank unchanged
+        }
+
+        // Structure should be unchanged
+        let final_structure: Vec<_> = (0..4).map(|i| uf.entries[ids[i]].parent).collect();
+        assert_eq!(initial_structure, final_structure);
+    }
+
+    #[test]
+    fn reset_functionality() {
+        let mut uf = IdUnionFind::<TestId>::new(4);
+        let ids: Vec<_> = (0..4).map(TestId::new).collect();
+
+        // Build complex structure with various ranks
+        uf.unify(ids[0], ids[1]);
+        uf.unify(ids[2], ids[3]);
+        let final_root = uf.unify(ids[0], ids[2]);
+
+        // Verify complex state
+        assert!(uf.entries[final_root].rank > 0);
+        assert!(uf.equiv(ids[0], ids[3]));
+
+        // Reset should restore initial state
+        uf.reset();
+
+        // Every element should be its own parent with rank 0
+        for &id in &ids {
+            assert_eq!(uf.entries[id].parent, id);
+            assert_eq!(uf.entries[id].rank, 0);
+            assert_eq!(uf.find(id), id);
+        }
+
+        // No elements should be equivalent
+        for i in 0..4 {
+            for j in i + 1..4 {
+                assert!(!uf.equiv(ids[i], ids[j]));
+            }
+        }
     }
 }
