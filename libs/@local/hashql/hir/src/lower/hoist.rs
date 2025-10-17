@@ -109,7 +109,8 @@ impl<'ctx, 'env, 'heap> GraphHoisting<'ctx, 'env, 'heap> {
         }
     }
 
-    pub fn run(&mut self, node: Node<'heap>) -> Node<'heap> {
+    #[must_use]
+    pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
         let Ok(node) = self.fold_node(node);
 
         debug_assert!(
