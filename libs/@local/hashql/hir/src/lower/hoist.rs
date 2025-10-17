@@ -223,17 +223,19 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
             deps.visit_node(&binding.value);
             let mut deps = deps.finish();
 
-            if deps.intersect(&dependent) {
+            deps.intersect(&dependent);
+
+            if deps.is_empty() {
+                // This binding doesn't depend on any of the closure parameters
+                // We can hoist it out of the closure
+                upper_scope.push(*binding);
+                true
+            } else {
                 // One of the variables that depend on the closure parameters has been mentioned
                 // We can't hoist this binding out of the closure
                 // "infect" the dependent variables
                 dependent.insert(binding.binder.id);
                 false
-            } else {
-                // This binding doesn't depend on any of the closure parameters
-                // We can hoist it out of the closure
-                upper_scope.push(*binding);
-                true
             }
         });
 
