@@ -1,6 +1,7 @@
 use core::{convert::Infallible, mem};
 
 use hashql_core::{
+    collections::pool::{MixedBitSetPool, MixedBitSetRecycler, VecPool},
     id::bit_vec::{BitRelations as _, MixedBitSet},
     intern::Interned,
 };
@@ -63,21 +64,46 @@ use crate::{
 // the `Key` be sequential, something we cannot guarantee, we might also just be in the "middle", so
 // this would be memory blowup.
 
+#[derive(Debug, Copy, Clone)]
+pub struct GraphHoistConfig {
+    pub bitset_recycler_capacity: usize,
+    pub binding_recycler_capacity: usize,
+}
+
+impl Default for GraphHoistConfig {
+    fn default() -> Self {
+        Self {
+            bitset_recycler_capacity: 8,
+            binding_recycler_capacity: 4,
+        }
+    }
+}
+
 pub struct GraphHoist<'ctx, 'env, 'heap> {
     context: &'ctx HirContext<'env, 'heap>,
     scope: Vec<Binding<'heap>>,
     nested_inside_graph: bool,
     scope_sources: Option<MixedBitSet<VarId>>,
+
+    binding_pool: VecPool<Binding<'heap>>,
+    bitset_pool: MixedBitSetPool<VarId>,
 }
 
 impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
     #[must_use]
-    pub const fn new(context: &'ctx HirContext<'env, 'heap>) -> Self {
+    pub fn new(context: &'ctx HirContext<'env, 'heap>, config: GraphHoistConfig) -> Self {
         Self {
             context,
             scope: Vec::new(),
             nested_inside_graph: false,
             scope_sources: None,
+            binding_pool: VecPool::new(config.binding_recycler_capacity),
+            bitset_pool: MixedBitSetPool::with_recycler(
+                config.bitset_recycler_capacity,
+                MixedBitSetRecycler {
+                    domain_size: context.counter.var.size(),
+                },
+            ),
         }
     }
 
@@ -122,10 +148,14 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
         &mut self,
         bindings: Interned<'heap, [Binding<'heap>]>,
     ) -> Self::Output<Interned<'heap, [Binding<'heap>]>> {
-        // TODO: Recycler?
         // We replace the current upper scope with our current scope and operate it, this means that
         // we automatically collect any bindings that are available (if required).
-        let mut upper_scope = mem::replace(&mut self.scope, Vec::with_capacity(bindings.len()));
+        let mut upper_scope = mem::replace(
+            &mut self.scope,
+            // We're not hoisting in a large amount of cases, therefore the amount of bindings is
+            // actually a pretty good indicator.
+            self.binding_pool.acquire_with(bindings.len()),
+        );
 
         // When walking the bindings, make sure that we put our bindings *after* walking, otherwise
         // computation order is wrong.
@@ -149,16 +179,13 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
         // While doing so we "infect" any bindings that are dependent on the current scope, this is
         // akin to a flattened set of data flow.
         self.scope.retain(|binding| {
-            // TODO: recycler
-            let mut variables = VariableDependencies::from_set(MixedBitSet::new_empty(
-                self.context.counter.var.size(),
-            ));
+            let mut variables = VariableDependencies::from_set(self.bitset_pool.acquire());
             variables.visit_node(&binding.value);
             let mut variables = variables.finish();
 
             variables.intersect(&scope_sources);
 
-            if variables.is_empty() {
+            let output = if variables.is_empty() {
                 // There are no dependencies on the declared resources, therefore it is safe to
                 // upstream
                 upper_scope.push(*binding);
@@ -168,12 +195,23 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
                 // it
                 scope_sources.insert(binding.binder.id);
                 true
-            }
+            };
+            self.bitset_pool.release(variables);
+
+            output
         });
+
+        self.bitset_pool.release(scope_sources);
+
+        // There might be cases, in which `bindings` will be empty, this is a non-issue, as they
+        // will be deleted once HIR(ANF) runs again.
 
         // Re-instate the upper scope, and return the bindings
         let bindings = mem::replace(&mut self.scope, upper_scope);
-        Ok(self.context.interner.bindings.intern_slice(&bindings))
+        let interned = self.context.interner.bindings.intern_slice(&bindings);
+
+        self.binding_pool.release(bindings);
+        Ok(interned)
     }
 
     fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
@@ -190,7 +228,7 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
             return fold::walk_closure(self, closure);
         }
 
-        let mut params = MixedBitSet::new_empty(self.context.counter.var.size());
+        let mut params = self.bitset_pool.acquire();
         for param in closure.signature.params {
             params.insert(param.name.id);
         }
