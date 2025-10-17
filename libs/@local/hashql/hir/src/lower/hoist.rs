@@ -1,20 +1,20 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, mem};
 
 use hashql_core::{
     id::bit_vec::{BitRelations as _, MixedBitSet},
-    span::SpanId,
+    intern::Interned,
 };
 
 use crate::{
     context::HirContext,
     fold::{self, Fold},
     intern::Interner,
-    lower::{dataflow::VariableDependencies, normalization::is_anf_atom},
+    lower::dataflow::VariableDependencies,
     node::{
-        Node, PartialNode,
+        Node,
         closure::Closure,
-        kind::NodeKind,
-        r#let::{Binding, Let},
+        graph::Graph,
+        r#let::{Binding, VarId},
     },
     visit::Visitor as _,
 };
@@ -65,8 +65,9 @@ use crate::{
 
 pub struct GraphHoist<'ctx, 'env, 'heap> {
     context: &'ctx HirContext<'env, 'heap>,
-    scope: Option<Vec<Binding<'heap>>>,
+    scope: Vec<Binding<'heap>>,
     nested_inside_graph: bool,
+    scope_sources: Option<MixedBitSet<VarId>>,
 }
 
 impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
@@ -74,59 +75,25 @@ impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
     pub const fn new(context: &'ctx HirContext<'env, 'heap>) -> Self {
         Self {
             context,
-            scope: None,
+            scope: Vec::new(),
             nested_inside_graph: false,
+            scope_sources: None,
         }
-    }
-
-    fn build_body(
-        &self,
-        span: SpanId,
-        bindings: &[Binding<'heap>],
-        body: Node<'heap>,
-    ) -> Node<'heap> {
-        if bindings.is_empty() {
-            return body;
-        }
-
-        self.context.interner.intern_node(PartialNode {
-            span,
-            kind: NodeKind::Let(Let {
-                bindings: self.context.interner.bindings.intern_slice(bindings),
-                body,
-            }),
-        })
     }
 
     pub fn run(&mut self, node: Node<'heap>) -> Node<'heap> {
-        let (bindings, body) = if let NodeKind::Let(Let { bindings, body }) = node.kind {
-            (bindings.0, *body)
-        } else {
-            (&[] as &[_], node)
-        };
+        let Ok(node) = self.fold_node(node);
 
-        debug_assert!(is_anf_atom(&body), "HIR should be in ANF");
-        debug_assert!(self.scope.is_none(), "scope should not be set");
+        debug_assert!(
+            self.scope.is_empty(),
+            "The scope should have been emptied when traversing the tree"
+        );
+        debug_assert!(
+            self.scope_sources.is_none(),
+            "The scope sources should have been restored after traversing the tree"
+        );
 
-        self.scope = Some(Vec::with_capacity(bindings.len()));
-
-        for &binding in bindings {
-            let Ok(binding) = fold::walk_binding(self, binding);
-
-            self.scope
-                .as_mut()
-                .unwrap_or_else(|| unreachable!("scope should be set"))
-                .push(binding);
-        }
-
-        // We do not fold the body, because it cannot contribute any bindings, bindings only happens
-        // in closures, which are not atoms.
-        let bindings = self
-            .scope
-            .take()
-            .unwrap_or_else(|| unreachable!("scope should be set"));
-
-        self.build_body(node.span, &bindings, body)
+        node
     }
 }
 
@@ -142,109 +109,98 @@ impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
         self.context.interner
     }
 
-    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
-        // Check if the node that we're entering is a nested (supported) closure, if that is the
-        // case we can safely continue hoisting with a scope, otherwise we cannot and close the
-        // scope.
-        if !matches!(node.kind, NodeKind::Graph(_)) && !self.nested_inside_graph {
-            let previous = self.scope.take();
+    // The core insight is that a boundary is always at let's, why? because we always collapse lets
+    // when we move to HIR(ANF) where possible. The resulting value is always a value (that of a
+    // `let`), therefore at any boundary the lets automatically collect. This also means that we
+    // don't need to worry about what is a boundary or not - we just choose to do this at every let,
+    // which means it's a boundary.
+    //
+    // We only want to move things to the upper boundary if we're inside of a let, this gets a bit
+    // more tricky.
 
-            let Ok(node) = fold::walk_node(self, node);
+    fn fold_bindings(
+        &mut self,
+        bindings: Interned<'heap, [Binding<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [Binding<'heap>]>> {
+        // TODO: Recycler?
+        // We replace the current upper scope with our current scope and operate it, this means that
+        // we automatically collect any bindings that are available (if required).
+        let mut upper_scope = mem::replace(&mut self.scope, Vec::with_capacity(bindings.len()));
 
-            self.scope = previous;
-            return Ok(node);
-        }
-
-        // We need to check if we're directly nested inside the graph (such as a closure), in that
-        // case we continue hoisting, as the closure is part of the graph itself.
-        self.nested_inside_graph = matches!(node.kind, NodeKind::Graph(_));
-        fold::walk_node(self, node)
-    }
-
-    fn fold_closure(&mut self, closure: Closure<'heap>) -> Self::Output<Closure<'heap>> {
-        let (bindings, body) = if let NodeKind::Let(Let { bindings, body }) = closure.body.kind {
-            (bindings.0, *body)
-        } else {
-            (&[] as &[_], closure.body)
-        };
-
-        debug_assert!(is_anf_atom(&body), "HIR should be in ANF");
-
-        // Inside the closure any folding is fine, but only for the first set of bindings, we manage
-        // two distinct scopes. The upper scope (which is currently held in the struct), and the
-        // current scope.
-        // As we descend down, we create a new scope and replace the upper scope (if available)
-        // This scope are all the bindings that we will be creating a part of the closure bindings.
-        // TODO: recycler
-        let upper_scope = self.scope.replace(Vec::with_capacity(bindings.len()));
-
+        // When walking the bindings, make sure that we put our bindings *after* walking, otherwise
+        // computation order is wrong.
         for &binding in bindings {
             let Ok(binding) = fold::walk_binding(self, binding);
-
-            self.scope
-                .as_mut()
-                .unwrap_or_else(|| unreachable!("scope should be set"))
-                .push(binding);
+            self.scope.push(binding);
         }
 
-        // We do not fold the body, because it cannot contribute any bindings, bindings only happens
-        // in closures, which are not atoms.
+        // Check if we can upstream any arguments that aren't dependent on the current scope
+        let Some(mut scope_sources) = self.scope_sources.take() else {
+            let bindings = mem::replace(&mut self.scope, upper_scope);
 
-        // check if we can actually promote any bindings, if not, we just stop
-        let Some(mut upper_scope) = upper_scope else {
-            // We cannot promote, so skip promotion logic, reset the scope, set the bindings, and
-            // continue
-            let current_scope = self
-                .scope
-                .take()
-                .unwrap_or_else(|| unreachable!("scope should be set"));
-
-            return Ok(Closure {
-                signature: closure.signature,
-                body: self.build_body(closure.body.span, &current_scope, body),
-            });
+            // If we're not inside a closure (aka scope_sources is None), we cannot upstream any
+            // bindings, so simply act as a collector.
+            return Ok(self.context.interner.bindings.intern_slice(&bindings));
         };
 
-        let mut current_scope = self
-            .scope
-            .take()
-            .unwrap_or_else(|| unreachable!("scope should be set"));
-
-        // Check for any of the collected bindings if they can be promoted
-        // TODO: recycler
-        let mut dependent = MixedBitSet::new_empty(self.context.counter.var.size());
-        for param in closure.signature.params {
-            dependent.insert(param.name.id);
-        }
-
-        current_scope.retain(|binding| {
+        // If we're inside a closure, we can upstream any bindings that are not dependent on the
+        // current scope. This is because the closure will capture any variables that are
+        // used within it.
+        // While doing so we "infect" any bindings that are dependent on the current scope, this is
+        // akin to a flattened set of data flow.
+        self.scope.retain(|binding| {
             // TODO: recycler
-            let mut deps = VariableDependencies::new(self.context);
-            deps.visit_node(&binding.value);
-            let mut deps = deps.finish();
+            let mut variables = VariableDependencies::from_set(MixedBitSet::new_empty(
+                self.context.counter.var.size(),
+            ));
+            variables.visit_node(&binding.value);
+            let mut variables = variables.finish();
 
-            deps.intersect(&dependent);
+            variables.intersect(&scope_sources);
 
-            if deps.is_empty() {
-                // This binding doesn't depend on any of the closure parameters
-                // We can hoist it out of the closure
+            if variables.is_empty() {
+                // There are no dependencies on the declared resources, therefore it is safe to
+                // upstream
                 upper_scope.push(*binding);
-                true
-            } else {
-                // One of the variables that depend on the closure parameters has been mentioned
-                // We can't hoist this binding out of the closure
-                // "infect" the dependent variables
-                dependent.insert(binding.binder.id);
                 false
+            } else {
+                // It is dependent on the current scope, therefore it cannot be upstreamed, infect
+                // it
+                scope_sources.insert(binding.binder.id);
+                true
             }
         });
 
-        // re-instate the upper scope
-        self.scope = Some(upper_scope);
+        // Re-instate the upper scope, and return the bindings
+        let bindings = mem::replace(&mut self.scope, upper_scope);
+        Ok(self.context.interner.bindings.intern_slice(&bindings))
+    }
 
-        Ok(Closure {
-            signature: closure.signature,
-            body: self.build_body(closure.body.span, &current_scope, body),
-        })
+    fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
+        let previous = mem::replace(&mut self.nested_inside_graph, true);
+        let Ok(graph) = fold::walk_graph(self, graph);
+        self.nested_inside_graph = previous;
+
+        Ok(graph)
+    }
+
+    fn fold_closure(&mut self, closure: Closure<'heap>) -> Self::Output<Closure<'heap>> {
+        let nested_inside_graph = mem::replace(&mut self.nested_inside_graph, false); // We only care about nested hoisting inside closure, so can otherwise ignore the signal
+        if !nested_inside_graph {
+            return fold::walk_closure(self, closure);
+        }
+
+        let mut params = MixedBitSet::new_empty(self.context.counter.var.size());
+        for param in closure.signature.params {
+            params.insert(param.name.id);
+        }
+
+        // We're nested inside graph, which means that let-promotion takes place.
+        let prev_scope_sources = self.scope_sources.replace(params);
+
+        let Ok(closure) = fold::walk_closure(self, closure);
+        self.scope_sources = prev_scope_sources; // We don't particularly care about the return here, it's just used to signal to the body that we can officially hoist
+
+        Ok(closure)
     }
 }

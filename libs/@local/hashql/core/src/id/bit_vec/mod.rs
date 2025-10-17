@@ -15,7 +15,6 @@
 //!   - `index` -> `as_usize`
 //!   - `new` -> `from_usize`
 //! - Mask helpers are no longer generic over `Id` (we do not implement `Id` for `usize`).
-//! - Use `MixedBitSet` instead of `DenseBitSet` for `SparseBitMatrix`.
 //!
 //! Implementation and maintenance:
 //! - Removed rustc-specific serialization code.
