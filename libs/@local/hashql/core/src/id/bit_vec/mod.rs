@@ -1743,7 +1743,7 @@ where
     C: Id,
 {
     num_columns: usize,
-    rows: IdVec<R, Option<MixedBitSet<C>>>,
+    rows: IdVec<R, Option<DenseBitSet<C>>>,
 }
 
 impl<R: Id, C: Id> SparseBitMatrix<R, C> {
@@ -1756,11 +1756,11 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         }
     }
 
-    fn ensure_row(&mut self, row: R) -> &mut MixedBitSet<C> {
+    fn ensure_row(&mut self, row: R) -> &mut DenseBitSet<C> {
         // Instantiate any missing rows up to and including row `row` with an empty `DenseBitSet`.
         // Then replace row `row` with a full `DenseBitSet` if necessary.
         self.rows
-            .get_or_insert_with(row, || MixedBitSet::new_empty(self.num_columns))
+            .get_or_insert_with(row, || DenseBitSet::new_empty(self.num_columns))
     }
 
     /// Sets the cell at `(row, column)` to true. Put another way, insert
@@ -1834,7 +1834,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         self.row(row).into_iter().flat_map(|row| row.iter())
     }
 
-    pub fn row(&self, row: R) -> Option<&MixedBitSet<C>> {
+    pub fn row(&self, row: R) -> Option<&DenseBitSet<C>> {
         self.rows.get(row)?.as_ref()
     }
 
@@ -1844,7 +1844,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn intersect_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        MixedBitSet<C>: BitRelations<Set>,
+        DenseBitSet<C>: BitRelations<Set>,
     {
         match self.rows.get_mut(row) {
             Some(Some(row)) => row.intersect(set),
@@ -1858,7 +1858,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn subtract_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        MixedBitSet<C>: BitRelations<Set>,
+        DenseBitSet<C>: BitRelations<Set>,
     {
         match self.rows.get_mut(row) {
             Some(Some(row)) => row.subtract(set),
@@ -1872,7 +1872,7 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
     /// Returns true if the row was changed.
     pub fn union_row<Set>(&mut self, row: R, set: &Set) -> bool
     where
-        MixedBitSet<C>: BitRelations<Set>,
+        DenseBitSet<C>: BitRelations<Set>,
     {
         self.ensure_row(row).union(set)
     }
