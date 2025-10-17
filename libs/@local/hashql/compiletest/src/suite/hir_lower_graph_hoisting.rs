@@ -10,44 +10,37 @@ use hashql_core::{
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
-    lower::{
-        normalization::{Normalization, NormalizationState},
-        thunking::Thunking,
-    },
+    lower::hoist::{GraphHoisting, GraphHoistingConfig},
     node::Node,
     pretty::PrettyPrintEnvironment,
 };
 
 use super::{
     Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
-    hir_lower_graph_hoisting::hir_lower_graph_hoisting,
+    hir_lower_normalization::hir_lower_normalization,
 };
 use crate::suite::common::Header;
 
-pub(crate) fn hir_lower_thunking<'heap>(
+pub(crate) fn hir_lower_graph_hoisting<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
 ) -> Result<Node<'heap>, SuiteDiagnostic> {
-    let node = hir_lower_graph_hoisting(heap, expr, environment, context, options)?;
+    let node = hir_lower_normalization(heap, expr, environment, context, options)?;
 
-    let thunking = Thunking::new(context);
-    let node = thunking.run(node);
-
-    let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
-    let node = normalization.run(node);
+    let hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let node = hoisting.run(node);
 
     Ok(node)
 }
 
-pub(crate) struct HirLowerThunkingSuite;
+pub(crate) struct HirLowerGraphHoistingSuite;
 
-impl Suite for HirLowerThunkingSuite {
+impl Suite for HirLowerGraphHoistingSuite {
     fn name(&self) -> &'static str {
-        "hir/lower/thunking"
+        "hir/lower/graph-hoisting"
     }
 
     fn run<'heap>(
@@ -63,7 +56,7 @@ impl Suite for HirLowerThunkingSuite {
 
         let mut output = String::new();
 
-        let node = hir_lower_thunking(
+        let node = hir_lower_graph_hoisting(
             heap,
             expr,
             &mut environment,
@@ -78,7 +71,7 @@ impl Suite for HirLowerThunkingSuite {
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
-            Header::new("HIR after thunking"),
+            Header::new("HIR after graph hoisting"),
             node.pretty_print(
                 &PrettyPrintEnvironment {
                     env: &environment,

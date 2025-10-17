@@ -105,7 +105,7 @@ pub fn lower<'heap>(
     let node = normalization.run(node);
 
     // Graph hoisting does *not* break HIR(ANF)
-    let mut graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
     let node = graph_hoisting.run(node);
 
     let thunking = Thunking::new(context);

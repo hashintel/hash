@@ -13,6 +13,7 @@ mod eval_graph_read_entity;
 mod hir_lower_alias_replacement;
 mod hir_lower_checking;
 mod hir_lower_ctor;
+mod hir_lower_graph_hoisting;
 mod hir_lower_inference;
 mod hir_lower_inference_intrinsics;
 mod hir_lower_normalization;
@@ -40,6 +41,7 @@ use self::{
     eval_graph_read_entity::EvalGraphReadEntitySuite,
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
     hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
+    hir_lower_graph_hoisting::HirLowerGraphHoistingSuite,
     hir_lower_inference::HirLowerTypeInferenceSuite,
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
@@ -74,6 +76,7 @@ const SUITES: &[&dyn Suite] = &[
     &EvalGraphReadEntitySuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
+    &HirLowerGraphHoistingSuite,
     &HirLowerNormalizationSuite,
     &HirLowerSpecializationSuite,
     &HirLowerThunkingSuite,
