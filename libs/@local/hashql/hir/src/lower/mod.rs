@@ -7,6 +7,7 @@ use self::{
     checking::TypeChecking,
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
+    hoist::{GraphHoisting, GraphHoistingConfig},
     inference::TypeInference,
     normalization::{Normalization, NormalizationState},
     specialization::Specialization,
@@ -102,6 +103,10 @@ pub fn lower<'heap>(
     let mut norm_state = NormalizationState::default();
     let normalization = Normalization::new(context, &mut norm_state);
     let node = normalization.run(node);
+
+    // Graph hoisting does *not* break HIR(ANF)
+    let mut graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let node = graph_hoisting.run(node);
 
     let thunking = Thunking::new(context);
     let node = thunking.run(node);

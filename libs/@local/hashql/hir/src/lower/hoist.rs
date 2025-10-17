@@ -20,6 +20,8 @@ use crate::{
     visit::Visitor as _,
 };
 
+// Graph hoisting does not break HIR(ANF)
+
 // TODO: think about hoisting of nested graph reads, that will be a bit more complicated
 //
 // The problem is basically: if we hoist a nested graph read, then the graph read might have
@@ -65,12 +67,12 @@ use crate::{
 // this would be memory blowup.
 
 #[derive(Debug, Copy, Clone)]
-pub struct GraphHoistConfig {
+pub struct GraphHoistingConfig {
     pub bitset_recycler_capacity: usize,
     pub binding_recycler_capacity: usize,
 }
 
-impl Default for GraphHoistConfig {
+impl Default for GraphHoistingConfig {
     fn default() -> Self {
         Self {
             bitset_recycler_capacity: 8,
@@ -79,7 +81,7 @@ impl Default for GraphHoistConfig {
     }
 }
 
-pub struct GraphHoist<'ctx, 'env, 'heap> {
+pub struct GraphHoisting<'ctx, 'env, 'heap> {
     context: &'ctx HirContext<'env, 'heap>,
     scope: Vec<Binding<'heap>>,
     nested_inside_graph: bool,
@@ -89,9 +91,9 @@ pub struct GraphHoist<'ctx, 'env, 'heap> {
     bitset_pool: MixedBitSetPool<VarId>,
 }
 
-impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'heap> GraphHoisting<'ctx, 'env, 'heap> {
     #[must_use]
-    pub fn new(context: &'ctx HirContext<'env, 'heap>, config: GraphHoistConfig) -> Self {
+    pub fn new(context: &'ctx HirContext<'env, 'heap>, config: GraphHoistingConfig) -> Self {
         Self {
             context,
             scope: Vec::new(),
@@ -123,7 +125,7 @@ impl<'ctx, 'env, 'heap> GraphHoist<'ctx, 'env, 'heap> {
     }
 }
 
-impl<'heap> Fold<'heap> for GraphHoist<'_, '_, 'heap> {
+impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
     type NestedFilter = crate::fold::nested::Deep;
     type Output<T>
         = Result<T, !>
