@@ -155,7 +155,6 @@ where
     /// ```
     ///
     /// [`from_fn`]: IdVec::from_fn
-    #[inline]
     pub fn from_fn_in(size: usize, mut func: impl FnMut(I) -> T, alloc: A) -> Self {
         // Elide bound checks from subsequent calls to `I::from_usize`
         let _: I = I::from_usize(size.saturating_sub(1));
