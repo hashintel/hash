@@ -109,6 +109,7 @@ where
     /// Returns the number of elements in the slice.
     ///
     /// See [`slice::len`] for details.
+    #[inline]
     pub const fn len(&self) -> usize {
         self.raw.len()
     }
@@ -117,6 +118,7 @@ where
     ///
     /// This is equivalent to the ID that would be assigned to a new element if one were added.
     /// Useful for bounds checking: `id < slice.bound()` tests if `id` is valid for this slice.
+    #[inline]
     pub fn bound(&self) -> I {
         I::from_usize(self.len())
     }
@@ -124,6 +126,7 @@ where
     /// Returns `true` if the slice has a length of 0.
     ///
     /// See [`slice::is_empty`] for details.
+    #[inline]
     pub const fn is_empty(&self) -> bool {
         self.raw.is_empty()
     }
@@ -132,7 +135,12 @@ where
     ///
     /// The iterator yields IDs from 0 up to (but not including) `bound()`.
     pub fn ids(&self) -> impl DoubleEndedIterator<Item = I> + ExactSizeIterator + Clone + 'static {
-        (0..self.len()).map(I::from_usize)
+        let length = self.len();
+
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(length.saturating_sub(1));
+
+        (0..length).map(I::from_usize)
     }
 
     /// Returns an iterator over the elements.
@@ -149,6 +157,9 @@ where
     pub fn iter_enumerated(
         &self,
     ) -> impl DoubleEndedIterator<Item = (I, &T)> + ExactSizeIterator + Clone {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
         self.raw
             .iter()
             .enumerate()
@@ -169,6 +180,9 @@ where
     pub fn iter_enumerated_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = (I, &mut T)> + ExactSizeIterator {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
         self.raw
             .iter_mut()
             .enumerate()

@@ -58,6 +58,36 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         Self::from_raw(Vec::with_capacity(capacity))
     }
+
+    /// Creates an `IdVec` by calling a closure on each ID in sequence.
+    ///
+    /// The closure is called with [`Id`] values from `I::from_usize(0)` up to
+    /// `I::from_usize(size - 1)`, and the returned values are collected into the vector.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `size` is outside the valid range for the ID type `I`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::id::{newtype, IdVec, Id as _};
+    ///
+    /// newtype!(struct NodeId(u32 is 0..=1000));
+    ///
+    /// // Create a vector where each element equals its index squared
+    /// let vec = IdVec::<NodeId, u32>::from_fn(5, |id| id.as_u32() * id.as_u32());
+    ///
+    /// assert_eq!(vec.len(), 5);
+    /// assert_eq!(vec[NodeId::new(0)], 0);  // 0 * 0
+    /// assert_eq!(vec[NodeId::new(3)], 9);  // 3 * 3
+    /// assert_eq!(vec[NodeId::new(4)], 16); // 4 * 4
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn from_fn(size: usize, func: impl FnMut(I) -> T) -> Self {
+        Self::from_fn_in(size, func, Global)
+    }
 }
 
 #[coverage(off)] // reason: trivial implementation
@@ -89,6 +119,53 @@ where
     #[inline]
     pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self::from_raw(Vec::with_capacity_in(capacity, alloc))
+    }
+
+    /// Creates an `IdVec` by calling a closure on each ID in sequence, using a custom allocator.
+    ///
+    /// The closure is called with [`Id`] values from `I::from_usize(0)` up to
+    /// `I::from_usize(size - 1)`, and the returned values are collected into the vector
+    /// using the provided allocator.
+    ///
+    /// This is the allocator-aware version of [`from_fn`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if `size` is outside the valid range for the ID type `I`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// #![feature(allocator_api)]
+    /// use hashql_core::id::{newtype, IdVec, Id as _};
+    /// use std::alloc::Global;
+    ///
+    /// newtype!(struct ItemId(u32 is 0..=1000));
+    ///
+    /// // Create a lookup table with custom allocator
+    /// let lookup = IdVec::<ItemId, String>::from_fn_in(
+    ///     3,
+    ///     |id| format!("item_{}", id.as_u32()),
+    ///     Global
+    /// );
+    ///
+    /// assert_eq!(lookup[ItemId::new(0)], "item_0");
+    /// assert_eq!(lookup[ItemId::new(1)], "item_1");
+    /// assert_eq!(lookup[ItemId::new(2)], "item_2");
+    /// ```
+    ///
+    /// [`from_fn`]: IdVec::from_fn
+    pub fn from_fn_in(size: usize, mut func: impl FnMut(I) -> T, alloc: A) -> Self {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(size.saturating_sub(1));
+
+        let mut vec = Vec::with_capacity_in(size, alloc);
+
+        for index in 0..size {
+            vec.push(func(I::from_usize(index)));
+        }
+
+        Self::from_raw(vec)
     }
 
     /// Appends an element to the back of the vector and returns its ID.
