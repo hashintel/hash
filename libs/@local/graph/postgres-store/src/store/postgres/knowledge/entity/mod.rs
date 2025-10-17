@@ -214,7 +214,7 @@ where
     /// Returns [`QueryError`] if the database query fails during traversal.
     async fn traverse_edges_cte(
         &self,
-        entities: Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        entities: Cow<'_, [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)]>,
         edges: &[EntityTraversalEdge],
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<Option<EntityTraversalResult>, Report<QueryError>> {
@@ -230,8 +230,8 @@ where
         let mut traversal_data =
             EntityEdgeTraversalData::with_capacity(temporal_axes, entities.len());
 
-        for (entity_vertex_id, traversal_interval) in entities {
-            traversal_data.push(entity_vertex_id, traversal_interval);
+        for (entity_vertex_id, traversal_interval) in entities.iter() {
+            traversal_data.push(*entity_vertex_id, *traversal_interval);
         }
 
         // Delegate to SQL layer for CTE execution
@@ -260,7 +260,7 @@ where
     /// Returns [`QueryError`] if any database query fails during traversal.
     async fn traverse_edges_sequential(
         &self,
-        mut entities: Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        mut entities: Cow<'_, [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)]>,
         edges: &[EntityTraversalEdge],
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<EntityTraversalResult, Report<QueryError>> {
@@ -275,8 +275,8 @@ where
             let mut traversal_data =
                 EntityEdgeTraversalData::with_capacity(temporal_axes, entities.len());
 
-            for (entity_vertex_id, traversal_interval) in entities {
-                traversal_data.push(entity_vertex_id, traversal_interval);
+            for (entity_vertex_id, traversal_interval) in entities.iter() {
+                traversal_data.push(*entity_vertex_id, *traversal_interval);
             }
 
             let (edge_kind, edge_direction, reference_table) = match edge {
@@ -300,10 +300,12 @@ where
             all_edition_ids.extend(traversed_editions);
 
             // Prepare entities for next hop (will be filtered later)
-            entities = traversed_edges
-                .iter()
-                .map(|edge| (edge.right_endpoint, edge.traversal_interval))
-                .collect();
+            entities = Cow::Owned(
+                traversed_edges
+                    .iter()
+                    .map(|edge| (edge.right_endpoint, edge.traversal_interval))
+                    .collect(),
+            );
 
             // Store edges with their metadata for later processing
             all_edges_with_metadata.push(EdgeHopMetadata {
@@ -353,22 +355,24 @@ where
             return Ok(entities);
         }
 
-        // Track starting entities
-        let mut tracked_entities = entities
-            .iter()
-            .map(|(vertex_id, _)| *vertex_id)
-            .collect::<HashSet<_>>();
-
         // Phase 1: Traverse all edges and collect results
         // Try CTE first, fall back to sequential if not supported
         let traversal_result = if let Some(result) = self
-            .traverse_edges_cte(entities.clone(), edges, &subgraph.temporal_axes.resolved)
+            .traverse_edges_cte(
+                Cow::Borrowed(&entities),
+                edges,
+                &subgraph.temporal_axes.resolved,
+            )
             .await?
         {
             result
         } else {
-            self.traverse_edges_sequential(entities, edges, &subgraph.temporal_axes.resolved)
-                .await?
+            self.traverse_edges_sequential(
+                Cow::Borrowed(&entities),
+                edges,
+                &subgraph.temporal_axes.resolved,
+            )
+            .await?
         };
 
         // Phase 2: Single permission filter call for all collected edges
@@ -382,6 +386,12 @@ where
 
         // Phase 3: Process edges - populate subgraph and traversal context only for permitted
         // entities
+
+        // Track starting entities
+        let mut tracked_entities = entities
+            .into_iter()
+            .map(|(vertex_id, _)| vertex_id)
+            .collect::<HashSet<_>>();
         let mut final_entities = Vec::new();
         let num_edge_hops = traversal_result.edge_hops.len();
 
