@@ -348,6 +348,11 @@ where
         subgraph: &mut Subgraph,
     ) -> Result<Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>, Report<QueryError>>
     {
+        // Fast path: No edges to traverse - return input entities as "leaf" entities
+        if edges.is_empty() {
+            return Ok(entities);
+        }
+
         // Track starting entities
         let mut tracked_entities = entities
             .iter()
