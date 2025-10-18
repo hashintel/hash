@@ -1,2 +1,18 @@
 //@ run: pass
 //@ description: TODO
+[
+  "let",
+  "a",
+  { "#literal": true },
+  [
+    "let",
+    "b",
+    { "#literal": true },
+    [
+      "let",
+      "c",
+      ["fn", { "#tuple": [] }, { "#struct": {} }, "_", ["==", "a", "b"]],
+      ["c"]
+    ]
+  ]
+]

@@ -16,7 +16,7 @@
         [
           "fn",
           { "#tuple": [] },
-          { "#struct": { "vertex": "_" } },
+          { "#struct": { "vertex1": "_" } },
           "_",
           [
             "let",
@@ -32,9 +32,13 @@
                 [
                   "fn",
                   { "#tuple": [] },
-                  { "#struct": { "vertex": "_" } },
+                  { "#struct": { "vertex2": "_" } },
                   "_",
-                  ["==", "a", "b"]
+                  [
+                    "==",
+                    "vertex1.id.entity_id.entity_uuid",
+                    "vertex2.id.entity_id.entity_uuid"
+                  ]
                 ]
               ]
             ],
