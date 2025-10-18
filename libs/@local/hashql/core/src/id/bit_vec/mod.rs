@@ -23,6 +23,7 @@
 //! - Applied clippy-driven fixes (no intended semantic changes).
 //! - Removed inherent impls for bit relations.
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
+//! - Removed mentions of `IntervalSet`.
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -97,8 +98,7 @@ fn inclusive_start_end<T: Id>(range: impl RangeBounds<T>, domain: usize) -> Opti
 ///
 /// Note 1: Since this bitset is dense, if your domain is big, and/or relatively
 /// homogeneous (for example, with long runs of bits set or unset), then it may
-/// be preferable to instead use a [`MixedBitSet`], or an
-/// [`IntervalSet`](crate::interval::IntervalSet). They should be more suited to
+/// be preferable to instead use a [`MixedBitSet`]. They should be more suited to
 /// sparse, or highly-compressible, domains.
 ///
 /// Note 2: Use [`GrowableBitSet`] if you need support for resizing after creation.
