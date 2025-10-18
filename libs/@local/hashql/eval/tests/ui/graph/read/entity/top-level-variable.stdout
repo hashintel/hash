@@ -6,9 +6,10 @@
              in
              %5
          )
+     foo:0 = thunk(() -> true)
      %3 = thunk(() ->
          #let %6 = %2()
-                  %7 = ::graph::head::entities(%6)
+                  %8 = ::graph::head::entities(%6)
                       |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
                        EntityRecordId[(edition_id:
                         EntityEditionId[Uuid[String]], entity_id:
@@ -26,11 +27,11 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]»): _1«Boolean» ->
-                          #let foo:0 = true
+                          #let %7 = foo:0()
                           in
-                          foo:0) |> ::graph::tail::collect
+                          %7) |> ::graph::tail::collect
              in
-             %7
+             %8
          )
 in
 %3

@@ -1,27 +1,15 @@
-error[graph-read-compiler::closure-unsupported]: Closures not supported
+error[graph-read-compiler::binary-operation-unsupported]: Binary operations not supported in this context
    ╭▸ 
- 9 │ ┌       ["==",
+ 9 │         ["==",
+   │         │ ━━ Operation `==` not supported here
+   │ ┌───────┘
+   │ │
 10 │ │         "identity", // This is very silly and isn't something you should probably do
-11 │ │          //~^ ERROR Closure definition not supported here
-12 │ │         "identity"
-   │ │          ━━━━━━━━ Closure definition not supported here
-13 │ │         //~^ ERROR Closure definition not supported here
-14 │ │       ]
-   │ └───────┘ ... within this filter expression
-   │
-   ├ help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-   ╰ note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
-
-error[graph-read-compiler::closure-unsupported]: Closures not supported
-   ╭▸ 
- 9 │ ┌       ["==",
-10 │ │         "identity", // This is very silly and isn't something you should probably do
-   │ │          ━━━━━━━━ Closure definition not supported here
 11 │ │          //~^ ERROR Closure definition not supported here
 12 │ │         "identity"
 13 │ │         //~^ ERROR Closure definition not supported here
 14 │ │       ]
    │ └───────┘ ... within this filter expression
    │
-   ├ help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
-   ╰ note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+   ├ help: The `==` operation can only be used at the top level of filter conditions, not as an operand in other operations. For example, `(a == b) == c` is not allowed, but `(a == b) && (c == d)` is valid.
+   ╰ note: This is an intentional current limitation to keep expressions simple, but there are plans to remove this restriction in the future to allow more complex expressions. Progress on this enhancement is tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.

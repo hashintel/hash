@@ -226,8 +226,11 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
     }
 
     fn fold_closure(&mut self, closure: Closure<'heap>) -> Self::Output<Closure<'heap>> {
-        let nested_inside_graph = mem::replace(&mut self.nested_inside_graph, false); // We only care about nested hoisting inside closure, so can otherwise ignore the signal
-        if !nested_inside_graph {
+        // We do not disable hoisting for nested closures, the reason is simple: given that the
+        // closure can only be called inside of a graph context, it means that it will *always* be
+        // evaluated by a backend, therefore, we want to move as much out as possible, as that
+        // filter may be called multiple times.
+        if !self.nested_inside_graph {
             return fold::walk_closure(self, closure);
         }
 
