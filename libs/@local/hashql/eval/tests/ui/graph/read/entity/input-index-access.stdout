@@ -6,9 +6,15 @@
              in
              %7
          )
+     %2 = thunk(() ->
+         #let %8 = #input(user_ids, type: List<EntityUuid[Uuid[String]]>)
+             in
+             %8
+         )
+     %3 = thunk(() -> 0)
      %5 = thunk(() ->
-         #let %8 = %1()
-                  %9 = ::graph::head::entities(%8)
+         #let %9 = %1()
+                  %12 = ::graph::head::entities(%9)
                       |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
                        EntityRecordId[(edition_id:
                         EntityEditionId[Uuid[String]], entity_id:
@@ -26,15 +32,14 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]»): _1«Boolean» ->
-                          #let %2 = #input(user_ids,
-                                   type: List<EntityUuid[Uuid[String]]>)
-                               %3 = 0
+                          #let %10 = %2()
+                               %11 = %3()
                                %4 = (vertex:0.id.entity_id.entity_uuid ==
-                                   %2[%3])
+                                   %10[%11])
                           in
                           %4) |> ::graph::tail::collect
              in
-             %9
+             %12
          )
 in
 %5

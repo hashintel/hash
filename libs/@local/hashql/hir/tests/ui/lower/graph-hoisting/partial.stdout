@@ -1,0 +1,34 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+::graph::tail::collect(::graph::body::filter(::graph::head::entities(::graph::tmp::decision_time_now()),
+#fn(vertex:0: _0): _1 ->
+    ::core::cmp::eq(vertex:0.id.entity_id.entity_uuid,
+    ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")))))
+
+════ HIR after graph hoisting ══════════════════════════════════════════════════
+
+#let %1 = ::graph::tmp::decision_time_now()
+     %2 = #ctor(fn(String) -> Uuid[String], arguments: [])
+     %3 = %2("e2851dbb-7376-4959-9bca-f72cafc4448f")
+     %4 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]], arguments: [])
+     %5 = %4(%3)
+     %7 = ::graph::head::entities(%1) |> ::graph::body::filter(#fn(vertex:0:
+         _0«Entity[(id: EntityRecordId[(edition_id:
+           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
+            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+            EntityUuid[Uuid[String]], web_id:
+            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+          (None[Null]
+           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+              | Some[DraftId[Uuid[String]]]), entity_uuid:
+             EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+             entity_uuid: EntityUuid[Uuid[String]], web_id:
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+         _1«Boolean» ->
+             #let %6 = (vertex:0.id.entity_id.entity_uuid == %5)
+             in
+             %6) |> ::graph::tail::collect
+in
+%7

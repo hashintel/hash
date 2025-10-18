@@ -7,9 +7,33 @@
              in
              %10
          )
+     %3 = thunk(() ->
+         #let %11 = #ctor(fn(String) -> Uuid[String], arguments: [])
+             in
+             %11
+         )
+     %4 = thunk(() ->
+         #let %12 = %3()
+                  %13 = %12("e2851dbb-7376-4959-9bca-f72cafc4448f")
+             in
+             %13
+         )
+     %5 = thunk(() ->
+         #let %14 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
+                  arguments: [])
+             in
+             %14
+         )
+     %6 = thunk(() ->
+         #let %15 = %4()
+                  %16 = %5()
+                  %17 = %16(%15)
+             in
+             %17
+         )
      %8 = thunk(() ->
-         #let %11 = %2()
-                  %12 = ::graph::head::entities(%11)
+         #let %18 = %2()
+                  %20 = ::graph::head::entities(%18)
                       |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
                        EntityRecordId[(edition_id:
                         EntityEditionId[Uuid[String]], entity_id:
@@ -27,17 +51,12 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]»): _1«Boolean» ->
-                          #let %3 = #ctor(fn(String) -> Uuid[String],
-                                   arguments: [])
-                               %4 = %3("e2851dbb-7376-4959-9bca-f72cafc4448f")
-                               %5 = #ctor(fn(Uuid[String]) ->
-                                   EntityUuid[Uuid[String]], arguments: [])
-                               %6 = %5(%4)
-                               %7 = (vertex:0.id.entity_id.entity_uuid == %6)
+                          #let %19 = %6()
+                               %7 = (vertex:0.id.entity_id.entity_uuid == %19)
                           in
                           %7) |> ::graph::tail::collect
              in
-             %12
+             %20
          )
 in
 %8
