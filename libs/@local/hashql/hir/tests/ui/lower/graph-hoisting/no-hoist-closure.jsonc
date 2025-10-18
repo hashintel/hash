@@ -9,23 +9,10 @@
     "b",
     { "#literal": true },
     [
-      "::graph::tail::collect",
-      [
-        "::graph::body::filter",
-        ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-        [
-          "fn",
-          { "#tuple": [] },
-          { "#struct": { "vertex": "_" } },
-          "_",
-          [
-            "let",
-            "c",
-            ["fn", { "#tuple": [] }, { "#struct": {} }, "_", ["==", "a", "b"]],
-            ["c"]
-          ]
-        ]
-      ]
+      "let",
+      "c",
+      ["fn", { "#tuple": [] }, { "#struct": {} }, "_", ["==", "a", "b"]],
+      ["c"]
     ]
   ]
 ]
