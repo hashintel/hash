@@ -50,7 +50,7 @@
     "prosemirror-view": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "serialize-error": "12.0.0",
     "tsx": "4.20.3",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.1.2-canary.1",

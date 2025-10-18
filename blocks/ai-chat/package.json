@@ -36,7 +36,7 @@
     "react-sizeme": "3.0.2",
     "react-transition-group": "4.4.5",
     "react-type-animation": "3.2.0",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
