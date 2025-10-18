@@ -24,6 +24,7 @@
 //! - Removed inherent impls for bit relations.
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
 //! - Removed mentions of `IntervalSet`.
+#![coverage(off)] // Vendored in module with tests
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
