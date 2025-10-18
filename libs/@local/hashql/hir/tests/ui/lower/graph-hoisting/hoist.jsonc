@@ -1,18 +1,26 @@
 //@ run: pass
 //@ description: TODO
-["let", "a", {"#literal": true}, ["let", "b", {"#literal": true},
+[
+  "let",
+  "a",
+  { "#literal": true },
   [
-    "::graph::tail::collect",
+    "let",
+    "b",
+    { "#literal": true },
     [
-      "::graph::body::filter",
-      ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+      "::graph::tail::collect",
       [
-        "fn",
-        { "#tuple": [] },
-        { "#struct": { "vertex": "_" } },
-        "_",
-        ["==", "a", "b"]
+        "::graph::body::filter",
+        ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "vertex": "_" } },
+          "_",
+          ["==", "a", "b"]
+        ]
       ]
     ]
   ]
-]]
+]
