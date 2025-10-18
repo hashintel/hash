@@ -52,7 +52,7 @@
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "semver": "7.7.3",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
