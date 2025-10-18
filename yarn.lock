@@ -655,9 +655,9 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/node": "npm:22.16.5"
-    "@types/set-interval-async": "npm:1.0.3"
+    "@types/set-interval-async": "npm:3.0.1"
     eslint: "npm:9.37.0"
-    set-interval-async: "npm:2.0.3"
+    set-interval-async: "npm:3.0.3"
     slonik: "npm:24.2.0"
     tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
@@ -4213,15 +4213,6 @@ __metadata:
   peerDependencies:
     "@babel/core": ^7.0.0-0
   checksum: 10c0/cba6ca793d915f8aff9fe2f13b0dfbf5fd3f2e9a17f17478ec9878e9af0d206dcfe93154b9fd353727f16c1dca7c7a3ceb4943f8d28b216235f106bc0fbbcaa3
-  languageName: node
-  linkType: hard
-
-"@babel/runtime@npm:7.5.0":
-  version: 7.5.0
-  resolution: "@babel/runtime@npm:7.5.0"
-  dependencies:
-    regenerator-runtime: "npm:^0.13.2"
-  checksum: 10c0/2e074c495b7626981d1a7ec252e4d3dc9c5c2b47dd50d2049243fa13ef6755e458323d2e24c3109e02f220bcb34994b2499dffa0da67389ee45577615d0b2916
   languageName: node
   linkType: hard
 
@@ -18336,10 +18327,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/set-interval-async@npm:1.0.3":
-  version: 1.0.3
-  resolution: "@types/set-interval-async@npm:1.0.3"
-  checksum: 10c0/3377fe19d3297f0751fc472953c0e8fed61399d6e6e731ac5b76daf22f76b4a2167a9571187a4a575b827d8aa77fce29935fbbad9a96ecd42809f98ee8d3e3fd
+"@types/set-interval-async@npm:3.0.1":
+  version: 3.0.1
+  resolution: "@types/set-interval-async@npm:3.0.1"
+  dependencies:
+    set-interval-async: "npm:*"
+  checksum: 10c0/e816cc9792236dede2f6a3a150bd0eddc463f7f0073207803cea3b379cb53ba9bda3adad4f6460aee6b2a354e0444655fd5a54c75d42a55d2c394b58d1c45222
   languageName: node
   linkType: hard
 
@@ -39911,13 +39904,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"regenerator-runtime@npm:^0.13.2":
-  version: 0.13.11
-  resolution: "regenerator-runtime@npm:0.13.11"
-  checksum: 10c0/12b069dc774001fbb0014f6a28f11c09ebfe3c0d984d88c9bced77fdb6fedbacbca434d24da9ae9371bfbf23f754869307fb51a4c98a8b8b18e5ef748677ca24
-  languageName: node
-  linkType: hard
-
 "regenerator-runtime@npm:^0.14.0":
   version: 0.14.1
   resolution: "regenerator-runtime@npm:0.14.1"
@@ -41276,12 +41262,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"set-interval-async@npm:2.0.3":
-  version: 2.0.3
-  resolution: "set-interval-async@npm:2.0.3"
-  dependencies:
-    "@babel/runtime": "npm:7.5.0"
-  checksum: 10c0/453265515bbab66342012cf83ae8150c096c9ffe739a302e5489ad5ca518a206de7b75b69fe160071ebe220b74f6376e4bd7c9c3a382da1f2a1f92bbd065d10b
+"set-interval-async@npm:*, set-interval-async@npm:3.0.3":
+  version: 3.0.3
+  resolution: "set-interval-async@npm:3.0.3"
+  checksum: 10c0/7547bb5265648951f3f799391d970f39be16bae2b462ad54b58e96a6a3eb9dda1f183a3b9a4bfdc0a62637b026b494fae74cda075db1c5762b58d0c9172e6d4c
   languageName: node
   linkType: hard
 
