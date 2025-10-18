@@ -1,15 +1,27 @@
-error[graph-read-compiler::binary-operation-unsupported]: Binary operations not supported in this context
+error[graph-read-compiler::type-constructor-unsupported]: Type constructors not supported as values
    ╭▸ 
- 8 │         ["==",
-   │         │ ━━ Operation `==` not supported here
-   │ ┌───────┘
-   │ │
+ 8 │ ┌       ["==",
  9 │ │         "Some",
+10 │ │         //~^ ERROR Cannot use constructor as value here
+11 │ │         "Some"
+   │ │          ━━━━ Cannot use constructor as value here
+12 │ │         //~^ ERROR Cannot use constructor as value here
+13 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Constructor functions cannot currently be used as first-class values in filter expressions. You can still call constructors to create values (e.g., `SomeType(x)`), but you cannot use the constructor itself in comparisons or pass it as an argument within filter contexts.
+   ╰ note: This is a current limitation of the filter expression compiler. Constructors work as first-class values elsewhere in the language, and support for this in filter expressions is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+
+error[graph-read-compiler::type-constructor-unsupported]: Type constructors not supported as values
+   ╭▸ 
+ 8 │ ┌       ["==",
+ 9 │ │         "Some",
+   │ │          ━━━━ Cannot use constructor as value here
 10 │ │         //~^ ERROR Cannot use constructor as value here
 11 │ │         "Some"
 12 │ │         //~^ ERROR Cannot use constructor as value here
 13 │ │       ]
    │ └───────┘ ... within this filter expression
    │
-   ├ help: The `==` operation can only be used at the top level of filter conditions, not as an operand in other operations. For example, `(a == b) == c` is not allowed, but `(a == b) && (c == d)` is valid.
-   ╰ note: This is an intentional current limitation to keep expressions simple, but there are plans to remove this restriction in the future to allow more complex expressions. Progress on this enhancement is tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.
+   ├ help: Constructor functions cannot currently be used as first-class values in filter expressions. You can still call constructors to create values (e.g., `SomeType(x)`), but you cannot use the constructor itself in comparisons or pass it as an argument within filter contexts.
+   ╰ note: This is a current limitation of the filter expression compiler. Constructors work as first-class values elsewhere in the language, and support for this in filter expressions is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
