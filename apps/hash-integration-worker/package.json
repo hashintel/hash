@@ -35,7 +35,7 @@
     "axios": "1.12.0",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.3",
-    "typescript": "5.7.3",
+    "typescript": "5.9.3",
     "uuid": "13.0.0"
   },
   "devDependencies": {
@@ -44,7 +44,7 @@
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.37.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.3",
+    "typescript": "5.9.3",
     "wait-on": "8.0.4"
   }
 }
