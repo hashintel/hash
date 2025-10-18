@@ -333,7 +333,10 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
             // This prevents inappropriate promotion of bindings to outer scopes
             let prev_scope_sources = self.scope_sources.take();
             let result = fold::walk_closure(self, closure);
+
             self.scope_sources = prev_scope_sources;
+            self.nested_inside_graph = nested_inside_graph;
+
             return result;
         }
 
@@ -350,6 +353,7 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
         // Restore previous scope state (the returned value is used to signal
         // to the closure body that hoisting is officially enabled)
         self.scope_sources = prev_scope_sources;
+        self.nested_inside_graph = nested_inside_graph;
         Ok(closure)
     }
 }
