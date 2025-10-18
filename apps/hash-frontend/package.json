@@ -151,7 +151,7 @@
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
     "sass": "1.89.2",
-    "typescript": "5.7.3",
+    "typescript": "5.9.3",
     "wait-on": "8.0.4",
     "webpack": "5.101.0"
   }

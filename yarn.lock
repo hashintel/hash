@@ -332,7 +332,7 @@ __metadata:
     sanitize-html: "npm:2.17.0"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
     wait-on: "npm:8.0.4"
   languageName: unknown
@@ -443,7 +443,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
     wait-on: "npm:8.0.4"
     ws: "npm:8.18.3"
@@ -588,7 +588,7 @@ __metadata:
     sigma: "npm:3.0.2"
     signia: "npm:0.1.5"
     signia-react: "npm:0.1.5"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     url-regex-safe: "npm:4.0.0"
     use-font-face-observer: "npm:1.3.0"
     uuid: "npm:13.0.0"
@@ -641,7 +641,7 @@ __metadata:
     eslint: "npm:9.37.0"
     rimraf: "npm:6.0.1"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     wait-on: "npm:8.0.4"
   languageName: unknown
@@ -660,7 +660,7 @@ __metadata:
     set-interval-async: "npm:3.0.3"
     slonik: "npm:24.2.0"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -677,7 +677,7 @@ __metadata:
     eslint: "npm:9.37.0"
     hot-shots: "npm:8.5.2"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -698,7 +698,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     zod: "npm:3.25.76"
     zod-to-json-schema: "npm:3.24.6"
   bin:
@@ -723,7 +723,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     zod: "npm:3.25.76"
     zod-to-json-schema: "npm:3.24.6"
   bin:
@@ -791,7 +791,7 @@ __metadata:
     ts-loader: "npm:9.5.2"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     type-fest: "npm:3.13.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     webextension-polyfill: "npm:0.12.0"
     webpack: "npm:5.101.0"
@@ -4349,7 +4349,7 @@ __metadata:
     lodash.isequal: "npm:4.5.0"
     rimraf: "npm:6.0.1"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   peerDependencies:
     react: ^19.0.0
   languageName: unknown
@@ -4387,7 +4387,7 @@ __metadata:
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -4420,7 +4420,7 @@ __metadata:
     semver: "npm:7.7.3"
     tslib: "npm:2.8.1"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vite-plugin-wasm-pack: "npm:0.1.12"
     vitest: "npm:3.2.4"
@@ -7074,7 +7074,7 @@ __metadata:
     react-dom: "npm:19.1.1"
     react-syntax-highlighter: "npm:15.6.1"
     react-type-animation: "npm:3.2.0"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   peerDependencies:
     "@emotion/react": 11.14.0
     "@emotion/styled": 11.14.1
@@ -7107,7 +7107,7 @@ __metadata:
     react: "npm:19.1.1"
     react-dom: "npm:19.1.1"
     react-loading-skeleton: "npm:3.5.0"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   peerDependencies:
     "@emotion/cache": ^11.14.0
     "@emotion/react": ^11.14.0
@@ -7140,7 +7140,7 @@ __metadata:
     lucide-react: "npm:0.544.0"
     motion: "npm:12.23.22"
     storybook: "npm:9.1.10"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     vite: "npm:7.1.9"
     vite-plugin-dts: "npm:4.5.4"
   peerDependencies:
@@ -7181,7 +7181,7 @@ __metadata:
     react-dom: "npm:19.1.1"
     reactflow: "npm:11.11.4"
     storybook: "npm:9.1.10"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
   peerDependencies:
     react: ^19.0.0
@@ -7208,7 +7208,7 @@ __metadata:
     react-dom: "npm:19.1.1"
     react-hook-form: "npm:7.61.1"
     storybook: "npm:9.1.10"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
@@ -7245,7 +7245,7 @@ __metadata:
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     storybook: "npm:9.1.10"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
@@ -8882,7 +8882,7 @@ __metadata:
     eslint: "npm:9.37.0"
     react: "npm:19.1.1"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -8895,7 +8895,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.37.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
   languageName: unknown
   linkType: soft
@@ -8908,7 +8908,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     eslint: "npm:9.37.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -8937,7 +8937,7 @@ __metadata:
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:15.15.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -8972,7 +8972,7 @@ __metadata:
     libp2p: "npm:3.0.6"
     multiformats: "npm:13.4.1"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uint8arraylist: "npm:2.4.8"
     vitest: "npm:3.2.4"
   languageName: unknown
@@ -9025,7 +9025,7 @@ __metadata:
     redis: "npm:4.7.1"
     rimraf: "npm:6.0.1"
     slonik: "npm:24.2.0"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vitest: "npm:3.2.4"
     wait-on: "npm:8.0.4"
@@ -9045,7 +9045,7 @@ __metadata:
     axios: "npm:1.12.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -9067,7 +9067,7 @@ __metadata:
     effect: "npm:3.18.4"
     eslint: "npm:9.37.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vitest: "npm:3.2.4"
   languageName: unknown
@@ -9120,7 +9120,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     serialize-error: "npm:12.0.0"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vitest: "npm:3.2.4"
   languageName: unknown
@@ -9134,7 +9134,7 @@ __metadata:
     "@types/node": "npm:22.16.5"
     axios: "npm:1.12.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -9162,7 +9162,7 @@ __metadata:
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:2.15.1"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     zod: "npm:3.25.76"
     zod-to-json-schema: "npm:3.24.6"
   languageName: unknown
@@ -9182,7 +9182,7 @@ __metadata:
     lodash-es: "npm:4.17.21"
     quicktype: "npm:16.0.43"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     yargs: "npm:17.7.2"
   languageName: unknown
   linkType: soft
@@ -13366,7 +13366,7 @@ __metadata:
     "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -13417,7 +13417,7 @@ __metadata:
     "@rust/error-stack": "npm:0.6.0"
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -13514,7 +13514,7 @@ __metadata:
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -13563,7 +13563,7 @@ __metadata:
     eslint: "npm:9.37.0"
     quicktype: "npm:16.0.43"
     tsx: "npm:4.20.3"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -16749,7 +16749,7 @@ __metadata:
     graphql-request: "npm:3.7.0"
     node-fetch: "npm:2.7.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
   languageName: unknown
   linkType: soft
@@ -16782,7 +16782,7 @@ __metadata:
     eslint: "npm:9.37.0"
     rimraf: "npm:6.0.1"
     rollup: "npm:4.46.2"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
   languageName: unknown
   linkType: soft
@@ -16809,7 +16809,7 @@ __metadata:
     graphql: "npm:16.11.0"
     js-yaml: "npm:4.1.0"
     rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -44276,13 +44276,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5, typescript@npm:5.8.3, typescript@npm:^5.0.4, typescript@npm:^5.4.4":
-  version: 5.8.3
-  resolution: "typescript@npm:5.8.3"
+"typescript@npm:5, typescript@npm:5.9.3, typescript@npm:^5.0.4, typescript@npm:^5.4.4":
+  version: 5.9.3
+  resolution: "typescript@npm:5.9.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
+  checksum: 10c0/6bd7552ce39f97e711db5aa048f6f9995b53f1c52f7d8667c1abdc1700c68a76a308f579cd309ce6b53646deb4e9a1be7c813a93baaf0a28ccd536a30270e1c5
   languageName: node
   linkType: hard
 
@@ -44296,16 +44296,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.7.3":
-  version: 5.7.3
-  resolution: "typescript@npm:5.7.3"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/b7580d716cf1824736cc6e628ab4cd8b51877408ba2be0869d2866da35ef8366dd6ae9eb9d0851470a39be17cbd61df1126f9e211d8799d764ea7431d5435afa
-  languageName: node
-  linkType: hard
-
 "typescript@npm:5.8.2":
   version: 5.8.2
   resolution: "typescript@npm:5.8.2"
@@ -44313,6 +44303,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/5c4f6fbf1c6389b6928fe7b8fcd5dc73bb2d58cd4e3883f1d774ed5bd83b151cbac6b7ecf11723de56d4676daeba8713894b1e9af56174f2f9780ae7848ec3c6
+  languageName: node
+  linkType: hard
+
+"typescript@npm:5.8.3":
+  version: 5.8.3
+  resolution: "typescript@npm:5.8.3"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
   languageName: node
   linkType: hard
 
@@ -44336,13 +44336,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.0.4#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.4#optional!builtin<compat/typescript>":
-  version: 5.8.3
-  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+"typescript@patch:typescript@npm%3A5#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.0.4#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.4.4#optional!builtin<compat/typescript>":
+  version: 5.9.3
+  resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
+  checksum: 10c0/ad09fdf7a756814dce65bc60c1657b40d44451346858eea230e10f2e95a289d9183b6e32e5c11e95acc0ccc214b4f36289dcad4bf1886b0adb84d711d336a430
   languageName: node
   linkType: hard
 
@@ -44356,16 +44356,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>":
-  version: 5.7.3
-  resolution: "typescript@patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/6fd7e0ed3bf23a81246878c613423730c40e8bdbfec4c6e4d7bf1b847cbb39076e56ad5f50aa9d7ebd89877999abaee216002d3f2818885e41c907caaa192cc4
-  languageName: node
-  linkType: hard
-
 "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>":
   version: 5.8.2
   resolution: "typescript@patch:typescript@npm%3A5.8.2#optional!builtin<compat/typescript>::version=5.8.2&hash=5786d5"
@@ -44373,6 +44363,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/5448a08e595cc558ab321e49d4cac64fb43d1fa106584f6ff9a8d8e592111b373a995a1d5c7f3046211c8a37201eb6d0f1566f15cdb7a62a5e3be01d087848e2
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>":
+  version: 5.8.3
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
   languageName: node
   linkType: hard
 
