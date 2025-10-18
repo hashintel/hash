@@ -1,17 +1,15 @@
-error[graph-read-compiler::index-access-internal-error]: Internal error during index access
+error[graph-read-compiler::binary-operation-unsupported]: Binary operations not supported in this context
    ╭▸ 
-13 │           ["input", "user_ids", "Dict<String, ::graph::types::knowledge::entity::EntityUuid>"],
-   │           ──────────────────────────────────────────────────────────────────────────────────── ... on this value
-14 │           {"#literal": "abc"}
-   │                        ━━━━━ Index access failed unexpectedly
+10 │         ["==",
+   │         │ ━━ Operation `==` not supported here
+   │ ┌───────┘
+   │ │
+11 │ │         {"#literal": null},
+12 │ │         ["[]",
+13 │ │           ["input", "user_ids", "Dict<String, ::graph::types::knowledge::entity::EntityUuid>"],
+   ‡ │
+17 │ │       ]
+   │ └───────┘ ... within this filter expression
    │
-   ├ help: This is an internal compiler error. The index access should have been validated by the type checker, but the operation failed during compilation. Please report this as a bug with the code that triggered this error.
-   ├ note: This error indicates a bug in the type checker or compiler. The index access was expected to succeed based on type information, but failed during evaluation.
-   ├ note: Internal error that occurred: Unable to access list with index type `string`
-   ├ help: This is a bug in the compiler, not an issue with your code.
-   ├ help: Please report this issue along with a minimal code example that reproduces the error.
-   ╰ note: Internal compiler errors indicate a bug in the compiler itself that needs to be fixed.
-           
-           We would appreciate if you could file a GitHub or Linear issue and reference this error.
-           
-           When reporting this issue, please include your query, any relevant type definitions, and the complete error message shown above.
+   ├ help: The `==` operation can only be used at the top level of filter conditions, not as an operand in other operations. For example, `(a == b) == c` is not allowed, but `(a == b) && (c == d)` is valid.
+   ╰ note: This is an intentional current limitation to keep expressions simple, but there are plans to remove this restriction in the future to allow more complex expressions. Progress on this enhancement is tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.

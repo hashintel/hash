@@ -1,27 +1,15 @@
-error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
+error[graph-read-compiler::binary-operation-unsupported]: Binary operations not supported in this context
    ╭▸ 
-19 │ ┌       ["==",
+19 │         ["==",
+   │         │ ━━ Operation `==` not supported here
+   │ ┌───────┘
+   │ │
 20 │ │         "read",
-21 │ │         //~^ ERROR Nested graph read operations not supported here
-22 │ │         "read"
-   │ │          ━━━━ Nested graph read operations not supported here
-23 │ │         //~^ ERROR Nested graph read operations not supported here
-24 │ │       ]
-   │ └───────┘ ... within this filter expression
-   │
-   ├ help: Filter expressions do not support nested graph operations. Use a separate query for the nested graph read and pass the result to this filter expression.
-   ╰ note: Nested graph reads in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
-
-error[graph-read-compiler::nested-graph-read-unsupported]: Nested graph read operations not supported
-   ╭▸ 
-19 │ ┌       ["==",
-20 │ │         "read",
-   │ │          ━━━━ Nested graph read operations not supported here
 21 │ │         //~^ ERROR Nested graph read operations not supported here
 22 │ │         "read"
 23 │ │         //~^ ERROR Nested graph read operations not supported here
 24 │ │       ]
    │ └───────┘ ... within this filter expression
    │
-   ├ help: Filter expressions do not support nested graph operations. Use a separate query for the nested graph read and pass the result to this filter expression.
-   ╰ note: Nested graph reads in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+   ├ help: The `==` operation can only be used at the top level of filter conditions, not as an operand in other operations. For example, `(a == b) == c` is not allowed, but `(a == b) && (c == d)` is valid.
+   ╰ note: This is an intentional current limitation to keep expressions simple, but there are plans to remove this restriction in the future to allow more complex expressions. Progress on this enhancement is tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.

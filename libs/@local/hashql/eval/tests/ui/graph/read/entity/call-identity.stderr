@@ -1,5 +1,20 @@
 error[graph-read-compiler::call-unsupported]: Function calls not supported
    ╭▸ 
+ 9 │ ┌        ["==",
+10 │ │          ["identity", "vertex.id.entity_id.entity_uuid"],
+11 │ │          //~^ ERROR Function call not supported here
+12 │ │┏         ["::graph::types::knowledge::entity::EntityUuid",
+13 │ │┃           ["::core::uuid::Uuid", { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }]
+14 │ │┃         ]
+   │ │┗━━━━━━━━━┛ Function call not supported here
+15 │ │        ]
+   │ └────────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not currently support function calls. Move the function call outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+   ╰ note: Function calls in filter expressions are not yet implemented. This feature may be added in future versions for specific categories of pure functions. Progress is tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+
+error[graph-read-compiler::call-unsupported]: Function calls not supported
+   ╭▸ 
  9 │ ┌       ["==",
 10 │ │         ["identity", "vertex.id.entity_id.entity_uuid"],
    │ │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call not supported here

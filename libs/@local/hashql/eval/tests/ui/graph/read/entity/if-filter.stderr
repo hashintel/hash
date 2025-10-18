@@ -5,4 +5,4 @@ error[graph-read-compiler::branch-unsupported]: Branch construct unsupported
   │
   ├ help: rewrite the logic to avoid conditional statements
   ├ note: conditional statements (`if`/`else`) are not supported by the current query compiler. This is a fundamental limitation that will be addressed in the next-generation compiler
-  ╰ note: consider using boolean operators (`&&`, `||`, `!`) to combine conditions directly instead of `if` statements
+  ╰ note: conditional logic must be handled outside the query or using other language constructs

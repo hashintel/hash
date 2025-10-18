@@ -1,3 +1,19 @@
+error[graph-read-compiler::call-unsupported]: Function calls not supported
+   ╭▸ 
+ 8 │ ┌       ["==",
+ 9 │ │         ["[]",
+10 │ │           {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]},
+11 │ │           //~^ ERROR path expressions are not supported in data constructs
+12 │ │           ["::graph::types::knowledge::entity::EntityUuid", ["::core::uuid::Uuid", {"#literal": "a"}]]
+   │ │           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call not supported here
+13 │ │         ],
+14 │ │         "vertex.id.entity_id.entity_uuid"
+15 │ │       ]
+   │ └───────┘ ... within this filter expression
+   │
+   ├ help: Filter expressions do not currently support function calls. Move the function call outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+   ╰ note: Function calls in filter expressions are not yet implemented. This feature may be added in future versions for specific categories of pure functions. Progress is tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+
 error[graph-read-compiler::path-in-data-construct-unsupported]: Path in data construct unsupported
    ╭▸ 
 10 │           {"#dict": [["vertex.id.entity_id.entity_uuid", {"#literal": "a"}]]},
