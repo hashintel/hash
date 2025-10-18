@@ -352,7 +352,11 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
 
         // Restore previous scope state (the returned value is used to signal
         // to the closure body that hoisting is officially enabled)
-        self.scope_sources = prev_scope_sources;
+        let current_scope_sources = mem::replace(&mut self.scope_sources, prev_scope_sources);
+        if let Some(current_scope_sources) = current_scope_sources {
+            self.bitset_pool.release(current_scope_sources);
+        }
+
         self.nested_inside_graph = nested_inside_graph;
         Ok(closure)
     }
