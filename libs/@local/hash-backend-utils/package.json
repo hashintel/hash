@@ -58,8 +58,8 @@
     "redis": "4.7.1",
     "slonik": "24.2.0",
     "uuid": "13.0.0",
-    "wait-on": "8.0.4",
-    "winston": "3.17.0",
+    "wait-on": "9.0.1",
+    "winston": "3.18.3",
     "winston-transport": "4.9.0"
   },
   "devDependencies": {

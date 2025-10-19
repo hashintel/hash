@@ -49,7 +49,7 @@
     "prosemirror-transform": "1.7.0",
     "prosemirror-view": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "serialize-error": "12.0.0",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "uuid": "13.0.0"
   },
   "devDependencies": {
@@ -69,7 +69,7 @@
     "eslint": "9.37.0",
     "graphql": "16.11.0",
     "next": "15.4.7",
-    "react": "19.1.1",
+    "react": "19.2.0",
     "rimraf": "6.0.1",
     "typescript": "5.9.3",
     "vitest": "3.2.4"

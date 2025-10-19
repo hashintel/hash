@@ -18,7 +18,7 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "hot-shots": "8.5.2",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "typescript": "5.9.3"
   },
   "devDependencies": {

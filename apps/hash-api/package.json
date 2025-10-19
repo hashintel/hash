@@ -101,10 +101,10 @@
     "mime-types": "2.1.35",
     "nanoid": "3.3.11",
     "nodemailer": "6.10.1",
-    "oembed-providers": "1.0.20250715",
+    "oembed-providers": "1.0.20250926",
     "openai": "4.104.0",
     "ts-json-schema-generator": "1.5.1",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "typescript": "5.9.3",
     "ws": "8.18.3"
   },
@@ -130,6 +130,6 @@
     "rimraf": "6.0.1",
     "typescript": "5.9.3",
     "vitest": "3.2.4",
-    "wait-on": "8.0.4"
+    "wait-on": "9.0.1"
   }
 }

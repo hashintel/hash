@@ -138,10 +138,12 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
     name: [`flattenedCustomExpectedValueList`, `editingExpectedValueIndex`],
   });
 
-  const itemIds = useWatch({
+  const maybeItemIds = useWatch({
     control,
     name: `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
   });
+
+  const itemIds = useMemo(() => maybeItemIds ?? [], [maybeItemIds]);
 
   const selectedDataTypeIds = Object.values(flattenedExpectedValues)
     .filter(

@@ -84,7 +84,7 @@
     "@types/react": "19.1.9",
     "eslint": "9.37.0",
     "rimraf": "6.0.1",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "typescript": "5.9.3"
   },
   "peerDependencies": {

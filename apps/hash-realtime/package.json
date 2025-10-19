@@ -18,7 +18,7 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "set-interval-async": "3.0.3",
     "slonik": "24.2.0",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "typescript": "5.9.3"
   },
   "devDependencies": {

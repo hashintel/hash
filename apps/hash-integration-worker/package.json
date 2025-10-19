@@ -34,7 +34,7 @@
     "agentkeepalive": "4.6.0",
     "axios": "1.12.0",
     "dotenv-flow": "3.3.0",
-    "tsx": "4.20.3",
+    "tsx": "4.20.6",
     "typescript": "5.9.3",
     "uuid": "13.0.0"
   },
@@ -45,6 +45,6 @@
     "eslint": "9.37.0",
     "rimraf": "6.0.1",
     "typescript": "5.9.3",
-    "wait-on": "8.0.4"
+    "wait-on": "9.0.1"
   }
 }
