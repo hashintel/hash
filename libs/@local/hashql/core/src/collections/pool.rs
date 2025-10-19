@@ -102,6 +102,10 @@ use crate::id::{Id, bit_vec::MixedBitSet};
 ///     }
 /// }
 /// ```
+///
+/// [`recycle`]: Recycler::recycle
+/// [`prepare`]: Recycler::prepare
+/// [`acquire`]: Recycler::acquire
 pub trait Recycler<T> {
     /// Configuration type used for object creation and preparation.
     ///
