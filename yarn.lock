@@ -6475,9 +6475,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@figma/code-connect@npm:1.3.6":
-  version: 1.3.6
-  resolution: "@figma/code-connect@npm:1.3.6"
+"@figma/code-connect@npm:1.3.7":
+  version: 1.3.7
+  resolution: "@figma/code-connect@npm:1.3.7"
   dependencies:
     boxen: "npm:5.1.1"
     chalk: "npm:^4.1.2"
@@ -6496,14 +6496,14 @@ __metadata:
     prettier: "npm:^2.8.8"
     prompts: "npm:^2.4.2"
     strip-ansi: "npm:^6.0.0"
-    ts-morph: "npm:^26.0.0"
-    typescript: "npm:5.9.2"
+    ts-morph: "npm:^27.0.0"
+    typescript: "npm:5.9.3"
     undici: "npm:^5.29.0"
     zod: "npm:3.25.58"
     zod-validation-error: "npm:^3.2.0"
   bin:
     figma: bin/figma
-  checksum: 10c0/2c5e0a2dbbc0c6e11ebdcbf0a4676717c8f5659300eff506271ed39eb4d431e69d76b605cc752a5437cd3c7fb797db3bc1328cfaedd3af1d84b875766867dce3
+  checksum: 10c0/534752a84ba5cf286768156c41daa3d9ad15201321ac4ec3ea8521f0bdd7263fc6c7e600b2646688e2b9bad5ef54989e40d4e628ce60b71754e1ed495f7f9b91
   languageName: node
   linkType: hard
 
@@ -7688,7 +7688,7 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
-    "@figma/code-connect": "npm:1.3.6"
+    "@figma/code-connect": "npm:1.3.7"
     "@hashintel/ds-helpers": "npm:0.0.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -17024,6 +17024,17 @@ __metadata:
     minimatch: "npm:^10.0.1"
     path-browserify: "npm:^1.0.1"
   checksum: 10c0/3daa267bd78114ff504eb064c5215da6e46589e775b781ec0da4998d999b0d7130eff287e70d6e13e0a0a897ea16e9387f4cd885b4b9d6d628f318cecb81d473
+  languageName: node
+  linkType: hard
+
+"@ts-morph/common@npm:~0.28.1":
+  version: 0.28.1
+  resolution: "@ts-morph/common@npm:0.28.1"
+  dependencies:
+    minimatch: "npm:^10.0.1"
+    path-browserify: "npm:^1.0.1"
+    tinyglobby: "npm:^0.2.14"
+  checksum: 10c0/d51276d840997e0f8f83e04f8b1689135bb12588a7ddbed575f87848d5737eeae31e242685d6449de27573e8ed30892157fea643393cb875e175f2711200bc50
   languageName: node
   linkType: hard
 
@@ -42755,13 +42766,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ts-morph@npm:26.0.0, ts-morph@npm:^26.0.0":
+"ts-morph@npm:26.0.0":
   version: 26.0.0
   resolution: "ts-morph@npm:26.0.0"
   dependencies:
     "@ts-morph/common": "npm:~0.27.0"
     code-block-writer: "npm:^13.0.3"
   checksum: 10c0/c6880d90a1eefe0ce6555bf8c11cc104b1f36f84bd36a37a82b9ae0b974f51fe6b1bc91bb0ec42550158dc1c812329d6433e1237cba64f1ef515c129b321dd5d
+  languageName: node
+  linkType: hard
+
+"ts-morph@npm:^27.0.0":
+  version: 27.0.2
+  resolution: "ts-morph@npm:27.0.2"
+  dependencies:
+    "@ts-morph/common": "npm:~0.28.1"
+    code-block-writer: "npm:^13.0.3"
+  checksum: 10c0/224715cc6d97b8ff5afd3986f9629f912a0ebd83eaecbdca91c35cf10a98f607c663f666e7ea5e6afab00563d00dc80fa7a13552cc7f1cef735261c3217d0863
   languageName: node
   linkType: hard
 
@@ -43133,16 +43154,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.9.2":
-  version: 5.9.2
-  resolution: "typescript@npm:5.9.2"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/cd635d50f02d6cf98ed42de2f76289701c1ec587a363369255f01ed15aaf22be0813226bff3c53e99d971f9b540e0b3cc7583dbe05faded49b1b0bed2f638a18
-  languageName: node
-  linkType: hard
-
 "typescript@npm:5.9.3, typescript@npm:^5.7.3, typescript@npm:^5.8.3":
   version: 5.9.3
   resolution: "typescript@npm:5.9.3"
@@ -43200,16 +43211,6 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
-  languageName: node
-  linkType: hard
-
-"typescript@patch:typescript@npm%3A5.9.2#optional!builtin<compat/typescript>":
-  version: 5.9.2
-  resolution: "typescript@patch:typescript@npm%3A5.9.2#optional!builtin<compat/typescript>::version=5.9.2&hash=5786d5"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/34d2a8e23eb8e0d1875072064d5e1d9c102e0bdce56a10a25c0b917b8aa9001a9cf5c225df12497e99da107dc379360bc138163c66b55b95f5b105b50578067e
   languageName: node
   linkType: hard
 
