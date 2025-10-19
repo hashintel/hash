@@ -4,7 +4,7 @@ import { useState } from "react";
 import { SegmentedControl } from "./segmented-control";
 
 const meta: Meta<typeof SegmentedControl> = {
-  title: "Component Library/SegmentedControl",
+  title: "Components/SegmentedControl",
   component: SegmentedControl,
   tags: ["docsPage"],
   parameters: {
