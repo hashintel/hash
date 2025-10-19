@@ -4,7 +4,7 @@ import { useState } from "react";
 import { SegmentedControl } from "./segmented-control";
 
 const meta: Meta<typeof SegmentedControl> = {
-  title: "Component Library/SegmentedControl",
+  title: "Components/SegmentedControl",
   component: SegmentedControl,
   tags: ["docsPage"],
   parameters: {
@@ -128,7 +128,7 @@ export const Interactive: Story = {
 
   render: (args) => {
     const [selectedValue, setSelectedValue] = useState(
-      args.defaultValue ?? "option1",
+      args.defaultValue ?? "option1"
     );
 
     return (
