@@ -16,7 +16,7 @@ import { ExampleArticle } from "../../playground/example-article";
 import { RefractivePane } from "./refractive-pane";
 
 const meta = {
-  title: "Component Library/RefractivePane",
+  title: "Components/RefractivePane",
   component: RefractivePane,
   tags: ["docsPage"],
   parameters: {
