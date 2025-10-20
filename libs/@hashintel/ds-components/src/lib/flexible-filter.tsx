@@ -13,7 +13,7 @@ import { calculateSpecularImage } from "./maps/specular";
 import { CONVEX } from "./surface-equations";
 import { useToMotion } from "./use-to-motion";
 
-const LATERAL_PART_SIZE = 1; // 3 pixels for top/left/right/bottom parts
+const LATERAL_PART_SIZE = 1; // 1 pixel for top/left/right/bottom parts
 
 // Each part is a Base64-encoded PNG image
 type Parts = {
