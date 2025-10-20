@@ -5,7 +5,15 @@ export interface BadgeProps {
   /** The content of the badge */
   children: ReactNode;
   /** The color scheme of the badge */
-  colorScheme?: "gray" | "brand" | "green" | "orange" | "red" | "purple" | "pink" | "yellow";
+  colorScheme?:
+    | "gray"
+    | "brand"
+    | "green"
+    | "orange"
+    | "red"
+    | "purple"
+    | "pink"
+    | "yellow";
   /** The size of the badge */
   size?: "xs" | "sm" | "md" | "lg";
   /** Whether the badge is square (for numeric badges) */
