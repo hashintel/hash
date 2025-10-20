@@ -492,34 +492,6 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     ],
   );
 
-  useHotkeys([
-    ["ArrowUp", onArrowVertical, { preventDefault: true }],
-    ["ArrowDown", onArrowVertical, { preventDefault: true }],
-    [
-      "ArrowRight",
-      () => {
-        if (
-          !displayEntitySubMenu &&
-          selectedEntity &&
-          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]
-            ?.length
-        ) {
-          setDisplayEntitySubMenu(true);
-          setEntitySelectedSubMenuIndex(0);
-        }
-      },
-      { preventDefault: true },
-    ],
-    [
-      "ArrowLeft",
-      () => {
-        if (displayEntitySubMenu) {
-          setDisplayEntitySubMenu(false);
-        }
-      },
-    ],
-  ]);
-
   const handleSubmit = useCallback(
     (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
@@ -583,15 +555,35 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     ],
   );
 
-  useHotkeys(
-    ["Enter", "Tab"],
-    (event) => {
-      event.preventDefault();
-
-      handleSubmit();
-    },
-    { useKey: true },
-  );
+  useHotkeys([
+    ["ArrowUp", onArrowVertical, { preventDefault: true }],
+    ["ArrowDown", onArrowVertical, { preventDefault: true }],
+    [
+      "ArrowRight",
+      () => {
+        if (
+          !displayEntitySubMenu &&
+          selectedEntity &&
+          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]
+            ?.length
+        ) {
+          setDisplayEntitySubMenu(true);
+          setEntitySelectedSubMenuIndex(0);
+        }
+      },
+      { preventDefault: true },
+    ],
+    [
+      "ArrowLeft",
+      () => {
+        if (displayEntitySubMenu) {
+          setDisplayEntitySubMenu(false);
+        }
+      },
+    ],
+    ["Enter", () => handleSubmit(), { preventDefault: true }],
+    ["Tab", () => handleSubmit(), { preventDefault: true }],
+  ]);
 
   return (
     <MentionSuggesterWrapper sx={{}} ref={wrapperRef}>
