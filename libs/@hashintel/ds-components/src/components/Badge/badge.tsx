@@ -24,95 +24,6 @@ export interface BadgeProps {
   iconRight?: ReactNode;
 }
 
-const colorSchemeStyles = {
-  gray: {
-    backgroundColor: "gray.20",
-    color: "gray.80",
-  },
-  brand: {
-    backgroundColor: "blue.10",
-    color: "blue.80",
-  },
-  green: {
-    backgroundColor: "green.20",
-    color: "green.80",
-  },
-  orange: {
-    backgroundColor: "orange.20",
-    color: "orange.80",
-  },
-  red: {
-    backgroundColor: "red.20",
-    color: "red.80",
-  },
-  purple: {
-    backgroundColor: "purple.20",
-    color: "purple.80",
-  },
-  pink: {
-    backgroundColor: "pink.20",
-    color: "pink.80",
-  },
-  yellow: {
-    backgroundColor: "yellow.20",
-    color: "yellow.80",
-  },
-} as const;
-
-const sizeStyles = {
-  xs: {
-    fontSize: "[9px]",
-    lineHeight: "[12px]",
-    paddingX: "[4px]",
-    paddingY: "[2px]",
-    gap: "[4px]",
-    minHeight: "[16px]",
-  },
-  sm: {
-    fontSize: "[12px]",
-    lineHeight: "[12px]",
-    paddingX: "[6px]",
-    paddingY: "[4px]",
-    gap: "[4px]",
-    minHeight: "[20px]",
-  },
-  md: {
-    fontSize: "[14px]",
-    lineHeight: "[14px]",
-    paddingX: "[8px]",
-    paddingY: "[5px]",
-    gap: "[6px]",
-    minHeight: "[24px]",
-  },
-  lg: {
-    fontSize: "[16px]",
-    lineHeight: "[16px]",
-    paddingX: "[10px]",
-    paddingY: "[6px]",
-    gap: "[6px]",
-    minHeight: "[28px]",
-  },
-} as const;
-
-const squareSizeStyles = {
-  xs: {
-    width: "[16px]",
-    height: "[16px]",
-  },
-  sm: {
-    width: "[20px]",
-    height: "[20px]",
-  },
-  md: {
-    width: "[24px]",
-    height: "[24px]",
-  },
-  lg: {
-    width: "[28px]",
-    height: "[28px]",
-  },
-} as const;
-
 export const Badge: React.FC<BadgeProps> = ({
   children,
   colorScheme = "gray",
@@ -121,11 +32,11 @@ export const Badge: React.FC<BadgeProps> = ({
   iconLeft,
   iconRight,
 }) => {
-  const colorStyles = colorSchemeStyles[colorScheme];
-  const dimensionStyles = isSquare ? squareSizeStyles[size] : sizeStyles[size];
-
   return (
     <span
+      data-color-scheme={colorScheme}
+      data-size={size}
+      data-square={isSquare}
       className={css({
         display: "inline-flex",
         alignItems: "center",
@@ -135,8 +46,104 @@ export const Badge: React.FC<BadgeProps> = ({
         textAlign: "center",
         whiteSpace: "nowrap",
         userSelect: "none",
-        ...colorStyles,
-        ...dimensionStyles,
+
+        // Color schemes
+        "&[data-color-scheme='gray']": {
+          backgroundColor: "gray.20",
+          color: "gray.80",
+        },
+        "&[data-color-scheme='brand']": {
+          backgroundColor: "blue.10",
+          color: "blue.80",
+        },
+        "&[data-color-scheme='green']": {
+          backgroundColor: "green.20",
+          color: "green.80",
+        },
+        "&[data-color-scheme='orange']": {
+          backgroundColor: "orange.20",
+          color: "orange.80",
+        },
+        "&[data-color-scheme='red']": {
+          backgroundColor: "red.20",
+          color: "red.80",
+        },
+        "&[data-color-scheme='purple']": {
+          backgroundColor: "purple.20",
+          color: "purple.80",
+        },
+        "&[data-color-scheme='pink']": {
+          backgroundColor: "pink.20",
+          color: "pink.80",
+        },
+        "&[data-color-scheme='yellow']": {
+          backgroundColor: "yellow.20",
+          color: "yellow.80",
+        },
+
+        // Sizes - rounded badges
+        "&[data-square='false'][data-size='xs']": {
+          fontSize: "[9px]",
+          lineHeight: "[12px]",
+          paddingX: "[4px]",
+          paddingY: "[2px]",
+          gap: "[4px]",
+          minHeight: "[16px]",
+        },
+        "&[data-square='false'][data-size='sm']": {
+          fontSize: "[12px]",
+          lineHeight: "[12px]",
+          paddingX: "[6px]",
+          paddingY: "[4px]",
+          gap: "[4px]",
+          minHeight: "[20px]",
+        },
+        "&[data-square='false'][data-size='md']": {
+          fontSize: "[14px]",
+          lineHeight: "[14px]",
+          paddingX: "[8px]",
+          paddingY: "[5px]",
+          gap: "[6px]",
+          minHeight: "[24px]",
+        },
+        "&[data-square='false'][data-size='lg']": {
+          fontSize: "[16px]",
+          lineHeight: "[16px]",
+          paddingX: "[10px]",
+          paddingY: "[6px]",
+          gap: "[6px]",
+          minHeight: "[28px]",
+        },
+
+        // Sizes - square badges
+        "&[data-square='true'][data-size='xs']": {
+          fontSize: "[9px]",
+          lineHeight: "[12px]",
+          width: "[16px]",
+          height: "[16px]",
+          padding: "0",
+        },
+        "&[data-square='true'][data-size='sm']": {
+          fontSize: "[12px]",
+          lineHeight: "[12px]",
+          width: "[20px]",
+          height: "[20px]",
+          padding: "0",
+        },
+        "&[data-square='true'][data-size='md']": {
+          fontSize: "[14px]",
+          lineHeight: "[14px]",
+          width: "[24px]",
+          height: "[24px]",
+          padding: "0",
+        },
+        "&[data-square='true'][data-size='lg']": {
+          fontSize: "[16px]",
+          lineHeight: "[16px]",
+          width: "[28px]",
+          height: "[28px]",
+          padding: "0",
+        },
       })}
     >
       {iconLeft && (

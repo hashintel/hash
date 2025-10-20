@@ -1,3 +1,4 @@
+import { css } from "@hashintel/ds-helpers/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Badge, type BadgeProps } from "./badge";
@@ -79,7 +80,13 @@ export const Default: Story = {
 
 export const ColorSchemes: Story = {
   render: () => (
-    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+    <div
+      className={css({
+        display: "flex",
+        gap: "[12px]",
+        flexWrap: "wrap",
+      })}
+    >
       <Badge colorScheme="gray">Gray</Badge>
       <Badge colorScheme="brand">Brand</Badge>
       <Badge colorScheme="green">Green</Badge>
@@ -95,12 +102,12 @@ export const ColorSchemes: Story = {
 export const Sizes: Story = {
   render: () => (
     <div
-      style={{
+      className={css({
         display: "flex",
-        gap: "12px",
+        gap: "[12px]",
         alignItems: "center",
         flexWrap: "wrap",
-      }}
+      })}
     >
       <Badge size="xs">Extra Small</Badge>
       <Badge size="sm">Small</Badge>
@@ -113,12 +120,12 @@ export const Sizes: Story = {
 export const SquareBadges: Story = {
   render: () => (
     <div
-      style={{
+      className={css({
         display: "flex",
-        gap: "12px",
+        gap: "[12px]",
         alignItems: "center",
         flexWrap: "wrap",
-      }}
+      })}
     >
       <Badge isSquare size="xs">
         2
@@ -138,8 +145,20 @@ export const SquareBadges: Story = {
 
 export const WithIcons: Story = {
   render: () => (
-    <div style={{ display: "flex", gap: "12px", flexDirection: "column" }}>
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+    <div
+      className={css({
+        display: "flex",
+        gap: "[12px]",
+        flexDirection: "column",
+      })}
+    >
+      <div
+        className={css({
+          display: "flex",
+          gap: "[12px]",
+          flexWrap: "wrap",
+        })}
+      >
         <Badge
           size="sm"
           iconLeft={
@@ -191,18 +210,28 @@ export const AllCombinations: Story = {
     const sizes: Array<BadgeProps["size"]> = ["xs", "sm", "md", "lg"];
 
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "[16px]",
+        })}
+      >
         {colors.map((color) => (
           <div
             key={color}
-            style={{ display: "flex", gap: "12px", alignItems: "center" }}
+            className={css({
+              display: "flex",
+              gap: "[12px]",
+              alignItems: "center",
+            })}
           >
             <div
-              style={{
-                width: "80px",
-                fontSize: "14px",
+              className={css({
+                width: "[80px]",
+                fontSize: "[14px]",
                 textTransform: "capitalize",
-              }}
+              })}
             >
               {color}:
             </div>
