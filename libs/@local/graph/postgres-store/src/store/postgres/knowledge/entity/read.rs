@@ -212,6 +212,15 @@ where
             }))
     }
 
+    /// Reads knowledge graph edges for a set of entities.
+    ///
+    /// Queries the specified reference table to find edges (either incoming or outgoing) for the
+    /// given entities within their temporal intervals. Returns both the entity edition IDs
+    /// encountered during traversal and the edges themselves.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails.
     #[tracing::instrument(level = "info", skip(self, traversal_data))]
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn read_knowledge_edges(
@@ -422,57 +431,20 @@ where
         Ok(permitted_entity_edition_ids)
     }
 
-    /// Traverses multiple entity edges in a single recursive CTE query.
+    /// Attempts to traverse multiple entity edges using a recursive CTE query.
     ///
     /// This function is designed to replace the N+1 query pattern where
-    /// [`Self::read_knowledge_edges`] is called sequentially for each edge. Instead, it
-    /// executes a single PostgreSQL recursive CTE that traverses all edges at once, performing
-    /// automatic interval merging and deduplication.
-    ///
-    /// # Arguments
-    ///
-    /// * `traversal_data` - Starting entities with their temporal intervals
-    /// * `edges` - Sequence of entity edges to traverse (e.g., `[HasLeftEntity, HasRightEntity]`)
-    /// * `provider` - Store provider for permission checks (applied after traversal)
-    ///
-    /// # Returns
-    ///
-    /// Returns an iterator of [`KnowledgeEdgeTraversal`] representing the final entities reached
-    /// after traversing all edges, with merged intervals for entities reached through multiple
-    /// paths.
-    ///
-    /// # Implementation Status
-    ///
-    /// **Phase 0**: This is currently a stub that returns an empty iterator. The recursive CTE
-    /// implementation will be added in subsequent phases:
-    ///
-    /// - Phase 1: Basic CTE structure without deduplication
-    /// - Phase 2: Multirange-based interval merging
-    /// - Phase 3: Full integration with permission filtering
-    ///
-    /// # Errors
-    ///
-    /// Returns [`QueryError`] if the database query fails or permission filtering encounters an
-    /// error.
-    /// Executes a recursive CTE query to traverse multiple entity edges in a single query.
-    ///
-    /// This method replaces the N+1 query pattern by executing a single PostgreSQL recursive CTE
-    /// that traverses all edges at once, performing automatic interval merging and deduplication
-    /// using PostgreSQL's multirange types.
-    ///
-    /// # Arguments
-    ///
-    /// * `traversal_data` - Starting entities with their temporal intervals
-    /// * `edges` - Sequence of edges to traverse (e.g., `[HasLeftEntity, HasRightEntity]`)
-    ///
-    /// # Returns
+    /// [`Self::read_knowledge_edges`] is called sequentially for each edge. When implemented, it
+    /// will execute a single PostgreSQL recursive CTE that traverses all edges at once, performing
+    /// automatic interval merging and deduplication using PostgreSQL's multirange types.
     ///
     /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
-    /// this configuration (e.g., unsupported edge types or query complexity).
+    /// this edge configuration. Currently returns `None` for all inputs as the CTE implementation
+    /// is not yet complete.
     ///
     /// # Errors
     ///
-    /// Returns [`QueryError`] if the database query fails.
+    /// Returns [`QueryError`] if the database query fails during traversal.
     #[tracing::instrument(level = "info", skip_all)]
     pub(crate) async fn read_knowledge_edges_recursive(
         &self,

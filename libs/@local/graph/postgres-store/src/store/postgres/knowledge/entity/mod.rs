@@ -190,24 +190,16 @@ where
         Ok(entity_type_queue)
     }
 
-    /// Traverses entity edges using a single recursive CTE query.
+    /// Attempts to traverse entity edges using a recursive CTE query.
     ///
-    /// This method performs the graph traversal by executing one recursive PostgreSQL query that
-    /// traverses all edges at once, with automatic interval merging and deduplication using
-    /// PostgreSQL's multirange types.
+    /// When implemented, this method will perform the graph traversal by executing one recursive
+    /// PostgreSQL query that traverses all edges at once, with automatic interval merging and
+    /// deduplication using PostgreSQL's multirange types.
     ///
-    /// # Arguments
-    ///
-    /// * `starting_entities` - Initial entities to begin traversal from
-    /// * `edges` - Sequence of edges to traverse
-    /// * `temporal_axes` - Resolved temporal axes for the query
-    ///
-    /// # Returns
-    ///
-    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used
-    /// (e.g., unsupported edge configuration).
-    ///
-    /// When `None` is returned, the caller should fall back to [`Self::traverse_edges_sequential`].
+    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
+    /// this edge configuration. Currently returns `None` for all inputs as the CTE implementation
+    /// is not yet complete. When `None` is returned, the caller falls back to
+    /// [`Self::traverse_edges_sequential`].
     ///
     /// # Errors
     ///
@@ -245,14 +237,6 @@ where
     /// edge in the sequence, it queries the database for connected entities and collects all
     /// results without filtering by permissions.
     ///
-    /// # Arguments
-    ///
-    /// * `starting_entities` - Initial entities to begin traversal from
-    /// * `edges` - Sequence of edges to traverse
-    /// * `temporal_axes` - Resolved temporal axes for the query
-    ///
-    /// # Returns
-    ///
     /// Returns an [`EntityTraversalResult`] containing all traversed entities and edges.
     ///
     /// # Errors
@@ -260,7 +244,10 @@ where
     /// Returns [`QueryError`] if any database query fails during traversal.
     async fn traverse_edges_sequential(
         &self,
-        mut entities: Cow<'_, [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)]>,
+        mut starting_entities: Cow<
+            '_,
+            [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)],
+        >,
         edges: &[EntityTraversalEdge],
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<EntityTraversalResult, Report<QueryError>> {
@@ -268,14 +255,14 @@ where
         let mut all_edges_with_metadata = Vec::new();
 
         for edge in edges {
-            if entities.is_empty() {
+            if starting_entities.is_empty() {
                 break;
             }
 
             let mut traversal_data =
-                EntityEdgeTraversalData::with_capacity(temporal_axes, entities.len());
+                EntityEdgeTraversalData::with_capacity(temporal_axes, starting_entities.len());
 
-            for (entity_vertex_id, traversal_interval) in entities.iter() {
+            for (entity_vertex_id, traversal_interval) in starting_entities.iter() {
                 traversal_data.push(*entity_vertex_id, *traversal_interval);
             }
 
@@ -300,7 +287,7 @@ where
             all_edition_ids.extend(traversed_editions);
 
             // Prepare entities for next hop (will be filtered later)
-            entities = Cow::Owned(
+            starting_entities = Cow::Owned(
                 traversed_edges
                     .iter()
                     .map(|edge| (edge.right_endpoint, edge.traversal_interval))
@@ -321,22 +308,19 @@ where
         })
     }
 
-    /// Sequentially resolves a chain of entity edges, starting from the given entities.
+    /// Resolves a chain of entity edges, starting from the given entities.
     ///
     /// This method traverses through each edge in the path, using the output entities from one
     /// edge as the input for the next. The traversal stops early if no entities remain after
     /// any edge.
     ///
-    /// # Implementation
-    ///
-    /// Currently uses [`Self::traverse_edges_sequential`] which performs N+1 queries. This will be
-    /// replaced with a single recursive CTE query for better performance.
-    ///
-    /// # Returns
+    /// Currently attempts to use a recursive CTE via [`Self::traverse_edges_cte`], but falls back
+    /// to [`Self::traverse_edges_sequential`] when the CTE is unavailable. The sequential path
+    /// performs N queries (one per edge) and will be replaced with CTE-based traversal for better
+    /// performance.
     ///
     /// Returns the entities reached after traversing all edges. If the entity set becomes empty
-    /// at any point during traversal (e.g., no entities match an edge's criteria), an empty
-    /// vector is returned.
+    /// at any point during traversal, an empty vector is returned.
     ///
     /// # Errors
     ///
