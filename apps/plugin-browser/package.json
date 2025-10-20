@@ -26,7 +26,6 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.16.7",
     "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/type-system": "0.1.2-canary.1",
     "@hashintel/block-design-system": "0.0.5",
@@ -49,7 +48,8 @@
   },
   "devDependencies": {
     "@babel/core": "7.28.4",
-    "@babel/plugin-proposal-class-properties": "7.18.6",
+    "@babel/plugin-transform-class-properties": "7.27.1",
+    "@babel/plugin-transform-private-property-in-object": "7.27.1",
     "@babel/preset-env": "7.28.3",
     "@babel/preset-react": "7.27.1",
     "@blockprotocol/core": "0.1.4",
@@ -65,7 +65,7 @@
     "@types/react-dom": "19.2.2",
     "@types/webextension-polyfill": "0.12.4",
     "@types/ws": "8.18.1",
-    "babel-loader": "9.2.1",
+    "babel-loader": "10.0.0",
     "babel-preset-react-app": "10.1.0",
     "clean-webpack-plugin": "4.0.0",
     "copy-webpack-plugin": "11.0.0",
