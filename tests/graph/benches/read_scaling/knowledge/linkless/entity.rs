@@ -217,7 +217,7 @@ pub fn bench_get_entity_by_id(
 
 #[criterion]
 fn bench_scaling_read_entity(crit: &mut Criterion) {
-    let group_id = "scaling_read_entity_linkless";
+    let group_id = "read_scaling_linkless";
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis

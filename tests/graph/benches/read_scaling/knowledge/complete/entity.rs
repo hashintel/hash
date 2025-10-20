@@ -286,13 +286,11 @@ pub fn bench_get_entity_by_id(
 
 fn bench_scaling_read_entity(
     crit: &mut Criterion,
-    group_id: &str,
+    name: &str,
     traversal_params: &SubgraphTraversalParams,
 ) {
+    let group_id = "read_scaling_complete";
     let mut group = crit.benchmark_group(group_id);
-
-    group.sample_size(10);
-    group.sampling_mode(SamplingMode::Flat);
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
@@ -310,13 +308,13 @@ fn bench_scaling_read_entity(
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
-        let function_id = "entity_by_id";
+        let function_id = format!("entity_by_id;{name}");
         let parameter = format!("{size} entities");
         group.bench_with_input(
-            BenchmarkId::new(function_id, &parameter),
+            BenchmarkId::new(&function_id, &parameter),
             &(account_id, entity_metadata_list),
             |bencher, (_account_id, entity_list)| {
-                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
+                let _guard = setup_subscriber(group_id, Some(&function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     bencher,
                     &runtime,
@@ -334,7 +332,7 @@ fn bench_scaling_read_entity(
 fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
     bench_scaling_read_entity(
         crit,
-        "scaling_read_entity_complete_zero_depth",
+        "zero_depth",
         &SubgraphTraversalParams::Paths {
             traversal_paths: vec![],
         },
@@ -345,7 +343,7 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
     bench_scaling_read_entity(
         crit,
-        "scaling_read_entity_one_depth",
+        "one_depth",
         &SubgraphTraversalParams::Paths {
             traversal_paths: vec![
                 TraversalPath {
@@ -387,7 +385,7 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 fn bench_scaling_read_entity_two_depth(crit: &mut Criterion) {
     bench_scaling_read_entity(
         crit,
-        "scaling_read_entity_two_depth",
+        "two_depth",
         &SubgraphTraversalParams::Paths {
             traversal_paths: vec![
                 TraversalPath {
