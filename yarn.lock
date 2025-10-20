@@ -472,6 +472,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@mantine/hooks": "npm:8.3.5"
     "@mui/icons-material": "npm:5.18.0"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
@@ -561,7 +562,6 @@ __metadata:
     reactflow: "npm:11.11.4"
     remark-gfm: "npm:4.0.1"
     rimraf: "npm:6.0.1"
-    rooks: "npm:9.3.0"
     safe-stable-stringify: "npm:2.5.0"
     sass: "npm:1.93.2"
     setimmediate: "npm:1.0.5"
@@ -10203,6 +10203,15 @@ __metadata:
     dotenv: "npm:^8.2.0"
     superagent: "npm:3.8.1"
   checksum: 10c0/9d137e1abec03960f863b88185e790c01912772082afb4fe11be446377740d04998d15cfc2c35397fc72c48fa88c22bc578f836db94f49f4c19a848e27493592
+  languageName: node
+  linkType: hard
+
+"@mantine/hooks@npm:8.3.5":
+  version: 8.3.5
+  resolution: "@mantine/hooks@npm:8.3.5"
+  peerDependencies:
+    react: ^18.x || ^19.x
+  checksum: 10c0/87cfc64a4688cb2f2ce7602121c90751ac0572c20b3f243fe68a75b50928da8c2535bab6c18aceb5a48fa22e8a70c8f203763655d036195cb2d7c7f4aa046aee
   languageName: node
   linkType: hard
 

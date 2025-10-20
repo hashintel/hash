@@ -33,6 +33,7 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { useHotkeys } from "@mantine/hooks";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent } from "react";
 import {
@@ -43,7 +44,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useKey } from "rooks";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -459,51 +459,66 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     return undefined;
   }, [selectedEntity, entitiesSubMenuItems]);
 
-  useKey(["ArrowUp", "ArrowDown"], (event) => {
-    event.preventDefault();
+  const onArrowVertical = useCallback(
+    (event: KeyboardEvent) => {
+      if (!searchedEntities) {
+        return;
+      }
 
-    if (!searchedEntities) {
-      return;
-    }
+      if (displayEntitySubMenu && selectedEntitySubMenuItems) {
+        let index =
+          entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
+        index += selectedEntitySubMenuItems.length;
+        index %= selectedEntitySubMenuItems.length;
 
-    if (displayEntitySubMenu && selectedEntitySubMenuItems) {
-      let index =
-        entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += selectedEntitySubMenuItems.length;
-      index %= selectedEntitySubMenuItems.length;
+        setEntitySelectedSubMenuIndex(index);
+      } else {
+        let index = selectedEntityIndex + (event.key === "ArrowUp" ? -1 : 1);
+        const numberOfDisplayedEntities =
+          searchedEntities.length + (recentlyUsedEntities?.length ?? 0);
 
-      setEntitySelectedSubMenuIndex(index);
-    } else {
-      let index = selectedEntityIndex + (event.key === "ArrowUp" ? -1 : 1);
-      const numberOfDisplayedEntities =
-        searchedEntities.length + (recentlyUsedEntities?.length ?? 0);
+        index += numberOfDisplayedEntities;
+        index %= numberOfDisplayedEntities;
+        setSelectedEntityIndex(index);
+      }
+    },
+    [
+      displayEntitySubMenu,
+      entitySelectedSubMenuIndex,
+      recentlyUsedEntities?.length,
+      searchedEntities,
+      selectedEntityIndex,
+      selectedEntitySubMenuItems,
+    ],
+  );
 
-      index += numberOfDisplayedEntities;
-      index %= numberOfDisplayedEntities;
-      setSelectedEntityIndex(index);
-    }
-  });
-
-  useKey(["ArrowRight"], (event) => {
-    event.preventDefault();
-
-    if (
-      !displayEntitySubMenu &&
-      selectedEntity &&
-      entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]?.length
-    ) {
-      setDisplayEntitySubMenu(true);
-      setEntitySelectedSubMenuIndex(0);
-    }
-  });
-
-  useKey(["ArrowLeft"], (event) => {
-    event.preventDefault();
-
-    if (displayEntitySubMenu) {
-      setDisplayEntitySubMenu(false);
-    }
-  });
+  useHotkeys([
+    ["ArrowUp", onArrowVertical, { preventDefault: true }],
+    ["ArrowDown", onArrowVertical, { preventDefault: true }],
+    [
+      "ArrowRight",
+      () => {
+        if (
+          !displayEntitySubMenu &&
+          selectedEntity &&
+          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]
+            ?.length
+        ) {
+          setDisplayEntitySubMenu(true);
+          setEntitySelectedSubMenuIndex(0);
+        }
+      },
+      { preventDefault: true },
+    ],
+    [
+      "ArrowLeft",
+      () => {
+        if (displayEntitySubMenu) {
+          setDisplayEntitySubMenu(false);
+        }
+      },
+    ],
+  ]);
 
   const handleSubmit = useCallback(
     (params?: { entity?: HashEntity; subMenuIndex?: number }) => {
@@ -568,11 +583,15 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     ],
   );
 
-  useKey(["Enter", "Tab"], (event) => {
-    event.preventDefault();
+  useHotkeys(
+    ["Enter", "Tab"],
+    (event) => {
+      event.preventDefault();
 
-    handleSubmit();
-  });
+      handleSubmit();
+    },
+    { useKey: true },
+  );
 
   return (
     <MentionSuggesterWrapper sx={{}} ref={wrapperRef}>

@@ -16,12 +16,12 @@ import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { useHotkeys } from "@mantine/hooks";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ForwardRefRenderFunction } from "react";
 import { forwardRef, useCallback, useMemo, useRef } from "react";
-import { useKey } from "rooks";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useUserBlocks } from "../../../../blocks/user-blocks";
@@ -235,21 +235,30 @@ const BlockContextMenu: ForwardRefRenderFunction<
     setBlockSelectDataModalIsOpen,
   ]);
 
-  useKey(["Escape"], () => {
-    popupState.close();
-  });
-
-  useKey(["@"], () => {
-    if (popupState.isOpen) {
-      setEntityMenuItemRef.current?.focus();
-    }
-  });
-
-  useKey(["/"], () => {
-    if (popupState.isOpen) {
-      swapBlocksMenuItemRef.current?.focus();
-    }
-  });
+  useHotkeys([
+    [
+      "Escape",
+      () => {
+        popupState.close();
+      },
+    ],
+    [
+      "@",
+      () => {
+        if (popupState.isOpen) {
+          setEntityMenuItemRef.current?.focus();
+        }
+      },
+    ],
+    [
+      "/",
+      () => {
+        if (popupState.isOpen) {
+          swapBlocksMenuItemRef.current?.focus();
+        }
+      },
+    ],
+  ]);
 
   return (
     <>

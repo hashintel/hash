@@ -4,12 +4,12 @@ import { useApolloClient } from "@apollo/client";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import { useLocalStorage } from "@mantine/hooks";
 import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
 import type { EditorView } from "prosemirror-view";
 import type { FunctionComponent } from "react";
 import { useLayoutEffect, useRef } from "react";
-import { useLocalstorageState } from "rooks";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
@@ -48,9 +48,9 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   const client = useApolloClient();
 
   const [portals, renderPortal, clearPortals] = usePortals();
-  const [debugging] = useLocalstorageState<
+  const [debugging] = useLocalStorage<
     { restartCollabButton?: boolean } | boolean
-  >("hash.internal.debugging", false);
+  >({ key: "hash.internal.debugging", defaultValue: false });
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView;
