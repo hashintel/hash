@@ -1,4 +1,4 @@
-FROM postgres:16-alpine3.22
+FROM postgres:17-alpine3.22
 
 ENV WAL2JSON_COMMIT_ID=wal2json_2_6
 
