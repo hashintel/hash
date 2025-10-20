@@ -207,7 +207,7 @@ where
     /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used
     /// (e.g., unsupported edge configuration).
     ///
-    /// When `None` is returned, the caller should fall back to [`traverse_edges_sequential`].
+    /// When `None` is returned, the caller should fall back to [`Self::traverse_edges_sequential`].
     ///
     /// # Errors
     ///
@@ -329,7 +329,7 @@ where
     ///
     /// # Implementation
     ///
-    /// Currently uses [`traverse_edges_sequential`] which performs N+1 queries. This will be
+    /// Currently uses [`Self::traverse_edges_sequential`] which performs N+1 queries. This will be
     /// replaced with a single recursive CTE query for better performance.
     ///
     /// # Returns

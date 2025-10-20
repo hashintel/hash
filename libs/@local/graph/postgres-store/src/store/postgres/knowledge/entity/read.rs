@@ -424,10 +424,10 @@ where
 
     /// Traverses multiple entity edges in a single recursive CTE query.
     ///
-    /// This function is designed to replace the N+1 query pattern where [`read_knowledge_edges`]
-    /// is called sequentially for each edge. Instead, it executes a single PostgreSQL recursive
-    /// CTE that traverses all edges at once, performing automatic interval merging and
-    /// deduplication.
+    /// This function is designed to replace the N+1 query pattern where
+    /// [`Self::read_knowledge_edges`] is called sequentially for each edge. Instead, it
+    /// executes a single PostgreSQL recursive CTE that traverses all edges at once, performing
+    /// automatic interval merging and deduplication.
     ///
     /// # Arguments
     ///
