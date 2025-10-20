@@ -7,6 +7,6 @@ RUN apk add --no-cache --virtual .build-deps gcc clang19 llvm19 git make musl-de
     && (cd /wal2json && git checkout $WAL2JSON_COMMIT_ID && make && make install) \
     && git clone --branch v0.8.1 https://github.com/pgvector/pgvector.git \
     && (cd /pgvector && make && make install) \
-    && rm -rf wal2json ppgvector \
+    && rm -rf wal2json pgvector \
     && apk del .build-deps \
     && mkdir -p /etc/postgresql/
