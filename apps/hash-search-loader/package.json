@@ -19,13 +19,13 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "hot-shots": "8.5.2",
     "tsx": "4.20.3",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "22.16.5",
     "eslint": "9.37.0",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   }
 }
