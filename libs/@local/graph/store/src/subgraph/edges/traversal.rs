@@ -145,18 +145,18 @@ impl TraversalPath {
     ///
     /// # Example
     ///
-    /// ```ignore
-    /// // Path: [HasLeft, HasRight, IsOfType, InheritsFrom]
-    /// //   → entity_edges = [HasLeft, HasRight]
-    /// //   → ontology_edges = Some([InheritsFrom])
+    /// ```text
+    /// Path: [HasLeft, HasRight, IsOfType, InheritsFrom]
+    ///   → entity_edges = [HasLeft, HasRight]
+    ///   → ontology_edges = Some([InheritsFrom])
     ///
-    /// // Path: [HasLeft, HasRight]
-    /// //   → entity_edges = [HasLeft, HasRight]
-    /// //   → ontology_edges = None
+    /// Path: [HasLeft, HasRight]
+    ///   → entity_edges = [HasLeft, HasRight]
+    ///   → ontology_edges = None
     ///
-    /// // Path: [HasLeft, ConstrainsPropertiesOn]
-    /// //   → entity_edges = [HasLeft]
-    /// //   → ontology_edges = None (ontology edge without IsOfType is unreachable)
+    /// Path: [HasLeft, ConstrainsPropertiesOn]
+    ///   → entity_edges = [HasLeft]
+    ///   → ontology_edges = None (ontology edge without IsOfType is unreachable)
     /// ```
     #[must_use]
     pub fn split_entity_path(&self) -> (Vec<EntityTraversalEdge>, Option<&[TraversalEdge]>) {
