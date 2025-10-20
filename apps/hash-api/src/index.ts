@@ -66,6 +66,7 @@ import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watch
 import {
   CORS_CONFIG,
   getEnvStorageType,
+  GRAPHQL_PATH,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
 import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
@@ -78,6 +79,8 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 
 const app = express();
+
+const httpServer = http.createServer(app);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -448,7 +451,7 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
 
-  const apolloServer = createApolloServer({
+  const [apolloServer, apolloMiddleware] = createApolloServer({
     graphApi,
     search,
     uploadProvider,
@@ -458,6 +461,7 @@ const main = async () => {
     emailTransporter,
     logger,
     statsd,
+    httpServer,
   });
 
   // Make the data sources/clients available to REST controllers
@@ -644,11 +648,9 @@ const main = async () => {
   };
   app.use(errorHandler);
 
-  // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
   // close active connections. This can result in the server hanging indefinitely. We
   // use the `http-terminator` library to shut down the server properly.
-  const httpServer = http.createServer(app);
   const terminator = httpTerminator.createHttpTerminator({
     server: httpServer,
   });
@@ -665,10 +667,12 @@ const main = async () => {
   // Note: the server must be started before the middleware can be applied
   await apolloServer.start();
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
-  apolloServer.applyMiddleware({
-    app,
-    cors: CORS_CONFIG,
-  });
+  app.use(
+    GRAPHQL_PATH,
+    cors<cors.CorsRequest>(CORS_CONFIG),
+    express.json(),
+    apolloMiddleware,
+  );
 
   // Start the HTTP server before setting up the integration listener
   // This is done because the Redis client blocks when instantiated
@@ -676,7 +680,7 @@ const main = async () => {
   await new Promise<void>((resolve) => {
     httpServer.listen({ host: "0.0.0.0", port }, () => {
       logger.info(`Listening on port ${port}`);
-      logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
+      logger.info(`GraphQL path: ${GRAPHQL_PATH}`);
       resolve();
     });
   });

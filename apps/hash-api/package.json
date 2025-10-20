@@ -23,7 +23,10 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
+    "@apollo/server": "5.0.0",
+    "@apollo/server-plugin-landing-page-graphql-playground": "4.0.1",
     "@apps/hash-graph": "0.0.0-private",
+    "@as-integrations/express5": "1.1.2",
     "@aws-sdk/client-s3": "3.913.0",
     "@aws-sdk/client-ses": "3.913.0",
     "@aws-sdk/credential-provider-node": "3.913.0",
@@ -65,10 +68,6 @@
     "@temporalio/proto": "1.12.1",
     "@types/ws": "8.18.1",
     "agentkeepalive": "4.6.0",
-    "apollo-datasource": "3.3.2",
-    "apollo-server-core": "3.12.1",
-    "apollo-server-errors": "3.3.1",
-    "apollo-server-express": "3.9.0",
     "app-root-path": "3.1.0",
     "axios": "1.12.2",
     "body-parser": "2.2.0",
