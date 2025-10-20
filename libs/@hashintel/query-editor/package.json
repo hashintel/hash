@@ -25,14 +25,14 @@
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/design-system": "0.0.9-canary.2",
-    "clsx": "1.2.1"
+    "clsx": "2.1.1"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "eslint": "9.37.0",
-    "eslint-plugin-storybook": "9.1.10",
+    "eslint": "9.38.0",
+    "eslint-plugin-storybook": "9.1.13",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "7.65.0",

@@ -2,7 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { LinearClient } from "@linear/sdk";
 import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
 import chalk from "chalk";
-import execa from "execa";
+import { execa } from "execa";
 import { z } from "zod";
 import zodToJsonSchema, {
   type JsonSchema7ObjectType,

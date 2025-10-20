@@ -9,7 +9,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { ApolloError, UserInputError } from "apollo-server-errors";
-import produce from "immer";
+import { produce } from "immer";
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
 import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";

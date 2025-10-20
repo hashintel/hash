@@ -32,7 +32,7 @@
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",
     "agentkeepalive": "4.6.0",
-    "axios": "1.12.0",
+    "axios": "1.12.2",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
@@ -42,7 +42,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "9.37.0",
+    "eslint": "9.38.0",
     "rimraf": "6.0.1",
     "typescript": "5.9.3",
     "wait-on": "9.0.1"

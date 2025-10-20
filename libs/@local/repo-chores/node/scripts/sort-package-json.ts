@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import chalk from "chalk";
-import execa from "execa";
+import { execa } from "execa";
 import ignore from "ignore";
 import sortPackageJson from "sort-package-json";
 

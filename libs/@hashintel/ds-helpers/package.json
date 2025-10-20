@@ -50,6 +50,6 @@
     "@hashintel/ds-theme": "0.0.1"
   },
   "devDependencies": {
-    "@pandacss/dev": "1.4.1"
+    "@pandacss/dev": "1.4.3"
   }
 }

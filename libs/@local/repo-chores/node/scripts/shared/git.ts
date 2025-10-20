@@ -1,4 +1,4 @@
-import execa from "execa";
+import { execa } from "execa";
 
 import { monorepoRootDirPath } from "./monorepo";
 
@@ -23,5 +23,9 @@ export const checkIfDirHasUncommittedChanges = async (
     return true;
   }
 
-  return gitDiffResult.exitCode > 0 || untrackedFiles.trim().length > 0;
+  // The exit code is undefined if the command was interrupted by a signal or failed to spawn
+  return (
+    (gitDiffResult.exitCode && gitDiffResult.exitCode > 0) ||
+    untrackedFiles.trim().length > 0
+  );
 };

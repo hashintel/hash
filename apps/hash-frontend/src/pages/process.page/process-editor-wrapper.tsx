@@ -3,7 +3,7 @@ import { AlertModal } from "@hashintel/design-system";
 import type { PetriNetDefinitionObject } from "@hashintel/petrinaut";
 import { defaultTokenTypes, Petrinaut } from "@hashintel/petrinaut";
 import { Box, Stack } from "@mui/material";
-import produce from "immer";
+import { produce } from "immer";
 import { useCallback, useMemo, useState } from "react";
 
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
