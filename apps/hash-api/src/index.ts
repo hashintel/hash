@@ -120,11 +120,11 @@ const main = async () => {
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const snowplowTracker = setupTelemetry();
+    const snowplowTracker = await setupTelemetry();
 
     shutdown.addCleanup("Snowplow Telemetry", async () => {
       logger.info("Flushing [Snowplow] telemetry");
-      snowplowTracker.flush();
+      await snowplowTracker.flush();
     });
   }
 

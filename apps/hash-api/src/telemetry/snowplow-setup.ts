@@ -9,7 +9,7 @@ import {
  * Sets up snowplow telemetry for HASH usage. Disabled by default.
  * This tracking function simply sends an event when the platform starts to record usage metrics.
  */
-export const setupTelemetry = (): Tracker => {
+export const setupTelemetry = async (): Promise<Tracker> => {
   const protocol =
     process.env.HASH_TELEMETRY_HTTPS === "true" ? "https" : "http";
 
@@ -36,7 +36,7 @@ export const setupTelemetry = (): Tracker => {
     }),
   );
 
-  tracker.flush();
+  await tracker.flush();
 
   return tracker;
 };
