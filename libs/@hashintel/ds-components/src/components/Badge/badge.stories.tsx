@@ -34,7 +34,16 @@ Follows the design system with multiple color schemes and sizes.
   argTypes: {
     colorScheme: {
       control: "select",
-      options: ["gray", "brand", "green", "orange", "red", "purple", "pink", "yellow"],
+      options: [
+        "gray",
+        "brand",
+        "green",
+        "orange",
+        "red",
+        "purple",
+        "pink",
+        "yellow",
+      ],
       description: "The color scheme of the badge",
     },
     size: {
@@ -85,7 +94,14 @@ export const ColorSchemes: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
       <Badge size="xs">Extra Small</Badge>
       <Badge size="sm">Small</Badge>
       <Badge size="md">Medium</Badge>
@@ -96,11 +112,26 @@ export const Sizes: Story = {
 
 export const SquareBadges: Story = {
   render: () => (
-    <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-      <Badge isSquare size="xs">2</Badge>
-      <Badge isSquare size="sm">5</Badge>
-      <Badge isSquare size="md">9</Badge>
-      <Badge isSquare size="lg">12</Badge>
+    <div
+      style={{
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
+      <Badge isSquare size="xs">
+        2
+      </Badge>
+      <Badge isSquare size="sm">
+        5
+      </Badge>
+      <Badge isSquare size="md">
+        9
+      </Badge>
+      <Badge isSquare size="lg">
+        12
+      </Badge>
     </div>
   ),
 };
@@ -109,7 +140,7 @@ export const WithIcons: Story = {
   render: () => (
     <div style={{ display: "flex", gap: "12px", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <Badge 
+        <Badge
           size="sm"
           iconLeft={
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -119,7 +150,7 @@ export const WithIcons: Story = {
         >
           With Left Icon
         </Badge>
-        <Badge 
+        <Badge
           size="sm"
           iconRight={
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -129,7 +160,7 @@ export const WithIcons: Story = {
         >
           With Right Icon
         </Badge>
-        <Badge 
+        <Badge
           size="md"
           colorScheme="green"
           iconLeft={
@@ -148,15 +179,31 @@ export const WithIcons: Story = {
 export const AllCombinations: Story = {
   render: () => {
     const colors: Array<BadgeProps["colorScheme"]> = [
-      "gray", "brand", "green", "orange", "red", "purple", "pink", "yellow"
+      "gray",
+      "brand",
+      "green",
+      "orange",
+      "red",
+      "purple",
+      "pink",
+      "yellow",
     ];
     const sizes: Array<BadgeProps["size"]> = ["xs", "sm", "md", "lg"];
-    
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {colors.map((color) => (
-          <div key={color} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <div style={{ width: "80px", fontSize: "14px", textTransform: "capitalize" }}>
+          <div
+            key={color}
+            style={{ display: "flex", gap: "12px", alignItems: "center" }}
+          >
+            <div
+              style={{
+                width: "80px",
+                fontSize: "14px",
+                textTransform: "capitalize",
+              }}
+            >
               {color}:
             </div>
             {sizes.map((size) => (
@@ -165,7 +212,12 @@ export const AllCombinations: Story = {
               </Badge>
             ))}
             {sizes.map((size) => (
-              <Badge key={`${size}-square`} colorScheme={color} size={size} isSquare>
+              <Badge
+                key={`${size}-square`}
+                colorScheme={color}
+                size={size}
+                isSquare
+              >
                 2
               </Badge>
             ))}
