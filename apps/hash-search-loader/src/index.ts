@@ -124,7 +124,7 @@ const main = async () => {
   shutdown.addCleanup("Postgres", () => db.close());
 
   // Connect to Redis
-  const redis = createRedisClient({ url: REDIS_URL });
+  const redis = await createRedisClient({ url: REDIS_URL }).connect();
   shutdown.addCleanup("Redis", () => redis.close());
 
   const systemAccountId = await db.getSystemAccountId();
