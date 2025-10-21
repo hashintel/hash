@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import { sleep } from "../utils.js";
-import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
-import {
+import type {
   RedisClientType,
   RedisFunctions,
   RedisModules,
   RedisScripts,
-  RespVersions,
   TypeMapping,
-} from "@redis/client";
+} from "redis";
+
+import { sleep } from "../utils.js";
+import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.
 const QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS = 3_000;
@@ -22,8 +22,11 @@ const QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS = 5_000;
  * An implementation of the `QueueProducer` interface based on Redis.
  */
 export class RedisQueueProducer<
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   M extends RedisModules = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   F extends RedisFunctions = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   S extends RedisScripts = {},
 > implements QueueProducer
 {
@@ -42,8 +45,11 @@ export class RedisQueueProducer<
  * An implementation of the `QueueExclusiveConsumer` interface based on Redis.
  */
 export class RedisQueueExclusiveConsumer<
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   M extends RedisModules = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   F extends RedisFunctions = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   S extends RedisScripts = {},
 > implements QueueExclusiveConsumer
 {
