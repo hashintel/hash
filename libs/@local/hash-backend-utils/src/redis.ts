@@ -18,10 +18,12 @@ interface ClientOptions<
   logger: Logger;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type RedisClient<
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   M extends RedisModules = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   F extends RedisFunctions = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   S extends RedisScripts = {},
 > = RedisClientType<M, F, S, 3, TypeMapping>;
 

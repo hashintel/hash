@@ -607,7 +607,6 @@ __metadata:
     nodemailer: "npm:6.10.1"
     oembed-providers: "npm:1.0.20250926"
     openai: "npm:4.104.0"
-    redis: "npm:5.8.3"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.20.6"
@@ -824,7 +823,6 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/node": "npm:22.18.11"
     eslint: "npm:9.38.0"
-    redis: "npm:5.8.3"
     set-interval-async: "npm:3.0.3"
     slonik: "npm:24.2.0"
     tsx: "npm:4.20.6"
@@ -24474,17 +24472,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dataloader@npm:^2.1.0":
+"dataloader@npm:^2.1.0, dataloader@npm:^2.2.2":
   version: 2.2.3
   resolution: "dataloader@npm:2.2.3"
   checksum: 10c0/9b9a056fbc863ca86da87d59e053e871e263b4966aa4d55e40d61a65e96815fae5530ca220629064ca5f8e3000c0c4ec93292e170c38ff393fb34256b4d7c1aa
-  languageName: node
-  linkType: hard
-
-"dataloader@npm:^2.2.2":
-  version: 2.2.2
-  resolution: "dataloader@npm:2.2.2"
-  checksum: 10c0/125ec69f821478cf7c6b4360095db6cab939fe57876a0d2060c428091a8deee7152345189923b71a6afa694aaec463779f34b585317164016fd6f54f52cd94ba
   languageName: node
   linkType: hard
 
