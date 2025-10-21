@@ -1,4 +1,3 @@
-import type { Headers } from "@anthropic-ai/sdk/core";
 import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
@@ -99,8 +98,8 @@ const convertAnthropicRateLimitRequestsResetTimestampToMilliseconds = ({
 };
 
 const getWaitPeriodFromHeaders = (headers?: Headers): number => {
-  const tokenResetString = headers?.["anthropic-ratelimit-tokens-reset"];
-  const requestResetString = headers?.["anthropic-ratelimit-requests-reset"];
+  const tokenResetString = headers?.get("anthropic-ratelimit-tokens-reset");
+  const requestResetString = headers?.get("anthropic-ratelimit-requests-reset");
 
   const tokenReset = tokenResetString
     ? convertAnthropicRateLimitRequestsResetTimestampToMilliseconds({
