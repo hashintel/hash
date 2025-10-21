@@ -30,7 +30,7 @@ import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import httpTerminator from "http-terminator";
@@ -109,9 +109,9 @@ const userIdentifierRateLimiter = rateLimit({
        * 'identifier' is the field which identifies the user on a signin attempt.
        * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
-      return req.body.identifier;
+      return req.body.identifier as string;
     }
-    return req.ip;
+    return ipKeyGenerator(req.ip!);
   },
 });
 
