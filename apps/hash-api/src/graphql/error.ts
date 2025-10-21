@@ -22,6 +22,18 @@ export const notFound = (
   message: string,
   extensions?: Record<string, unknown>,
 ) => code(message, "NOT_FOUND", extensions);
+export const cyclicTree = (
+  message: string,
+  extensions?: Record<string, unknown>,
+) => code(message, "CYCLIC_TREE", extensions);
+export const badRequest = (
+  message: string,
+  extensions?: Record<string, unknown>,
+) => code(message, ApolloServerErrorCode.BAD_REQUEST, extensions);
+export const invalidInvitationType = (
+  message: string,
+  extensions?: Record<string, unknown>,
+) => code(message, "INVALID_INVITATION_TYPE", extensions);
 export const internal = (
   message: string,
   extensions?: Record<string, unknown>,

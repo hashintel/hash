@@ -234,16 +234,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apollo/utils.keyvaluecache@npm:^1.0.1":
-  version: 1.0.2
-  resolution: "@apollo/utils.keyvaluecache@npm:1.0.2"
-  dependencies:
-    "@apollo/utils.logger": "npm:^1.0.0"
-    lru-cache: "npm:7.10.1 - 7.13.1"
-  checksum: 10c0/be80dec55148c3bb0cb7ad64e4d1a49954856d4c70bb330b65d46e3a5c5d04de3f30edca6a52c98fef2fe121c857d9aca855754ef7641d2d534c755a0abca20c
-  languageName: node
-  linkType: hard
-
 "@apollo/utils.keyvaluecache@npm:^4.0.0":
   version: 4.0.0
   resolution: "@apollo/utils.keyvaluecache@npm:4.0.0"
@@ -251,13 +241,6 @@ __metadata:
     "@apollo/utils.logger": "npm:^3.0.0"
     lru-cache: "npm:^11.0.0"
   checksum: 10c0/0e051a5672a6043723c98be66b90e0672f020e45938c85a364c4d98d23a252495a6beef0792f700283cf45e3034cc5b11e63740e973431bc42b57cf6b229b4b5
-  languageName: node
-  linkType: hard
-
-"@apollo/utils.logger@npm:^1.0.0":
-  version: 1.0.1
-  resolution: "@apollo/utils.logger@npm:1.0.1"
-  checksum: 10c0/8cec56f0d6cb9ca12c7a0f1d23ab4d69d668173fd4077bfc242247885217b98ab4dd9aadaa5ba54fe1c19a7442eae86c6ca4776e96079d103c9048d51adc1d2d
   languageName: node
   linkType: hard
 
@@ -464,6 +447,7 @@ __metadata:
     "@temporalio/client": "npm:1.12.1"
     "@temporalio/proto": "npm:1.12.1"
     "@types/app-root-path": "npm:3.1.0"
+    "@types/cors": "npm:2.8.19"
     "@types/dedent": "npm:0.7.2"
     "@types/express-http-proxy": "npm:1.6.7"
     "@types/html-to-text": "npm:8.1.1"
@@ -9517,7 +9501,6 @@ __metadata:
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
-    apollo-datasource: "npm:3.3.2"
     axios: "npm:1.12.2"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.38.0"
@@ -17071,6 +17054,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/cors@npm:2.8.19":
+  version: 2.8.19
+  resolution: "@types/cors@npm:2.8.19"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/b5dd407040db7d8aa1bd36e79e5f3f32292f6b075abc287529e9f48df1a25fda3e3799ba30b4656667ffb931d3b75690c1d6ca71e39f7337ea6dfda8581916d0
+  languageName: node
+  linkType: hard
+
 "@types/d3-array@npm:*":
   version: 3.2.1
   resolution: "@types/d3-array@npm:3.2.1"
@@ -20741,25 +20733,6 @@ __metadata:
     normalize-path: "npm:^3.0.0"
     picomatch: "npm:^2.0.4"
   checksum: 10c0/57b06ae984bc32a0d22592c87384cd88fe4511b1dd7581497831c56d41939c8a001b28e7b853e1450f2bf61992dfcaa8ae2d0d161a0a90c4fb631ef07098fbac
-  languageName: node
-  linkType: hard
-
-"apollo-datasource@npm:3.3.2":
-  version: 3.3.2
-  resolution: "apollo-datasource@npm:3.3.2"
-  dependencies:
-    "@apollo/utils.keyvaluecache": "npm:^1.0.1"
-    apollo-server-env: "npm:^4.2.1"
-  checksum: 10c0/b62d2013291685d6750893dadd5723e3c01030eaacc4bd6b61c2590fce3a882fb8f5b3e1561d579dde38468475387491051202e01847ad5f3d6eb371c516a7c8
-  languageName: node
-  linkType: hard
-
-"apollo-server-env@npm:^4.2.1":
-  version: 4.2.1
-  resolution: "apollo-server-env@npm:4.2.1"
-  dependencies:
-    node-fetch: "npm:^2.6.7"
-  checksum: 10c0/3b726b32041153f49c67844330b62e9c9516fd2b4e63f4bf0fe7aab272043b3c7485037feae75651d54b85aeb33c2a335d197724387328fa39aecd6ecb6076b0
   languageName: node
   linkType: hard
 
@@ -33084,13 +33057,6 @@ __metadata:
     fault: "npm:^1.0.0"
     highlight.js: "npm:~10.7.0"
   checksum: 10c0/728bce6f6fe8b157f48d3324e597f452ce0eed2ccff1c0f41a9047380f944e971eb45bceb31f08fbb64d8f338dabb166f10049b35b92c7ec5cf0241d6adb3dea
-  languageName: node
-  linkType: hard
-
-"lru-cache@npm:7.10.1 - 7.13.1":
-  version: 7.13.1
-  resolution: "lru-cache@npm:7.13.1"
-  checksum: 10c0/72034557cdb0d2ae32e5c1db928ee32b6d2b3a3e7b5aae2860f4f4c7272fefd4ebc5292a9df1dde10d07a78517836c49d84d8b101df13c100343bba80839c6cf
   languageName: node
   linkType: hard
 

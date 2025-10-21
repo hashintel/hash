@@ -117,6 +117,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/app-root-path": "3.1.0",
+    "@types/cors": "2.8.19",
     "@types/dedent": "0.7.2",
     "@types/express-http-proxy": "1.6.7",
     "@types/html-to-text": "8.1.1",
