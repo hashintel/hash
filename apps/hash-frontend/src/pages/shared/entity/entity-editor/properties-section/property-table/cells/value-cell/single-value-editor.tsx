@@ -12,7 +12,7 @@ import {
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
 import { Box, outlinedInputClasses, Typography } from "@mui/material";
-import produce from "immer";
+import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
 import type {

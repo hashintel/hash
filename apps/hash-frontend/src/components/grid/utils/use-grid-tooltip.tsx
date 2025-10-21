@@ -1,4 +1,5 @@
 import type { DataEditorRef } from "@glideapps/glide-data-grid";
+import { useWindowEvent } from "@mantine/hooks";
 import type { PopoverPosition } from "@mui/material";
 import { Box, Popper, Typography } from "@mui/material";
 import type { VirtualElement } from "@popperjs/core";
@@ -6,7 +7,6 @@ import { isEqual } from "lodash";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useWindowEventListener } from "rooks";
 
 import type {
   GridTooltip,
@@ -34,7 +34,7 @@ export const useGridTooltip = (
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // prevent tooltip from staying at the same position when user scrolls vertically
-  useWindowEventListener(
+  useWindowEvent(
     "scroll",
     () => {
       popupState.close();

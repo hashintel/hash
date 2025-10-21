@@ -12,7 +12,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import Box from "@mui/material/Box";
-import produce from "immer";
+import { produce } from "immer";
 import isEqual from "lodash.isequal";
 // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
 // removed React import

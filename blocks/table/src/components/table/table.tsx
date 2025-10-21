@@ -7,7 +7,7 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { CompactSelection, GridCellKind } from "@glideapps/glide-data-grid";
 import { ButtonBase, useTheme } from "@mui/material";
-import produce from "immer";
+import { produce } from "immer";
 import debounce from "lodash.debounce";
 import isEqual from "lodash.isequal";
 import type { FunctionComponent } from "react";
