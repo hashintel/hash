@@ -2,6 +2,7 @@ import http from "node:http";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import KeyvRedis from "@keyv/redis";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -11,6 +12,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -32,6 +34,7 @@ import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import httpTerminator from "http-terminator";
+import Keyv from "keyv";
 import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
@@ -51,7 +54,6 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
-import { RedisCache } from "./cache";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
@@ -182,6 +184,7 @@ const main = async () => {
   const redisPort = Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const redisEncryptedTransit =
     process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
+  const redisUrl = `redis${redisEncryptedTransit ? "s" : ""}://${redisHost}:${redisPort}`;
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
   const graphApiPort = Number.parseInt(
@@ -195,11 +198,8 @@ const main = async () => {
   ]);
 
   // Connect to Redis
-  const redis = new RedisCache(logger, {
-    host: redisHost,
-    port: redisPort,
-    tls: redisEncryptedTransit,
-  });
+  const redis = await createRedisClient({ url: redisUrl, logger }).connect();
+  const keyv = new Keyv({ store: new KeyvRedis(redis) });
   shutdown.addCleanup("Redis", async () => redis.close());
 
   // Connect to the Graph API
@@ -457,7 +457,7 @@ const main = async () => {
     uploadProvider,
     temporalClient,
     vaultClient,
-    cache: redis,
+    cache: keyv,
     emailTransporter,
     logger,
     statsd,
@@ -695,6 +695,7 @@ const main = async () => {
 
     const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
       graphApi,
+      redis,
       logger,
       vaultClient,
     });

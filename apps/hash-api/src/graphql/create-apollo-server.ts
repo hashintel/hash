@@ -9,6 +9,7 @@ import {
 } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
@@ -20,9 +21,9 @@ import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
 import type { StatsD } from "hot-shots";
+import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
 import type { GraphQLContext } from "./context";
@@ -142,7 +143,7 @@ const statsPlugin = ({
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
-  cache: CacheAdapter;
+  cache: Keyv;
   uploadProvider: UploadableStorageProvider;
   temporalClient: TemporalClient;
   vaultClient?: VaultClient;
@@ -174,13 +175,13 @@ export const createApolloServer = ({
 
   const dataSources: GraphQLContext["dataSources"] = {
     graphApi,
-    cache,
     uploadProvider,
     search,
   };
 
   const server = new ApolloServer<GraphQLContext>({
     schema: combinedSchema,
+    cache: new KeyvAdapter(cache),
     logger: logger.child({ service: "graphql" }),
     // @todo: we may want to disable introspection at some point for production
     introspection: true,

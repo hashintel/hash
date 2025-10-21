@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { ENTITIES_SEARCH_INDEX } from "@local/hash-backend-utils/search/doc-types";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
@@ -28,6 +28,8 @@ if (!OPENSEARCH_ENABLED) {
 const PORT = process.env.HASH_SEARCH_LOADER_PORT || 3838;
 const REDIS_HOST = getRequiredEnv("HASH_REDIS_HOST");
 const REDIS_PORT = parseInt(process.env.HASH_REDIS_PORT || "6379", 10);
+const REDIS_TLS = process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
+const REDIS_URL = `redis${REDIS_TLS ? "s" : ""}://${REDIS_HOST}:${REDIS_PORT}`;
 const SEARCH_QUEUE_NAME = getRequiredEnv("HASH_SEARCH_QUEUE_NAME");
 const STATSD_ENABLED = process.env.STATSD_ENABLED === "1";
 const STATSD_HOST = STATSD_ENABLED ? getRequiredEnv("STATSD_HOST") : "";
@@ -122,11 +124,7 @@ const main = async () => {
   shutdown.addCleanup("Postgres", () => db.close());
 
   // Connect to Redis
-  const redis = new AsyncRedisClient(logger, {
-    host: REDIS_HOST,
-    port: REDIS_PORT,
-    tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
-  });
+  const redis = createRedisClient({ url: REDIS_URL });
   shutdown.addCleanup("Redis", () => redis.close());
 
   const systemAccountId = await db.getSystemAccountId();
