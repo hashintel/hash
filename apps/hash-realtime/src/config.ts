@@ -24,7 +24,7 @@ export const generateQueues = async (
   return [
     {
       name: getRequiredEnv("HASH_SEARCH_QUEUE_NAME"),
-      producer: new RedisQueueProducer(redis),
+      producer: new RedisQueueProducer(redis.duplicate()),
     },
     {
       name: getRequiredEnv("HASH_INTEGRATION_QUEUE_NAME"),
