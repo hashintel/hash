@@ -580,6 +580,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           setDisplayEntitySubMenu(false);
         }
       },
+      { preventDefault: true },
     ],
     ["Enter", () => handleSubmit(), { preventDefault: true }],
     ["Tab", () => handleSubmit(), { preventDefault: true }],
