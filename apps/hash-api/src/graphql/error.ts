@@ -3,8 +3,8 @@ import { GraphQLError } from "graphql";
 
 export const any = (message: string, extensions?: Record<string, unknown>) =>
   new GraphQLError(message, { extensions });
-// eslint-disable-next-line @typescript-eslint/no-shadow
 export const code = (
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   code: string,
   message: string,
   extensions?: Record<string, unknown>,
