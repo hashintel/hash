@@ -17,11 +17,6 @@ import {
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
-import {
-  ApolloError,
-  ForbiddenError,
-  UserInputError,
-} from "apollo-server-express";
 
 import {
   canUserReadEntity,
@@ -54,6 +49,7 @@ import type {
 } from "../../../api-types.gen";
 import { AuthorizationSubjectKind } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const createEntityResolver: ResolverFn<
@@ -169,7 +165,7 @@ export const updateEntityResolver: ResolverFn<
 
   // The user needs to have completed signup if they aren't updating their own user entity
   if (isIncompleteUser && !isUpdatingOwnEntity) {
-    throw new ForbiddenError(
+    throw Error.forbidden(
       "You must complete the sign-up process to perform this action.",
     );
   }
@@ -295,7 +291,7 @@ export const archiveEntitiesResolver: ResolverFn<
       ),
     );
 
-    throw new ApolloError(
+    throw Error.internal(
       `Couldn't archive entities with IDs ${entityIds.join(", ")}`,
     );
   }
@@ -310,7 +306,7 @@ export const addEntityViewerResolver: ResolverFn<
   MutationAddEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
   if (viewer.kind !== AuthorizationSubjectKind.Public) {
-    throw new UserInputError("Only public viewers can be added to an entity");
+    throw Error.badUserInput("Only public viewers can be added to an entity");
   }
 
   const { authentication } = graphQLContext;
@@ -338,7 +334,7 @@ export const removeEntityViewerResolver: ResolverFn<
   MutationRemoveEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
   if (viewer.kind !== AuthorizationSubjectKind.Public) {
-    throw new UserInputError(
+    throw Error.badUserInput(
       "Only public viewers can be removed from an entity",
     );
   }

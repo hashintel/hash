@@ -33,7 +33,6 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@sentry/browser": "9.44.0",
     "@sindresorhus/slugify": "3.0.0",
-    "apollo-server-express": "3.9.0",
     "big.js": "7.0.1",
     "fix-esm-import-path": "1.10.3",
     "fractional-indexing": "3.2.0",
