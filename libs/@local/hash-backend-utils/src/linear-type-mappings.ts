@@ -6,11 +6,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { Issue, Organization, User } from "@linear/sdk";
-import type {
-  IssueUpdateInput,
-  UpdateOrganizationInput,
-  UpdateUserInput,
-} from "@linear/sdk/dist/_generated_documents.js";
+import type { LinearDocument } from "@linear/sdk";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
@@ -34,9 +30,9 @@ export type SupportedLinearTypes = {
 };
 
 export type SupportedLinearUpdateInput = {
-  Issue: IssueUpdateInput;
-  User: UpdateUserInput;
-  Organization: UpdateOrganizationInput;
+  Issue: LinearDocument.IssueUpdateInput;
+  User: LinearDocument.UserUpdateInput;
+  Organization: LinearDocument.OrganizationUpdateInput;
 };
 
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;

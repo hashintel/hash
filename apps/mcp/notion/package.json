@@ -20,7 +20,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@modelcontextprotocol/sdk": "1.20.1",
-    "@notionhq/client": "2.3.0",
+    "@notionhq/client": "5.3.0",
     "dotenv-flow": "3.3.0",
     "notion-to-md": "3.1.9",
     "zod": "4.1.12",

@@ -30,7 +30,7 @@
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/type-system": "0.1.2-canary.1",
-    "@linear/sdk": "6.0.0",
+    "@linear/sdk": "61.0.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
