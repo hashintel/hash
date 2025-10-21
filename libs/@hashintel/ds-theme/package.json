@@ -10,5 +10,8 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "scripts": {
+    "generate:panda": "tsx scripts/transform-to-panda.ts"
+  }
 }
