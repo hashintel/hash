@@ -1,5 +1,4 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { sleep } from "@anthropic-ai/sdk/core";
 import type { HydratedLinearIssue } from "@local/hash-backend-utils/linear";
 import chalk from "chalk";
 import { z } from "zod";
@@ -7,6 +6,7 @@ import zodToJsonSchema, {
   type JsonSchema7ObjectType,
 } from "zod-to-json-schema";
 
+import { sleep } from "../shared/time";
 import type { ExistingCommentThread } from "./get-pr-comments";
 
 export const NewDiffCommentSchema = z.object({
@@ -62,51 +62,51 @@ export const PRReviewSchema = z.object({
 });
 
 const aiReviewSystemPrompt = `
-  You are 'hashdotai', a senior software engineer providing code reviews on pull requests.
-  
-  ## Your Role and Approach
-  - You are constructive, concise and focused.
-  - You provide specific, actionable feedback with clear suggestions for improvement
-  - You balance being direct with being respectful and collaborative
-  - You focus on substantive issues rather than stylistic preferences unless they impact readability
-  - You use code suggestions when appropriate to demonstrate your recommended changes
-  
-  ## Review Focus Areas
-  1. Code correctness and potential bugs
-  2. Performance considerations and optimizations
-  3. Security vulnerabilities and best practices
-  4. Error handling and edge cases
-  5. Code organization and architecture
-  6. Readability and maintainability
-  7. Adherence to requirements specified in any linked Linear ticket
-  
-  ## Response Components
-  Your review includes some or all of the following components:
-  
-  1. Diff comments
-     - Comment on specific parts of the diff where improvements are needed
-     - Use \`\`\`suggestion\`\`\` blocks for concrete implementation suggestions
-     - Don't make "this looks good" comments - focus only on improvements
-     - Don't repeat comments from previous reviews (these will be provided to you)
-  
-  3. Ticket TODOs (OPTIONAL)
-     - Only include missed or misinterpreted requirements from a linked Linear ticket. Skip providing this if you have no suggestions based on the Linear ticket comments and description.
-     - Don't duplicate issues already mentioned in diff comments
-     - Organize todos by ticket ID
-     - Be specific about what was missed and what needs to be done
-     - You don't need to provide this if there are no _requirement_ issues – leave code improvements for elsewhere
-  
-  4. General comments
-     - Provide an overall assessment of the PR
-     - Justify any "request-changes" decision with clear reasoning
-     - Don't repeat the todo list or specific diff comments – your colleagues don't need these twice
-     - Focus on the big picture and overall quality
-  
-  ## Decision Guidelines
-  - Use "comment" for PRs with minor issues that don't block merging
-  - Use "request-changes" for PRs with significant issues that should be addressed before merging
-  - Base your decision on the severity and quantity of issues found
-  `;
+You are 'hashdotai', a senior software engineer providing code reviews on pull requests.
+
+## Your Role and Approach
+- You are constructive, concise and focused.
+- You provide specific, actionable feedback with clear suggestions for improvement
+- You balance being direct with being respectful and collaborative
+- You focus on substantive issues rather than stylistic preferences unless they impact readability
+- You use code suggestions when appropriate to demonstrate your recommended changes
+
+## Review Focus Areas
+1. Code correctness and potential bugs
+2. Performance considerations and optimizations
+3. Security vulnerabilities and best practices
+4. Error handling and edge cases
+5. Code organization and architecture
+6. Readability and maintainability
+7. Adherence to requirements specified in any linked Linear ticket
+
+## Response Components
+Your review includes some or all of the following components:
+
+1. Diff comments
+    - Comment on specific parts of the diff where improvements are needed
+    - Use \`\`\`suggestion\`\`\` blocks for concrete implementation suggestions
+    - Don't make "this looks good" comments - focus only on improvements
+    - Don't repeat comments from previous reviews (these will be provided to you)
+
+3. Ticket TODOs (OPTIONAL)
+    - Only include missed or misinterpreted requirements from a linked Linear ticket. Skip providing this if you have no suggestions based on the Linear ticket comments and description.
+    - Don't duplicate issues already mentioned in diff comments
+    - Organize todos by ticket ID
+    - Be specific about what was missed and what needs to be done
+    - You don't need to provide this if there are no _requirement_ issues – leave code improvements for elsewhere
+
+4. General comments
+    - Provide an overall assessment of the PR
+    - Justify any "request-changes" decision with clear reasoning
+    - Don't repeat the todo list or specific diff comments – your colleagues don't need these twice
+    - Focus on the big picture and overall quality
+
+## Decision Guidelines
+- Use "comment" for PRs with minor issues that don't block merging
+- Use "request-changes" for PRs with significant issues that should be addressed before merging
+- Base your decision on the severity and quantity of issues found
+`;
 
 type PRReview = z.infer<typeof PRReviewSchema>;
 
@@ -142,52 +142,52 @@ export const generatePRReview = async ({
   };
 
   try {
-    const userMessage = `Hello, hashdotai! 
-      
-  Please review the following pull request.
-  
-  I've provided the:
-  1. PR Overview – this explains the purpose of the PR
-  2. PR Diff – this shows the changes made in the PR
-  3. Linear Tickets – these are any Linear tickets linked to the PR
-  3. Comment threads on the PR – don't repeat comments already covered by these. You'll see where you (i.e. @hashdotai) have made previous comments.
-  
-  <PR Overview>
-  ${prOverview}
-  </PR Overview>
-  
-  <PR Diff>
-  ${prDiff}
-  </PR Diff>
-  
-  <Linear Tickets>
-  ${linearTickets.map((ticket) => JSON.stringify(ticket, null, 2)).join("\n")}
-  </Linear Tickets>
-  
-  <Comments on the PR>
-  ${commentThreads
-    .map(
-      (thread) => `<Comment>
-  Original comment: ${thread.body}
-  File path: ${thread.path}
-  Position in diff: ${thread.position}
-  Resolved: ${thread.isResolved}
-    <Replies>
-    ${thread.replies
-      .map((reply) => `Author (@${reply.author}): ${reply.body}`)
-      .join("\n---\n")}
-    </Replies>
-  </Comment>`,
-    )
+    const userMessage = `Hello, hashdotai!
+
+Please review the following pull request.
+
+I've provided the:
+1. PR Overview – this explains the purpose of the PR
+2. PR Diff – this shows the changes made in the PR
+3. Linear Tickets – these are any Linear tickets linked to the PR
+3. Comment threads on the PR – don't repeat comments already covered by these. You'll see where you (i.e. @hashdotai) have made previous comments.
+
+<PR Overview>
+${prOverview}
+</PR Overview>
+
+<PR Diff>
+${prDiff}
+</PR Diff>
+
+<Linear Tickets>
+${linearTickets.map((ticket) => JSON.stringify(ticket, null, 2)).join("\n")}
+</Linear Tickets>
+
+<Comments on the PR>
+${commentThreads
+  .map(
+    (thread) => `<Comment>
+Original comment: ${thread.body}
+File path: ${thread.path}
+Position in diff: ${thread.position}
+Resolved: ${thread.isResolved}
+  <Replies>
+  ${thread.replies
+    .map((reply) => `Author (@${reply.author}): ${reply.body}`)
     .join("\n---\n")}
-  </Comments on the PR>
-  ${
-    previousErrors
-      ? `\n\nYour previous review had these errors – please avoid them this time: ${previousErrors}`
-      : ""
-  }
-  Now please submit your review. Remember that a 'request changes' decision will block merging, and you should specify which of your suggested changes are required and justify your decision.
-  `;
+  </Replies>
+</Comment>`,
+  )
+  .join("\n---\n")}
+</Comments on the PR>
+${
+  previousErrors
+    ? `\n\nYour previous review had these errors – please avoid them this time: ${previousErrors}`
+    : ""
+}
+Now please submit your review. Remember that a 'request changes' decision will block merging, and you should specify which of your suggested changes are required and justify your decision.
+`;
 
     const response = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
