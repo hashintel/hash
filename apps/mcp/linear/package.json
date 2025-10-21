@@ -17,7 +17,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@linear/sdk": "6.0.0",
+    "@linear/sdk": "61.0.0",
     "@local/eslint": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
