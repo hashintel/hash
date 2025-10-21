@@ -1,4 +1,4 @@
-import { ApolloServerErrorCode } from "@apollo/server/dist/esm/errors";
+import { ApolloServerErrorCode } from "@apollo/server/errors";
 import type {
   Entity,
   EntityId,
