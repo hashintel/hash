@@ -485,7 +485,7 @@ const main = async () => {
     next();
   });
 
-  setupFileDownloadProxyHandler(app, redis);
+  setupFileDownloadProxyHandler(app, keyv);
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 

@@ -22,9 +22,9 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Express } from "express";
+import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
@@ -161,10 +161,7 @@ const getFileEntity = async (
  * @param storageProvider - the provider we're using for file storage
  * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
  */
-export const setupFileDownloadProxyHandler = (
-  app: Express,
-  cache: CacheAdapter,
-) => {
+export const setupFileDownloadProxyHandler = (app: Express, cache: Keyv) => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
   app.get("/file/:key(*)", async (req, res) => {
     const key = req.params.key;
@@ -225,7 +222,7 @@ export const setupFileDownloadProxyHandler = (
       return;
     }
 
-    let presignUrl = await cache.get(key);
+    let presignUrl = await cache.get<string>(key);
 
     if (!presignUrl) {
       const { fileStorageProvider: storageProviderName } = simplifyProperties(
@@ -271,10 +268,12 @@ export const setupFileDownloadProxyHandler = (
       }
 
       try {
-        await cache.setExpiring(
+        await cache.set(
           key,
           presignUrl,
-          DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET_SECONDS,
+          (DOWNLOAD_URL_EXPIRATION_SECONDS -
+            DOWNLOAD_URL_CACHE_OFFSET_SECONDS) *
+            1000,
         );
       } catch (error) {
         logger.warn(
