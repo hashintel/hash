@@ -333,7 +333,7 @@ pub enum PropertyValues {
     ///   }
     /// }
     /// ```
-    Array(PropertyValueArray<OneOfSchema<PropertyValues>>),
+    Array(PropertyValueArray<OneOfSchema<Self>>),
 }
 
 /// Categorizes property value structures by their basic structural type.
