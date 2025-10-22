@@ -21,9 +21,8 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{FieldIndex, Place},
+        place::Place,
         rvalue::{Aggregate, AggregateKind, RValue},
-        terminator::{Terminator, TerminatorKind},
     },
     def::{DefId, DefIdVec},
 };
@@ -65,7 +64,29 @@ fn compile_statement<'heap>(
     binding: &Binding<'heap>,
     reify: &mut ReifyContext<'_, 'heap>,
     body: &mut BodyContext<'_, 'heap>,
+    next: Local, // if there is none, this means it's a RET
 ) {
+    // We arrive at an IF:
+    // 1) start a new block (destination), with a local where to put the result
+    // 2) add a terminator to the current block, that is an `if`, going to the if and else blocks
+    // 3) replace the pointer to the current block with our new block
+    // 4) do not push a statement (there is none)
+    //
+    // This means that compile_statement doesn't return a statement, but rather takes a `&mut
+    // BasicBlock`.
+    // We then modify said block. The problem: slots slots slots, we still modify that block, but we
+    // need an id to reference. We would get a double mut. EXCEPT if we only insert after we're
+    // done. No that doesn't make sense.
+    // Wait let's invert control flow.
+    // We don't need to construct the terminator at the spot, instead, what we can do is have
+    // compile them first, then take the `BasicBlockId` that is returned as terminator.
+    // That way we wouldn't need to know the `BasicBlockId` beforehand.
+    // What does this mean for us when replacing the pointer?, well A)
+    // We differentiate between the block we're currently in (the static block id), and the one
+    // we're currently working with.
+    // When we switch out, we simply push and populate (if not already) with the BasicBlockId
+    // assigned. Then on finish we ensure that it is set, and finish of the blocks.
+
     let rvalue = match binding.value.kind {
         NodeKind::Data(Data::Primitive(primitive)) => {
             RValue::Load(Operand::Constant(Constant::Primitive(*primitive)))
