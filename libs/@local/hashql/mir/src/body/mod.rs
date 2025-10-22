@@ -8,7 +8,7 @@
 //! The main entry point is the [`Body`] structure, which contains a collection of [`BasicBlock`]s
 //! that form the control-flow graph of the function.
 
-use hashql_core::{heap::Heap, span::SpanId};
+use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol};
 
 use self::basic_block::{BasicBlock, BasicBlockVec};
 use crate::def::DefId;
@@ -28,7 +28,9 @@ pub mod terminator;
 /// and this enum tracks what kind of source construct this body represents. This
 /// information is useful for optimization, analysis, and debugging.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Source {
+pub enum Source<'heap> {
+    Ctor(Symbol<'heap>),
+
     /// A closure body with captured environment.
     ///
     /// This variant represents MIR generated from a closure expression that
@@ -95,7 +97,7 @@ pub struct Body<'heap> {
     /// or constant that generated this MIR body.
     pub span: SpanId,
 
-    pub source: Source,
+    pub source: Source<'heap>,
 
     /// The collection of basic blocks that make up this body's control-flow graph.
     ///
