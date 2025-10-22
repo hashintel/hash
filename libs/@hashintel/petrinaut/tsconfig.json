@@ -1,9 +1,9 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "ESNext"],
     "noEmit": true
   },
-  "include": ["theme-override.d.ts", "./src/"]
+  "include": ["theme-override.d.ts", "./src/", "./dev/"]
 }
