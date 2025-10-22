@@ -1,16 +1,18 @@
-use core::slice::SlicePattern;
-
+#![expect(clippy::todo)]
 use hashql_core::{
     heap::{self, Heap},
     id::{IdCounter, IdVec},
+    span::SpanId,
+    symbol::Symbol,
+    r#type::{TypeId, environment::Environment},
 };
 use hashql_hir::node::{
     Node,
-    closure::Closure,
+    access::{Access, FieldAccess, IndexAccess},
     data::{Data, Dict, List, Struct, Tuple},
     kind::NodeKind,
     r#let::{Binding, Let, VarIdVec},
-    thunk::Thunk,
+    operation::{BinaryOperation, Operation, TypeConstructor, TypeOperation, UnaryOperation},
     variable::Variable,
 };
 
@@ -21,14 +23,19 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::Place,
-        rvalue::{Aggregate, AggregateKind, RValue},
+        place::{Place, Projection},
+        rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
+        statement::{Assign, Statement, StatementKind},
+        terminator::{Return, Terminator, TerminatorKind},
     },
     def::{DefId, DefIdVec},
+    intern::Interner,
 };
 
 struct ReifyContext<'ctx, 'heap> {
     bodies: &'ctx mut DefIdVec<Body<'heap>>,
+    interner: &'ctx Interner<'heap>,
+    environment: &'ctx Environment<'heap>,
     heap: &'heap Heap,
 }
 
@@ -38,161 +45,283 @@ struct BodyContext<'ctx, 'heap> {
     counter: IdCounter<Local>,
 }
 
-fn compile_place<'heap>(node: &Node<'heap>) -> Place<'heap> {
-    match node.kind {
-        NodeKind::Access(_) => todo!(),
-        NodeKind::Variable(_) => todo!(),
-        _ => panic!("Expected place to be present"),
+struct BlockCompiler<'ctx, 'reify, 'heap> {
+    context: &'ctx mut ReifyContext<'reify, 'heap>,
+    blocks: &'ctx mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+    locals: VarIdVec<Option<Local>>,
+
+    current_block: BasicBlock<'heap>,
+    current_block_id: Option<BasicBlockId>,
+
+    result_into: Option<Local>, // if none it's a `Return` call
+}
+
+impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
+    fn compile_local(&self, node: &Node<'heap>) -> Local {
+        match node.kind {
+            NodeKind::Variable(Variable::Local(local)) => self.locals[local.id.value]
+                .unwrap_or_else(|| {
+                    unreachable!(
+                        "The variable should have been assigned to a local before reaching this \
+                         point."
+                    )
+                }),
+            _ => todo!("diagnostic: should never happen (ICE)"),
+        }
     }
-}
 
-fn compile_operand<'heap>(
-    node: &Node<'heap>,
-    reify: &mut ReifyContext<'_, 'heap>,
-    body: &mut BodyContext<'_, 'heap>,
-) -> Operand<'heap> {
-    // must be an atom
-    match node.kind {
-        NodeKind::Access(_) => todo!(),
-        NodeKind::Variable(_) => todo!(),
-        NodeKind::Data(Data::Primitive(primitive)) => todo!(),
-        _ => panic!("Expected atom to be present"),
+    fn compile_place(&self, node: &Node<'heap>) -> Place<'heap> {
+        let mut projections = Vec::new();
+
+        let mut current = node;
+        loop {
+            match current.kind {
+                NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
+                    // TODO: this isn't correct, we need type information here to know *what* we're
+                    // targetting, is it a (closed) struct, is it a tuple?
+
+                    // todo: in case of closed structs specialize into a `Projection::Field`, as the
+                    // order is complete
+                    // (requires type information)
+                    projections.push(Projection::FieldByName(field.value));
+                    current = expr;
+                }
+                NodeKind::Access(Access::Index(IndexAccess { expr, index })) => {
+                    projections.push(Projection::Index(self.compile_local(index)));
+                    current = expr;
+                }
+                _ => break,
+            }
+        }
+
+        // At this point the variable *must* be a local, due to HIR(ANF) rules
+        let local = self.compile_local(current);
+        // projections are built outside -> inside, we need to reverse them
+        projections.reverse();
+
+        Place {
+            local,
+            projections: self.context.interner.projections.intern_slice(&projections),
+        }
     }
-}
 
-fn compile_statement<'heap>(
-    binding: &Binding<'heap>,
-    reify: &mut ReifyContext<'_, 'heap>,
-    body: &mut BodyContext<'_, 'heap>,
-    next: Local, // if there is none, this means it's a RET
-) {
-    // We arrive at an IF:
-    // 1) start a new block (destination), with a local where to put the result
-    // 2) add a terminator to the current block, that is an `if`, going to the if and else blocks
-    // 3) replace the pointer to the current block with our new block
-    // 4) do not push a statement (there is none)
-    //
-    // This means that compile_statement doesn't return a statement, but rather takes a `&mut
-    // BasicBlock`.
-    // We then modify said block. The problem: slots slots slots, we still modify that block, but we
-    // need an id to reference. We would get a double mut. EXCEPT if we only insert after we're
-    // done. No that doesn't make sense.
-    // Wait let's invert control flow.
-    // We don't need to construct the terminator at the spot, instead, what we can do is have
-    // compile them first, then take the `BasicBlockId` that is returned as terminator.
-    // That way we wouldn't need to know the `BasicBlockId` beforehand.
-    // What does this mean for us when replacing the pointer?, well A)
-    // We differentiate between the block we're currently in (the static block id), and the one
-    // we're currently working with.
-    // When we switch out, we simply push and populate (if not already) with the BasicBlockId
-    // assigned. Then on finish we ensure that it is set, and finish of the blocks.
-
-    let rvalue = match binding.value.kind {
-        NodeKind::Data(Data::Primitive(primitive)) => {
-            RValue::Load(Operand::Constant(Constant::Primitive(*primitive)))
-        }
-        NodeKind::Data(Data::Struct(Struct { fields })) => {
-            let mut operands = IdVec::with_capacity_in(fields.len(), reify.heap);
-            // TODO: intern field names
-            for field in fields {
-                operands.push(compile_operand(&field.value, reify, body));
+    fn compile_operand(&self, node: &Node<'heap>) -> Operand<'heap> {
+        match node.kind {
+            NodeKind::Variable(Variable::Qualified(_)) => {
+                todo!("diagnostic: not supported (yet)") // <- would be an FnPtr
             }
-
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Struct { fields: () },
-                operands,
-            })
-        }
-        NodeKind::Data(Data::Dict(Dict { fields })) => {
-            let mut operands = IdVec::with_capacity_in(fields.len() * 2, reify.heap);
-            for field in fields {
-                operands.push(compile_operand(&field.key, reify, body));
-                operands.push(compile_operand(&field.value, reify, body));
+            &NodeKind::Data(Data::Primitive(primitive)) => {
+                Operand::Constant(Constant::Primitive(primitive))
             }
-
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Dict,
-                operands,
-            })
+            _ => Operand::Place(self.compile_place(node)),
         }
-        NodeKind::Data(Data::Tuple(Tuple { fields })) => {
-            let mut operands = IdVec::with_capacity_in(fields.len(), reify.heap);
-            for field in fields {
-                operands.push(compile_operand(&field, reify, body));
+    }
+
+    fn compile_rvalue_data(&self, data: &Data<'heap>) -> RValue<'heap> {
+        match data {
+            &Data::Primitive(primitive) => {
+                RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
             }
+            Data::Struct(Struct { fields }) => {
+                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
+                let mut field_names = Vec::with_capacity(fields.len());
 
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Tuple,
-                operands,
-            })
-        }
-        NodeKind::Data(Data::List(List { elements })) => {
-            let mut operands = IdVec::with_capacity_in(elements.len(), reify.heap);
-            for element in elements {
-                operands.push(compile_operand(&element, reify, body));
+                for field in fields {
+                    field_names.push(field.name.value);
+                    operands.push(self.compile_operand(&field.value));
+                }
+
+                RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Struct {
+                        fields: self.context.interner.symbols.intern_slice(&field_names),
+                    },
+                    operands,
+                })
             }
+            Data::Dict(Dict { fields }) => {
+                let mut operands = IdVec::with_capacity_in(fields.len() * 2, self.context.heap);
+                for field in fields {
+                    operands.push(self.compile_operand(&field.key));
+                    operands.push(self.compile_operand(&field.value));
+                }
 
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::List,
-                operands,
-            })
+                RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Dict,
+                    operands,
+                })
+            }
+            Data::Tuple(Tuple { fields }) => {
+                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
+                for field in fields {
+                    operands.push(self.compile_operand(field));
+                }
+
+                RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Tuple,
+                    operands,
+                })
+            }
+            Data::List(List { elements }) => {
+                let mut operands = IdVec::with_capacity_in(elements.len(), self.context.heap);
+                for element in elements {
+                    operands.push(self.compile_operand(element));
+                }
+
+                RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::List,
+                    operands,
+                })
+            }
         }
-        NodeKind::Variable(variable) => todo!(),
-        NodeKind::Let(_) => unreachable!("nested let bindings are normalized under HIR(ANF)"), /* TODO: verify */
-        NodeKind::Input(input) => todo!(),
-        NodeKind::Operation(operation) => todo!(),
-        NodeKind::Access(access) => todo!(),
-        NodeKind::Call(call) => todo!(),
-        NodeKind::Branch(branch) => todo!(),
-        NodeKind::Closure(closure) => todo!(),
-        NodeKind::Thunk(thunk) => todo!(),
-        NodeKind::Graph(graph) => todo!(),
-    };
+    }
 
-    todo!()
-}
+    fn compile_type_ctor(&mut self, span: SpanId, name: Symbol<'heap>) -> DefId {
+        // TODO: only recompile if we really need to
+        let input = Local::new(0);
+        let output = Local::new(1);
 
-fn compile_basic_block<'heap>(
-    def: DefId,
-    node: &Node<'heap>,
-    reify: &mut ReifyContext<'_, 'heap>,
-    body: &mut BodyContext<'_, 'heap>,
-) {
-    let statements = heap::Vec::new_in(reify.heap);
+        // TODO: actually, we can check if by the arity of the function, we need type information
+        // for that
+        let has_input = true;
 
-    // TODO: go from binding to binding (if available) and turn into a statement, if in ANF
-    let (bindings, ret) = match node.kind {
-        NodeKind::Let(Let { bindings, body }) => (bindings.0, body),
-        NodeKind::Access(_) | NodeKind::Variable(_) | NodeKind::Data(Data::Primitive(_)) => {
-            (&[] as &[_], node)
+        let mut operands = IdVec::with_capacity_in(1, self.context.heap);
+        if has_input {
+            operands.push(Operand::Place(Place {
+                local: input,
+                projections: self.context.interner.projections.intern_slice(&[]),
+            }));
+        } else {
+            operands.push(Operand::Constant(Constant::Unit));
         }
-        _ => unreachable!("Guaranteed to be in HIR(ANF)"),
-    };
 
-    for binding in bindings {}
-}
+        let statement = Statement {
+            span,
+            kind: StatementKind::Assign(Assign {
+                lhs: Place {
+                    local: output,
+                    projections: self.context.interner.projections.intern_slice(&[]),
+                },
+                rhs: RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Opaque(name),
+                    operands,
+                }),
+            }),
+        };
 
-fn compile_body<'heap>(
-    def: DefId,
-    body: &Node<'heap>,
-    context: &mut ReifyContext<'_, 'heap>,
-) -> Body<'heap> {
-    // First we gotta figure out what we're calling, in case of a `Thunk` this is straight-forward,
-    // as no context is involved, otherwise need to generate what the required context is (in
-    // `VarId`).
-    // Thunks do not have any context and are always called a thin pointers.
-    let (args, body) = match body.kind {
-        NodeKind::Thunk(Thunk { body }) => (0, body),
-        NodeKind::Closure(Closure { signature, body }) => {
-            // TODO: need to implement environment capture (somehow)
-            (signature.params.len() + 1, body)
+        let mut statements = heap::Vec::with_capacity_in(1, self.context.heap);
+        statements.push(statement);
+
+        let mut r#return = Vec::with_capacity_in(1, self.context.heap);
+        r#return.push(Operand::Place(Place {
+            local: output,
+            projections: self.context.interner.projections.intern_slice(&[]),
+        }));
+
+        let bb = BasicBlock {
+            params: self.context.interner.locals.intern_slice(&[]),
+            statements,
+            terminator: Terminator {
+                span,
+                kind: TerminatorKind::Return(Return {
+                    values: r#return.into_boxed_slice(),
+                }),
+            },
+        };
+
+        let mut basic_blocks = IdVec::with_capacity_in(1, self.context.heap);
+        basic_blocks.push(bb);
+
+        let body = Body {
+            span,
+            source: Source::Ctor(name),
+            basic_blocks,
+            args: usize::from(has_input),
+        };
+
+        self.context.bodies.push(body)
+    }
+
+    fn compile_rvalue_type_operation(
+        &mut self,
+        span: SpanId,
+        operation: &TypeOperation<'heap>,
+    ) -> RValue<'heap> {
+        match operation {
+            TypeOperation::Assertion(_) => {
+                todo!("diagnostic: assertions no longer exist in HIR(ANF)")
+            }
+            TypeOperation::Constructor(TypeConstructor {
+                name,
+                closure: _,
+                arguments: _,
+            }) => {
+                let def = self.compile_type_ctor(span, *name);
+                RValue::Load(Operand::Constant(Constant::FnPtr(def)))
+            }
         }
-        _ => panic!("`compile_body` has been called on a non function-like node"),
-    };
+    }
 
-    // We now compile the basic blocks
+    fn compile_rvalue_binary_operation(
+        &self,
+        BinaryOperation { op, left, right }: &BinaryOperation<'heap>,
+    ) -> RValue<'heap> {
+        let left = self.compile_operand(left);
+        let right = self.compile_operand(right);
 
-    todo!()
+        RValue::Binary(Binary {
+            op: op.value,
+            left,
+            right,
+        })
+    }
+
+    fn compile_rvalue_unary_operation(
+        &self,
+        UnaryOperation { op, expr }: &UnaryOperation<'heap>,
+    ) -> RValue<'heap> {
+        let operand = self.compile_operand(expr);
+
+        RValue::Unary(Unary {
+            op: op.value,
+            operand,
+        })
+    }
+
+    fn compile_rvalue_operation(
+        &mut self,
+        span: SpanId,
+        operation: &Operation<'heap>,
+    ) -> RValue<'heap> {
+        match operation {
+            Operation::Type(type_operation) => {
+                self.compile_rvalue_type_operation(span, type_operation)
+            }
+            Operation::Binary(binary_operation) => {
+                self.compile_rvalue_binary_operation(binary_operation)
+            }
+            Operation::Unary(unary_operation, _) => {
+                self.compile_rvalue_unary_operation(unary_operation)
+            }
+        }
+    }
+
+    fn compile_binding(&mut self, binding: &Binding<'heap>) {
+        let rvalue = match binding.value.kind {
+            NodeKind::Data(data) => self.compile_rvalue_data(data),
+            NodeKind::Variable(variable) => todo!(),
+            NodeKind::Let(_) => unreachable!("HIR(ANF) does not have nested let bindings"),
+            NodeKind::Input(input) => todo!(), // Transform into INPUT_EXISTS + INPUT_LOAD calls
+            NodeKind::Operation(operation) => {
+                self.compile_rvalue_operation(binding.value.span, operation)
+            }
+            NodeKind::Access(access) => todo!(),
+            NodeKind::Call(call) => todo!(),
+            NodeKind::Branch(branch) => todo!(),
+            NodeKind::Closure(closure) => todo!(),
+            NodeKind::Thunk(thunk) => todo!(),
+            NodeKind::Graph(graph) => todo!(),
+        };
+    }
 }
 
 // TODO: Extend to multiple packages and modules
@@ -257,13 +386,13 @@ pub fn from_hir<'heap>(node: &Node<'heap>, context: &mut ReifyContext<'_, 'heap>
     }
 
     // For each binding, create the basic-block body
-    for binding in bindings {
-        let def = references[binding.binder.id]
-            .unwrap_or_else(|| unreachable!("This has just been created"));
+    // for binding in bindings {
+    //     let def = references[binding.binder.id]
+    //         .unwrap_or_else(|| unreachable!("This has just been created"));
 
-        let body = compile_body(def, &binding.value, context);
-        context.bodies[def] = body;
-    }
+    //     let body = compile_body(def, &binding.value, context);
+    //     context.bodies[def] = body;
+    // }
 
     todo!()
 }

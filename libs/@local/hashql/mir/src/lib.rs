@@ -4,6 +4,7 @@ extern crate alloc;
 
 pub mod body;
 pub mod def;
+pub mod intern;
 mod reify;
 
 #[cfg(test)]
