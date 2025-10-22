@@ -154,7 +154,7 @@ export interface CreateApolloServerParams {
   httpServer: Server;
 }
 
-export const createApolloServer = ({
+export const createApolloServer = async ({
   graphApi,
   cache,
   search,
@@ -197,6 +197,9 @@ export const createApolloServer = ({
       ApolloServerPluginDrainHttpServer({ httpServer }),
     ],
   });
+
+  // Note: the server must be started before the middleware can be applied
+  await server.start();
 
   const middleware = expressMiddleware(server, {
     context: async ({ req, res }): Promise<GraphQLContext> => ({

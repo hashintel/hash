@@ -162,9 +162,8 @@ const getFileEntity = async (
  * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
  */
 export const setupFileDownloadProxyHandler = (app: Express, cache: Keyv) => {
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
-  app.get("/file/:key(*)", async (req, res) => {
-    const key = req.params.key;
+  app.get("/file/*splat", async (req, res) => {
+    const key = (req.params as { splat: string[] }).splat.join("/");
     const urlOnly = req.query.urlOnly;
 
     // We purposefully return 404 for all error cases.

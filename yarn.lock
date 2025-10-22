@@ -449,7 +449,6 @@ __metadata:
     "@types/app-root-path": "npm:3.1.0"
     "@types/cors": "npm:2.8.19"
     "@types/dedent": "npm:0.7.2"
-    "@types/express-http-proxy": "npm:1.6.7"
     "@types/html-to-text": "npm:8.1.1"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.20"
@@ -481,6 +480,7 @@ __metadata:
     helmet: "npm:4.6.0"
     hot-shots: "npm:8.5.2"
     html-to-text: "npm:8.2.1"
+    http-proxy-middleware: "npm:3.0.5"
     http-terminator: "npm:3.2.0"
     immer: "npm:10.1.3"
     install: "npm:0.13.0"
@@ -9579,7 +9579,7 @@ __metadata:
     "@sindresorhus/slugify": "npm:3.0.0"
     "@temporalio/workflow": "npm:1.12.1"
     "@types/big.js": "npm:6.2.2"
-    "@types/express": "npm:^5"
+    "@types/express": "npm:5.0.3"
     "@types/lodash-es": "npm:4.17.12"
     "@types/node": "npm:22.18.11"
     "@types/pluralize": "npm:0.0.33"
@@ -17410,15 +17410,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express-http-proxy@npm:1.6.7":
-  version: 1.6.7
-  resolution: "@types/express-http-proxy@npm:1.6.7"
-  dependencies:
-    "@types/express": "npm:*"
-  checksum: 10c0/f790fe1b989048d23f6d77a904fe55f711e72f16b18409f33b70ac4567e60c1e5dfb5b76815128a91a501e32f9ce7b2c8583a4eff1cb2d78a808c5f7229a5a6c
-  languageName: node
-  linkType: hard
-
 "@types/express-serve-static-core@npm:*":
   version: 5.0.2
   resolution: "@types/express-serve-static-core@npm:5.0.2"
@@ -17443,7 +17434,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/express@npm:4.17.23":
+"@types/express-serve-static-core@npm:^5.0.0":
+  version: 5.1.0
+  resolution: "@types/express-serve-static-core@npm:5.1.0"
+  dependencies:
+    "@types/node": "npm:*"
+    "@types/qs": "npm:*"
+    "@types/range-parser": "npm:*"
+    "@types/send": "npm:*"
+  checksum: 10c0/1918233c68a0c69695f78331af1aed5fb5190f91da6309318f700adeb78573be840b5d206cb8eda804b65a9989fdeccdaaf84c1e95adc3615052749224b64519
+  languageName: node
+  linkType: hard
+
+"@types/express@npm:*, @types/express@npm:5.0.3":
+  version: 5.0.3
+  resolution: "@types/express@npm:5.0.3"
+  dependencies:
+    "@types/body-parser": "npm:*"
+    "@types/express-serve-static-core": "npm:^5.0.0"
+    "@types/serve-static": "npm:*"
+  checksum: 10c0/f0fbc8daa7f40070b103cf4d020ff1dd08503477d866d1134b87c0390bba71d5d7949cb8b4e719a81ccba89294d8e1573414e6dcbb5bb1d097a7b820928ebdef
+  languageName: node
+  linkType: hard
+
+"@types/express@npm:^4.17.21":
   version: 4.17.23
   resolution: "@types/express@npm:4.17.23"
   dependencies:
@@ -17556,6 +17570,15 @@ __metadata:
   version: 2.0.4
   resolution: "@types/http-errors@npm:2.0.4"
   checksum: 10c0/494670a57ad4062fee6c575047ad5782506dd35a6b9ed3894cea65830a94367bd84ba302eb3dde331871f6d70ca287bfedb1b2cf658e6132cd2cbd427ab56836
+  languageName: node
+  linkType: hard
+
+"@types/http-proxy@npm:^1.17.15":
+  version: 1.17.16
+  resolution: "@types/http-proxy@npm:1.17.16"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/b71bbb7233b17604f1158bbbe33ebf8bb870179d2b6e15dc9483aa2a785ce0d19ffb6c2237225b558addf24211d1853c95e337ee496df058eb175b433418a941
   languageName: node
   linkType: hard
 
@@ -29764,6 +29787,20 @@ __metadata:
     agent-base: "npm:^7.1.0"
     debug: "npm:^4.3.4"
   checksum: 10c0/4207b06a4580fb85dd6dff521f0abf6db517489e70863dca1a0291daa7f2d3d2d6015a57bd702af068ea5cf9f1f6ff72314f5f5b4228d299c0904135d2aef921
+  languageName: node
+  linkType: hard
+
+"http-proxy-middleware@npm:3.0.5":
+  version: 3.0.5
+  resolution: "http-proxy-middleware@npm:3.0.5"
+  dependencies:
+    "@types/http-proxy": "npm:^1.17.15"
+    debug: "npm:^4.3.6"
+    http-proxy: "npm:^1.18.1"
+    is-glob: "npm:^4.0.3"
+    is-plain-object: "npm:^5.0.0"
+    micromatch: "npm:^4.0.8"
+  checksum: 10c0/89ff3c8fe65b22b8042a6173ae1b8f77c5171f7eecf3c8b5d6dcffe3c9d688acae7bcf498cc08d1525f566dc0781efaec4e2ddc49224b1f16f020de7987a446b
   languageName: node
   linkType: hard
 
