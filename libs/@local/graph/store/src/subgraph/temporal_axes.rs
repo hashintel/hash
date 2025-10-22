@@ -4,6 +4,7 @@ use hash_graph_temporal_versioning::{
     TemporalBound, TemporalInterval, TemporalTagged as _, TimeAxis, Timestamp, TransactionTime,
 };
 use serde::{Deserialize, Serialize};
+use type_system::knowledge::entity::metadata::EntityTemporalMetadata;
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 
@@ -483,22 +484,22 @@ impl QueryTemporalAxes {
         }
     }
 
-    /// Intersects the variable interval of the temporal axes with the provided
-    /// [`LeftClosedTemporalInterval`].
+    /// Intersects the variable interval of the corresponding temporal axes with the provided
+    /// [`EntityTemporalMetadata`].
     ///
     /// If the two intervals do not overlap, [`None`] is returned.
     #[must_use]
     pub fn intersect_variable_interval(
         self,
-        version_interval: LeftClosedTemporalInterval<VariableAxis>,
-    ) -> Option<Self> {
+        version_interval: &EntityTemporalMetadata,
+    ) -> Option<RightBoundedTemporalInterval<VariableAxis>> {
         match self {
-            Self::DecisionTime { pinned, variable } => variable
-                .intersect(version_interval.cast())
-                .map(|variable| Self::DecisionTime { pinned, variable }),
-            Self::TransactionTime { pinned, variable } => variable
-                .intersect(version_interval.cast())
-                .map(|variable| Self::TransactionTime { pinned, variable }),
+            Self::DecisionTime { variable, .. } => variable
+                .intersect(version_interval.decision_time)
+                .map(|axis| axis.interval.cast()),
+            Self::TransactionTime { variable, .. } => variable
+                .intersect(version_interval.transaction_time)
+                .map(|axis| axis.interval.cast()),
         }
     }
 

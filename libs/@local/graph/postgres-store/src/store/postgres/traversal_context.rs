@@ -11,7 +11,8 @@ use hash_graph_store::{
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
-        Subgraph, SubgraphRecord as _, edges::BorrowedTraversalParams, temporal_axes::VariableAxis,
+        Subgraph, SubgraphRecord as _, edges::BorrowedTraversalParams, identifier::EntityVertexId,
+        temporal_axes::VariableAxis,
     },
 };
 use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
@@ -210,7 +211,13 @@ pub struct TraversalContext<'edges> {
     data_types: TraversalContextMap<'edges, DataTypeUuid>,
     property_types: TraversalContextMap<'edges, PropertyTypeUuid>,
     entity_types: TraversalContextMap<'edges, EntityTypeUuid>,
-    entities: TraversalContextMap<'edges, EntityEditionId>,
+    entities: HashMap<
+        EntityEditionId,
+        (
+            EntityVertexId,
+            Vec<RightBoundedTemporalInterval<VariableAxis>>,
+        ),
+    >,
 }
 
 impl<'edges> TraversalContext<'edges> {
@@ -252,10 +259,10 @@ impl<'edges> TraversalContext<'edges> {
                 .await?;
         }
 
-        if !self.entities.0.is_empty() {
+        if !self.entities.is_empty() {
             store
                 .read_entities_by_ids(
-                    &self.entities.0.into_keys().collect::<Vec<_>>(),
+                    &self.entities.into_keys().collect::<Vec<_>>(),
                     subgraph,
                     include_drafts,
                 )
@@ -307,14 +314,264 @@ impl<'edges> TraversalContext<'edges> {
             .add_id(entity_type_id, traversal_params, traversal_interval)
     }
 
+    /// Adds an entity to the traversal context with union semantics for temporal intervals.
+    ///
+    /// If the entity is already tracked, the provided interval is merged with existing intervals:
+    /// - Overlapping or adjacent intervals are merged into a single interval
+    /// - Disjoint intervals are kept separate
+    ///
+    /// This ensures the minimal set of disjoint intervals that represents the union of all
+    /// temporal coverage for this entity across different traversal paths.
     pub fn add_entity_id(
         &mut self,
         edition_id: EntityEditionId,
-        traversal_params: BorrowedTraversalParams<'edges>,
+        vertex_id: EntityVertexId,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> bool {
-        self.entities
-            .add_id(edition_id, traversal_params, traversal_interval)
-            .is_some()
+    ) {
+        let (_, intervals) = self
+            .entities
+            .entry(edition_id)
+            .or_insert_with(|| (vertex_id, Vec::new()));
+
+        // Union semantics: merge overlapping/adjacent intervals, keep disjoint ones separate
+        let mut merged = traversal_interval;
+
+        intervals.retain(|existing_interval| {
+            // union() returns an iterator: 1 element if merged, 2 if disjoint
+            let mut union_iter = existing_interval.union(merged);
+            if union_iter.len() == 1
+                && let Some(union) = union_iter.next()
+            {
+                // Intervals overlap or are adjacent - they were merged
+                merged = union;
+                false // Remove the old interval, we'll add the merged one
+            } else {
+                // Intervals are disjoint - keep the existing one
+                true
+            }
+        });
+
+        // Add the (possibly merged) interval
+        intervals.push(merged);
+    }
+
+    /// Returns an iterator over all tracked entities with their temporal intervals.
+    ///
+    /// Each entity may have multiple disjoint temporal intervals if it was reached through
+    /// different traversal paths with non-overlapping temporal constraints.
+    ///
+    /// # Returns
+    ///
+    /// An iterator yielding `(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)` tuples.
+    /// The same `EntityVertexId` may appear multiple times if the entity has disjoint temporal
+    /// coverage.
+    pub fn entity_intervals(
+        &self,
+    ) -> impl Iterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)> + '_
+    {
+        self.entities.values().flat_map(|(vertex_id, intervals)| {
+            intervals
+                .iter()
+                .map(move |interval| (*vertex_id, *interval))
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_graph_store::subgraph::{identifier::EntityVertexId, temporal_axes::VariableAxis};
+    use hash_graph_temporal_versioning::{
+        LimitedTemporalBound, RightBoundedTemporalInterval, TemporalBound, Timestamp,
+    };
+    use type_system::{
+        knowledge::entity::{EntityId, id::EntityUuid},
+        principal::actor_group::WebId,
+    };
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn make_interval(start: i64, end: i64) -> RightBoundedTemporalInterval<VariableAxis> {
+        RightBoundedTemporalInterval::new(
+            TemporalBound::Inclusive(Timestamp::from_unix_timestamp(start)),
+            LimitedTemporalBound::Exclusive(Timestamp::from_unix_timestamp(end)),
+        )
+    }
+
+    fn make_entity_id() -> EntityEditionId {
+        EntityEditionId::new(Uuid::new_v4())
+    }
+
+    fn make_vertex_id() -> EntityVertexId {
+        EntityVertexId {
+            base_id: EntityId {
+                web_id: WebId::new(Uuid::new_v4()),
+                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                draft_id: None,
+            },
+            revision_id: Timestamp::now(),
+        }
+    }
+
+    #[test]
+    fn add_entity_single_interval() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(intervals.len(), 1);
+        assert_eq!(intervals[0].0, vertex_id);
+        assert_eq!(intervals[0].1, make_interval(10, 20));
+    }
+
+    #[test]
+    fn add_entity_overlapping_intervals_merge() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..20]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+
+        // Add [15..25] - overlaps with [10..20]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(15, 25));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(intervals.len(), 1, "Overlapping intervals should merge");
+        assert_eq!(intervals[0].1, make_interval(10, 25));
+    }
+
+    #[test]
+    fn add_entity_disjoint_intervals_separate() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..20]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+
+        // Add [30..40] - disjoint from [10..20]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(30, 40));
+
+        let mut intervals: Vec<_> = ctx.entity_intervals().collect();
+        intervals.sort_by_key(|(_, interval)| match interval.start() {
+            TemporalBound::Inclusive(ts) | TemporalBound::Exclusive(ts) => Some(*ts),
+            TemporalBound::Unbounded => None,
+        });
+
+        assert_eq!(
+            intervals.len(),
+            2,
+            "Disjoint intervals should remain separate"
+        );
+        assert_eq!(intervals[0].1, make_interval(10, 20));
+        assert_eq!(intervals[1].1, make_interval(30, 40));
+    }
+
+    #[test]
+    fn add_entity_bridge_interval_merges_both() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..20] and [30..40]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(30, 40));
+
+        // Add [15..35] - bridges both intervals
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(15, 35));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(
+            intervals.len(),
+            1,
+            "Bridging interval should merge both existing intervals"
+        );
+        assert_eq!(intervals[0].1, make_interval(10, 40));
+    }
+
+    #[test]
+    fn add_entity_adjacent_intervals_merge() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..20]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+
+        // Add [20..30] - adjacent (end of first == start of second)
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(20, 30));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(intervals.len(), 1, "Adjacent intervals should merge");
+        assert_eq!(intervals[0].1, make_interval(10, 30));
+    }
+
+    #[test]
+    fn add_entity_subsumed_interval_ignored() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..30]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 30));
+
+        // Add [15..25] - completely contained in [10..30]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(15, 25));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(
+            intervals.len(),
+            1,
+            "Subsumed interval should be absorbed by larger interval"
+        );
+        assert_eq!(intervals[0].1, make_interval(10, 30));
+    }
+
+    #[test]
+    fn add_entity_larger_interval_replaces_smaller() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [15..25]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(15, 25));
+
+        // Add [10..30] - subsumes [15..25]
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 30));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(
+            intervals.len(),
+            1,
+            "Larger interval should replace smaller interval"
+        );
+        assert_eq!(intervals[0].1, make_interval(10, 30));
+    }
+
+    #[test]
+    fn add_entity_multiple_disjoint_then_merge() {
+        let mut ctx = TraversalContext::default();
+        let entity_id = make_entity_id();
+        let vertex_id = make_vertex_id();
+
+        // Add [10..20], [30..40], [50..60] - all disjoint
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(10, 20));
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(30, 40));
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(50, 60));
+
+        // Add [15..55] - bridges first two, overlaps with third
+        ctx.add_entity_id(entity_id, vertex_id, make_interval(15, 55));
+
+        let intervals: Vec<_> = ctx.entity_intervals().collect();
+        assert_eq!(
+            intervals.len(),
+            1,
+            "Should merge all overlapping intervals into one"
+        );
+        assert_eq!(intervals[0].1, make_interval(10, 60));
     }
 }
