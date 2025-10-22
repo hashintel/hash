@@ -2,12 +2,12 @@ use core::slice::SlicePattern;
 
 use hashql_core::{
     heap::{self, Heap},
-    id::IdCounter,
+    id::{IdCounter, IdVec},
 };
 use hashql_hir::node::{
     Node,
     closure::Closure,
-    data::{Data, Dict},
+    data::{Data, Dict, List, Struct, Tuple},
     kind::NodeKind,
     r#let::{Binding, Let, VarIdVec},
     thunk::Thunk,
@@ -21,7 +21,7 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::Place,
+        place::{FieldIndex, Place},
         rvalue::{Aggregate, AggregateKind, RValue},
         terminator::{Terminator, TerminatorKind},
     },
@@ -70,16 +70,54 @@ fn compile_statement<'heap>(
         NodeKind::Data(Data::Primitive(primitive)) => {
             RValue::Load(Operand::Constant(Constant::Primitive(*primitive)))
         }
+        NodeKind::Data(Data::Struct(Struct { fields })) => {
+            let mut operands = IdVec::with_capacity_in(fields.len(), reify.heap);
+            // TODO: intern field names
+            for field in fields {
+                operands.push(compile_operand(&field.value, reify, body));
+            }
+
+            RValue::Aggregate(Aggregate {
+                kind: AggregateKind::Struct { fields: () },
+                operands,
+            })
+        }
         NodeKind::Data(Data::Dict(Dict { fields })) => {
-            // TODO: aggregate
+            let mut operands = IdVec::with_capacity_in(fields.len() * 2, reify.heap);
+            for field in fields {
+                operands.push(compile_operand(&field.key, reify, body));
+                operands.push(compile_operand(&field.value, reify, body));
+            }
+
             RValue::Aggregate(Aggregate {
                 kind: AggregateKind::Dict,
-                // key and value are both atoms, therefore safe to construct as such
-                operands: todo!(),
+                operands,
+            })
+        }
+        NodeKind::Data(Data::Tuple(Tuple { fields })) => {
+            let mut operands = IdVec::with_capacity_in(fields.len(), reify.heap);
+            for field in fields {
+                operands.push(compile_operand(&field, reify, body));
+            }
+
+            RValue::Aggregate(Aggregate {
+                kind: AggregateKind::Tuple,
+                operands,
+            })
+        }
+        NodeKind::Data(Data::List(List { elements })) => {
+            let mut operands = IdVec::with_capacity_in(elements.len(), reify.heap);
+            for element in elements {
+                operands.push(compile_operand(&element, reify, body));
+            }
+
+            RValue::Aggregate(Aggregate {
+                kind: AggregateKind::List,
+                operands,
             })
         }
         NodeKind::Variable(variable) => todo!(),
-        NodeKind::Let(_) => todo!(),
+        NodeKind::Let(_) => unreachable!("nested let bindings are normalized under HIR(ANF)"), /* TODO: verify */
         NodeKind::Input(input) => todo!(),
         NodeKind::Operation(operation) => todo!(),
         NodeKind::Access(access) => todo!(),

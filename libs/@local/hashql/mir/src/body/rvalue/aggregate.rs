@@ -57,10 +57,10 @@ pub enum AggregateKind<'heap> {
     /// Construct a closure with captured environment.
     ///
     /// Closures are function values that capture variables from their
-    /// surrounding scope. The [`DefId`] identifies the closure's function
-    /// definition, and the operands (typically length 1) contain the
+    /// surrounding scope. The operands (`len = 2`) are used to construct a fat pointer, which is a
+    /// tuple where the first element is a pointer to the function and the second element is the
     /// captured environment data.
-    Closure(DefId),
+    Closure,
 }
 
 /// An aggregate construction operation in the HashQL MIR.
