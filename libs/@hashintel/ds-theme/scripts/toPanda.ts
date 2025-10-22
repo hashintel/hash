@@ -26,10 +26,11 @@ export function toPanda(root: FigmaVariablesExport): Preset {
   // From collections, only extract mapping from ModeID to Mode name
   for (const collection of root.collections) {
     // If only one mode, no need to save the mapping
+    // TODO: Verify if we can't just check if variable.valuesByMode has only one entry
+    // But possibly valuesByMode could have only one entry even if collection has multiple modes?
     if (collection.modes.length < 2) continue;
 
     for (const mode of collection.modes) {
-      console.log("Mode:", mode.id, "=>", mode.name);
       modeIdToNameMap.set(mode.id, mode.name);
     }
   }
@@ -39,20 +40,99 @@ export function toPanda(root: FigmaVariablesExport): Preset {
     varIdToVarMap.set(variable.id, variable.name);
   }
 
-  // Second pass on variables: Output variables
+  // Second pass on variables: Map to PandaCSS theme structure
   for (const variable of root.variables) {
+    // Special cases: Omit these variables
+    // TODO: Discuss with @CiaranH to confirm these exclusions/adapt values
+    if (
+      variable.name === "container" ||
+      variable.scopes.length === 0 ||
+      variable.name === "spacing/Number" ||
+      variable.name === "weight/normal" ||
+      variable.name === "weight/medium" ||
+      variable.name === "weight/semibold"
+    )
+      continue;
+
     console.log(`
 Variable: ${variable.name} (type: ${variable.type})`);
     console.log(`  Scopes: ${variable.scopes.join(", ")}`);
+
+    // Determine the target path in the theme object based on scopes and type
+    let targetPath:
+      | "colors"
+      | "spacing"
+      | "radii"
+      | "fonts"
+      | "fontSizes"
+      | "lineHeights"
+      | null = null;
+
+    if (
+      variable.type === "COLOR" &&
+      (variable.scopes.includes("ALL_SCOPES") ||
+        variable.scopes.includes("COLOR") ||
+        variable.scopes.includes("FILL_COLOR") ||
+        variable.scopes.includes("STROKE_COLOR") ||
+        variable.scopes.includes("TEXT_FILL") ||
+        variable.scopes.includes("SHAPE_FILL") ||
+        variable.scopes.includes("FRAME_FILL"))
+    ) {
+      targetPath = "colors";
+    } else if (variable.scopes.includes("CORNER_RADIUS")) {
+      targetPath = "radii";
+    } else if (variable.scopes.includes("GAP")) {
+      targetPath = "spacing";
+    } else if (variable.scopes.includes("FONT_SIZE")) {
+      targetPath = "fontSizes";
+    } else if (variable.scopes.includes("FONT_STYLE")) {
+      targetPath = "fonts";
+    } else if (variable.scopes.includes("LINE_HEIGHT")) {
+      targetPath = "lineHeights";
+    } else if (variable.scopes.includes("WIDTH_HEIGHT")) {
+      targetPath = "spacing";
+    }
+    // Special cases
+    else if (variable.name.includes("family/")) {
+      targetPath = "fonts";
+    } else {
+      throw new Error(
+        `Unsupported variable scopes for variable ${
+          variable.name
+        }: ${variable.scopes.join(", ")}`
+      );
+    }
+
     for (const [modeId, value] of Object.entries(variable.valuesByMode)) {
       const modeName = modeIdToNameMap.get(modeId) ?? null;
 
-      if (modeName === null) {
-        console.log(
-          `  [Default] Value: ${JSON.stringify(value)} (no mode mapping)`,
-        );
+      const isVariableAlias =
+        typeof value === "object" &&
+        value !== null &&
+        "type" in value &&
+        value.type === "VARIABLE_ALIAS";
+
+      // Determine if this should be a semantic token:
+      // 1. If it has multiple modes (modeName exists), it's semantic
+      // 2. If any value is a VARIABLE_ALIAS, it's semantic
+      const isSemanticVariable = modeName !== null || isVariableAlias;
+
+      const tokenRoot = isSemanticVariable ? "semanticTokens" : "tokens";
+
+      let displayValue: string;
+
+      if (isVariableAlias) {
+        const aliasVarName =
+          varIdToVarMap.get(value.id) ?? `unknown-${value.id}`;
+        displayValue = `{${aliasVarName}}`;
       } else {
-        console.log(`  Mode: ${modeName} => Value: ${JSON.stringify(value)}`);
+        displayValue = JSON.stringify(value);
+      }
+
+      if (modeName === null) {
+        console.log(`  [Default] Value: ${displayValue}`);
+      } else {
+        console.log(`  Mode: ${modeName} => Value: ${displayValue}`);
       }
     }
   }
