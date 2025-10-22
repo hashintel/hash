@@ -377,7 +377,7 @@ __metadata:
     "@types/mailchimp__mailchimp_marketing": "npm:3.0.21"
     "@types/md5": "npm:2.3.6"
     "@types/mime-types": "npm:2.1.4"
-    "@types/nodemailer": "npm:6.4.17"
+    "@types/nodemailer": "npm:6.4.20"
     "@types/ws": "npm:8.18.1"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
@@ -1603,6 +1603,54 @@ __metadata:
   linkType: hard
 
 "@aws-sdk/client-ses@npm:3.913.0":
+  version: 3.913.0
+  resolution: "@aws-sdk/client-ses@npm:3.913.0"
+  dependencies:
+    "@aws-crypto/sha256-browser": "npm:5.2.0"
+    "@aws-crypto/sha256-js": "npm:5.2.0"
+    "@aws-sdk/core": "npm:3.911.0"
+    "@aws-sdk/credential-provider-node": "npm:3.913.0"
+    "@aws-sdk/middleware-host-header": "npm:3.910.0"
+    "@aws-sdk/middleware-logger": "npm:3.910.0"
+    "@aws-sdk/middleware-recursion-detection": "npm:3.910.0"
+    "@aws-sdk/middleware-user-agent": "npm:3.911.0"
+    "@aws-sdk/region-config-resolver": "npm:3.910.0"
+    "@aws-sdk/types": "npm:3.910.0"
+    "@aws-sdk/util-endpoints": "npm:3.910.0"
+    "@aws-sdk/util-user-agent-browser": "npm:3.910.0"
+    "@aws-sdk/util-user-agent-node": "npm:3.911.0"
+    "@smithy/config-resolver": "npm:^4.3.2"
+    "@smithy/core": "npm:^3.16.1"
+    "@smithy/fetch-http-handler": "npm:^5.3.3"
+    "@smithy/hash-node": "npm:^4.2.2"
+    "@smithy/invalid-dependency": "npm:^4.2.2"
+    "@smithy/middleware-content-length": "npm:^4.2.2"
+    "@smithy/middleware-endpoint": "npm:^4.3.3"
+    "@smithy/middleware-retry": "npm:^4.4.3"
+    "@smithy/middleware-serde": "npm:^4.2.2"
+    "@smithy/middleware-stack": "npm:^4.2.2"
+    "@smithy/node-config-provider": "npm:^4.3.2"
+    "@smithy/node-http-handler": "npm:^4.4.1"
+    "@smithy/protocol-http": "npm:^5.3.2"
+    "@smithy/smithy-client": "npm:^4.8.1"
+    "@smithy/types": "npm:^4.7.1"
+    "@smithy/url-parser": "npm:^4.2.2"
+    "@smithy/util-base64": "npm:^4.3.0"
+    "@smithy/util-body-length-browser": "npm:^4.2.0"
+    "@smithy/util-body-length-node": "npm:^4.2.1"
+    "@smithy/util-defaults-mode-browser": "npm:^4.3.2"
+    "@smithy/util-defaults-mode-node": "npm:^4.2.3"
+    "@smithy/util-endpoints": "npm:^3.2.2"
+    "@smithy/util-middleware": "npm:^4.2.2"
+    "@smithy/util-retry": "npm:^4.2.2"
+    "@smithy/util-utf8": "npm:^4.2.0"
+    "@smithy/util-waiter": "npm:^4.2.2"
+    tslib: "npm:^2.6.2"
+  checksum: 10c0/ca687a52834e3a9c659c21634a43c8626572ee684a66f15363e7060b0af49f858e69315d1662ac7430b874e07b819b788f94404ec07b2645f0eef0655bccd1fb
+  languageName: node
+  linkType: hard
+
+"@aws-sdk/client-ses@npm:^3.731.1":
   version: 3.913.0
   resolution: "@aws-sdk/client-ses@npm:3.913.0"
   dependencies:
@@ -17813,12 +17861,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/nodemailer@npm:6.4.17":
-  version: 6.4.17
-  resolution: "@types/nodemailer@npm:6.4.17"
+"@types/nodemailer@npm:6.4.20":
+  version: 6.4.20
+  resolution: "@types/nodemailer@npm:6.4.20"
   dependencies:
+    "@aws-sdk/client-ses": "npm:^3.731.1"
     "@types/node": "npm:*"
-  checksum: 10c0/689abb3005cf36cf89c2abe56f0aa4469a37e0814633a73fbeb35732e856f4b0d7ab32b6d91585038b6941f5b70db58ec2bd147ebe9f73e528eb6c99604f4e82
+  checksum: 10c0/2d7d48b2501684746842fbd74745dbe60488c3946ed54dad783ca97c931d43b314bf5a93d91a907186da672a65f70456a0b1256243684b27e411c72ede154542
   languageName: node
   linkType: hard
 
