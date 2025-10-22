@@ -14591,7 +14591,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/core@npm:^3.16.1, @smithy/core@npm:^3.17.0":
+"@smithy/core@npm:^3.16.1, @smithy/core@npm:^3.17.0, @smithy/core@npm:^3.7.2":
   version: 3.17.0
   resolution: "@smithy/core@npm:3.17.0"
   dependencies:
