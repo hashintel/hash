@@ -12,6 +12,9 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "generate:panda": "tsx scripts/transform-to-panda.ts"
+    "generate:panda": "tsx scripts/toPanda.ts"
+  },
+  "devDependencies": {
+    "tsx": "4.20.6"
   }
 }
