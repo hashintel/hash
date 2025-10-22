@@ -470,7 +470,6 @@ __metadata:
     exponential-backoff: "npm:3.1.3"
     express: "npm:5.1.0"
     express-handlebars: "npm:8.0.3"
-    express-http-proxy: "npm:2.1.2"
     express-rate-limit: "npm:8.1.0"
     fractional-indexing: "npm:3.2.0"
     googleapis: "npm:133.0.0"
@@ -24253,7 +24252,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:^3.0.1, debug@npm:^3.1.0, debug@npm:^3.2.7":
+"debug@npm:^3.1.0, debug@npm:^3.2.7":
   version: 3.2.7
   resolution: "debug@npm:3.2.7"
   dependencies:
@@ -25575,13 +25574,6 @@ __metadata:
     es5-ext: "npm:^0.10.35"
     es6-symbol: "npm:^3.1.1"
   checksum: 10c0/91f20b799dba28fb05bf623c31857fc1524a0f1c444903beccaf8929ad196c8c9ded233e5ac7214fc63a92b3f25b64b7f2737fcca8b1f92d2d96cf3ac902f5d8
-  languageName: node
-  linkType: hard
-
-"es6-promise@npm:^4.1.1":
-  version: 4.2.8
-  resolution: "es6-promise@npm:4.2.8"
-  checksum: 10c0/2373d9c5e9a93bdd9f9ed32ff5cb6dd3dd785368d1c21e9bbbfd07d16345b3774ae260f2bd24c8f836a6903f432b4151e7816a7fa8891ccb4e1a55a028ec42c3
   languageName: node
   linkType: hard
 
@@ -27017,17 +27009,6 @@ __metadata:
     graceful-fs: "npm:^4.2.11"
     handlebars: "npm:^4.7.8"
   checksum: 10c0/49c73ae19a518c06a663f4030b679b8fbb99432f5fd786e8e56205607654e84bcd56418522f3ef917a7cf0fef2f020b9db7ddc0d64e855a8304dc92614315b92
-  languageName: node
-  linkType: hard
-
-"express-http-proxy@npm:2.1.2":
-  version: 2.1.2
-  resolution: "express-http-proxy@npm:2.1.2"
-  dependencies:
-    debug: "npm:^3.0.1"
-    es6-promise: "npm:^4.1.1"
-    raw-body: "npm:^2.3.0"
-  checksum: 10c0/e40df492eff2cf3a7b0341dabe3096c799d0a73a1a7c309709bfba8c5928bd80f417f3831a7092b94043c7d9543af7917259e124c78f5222e3f9b01e6a08a3e9
   languageName: node
   linkType: hard
 
@@ -38141,7 +38122,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"raw-body@npm:2.5.2, raw-body@npm:^2.3.0":
+"raw-body@npm:2.5.2":
   version: 2.5.2
   resolution: "raw-body@npm:2.5.2"
   dependencies:
