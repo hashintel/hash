@@ -1,7 +1,7 @@
 use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
-use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
+use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
