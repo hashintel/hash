@@ -22,6 +22,8 @@ id::newtype!(
     pub struct DefId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type DefId* from DefId);
+
 impl DefId {
     /// Built-in dictionary insert operation (immutable).
     ///

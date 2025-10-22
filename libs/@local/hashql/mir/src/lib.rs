@@ -1,8 +1,10 @@
 #![feature(macro_metavar_expr_concat, allocator_api)]
+#![expect(clippy::indexing_slicing)]
 extern crate alloc;
 
 pub mod body;
 pub mod def;
+mod reify;
 
 #[cfg(test)]
 mod tests {
