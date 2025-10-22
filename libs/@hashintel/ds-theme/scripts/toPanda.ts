@@ -1,4 +1,5 @@
 import type { Preset } from "@pandacss/types";
+import setWith from "lodash.setwith";
 import variablesJson from "../src/devexport.ts";
 import { FigmaVariablesExport } from "./figma.variables";
 
@@ -10,6 +11,17 @@ import { FigmaVariablesExport } from "./figma.variables";
 //
 // The goal is to keep Figma variables as the source of truth for design tokens,
 // and progressively enhance them to target in the future some kind of "standard" format.
+
+/**
+ * Clean up variable name for use in PandaCSS:
+ * - Replace slashes with dots
+ * - Remove all non-alphanumeric characters except dots
+ */
+function cleanVariableName(name: string): string {
+  return name
+    .replace(/\//g, ".") // Replace slashes with dots
+    .replace(/[^a-zA-Z0-9.]/g, ""); // Remove non-alphanumeric except dots
+}
 
 /**
  * Transform Figma export to PandaCSS preset
@@ -35,9 +47,9 @@ export function toPanda(root: FigmaVariablesExport): Preset {
     }
   }
 
-  // First pass on variables: Create map id -> name
+  // First pass on variables: Create map id -> cleaned name
   for (const variable of root.variables) {
-    varIdToVarMap.set(variable.id, variable.name);
+    varIdToVarMap.set(variable.id, cleanVariableName(variable.name));
   }
 
   // Second pass on variables: Map to PandaCSS theme structure
@@ -99,10 +111,31 @@ Variable: ${variable.name} (type: ${variable.type})`);
       throw new Error(
         `Unsupported variable scopes for variable ${
           variable.name
-        }: ${variable.scopes.join(", ")}`
+        }: ${variable.scopes.join(", ")}`,
       );
     }
 
+    // Determine if this should be a semantic token:
+    // 1. If it has multiple modes (modeName exists), it's semantic
+    // 2. If any value is a VARIABLE_ALIAS, it's semantic
+    const isSemanticVariable = Object.entries(variable.valuesByMode).some(
+      ([modeId, value]) => {
+        const modeName = modeIdToNameMap.get(modeId) ?? null;
+        const isVariableAlias =
+          typeof value === "object" &&
+          value !== null &&
+          "type" in value &&
+          value.type === "VARIABLE_ALIAS";
+        return modeName !== null || isVariableAlias;
+      },
+    );
+
+    const tokenRoot = isSemanticVariable ? "semanticTokens" : "tokens";
+
+    // Clean the variable name for use as a token path
+    const cleanedVariableName = cleanVariableName(variable.name);
+
+    // Process each mode/value
     for (const [modeId, value] of Object.entries(variable.valuesByMode)) {
       const modeName = modeIdToNameMap.get(modeId) ?? null;
 
@@ -112,27 +145,61 @@ Variable: ${variable.name} (type: ${variable.type})`);
         "type" in value &&
         value.type === "VARIABLE_ALIAS";
 
-      // Determine if this should be a semantic token:
-      // 1. If it has multiple modes (modeName exists), it's semantic
-      // 2. If any value is a VARIABLE_ALIAS, it's semantic
-      const isSemanticVariable = modeName !== null || isVariableAlias;
-
-      const tokenRoot = isSemanticVariable ? "semanticTokens" : "tokens";
-
-      let displayValue: string;
+      // Convert value to PandaCSS format
+      let tokenValue: string | number;
 
       if (isVariableAlias) {
         const aliasVarName =
           varIdToVarMap.get(value.id) ?? `unknown-${value.id}`;
-        displayValue = `{${aliasVarName}}`;
+        tokenValue = `{${aliasVarName}}`;
+      } else if (
+        typeof value === "object" &&
+        value !== null &&
+        "r" in value &&
+        "g" in value &&
+        "b" in value
+      ) {
+        // Convert RGB color to hex
+        const r = Math.round(value.r * 255);
+        const g = Math.round(value.g * 255);
+        const b = Math.round(value.b * 255);
+        tokenValue = `#${r.toString(16).padStart(2, "0")}${g
+          .toString(16)
+          .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
       } else {
-        displayValue = JSON.stringify(value);
+        tokenValue = value as string | number;
       }
 
-      if (modeName === null) {
-        console.log(`  [Default] Value: ${displayValue}`);
+      if (isSemanticVariable) {
+        // For semantic tokens, use the mode-based structure
+        const modeKey =
+          modeName === null || modeName === "Light"
+            ? "base"
+            : modeName === "Dark"
+              ? "_dark"
+              : modeName.toLowerCase();
+
+        setWith(
+          output,
+          `theme.${tokenRoot}.${targetPath}.${cleanedVariableName}.value.${modeKey}`,
+          tokenValue,
+          Object, // Use Object as customizer to prevent array creation
+        );
+
+        console.log(
+          `  [${modeName ?? "Default"}] ${modeKey}: ${JSON.stringify(
+            tokenValue,
+          )}`,
+        );
       } else {
-        console.log(`  Mode: ${modeName} => Value: ${displayValue}`);
+        // For regular tokens, use simple value
+        setWith(
+          output,
+          `theme.${tokenRoot}.${targetPath}.${cleanedVariableName}.value`,
+          tokenValue,
+          Object, // Use Object as customizer to prevent array creation
+        );
+        console.log(`  Value: ${JSON.stringify(tokenValue)}`);
       }
     }
   }
@@ -142,3 +209,13 @@ Variable: ${variable.name} (type: ${variable.type})`);
 
 const output = toPanda(variablesJson);
 console.log("Transformed PandaCSS Preset:", JSON.stringify(output, null, 2));
+
+// Write to file
+import { writeFileSync } from "fs";
+writeFileSync(
+  "./src/panda.generated.ts",
+  `import { definePreset } from "@pandacss/dev";
+
+export default definePreset(${JSON.stringify(output, null, 2)});
+`,
+);

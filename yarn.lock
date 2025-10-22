@@ -7666,6 +7666,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   dependencies:
+    "@types/lodash.setwith": "npm:^4.3.9"
+    lodash.setwith: "npm:^4.3.2"
     tsx: "npm:4.20.6"
   languageName: unknown
   linkType: soft
@@ -17717,6 +17719,15 @@ __metadata:
   dependencies:
     "@types/lodash": "npm:*"
   checksum: 10c0/119e4595bd2acdaf1bd318ebf61beb0c5fc63203a526692e2e82a122f9730d40ee1a8ece3f379fdc9a99dfce0a1ce3229788ddedd68a5fa432e4e0d54726fa63
+  languageName: node
+  linkType: hard
+
+"@types/lodash.setwith@npm:^4.3.9":
+  version: 4.3.9
+  resolution: "@types/lodash.setwith@npm:4.3.9"
+  dependencies:
+    "@types/lodash": "npm:*"
+  checksum: 10c0/c4a0029a34373d121b21adf6fa0555044fa08ef19d792e75b4ff43ad8486ed097942997b6410ccb206beef638afae225d9a345af8fff10230ebc5fc84b40babe
   languageName: node
   linkType: hard
 
@@ -32941,6 +32952,13 @@ __metadata:
   version: 4.6.1
   resolution: "lodash.padend@npm:4.6.1"
   checksum: 10c0/da10eae6e7862541e431d97e652ea66690307104676a30793398e2f66d0fd9a62b07f199451d2185560d9b4627dc6652d33dc7cceb7ab9d843f6e15addec56f5
+  languageName: node
+  linkType: hard
+
+"lodash.setwith@npm:^4.3.2":
+  version: 4.3.2
+  resolution: "lodash.setwith@npm:4.3.2"
+  checksum: 10c0/dc3d06d9c19b648b3ef9807474729a8a89e3dcf4895e33e15d0ffe6af67bf28a14e4d6bff8a757af444ce35a9d3d72f520fdff5665ef7e004d9eeb5a2372c820
   languageName: node
   linkType: hard
 
