@@ -782,10 +782,6 @@ where
         };
 
         Ok(QueryEntitiesResponse {
-            #[expect(
-                clippy::if_then_some_else_none,
-                reason = "False positive, use of `await`"
-            )]
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
                     self.get_closed_multi_entity_types(
@@ -1591,10 +1587,6 @@ where
             }
 
             Ok(QueryEntitySubgraphResponse {
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, use of `await`"
-                )]
                 closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
                         self.get_closed_multi_entity_types(

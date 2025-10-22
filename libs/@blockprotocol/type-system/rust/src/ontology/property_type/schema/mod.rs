@@ -280,6 +280,7 @@ impl From<&VersionedUrl> for &PropertyTypeReference {
 ///
 /// The `PropertyValues` type is used in the `one_of` field of [`PropertyType`]s to define
 /// the set of acceptable value structures for a property.
+#[expect(clippy::use_self, reason = "Tsify does not support `Self`")]
 pub enum PropertyValues {
     /// A reference to a data type.
     ///
