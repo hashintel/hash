@@ -38,7 +38,7 @@ pub enum Source {
     ///
     /// Closure bodies typically have arguments that include both the closure's
     /// parameters and any captured variables that need to be passed in.
-    Closure(DefId),
+    Closure, // TODO: locator through `(PackageId, LocalId)`
 
     /// A constant evaluation thunk.
     ///
@@ -50,7 +50,7 @@ pub enum Source {
     /// and they typically end with a [`Return`] statement providing the constant value.
     ///
     /// [`Return`]: crate::body::terminator::Return
-    Thunk(DefId),
+    Thunk, // TODO: locator through `(PackageId, LocalId)`
 
     /// A compiler intrinsic function.
     ///
@@ -87,12 +87,15 @@ pub enum Source {
 ///
 /// Unlike other representations, spans are added selectively to this MIR level to optimize memory
 /// usage and improve interning efficiency while maintaining sufficient debugging information.
+#[derive(Debug, Clone)]
 pub struct Body<'heap> {
     /// The source location span for this entire body.
     ///
     /// This [`SpanId`] tracks the source location of the function, closure,
     /// or constant that generated this MIR body.
     pub span: SpanId,
+
+    pub source: Source,
 
     /// The collection of basic blocks that make up this body's control-flow graph.
     ///
