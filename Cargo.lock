@@ -4025,9 +4025,9 @@ dependencies = [
 
 [[package]]
 name = "hifijson"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7763b98ba8a24f59e698bf9ab197e7676c640d6455d1580b4ce7dc560f0f0d"
+checksum = "2cfe2fde708376d2a8da67b6cb2385a3b86bbe8ef43e3076e954b9c6ffa89ff3"
 
 [[package]]
 name = "hkdf"
