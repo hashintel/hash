@@ -7665,6 +7665,8 @@ __metadata:
 "@hashintel/ds-theme@npm:0.0.1, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
+  dependencies:
+    tsx: "npm:4.20.6"
   languageName: unknown
   linkType: soft
 
