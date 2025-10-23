@@ -82,7 +82,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       className={css({
         display: "inline-flex",
         alignItems: "center",
-        gap: "[8px]",
+        gap: "spacing.4",
         cursor: disabled ? "not-allowed" : "pointer",
       })}
     >
@@ -94,46 +94,46 @@ export const Checkbox: React.FC<CheckboxProps> = ({
           justifyContent: "center",
           width: "[16px]",
           height: "[16px]",
-          borderRadius: "[4px]",
+          borderRadius: "radius.2",
           border: "1px solid",
-          borderColor: "gray.20",
-          backgroundColor: "neutral.white",
+          borderColor: "border.neutral.default",
+          backgroundColor: "bg.neutral.subtle.default",
           transition: "[all 0.2s ease]",
           flexShrink: "0",
 
           // Hover state (unchecked)
           "&[data-state='unchecked']:hover:not([data-disabled])": {
-            borderColor: "gray.35",
+            borderColor: "border.neutral.hover",
           },
 
           // Focus state
           "&[data-focus-visible]": {
-            boxShadow: "[0px 0px 0px 2px {colors.grayAlpha.30}]",
+            boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.15)]",
           },
 
           // Checked and indeterminate states
           "&[data-state='checked'], &[data-state='indeterminate']": {
-            borderColor: "gray.80",
-            backgroundColor: "gray.80",
-            color: "neutral.white",
+            borderColor: "border.neutral.active",
+            backgroundColor: "bg.neutral.bold.default",
+            color: "text.inverted",
           },
 
           // Hover on checked/indeterminate states
           "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
             {
-              backgroundColor: "gray.70",
-              borderColor: "gray.70",
+              backgroundColor: "bg.neutral.bold.hover",
+              borderColor: "bg.neutral.bold.hover",
             },
 
           // Disabled state
           "&[data-disabled]": {
             cursor: "not-allowed",
-            opacity: "[0.4]",
+            opacity: "[0.5]",
           },
 
           // Invalid state
           "&[data-invalid]": {
-            borderColor: "red.50",
+            borderColor: "border.status.critical",
           },
         })}
       >
@@ -171,13 +171,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({
             fontSize: "[14px]",
             fontWeight: "medium",
             lineHeight: "[14px]",
-            color: "gray.90",
+            color: "text.primary",
             cursor: disabled ? "not-allowed" : "pointer",
             userSelect: "none",
             whiteSpace: "nowrap",
 
             "&[data-disabled]": {
-              opacity: "[0.4]",
+              opacity: "[0.5]",
             },
           })}
         >
