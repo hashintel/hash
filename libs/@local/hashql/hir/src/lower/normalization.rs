@@ -329,12 +329,12 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
-            let id = if node.id != prev_hir_id {
-                // We've "taken over" the id of the previous node
-                prev_hir_id
-            } else {
+            let id = if node.id == prev_hir_id {
                 // The item was already an atom, therefore nothing to reuse
                 self.context.counter.hir.next()
+            } else {
+                // We've "taken over" the id of the previous node
+                prev_hir_id
             };
 
             // We need to wrap the collected bindings into a new let node

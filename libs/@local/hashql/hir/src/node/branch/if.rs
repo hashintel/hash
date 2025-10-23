@@ -1,4 +1,4 @@
-use crate::node::{Node, NodeData};
+use crate::node::Node;
 
 /// A conditional expression in the HashQL HIR.
 ///

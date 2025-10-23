@@ -565,7 +565,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
 
         // Create a completely separate instantiation of the closure's definition to decouple any
         // inference steps of the body from the closure's definition.
-        let mut def = def.clone();
+        let mut def = def;
         def.instantiate(&mut self.instantiate);
 
         self.context.map.insert_type_def(self.current.id, def);

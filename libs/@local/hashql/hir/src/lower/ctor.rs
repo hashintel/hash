@@ -65,7 +65,7 @@ impl<'ctx, 'hir, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'hir, 'env, 'h
     }
 }
 
-impl<'ctx, 'hir, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'hir, 'env, 'heap, 'diag> {
+impl<'heap> ConvertTypeConstructor<'_, '_, '_, 'heap, '_> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,

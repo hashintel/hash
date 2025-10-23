@@ -69,13 +69,6 @@ pub(crate) fn extract_signature_generic<'heap>(
     }
 }
 
-pub(crate) fn extract_signature_returns<'heap>(
-    type_id: TypeId,
-    env: &Environment<'heap>,
-) -> TypeId {
-    extract_signature(type_id, env).returns
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureParam<'heap> {
     pub span: SpanId,

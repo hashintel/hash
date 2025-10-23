@@ -1,7 +1,7 @@
 //! Auxiliary data about HIR nodes
 
 use hashql_core::{
-    id::Id,
+    id::Id as _,
     intern::Interned,
     module::locals::TypeDef,
     r#type::{TypeId, kind::generic::GenericArgumentReference},
@@ -24,6 +24,7 @@ impl<'heap> HirMap<'heap> {
     }
 
     #[inline]
+    #[must_use]
     pub fn type_id(&self, id: HirId) -> TypeId {
         self.types[id]
     }
@@ -39,6 +40,7 @@ impl<'heap> HirMap<'heap> {
             });
     }
 
+    #[must_use]
     pub fn type_def(&self, id: HirId) -> TypeDef<'heap> {
         TypeDef {
             id: self.type_id(id),
@@ -51,6 +53,7 @@ impl<'heap> HirMap<'heap> {
         self.types_arguments.insert(id, def.arguments);
     }
 
+    #[must_use]
     pub fn get_type_arguments(
         &self,
         id: HirId,
@@ -65,5 +68,11 @@ impl<'heap> HirMap<'heap> {
 
         let source = self.types[from];
         *self.types.fill_until(to, || TypeId::PLACEHOLDER) = source;
+    }
+}
+
+impl Default for HirMap<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }

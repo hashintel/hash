@@ -1,8 +1,4 @@
-use hashql_core::{
-    intern::Interned,
-    symbol::Symbol,
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
-};
+use hashql_core::{symbol::Symbol, r#type::TypeId};
 
 use crate::node::Node;
 
