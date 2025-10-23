@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::checking::{TypeChecking, TypeCheckingResidual},
-    node::{Node, NodeData},
+    node::Node,
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
@@ -22,7 +22,7 @@ use super::{
     hir_lower_alias_replacement::TestOptions,
     hir_lower_inference::hir_lower_inference,
 };
-use crate::suite::common::process_status;
+use crate::suite::{common::process_status, hir_lower_inference::collect_hir_nodes};
 
 pub(crate) fn hir_lower_checking<'heap>(
     heap: &'heap Heap,
@@ -77,14 +77,6 @@ impl Suite for HirLowerTypeCheckingSuite {
             },
         )?;
 
-        // We sort so that the output is deterministic
-        let mut checking_types: Vec<_> = residual
-            .types
-            .iter()
-            .map(|(&hir_id, &type_id)| (hir_id, type_id))
-            .collect();
-        checking_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
-
         let mut checking_inputs: Vec<_> = residual
             .inputs
             .iter()
@@ -123,16 +115,18 @@ impl Suite for HirLowerTypeCheckingSuite {
             );
         }
 
-        if !checking_types.is_empty() {
-            let _ = writeln!(output, "\n{}\n", Header::new("Types"));
-        }
+        let _ = writeln!(output, "\n{}\n", Header::new("Types"));
 
-        for (hir_id, type_id) in checking_types {
+        let nodes = collect_hir_nodes(node);
+
+        for node in nodes {
+            let type_id = context.map.type_id(node.id);
+
             let _ = writeln!(
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner.node.index(hir_id).pretty_print(
+                    content: node.pretty_print(
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,

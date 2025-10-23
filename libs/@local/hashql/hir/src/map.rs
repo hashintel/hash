@@ -22,6 +22,7 @@ pub struct HirMap<'heap> {
 }
 
 impl<'heap> HirMap<'heap> {
+    #[must_use]
     pub fn new() -> Self {
         HirMap {
             types: HirIdVec::new(),

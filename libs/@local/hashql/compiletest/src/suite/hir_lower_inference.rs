@@ -2,6 +2,7 @@ use core::fmt::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
+    collections::HashMapExt as _,
     heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
@@ -11,9 +12,9 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::inference::{TypeInference, TypeInferenceResidual},
-    node::{Node, NodeData},
+    node::{HirIdMap, Node},
     pretty::PrettyPrintEnvironment,
-    visit::Visitor as _,
+    visit::Visitor,
 };
 
 use super::{
@@ -25,6 +26,28 @@ use crate::suite::{
     common::{process_issues, process_status},
     hir_lower_alias_replacement::TestOptions,
 };
+
+struct HirNodeVisitor<'heap> {
+    nodes: HirIdMap<Node<'heap>>,
+}
+
+impl<'heap> Visitor<'heap> for HirNodeVisitor<'heap> {
+    fn visit_node(&mut self, node: Node<'heap>) {
+        self.nodes.insert_unique(node.id, node);
+    }
+}
+
+pub(crate) fn collect_hir_nodes(root: Node<'_>) -> Vec<Node<'_>> {
+    let mut visitor = HirNodeVisitor {
+        nodes: HirIdMap::default(),
+    };
+
+    visitor.visit_node(root);
+    let mut nodes: Vec<_> = visitor.nodes.into_values().collect();
+    nodes.sort_unstable_by_key(|node| node.id); // ordering for stable results
+
+    nodes
+}
 
 pub(crate) fn hir_lower_inference<'env, 'heap>(
     heap: &'heap Heap,
@@ -71,7 +94,7 @@ impl Suite for HirLowerTypeInferenceSuite {
 
         let mut output = String::new();
 
-        let (node, solver, inference_residual) = hir_lower_inference(
+        let (node, solver, _) = hir_lower_inference(
             heap,
             expr,
             &environment,
@@ -82,14 +105,6 @@ impl Suite for HirLowerTypeInferenceSuite {
                 diagnostics,
             },
         )?;
-
-        // We sort so that the output is deterministic
-        let mut inference_types: Vec<_> = inference_residual
-            .types
-            .iter()
-            .map(|(&hir_id, &type_id)| (hir_id, type_id))
-            .collect();
-        inference_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
         let substitution = process_status(diagnostics, solver.solve())?;
 
@@ -109,14 +124,16 @@ impl Suite for HirLowerTypeInferenceSuite {
             )
         );
 
+        let nodes = collect_hir_nodes(node);
+
         let _ = writeln!(output, "\n{}\n", Header::new("Types"));
 
-        for (hir_id, type_id) in inference_types {
+        for node in nodes {
             let _ = writeln!(
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner.node.index(hir_id).pretty_print(
+                    content: node.pretty_print(
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,
@@ -124,12 +141,14 @@ impl Suite for HirLowerTypeInferenceSuite {
                         },
                         PrettyOptions::default().without_color()
                     ),
-                    annotation: environment.r#type(type_id).pretty_print(
-                        &environment,
-                        PrettyOptions::default()
-                            .without_color()
-                            .with_resolve_substitutions(true)
-                    )
+                    annotation: environment
+                        .r#type(context.map.type_id(node.id))
+                        .pretty_print(
+                            &environment,
+                            PrettyOptions::default()
+                                .without_color()
+                                .with_resolve_substitutions(true)
+                        )
                 }
             );
         }
