@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use hash_graph_store::filter::{Filter, FilterExpression, Parameter, QueryRecord};
 use hashql_hir::node::{
-    Node,
+    NodeData,
     call::{Call, PointerKind},
     kind::NodeKind,
     r#let::{Binding, Let},
@@ -23,7 +23,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     pub(super) fn compile_filter<R>(
         &mut self,
         context: FilterCompilerContext,
-        node: &'heap Node<'heap>,
+        node: &'heap NodeData<'heap>,
         sink: &mut FilterSink<'_, 'heap, R>,
     ) -> Result<(), CompilationError>
     where

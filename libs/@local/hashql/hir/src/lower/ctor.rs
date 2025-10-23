@@ -23,15 +23,15 @@ use crate::{
     fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
-        HirIdMap, Node, PartialNode,
+        HirIdMap, Node, NodeData,
         kind::NodeKind,
         operation::{Operation, TypeConstructor, TypeOperation},
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
 };
 
-pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
-    context: &'env HirContext<'env, 'heap>,
+pub struct ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
+    context: &'ctx mut HirContext<'env, 'heap>,
 
     locals: &'env TypeLocals<'heap>,
     environment: &'env Environment<'heap>,
@@ -43,9 +43,9 @@ pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'env, 'heap, 'diag> ConvertTypeConstructor<'env, 'heap, 'diag> {
+impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
     pub fn new(
-        context: &'env HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'env, 'heap>,
         locals: &'env TypeLocals<'heap>,
         environment: &'env Environment<'heap>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
@@ -65,7 +65,7 @@ impl<'env, 'heap, 'diag> ConvertTypeConstructor<'env, 'heap, 'diag> {
     }
 }
 
-impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
+impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,
@@ -134,24 +134,27 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
 
     fn apply_generics(
         &mut self,
-        node: &Node<'heap>,
+        node: Node<'heap>,
         variable: &Variable<'heap>,
         closure_def: TypeDef<'heap>,
         name: Symbol<'heap>,
         generic_arguments: Interned<'heap, [Spanned<TypeId>]>,
     ) -> Option<Node<'heap>> {
-        let make = |constructor| PartialNode {
+        let make = |constructor| NodeData {
+            id: node.id,
             span: node.span,
             kind: NodeKind::Operation(Operation::Type(TypeOperation::Constructor(constructor))),
         };
 
         if generic_arguments.is_empty() {
+            self.context.types.insert(node.id, closure_def);
+
             // We're done here, as we don't need to apply anything
-            return Some(self.context.interner.intern_node(make(TypeConstructor {
-                name,
-                closure: closure_def.id,
-                arguments: closure_def.arguments,
-            })));
+            return Some(
+                self.context
+                    .interner
+                    .intern_node(make(TypeConstructor { name })),
+            );
         }
 
         // We need to check that the amount of generic arguments is the same as the amount of
@@ -183,18 +186,24 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
         let builder = TypeBuilder::spanned(self.current_span, self.environment);
         let closure_id = builder.apply(substitutions, closure_def.id);
 
+        let def = TypeDef {
+            id: closure_id,
+            arguments: self.environment.intern_generic_argument_references(&[]),
+        };
+        self.context.types.insert(node.id, def);
+
         // We do not need to instantiate here again, because we already had α-renaming in the
         // closure definition, which means that the closure is already unique. As the closure is
         // unused and unique, we don't need to α-rename again.
-        Some(self.context.interner.intern_node(make(TypeConstructor {
-            name,
-            closure: closure_id,
-            arguments: self.environment.intern_generic_argument_references(&[]),
-        })))
+        Some(
+            self.context
+                .interner
+                .intern_node(make(TypeConstructor { name })),
+        )
     }
 
-    fn convert_variable(&mut self, node: &Node<'heap>) -> Option<Node<'heap>> {
-        let NodeKind::Variable(variable) = node.kind else {
+    fn convert_variable(&mut self, node: Node<'heap>) -> Option<Node<'heap>> {
+        let NodeKind::Variable(variable) = &node.kind else {
             return None;
         };
 
@@ -232,7 +241,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
     }
 }
 
-impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
+impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, '_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
@@ -255,7 +264,7 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
         // Do not re-compute the node, if we've already seen it
         if let Some(&cached) = self.cache.get(&node_id) {
             node = cached;
-        } else if let Some(converted) = self.convert_variable(&node) {
+        } else if let Some(converted) = self.convert_variable(node) {
             self.cache.insert(node_id, converted);
             node = converted;
         } else {

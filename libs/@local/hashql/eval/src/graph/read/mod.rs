@@ -14,7 +14,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     node::{
-        HirId, HirIdMap, Node,
+        HirId, HirIdMap, NodeData,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
         r#let::{Binding, Let, VarId, VarIdMap},
@@ -94,7 +94,7 @@ pub struct GraphReadCompiler<'env, 'heap> {
 
     diagnostics: GraphReadCompilerIssues,
 
-    locals: VarIdMap<&'heap Node<'heap>>,
+    locals: VarIdMap<&'heap NodeData<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
     output: HirIdMap<FilterSlice>,
     variables: VarIdMap<FilterSlice>,
@@ -183,7 +183,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 }
 
 impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: &NodeData<'heap>) {
         if self.output.contains_key(&node.id) {
             return; // We've already processed this node, so skip it.
         }

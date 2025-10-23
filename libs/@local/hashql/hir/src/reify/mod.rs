@@ -31,7 +31,7 @@ use self::error::{
 use crate::{
     context::HirContext,
     node::{
-        Node, PartialNode,
+        HirId, Node, NodeData,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::{Call, CallArgument, PointerKind},
@@ -121,7 +121,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn wrap_type_assertion(
-        &self,
+        &mut self,
         span: SpanId,
         kind: NodeKind<'heap>,
         r#type: Option<heap::Box<'heap, Type<'heap>>>,
@@ -131,10 +131,11 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         };
 
         NodeKind::Operation(Operation::Type(TypeOperation::Assertion(TypeAssertion {
-            value: self
-                .context
-                .interner
-                .intern_node(PartialNode { span, kind }),
+            value: self.context.interner.intern_node(NodeData {
+                id: self.context.counter.hir.next(),
+                span,
+                kind,
+            }),
             r#type: self.types.anonymous[r#type.id],
             force: false,
         })))
@@ -304,7 +305,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn literal_expr(
-        &self,
+        &mut self,
         LiteralExpr {
             id: _,
             span,
@@ -508,8 +509,10 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             signature,
             body,
         }: ClosureExpr<'heap>,
+        hir_id: HirId,
     ) -> Option<NodeKind<'heap>> {
         let signature_def = self.types.signatures[signature.id];
+        self.context.types.insert(hir_id, signature_def);
 
         let mut params = SmallVec::with_capacity(signature.inputs.len());
         for &hashql_ast::node::expr::closure::ClosureParam {
@@ -542,7 +545,6 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         Some(NodeKind::Closure(Closure {
             signature: ClosureSignature {
                 span: signature.span,
-                def: signature_def,
                 params: self.context.interner.intern_closure_params(&params),
             },
             body,
@@ -614,7 +616,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             kind: IdentKind::Lexical,
         }));
 
-        let partial = PartialNode {
+        let node = NodeData {
+            id: self.context.counter.hir.next(),
             span,
             kind: NodeKind::Variable(Variable::Qualified(QualifiedVariable {
                 path: QualifiedPath::new_unchecked(
@@ -624,7 +627,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             })),
         };
 
-        self.context.interner.intern_node(partial)
+        self.context.interner.intern_node(node)
     }
 
     fn if_expr_if_else(
@@ -645,16 +648,17 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
     }
 
     fn if_expr_then_some(&mut self, node: Node<'heap>) -> Node<'heap> {
-        let some = self.make_qualified_path(
+        let some_some = self.make_qualified_path(
             node.span,
             &[sym::lexical::core, sym::lexical::option, sym::lexical::Some],
         );
 
-        let partial = PartialNode {
+        let node = NodeData {
+            id: self.context.counter.hir.next(),
             span: node.span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Fat,
-                function: some,
+                function: some_some,
                 arguments: self.context.interner.intern_call_arguments(&[CallArgument {
                     span: node.span,
                     value: node,
@@ -662,25 +666,26 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             }),
         };
 
-        self.context.interner.intern_node(partial)
+        self.context.interner.intern_node(node)
     }
 
     fn if_expr_else_none(&mut self, span: SpanId) -> Node<'heap> {
-        let none = self.make_qualified_path(
+        let none_path = self.make_qualified_path(
             span,
             &[sym::lexical::core, sym::lexical::option, sym::lexical::None],
         );
 
-        let partial = PartialNode {
+        let node = NodeData {
+            id: self.context.counter.hir.next(),
             span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Fat,
-                function: none,
+                function: none_path,
                 arguments: self.context.interner.intern_call_arguments(&[]),
             }),
         };
 
-        self.context.interner.intern_node(partial)
+        self.context.interner.intern_node(node)
     }
 
     fn if_expr(
@@ -717,6 +722,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         expr: Expr<'heap>,
         bindings: Option<&mut Vec<Binding<'heap>>>,
     ) -> Option<Node<'heap>> {
+        let hir_id = self.context.counter.hir.next();
+
         let (span, kind) = match expr.kind {
             ExprKind::Call(call) => (call.span, self.call_expr(call)?),
             ExprKind::Struct(r#struct) => (r#struct.span, self.struct_expr(r#struct)?),
@@ -760,7 +767,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
                 return None;
             }
             ExprKind::Input(input) => (input.span, self.input_expr(input)?),
-            ExprKind::Closure(closure) => (closure.span, self.closure_expr(closure)?),
+            ExprKind::Closure(closure) => (closure.span, self.closure_expr(closure, hir_id)?),
             ExprKind::If(r#if) => (r#if.span, self.if_expr(r#if)?),
             ExprKind::Field(field) => (field.span, self.field_expr(field)?),
             ExprKind::Index(index) => (index.span, self.index_expr(index)?),
@@ -776,15 +783,15 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             }
         };
 
-        Some(
-            self.context
-                .interner
-                .intern_node(PartialNode { span, kind }),
-        )
+        Some(self.context.interner.intern_node(NodeData {
+            id: hir_id,
+            span,
+            kind,
+        }))
     }
 }
 
-impl<'heap> Node<'heap> {
+impl<'heap> NodeData<'heap> {
     /// Converts an AST expression into a HIR node through the reification process.
     ///
     /// This function is typically called after the AST lowering phase has completed, using the type
@@ -806,7 +813,7 @@ impl<'heap> Node<'heap> {
         expr: Expr<'heap>,
         context: &mut HirContext<'env, 'heap>,
         types: &ExtractedTypes<'heap>,
-    ) -> ReificationStatus<Self> {
+    ) -> ReificationStatus<Node<'heap>> {
         // pre-populate the binder_scope and symbol table with types, as ctor might reference them
         // once `ConvertTypeConstructor` is run, these variables are no longer referenced inside the
         // tree

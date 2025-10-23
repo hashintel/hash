@@ -11,7 +11,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::alias::AliasReplacement,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::NodeData, pretty::PrettyPrintEnvironment,
 };
 
 use super::{Suite, SuiteDiagnostic, hir_reify::hir_reify};
@@ -29,7 +29,7 @@ pub(crate) fn hir_lower_alias_replacement<'heap>(
     environment: &Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
+) -> Result<(NodeData<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
     let (mut node, types) = hir_reify(heap, expr, environment, context, options.diagnostics)?;
 
     let _ = writeln!(

@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::cmp;
 
 use hashql_core::{
+    module::locals::TypeDef,
     pretty::{PrettyOptions, PrettyPrint, PrettyPrintBoundary},
     span::Spanned,
     r#type::{TypeId, environment::Environment},
@@ -13,7 +14,7 @@ use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use crate::{
     context::SymbolRegistry,
     node::{
-        Node,
+        HirIdMap, NodeData,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::Call,
@@ -36,6 +37,7 @@ use crate::{
 pub struct PrettyPrintEnvironment<'env, 'heap> {
     pub env: &'env Environment<'heap>,
     pub symbols: &'env SymbolRegistry<'heap>,
+    pub defs: &'env HirIdMap<TypeDef<'heap>>,
 }
 
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Primitive<'heap> {
@@ -563,72 +565,75 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Cl
         // There are two possibilities here (A):
         // We either "unfold" the type ourselves to print or we create a monster that prints it in a
         // way that's pretty unreadable
-        let mut base = RcDoc::text("#fn");
 
-        let mut signature = env.env.r#type(self.signature.def.id);
-        if !self.signature.def.arguments.is_empty() {
-            let generic = signature.kind.generic().expect("should be a generic");
+        todo!();
 
-            let arguments = generic.arguments;
+        // let mut base = RcDoc::text("#fn");
 
-            base = base.append(
-                RcAllocator
-                    .intersperse(
-                        // The generics might be re-ordered in the type, so we need enforce
-                        // ordering per the signature
-                        self.signature.def.arguments.iter().map(|generic| {
-                            let argument = arguments
-                                .iter()
-                                .find(|argument| argument.name == generic.name)
-                                .expect("generic argument should exist");
+        // let mut signature = env.env.r#type(self.signature.def.id);
+        // if !self.signature.def.arguments.is_empty() {
+        //     let generic = signature.kind.generic().expect("should be a generic");
 
-                            argument.pretty(env.env, boundary)
-                        }),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .group()
-                    .angles()
-                    .group(),
-            );
+        //     let arguments = generic.arguments;
 
-            signature = env.env.r#type(generic.base);
-        }
+        //     base = base.append(
+        //         RcAllocator
+        //             .intersperse(
+        //                 // The generics might be re-ordered in the type, so we need enforce
+        //                 // ordering per the signature
+        //                 self.signature.def.arguments.iter().map(|generic| {
+        //                     let argument = arguments
+        //                         .iter()
+        //                         .find(|argument| argument.name == generic.name)
+        //                         .expect("generic argument should exist");
 
-        let closure = signature.kind.closure().expect("should be a closure");
+        //                     argument.pretty(env.env, boundary)
+        //                 }),
+        //                 RcDoc::text(",").append(RcDoc::softline()),
+        //             )
+        //             .group()
+        //             .angles()
+        //             .group(),
+        //     );
 
-        base.append(
-            RcAllocator
-                .intersperse(
-                    self.signature
-                        .params
-                        .iter()
-                        .zip(closure.params)
-                        .map(|(param, &r#type)| {
-                            RcDoc::text(param.name.mangled().to_string())
-                                .append(":")
-                                .group()
-                                .append(RcDoc::softline())
-                                .append(pretty_print_type_id(r#type, env.env))
-                                .group()
-                        }),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .group()
-                .parens()
-                .group(),
-        )
-        .append(":")
-        .append(RcDoc::softline())
-        .append(pretty_print_type_id(closure.returns, env.env))
-        .append(RcDoc::softline())
-        .append("->")
-        .append(RcDoc::hardline())
-        .append(
-            RcAllocator
-                .nil()
-                .append(self.body.pretty(env, boundary))
-                .indent(4),
-        )
+        //     signature = env.env.r#type(generic.base);
+        // }
+
+        // let closure = signature.kind.closure().expect("should be a closure");
+
+        // base.append(
+        //     RcAllocator
+        //         .intersperse(
+        //             self.signature
+        //                 .params
+        //                 .iter()
+        //                 .zip(closure.params)
+        //                 .map(|(param, &r#type)| {
+        //                     RcDoc::text(param.name.mangled().to_string())
+        //                         .append(":")
+        //                         .group()
+        //                         .append(RcDoc::softline())
+        //                         .append(pretty_print_type_id(r#type, env.env))
+        //                         .group()
+        //                 }),
+        //             RcDoc::text(",").append(RcDoc::softline()),
+        //         )
+        //         .group()
+        //         .parens()
+        //         .group(),
+        // )
+        // .append(":")
+        // .append(RcDoc::softline())
+        // .append(pretty_print_type_id(closure.returns, env.env))
+        // .append(RcDoc::softline())
+        // .append("->")
+        // .append(RcDoc::hardline())
+        // .append(
+        //     RcAllocator
+        //         .nil()
+        //         .append(self.body.pretty(env, boundary))
+        //         .indent(4),
+        // )
     }
 }
 
@@ -742,7 +747,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Gr
     }
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Node<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for NodeData<'heap> {
     fn pretty(
         &self,
         env: &PrettyPrintEnvironment<'env, 'heap>,

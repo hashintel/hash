@@ -18,7 +18,7 @@ use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        HirIdMap, Node, PartialNode,
+        HirIdMap, NodeData, PartialNode,
         call::Call,
         graph::{
             Graph,
@@ -40,8 +40,8 @@ pub struct Specialization<'env, 'heap, 'diag> {
     intrinsics: HirIdMap<&'static str>,
 
     current_span: SpanId,
-    visited: HirIdMap<Node<'heap>>,
-    locals: VarIdMap<Node<'heap>>,
+    visited: HirIdMap<NodeData<'heap>>,
+    locals: VarIdMap<NodeData<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
@@ -154,7 +154,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
         &mut self,
         call: Call<'heap>,
         intrinsic: &'static str,
-    ) -> <Self as Fold<'heap>>::Output<Option<Node<'heap>>> {
+    ) -> <Self as Fold<'heap>>::Output<Option<NodeData<'heap>>> {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         enum OpKind {
             Bin(BinOp),
@@ -286,7 +286,7 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         })
     }
 
-    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+    fn fold_node(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
         // We do not have a dedupe step for inside the tree, the reason for that is that there's no
         // possibility of the HIR having cycles, therefore deduping can only happen at adjacent
         // nodes.

@@ -11,7 +11,7 @@ use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        Node, PartialNode,
+        Node, NodeData,
         kind::NodeKind,
         r#let::{Binding, VarIdMap},
         variable::Variable,
@@ -69,9 +69,9 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
                 // create a new one
                 self.scope
                     .get(&local.id.value)
-                    .map_or(*variable, |variable| variable.value)
+                    .map_or(variable, |variable| variable.value)
             } else {
-                *variable
+                variable
             };
 
             // We can just indiscriminately insert into the scope, and don't need to worry about
@@ -164,10 +164,11 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
             // If the size is different (so there has been an alias), re-intern with the new set of
             // bindings and replace
             if bindings.len() != r#let.bindings.len() {
-                let mut r#let = *r#let;
+                let mut r#let = r#let;
                 r#let.bindings = self.context.interner.bindings.intern_slice(&bindings);
 
-                return Ok(self.context.interner.intern_node(PartialNode {
+                return Ok(self.context.interner.intern_node(NodeData {
+                    id: node.id, // We keep the original id, because we're replacing the node
                     span: node.span,
                     kind: NodeKind::Let(r#let),
                 }));

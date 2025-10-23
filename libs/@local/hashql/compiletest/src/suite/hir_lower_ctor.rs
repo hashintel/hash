@@ -11,7 +11,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::ctor::ConvertTypeConstructor,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::NodeData, pretty::PrettyPrintEnvironment,
 };
 
 use super::{
@@ -27,7 +27,7 @@ pub(crate) fn hir_lower_ctor<'heap>(
     environment: &Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<Node<'heap>, SuiteDiagnostic> {
+) -> Result<NodeData<'heap>, SuiteDiagnostic> {
     let (node, types) = hir_lower_alias_replacement(heap, expr, environment, context, options)?;
 
     let mut issues = DiagnosticIssues::new();

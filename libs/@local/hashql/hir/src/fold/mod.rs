@@ -64,7 +64,7 @@ use self::{beef::Beef, nested::NestedFilter};
 use crate::{
     intern::Interner,
     node::{
-        HirId, Node, PartialNode,
+        HirId, Node, NodeData,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::{Call, CallArgument},
@@ -139,9 +139,8 @@ pub trait Fold<'heap> {
     /// Access the interner for re-interning modified structures
     fn interner(&self) -> &Interner<'heap>;
 
-    #[expect(unused_variables, reason = "trait definition")]
-    fn visit_id(&mut self, id: HirId) {
-        // do nothing, no fields to walk
+    fn fold_hir_id(&mut self, id: HirId) -> Self::Output<HirId> {
+        Try::from_output(id)
     }
 
     fn fold_var_id(&mut self, id: VarId) -> Self::Output<VarId> {
@@ -150,10 +149,6 @@ pub trait Fold<'heap> {
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
         Try::from_output(id)
-    }
-
-    fn fold_type_def(&mut self, def: TypeDef<'heap>) -> Self::Output<TypeDef<'heap>> {
-        walk_type_def(self, def)
     }
 
     fn fold_symbol(&mut self, symbol: Symbol<'heap>) -> Self::Output<Symbol<'heap>> {
@@ -205,6 +200,10 @@ pub trait Fold<'heap> {
 
     fn fold_nested_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         walk_nested_node(self, node)
+    }
+
+    fn fold_node_data(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
+        walk_node_data(self, node)
     }
 
     fn fold_nodes(
@@ -436,16 +435,6 @@ pub trait Fold<'heap> {
     }
 }
 
-pub fn walk_type_def<'heap, T: Fold<'heap> + ?Sized>(
-    visitor: &mut T,
-    TypeDef { id, arguments }: TypeDef<'heap>,
-) -> T::Output<TypeDef<'heap>> {
-    let id = visitor.fold_type_id(id)?;
-    let arguments = visitor.fold_generic_argument_references(arguments)?;
-
-    Try::from_output(TypeDef { id, arguments })
-}
-
 pub fn walk_ident<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     Ident { value, span, kind }: Ident<'heap>,
@@ -481,12 +470,23 @@ pub fn walk_qualified_path<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_node<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    Node { id: _, span, kind }: Node<'heap>,
+    node: Node<'heap>,
 ) -> T::Output<Node<'heap>> {
+    let data = visitor.fold_node_data(*node.0)?;
+    let node = visitor.interner().intern_node(data);
+
+    Try::from_output(node)
+}
+
+pub fn walk_node_data<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    NodeData { id, span, kind }: NodeData<'heap>,
+) -> T::Output<NodeData<'heap>> {
     // We don't fold the id, because said id might not be the future id of the interned type
+    let id = visitor.fold_hir_id(id)?;
     let span = visitor.fold_span(span)?;
 
-    let kind = match *kind {
+    let kind = match kind {
         NodeKind::Data(data) => NodeKind::Data(visitor.fold_data(data)?),
         NodeKind::Variable(variable) => NodeKind::Variable(visitor.fold_variable(variable)?),
         NodeKind::Let(r#let) => NodeKind::Let(visitor.fold_let(r#let)?),
@@ -500,13 +500,8 @@ pub fn walk_node<'heap, T: Fold<'heap> + ?Sized>(
         NodeKind::Graph(graph) => NodeKind::Graph(visitor.fold_graph(graph)?),
     };
 
-    let interner = visitor.interner();
-
-    let node = interner.intern_node(PartialNode { span, kind });
-
-    visitor.visit_id(node.id);
-
-    Try::from_output(node)
+    let data = NodeData { id, span, kind };
+    Try::from_output(data)
 }
 
 pub fn walk_nested_node<'heap, T: Fold<'heap> + ?Sized>(
@@ -939,15 +934,13 @@ pub fn walk_closure<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_closure_signature<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature { span, def, params }: ClosureSignature<'heap>,
+    ClosureSignature { span, params }: ClosureSignature<'heap>,
 ) -> T::Output<ClosureSignature<'heap>> {
     let span = visitor.fold_span(span)?;
 
-    let def = visitor.fold_type_def(def)?;
-
     let params = visitor.fold_closure_params(params)?;
 
-    Try::from_output(ClosureSignature { span, def, params })
+    Try::from_output(ClosureSignature { span, params })
 }
 
 pub fn walk_closure_param<'heap, T: Fold<'heap> + ?Sized>(

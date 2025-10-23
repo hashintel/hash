@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::inference::{TypeInference, TypeInferenceResidual},
-    node::Node,
+    node::NodeData,
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
@@ -34,7 +34,7 @@ pub(crate) fn hir_lower_inference<'env, 'heap>(
     options: &mut TestOptions,
 ) -> Result<
     (
-        Node<'heap>,
+        NodeData<'heap>,
         InferenceSolver<'env, 'heap>,
         TypeInferenceResidual<'heap>,
     ),

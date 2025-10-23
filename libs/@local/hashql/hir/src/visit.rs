@@ -61,7 +61,7 @@ use hashql_core::{
 
 use crate::{
     node::{
-        HirId, Node,
+        HirId, NodeData,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::{Call, CallArgument},
@@ -158,7 +158,7 @@ pub trait Visitor<'heap> {
         walk_qualified_path(self, path);
     }
 
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: &'heap NodeData<'heap>) {
         walk_node(self, node);
     }
 
@@ -323,7 +323,7 @@ pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Node { id, span, kind }: &Node<'heap>,
+    NodeData { id, span, kind }: &'heap NodeData<'heap>,
 ) {
     visitor.visit_id(*id);
     visitor.visit_span(*span);
@@ -636,14 +636,9 @@ pub fn walk_closure<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_closure_signature<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature { span, def, params }: &'heap ClosureSignature<'heap>,
+    ClosureSignature { span, params }: &'heap ClosureSignature<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_type_id(def.id);
-
-    for reference in def.arguments {
-        visitor.visit_generic_argument_reference(reference);
-    }
 
     for param in params {
         visitor.visit_closure_param(param);

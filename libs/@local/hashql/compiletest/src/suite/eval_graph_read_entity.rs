@@ -11,7 +11,7 @@ use hashql_core::{
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{
-    context::HirContext, intern::Interner, node::Node, pretty::PrettyPrintEnvironment,
+    context::HirContext, intern::Interner, node::NodeData, pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
 
@@ -46,7 +46,7 @@ impl Suite for EvalGraphReadEntitySuite {
         );
         let types = process_status(diagnostics, result)?;
 
-        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
+        let node = process_status(diagnostics, NodeData::from_ast(expr, &mut context, &types))?;
         let node = process_status(
             diagnostics,
             hashql_hir::lower::lower(node, &types, &mut environment, &mut context),

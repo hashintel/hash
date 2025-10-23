@@ -32,7 +32,7 @@ use crate::{
     context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
-        HirId, HirIdMap, HirIdSet, HirPtr, Node,
+        HirId, HirIdMap, HirIdSet, HirPtr, NodeData,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -228,7 +228,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.simplified_type(id);
     }
 
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: &NodeData<'heap>) {
         if !self.visited.insert(node.id) {
             return;
         }

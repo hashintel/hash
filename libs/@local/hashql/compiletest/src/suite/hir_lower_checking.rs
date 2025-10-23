@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::checking::{TypeChecking, TypeCheckingResidual},
-    node::Node,
+    node::NodeData,
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
@@ -30,7 +30,7 @@ pub(crate) fn hir_lower_checking<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<(Node<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
+) -> Result<(NodeData<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
     let (node, solver, inference_residual) =
         hir_lower_inference(heap, expr, environment, context, options)?;
 

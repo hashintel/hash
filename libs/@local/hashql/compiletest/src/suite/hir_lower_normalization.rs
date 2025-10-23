@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::normalization::{Normalization, NormalizationState},
-    node::Node,
+    node::NodeData,
     pretty::PrettyPrintEnvironment,
 };
 
@@ -27,7 +27,7 @@ pub(crate) fn hir_lower_normalization<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<Node<'heap>, SuiteDiagnostic> {
+) -> Result<NodeData<'heap>, SuiteDiagnostic> {
     let node = hir_lower_specialization(heap, expr, environment, context, options)?;
 
     let mut normalization_state = NormalizationState::default();

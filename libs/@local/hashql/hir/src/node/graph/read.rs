@@ -19,7 +19,7 @@ use crate::node::Node;
 pub enum GraphReadHead<'heap> {
     /// Start the query from entities in the bi-temporal graph.
     ///
-    /// The `axis` [`Node`] specifies the time axis for the bi-temporal query.
+    /// The `axis` [`NodeRef`] specifies the time axis for the bi-temporal query.
     Entity { axis: Node<'heap> },
 }
 
@@ -32,7 +32,7 @@ pub enum GraphReadHead<'heap> {
 pub enum GraphReadBody<'heap> {
     /// Apply a filter predicate to narrow down results.
     ///
-    /// The [`Node`] represents a closure that takes each item from the current
+    /// The [`NodeRef`] represents a closure that takes each item from the current
     /// result set and returns a boolean indicating whether the item should be
     /// included in the filtered results.
     Filter(Node<'heap>),

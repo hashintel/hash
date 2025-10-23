@@ -9,7 +9,7 @@ use hashql_core::{
     },
 };
 
-use super::{Node, r#let::Binder};
+use super::{Node, NodeData, r#let::Binder};
 
 pub(crate) fn extract_signature<'heap>(
     mut type_id: TypeId,
@@ -61,51 +61,51 @@ pub struct ClosureParam<'heap> {
 pub struct ClosureSignature<'heap> {
     pub span: SpanId,
 
-    // Always a `ClosureType`, or a type wrapped in `Generic`
-    pub def: TypeDef<'heap>,
+    // // Always a `ClosureType`, or a type wrapped in `Generic`
+    // pub def: TypeDef<'heap>,
 
     // The names of the different parameters, always the same length as the `ClosureType` params
     pub params: Interned<'heap, [ClosureParam<'heap>]>,
 }
 
-impl<'heap> ClosureSignature<'heap> {
-    pub fn type_signature(&self, env: &Environment<'heap>) -> &'heap ClosureType<'heap> {
-        extract_signature(self.def.id, env)
-    }
+// impl<'heap> ClosureSignature<'heap> {
+//     pub fn type_signature(&self, env: &Environment<'heap>) -> &'heap ClosureType<'heap> {
+//         extract_signature(self.def.id, env)
+//     }
 
-    pub fn type_generic(&self, env: &Environment<'heap>) -> Option<&'heap Generic<'heap>> {
-        let mut type_id = self.def.id;
+//     pub fn type_generic(&self, env: &Environment<'heap>) -> Option<&'heap Generic<'heap>> {
+//         let mut type_id = self.def.id;
 
-        loop {
-            let kind = env.r#type(type_id).kind;
+//         loop {
+//             let kind = env.r#type(type_id).kind;
 
-            match kind {
-                &TypeKind::Apply(Apply { base, .. }) => {
-                    type_id = base;
-                }
-                TypeKind::Generic(generic) => return Some(generic),
-                TypeKind::Closure(_) => return None,
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Struct(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Union(_)
-                | TypeKind::Intersection(_)
-                | TypeKind::Param(_)
-                | TypeKind::Infer(_)
-                | TypeKind::Never
-                | TypeKind::Unknown => {
-                    unreachable!("ClosureSignature::returns() called on a non-closure type")
-                }
-            }
-        }
-    }
+//             match kind {
+//                 &TypeKind::Apply(Apply { base, .. }) => {
+//                     type_id = base;
+//                 }
+//                 TypeKind::Generic(generic) => return Some(generic),
+//                 TypeKind::Closure(_) => return None,
+//                 TypeKind::Opaque(_)
+//                 | TypeKind::Primitive(_)
+//                 | TypeKind::Intrinsic(_)
+//                 | TypeKind::Struct(_)
+//                 | TypeKind::Tuple(_)
+//                 | TypeKind::Union(_)
+//                 | TypeKind::Intersection(_)
+//                 | TypeKind::Param(_)
+//                 | TypeKind::Infer(_)
+//                 | TypeKind::Never
+//                 | TypeKind::Unknown => {
+//                     unreachable!("ClosureSignature::returns() called on a non-closure type")
+//                 }
+//             }
+//         }
+//     }
 
-    pub fn returns(&self, env: &Environment<'heap>) -> TypeId {
-        self.type_signature(env).returns
-    }
-}
+//     pub fn returns(&self, env: &Environment<'heap>) -> TypeId {
+//         self.type_signature(env).returns
+//     }
+// }
 
 /// A closure expression in the HashQL HIR.
 ///

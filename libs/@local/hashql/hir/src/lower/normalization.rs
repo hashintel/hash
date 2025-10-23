@@ -59,7 +59,7 @@ use crate::{
     fold::{self, Fold, beef::Beef},
     intern::Interner,
     node::{
-        Node, PartialNode,
+        Node, NodeData,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::{Call, CallArgument},
@@ -85,7 +85,7 @@ use crate::{
 ///
 /// Non-atoms include control flow, operations, calls, and qualified variables
 /// (which require module thunking in the future).
-pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
+pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
@@ -126,7 +126,8 @@ pub(crate) fn ensure_local_variable<'heap>(
     };
     bindings.push(binding);
 
-    context.interner.intern_node(PartialNode {
+    context.interner.intern_node(NodeData {
+        id: context.counter.hir.next(),
         span: node.span,
         kind: NodeKind::Variable(Variable::Local(LocalVariable {
             id: Spanned {
@@ -146,7 +147,7 @@ pub(crate) fn ensure_local_variable<'heap>(
 /// - Access expressions (field/index access on other projections)
 ///
 /// Projections are a subset of atoms that represent addressable locations.
-const fn is_projection(node: &Node<'_>) -> bool {
+const fn is_projection(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
@@ -317,6 +318,10 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
 
+        // If there has been a let node already, we can "salvage" it's node_id, otherwise we need to
+        // provision a new one
+        if matches!(node.kind, NodeKind::Let(_)) {}
+
         let Ok(mut node) = fold::walk_nested_node(self, node);
         node = self.ensure_atom(node);
 
@@ -356,7 +361,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// This method handles the trampoline mechanism that allows complete node
     /// replacement during the folding process. It's used for transformations
     /// like removing type assertions or flattening let bindings.
-    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+    fn fold_node(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
         let backup = self.trampoline.take();
 
         let Ok(mut node) = fold::walk_node(self, node);

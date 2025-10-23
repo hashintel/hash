@@ -80,7 +80,7 @@ use crate::{
     intern::Interner,
     lower::normalization::{ensure_local_variable, is_anf_atom},
     node::{
-        Node, PartialNode,
+        Node, NodeData,
         call::{Call, PointerKind},
         data::Data,
         kind::NodeKind,
@@ -101,9 +101,9 @@ pub struct Thunking<'ctx, 'env, 'heap> {
     /// Set of top-level variable IDs that have been wrapped in thunks
     thunked: VarIdSet,
     /// The currently processing node during folding operations
-    current_node: Option<Node<'heap>>,
+    current_node: Option<NodeData<'heap>>,
     /// Optional node replacement mechanism for call insertion
-    trampoline: Option<Node<'heap>>,
+    trampoline: Option<NodeData<'heap>>,
 }
 
 impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
@@ -121,12 +121,13 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     ///
     /// If the node is already a thunk, it returns the node unchanged to avoid
     /// incorrect double-thunking, which would break the calling semantics.
-    fn thunkify(&self, node: Node<'heap>) -> Node<'heap> {
+    fn thunkify(&mut self, node: Node<'heap>) -> Node<'heap> {
         if matches!(node.kind, NodeKind::Thunk(_)) {
             return node;
         }
 
-        self.context.interner.intern_node(PartialNode {
+        self.context.interner.intern_node(NodeData {
+            id: self.context.counter.hir.next(),
             span: node.span,
             kind: NodeKind::Thunk(Thunk { body: node }),
         })
@@ -150,7 +151,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     /// references include call insertion. The result is **not** in ANF and requires
     /// re-normalization.
     #[must_use]
-    pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
+    pub fn run(mut self, node: NodeData<'heap>) -> NodeData<'heap> {
         // First collect all the variables that need to be thunked, these are simply the top level
         // let-bindings, we know that the top level are let bindings, because we expect everything
         // to be in HIR(ANF).
@@ -230,7 +231,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     /// Panics if called when no current node is set, which indicates a bug in the
     /// folding logic.
     #[inline]
-    fn current_node(&self) -> Node<'heap> {
+    fn current_node(&self) -> NodeData<'heap> {
         self.current_node.unwrap_or_else(|| {
             unreachable!("current_node is only called in `fold_node` and should be always set")
         })
@@ -246,7 +247,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     ///
     /// Panics if the trampoline is already set, which would indicate multiple
     /// replacement attempts for the same node.
-    fn trampoline(&mut self, node: Node<'heap>) {
+    fn trampoline(&mut self, node: NodeData<'heap>) {
         assert!(
             self.trampoline.is_none(),
             "trampoline has been inserted to multiple times"
@@ -272,7 +273,7 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
     ///
     /// This method handles the core folding logic while maintaining proper
     /// trampoline state isolation between nested node processing.
-    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+    fn fold_node(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
         let backup_trampoline = self.trampoline.take();
         let backup_current_node = self.current_node.replace(node);
 

@@ -381,7 +381,7 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::Node::from_ast(ast, &mut context, &types)
+        } = hashql_hir::node::NodeData::from_ast(ast, &mut context, &types)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })

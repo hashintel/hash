@@ -7,7 +7,7 @@ use hashql_core::{
     value::{self, Opaque, Primitive, Value},
 };
 use hashql_hir::node::{
-    Node,
+    NodeData,
     access::{Access, FieldAccess, IndexAccess},
     call::{Call, PointerKind},
     data::{Data, DictField},
@@ -273,7 +273,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     fn compile_filter_expr_let<T>(
         &mut self,
         Let { bindings, body }: &'heap Let<'heap>,
-        recurse: impl FnOnce(&mut Self, &'heap Node<'heap>) -> T,
+        recurse: impl FnOnce(&mut Self, &'heap NodeData<'heap>) -> T,
     ) -> T {
         for Binding {
             span: _,
@@ -568,7 +568,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         &mut self,
         context: FilterCompilerContext,
         span: SpanId,
-        node: &'heap Node<'heap>,
+        node: &'heap NodeData<'heap>,
     ) -> Result<&'heap TypeConstructor<'heap>, CompilationError> {
         match node.kind {
             NodeKind::Operation(Operation::Type(TypeOperation::Constructor(ctor))) => Ok(ctor),
@@ -660,7 +660,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     pub(super) fn compile_filter_expr<P>(
         &mut self,
         context: FilterCompilerContext,
-        node: &'heap Node<'heap>,
+        node: &'heap NodeData<'heap>,
     ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
     where
         P: PartialQueryPath<'heap> + Debug,

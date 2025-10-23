@@ -10,7 +10,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::specialization::Specialization,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::NodeData, pretty::PrettyPrintEnvironment,
 };
 
 use super::{
@@ -25,7 +25,7 @@ pub(crate) fn hir_lower_specialization<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<Node<'heap>, SuiteDiagnostic> {
+) -> Result<NodeData<'heap>, SuiteDiagnostic> {
     let (node, mut residual) = hir_lower_checking(heap, expr, environment, context, options)?;
 
     let mut issues = DiagnosticIssues::new();
