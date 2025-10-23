@@ -30,8 +30,8 @@ use crate::{
     },
 };
 
-pub struct ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
-    context: &'ctx mut HirContext<'env, 'heap>,
+pub struct ConvertTypeConstructor<'ctx, 'hir, 'env, 'heap, 'diag> {
+    context: &'ctx mut HirContext<'hir, 'heap>,
 
     locals: &'env TypeLocals<'heap>,
     environment: &'env Environment<'heap>,
@@ -43,9 +43,9 @@ pub struct ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
+impl<'ctx, 'hir, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'hir, 'env, 'heap, 'diag> {
     pub fn new(
-        context: &'ctx mut HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
         locals: &'env TypeLocals<'heap>,
         environment: &'env Environment<'heap>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
@@ -65,7 +65,7 @@ impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> 
     }
 }
 
-impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> {
+impl<'ctx, 'hir, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'hir, 'env, 'heap, 'diag> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,
@@ -241,7 +241,7 @@ impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> 
     }
 }
 
-impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, '_, 'heap, '_> {
+impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, '_, '_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>

@@ -51,6 +51,13 @@ impl<'heap> HirMap<'heap> {
         self.types_arguments.insert(id, def.arguments);
     }
 
+    pub fn get_type_arguments(
+        &self,
+        id: HirId,
+    ) -> Option<Interned<'heap, [GenericArgumentReference<'heap>]>> {
+        self.types_arguments.get(&id).copied()
+    }
+
     pub fn transfer(&mut self, from: HirId, to: HirId) {
         if let Some(types_arguments) = self.types_arguments.get(&from).copied() {
             self.types_arguments.insert(to, types_arguments);

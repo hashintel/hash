@@ -53,12 +53,11 @@ pub struct TypeCheckingResidual<'heap> {
     pub intrinsics: HirIdMap<&'static str>,
 }
 
-pub struct TypeChecking<'ctx, 'env, 'heap> {
+pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
     env: &'env Environment<'heap>,
-    context: &'ctx mut HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
 
     locals: VarIdMap<Local<'heap>>,
-    inference: HirIdMap<TypeId>,
     intrinsics: HirIdMap<&'static str>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
@@ -74,16 +73,12 @@ pub struct TypeChecking<'ctx, 'env, 'heap> {
     simplified: TypeIdMap<TypeId>,
 }
 
-impl<'ctx, 'env, 'heap> TypeChecking<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'hir, 'heap> TypeChecking<'ctx, 'env, 'hir, 'heap> {
     pub fn new(
         env: &'env Environment<'heap>,
-        context: &'ctx mut HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
 
-        TypeInferenceResidual {
-            locals,
-            types: inference,
-            intrinsics,
-        }: TypeInferenceResidual<'heap>,
+        TypeInferenceResidual { locals, intrinsics }: TypeInferenceResidual<'heap>,
     ) -> Self {
         let mut analysis = AnalysisEnvironment::new(env);
         analysis.with_diagnostics();
@@ -93,7 +88,6 @@ impl<'ctx, 'env, 'heap> TypeChecking<'ctx, 'env, 'heap> {
             context,
 
             locals,
-            inference,
             intrinsics,
 
             lattice: LatticeEnvironment::new(env),
@@ -118,7 +112,9 @@ impl<'ctx, 'env, 'heap> TypeChecking<'ctx, 'env, 'heap> {
     }
 
     fn inferred_type(&mut self, id: HirId) -> TypeId {
-        self.simplify.simplify(self.inference[&id])
+        let type_id = self.context.map.type_id(id);
+
+        self.simplified_type(type_id)
     }
 
     fn transfer_type(&mut self, id: HirId) {
@@ -219,7 +215,7 @@ impl<'ctx, 'env, 'heap> TypeChecking<'ctx, 'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
     fn visit_type_id(&mut self, id: TypeId) {
         self.simplified_type(id);
     }

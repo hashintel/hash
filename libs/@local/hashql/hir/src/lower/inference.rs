@@ -1,6 +1,5 @@
 use hashql_core::{
     collections::{FastHashMap, FastHashSet, HashMapExt as _},
-    intern::Interned,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -53,12 +52,11 @@ pub struct Local<'heap> {
 pub struct TypeInferenceResidual<'heap> {
     pub locals: VarIdMap<Local<'heap>>,
     pub intrinsics: HirIdMap<&'static str>,
-    pub types: HirIdMap<TypeId>,
 }
 
-pub struct TypeInference<'env, 'ctx, 'heap> {
+pub struct TypeInference<'ctx, 'env, 'hir, 'heap> {
     env: &'env Environment<'heap>,
-    context: &'ctx HirContext<'ctx, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
 
     inference: InferenceEnvironment<'env, 'heap>,
     collector: VariableCollector<'env, 'heap>,
@@ -68,13 +66,11 @@ pub struct TypeInference<'env, 'ctx, 'heap> {
 
     visited: HirIdSet,
     locals: VarIdMap<Local<'heap>>,
-    types: HirIdMap<TypeId>,
-    arguments: HirIdMap<Interned<'heap, [GenericArgumentReference<'heap>]>>,
     intrinsics: HirIdMap<&'static str>,
 }
 
-impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {
-    pub fn new(env: &'env Environment<'heap>, context: &'ctx HirContext<'ctx, 'heap>) -> Self {
+impl<'ctx, 'env, 'hir, 'heap> TypeInference<'ctx, 'env, 'hir, 'heap> {
+    pub fn new(env: &'env Environment<'heap>, context: &'ctx mut HirContext<'hir, 'heap>) -> Self {
         Self {
             env,
             context,
@@ -87,8 +83,6 @@ impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {
 
             visited: FastHashSet::default(),
             locals: FastHashMap::default(),
-            types: FastHashMap::default(),
-            arguments: FastHashMap::default(),
             intrinsics: FastHashMap::default(),
         }
     }
@@ -142,14 +136,13 @@ impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {
         let residual = TypeInferenceResidual {
             locals: self.locals,
             intrinsics: self.intrinsics,
-            types: self.types,
         };
 
         (solver, residual, diagnostics)
     }
 }
 
-impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
     fn visit_type_id(&mut self, id: TypeId) {
         self.collector.visit_id(id);
     }
@@ -177,16 +170,21 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
             Primitive::String(_) => builder.string(),
         };
 
-        self.types.insert_unique(self.current.id, id);
+        self.context.map.insert_type_id(self.current.id, id);
     }
 
     fn visit_tuple(&mut self, tuple: &'heap Tuple<'heap>) {
         visit::walk_tuple(self, tuple);
 
         let builder = TypeBuilder::spanned(self.current.span, self.env);
-        let id = builder.tuple(tuple.fields.iter().map(|field| self.types[&field.id]));
+        let id = builder.tuple(
+            tuple
+                .fields
+                .iter()
+                .map(|field| self.context.map.type_id(field.id)),
+        );
 
-        self.types.insert_unique(self.current.id, id);
+        self.context.map.insert_type_id(self.current.id, id);
     }
 
     fn visit_struct(&mut self, r#struct: &'heap Struct<'heap>) {
@@ -197,10 +195,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
             r#struct
                 .fields
                 .iter()
-                .map(|field| (field.name.value, self.types[&field.value.id])),
+                .map(|field| (field.name.value, self.context.map.type_id(field.value.id))),
         );
 
-        self.types.insert_unique(self.current.id, id);
+        self.context.map.insert_type_id(self.current.id, id);
     }
 
     fn visit_list(&mut self, list: &'heap List<'heap>) {
@@ -218,13 +216,13 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         for element in list.elements {
             self.inference.add_constraint(Constraint::LowerBound {
                 variable: inner,
-                bound: self.types[&element.id],
+                bound: self.context.map.type_id(element.id),
             });
         }
 
         let builder = TypeBuilder::spanned(self.current.span, self.env);
         let id = builder.list(inner.into_type(self.env).id);
-        self.types.insert_unique(self.current.id, id);
+        self.context.map.insert_type_id(self.current.id, id);
     }
 
     fn visit_dict(&mut self, dict: &'heap Dict<'heap>) {
@@ -238,18 +236,18 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         for field in dict.fields {
             self.inference.add_constraint(Constraint::Equals {
                 variable: key,
-                r#type: self.types[&field.key.id],
+                r#type: self.context.map.type_id(field.key.id),
             });
 
             self.inference.add_constraint(Constraint::LowerBound {
                 variable: value,
-                bound: self.types[&field.value.id],
+                bound: self.context.map.type_id(field.value.id),
             });
         }
 
         let builder = TypeBuilder::spanned(self.current.span, self.env);
         let id = builder.dict(key.into_type(self.env).id, value.into_type(self.env).id);
-        self.types.insert_unique(self.current.id, id);
+        self.context.map.insert_type_id(self.current.id, id);
     }
 
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
@@ -266,7 +264,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         let r#type = self.apply_substitution(self.current.span, def, &variable.arguments);
 
-        self.types.insert_unique(self.current.id, r#type);
+        self.context.map.insert_type_id(self.current.id, r#type);
 
         if let Some(intrinsic) = intrinsic {
             self.intrinsics.insert_unique(self.current.id, intrinsic);
@@ -300,10 +298,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         };
         def.instantiate(&mut self.instantiate);
 
-        let r#type = self.apply_substitution(self.current.span, def, &variable.arguments);
+        def.id = self.apply_substitution(self.current.span, def, &variable.arguments);
 
-        self.types.insert_unique(self.current.id, r#type);
-        self.arguments.insert_unique(self.current.id, def.arguments);
+        self.context.map.insert_type_def(self.current.id, def);
         self.intrinsics.insert_unique(self.current.id, intrinsic);
     }
 
@@ -316,12 +313,12 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         } = binding;
 
         // We simply take the type of the value
-        let value_type = self.types[&value.id];
+        let value_type = self.context.map.type_id(value.id);
 
         let arguments = self
-            .arguments
-            .get(&value.id)
-            .copied()
+            .context
+            .map
+            .get_type_arguments(value.id)
             .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
 
         // We do not propagate the arguments to the let binding node itself, because the let
@@ -357,22 +354,25 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // requiring an additional traversal for collection during the type checking phase.
 
         // The let expression's type is determined by its body, not the bound value
-        self.types
-            .insert_unique(self.current.id, self.types[&body.id]);
+        self.context
+            .map
+            .insert_type_id(self.current.id, self.context.map.type_id(body.id));
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
         visit::walk_input(self, input);
 
         // We simply take on the type of the input.
-        self.types.insert_unique(self.current.id, input.r#type);
+        self.context
+            .map
+            .insert_type_id(self.current.id, input.r#type);
 
         // If a default exists, we additionally need to discharge a constraint that the default is
         // `<:` to the type specified.
         if let Some(default) = &input.default {
             self.inference.collect_constraints(
                 Variance::Covariant,
-                self.types[&default.id],
+                self.context.map.type_id(default.id),
                 input.r#type,
             );
         }
@@ -381,7 +381,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
     fn visit_type_assertion(&mut self, assertion: &'heap TypeAssertion<'heap>) {
         visit::walk_type_assertion(self, assertion);
 
-        self.types.insert_unique(self.current.id, assertion.r#type);
+        self.context
+            .map
+            .insert_type_id(self.current.id, assertion.r#type);
 
         // The type is the one provided, but only if it's force, otherwise we have a `<:`, meaning
         // that the type assertion must be narrower than the provided type.
@@ -392,7 +394,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // value <: assertion
         self.inference.collect_constraints(
             Variance::Covariant,
-            self.types[&assertion.value.id],
+            self.context.map.type_id(assertion.value.id),
             assertion.r#type,
         );
     }
@@ -402,11 +404,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // closure given.
         visit::walk_type_constructor(self, constructor);
 
-        let type_def = self.context.map.type_def(self.current.id);
-
-        self.types.insert_unique(self.current.id, type_def.id);
-        self.arguments
-            .insert_unique(self.current.id, type_def.arguments);
+        // Unlike functions this is done in the `ctor` step, so no transfer needs to happen here.,
     }
 
     fn visit_binary_operation(&mut self, _: &'heap BinaryOperation<'heap>) {
@@ -422,12 +420,13 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         let variable = self.inference.add_projection(
             self.current.span,
-            self.types[&access.expr.id],
+            self.context.map.type_id(access.expr.id),
             access.field,
         );
 
-        self.types
-            .insert_unique(self.current.id, variable.into_type(self.env).id);
+        self.context
+            .map
+            .insert_type_id(self.current.id, variable.into_type(self.env).id);
     }
 
     fn visit_index_access(&mut self, access: &'heap IndexAccess<'heap>) {
@@ -435,12 +434,13 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         let variable = self.inference.add_subscript(
             self.current.span,
-            self.types[&access.expr.id],
-            self.types[&access.index.id],
+            self.context.map.type_id(access.expr.id),
+            self.context.map.type_id(access.index.id),
         );
 
-        self.types
-            .insert_unique(self.current.id, variable.into_type(self.env).id);
+        self.context
+            .map
+            .insert_type_id(self.current.id, variable.into_type(self.env).id);
     }
 
     fn visit_call(&mut self, call: &'heap Call<'heap>) {
@@ -448,7 +448,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         // Make sure that we use a *fresh* instance every invocation
         // `visit_*_variable` ensure that the function is always fresh as can be
-        let function = self.types[&call.function.id];
+        let function = self.context.map.type_id(call.function.id);
 
         // Create a new hole for the return type, this will be the return type of this function
         let returns = self.inference.fresh_hole(self.current.span);
@@ -458,7 +458,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         let closure = builder.closure(
             call.arguments
                 .iter()
-                .map(|argument| self.types[&argument.value.id]),
+                .map(|argument| self.context.map.type_id(argument.value.id)),
             returns_id,
         );
 
@@ -476,7 +476,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         self.inference
             .collect_constraints(Variance::Covariant, function, closure);
 
-        self.types.insert_unique(self.current.id, returns_id);
+        self.context.map.insert_type_id(self.current.id, returns_id);
 
         // We do not need to collect the closure generated, as we can always re-generate it easily
         // from the types provided when we do the type-check.
@@ -485,9 +485,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
     fn visit_if(&mut self, r#if: &'heap If<'heap>) {
         visit::walk_if(self, r#if);
 
-        let test = self.types[&r#if.test.id];
-        let then = self.types[&r#if.then.id];
-        let r#else = self.types[&r#if.r#else.id];
+        let test = self.context.map.type_id(r#if.test.id);
+        let then = self.context.map.type_id(r#if.then.id);
+        let r#else = self.context.map.type_id(r#if.r#else.id);
 
         // The output is the union of the then and else branches
         let output = self.env.intern_type(PartialType {
@@ -497,7 +497,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
             })),
         });
 
-        self.types.insert_unique(self.current.id, output);
+        self.context.map.insert_type_id(self.current.id, output);
 
         let test_expected = self.env.intern_type(PartialType {
             span: r#if.test.span,
@@ -557,7 +557,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // `body <: return`
         self.inference.collect_constraints(
             Variance::Covariant,
-            self.types[&body.id],
+            self.context.map.type_id(body.id),
             type_signature.returns,
         );
 
@@ -568,8 +568,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         let mut def = def.clone();
         def.instantiate(&mut self.instantiate);
 
-        self.types.insert(self.current.id, def.id);
-        self.arguments.insert(self.current.id, def.arguments);
+        self.context.map.insert_type_def(self.current.id, def);
     }
 
     fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {
