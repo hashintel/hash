@@ -50,7 +50,11 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   const [portals, renderPortal, clearPortals] = usePortals();
   const [debugging] = useLocalStorage<
     { restartCollabButton?: boolean } | boolean
-  >({ key: "hash.internal.debugging", defaultValue: false });
+  >({
+    key: "hash.internal.debugging",
+    defaultValue: false,
+    getInitialValueInEffect: false,
+  });
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView;

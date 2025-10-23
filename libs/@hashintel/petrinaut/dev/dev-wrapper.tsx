@@ -1,15 +1,19 @@
 import { CacheProvider } from "@emotion/react";
-import { ThemeProvider } from "@mui/material/styles";
-import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import {
+  createEmotionCache,
+  fluidTypographyStyles,
+  theme,
+} from "@hashintel/design-system/theme";
 import { useLocalStorage } from "@mantine/hooks";
+import { ThemeProvider } from "@mui/material";
 import { produce } from "immer";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { defaultTokenTypes, Petrinaut } from "../src/petrinaut";
 import type {
   MinimalNetMetadata,
   PetriNetDefinitionObject,
 } from "../src/petrinaut/types";
-import { Petrinaut } from "../src/petrinaut";
-import { defaultTokenTypes } from "../src/petrinaut";
 
 const emotionCache = createEmotionCache();
 
@@ -24,6 +28,7 @@ export const DevWrapper = () => {
   const [storedNets, setStoredNets] = useLocalStorage<StoredNet[]>({
     key: "petrinaut-dev-nets",
     defaultValue: [],
+    getInitialValueInEffect: false,
   });
 
   const [currentNetId, setCurrentNetId] = useState<string | null>(null);
@@ -32,15 +37,17 @@ export const DevWrapper = () => {
     if (!currentNetId) {
       return null;
     }
-    return storedNets.find((net) => net.id === currentNetId) || null;
+    return storedNets.find((net) => net.id === currentNetId) ?? null;
   }, [currentNetId, storedNets]);
 
   const existingNets: MinimalNetMetadata[] = useMemo(() => {
-    return storedNets.map((net) => ({
-      netId: net.id,
-      title: net.title,
-    }));
-  }, [storedNets]);
+    return storedNets
+      .filter((net) => net.id !== currentNetId)
+      .map((net) => ({
+        netId: net.id,
+        title: net.title,
+      }));
+  }, [currentNetId, storedNets]);
 
   const createNewNet = useCallback(
     (params: {
@@ -66,7 +73,9 @@ export const DevWrapper = () => {
 
   const setTitle = useCallback(
     (title: string) => {
-      if (!currentNetId) return;
+      if (!currentNetId) {
+        return;
+      }
 
       setStoredNets((prev) =>
         prev.map((net) => (net.id === currentNetId ? { ...net, title } : net)),
@@ -77,7 +86,9 @@ export const DevWrapper = () => {
 
   const mutatePetriNetDefinition = useCallback(
     (definitionMutationFn: (draft: PetriNetDefinitionObject) => void) => {
-      if (!currentNetId) return;
+      if (!currentNetId) {
+        return;
+      }
 
       setStoredNets((prev) =>
         prev.map((net) => {
@@ -96,18 +107,20 @@ export const DevWrapper = () => {
   );
 
   // Initialize with a default net if none exists
-  useMemo(() => {
-    if (storedNets.length === 0 && !currentNetId) {
+  useEffect(() => {
+    if (!storedNets[0]) {
       createNewNet({
         petriNetDefinition: {
           arcs: [],
           nodes: [],
-          tokenTypes: defaultTokenTypes,
+          tokenTypes: structuredClone(defaultTokenTypes),
         },
         title: "New Process",
       });
+    } else if (!currentNetId) {
+      setCurrentNetId(storedNets[0].id);
     }
-  }, [storedNets.length, currentNetId, createNewNet]);
+  }, [storedNets.length, currentNetId, createNewNet, storedNets]);
 
   if (!currentNet) {
     return (
@@ -125,6 +138,14 @@ export const DevWrapper = () => {
   return (
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
+        <style type="text/css">
+          {fluidTypographyStyles(":root")}
+          {`
+          html {
+            font-family: ${theme.typography.fontFamily};
+          }
+        `}
+        </style>
         <div style={{ height: "100vh", width: "100vw" }}>
           <Petrinaut
             createNewNet={createNewNet}

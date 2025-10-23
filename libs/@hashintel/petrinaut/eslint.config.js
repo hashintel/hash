@@ -5,6 +5,12 @@ export default [
   ...createBase(import.meta.dirname),
   ...storybook.configs["flat/recommended"],
   {
+    files: ["dev/*.tsx"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
     rules: {
       "no-restricted-imports": [
         "error",

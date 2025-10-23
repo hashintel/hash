@@ -52,6 +52,7 @@ export const useCachedDefaultState = <
       prevDefault: defaultValue,
       currentValue: defaultValue,
     },
+    getInitialValueInEffect: false,
   });
 
   if (prevDefault !== defaultValue) {

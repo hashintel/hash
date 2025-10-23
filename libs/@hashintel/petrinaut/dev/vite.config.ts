@@ -6,20 +6,7 @@ export default defineConfig({
   plugins: [react()],
   root: "dev",
   server: {
-    port: 3000,
     open: true,
-  },
-  build: {
-    outDir: "../dist",
-    target: "es2022",
-  },
-  esbuild: {
-    target: "es2022",
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      target: "es2022",
-    },
   },
   define: {
     "process.env.NODE_ENV": '"development"',
