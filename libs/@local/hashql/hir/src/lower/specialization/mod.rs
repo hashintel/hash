@@ -97,6 +97,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     &PrettyPrintEnvironment {
                         env: self.env,
                         symbols: &self.context.symbols,
+                        map: &self.context.map,
                     },
                     next.span,
                     next,
@@ -110,6 +111,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     &PrettyPrintEnvironment {
                         env: self.env,
                         symbols: &self.context.symbols,
+                        map: &self.context.map,
                     },
                     call.function.span,
                     call.function,

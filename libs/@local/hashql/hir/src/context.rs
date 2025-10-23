@@ -1,13 +1,9 @@
-use hashql_core::{
-    heap::Heap,
-    id::IdCounter,
-    module::{ModuleRegistry, locals::TypeDef},
-    symbol::SymbolTable,
-};
+use hashql_core::{heap::Heap, id::IdCounter, module::ModuleRegistry, symbol::SymbolTable};
 
 use crate::{
     intern::Interner,
-    node::{HirId, HirIdVec, r#let::VarId},
+    map::HirMap,
+    node::{HirId, r#let::VarId},
 };
 
 pub type BinderSymbolTable<'heap> = SymbolTable<'heap, VarId>;
@@ -60,7 +56,7 @@ pub struct HirContext<'env, 'heap> {
     pub interner: &'env Interner<'heap>,
     pub modules: &'env ModuleRegistry<'heap>,
     pub counter: Counter,
-    pub types: HirIdVec<Option<TypeDef<'heap>>>,
+    pub map: HirMap<'heap>,
 }
 
 impl<'env, 'heap> HirContext<'env, 'heap> {
@@ -71,7 +67,7 @@ impl<'env, 'heap> HirContext<'env, 'heap> {
             interner,
             modules,
             counter: Counter::new(),
-            types: HirIdVec::default(),
+            map: HirMap::new(),
         }
     }
 }

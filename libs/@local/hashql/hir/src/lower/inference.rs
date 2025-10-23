@@ -26,11 +26,11 @@ use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     context::HirContext,
     node::{
-        HirIdMap, HirIdSet, HirPtr, Node, NodeData,
+        HirIdMap, HirIdSet, HirPtr, Node,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
-        closure::Closure,
+        closure::{Closure, extract_signature, extract_signature_generic},
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
@@ -48,6 +48,8 @@ pub struct Local<'heap> {
     pub intrinsic: Option<&'static str>,
 }
 
+// We do not persist the types into the `HirMap` *yet* as we haven't yet verified if they are
+// correct.
 pub struct TypeInferenceResidual<'heap> {
     pub locals: VarIdMap<Local<'heap>>,
     pub intrinsics: HirIdMap<&'static str>,
@@ -400,10 +402,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // closure given.
         visit::walk_type_constructor(self, constructor);
 
-        self.types
-            .insert_unique(self.current.id, constructor.closure);
+        let type_def = self.context.map.type_def(self.current.id);
+
+        self.types.insert_unique(self.current.id, type_def.id);
         self.arguments
-            .insert_unique(self.current.id, constructor.arguments);
+            .insert_unique(self.current.id, type_def.arguments);
     }
 
     fn visit_binary_operation(&mut self, _: &'heap BinaryOperation<'heap>) {
@@ -513,15 +516,17 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         // for local binding within the closure scope.
         self.visit_closure_signature(signature);
 
+        let def = self.context.map.type_def(self.current.id);
+
         // Mark closure arguments as unscoped to prevent them from being affected by instantiation.
         // This preserves variable identity within the closure - if instantiation modified them,
         // each reference would become distinct, breaking type inference.
         let old_unscoped = self
             .instantiate
-            .enter_unscoped(signature.def.arguments.iter().map(|argument| argument.id));
+            .enter_unscoped(def.arguments.iter().map(|argument| argument.id));
 
-        let type_signature = signature.type_signature(self.env);
-        let type_generic = signature.type_generic(self.env);
+        let type_signature = extract_signature(def.id, self.env);
+        let type_generic = extract_signature_generic(def.id, self.env);
 
         // Collect generic argument constraints, so that they can aid during type inference.
         if let Some(generic) = type_generic {
@@ -545,7 +550,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         // The parameter types inferred here may not be valid in the broader type checking
         // context, which is why type checking is performed as a separate phase.
-        self.visit_node(body);
+        self.visit_node(*body);
 
         // Note: Locals remain in scope for use during the subsequent type checking phase.
 
@@ -560,7 +565,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         // Create a completely separate instantiation of the closure's definition to decouple any
         // inference steps of the body from the closure's definition.
-        let mut def = signature.def;
+        let mut def = def.clone();
         def.instantiate(&mut self.instantiate);
 
         self.types.insert(self.current.id, def.id);

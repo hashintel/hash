@@ -28,6 +28,10 @@ newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
 
+impl TypeId {
+    pub const PLACEHOLDER: TypeId = TypeId(0xFFFF_FF00);
+}
+
 newtype_collections!(pub type TypeId* from TypeId);
 
 #[derive(Debug, PartialEq, Eq, Hash)]

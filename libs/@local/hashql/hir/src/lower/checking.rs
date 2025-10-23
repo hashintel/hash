@@ -1,7 +1,7 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collections::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet},
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -32,11 +32,11 @@ use crate::{
     context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
-        HirId, HirIdMap, HirIdSet, HirPtr, NodeData,
+        HirId, HirIdMap, HirIdSet, HirPtr, Node,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
-        closure::Closure,
+        closure::{Closure, extract_signature},
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
@@ -49,14 +49,13 @@ use crate::{
 };
 
 pub struct TypeCheckingResidual<'heap> {
-    pub types: HirIdMap<TypeId>,
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
     pub intrinsics: HirIdMap<&'static str>,
 }
 
-pub struct TypeChecking<'env, 'heap> {
+pub struct TypeChecking<'ctx, 'env, 'heap> {
     env: &'env Environment<'heap>,
-    context: &'env HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'env, 'heap>,
 
     locals: VarIdMap<Local<'heap>>,
     inference: HirIdMap<TypeId>,
@@ -71,15 +70,14 @@ pub struct TypeChecking<'env, 'heap> {
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
 
-    types: HirIdMap<TypeId>,
     inputs: FastHashMap<Symbol<'heap>, TypeId>,
     simplified: TypeIdMap<TypeId>,
 }
 
-impl<'env, 'heap> TypeChecking<'env, 'heap> {
+impl<'ctx, 'env, 'heap> TypeChecking<'ctx, 'env, 'heap> {
     pub fn new(
         env: &'env Environment<'heap>,
-        context: &'env HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'env, 'heap>,
 
         TypeInferenceResidual {
             locals,
@@ -107,7 +105,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             diagnostics: DiagnosticIssues::new(),
             analysis_diagnostics: DiagnosticIssues::new(),
 
-            types: FastHashMap::default(),
             inputs: FastHashMap::default(),
             simplified: FastHashMap::default(),
         }
@@ -127,7 +124,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     fn transfer_type(&mut self, id: HirId) {
         let inferred = self.inferred_type(id);
 
-        self.types.insert_unique(id, inferred);
+        self.context.map.insert_type_id(id, inferred);
     }
 
     fn verify_arity(
@@ -214,7 +211,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         );
 
         let residual = TypeCheckingResidual {
-            types: self.types,
             inputs: self.inputs,
             intrinsics: self.intrinsics,
         };
@@ -223,12 +219,12 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, 'heap> {
     fn visit_type_id(&mut self, id: TypeId) {
         self.simplified_type(id);
     }
 
-    fn visit_node(&mut self, node: &'heap NodeData<'heap>) {
+    fn visit_node(&mut self, node: Node<'heap>) {
         if !self.visited.insert(node.id) {
             return;
         }
@@ -319,18 +315,18 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let Let { bindings: _, body } = r#let;
 
         // We simply take the type of the body
-        let body_id = self.types[&body.id];
-        self.types.insert_unique(self.current.id, body_id);
+        let body_id = self.context.map.type_id(body.id);
+        self.context.map.insert_type_id(self.current.id, body_id);
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
         visit::walk_input(self, input);
 
         let inferred = self.inferred_type(self.current.id);
-        self.types.insert_unique(self.current.id, inferred);
+        self.context.map.insert_type_id(self.current.id, inferred);
 
         if let Some(default) = &input.default {
-            self.verify_subtype(self.types[&default.id], inferred);
+            self.verify_subtype(self.context.map.type_id(default.id), inferred);
         }
 
         // Register the input type
@@ -354,7 +350,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         visit::walk_type_assertion(self, assertion);
 
         let inferred = self.inferred_type(self.current.id);
-        self.types.insert_unique(self.current.id, inferred);
+        self.context.map.insert_type_id(self.current.id, inferred);
 
         // We do not need to check if the type is actually the correct one
         if assertion.force {
@@ -364,7 +360,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let simplified_assertion = self.simplified_type(assertion.r#type);
 
         // value <: assertion
-        self.verify_subtype(self.types[&assertion.value.id], simplified_assertion);
+        self.verify_subtype(
+            self.context.map.type_id(assertion.value.id),
+            simplified_assertion,
+        );
     }
 
     fn visit_type_constructor(&mut self, constructor: &'heap TypeConstructor<'heap>) {
@@ -402,7 +401,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let closure = builder.closure(
             call.arguments
                 .iter()
-                .map(|argument| self.types[&argument.value.id]),
+                .map(|argument| self.context.map.type_id(argument.value.id)),
             returns_id,
         );
 
@@ -417,17 +416,17 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // - covariant return value: `R <: ρ`
         //
         // For closure literals we invert the direction and collect `C <: F`
-        self.verify_subtype(self.types[&call.function.id], closure);
+        self.verify_subtype(self.context.map.type_id(call.function.id), closure);
 
-        self.types.insert_unique(self.current.id, returns_id);
+        self.context.map.insert_type_id(self.current.id, returns_id);
     }
 
     fn visit_if(&mut self, r#if: &'heap If<'heap>) {
         visit::walk_if(self, r#if);
 
-        // the test expression must evaluate to a boolean
+        // The test expression must evaluate to a boolean
         let is_test_boolean = self.is_subtype(
-            self.types[&r#if.test.id],
+            self.context.map.type_id(r#if.test.id),
             self.env.intern_type(PartialType {
                 span: r#if.test.span,
                 kind: self
@@ -438,7 +437,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         if !is_test_boolean {
             self.diagnostics.push(type_mismatch_if(
                 self.env,
-                self.env.r#type(self.types[&r#if.test.id]),
+                self.env.r#type(self.context.map.type_id(r#if.test.id)),
             ));
         }
 
@@ -457,11 +456,12 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // signature, with the actual signature being used to typecheck the closure body. The
         // inferred type might've been used as a call site and therefore have different variable
         // constraints associated with it, unrelated to the function body.
-        let closure_type = closure.signature.type_signature(&self.lattice);
+        let closure_type =
+            extract_signature(self.context.map.type_id(self.current.id), &self.lattice);
         let returns = self.simplify.simplify(closure_type.returns);
-        self.verify_subtype(self.types[&closure.body.id], returns);
+        self.verify_subtype(self.context.map.type_id(closure.body.id), returns);
 
-        self.types.insert_unique(self.current.id, inferred);
+        self.context.map.insert_type_id(self.current.id, inferred);
     }
 
     fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {

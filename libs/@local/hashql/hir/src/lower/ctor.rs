@@ -147,7 +147,7 @@ impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> 
         };
 
         if generic_arguments.is_empty() {
-            self.context.types.insert(node.id, closure_def);
+            self.context.map.insert_type_def(node.id, closure_def);
 
             // We're done here, as we don't need to apply anything
             return Some(
@@ -190,7 +190,7 @@ impl<'ctx, 'env, 'heap, 'diag> ConvertTypeConstructor<'ctx, 'env, 'heap, 'diag> 
             id: closure_id,
             arguments: self.environment.intern_generic_argument_references(&[]),
         };
-        self.context.types.insert(node.id, def);
+        self.context.map.insert_type_def(node.id, def);
 
         // We do not need to instantiate here again, because we already had α-renaming in the
         // closure definition, which means that the closure is already unique. As the closure is

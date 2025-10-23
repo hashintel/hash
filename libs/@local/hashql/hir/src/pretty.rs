@@ -13,8 +13,9 @@ use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
     context::SymbolRegistry,
+    map::HirMap,
     node::{
-        HirIdMap, NodeData,
+        HirId, NodeData,
         access::{Access, FieldAccess, IndexAccess},
         branch::{Branch, If},
         call::Call,
@@ -37,7 +38,7 @@ use crate::{
 pub struct PrettyPrintEnvironment<'env, 'heap> {
     pub env: &'env Environment<'heap>,
     pub symbols: &'env SymbolRegistry<'heap>,
-    pub defs: &'env HirIdMap<TypeDef<'heap>>,
+    pub map: &'env HirMap<'heap>,
 }
 
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Primitive<'heap> {
@@ -386,48 +387,58 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Ty
 }
 
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
-    for TypeConstructor<'heap>
+    for (HirId, &TypeConstructor<'heap>)
 {
     fn pretty(
         &self,
         env: &PrettyPrintEnvironment<'env, 'heap>,
         _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        todo!()
-        // RcDoc::text("#ctor")
-        //     .append("(")
-        //     .append(pretty_print_type_id(self.closure, env.env))
-        //     .append(",")
-        //     .group()
-        //     .append(RcDoc::softline())
-        //     .append("arguments: ")
-        //     .append(
-        //         RcAllocator
-        //             .intersperse(
-        //                 self.arguments
-        //                     .iter()
-        //                     .map(|argument| RcDoc::text(argument.name.unwrap())),
-        //                 RcDoc::text(",").append(RcDoc::softline()),
-        //             )
-        //             .group()
-        //             .brackets()
-        //             .group(),
-        //     )
-        //     .group()
-        //     .append(")")
-        //     .group()
+        let &(id, _) = self;
+
+        let TypeDef {
+            id: closure,
+            arguments,
+        } = env.map.type_def(id);
+
+        RcDoc::text("#ctor")
+            .append("(")
+            .append(pretty_print_type_id(closure, env.env))
+            .append(",")
+            .group()
+            .append(RcDoc::softline())
+            .append("arguments: ")
+            .append(
+                RcAllocator
+                    .intersperse(
+                        arguments
+                            .iter()
+                            .map(|argument| RcDoc::text(argument.name.unwrap())),
+                        RcDoc::text(",").append(RcDoc::softline()),
+                    )
+                    .group()
+                    .brackets()
+                    .group(),
+            )
+            .group()
+            .append(")")
+            .group()
     }
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for TypeOperation<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for (HirId, &TypeOperation<'heap>)
+{
     fn pretty(
         &self,
         env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match self {
-            Self::Assertion(assertion) => assertion.pretty(env, boundary),
-            Self::Constructor(constructor) => constructor.pretty(env, boundary),
+        let &(id, operation) = self;
+
+        match operation {
+            TypeOperation::Assertion(assertion) => assertion.pretty(env, boundary),
+            TypeOperation::Constructor(constructor) => (id, constructor).pretty(env, boundary),
         }
     }
 }
@@ -451,15 +462,18 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
     }
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Operation<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for (HirId, &Operation<'heap>)
+{
     fn pretty(
         &self,
         env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self {
-            Self::Type(r#type) => r#type.pretty(env, boundary),
-            Self::Binary(binary) => binary.pretty(env, boundary),
+        let &(id, op) = self;
+        match op {
+            Operation::Type(r#type) => (id, r#type).pretty(env, boundary),
+            Operation::Binary(binary) => binary.pretty(env, boundary),
         }
     }
 }
@@ -557,84 +571,88 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Br
     }
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Closure<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for (HirId, &Closure<'heap>)
+{
     fn pretty(
         &self,
         env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
+        let &(id, closure) = self;
+
+        let def = env.map.type_def(id);
+
         // There are two possibilities here (A):
         // We either "unfold" the type ourselves to print or we create a monster that prints it in a
         // way that's pretty unreadable
+        let mut base = RcDoc::text("#fn");
 
-        todo!();
+        let mut signature = env.env.r#type(def.id);
+        if !def.arguments.is_empty() {
+            let generic = signature.kind.generic().expect("should be a generic");
 
-        // let mut base = RcDoc::text("#fn");
+            let arguments = generic.arguments;
 
-        // let mut signature = env.env.r#type(self.signature.def.id);
-        // if !self.signature.def.arguments.is_empty() {
-        //     let generic = signature.kind.generic().expect("should be a generic");
+            base = base.append(
+                RcAllocator
+                    .intersperse(
+                        // The generics might be re-ordered in the type, so we need enforce
+                        // ordering per the signature
+                        def.arguments.iter().map(|generic| {
+                            let argument = arguments
+                                .iter()
+                                .find(|argument| argument.name == generic.name)
+                                .expect("generic argument should exist");
 
-        //     let arguments = generic.arguments;
+                            argument.pretty(env.env, boundary)
+                        }),
+                        RcDoc::text(",").append(RcDoc::softline()),
+                    )
+                    .group()
+                    .angles()
+                    .group(),
+            );
 
-        //     base = base.append(
-        //         RcAllocator
-        //             .intersperse(
-        //                 // The generics might be re-ordered in the type, so we need enforce
-        //                 // ordering per the signature
-        //                 self.signature.def.arguments.iter().map(|generic| {
-        //                     let argument = arguments
-        //                         .iter()
-        //                         .find(|argument| argument.name == generic.name)
-        //                         .expect("generic argument should exist");
+            signature = env.env.r#type(generic.base);
+        }
 
-        //                     argument.pretty(env.env, boundary)
-        //                 }),
-        //                 RcDoc::text(",").append(RcDoc::softline()),
-        //             )
-        //             .group()
-        //             .angles()
-        //             .group(),
-        //     );
+        let closure_type = signature.kind.closure().expect("should be a closure");
 
-        //     signature = env.env.r#type(generic.base);
-        // }
-
-        // let closure = signature.kind.closure().expect("should be a closure");
-
-        // base.append(
-        //     RcAllocator
-        //         .intersperse(
-        //             self.signature
-        //                 .params
-        //                 .iter()
-        //                 .zip(closure.params)
-        //                 .map(|(param, &r#type)| {
-        //                     RcDoc::text(param.name.mangled().to_string())
-        //                         .append(":")
-        //                         .group()
-        //                         .append(RcDoc::softline())
-        //                         .append(pretty_print_type_id(r#type, env.env))
-        //                         .group()
-        //                 }),
-        //             RcDoc::text(",").append(RcDoc::softline()),
-        //         )
-        //         .group()
-        //         .parens()
-        //         .group(),
-        // )
-        // .append(":")
-        // .append(RcDoc::softline())
-        // .append(pretty_print_type_id(closure.returns, env.env))
-        // .append(RcDoc::softline())
-        // .append("->")
-        // .append(RcDoc::hardline())
-        // .append(
-        //     RcAllocator
-        //         .nil()
-        //         .append(self.body.pretty(env, boundary))
-        //         .indent(4),
-        // )
+        base.append(
+            RcAllocator
+                .intersperse(
+                    closure
+                        .signature
+                        .params
+                        .iter()
+                        .zip(closure_type.params)
+                        .map(|(param, &r#type)| {
+                            RcDoc::text(param.name.mangled().to_string())
+                                .append(":")
+                                .group()
+                                .append(RcDoc::softline())
+                                .append(pretty_print_type_id(r#type, env.env))
+                                .group()
+                        }),
+                    RcDoc::text(",").append(RcDoc::softline()),
+                )
+                .group()
+                .parens()
+                .group(),
+        )
+        .append(":")
+        .append(RcDoc::softline())
+        .append(pretty_print_type_id(closure_type.returns, env.env))
+        .append(RcDoc::softline())
+        .append("->")
+        .append(RcDoc::hardline())
+        .append(
+            RcAllocator
+                .nil()
+                .append(closure.body.pretty(env, boundary))
+                .indent(4),
+        )
     }
 }
 
@@ -759,11 +777,11 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for No
             NodeKind::Variable(variable) => variable.pretty(env, boundary),
             NodeKind::Let(r#let) => r#let.pretty(env, boundary),
             NodeKind::Input(input) => input.pretty(env, boundary),
-            NodeKind::Operation(operation) => operation.pretty(env, boundary),
+            NodeKind::Operation(operation) => (self.id, operation).pretty(env, boundary),
             NodeKind::Access(access) => access.pretty(env, boundary),
             NodeKind::Call(call) => call.pretty(env, boundary),
             NodeKind::Branch(branch) => branch.pretty(env, boundary),
-            NodeKind::Closure(closure) => closure.pretty(env, boundary),
+            NodeKind::Closure(closure) => (self.id, closure).pretty(env, boundary),
             NodeKind::Thunk(thunk) => thunk.pretty(env, boundary),
             NodeKind::Graph(graph) => graph.pretty(env, boundary),
         }

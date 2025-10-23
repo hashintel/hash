@@ -512,7 +512,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         hir_id: HirId,
     ) -> Option<NodeKind<'heap>> {
         let signature_def = self.types.signatures[signature.id];
-        self.context.types.insert(hir_id, signature_def);
+        self.context.map.insert_type_def(hir_id, signature_def);
 
         let mut params = SmallVec::with_capacity(signature.inputs.len());
         for &hashql_ast::node::expr::closure::ClosureParam {
