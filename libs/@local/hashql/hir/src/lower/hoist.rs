@@ -258,7 +258,7 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
         self.scope.retain(|binding| {
             // Analyze which variables this binding depends on
             let mut variables = VariableDependencies::from_set(self.bitset_pool.acquire());
-            variables.visit_node(&binding.value);
+            variables.visit_node(binding.value);
             let mut variables = variables.finish();
 
             // Check intersection with closure parameters

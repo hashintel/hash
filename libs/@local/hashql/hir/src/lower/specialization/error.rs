@@ -11,7 +11,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use crate::{node::NodeData, pretty::PrettyPrintEnvironment};
+use crate::{node::Node, pretty::PrettyPrintEnvironment};
 
 pub type SpecializationDiagnostic = Diagnostic<SpecializationDiagnosticCategory, SpanId>;
 
@@ -141,7 +141,7 @@ pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> Specializ
 pub(crate) fn invalid_graph_chain<'heap>(
     env: &PrettyPrintEnvironment<'_, 'heap>,
     span: SpanId,
-    node: NodeData<'heap>,
+    node: Node<'heap>,
 ) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::InvalidGraphChain,
@@ -174,7 +174,7 @@ pub(crate) fn invalid_graph_chain<'heap>(
 pub(crate) fn non_intrinsic_graph_operation<'heap>(
     env: &PrettyPrintEnvironment<'_, 'heap>,
     span: SpanId,
-    function: NodeData<'heap>,
+    function: Node<'heap>,
 ) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::NonIntrinsicGraphOperation,

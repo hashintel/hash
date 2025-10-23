@@ -53,10 +53,9 @@ use core::ops::{FromResidual, Try};
 
 use hashql_core::{
     intern::Interned,
-    module::locals::TypeDef,
     span::{SpanId, Spanned},
     symbol::{Ident, Symbol},
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
+    r#type::TypeId,
     value::Primitive,
 };
 
@@ -163,13 +162,6 @@ pub trait Fold<'heap> {
         ids: Interned<'heap, [Spanned<TypeId>]>,
     ) -> Self::Output<Interned<'heap, [Spanned<TypeId>]>> {
         Try::from_output(ids)
-    }
-
-    fn fold_generic_argument_references(
-        &mut self,
-        references: Interned<'heap, [GenericArgumentReference<'heap>]>,
-    ) -> Self::Output<Interned<'heap, [GenericArgumentReference<'heap>]>> {
-        Try::from_output(references)
     }
 
     fn fold_span(&mut self, span: SpanId) -> Self::Output<SpanId> {
@@ -780,21 +772,11 @@ pub fn walk_type_assertion<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    TypeConstructor {
-        name,
-        closure,
-        arguments,
-    }: TypeConstructor<'heap>,
+    TypeConstructor { name }: TypeConstructor<'heap>,
 ) -> T::Output<TypeConstructor<'heap>> {
     let name = visitor.fold_symbol(name)?;
-    let closure = visitor.fold_type_id(closure)?;
-    let arguments = visitor.fold_generic_argument_references(arguments)?;
 
-    Try::from_output(TypeConstructor {
-        name,
-        closure,
-        arguments,
-    })
+    Try::from_output(TypeConstructor { name })
 }
 
 pub fn walk_binary_operation<'heap, T: Fold<'heap> + ?Sized>(

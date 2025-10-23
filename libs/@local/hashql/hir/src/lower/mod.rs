@@ -58,7 +58,7 @@ pub fn lower<'heap>(
     let mut diagnostics = advisories.generalize();
 
     let mut inference = TypeInference::new(env, context);
-    inference.visit_node(node.0);
+    inference.visit_node(node);
 
     let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
@@ -78,7 +78,7 @@ pub fn lower<'heap>(
     env.substitution = substitution;
 
     let mut checking = TypeChecking::new(env, context, inference_residual);
-    checking.visit_node(&node);
+    checking.visit_node(node);
 
     let mut result = checking.finish();
     result.append_diagnostics(&mut diagnostics);
