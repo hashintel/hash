@@ -8,12 +8,12 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 42
-└→ Integer
+┌─ #input(x, type: Number, default: #as(42, type: _0«Integer»))
+└→ Number
 
 ┌─ #as(42, type: _0«Integer»)
 └→ _0«Integer»
 
-┌─ #input(x, type: Number, default: #as(42, type: _0«Integer»))
-└→ Number
+┌─ 42
+└→ Integer
 

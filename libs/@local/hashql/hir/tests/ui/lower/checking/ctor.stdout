@@ -4,16 +4,16 @@
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
+#ctor(fn(Integer) -> Some[Integer], arguments: [T])(2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 2
-└→ Integer
+┌─ #ctor(fn(Integer) -> Some[Integer], arguments: [T])(2)
+└→ Some[Integer]
 
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
+┌─ #ctor(fn(Integer) -> Some[Integer], arguments: [T])
 └→ fn(Integer) -> Some[Integer]
 
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
-└→ Some[Integer]
+┌─ 2
+└→ Integer
 

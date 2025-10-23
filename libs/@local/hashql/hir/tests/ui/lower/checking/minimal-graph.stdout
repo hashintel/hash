@@ -8,6 +8,18 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ ::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
+└→ List<Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+      entity_uuid: EntityUuid[Uuid[String]], web_id:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+       EntityUuid[Uuid[String]], web_id:
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
+
 ┌─ ::graph::tail::collect
 └→ fn(Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
       EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
@@ -31,25 +43,6 @@
        EntityUuid[Uuid[String]], web_id:
        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
 
-┌─ ::graph::head::entities
-└→ fn(TimeAxis[(:)]) -> Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
-        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (None[Null]
-      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
-
-┌─ ::graph::tmp::decision_time_now
-└→ fn() -> TimeAxis[(:)]
-
-┌─ ::graph::tmp::decision_time_now()
-└→ TimeAxis[(:)]
-
 ┌─ ::graph::head::entities(::graph::tmp::decision_time_now())
 └→ Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
       EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
@@ -63,15 +56,22 @@
         EntityUuid[Uuid[String]], web_id:
         WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
-┌─ ::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
-└→ List<Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
-      entity_uuid: EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
-     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+┌─ ::graph::head::entities
+└→ fn(TimeAxis[(:)]) -> Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+        EntityUuid[Uuid[String]], web_id:
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
+
+┌─ ::graph::tmp::decision_time_now()
+└→ TimeAxis[(:)]
+
+┌─ ::graph::tmp::decision_time_now
+└→ fn() -> TimeAxis[(:)]
 

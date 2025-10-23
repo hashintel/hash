@@ -8,6 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ #as({"key1": 42, "key2": 43, "key3": 44}, type: Dict<String, Number>)
+└→ Dict<String, Number>
+
 ┌─ "key1"
 └→ String
 
@@ -28,7 +31,4 @@
 
 ┌─ {"key1": 42, "key2": 43, "key3": 44}
 └→ Dict<String, Integer>
-
-┌─ #as({"key1": 42, "key2": 43, "key3": 44}, type: Dict<String, Number>)
-└→ Dict<String, Number>
 
