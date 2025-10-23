@@ -37,6 +37,11 @@ pub enum TraversalEdge {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(name = "entity_edge_kind", rename_all = "kebab-case")
+)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case", tag = "kind")]

@@ -29,8 +29,9 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, GraphResolveDepths,
-            KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
+            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, EntityTraversalEdgeKind,
+            GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams,
+            TraversalEdge,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -94,8 +95,8 @@ use crate::store::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             ReferenceTable, SelectCompiler, Table,
             rows::{
-                EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow, EntityHasRightEntityRow,
-                EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityHasLeftEntityRow,
+                EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
             },
         },
     },
@@ -578,6 +579,7 @@ where
                 "
                     DELETE FROM entity_has_left_entity;
                     DELETE FROM entity_has_right_entity;
+                    DELETE FROM entity_edge;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
                     DELETE FROM entity_editions;
@@ -1006,6 +1008,7 @@ where
         let mut entity_is_of_type_rows = Vec::with_capacity(params.len());
         let mut entity_has_left_entity_rows = Vec::new();
         let mut entity_has_right_entity_rows = Vec::new();
+        let mut entity_edge_rows = Vec::new();
 
         let mut policies = Vec::new();
 
@@ -1284,6 +1287,48 @@ where
                     confidence: link_data.right_entity_confidence,
                     provenance: link_data.right_entity_provenance.clone(),
                 });
+                entity_edge_rows.extend([
+                    EntityEdgeRow {
+                        source_web_id: entity_id.web_id,
+                        source_entity_uuid: entity_id.entity_uuid,
+                        target_web_id: link_data.left_entity_id.web_id,
+                        target_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        confidence: link_data.left_entity_confidence,
+                        provenance: link_data.left_entity_provenance.clone(),
+                        kind: EntityTraversalEdgeKind::HasLeftEntity,
+                        direction: EdgeDirection::Outgoing,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: link_data.left_entity_id.web_id,
+                        source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        target_web_id: entity_id.web_id,
+                        target_entity_uuid: entity_id.entity_uuid,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                        kind: EntityTraversalEdgeKind::HasLeftEntity,
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: entity_id.web_id,
+                        source_entity_uuid: entity_id.entity_uuid,
+                        target_web_id: link_data.right_entity_id.web_id,
+                        target_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        confidence: link_data.right_entity_confidence,
+                        provenance: link_data.right_entity_provenance.clone(),
+                        kind: EntityTraversalEdgeKind::HasRightEntity,
+                        direction: EdgeDirection::Outgoing,
+                    },
+                    EntityEdgeRow {
+                        source_web_id: link_data.right_entity_id.web_id,
+                        source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        target_web_id: entity_id.web_id,
+                        target_entity_uuid: entity_id.entity_uuid,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                        kind: EntityTraversalEdgeKind::HasRightEntity,
+                        direction: EdgeDirection::Incoming,
+                    },
+                ]);
             });
 
             entities.push(Entity {
@@ -1340,6 +1385,7 @@ where
                 Table::EntityHasRightEntity,
                 &entity_has_right_entity_rows,
             ),
+            InsertStatementBuilder::from_rows(Table::EntityEdge, &entity_edge_rows),
         ];
 
         for statement in insertions {

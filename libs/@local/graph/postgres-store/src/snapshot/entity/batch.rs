@@ -25,8 +25,9 @@ use crate::{
         postgres::{
             AsClient, PostgresStore,
             query::rows::{
-                EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-                EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow,
+                EntityHasLeftEntityRow, EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
+                EntityTemporalMetadataRow,
             },
         },
     },
@@ -40,6 +41,7 @@ pub enum EntityRowBatch {
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
     LeftLinks(Vec<EntityHasLeftEntityRow>),
     RightLinks(Vec<EntityHasRightEntityRow>),
+    EntityEdges(Vec<EntityEdgeRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
 }
 
@@ -79,6 +81,10 @@ where
 
                     CREATE TEMPORARY TABLE entity_has_right_entity_tmp
                         (LIKE entity_has_right_entity INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE entity_edge_tmp
+                        (LIKE entity_edge INCLUDING ALL)
                         ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
@@ -263,6 +269,28 @@ where
                     tracing::info!("Read {} right entity links", rows.len());
                 }
             }
+            Self::EntityEdges(edges) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO entity_edge_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_edge[])
+                            RETURNING 1;
+                        ",
+                        &[&edges],
+                    )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} entity edges", rows.len());
+                }
+            }
             Self::Embeddings(embeddings) => {
                 let rows = client
                     .query(
@@ -319,6 +347,9 @@ where
 
                     INSERT INTO entity_has_right_entity
                         SELECT * FROM entity_has_right_entity_tmp;
+
+                    INSERT INTO entity_edge
+                        SELECT * FROM entity_edge_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;

@@ -556,6 +556,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::EntityIsOfTypeIds
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
+                            | Table::EntityEdge
                             | Table::Reference(_) => {
                                 bail!(SelectCompilerError::UnsupportedEmbeddingPath)
                             }
@@ -611,6 +612,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::EntityIsOfTypeIds
                             | Table::EntityHasLeftEntity
                             | Table::EntityHasRightEntity
+                            | Table::EntityEdge
                             | Table::Reference(_) => unreachable!(),
                         };
 

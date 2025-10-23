@@ -111,6 +111,11 @@ impl EdgeKind<DataTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(name = "entity_edge_kind", rename_all = "kebab-case")
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KnowledgeGraphEdgeKind {
     /// This link [`Entity`] has another [`Entity`] on its 'left' endpoint.

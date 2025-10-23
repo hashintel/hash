@@ -9,6 +9,7 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
+use hash_graph_store::subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind};
 use type_system::{
     knowledge::Entity,
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
@@ -17,8 +18,9 @@ use type_system::{
 use crate::{
     snapshot::{SnapshotRestoreError, entity::EntityRowBatch},
     store::postgres::query::rows::{
-        EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-        EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+        EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow,
+        EntityHasLeftEntityRow, EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
+        EntityTemporalMetadataRow,
     },
 };
 
@@ -35,6 +37,7 @@ pub struct EntitySender {
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
     left_links: Sender<EntityHasLeftEntityRow>,
     right_links: Sender<EntityHasRightEntityRow>,
+    entity_edge: Sender<EntityEdgeRow>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `AccountSender` with
@@ -65,6 +68,9 @@ impl Sink<Entity> for EntitySender {
         ready!(self.right_links.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not poll right entity link edges sender")?;
+        ready!(self.entity_edge.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach("could not poll entity edge sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -133,7 +139,7 @@ impl Sink<Entity> for EntitySender {
                     left_web_id: link_data.left_entity_id.web_id,
                     left_entity_uuid: link_data.left_entity_id.entity_uuid,
                     confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance,
+                    provenance: link_data.left_entity_provenance.clone(),
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach("could not send entity link edges")?;
@@ -144,10 +150,64 @@ impl Sink<Entity> for EntitySender {
                     right_web_id: link_data.right_entity_id.web_id,
                     right_entity_uuid: link_data.right_entity_id.entity_uuid,
                     confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance,
+                    provenance: link_data.right_entity_provenance.clone(),
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach("could not send entity link edges")?;
+
+            self.entity_edge
+                .start_send_unpin(EntityEdgeRow {
+                    source_web_id: entity.metadata.record_id.entity_id.web_id,
+                    source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                    target_web_id: link_data.left_entity_id.web_id,
+                    target_entity_uuid: link_data.left_entity_id.entity_uuid,
+                    confidence: link_data.left_entity_confidence,
+                    provenance: link_data.left_entity_provenance,
+                    kind: EntityTraversalEdgeKind::HasLeftEntity,
+                    direction: EdgeDirection::Outgoing,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach("could not send outgoing entity edge for left link")?;
+            self.entity_edge
+                .start_send_unpin(EntityEdgeRow {
+                    source_web_id: link_data.left_entity_id.web_id,
+                    source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                    target_web_id: entity.metadata.record_id.entity_id.web_id,
+                    target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                    kind: EntityTraversalEdgeKind::HasLeftEntity,
+                    direction: EdgeDirection::Incoming,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach("could not send incoming entity edge for left link")?;
+
+            self.entity_edge
+                .start_send_unpin(EntityEdgeRow {
+                    source_web_id: entity.metadata.record_id.entity_id.web_id,
+                    source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                    target_web_id: link_data.right_entity_id.web_id,
+                    target_entity_uuid: link_data.right_entity_id.entity_uuid,
+                    confidence: link_data.right_entity_confidence,
+                    provenance: link_data.right_entity_provenance,
+                    kind: EntityTraversalEdgeKind::HasRightEntity,
+                    direction: EdgeDirection::Outgoing,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach("could not send outgoing entity edge for right link")?;
+            self.entity_edge
+                .start_send_unpin(EntityEdgeRow {
+                    source_web_id: link_data.right_entity_id.web_id,
+                    source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                    target_web_id: entity.metadata.record_id.entity_id.web_id,
+                    target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                    kind: EntityTraversalEdgeKind::HasRightEntity,
+                    direction: EdgeDirection::Incoming,
+                })
+                .change_context(SnapshotRestoreError::Read)
+                .attach("could not send incoming entity edge for right link")?;
         }
 
         Ok(())
@@ -175,6 +235,9 @@ impl Sink<Entity> for EntitySender {
         ready!(self.right_links.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not flush right entity link edges sender")?;
+        ready!(self.entity_edge.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach("could not flush entity edge sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -201,6 +264,9 @@ impl Sink<Entity> for EntitySender {
         ready!(self.right_links.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not close entity link edges sender")?;
+        ready!(self.entity_edge.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach("could not close entity edge sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -239,6 +305,7 @@ pub(crate) fn channel(
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
     let (left_links_tx, left_links_rx) = mpsc::channel(chunk_size);
     let (right_links_tx, right_links_rx) = mpsc::channel(chunk_size);
+    let (entity_edge_tx, entity_edge_rx) = mpsc::channel(chunk_size);
 
     (
         EntitySender {
@@ -249,6 +316,7 @@ pub(crate) fn channel(
             temporal_metadata: temporal_metadata_tx,
             left_links: left_links_tx,
             right_links: right_links_tx,
+            entity_edge: entity_edge_tx,
         },
         EntityReceiver {
             stream: select_all([
@@ -279,6 +347,10 @@ pub(crate) fn channel(
                 right_links_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::RightLinks)
+                    .boxed(),
+                entity_edge_rx
+                    .ready_chunks(chunk_size)
+                    .map(EntityRowBatch::EntityEdges)
                     .boxed(),
                 embedding_rx
                     .ready_chunks(chunk_size)

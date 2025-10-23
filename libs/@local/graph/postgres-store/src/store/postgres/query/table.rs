@@ -44,6 +44,7 @@ pub enum Table {
     EntityIsOfTypeIds,
     EntityHasLeftEntity,
     EntityHasRightEntity,
+    EntityEdge,
     Reference(ReferenceTable),
 }
 
@@ -352,6 +353,7 @@ impl Table {
             Self::EntityIsOfTypeIds => "entity_is_of_type_ids",
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
+            Self::EntityEdge => "entity_edge",
             Self::Reference(table) => table.as_str(),
         }
     }
