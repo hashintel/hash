@@ -14,7 +14,7 @@ use hashql_hir::{
     lower::inference::{TypeInference, TypeInferenceResidual},
     node::{HirIdMap, Node},
     pretty::PrettyPrintEnvironment,
-    visit::Visitor,
+    visit::{self, Visitor},
 };
 
 use super::{
@@ -34,6 +34,8 @@ struct HirNodeVisitor<'heap> {
 impl<'heap> Visitor<'heap> for HirNodeVisitor<'heap> {
     fn visit_node(&mut self, node: Node<'heap>) {
         self.nodes.insert_unique(node.id, node);
+
+        visit::walk_node(self, node);
     }
 }
 
