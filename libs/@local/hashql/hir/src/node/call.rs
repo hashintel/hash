@@ -1,6 +1,6 @@
 use hashql_core::{intern::Interned, span::SpanId};
 
-use super::{Node, NodeData};
+use super::Node;
 
 /// The calling convention for a function pointer in a call expression.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -13,7 +13,7 @@ pub mod variable;
 
 use hashql_core::{
     id::{self, HasId},
-    intern::{Decompose, Interned},
+    intern::Interned,
     span::SpanId,
 };
 

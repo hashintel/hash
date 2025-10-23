@@ -228,7 +228,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.simplified_type(id);
     }
 
-    fn visit_node(&mut self, node: &NodeData<'heap>) {
+    fn visit_node(&mut self, node: &'heap NodeData<'heap>) {
         if !self.visited.insert(node.id) {
             return;
         }

@@ -318,10 +318,10 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
 
-        // If there has been a let node already, we can "salvage" it's node_id, otherwise we need to
-        // provision a new one
-        if matches!(node.kind, NodeKind::Let(_)) {}
-
+        // Check if the id from the new node is the same as the one from the source node
+        // if they aren't then we can reuse the same id. Why?
+        // Only `let` expressions "erase" themselves, therefore we just no-op.
+        let prev_hir_id = node.id;
         let Ok(mut node) = fold::walk_nested_node(self, node);
         node = self.ensure_atom(node);
 
@@ -329,8 +329,17 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
+            let id = if node.id != prev_hir_id {
+                // We've "taken over" the id of the previous node
+                prev_hir_id
+            } else {
+                // The item was already an atom, therefore nothing to reuse
+                self.context.counter.hir.next()
+            };
+
             // We need to wrap the collected bindings into a new let node
-            node = self.context.interner.intern_node(PartialNode {
+            node = self.context.interner.intern_node(NodeData {
+                id,
                 span: node.span,
                 kind: NodeKind::Let(Let {
                     bindings: self.context.interner.bindings.intern_slice(&bindings),
@@ -361,7 +370,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// This method handles the trampoline mechanism that allows complete node
     /// replacement during the folding process. It's used for transformations
     /// like removing type assertions or flattening let bindings.
-    fn fold_node(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
+    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
 
         let Ok(mut node) = fold::walk_node(self, node);

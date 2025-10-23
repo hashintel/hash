@@ -393,28 +393,29 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
         env: &PrettyPrintEnvironment<'env, 'heap>,
         _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        RcDoc::text("#ctor")
-            .append("(")
-            .append(pretty_print_type_id(self.closure, env.env))
-            .append(",")
-            .group()
-            .append(RcDoc::softline())
-            .append("arguments: ")
-            .append(
-                RcAllocator
-                    .intersperse(
-                        self.arguments
-                            .iter()
-                            .map(|argument| RcDoc::text(argument.name.unwrap())),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .group()
-                    .brackets()
-                    .group(),
-            )
-            .group()
-            .append(")")
-            .group()
+        todo!()
+        // RcDoc::text("#ctor")
+        //     .append("(")
+        //     .append(pretty_print_type_id(self.closure, env.env))
+        //     .append(",")
+        //     .group()
+        //     .append(RcDoc::softline())
+        //     .append("arguments: ")
+        //     .append(
+        //         RcAllocator
+        //             .intersperse(
+        //                 self.arguments
+        //                     .iter()
+        //                     .map(|argument| RcDoc::text(argument.name.unwrap())),
+        //                 RcDoc::text(",").append(RcDoc::softline()),
+        //             )
+        //             .group()
+        //             .brackets()
+        //             .group(),
+        //     )
+        //     .group()
+        //     .append(")")
+        //     .group()
     }
 }
 

@@ -1,4 +1,4 @@
-use super::{Node, NodeData};
+use super::Node;
 
 /// A thunk expression in the HashQL High-Level Intermediate Representation.
 ///

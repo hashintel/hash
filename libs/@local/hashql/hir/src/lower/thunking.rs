@@ -101,9 +101,9 @@ pub struct Thunking<'ctx, 'env, 'heap> {
     /// Set of top-level variable IDs that have been wrapped in thunks
     thunked: VarIdSet,
     /// The currently processing node during folding operations
-    current_node: Option<NodeData<'heap>>,
+    current_node: Option<Node<'heap>>,
     /// Optional node replacement mechanism for call insertion
-    trampoline: Option<NodeData<'heap>>,
+    trampoline: Option<Node<'heap>>,
 }
 
 impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
@@ -151,14 +151,14 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     /// references include call insertion. The result is **not** in ANF and requires
     /// re-normalization.
     #[must_use]
-    pub fn run(mut self, node: NodeData<'heap>) -> NodeData<'heap> {
+    pub fn run(mut self, node: Node<'heap>) -> Node<'heap> {
         // First collect all the variables that need to be thunked, these are simply the top level
         // let-bindings, we know that the top level are let bindings, because we expect everything
         // to be in HIR(ANF).
         let (mut bindings, body) = if let NodeKind::Let(Let { bindings, body }) = node.kind {
             // Ensure that the underlying node is an atom, if it isn't -> we're not being called
             // from HIR(ANF)
-            debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
+            debug_assert!(is_anf_atom(&body), "The HIR is not in ANF");
 
             // When thunking, do not double thunk
             self.thunked.extend(
@@ -169,7 +169,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             );
 
             // Transform the bindings to insert thunk calls at variable reference sites
-            let Ok(bindings) = self.fold_bindings(*bindings);
+            let Ok(bindings) = self.fold_bindings(bindings);
 
             (bindings.to_vec(), body)
         } else {
@@ -177,7 +177,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             // from HIR(ANF)
             debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
 
-            (Vec::new(), &node)
+            (Vec::new(), node)
         };
 
         // Handle the body based on its type. Variables already reference thunks, while
@@ -186,10 +186,10 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         let body = match body.kind {
             NodeKind::Variable(_) => {
                 // Variable already references a thunk, no additional binding needed
-                *body
+                body
             }
             NodeKind::Data(Data::Primitive(_)) | NodeKind::Access(_) => {
-                ensure_local_variable(self.context, &mut bindings, *body)
+                ensure_local_variable(self.context, &mut bindings, body)
             }
             NodeKind::Data(_)
             | NodeKind::Let(_)
@@ -214,7 +214,9 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
 
         let bindings = self.context.interner.bindings.intern_slice(&bindings);
 
-        self.context.interner.intern_node(PartialNode {
+        self.context.interner.intern_node(NodeData {
+            // we replace the outer node if there are any bindings, so we can keep the same id
+            id: node.id,
             span: node.span,
             kind: NodeKind::Let(Let { bindings, body }),
         })
@@ -231,7 +233,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     /// Panics if called when no current node is set, which indicates a bug in the
     /// folding logic.
     #[inline]
-    fn current_node(&self) -> NodeData<'heap> {
+    fn current_node(&self) -> Node<'heap> {
         self.current_node.unwrap_or_else(|| {
             unreachable!("current_node is only called in `fold_node` and should be always set")
         })
@@ -247,7 +249,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     ///
     /// Panics if the trampoline is already set, which would indicate multiple
     /// replacement attempts for the same node.
-    fn trampoline(&mut self, node: NodeData<'heap>) {
+    fn trampoline(&mut self, node: Node<'heap>) {
         assert!(
             self.trampoline.is_none(),
             "trampoline has been inserted to multiple times"
@@ -273,7 +275,7 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
     ///
     /// This method handles the core folding logic while maintaining proper
     /// trampoline state isolation between nested node processing.
-    fn fold_node(&mut self, node: NodeData<'heap>) -> Self::Output<NodeData<'heap>> {
+    fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup_trampoline = self.trampoline.take();
         let backup_current_node = self.current_node.replace(node);
 
@@ -304,7 +306,9 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
             return Ok(variable);
         }
 
-        self.trampoline(self.context.interner.intern_node(PartialNode {
+        let id = self.context.counter.hir.next();
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id,
             span: self.current_node().span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Thin,
@@ -330,7 +334,9 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
 
         // Insert a call to force the thunk. The `fold_call` method ensures this
         // doesn't lead to wrong calling conventions for already-thunked qualified variables.
-        self.trampoline(self.context.interner.intern_node(PartialNode {
+        let id = self.context.counter.hir.next();
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id,
             span: self.current_node().span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Thin,

@@ -26,7 +26,7 @@ use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     context::HirContext,
     node::{
-        HirIdMap, HirIdSet, HirPtr, NodeData,
+        HirIdMap, HirIdSet, HirPtr, Node, NodeData,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -152,7 +152,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         self.collector.visit_id(id);
     }
 
-    fn visit_node(&mut self, node: &NodeData<'heap>) {
+    fn visit_node(&mut self, node: Node<'heap>) {
         if !self.visited.insert(node.id) {
             return;
         }

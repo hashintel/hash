@@ -7,7 +7,7 @@ use hashql_core::{
 
 use crate::{
     intern::Interner,
-    node::{HirId, HirIdMap, HirIdVec, r#let::VarId},
+    node::{HirId, HirIdVec, r#let::VarId},
 };
 
 pub type BinderSymbolTable<'heap> = SymbolTable<'heap, VarId>;

@@ -13,7 +13,7 @@ use self::{
     specialization::Specialization,
     thunking::Thunking,
 };
-use crate::{context::HirContext, fold::Fold as _, node::NodeData, visit::Visitor as _};
+use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
 pub mod alias;
 pub mod checking;
@@ -36,11 +36,11 @@ pub mod thunking;
 ///
 /// The vector is guaranteed to be non-empty.
 pub fn lower<'heap>(
-    node: NodeData<'heap>,
+    node: Node<'heap>,
     types: &ExtractedTypes<'heap>,
     env: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
-) -> LoweringDiagnosticStatus<NodeData<'heap>> {
+) -> LoweringDiagnosticStatus<Node<'heap>> {
     let mut diagnostics = DiagnosticIssues::new();
     let mut replacement = AliasReplacement::new(context, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
@@ -58,7 +58,7 @@ pub fn lower<'heap>(
     let mut diagnostics = advisories.generalize();
 
     let mut inference = TypeInference::new(env, context);
-    inference.visit_node(&node);
+    inference.visit_node(node.0);
 
     let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
