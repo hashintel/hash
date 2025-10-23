@@ -46,15 +46,19 @@ export type VariableType = "COLOR" | "FLOAT" | "STRING" | "BOOLEAN";
 export type VariableValue =
   | string
   | number
-  | {
-      readonly type: "VARIABLE_ALIAS";
-      readonly id: string;
-    }
-  | {
-      readonly r: number;
-      readonly g: number;
-      readonly b: number;
-    };
+  | VariableValueColor
+  | VariableValueAlias;
+
+export type VariableValueColor = {
+  readonly r: number;
+  readonly g: number;
+  readonly b: number;
+};
+
+export type VariableValueAlias = {
+  readonly type: "VARIABLE_ALIAS";
+  readonly id: string;
+};
 
 export type Variable = {
   readonly id: string;
