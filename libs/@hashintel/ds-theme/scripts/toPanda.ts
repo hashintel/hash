@@ -16,5 +16,6 @@ export default definePreset(${JSON.stringify(preset, null, 2)});
 writeFileSync(outputPath, fileContent, "utf-8");
 
 // Write name map output file
+
 const nameMapOutputPath = "./src/figmaToPandaNameMap.json";
 writeFileSync(nameMapOutputPath, JSON.stringify(nameMap, null, 2), "utf-8");

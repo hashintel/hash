@@ -27,13 +27,30 @@ import {
  * No need to map Mode in case of single-mode in Figma collection.
  * Always define a "base" mapping for new modes.
  *
- * TODO: Make this a property of the toPanda function.
+ * TODO: Make this an argument of the toPanda function.
  */
 const MODE_TO_CONDITION_MAP: Record<string, string> = {
   // Light/Dark
   Light: "base",
   Dark: "_dark",
 };
+
+/**
+ * Determine if variable should be omitted from output.
+ *
+ * TODO: Discuss with @CiaranH to confirm these exclusions/adapt values
+ * TODO: Make this an argument of the toPanda function.
+ */
+function SHOULD_OMIT_VARIABLE(variable: Variable): boolean {
+  return (
+    variable.name === "container" ||
+    // variable.scopes.length === 0 ||
+    variable.name === "spacing/Number" ||
+    variable.name === "weight/normal" ||
+    variable.name === "weight/medium" ||
+    variable.name === "weight/semibold"
+  );
+}
 
 /**
  * Clean up variable name for use in PandaCSS:
@@ -232,21 +249,6 @@ function getVariablePandaValue(
 }
 
 /**
- * Determine if variable should be omitted from output.
- * TODO: Discuss with @CiaranH to confirm these exclusions/adapt values
- */
-function shouldOmitVariable(variable: Variable): boolean {
-  return (
-    variable.name === "container" ||
-    // variable.scopes.length === 0 ||
-    variable.name === "spacing/Number" ||
-    variable.name === "weight/normal" ||
-    variable.name === "weight/medium" ||
-    variable.name === "weight/semibold"
-  );
-}
-
-/**
  * Transform Figma export to PandaCSS preset
  */
 export function toPanda(root: FigmaVariablesExport) {
@@ -270,11 +272,11 @@ export function toPanda(root: FigmaVariablesExport) {
 
   //
   // First pass on variables:
-  // - Create map id -> variable output
+  // - Create map id -> partial variable output (names and paths)
   // - Keep references for second pass
   //
   for (const variable of root.variables) {
-    if (shouldOmitVariable(variable)) continue;
+    if (SHOULD_OMIT_VARIABLE(variable)) continue;
 
     varIdToVarMap.set(variable.id, getVariableOutput(variable));
   }
@@ -304,9 +306,9 @@ export function toPanda(root: FigmaVariablesExport) {
   type NameMapEntry = { id: string; tokenName: string; tokenPath: string };
   const nameMap: Record<string, NameMapEntry> = {};
 
-  for (const [_variableId, transformedVariable] of varIdToVarMap) {
+  for (const [id, transformedVariable] of varIdToVarMap) {
     nameMap[transformedVariable._figmaVariable.name] = {
-      id: transformedVariable._figmaVariable.id,
+      id,
       tokenName: transformedVariable.tokenName,
       tokenPath: transformedVariable.tokenPath,
     };
