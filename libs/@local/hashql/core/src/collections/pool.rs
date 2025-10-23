@@ -327,7 +327,7 @@ where
         }
 
         if self.free.len() < new_max_size {
-            self.free.reserve(new_max_size - self.free.len());
+            self.free.reserve_exact(new_max_size - self.free.len());
         }
     }
 
@@ -532,10 +532,8 @@ impl<T> Recycler<Vec<T>> for VecRecycler {
     /// insufficient, making it efficient for scenarios where recycled
     /// objects often have adequate capacity.
     fn prepare(&mut self, item: &mut Vec<T>, config: Self::Config) {
-        // Only *grow* the vector if it's smaller than the requested capacity
-        if item.len() < config {
-            item.reserve(config - item.len());
-        }
+        // The length will always be zero, because of the `recycle` step.
+        item.reserve(config);
     }
 }
 
