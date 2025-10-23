@@ -126,8 +126,12 @@ pub(crate) fn ensure_local_variable<'heap>(
     };
     bindings.push(binding);
 
+    // The type of that variable is that of the node itself
+    let id = context.counter.hir.next();
+    context.map.copy_to(node.id, id);
+
     context.interner.intern_node(NodeData {
-        id: context.counter.hir.next(),
+        id,
         span: node.span,
         kind: NodeKind::Variable(Variable::Local(LocalVariable {
             id: Spanned {
@@ -331,7 +335,12 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         if !bindings.is_empty() {
             let id = if node.id == prev_hir_id {
                 // The item was already an atom, therefore nothing to reuse
-                self.context.counter.hir.next()
+                let id = self.context.counter.hir.next();
+
+                // Copy any information from the underlying node as this is a simple let, and
+                // therefore takes the type of the body.
+                self.context.map.copy_to(prev_hir_id, node.id);
+                id
             } else {
                 // We've "taken over" the id of the previous node
                 prev_hir_id

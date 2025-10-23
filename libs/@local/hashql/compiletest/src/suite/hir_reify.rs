@@ -10,7 +10,10 @@ use hashql_core::{
     r#type::environment::Environment,
 };
 use hashql_hir::{
-    context::HirContext, intern::Interner, node::NodeData, pretty::PrettyPrintEnvironment,
+    context::HirContext,
+    intern::Interner,
+    node::{Node, NodeData},
+    pretty::PrettyPrintEnvironment,
 };
 
 use super::{Suite, SuiteDiagnostic, common::process_status};
@@ -21,7 +24,7 @@ pub(crate) fn hir_reify<'heap>(
     environment: &Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
-) -> Result<(NodeData<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
+) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
     let result = lower(
         heap.intern_symbol("::main"),
         &mut expr,
@@ -59,6 +62,7 @@ impl Suite for HirReifySuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color(),
             )

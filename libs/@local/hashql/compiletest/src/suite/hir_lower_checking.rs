@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::checking::{TypeChecking, TypeCheckingResidual},
-    node::NodeData,
+    node::{Node, NodeData},
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
@@ -30,7 +30,7 @@ pub(crate) fn hir_lower_checking<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<(NodeData<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
+) -> Result<(Node<'heap>, TypeCheckingResidual<'heap>), SuiteDiagnostic> {
     let (node, solver, inference_residual) =
         hir_lower_inference(heap, expr, environment, context, options)?;
 
@@ -39,7 +39,7 @@ pub(crate) fn hir_lower_checking<'heap>(
     environment.substitution = substitution;
 
     let mut checking = TypeChecking::new(environment, context, inference_residual);
-    checking.visit_node(&node);
+    checking.visit_node(node);
 
     let residual = process_status(options.diagnostics, checking.finish())?;
     Ok((node, residual))
@@ -100,6 +100,7 @@ impl Suite for HirLowerTypeCheckingSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )
@@ -135,6 +136,7 @@ impl Suite for HirLowerTypeCheckingSuite {
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,
+                            map: &context.map,
                         },
                         PrettyOptions::default().without_color()
                     ),

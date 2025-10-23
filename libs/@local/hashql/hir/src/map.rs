@@ -10,6 +10,12 @@ use hashql_core::{
 use crate::node::{HirId, HirIdMap, HirIdVec};
 
 #[derive(Debug)]
+pub struct HirInfo<'heap> {
+    pub type_id: TypeId,
+    pub type_arguments: Option<Interned<'heap, [GenericArgumentReference<'heap>]>>,
+}
+
+#[derive(Debug)]
 pub struct HirMap<'heap> {
     types: HirIdVec<TypeId>,
     types_arguments: HirIdMap<Interned<'heap, [GenericArgumentReference<'heap>]>>,
@@ -40,6 +46,7 @@ impl<'heap> HirMap<'heap> {
             });
     }
 
+    #[inline]
     #[must_use]
     pub fn type_def(&self, id: HirId) -> TypeDef<'heap> {
         TypeDef {
@@ -53,6 +60,18 @@ impl<'heap> HirMap<'heap> {
         self.types_arguments.insert(id, def.arguments);
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "intentional API decision to signal hand-over"
+    )]
+    pub fn insert(&mut self, id: HirId, info: HirInfo<'heap>) {
+        self.insert_type_id(id, info.type_id);
+
+        if let Some(type_arguments) = info.type_arguments {
+            self.types_arguments.insert(id, type_arguments);
+        }
+    }
+
     #[must_use]
     pub fn get_type_arguments(
         &self,
@@ -61,7 +80,7 @@ impl<'heap> HirMap<'heap> {
         self.types_arguments.get(&id).copied()
     }
 
-    pub fn transfer(&mut self, from: HirId, to: HirId) {
+    pub fn copy_to(&mut self, from: HirId, to: HirId) {
         if let Some(types_arguments) = self.types_arguments.get(&from).copied() {
             self.types_arguments.insert(to, types_arguments);
         }

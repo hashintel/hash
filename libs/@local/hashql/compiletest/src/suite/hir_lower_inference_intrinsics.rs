@@ -70,6 +70,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )
@@ -86,6 +87,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,
+                            map: &context.map,
                         },
                         PrettyOptions::default().without_color()
                     ),

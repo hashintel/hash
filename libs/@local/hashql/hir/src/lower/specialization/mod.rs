@@ -315,19 +315,6 @@ impl<'heap> Fold<'heap> for Specialization<'_, '_, '_, 'heap, '_> {
             fold::walk_node(self, node)?
         };
 
-        // We might want to consider if we need to guard this behind some sort of check if the node
-        // hasn't been visited before (that has been output). Considering that we're already doing a
-        // dedupe step it shouldn't be needed, as it's always a unique to unique transformation.
-        if node.id != node_id {
-            self.context.map.transfer(node.id, node_id);
-
-            if let Some(intrinsic) = self.intrinsics.remove(&node_id) {
-                self.intrinsics
-                    .try_insert(node.id, intrinsic)
-                    .expect("node id should be unique in intrinsics");
-            }
-        }
-
         self.visited.insert(node_id, node);
 
         self.current = previous;

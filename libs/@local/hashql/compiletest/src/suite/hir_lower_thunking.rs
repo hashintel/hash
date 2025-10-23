@@ -14,7 +14,7 @@ use hashql_hir::{
         normalization::{Normalization, NormalizationState},
         thunking::Thunking,
     },
-    node::NodeData,
+    node::Node,
     pretty::PrettyPrintEnvironment,
 };
 
@@ -30,10 +30,10 @@ pub(crate) fn hir_lower_thunking<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<NodeData<'heap>, SuiteDiagnostic> {
+) -> Result<Node<'heap>, SuiteDiagnostic> {
     let node = hir_lower_graph_hoisting(heap, expr, environment, context, options)?;
 
-    let thunking = Thunking::new(context);
+    let thunking = Thunking::new(context, environment);
     let node = thunking.run(node);
 
     let mut normalization_state = NormalizationState::default();

@@ -837,6 +837,12 @@ impl<'heap> NodeData<'heap> {
 
         let node = context.expr(expr);
 
+        // After we're done pre-fill the `HirMap`
+        context
+            .context
+            .map
+            .populate(context.context.counter.hir.bound());
+
         let status = context.diagnostics.into_status(());
         match (node, status) {
             (Some(node), Ok(success)) => Ok(success.map(|()| node)),

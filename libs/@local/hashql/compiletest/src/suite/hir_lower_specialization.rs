@@ -10,7 +10,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::specialization::Specialization,
-    node::NodeData, pretty::PrettyPrintEnvironment,
+    node::Node, pretty::PrettyPrintEnvironment,
 };
 
 use super::{
@@ -25,17 +25,12 @@ pub(crate) fn hir_lower_specialization<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<NodeData<'heap>, SuiteDiagnostic> {
-    let (node, mut residual) = hir_lower_checking(heap, expr, environment, context, options)?;
+) -> Result<Node<'heap>, SuiteDiagnostic> {
+    let (node, residual) = hir_lower_checking(heap, expr, environment, context, options)?;
 
     let mut issues = DiagnosticIssues::new();
-    let mut specialisation = Specialization::new(
-        environment,
-        context,
-        &mut residual.types,
-        residual.intrinsics,
-        &mut issues,
-    );
+    let mut specialisation =
+        Specialization::new(environment, context, residual.intrinsics, &mut issues);
     let Ok(node) = specialisation.fold_node(node);
 
     process_issues(options.diagnostics, issues)?;
@@ -83,6 +78,7 @@ impl Suite for HirLowerSpecializationSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )

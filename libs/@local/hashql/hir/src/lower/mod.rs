@@ -104,7 +104,7 @@ pub fn lower<'env, 'heap>(
     let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
     let node = graph_hoisting.run(node);
 
-    let thunking = Thunking::new(context);
+    let thunking = Thunking::new(context, env);
     let node = thunking.run(node);
 
     // Thunking breaks normalization, so re-normalize

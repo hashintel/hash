@@ -402,7 +402,7 @@ impl<'q> EntityQuery<'q> {
         let inputs = fast_hash_map(0);
         let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
 
-        compiler.visit_node(&hir);
+        compiler.visit_node(hir);
 
         let Success {
             value: result,

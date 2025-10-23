@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::inference::{TypeInference, TypeInferenceResidual},
-    node::NodeData,
+    node::{Node, NodeData},
     pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
@@ -34,7 +34,7 @@ pub(crate) fn hir_lower_inference<'env, 'heap>(
     options: &mut TestOptions,
 ) -> Result<
     (
-        NodeData<'heap>,
+        Node<'heap>,
         InferenceSolver<'env, 'heap>,
         TypeInferenceResidual<'heap>,
     ),
@@ -43,7 +43,7 @@ pub(crate) fn hir_lower_inference<'env, 'heap>(
     let node = hir_lower_ctor(heap, expr, environment, context, options)?;
 
     let mut inference = TypeInference::new(environment, context);
-    inference.visit_node(&node);
+    inference.visit_node(node);
 
     let (solver, inference_residual, inference_diagnostics) = inference.finish();
     process_issues(options.diagnostics, inference_diagnostics)?;
@@ -103,6 +103,7 @@ impl Suite for HirLowerTypeInferenceSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )
@@ -119,6 +120,7 @@ impl Suite for HirLowerTypeInferenceSuite {
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,
+                            map: &context.map,
                         },
                         PrettyOptions::default().without_color()
                     ),

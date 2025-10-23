@@ -11,7 +11,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::hoist::{GraphHoisting, GraphHoistingConfig},
-    node::NodeData,
+    node::Node,
     pretty::PrettyPrintEnvironment,
 };
 
@@ -27,7 +27,7 @@ pub(crate) fn hir_lower_graph_hoisting<'heap>(
     environment: &mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
-) -> Result<NodeData<'heap>, SuiteDiagnostic> {
+) -> Result<Node<'heap>, SuiteDiagnostic> {
     let node = hir_lower_normalization(heap, expr, environment, context, options)?;
 
     let hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
@@ -76,6 +76,7 @@ impl Suite for HirLowerGraphHoistingSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )

@@ -60,6 +60,7 @@ impl Suite for EvalGraphReadEntitySuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map
                 },
                 PrettyOptions::default().without_color()
             )
@@ -96,7 +97,7 @@ impl Suite for EvalGraphReadEntitySuite {
         );
 
         let mut compiler = GraphReadCompiler::new(heap, &inputs);
-        compiler.visit_node(&node);
+        compiler.visit_node(node);
         let residual = process_status(diagnostics, compiler.finish())?;
 
         let FilterSlice::Entity { range } = residual.output[&node.id].clone();

@@ -29,7 +29,7 @@ newtype!(
 );
 
 impl TypeId {
-    pub const PLACEHOLDER: TypeId = TypeId(0xFFFF_FF00);
+    pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
 }
 
 newtype_collections!(pub type TypeId* from TypeId);

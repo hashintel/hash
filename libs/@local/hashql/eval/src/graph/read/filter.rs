@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use hash_graph_store::filter::{Filter, FilterExpression, Parameter, QueryRecord};
 use hashql_hir::node::{
-    NodeData,
+    Node,
     call::{Call, PointerKind},
     kind::NodeKind,
     r#let::{Binding, Let},
@@ -23,7 +23,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     pub(super) fn compile_filter<R>(
         &mut self,
         context: FilterCompilerContext,
-        node: &'heap NodeData<'heap>,
+        node: Node<'heap>,
         sink: &mut FilterSink<'_, 'heap, R>,
     ) -> Result<(), CompilationError>
     where
@@ -41,7 +41,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             NodeKind::Variable(Variable::Qualified(qualified)) => {
                 self.diagnostics.push(qualified_variable_unsupported(
-                    context, qualified, node.span,
+                    context, &qualified, node.span,
                 ));
 
                 Err(CompilationError)
@@ -53,7 +53,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     value,
                 } in bindings
                 {
-                    self.locals.insert(binder.id, value);
+                    self.locals.insert(binder.id, *value);
                 }
 
                 let filter = self.compile_filter(context, body, sink);
@@ -154,8 +154,11 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 Ok(())
             }
             NodeKind::Branch(branch) => {
-                self.diagnostics
-                    .push(branch_unsupported(branch, node.span, BranchContext::Filter));
+                self.diagnostics.push(branch_unsupported(
+                    &branch,
+                    node.span,
+                    BranchContext::Filter,
+                ));
 
                 Err(CompilationError)
             }
