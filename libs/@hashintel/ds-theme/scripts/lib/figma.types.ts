@@ -31,7 +31,9 @@ export type VariableScope =
   | "FONT_STYLE"
   | "LINE_HEIGHT"
   | "CORNER_RADIUS"
-  | "FRAME_FILL";
+  | "FRAME_FILL"
+  | "ALL_FILLS"
+  | "EFFECT_COLOR";
 
 /**
  * Exhaustive list of variable types from Figma export.
