@@ -52,6 +52,7 @@ pub struct Local<'heap> {
 pub struct TypeInferenceResidual<'heap> {
     pub locals: VarIdMap<Local<'heap>>,
     pub intrinsics: HirIdMap<&'static str>,
+    pub closures: HirIdMap<TypeId>,
 }
 
 pub struct TypeInference<'ctx, 'env, 'hir, 'heap> {
@@ -67,6 +68,7 @@ pub struct TypeInference<'ctx, 'env, 'hir, 'heap> {
     visited: HirIdSet,
     locals: VarIdMap<Local<'heap>>,
     intrinsics: HirIdMap<&'static str>,
+    closures: HirIdMap<TypeId>,
 }
 
 impl<'ctx, 'env, 'hir, 'heap> TypeInference<'ctx, 'env, 'hir, 'heap> {
@@ -84,6 +86,7 @@ impl<'ctx, 'env, 'hir, 'heap> TypeInference<'ctx, 'env, 'hir, 'heap> {
             visited: FastHashSet::default(),
             locals: FastHashMap::default(),
             intrinsics: FastHashMap::default(),
+            closures: FastHashMap::default(),
         }
     }
 
@@ -136,6 +139,7 @@ impl<'ctx, 'env, 'hir, 'heap> TypeInference<'ctx, 'env, 'hir, 'heap> {
         let residual = TypeInferenceResidual {
             locals: self.locals,
             intrinsics: self.intrinsics,
+            closures: self.closures,
         };
 
         (solver, residual, diagnostics)
@@ -512,11 +516,22 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
     }
 
     fn visit_closure(&mut self, Closure { signature, body }: &'heap Closure<'heap>) {
+        // We create two versions of the closure's definition: one for type-checking the closure
+        // body (`inner`) and another for type-checking calls to the closure (`outer`).
+        // The `inner` version is stored in `self.closures` and used during body type-checking to
+        // ensure the body type is compatible with the declared return type. During this process,
+        // inference may unify or constrain the generic type variables associated with the closure,
+        // potentially changing their identity and relationships.
+        // The `outer` version is a fresh instantiation with unmodified generic variables, which
+        // ensures that call-site type checking is not affected by the inference performed
+        // during body checking.
+
         // We skip instantiation for closure parameters to ensure they remain valid
         // for local binding within the closure scope.
         self.visit_closure_signature(signature);
 
         let def = self.context.map.type_def(self.current.id);
+        self.closures.insert_unique(self.current.id, def.id);
 
         // Mark closure arguments as unscoped to prevent them from being affected by instantiation.
         // This preserves variable identity within the closure - if instantiation modified them,

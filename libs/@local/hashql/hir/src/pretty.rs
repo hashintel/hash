@@ -589,9 +589,10 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
         let mut base = RcDoc::text("#fn");
 
         let mut signature = env.env.r#type(def.id);
-        if !def.arguments.is_empty() {
-            let generic = signature.kind.generic().expect("should be a generic");
-
+        if !def.arguments.is_empty()
+            && let Some(generic) = signature.kind.generic()
+        {
+            // Arguments are no longer present in the type once it has been monomorphized.
             let arguments = generic.arguments;
 
             base = base.append(

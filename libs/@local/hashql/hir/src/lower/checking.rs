@@ -59,6 +59,7 @@ pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
 
     locals: VarIdMap<Local<'heap>>,
     intrinsics: HirIdMap<&'static str>,
+    closures: HirIdMap<TypeId>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
     analysis: AnalysisEnvironment<'env, 'heap>,
@@ -78,7 +79,11 @@ impl<'ctx, 'env, 'hir, 'heap> TypeChecking<'ctx, 'env, 'hir, 'heap> {
         env: &'env Environment<'heap>,
         context: &'ctx mut HirContext<'hir, 'heap>,
 
-        TypeInferenceResidual { locals, intrinsics }: TypeInferenceResidual<'heap>,
+        TypeInferenceResidual {
+            locals,
+            intrinsics,
+            closures,
+        }: TypeInferenceResidual<'heap>,
     ) -> Self {
         let mut analysis = AnalysisEnvironment::new(env);
         analysis.with_diagnostics();
@@ -89,6 +94,7 @@ impl<'ctx, 'env, 'hir, 'heap> TypeChecking<'ctx, 'env, 'hir, 'heap> {
 
             locals,
             intrinsics,
+            closures,
 
             lattice: LatticeEnvironment::new(env),
             analysis,
@@ -452,8 +458,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
         // signature, with the actual signature being used to typecheck the closure body. The
         // inferred type might've been used as a call site and therefore have different variable
         // constraints associated with it, unrelated to the function body.
-        let closure_type =
-            extract_signature(self.context.map.type_id(self.current.id), &self.lattice);
+        let closure_type = extract_signature(self.closures[&self.current.id], &self.lattice);
         let returns = self.simplify.simplify(closure_type.returns);
         self.verify_subtype(self.context.map.type_id(closure.body.id), returns);
 
