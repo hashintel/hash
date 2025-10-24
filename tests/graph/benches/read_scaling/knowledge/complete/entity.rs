@@ -1,7 +1,7 @@
 use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::HashSet;
 
-use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
+use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
@@ -284,13 +284,13 @@ pub fn bench_get_entity_by_id(
     );
 }
 
-#[criterion]
-fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
-    let group_id = "scaling_read_entity_complete_zero_depth";
+fn bench_scaling_read_entity(
+    crit: &mut Criterion,
+    name: &str,
+    traversal_params: &SubgraphTraversalParams,
+) {
+    let group_id = "read_scaling_complete";
     let mut group = crit.benchmark_group(group_id);
-
-    group.sample_size(10);
-    group.sampling_mode(SamplingMode::Flat);
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
@@ -308,53 +308,20 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
         } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
         let store = &store_wrapper.store;
 
-        let function_id = "entity_by_id";
+        let function_id = format!("entity_by_id;{name}");
         let parameter = format!("{size} entities");
         group.bench_with_input(
-            BenchmarkId::new(function_id, &parameter),
+            BenchmarkId::new(&function_id, &parameter),
             &(account_id, entity_metadata_list),
             |bencher, (_account_id, entity_list)| {
-                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
+                let _guard = setup_subscriber(group_id, Some(&function_id), Some(&parameter));
                 bench_get_entity_by_id(
                     bencher,
                     &runtime,
                     store,
                     account_id,
                     entity_list,
-                    &SubgraphTraversalParams::Paths {
-                        traversal_paths: vec![
-                            TraversalPath {
-                                edges: vec![
-                                    TraversalEdge::HasLeftEntity {
-                                        direction: EdgeDirection::Incoming,
-                                    },
-                                    TraversalEdge::HasRightEntity {
-                                        direction: EdgeDirection::Outgoing,
-                                    },
-                                ],
-                            },
-                            TraversalPath {
-                                edges: vec![
-                                    TraversalEdge::HasRightEntity {
-                                        direction: EdgeDirection::Incoming,
-                                    },
-                                    TraversalEdge::HasLeftEntity {
-                                        direction: EdgeDirection::Outgoing,
-                                    },
-                                ],
-                            },
-                            TraversalPath {
-                                edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EdgeDirection::Outgoing,
-                                }],
-                            },
-                            TraversalPath {
-                                edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EdgeDirection::Outgoing,
-                                }],
-                            },
-                        ],
-                    },
+                    traversal_params,
                 );
             },
         );
@@ -362,78 +329,118 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 }
 
 #[criterion]
-fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
-    let group_id = "scaling_read_entity_complete_one_depth";
-    let mut group = crit.benchmark_group(group_id);
-
-    group.sample_size(10);
-    group.sampling_mode(SamplingMode::Flat);
-
-    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
-    // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
-        Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
+fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
+    bench_scaling_read_entity(
+        crit,
+        "zero_depth",
+        &SubgraphTraversalParams::Paths {
+            traversal_paths: vec![],
+        },
     );
+}
 
-    for size in [1, 5, 10, 25, 50] {
-        // TODO: reuse the database if it already exists like we do for representative_read
-        let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id);
+#[criterion]
+fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
+    bench_scaling_read_entity(
+        crit,
+        "one_depth",
+        &SubgraphTraversalParams::Paths {
+            traversal_paths: vec![
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    ],
+                },
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    ],
+                },
+                TraversalPath {
+                    edges: vec![TraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Outgoing,
+                    }],
+                },
+                TraversalPath {
+                    edges: vec![TraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Outgoing,
+                    }],
+                },
+            ],
+        },
+    );
+}
 
-        let DatastoreEntitiesMetadata {
-            entity_list: entity_metadata_list,
-            ..
-        } = runtime.block_on(seed_db(account_id, &mut store_wrapper, size));
-        let store = &store_wrapper.store;
-
-        let function_id = "entity_by_id";
-        let parameter = format!("{size} entities");
-        group.bench_with_input(
-            BenchmarkId::new(function_id, &parameter),
-            &(account_id, entity_metadata_list),
-            |bencher, (_account_id, entity_metadata_list)| {
-                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                bench_get_entity_by_id(
-                    bencher,
-                    &runtime,
-                    store,
-                    account_id,
-                    entity_metadata_list,
-                    &SubgraphTraversalParams::Paths {
-                        traversal_paths: vec![
-                            TraversalPath {
-                                edges: vec![
-                                    TraversalEdge::HasLeftEntity {
-                                        direction: EdgeDirection::Incoming,
-                                    },
-                                    TraversalEdge::HasRightEntity {
-                                        direction: EdgeDirection::Outgoing,
-                                    },
-                                ],
-                            },
-                            TraversalPath {
-                                edges: vec![
-                                    TraversalEdge::HasRightEntity {
-                                        direction: EdgeDirection::Incoming,
-                                    },
-                                    TraversalEdge::HasLeftEntity {
-                                        direction: EdgeDirection::Outgoing,
-                                    },
-                                ],
-                            },
-                            TraversalPath {
-                                edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EdgeDirection::Outgoing,
-                                }],
-                            },
-                            TraversalPath {
-                                edges: vec![TraversalEdge::HasLeftEntity {
-                                    direction: EdgeDirection::Outgoing,
-                                }],
-                            },
-                        ],
-                    },
-                );
-            },
-        );
-    }
+#[criterion]
+fn bench_scaling_read_entity_two_depth(crit: &mut Criterion) {
+    bench_scaling_read_entity(
+        crit,
+        "two_depth",
+        &SubgraphTraversalParams::Paths {
+            traversal_paths: vec![
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    ],
+                },
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    ],
+                },
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                    ],
+                },
+                TraversalPath {
+                    edges: vec![
+                        TraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                        TraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                    ],
+                },
+            ],
+        },
+    );
 }
