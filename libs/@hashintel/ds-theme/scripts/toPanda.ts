@@ -17,5 +17,5 @@ writeFileSync(outputPath, fileContent, "utf-8");
 
 // Write name map output file
 
-const nameMapOutputPath = "./src/figmaToPandaNameMap.json";
+const nameMapOutputPath = "./src/figma-to-panda-mapping.json";
 writeFileSync(nameMapOutputPath, JSON.stringify(nameMap, null, 2), "utf-8");
