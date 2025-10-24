@@ -220,7 +220,7 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-frontend${{ env.IMAGE_TAG }},mode=max
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
-          org.opencontainers.image.licenses="AGPL-3.0-only,"
+          org.opencontainers.image.licenses="AGPL-3.0-only"
           org.opencontainers.image.description="Frontend application for HASH"
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
