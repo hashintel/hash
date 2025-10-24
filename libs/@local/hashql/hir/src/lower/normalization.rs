@@ -52,16 +52,22 @@
 
 use core::{convert::Infallible, mem};
 
-use hashql_core::{collections::pool::VecPool, span::Spanned};
+use hashql_core::{
+    collections::pool::VecPool,
+    span::Spanned,
+    r#type::{TypeBuilder, environment::Environment},
+    value::Primitive,
+};
 
 use crate::{
     context::HirContext,
     fold::{self, Fold, beef::Beef},
     intern::Interner,
+    map::HirInfo,
     node::{
-        Node, NodeData,
+        HirPtr, Node, NodeData,
         access::{FieldAccess, IndexAccess},
-        branch::If,
+        branch::{Branch, If},
         call::{Call, CallArgument},
         closure::Closure,
         data::{Data, DictField, List, StructField, Tuple},
@@ -204,33 +210,41 @@ impl Default for NormalizationState<'_> {
 /// This struct implements the [`Fold`] trait to transform HIR nodes into Administrative
 /// Normal Form (ANF). The transformation ensures that all complex expressions are
 /// broken down into sequences of simple bindings.
-pub struct Normalization<'ctx, 'env, 'heap> {
+pub struct Normalization<'ctx, 'env, 'hir, 'heap> {
     /// Mutable reference to the HIR context for interning and variable generation
-    context: &'ctx mut HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
+    /// Type environment for type inference and resolution
+    env: &'env Environment<'heap>,
     /// Stack of accumulated `let` bindings within the current boundary
     bindings: Vec<Binding<'heap>>,
     /// Optional node replacement mechanism for structural transformations
     trampoline: Option<Node<'heap>>,
     /// State that is shared during multiple normalization passes
     state: &'ctx mut NormalizationState<'heap>,
+    // The current node being processed
+    current: HirPtr,
 }
 
-impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     /// Creates a new normalization transformer.
     ///
     /// # Arguments
     ///
     /// - `context`: Mutable reference to the HIR context for interning and variable generation
+    /// - `env`: Type environment for type inference and resolution
     /// - `state`: Shared state containing configuration and reusable resources
     pub const fn new(
-        context: &'ctx mut HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
+        env: &'env Environment<'heap>,
         state: &'ctx mut NormalizationState<'heap>,
     ) -> Self {
         Self {
             context,
+            env,
             bindings: Vec::new(),
             trampoline: None,
             state,
+            current: HirPtr::PLACEHOLDER,
         }
     }
 
@@ -360,9 +374,93 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         self.state.recycler.release(bindings);
         node
     }
+
+    fn fold_binary_bool(&mut self, operation: BinaryOperation<'heap>) -> BinaryOperation<'heap> {
+        // These have special properties from the other operations, because they are
+        // short-circuiting, and therefore are actually boundaries, given: `A && B`,
+        // `B` should only be evaluated if `A` is true `A || B`, `B` should only be
+        // evaluated if `A` is false (if they are complex operations)
+        //
+        // To encode this we can say that `A && B` is equivalent to `if A then B else false`
+        // and `A || B` is equivalent to `if A then true else B`
+        // Therefore `&&` and `||` are naturally classified as boundaries, but(!) only for the
+        // right side, as `A` is always evaluated
+        let BinaryOperation { op, left, right } = operation;
+
+        // inlined version of `fold::walk_binary_operation`
+        let op = Spanned {
+            span: self.fold_span(op.span).into_ok(),
+            value: op.value,
+        };
+
+        // Proceed as normal, as `left` is equivalent to the `test` expression
+        let Ok(left) = self.fold_nested_node(left);
+
+        let left = self.ensure_atom(left);
+        // The right side is a boundary
+        let right = self.boundary(right);
+
+        // Check if the right side has been used as a boundary, if that is the case, we
+        // transform it into an `if/else` expression
+        let is_shortcut = is_anf_atom(&right);
+
+        // There is no short circuiting behaviour here required, meaning that we can just issue a
+        // normal binary operation
+        if !is_shortcut {
+            return BinaryOperation { op, left, right };
+        }
+
+        let mut make_bool = |value: bool| {
+            let id = self.context.counter.hir.next();
+
+            self.context.map.insert(
+                id,
+                HirInfo {
+                    type_id: TypeBuilder::spanned(self.current.span, self.env).boolean(),
+                    type_arguments: None,
+                },
+            );
+
+            self.context.interner.intern_node(NodeData {
+                id,
+                span: self.current.span,
+                kind: NodeKind::Data(Data::Primitive(Primitive::Boolean(value))),
+            })
+        };
+
+        // We reuse the same HIR id here, because we're transforming everything.
+        // The `If` is depending on what the binary operation is
+        let r#if = match op.value {
+            // A && B => if A then B else false
+            BinOp::And => If {
+                test: left,
+                then: right,
+                r#else: make_bool(false),
+            },
+            // A || B => if A then true else B
+            BinOp::Or => If {
+                test: left,
+                then: make_bool(true),
+                r#else: right,
+            },
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Lte | BinOp::Gt | BinOp::Gte => {
+                unreachable!("fold_binary_bool is only called on `BinOp::And` or `BinOp::Or`")
+            }
+        };
+
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id: self.current.id,
+            span: self.current.span,
+            kind: NodeKind::Branch(Branch::If(r#if)),
+        }));
+
+        // Return the original node so that the interner can reuse it, as we're going to replace it
+        // with a new node via the trampoline mechanism
+        operation
+    }
 }
 
-impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
+impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     type NestedFilter = fold::nested::Deep;
     type Output<T>
         = Result<T, !>
@@ -381,8 +479,11 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// like removing type assertions or flattening let bindings.
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
+        let previous = mem::replace(&mut self.current, node.ptr());
 
         let Ok(mut node) = fold::walk_node(self, node);
+
+        self.current = previous;
 
         let trampoline = core::mem::replace(&mut self.trampoline, backup);
         if let Some(trampoline) = trampoline {
@@ -515,34 +616,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         operation: BinaryOperation<'heap>,
     ) -> Self::Output<BinaryOperation<'heap>> {
         if operation.op.value == BinOp::And || operation.op.value == BinOp::Or {
-            // These have special properties from the other operations, because they are
-            // short-circuiting, and therefore are actually boundaries, given: `A && B`,
-            // `B` should only be evaluated if `A` is true `A || B`, `B` should only be
-            // evaluated if `A` is false (if they are complex operations)
-            //
-            // To encode this we can say that `A && B` is equivalent to `if A then B else false`
-            // and `A || B` is equivalent to `if A then true else B`
-            // Therefore `&&` and `||` are naturally classified as boundaries, but(!) only for the
-            // right side, as `A` is always evaluated
-            let BinaryOperation { op, left, right } = operation;
-
-            // inlined version of `fold::walk_binary_operation`
-            let op = Spanned {
-                span: self.fold_span(op.span)?,
-                value: op.value,
-            };
-
-            // Proceed as normal, as `left` is equivalent to the `test` expression
-            let Ok(left) = self.fold_nested_node(left);
-
-            // The right side is a boundary
-            let right = self.boundary(right);
-
-            return Ok(BinaryOperation {
-                op,
-                left: self.ensure_atom(left),
-                right,
-            });
+            return Ok(self.fold_binary_bool(operation));
         }
 
         let Ok(BinaryOperation { op, left, right }) = fold::walk_binary_operation(self, operation);
