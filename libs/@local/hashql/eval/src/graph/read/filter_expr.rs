@@ -12,10 +12,12 @@ use hashql_hir::node::{
     call::{Call, PointerKind},
     data::{Data, DictField},
     graph::Graph,
-    input::Input,
     kind::NodeKind,
     r#let::{Binding, Let},
-    operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+    operation::{
+        BinOp, BinaryOperation, InputOp, InputOperation, Operation, TypeAssertion, TypeConstructor,
+        TypeOperation,
+    },
     thunk::Thunk,
     variable::{LocalVariable, Variable},
 };
@@ -298,26 +300,6 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         result
     }
 
-    fn compile_filter_expr_input<P>(
-        &self,
-        span: SpanId,
-        Input {
-            name,
-            r#type: _,
-            default: _,
-        }: &'heap Input<'heap>,
-    ) -> IntermediateExpression<'env, 'heap, P>
-    where
-        P: PartialQueryPath<'heap>,
-    {
-        let value = &self.inputs[&name.value];
-
-        IntermediateExpression::Value {
-            value: Cow::Borrowed(value),
-            span,
-        }
-    }
-
     fn compile_filter_expr_operation_type<P>(
         &mut self,
         context: FilterCompilerContext,
@@ -371,6 +353,34 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         }
     }
 
+    fn compile_filter_expr_operation_input<P>(
+        &self,
+        span: SpanId,
+        InputOperation { op, name }: &'heap InputOperation<'heap>,
+    ) -> IntermediateExpression<'env, 'heap, P>
+    where
+        P: PartialQueryPath<'heap> + Debug,
+    {
+        match op.value {
+            InputOp::Exists => {
+                let exists = self.inputs.contains_key(&name.value);
+
+                IntermediateExpression::Value {
+                    value: Cow::Owned(value::Value::Primitive(value::Primitive::Boolean(exists))),
+                    span,
+                }
+            }
+            InputOp::Load { .. } => {
+                let value = &self.inputs[&name.value];
+
+                IntermediateExpression::Value {
+                    value: Cow::Borrowed(value),
+                    span,
+                }
+            }
+        }
+    }
+
     fn compile_filter_expr_operation<P>(
         &mut self,
         context: FilterCompilerContext,
@@ -385,6 +395,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 self.compile_filter_expr_operation_type(context, span, r#type)
             }
             Operation::Binary(binary) => self.compile_filter_expr_operation_binary(context, binary),
+            Operation::Input(input) => Ok(self.compile_filter_expr_operation_input(span, input)),
         }
     }
 
@@ -584,7 +595,6 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             NodeKind::Data(_)
             | NodeKind::Variable(_)
-            | NodeKind::Input(_)
             | NodeKind::Operation(_)
             | NodeKind::Access(_)
             | NodeKind::Call(_)
@@ -669,7 +679,6 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Let(r#let) => self.compile_filter_expr_let(r#let, |this, body| {
                 this.compile_filter_expr(context, body)
             }),
-            NodeKind::Input(input) => Ok(self.compile_filter_expr_input(node.span, input)),
             NodeKind::Operation(operation) => {
                 self.compile_filter_expr_operation(context, node.span, operation)
             }

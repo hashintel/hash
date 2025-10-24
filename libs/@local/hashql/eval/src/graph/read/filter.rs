@@ -156,8 +156,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             // If we came to this match arm using these nodes, then that means that the filter
             // must have evaluated to a boolean expression. Therefore we can just check if the
             // expression evaluates to true.
-            NodeKind::Operation(Operation::Type(TypeOperation::Constructor(..)))
-            | NodeKind::Input(_)
+            NodeKind::Operation(
+                Operation::Type(TypeOperation::Constructor(..)) | Operation::Input(..),
+            )
             | NodeKind::Data(_)
             | NodeKind::Access(_)
             | NodeKind::Call(_)
