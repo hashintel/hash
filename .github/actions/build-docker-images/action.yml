@@ -224,6 +224,9 @@ runs:
           org.opencontainers.image.description="API and data store for HASH"
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
+        build-args: |
+          FRONTEND_URL="http://localhost:3000"
+          API_ORIGIN="http://localhost:5001"
 
     - name: Build hash-frontend image (fork)
       if: inputs.hash-frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -236,3 +239,6 @@ runs:
           type=registry,ref=ghcr.io/hashintel/hash-frontend
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
+        build-args: |
+          FRONTEND_URL="http://localhost:3000"
+          API_ORIGIN="http://localhost:5001"
