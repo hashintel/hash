@@ -178,7 +178,7 @@ export const handleCreateNewEntity = async (params: {
       throw Error.badUserInput(`action ${params.index}: ${error}`);
     }
 
-    throw Error.any(
+    throw Error.internal(
       `createEntity: Could not create new entity: ${JSON.stringify(
         error,
       )}, trying to create ${JSON.stringify(params)}`,
@@ -272,7 +272,7 @@ export const handleInsertNewBlock = async (
       throw Error.badUserInput(`action ${params.index}: ${error}`);
     }
 
-    throw Error.any(
+    throw Error.internal(
       `insertBlock: Could not insert new or existing block: ${JSON.stringify(
         error,
       )}`,

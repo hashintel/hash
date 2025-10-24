@@ -147,6 +147,6 @@ export const updateBlockCollectionContents: ResolverFn<
       throw Error.any(`Could not apply update: ${error.message}`);
     }
 
-    throw Error.any(`Could not apply update: ${JSON.stringify(error)}`);
+    throw Error.internal(`Could not apply update: ${JSON.stringify(error)}`);
   }
 };

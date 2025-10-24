@@ -150,7 +150,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
        * and prevent them from receiving ownership of the web.
        */
       if (!(await userHasAccessToHash(context, authentication, user))) {
-        throw Error.any(
+        throw Error.forbidden(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
         );
       }
