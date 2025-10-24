@@ -1,13 +1,13 @@
 import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
-import { ApolloError } from "apollo-server-errors";
 
 import type {
   MutationSubmitExternalInputResponseArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const submitExternalInputResponse: ResolverFn<
   Promise<boolean>,
@@ -26,7 +26,7 @@ export const submitExternalInputResponse: ResolverFn<
   });
 
   if (!flow) {
-    throw new ApolloError(`Flow with id ${flowUuid} not found`, "NOT_FOUND");
+    throw Error.notFound(`Flow with id ${flowUuid} not found`);
   }
 
   const handle = temporal.workflow.getHandle(flowUuid);

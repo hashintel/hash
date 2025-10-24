@@ -22,8 +22,6 @@ export const googleOAuthCallback: RequestHandler<
   Record<string, never>,
   GoogleOAuth2CallbackResponse,
   GoogleOAuth2CallbackRequest
-  // @todo upgrade to Express 5, which handles errors from async request handlers automatically
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   if (!req.user) {
     res.status(401).send({ error: "User not authenticated." });

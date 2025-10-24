@@ -8,7 +8,7 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import type { ApolloError } from "apollo-server-express";
+import type { GraphQLError } from "graphql";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
@@ -44,7 +44,7 @@ const makeGraphQlRequest = async <Data, Variables>(
   query: string,
   variables: Variables,
   cookie: string | null,
-): Promise<{ data?: Data | null; errors?: ApolloError[] | null }> => {
+): Promise<{ data?: Data | null; errors?: GraphQLError[] | null }> => {
   const { data, errors } = await fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: { "content-type": "application/json", cookie: cookie ?? "" },
@@ -101,10 +101,10 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   >(query, variables, cookie);
 
   if (errors ?? !data) {
-    const { code, message } = errors?.[0] ?? {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Unknown error",
-    };
+    const message = errors?.[0]?.message ?? "Unknown error";
+    const code = (errors?.[0]?.extensions.code ??
+      "INTERNAL_SERVER_ERROR") as string;
+
     return generateErrorResponse(
       code === "FORBIDDEN" ? 401 : code === "INTERNAL_SERVER_ERROR" ? 500 : 400,
       message,
