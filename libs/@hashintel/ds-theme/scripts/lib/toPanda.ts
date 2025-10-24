@@ -64,7 +64,7 @@ function cleanVariableName(name: string): string {
 }
 
 function isVariableAliasValue(
-  variableValue: VariableValue
+  variableValue: VariableValue,
 ): variableValue is VariableValueAlias {
   return (
     typeof variableValue === "object" &&
@@ -75,7 +75,7 @@ function isVariableAliasValue(
 }
 
 function isVariableColorValue(
-  variableValue: VariableValue
+  variableValue: VariableValue,
 ): variableValue is VariableValueColor {
   return (
     typeof variableValue === "object" &&
@@ -94,7 +94,7 @@ function isVariableColorValue(
  * and handle better all possible variable types and scopes.
  */
 function getVariablePandaTokenType(
-  variable: Variable
+  variable: Variable,
 ): keyof Panda_TokenDataType {
   if (
     variable.type === "COLOR" &&
@@ -139,7 +139,7 @@ function getVariablePandaTokenType(
     throw new Error(
       `Unsupported variable scopes for variable ${
         variable.name
-      }: ${variable.scopes.join(", ")}`
+      }: ${variable.scopes.join(", ")}`,
     );
   }
 }
@@ -180,7 +180,7 @@ function getVariableOutput(variable: Variable) {
 function getVariablePandaValue(
   variable: ReturnType<typeof getVariableOutput>,
   modeIdToNameMap: Map<string, string>,
-  varIdToVarMap: Map<string, ReturnType<typeof getVariableOutput>>
+  varIdToVarMap: Map<string, ReturnType<typeof getVariableOutput>>,
 ) {
   const { valuesByMode } = variable._figmaVariable;
 
@@ -201,7 +201,7 @@ function getVariablePandaValue(
       const aliasVar = varIdToVarMap.get(figmaValue.id);
       if (!aliasVar) {
         throw new Error(
-          `Alias variable ID ${figmaValue.id} for variable ${variable.name} not found in varIdToVarMap`
+          `Alias variable ID ${figmaValue.id} for variable ${variable.name} not found in varIdToVarMap`,
         );
       }
       return `{${aliasVar.tokenPath}}`;
@@ -238,11 +238,11 @@ function getVariablePandaValue(
 
           if (!modeName || !(modeName in MODE_TO_CONDITION_MAP)) {
             throw new Error(
-              `Mode ID ${modeId} for variable ${variable.name} has no mapping to PandaCSS condition`
+              `Mode ID ${modeId} for variable ${variable.name} has no mapping to PandaCSS condition`,
             );
           }
           return [MODE_TO_CONDITION_MAP[modeName], transformValue(figmaValue)];
-        })
+        }),
       ),
     };
   }
@@ -289,14 +289,14 @@ export function toPanda(root: FigmaVariablesExport) {
     const pandaValue = getVariablePandaValue(
       transformedVariable,
       modeIdToNameMap,
-      varIdToVarMap
+      varIdToVarMap,
     );
 
     setWith(
       preset.theme[transformedVariable.tokenRoot],
       transformedVariable.tokenPath,
       pandaValue,
-      Object // Use Object as customizer to prevent array creation (in case of numeric keys)
+      Object, // Use Object as customizer to prevent array creation (in case of numeric keys)
     );
   }
 
