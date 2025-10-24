@@ -97,7 +97,7 @@ pub fn lower<'env, 'heap>(
     let Ok(node) = specialization.fold_node(node);
 
     let mut norm_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut norm_state);
+    let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
     // Graph hoisting does *not* break HIR(ANF)
@@ -108,7 +108,7 @@ pub fn lower<'env, 'heap>(
     let node = thunking.run(node);
 
     // Thunking breaks normalization, so re-normalize
-    let normalization = Normalization::new(context, &mut norm_state);
+    let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
     diagnostics.into_status(node)
