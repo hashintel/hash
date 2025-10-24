@@ -2,7 +2,7 @@ export const fluidFontClassName = "HashIntelDesignSystem-FluidFonts";
 
 // should be much easier to configure once mui adds support for fluidTypography
 //  @see https://github.com/mui-org/material-ui/issues/15251
-export const fluidTypographyStyles = (selector: string) => `
+export const fluidTypographyStyles = (selector: string): string => `
   /* @link https://utopia.fyi/type/calculator?c=320,15,1.2,1200,16,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6,s-l */
 
   ${selector} {

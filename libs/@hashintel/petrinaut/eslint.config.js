@@ -5,9 +5,24 @@ export default [
   ...createBase(import.meta.dirname),
   ...storybook.configs["flat/recommended"],
   {
+    files: ["dev/**/*"],
+    languageOptions: {
+      parserOptions: {
+        project: "./dev/tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
     files: ["dev/*.tsx"],
     rules: {
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
+    files: ["dev/vite.config.ts"],
+    rules: {
+      "@typescript-eslint/no-unsafe-call": "off",
     },
   },
   {

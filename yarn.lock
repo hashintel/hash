@@ -7616,6 +7616,7 @@ __metadata:
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vite: "npm:7.1.11"
+    web-worker: "npm:1.4.1"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -44448,6 +44449,13 @@ __metadata:
   version: 4.0.0-beta.3
   resolution: "web-streams-polyfill@npm:4.0.0-beta.3"
   checksum: 10c0/a9596779db2766990117ed3a158e0b0e9f69b887a6d6ba0779940259e95f99dc3922e534acc3e5a117b5f5905300f527d6fbf8a9f0957faf1d8e585ce3452e8e
+  languageName: node
+  linkType: hard
+
+"web-worker@npm:1.4.1":
+  version: 1.4.1
+  resolution: "web-worker@npm:1.4.1"
+  checksum: 10c0/8b5e6099692ad83e0bcd72595e9bbec9c5cc0c910215dce21379050c9a96d9678f651c161e58f29d5ecf62d50bbd897543b4fa1bcea83cd273dbf219fdda1089
   languageName: node
   linkType: hard
 
