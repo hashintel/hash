@@ -7,6 +7,7 @@ use self::{
     checking::TypeChecking,
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
+    hoist::{GraphHoisting, GraphHoistingConfig},
     inference::TypeInference,
     normalization::{Normalization, NormalizationState},
     specialization::Specialization,
@@ -17,7 +18,9 @@ use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as 
 pub mod alias;
 pub mod checking;
 pub mod ctor;
+pub mod dataflow;
 pub mod error;
+pub mod hoist;
 pub mod inference;
 pub mod normalization;
 pub mod specialization;
@@ -100,6 +103,10 @@ pub fn lower<'heap>(
     let mut norm_state = NormalizationState::default();
     let normalization = Normalization::new(context, &mut norm_state);
     let node = normalization.run(node);
+
+    // Graph hoisting does *not* break HIR(ANF)
+    let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let node = graph_hoisting.run(node);
 
     let thunking = Thunking::new(context);
     let node = thunking.run(node);

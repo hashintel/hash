@@ -52,7 +52,7 @@
 
 use core::{convert::Infallible, mem};
 
-use hashql_core::span::Spanned;
+use hashql_core::{collections::pool::VecPool, span::Spanned};
 
 use crate::{
     context::HirContext,
@@ -170,30 +170,26 @@ const fn is_projection(node: &Node<'_>) -> bool {
 /// unnecessary reallocations.
 #[derive(Debug)]
 pub struct NormalizationState<'heap> {
-    /// Maximum number of binding vectors to cache in the recycler pool.
+    /// Pool of reusable binding vectors to reduce allocations
     ///
     /// The normalization process frequently creates temporary vectors to accumulate
     /// `let` bindings at boundary points. To reduce allocation overhead, completed
     /// vectors are cached in a recycler pool for reuse.
     ///
-    /// A higher value reduces allocations at the cost of increased memory usage.
+    /// A higher capacity value reduces allocations at the cost of increased memory usage.
     /// A value of 0 disables recycling entirely.
     ///
     /// # Default Value
     ///
     /// The default is 4, which provides a good balance between memory usage and
     /// allocation reduction for typical workloads.
-    pub max_recycle: usize,
-
-    /// Pool of reusable binding vectors to reduce allocations
-    recycler: Vec<Vec<Binding<'heap>>>,
+    pub recycler: VecPool<Binding<'heap>>,
 }
 
 impl Default for NormalizationState<'_> {
     fn default() -> Self {
         Self {
-            max_recycle: 4,
-            recycler: Vec::new(),
+            recycler: VecPool::new(4),
         }
     }
 }
@@ -315,11 +311,8 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// transformation process.
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
-        let bindings = self.state.recycler.pop().unwrap_or_else(|| {
-            // The current amount of bindings is a good indicator for the size of vector we're
-            // expecting
-            Vec::with_capacity(self.bindings.len())
-        });
+        // The current amount of bindings is a good indicator for the size of vector we're expecting
+        let bindings = self.state.recycler.acquire_with(self.bindings.len());
 
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
@@ -328,7 +321,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         node = self.ensure_atom(node);
 
         // Restore the outer vector and retrieve the collected bindings
-        let mut bindings = core::mem::replace(&mut self.bindings, outer);
+        let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
             // We need to wrap the collected bindings into a new let node
@@ -339,15 +332,9 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
                     body: node,
                 }),
             });
-
-            bindings.clear();
         }
 
-        // If we haven't reached the limit, add the vector to the recycler
-        if self.state.recycler.len() < self.state.max_recycle {
-            self.state.recycler.push(bindings);
-        }
-
+        self.state.recycler.release(bindings);
         node
     }
 }

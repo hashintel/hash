@@ -24,6 +24,7 @@
 //! - Removed inherent impls for bit relations.
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
 //! - Removed mentions of `IntervalSet`.
+//! - Implement `MixedBitSet::intersect`.
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -1345,8 +1346,12 @@ impl<T: Id> BitRelations<Self> for MixedBitSet<T> {
         }
     }
 
-    fn intersect(&mut self, _other: &Self) -> bool {
-        unimplemented!("implement if/when necessary");
+    fn intersect(&mut self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Small(set), Self::Small(other)) => set.intersect(other),
+            (Self::Large(set), Self::Large(other)) => set.intersect(other),
+            _ => panic!("MixedBitSet size mismatch"),
+        }
     }
 }
 
@@ -1719,7 +1724,7 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 /// sparse representation.
 ///
 /// Initially, every row has no explicit representation. If any bit within a row
-/// is set, the entire row is instantiated as `Some(<DenseBitSet>)`.
+/// is set, the entire row is instantiated as `Some(<MixedBitSet>)`.
 /// Furthermore, any previously uninstantiated rows prior to it will be
 /// instantiated as `None`. Those prior rows may themselves become fully
 /// instantiated later on if any of their bits are set.
