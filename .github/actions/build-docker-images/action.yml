@@ -225,8 +225,8 @@ runs:
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
-          FRONTEND_URL="http://localhost:3000"
-          API_ORIGIN="http://localhost:5001"
+          FRONTEND_URL=http://localhost:3000
+          API_ORIGIN=http://localhost:5001
 
     - name: Build hash-frontend image (fork)
       if: inputs.hash-frontend == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -240,5 +240,5 @@ runs:
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
-          FRONTEND_URL="http://localhost:3000"
-          API_ORIGIN="http://localhost:5001"
+          FRONTEND_URL=http://localhost:3000
+          API_ORIGIN=http://localhost:5001
