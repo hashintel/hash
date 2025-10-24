@@ -106,11 +106,22 @@ pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
     }
 }
 
-/// Ensures that a node is represented as a local variable.
+/// Ensures that a node is represented as a local variable reference.
 ///
-/// If the node is already a local variable, returns it unchanged. Otherwise,
-/// creates a new binding with a fresh variable and adds it to the current
-/// binding stack.
+/// This function is a core part of ANF transformation that guarantees a node
+/// can be referenced as a simple variable. If the node is already a local
+/// variable, it returns the node unchanged. Otherwise, it creates a fresh
+/// binding with a generated variable name and adds it to the binding stack.
+///
+/// The newly created variable inherits the type information from the original
+/// node.
+///
+/// # Returns
+///
+/// A [`Node`] containing either the original local variable or a new local
+/// variable reference to the bound expression.
+///
+/// [`Node`]: crate::node::Node
 pub(crate) fn ensure_local_variable<'heap>(
     context: &mut HirContext<'_, 'heap>,
     bindings: &mut Vec<Binding<'heap>>,
@@ -149,14 +160,19 @@ pub(crate) fn ensure_local_variable<'heap>(
     })
 }
 
-/// Determines if a node is a projection (place expression).
+/// Determines if a node represents a projection (place expression).
 ///
 /// Projections are memory locations that can be read from or written to.
-/// They include:
-/// - Local variable references
-/// - Access expressions (field/index access on other projections)
+/// They form a subset of atoms and include:
+/// - Local variable references ([`Variable::Local`])
+/// - Access expressions ([`FieldAccess`], [`IndexAccess`]) applied to other projections
 ///
-/// Projections are a subset of atoms that represent addressable locations.
+/// This is more restrictive than [`is_anf_atom`] because projections must be
+/// addressable locations, not just any atomic value.
+///
+/// [`Variable::Local`]: crate::node::variable::Variable::Local
+/// [`FieldAccess`]: crate::node::access::FieldAccess
+/// [`IndexAccess`]: crate::node::access::IndexAccess
 const fn is_projection(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Variable(_) | NodeKind::Access(_) => true,
@@ -250,9 +266,30 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
 
     /// Executes the normalization transformation on the given HIR node.
     ///
-    /// This is the main entry point for the normalization process. It wraps the
-    /// input node in a boundary to ensure proper binding accumulation and returns
-    /// the normalized result.
+    /// This is the main entry point for the normalization process. It transforms the input HIR node
+    /// into Administrative Normal Form (ANF) by wrapping it in a boundary to ensure proper
+    /// binding accumulation and returns the normalized result.
+    ///
+    /// The transformation guarantees that:
+    /// - All complex expressions are bound to variables
+    /// - Function arguments are atomic values
+    /// - Control flow is explicitly represented
+    /// - Short-circuiting operations are converted to conditionals
+    ///
+    /// # Examples
+    ///
+    /// ```text
+    /// foo(bar(x), baz(y))
+    /// ```
+    ///
+    /// turns into:
+    ///
+    /// ```
+    /// let %1 = bar(x) in
+    /// let %2 = baz(y) in
+    /// let %3 = foo(%1, %2) in
+    /// %3
+    /// ```
     ///
     /// # Panics
     ///
@@ -278,8 +315,17 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
 
     /// Ensures that a node is a valid projection (place expression).
     ///
-    /// If the node is already a projection, returns it unchanged. Otherwise,
-    /// converts it to a local variable binding.
+    /// Projections represent memory locations that can be read from or assigned to,
+    /// such as variables and field/index access expressions. This function is used
+    /// when the ANF transformation requires a place expression rather than just any
+    /// atomic value.
+    ///
+    /// If the node is already a valid projection ([`Variable`] or [`Access`]), it
+    /// returns the node unchanged. Otherwise, it converts the node to a local
+    /// variable binding, making it addressable.
+    ///
+    /// [`Variable`]: crate::node::variable::Variable
+    /// [`Access`]: crate::node::access
     fn ensure_projection(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_projection(&node) {
             return node;
@@ -288,10 +334,20 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
         self.ensure_local_variable(node)
     }
 
-    /// Ensures that a node is an atomic value.
+    /// Ensures that a node is an atomic value suitable for ANF.
     ///
-    /// If the node is already an atom, returns it unchanged. Otherwise,
-    /// converts it to a local variable binding.
+    /// Atoms are the fundamental values in Administrative Normal Form that can be
+    /// used directly without requiring further evaluation. This includes data literals,
+    /// variable references, and access expressions.
+    ///
+    /// If the node is already atomic (determined by [`is_anf_atom`]), it returns
+    /// the node unchanged. Otherwise, it creates a binding for the complex expression
+    /// and returns a reference to the bound variable.
+    ///
+    /// This is the most commonly used normalization function, as most contexts in
+    /// ANF require atomic operands.
+    ///
+    /// [`is_anf_atom`]: is_anf_atom
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_anf_atom(&node) {
             return node;
@@ -321,13 +377,25 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
 
     /// Processes a node within a normalization boundary.
     ///
-    /// Boundaries are points where `let` bindings are accumulated and then
-    /// wrapped around the final result. This implements the core ANF transformation
-    /// by ensuring that complex expressions are broken down into sequences of
-    /// simple bindings.
+    /// Boundaries define scopes where [`Binding`] accumulation occurs before being
+    /// wrapped into a [`Let`] expression. This is the core mechanism for ANF
+    /// transformation, ensuring that complex expressions are decomposed into
+    /// sequences of simple bindings followed by an atomic result.
     ///
-    /// The method uses vector recycling to minimize allocations during the
-    /// transformation process.
+    /// The function manages a separate binding stack for the boundary, processes
+    /// the node through the fold mechanism, ensures the result is atomic, and
+    /// finally wraps any accumulated bindings in a [`Let`] expression.
+    ///
+    /// # Boundary Examples
+    ///
+    /// Boundaries typically occur at:
+    /// - Closure and thunk bodies
+    /// - Conditional expression branches
+    /// - Short-circuiting operation operands
+    ///
+    /// [`Binding`]: crate::node::r#let::Binding
+    /// [`Let`]: crate::node::r#let::Let
+    /// [`VecPool`]: hashql_core::collections::pool::VecPool
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
         // The current amount of bindings is a good indicator for the size of vector we're expecting
@@ -375,16 +443,27 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
         node
     }
 
+    /// Handles short-circuiting boolean operations (`&&`, `||`) with special boundary semantics.
+    ///
+    /// Short-circuiting boolean operations have different evaluation properties than other
+    /// binary operations because they conditionally evaluate their right operand:
+    ///
+    /// - For `A && B`: `B` is only evaluated if `A` is true
+    /// - For `A || B`: `B` is only evaluated if `A` is false
+    ///
+    /// To properly handle this conditional evaluation in ANF, these operations are transformed
+    /// into equivalent conditional expressions, but only if the right operand isn't atomic:
+    ///
+    /// - `A && B` ≡ `if A then B else false`
+    /// - `A || B` ≡ `if A then true else B`
+    ///
+    /// This transformation treats the right operand as a boundary (its own evaluation context)
+    /// while the left operand is evaluated in the current boundary. When the right operand
+    /// contains complex expressions that require normalization, the transformation uses
+    /// the trampoline mechanism to replace the binary operation with an [`If`] expression.
+    ///
+    /// [`If`]: crate::node::branch::If
     fn fold_binary_bool(&mut self, operation: BinaryOperation<'heap>) -> BinaryOperation<'heap> {
-        // These have special properties from the other operations, because they are
-        // short-circuiting, and therefore are actually boundaries, given: `A && B`,
-        // `B` should only be evaluated if `A` is true `A || B`, `B` should only be
-        // evaluated if `A` is false (if they are complex operations)
-        //
-        // To encode this we can say that `A && B` is equivalent to `if A then B else false`
-        // and `A || B` is equivalent to `if A then true else B`
-        // Therefore `&&` and `||` are naturally classified as boundaries, but(!) only for the
-        // right side, as `A` is always evaluated
         let BinaryOperation { op, left, right } = operation;
 
         // inlined version of `fold::walk_binary_operation`
@@ -477,6 +556,16 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     /// This method handles the trampoline mechanism that allows complete node
     /// replacement during the folding process. It's used for transformations
     /// like removing type assertions or flattening let bindings.
+    ///
+    /// The trampoline pattern enables one-to-one node replacements that wouldn't
+    /// be possible with normal folding, such as:
+    /// - Removing [`TypeAssertion`] nodes completely
+    /// - Flattening nested [`Let`] expressions
+    /// - Converting short-circuiting operations to [`If`] expressions
+    ///
+    /// [`TypeAssertion`]: crate::node::operation::TypeAssertion
+    /// [`Let`]: crate::node::r#let::Let
+    /// [`If`]: crate::node::branch::If
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
         let previous = mem::replace(&mut self.current, node.ptr());
@@ -568,6 +657,11 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     /// Let expressions are dissolved during ANF transformation. Their bindings
     /// are moved to the current boundary's binding stack, and the body replaces
     /// the entire let expression via the trampoline mechanism.
+    ///
+    /// This flattening process eliminates nested [`Let`] structures, creating
+    /// a single flat sequence of bindings at each boundary level.
+    ///
+    /// [`Let`]: crate::node::r#let::Let
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         let Ok(Let { bindings: _, body }) = fold::walk_let(self, r#let);
 
@@ -583,6 +677,9 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     /// Type assertions are superfluous after type checking and are removed
     /// during ANF transformation. The underlying value replaces the assertion
     /// via the trampoline mechanism.
+    ///
+    /// This removal simplifies the IR by eliminating redundant type information
+    /// that was only needed during the type checking phase.
     fn fold_type_assertion(
         &mut self,
         assertion: TypeAssertion<'heap>,
@@ -668,6 +765,8 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     ///
     /// Field access creates a projection, so the base expression must itself be
     /// a valid projection (place expression) to maintain proper memory access semantics.
+    /// This ensures that field access chains like `obj.field1.field2` maintain
+    /// their addressability properties throughout the normalization.
     fn fold_field_access(
         &mut self,
         access: FieldAccess<'heap>,
@@ -686,7 +785,9 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     /// - The base expression must be a valid projection
     /// - The index expression must be a local variable (not just any atom)
     ///
-    /// This ensures proper memory access patterns for later optimization phases.
+    /// The stricter requirement for local variables as indices (rather than any atom)
+    /// ensures proper memory access patterns for later optimization phases and
+    /// simplifies bounds checking and memory safety analysis.
     fn fold_index_access(
         &mut self,
         access: IndexAccess<'heap>,
