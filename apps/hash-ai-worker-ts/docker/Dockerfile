@@ -7,7 +7,6 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
-# ENV MISE_TRUSTED_CONFIG_PATHS="/app"
 ENV PATH="/mise/shims:$PATH"
 
 COPY .config/mise /etc/mise
