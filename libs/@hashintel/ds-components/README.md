@@ -6,11 +6,11 @@ Components for HASH refractive design system, built using React, TypeScript, Ark
 
 These components rely on variables and styles defined in Figma, which are synchronized using the Figma and ArkUI MCP servers.
 
-Design Tokens are sourced from the `@hashintel/ds-theme` package, which is generated from Figma variables to a Panda CSS preset.
+Design Tokens are sourced from the `@hashintel/ds-theme` package.
 
 When updating or adding new components, ensure that the design tokens in `@hashintel/ds-theme` are up to date by following the instructions in its README.
 
-To help LLMs find the correct mapping between Figma variables and PandaCSS tokens, a mapping file is available at `libs/@hashintel/ds-components/figma-to-panda-mapping.json`. This file is generated automatically during the design token synchronization process.
+To help LLMs find the correct mapping between Figma variables and PandaCSS tokens, a mapping file is available at `libs/@hashintel/ds-components/figma-to-panda-mapping.json`.
 
 > **Note:**
 >
