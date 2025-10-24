@@ -129,6 +129,28 @@ SELECT
     confidence
 FROM entity_has_right_entity;
 
--- NOTE: Old tables (entity_has_left_entity, entity_has_right_entity) are kept for now
--- They will be dropped in a subsequent migration after verifying the new table works correctly
--- TODO: Create v49__drop_old_entity_edge_tables.sql to remove old tables
+DROP TABLE entity_has_left_entity;
+DROP TABLE entity_has_right_entity;
+
+-- Create read-only views for backward compatibility
+CREATE VIEW entity_has_left_entity AS
+  SELECT
+    source_web_id AS web_id,
+    source_entity_uuid AS entity_uuid,
+    target_web_id AS left_web_id,
+    target_entity_uuid AS left_entity_uuid,
+    provenance,
+    confidence
+  FROM entity_edge
+  WHERE kind = 'has-left-entity' AND direction = 'outgoing';
+
+CREATE VIEW entity_has_right_entity AS
+  SELECT
+    source_web_id AS web_id,
+    source_entity_uuid AS entity_uuid,
+    target_web_id AS right_web_id,
+    target_entity_uuid AS right_entity_uuid,
+    provenance,
+    confidence
+  FROM entity_edge
+  WHERE kind = 'has-right-entity' AND direction = 'outgoing';

@@ -11,16 +11,15 @@ use futures::{
 };
 use hash_graph_store::subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind};
 use type_system::{
-    knowledge::Entity,
+    knowledge::{Entity, property::metadata::PropertyProvenance},
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
 };
 
 use crate::{
     snapshot::{SnapshotRestoreError, entity::EntityRowBatch},
     store::postgres::query::rows::{
-        EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow,
-        EntityHasLeftEntityRow, EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
-        EntityTemporalMetadataRow,
+        EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
+        EntityIsOfTypeRow, EntityTemporalMetadataRow,
     },
 };
 
@@ -35,8 +34,6 @@ pub struct EntitySender {
     edition: Sender<EntityEditionRow>,
     is_of_type: Sender<EntityIsOfTypeRow>,
     temporal_metadata: Sender<EntityTemporalMetadataRow>,
-    left_links: Sender<EntityHasLeftEntityRow>,
-    right_links: Sender<EntityHasRightEntityRow>,
     entity_edge: Sender<EntityEdgeRow>,
 }
 
@@ -62,12 +59,6 @@ impl Sink<Entity> for EntitySender {
         ready!(self.temporal_metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not poll temporal metadata sender")?;
-        ready!(self.left_links.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not poll left entity link edges sender")?;
-        ready!(self.right_links.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not poll right entity link edges sender")?;
         ready!(self.entity_edge.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not poll entity edge sender")?;
@@ -75,6 +66,7 @@ impl Sink<Entity> for EntitySender {
         Poll::Ready(Ok(()))
     }
 
+    #[expect(clippy::too_many_lines)]
     fn start_send(mut self: Pin<&mut Self>, entity: Entity) -> Result<(), Self::Error> {
         self.id
             .start_send_unpin(EntityIdRow {
@@ -132,29 +124,6 @@ impl Sink<Entity> for EntitySender {
             .attach("could not send entity temporal metadata")?;
 
         if let Some(link_data) = entity.link_data {
-            self.left_links
-                .start_send_unpin(EntityHasLeftEntityRow {
-                    web_id: entity.metadata.record_id.entity_id.web_id,
-                    entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    left_web_id: link_data.left_entity_id.web_id,
-                    left_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance.clone(),
-                })
-                .change_context(SnapshotRestoreError::Read)
-                .attach("could not send entity link edges")?;
-            self.right_links
-                .start_send_unpin(EntityHasRightEntityRow {
-                    web_id: entity.metadata.record_id.entity_id.web_id,
-                    entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    right_web_id: link_data.right_entity_id.web_id,
-                    right_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance.clone(),
-                })
-                .change_context(SnapshotRestoreError::Read)
-                .attach("could not send entity link edges")?;
-
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
@@ -229,12 +198,6 @@ impl Sink<Entity> for EntitySender {
         ready!(self.temporal_metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not flush temporal metadata sender")?;
-        ready!(self.left_links.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not flush left entity link edges sender")?;
-        ready!(self.right_links.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not flush right entity link edges sender")?;
         ready!(self.entity_edge.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not flush entity edge sender")?;
@@ -258,12 +221,6 @@ impl Sink<Entity> for EntitySender {
         ready!(self.temporal_metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not close temporal metadata sender")?;
-        ready!(self.left_links.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not close entity link edges sender")?;
-        ready!(self.right_links.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach("could not close entity link edges sender")?;
         ready!(self.entity_edge.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach("could not close entity edge sender")?;
@@ -303,8 +260,6 @@ pub(crate) fn channel(
     let (edition_tx, edition_rx) = mpsc::channel(chunk_size);
     let (type_tx, type_rx) = mpsc::channel(chunk_size);
     let (temporal_metadata_tx, temporal_metadata_rx) = mpsc::channel(chunk_size);
-    let (left_links_tx, left_links_rx) = mpsc::channel(chunk_size);
-    let (right_links_tx, right_links_rx) = mpsc::channel(chunk_size);
     let (entity_edge_tx, entity_edge_rx) = mpsc::channel(chunk_size);
 
     (
@@ -314,8 +269,6 @@ pub(crate) fn channel(
             edition: edition_tx,
             is_of_type: type_tx,
             temporal_metadata: temporal_metadata_tx,
-            left_links: left_links_tx,
-            right_links: right_links_tx,
             entity_edge: entity_edge_tx,
         },
         EntityReceiver {
@@ -339,14 +292,6 @@ pub(crate) fn channel(
                 temporal_metadata_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::TemporalMetadata)
-                    .boxed(),
-                left_links_rx
-                    .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::LeftLinks)
-                    .boxed(),
-                right_links_rx
-                    .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::RightLinks)
                     .boxed(),
                 entity_edge_rx
                     .ready_chunks(chunk_size)

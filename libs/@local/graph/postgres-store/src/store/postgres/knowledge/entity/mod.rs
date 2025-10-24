@@ -68,7 +68,7 @@ use type_system::{
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
             PropertyValueWithMetadata, PropertyWithMetadata,
-            metadata::{PropertyMetadata, PropertyObjectMetadata},
+            metadata::{PropertyMetadata, PropertyObjectMetadata, PropertyProvenance},
         },
     },
     ontology::{
@@ -95,8 +95,8 @@ use crate::store::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
             ReferenceTable, SelectCompiler, Table,
             rows::{
-                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityHasLeftEntityRow,
-                EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
+                EntityTemporalMetadataRow,
             },
         },
     },
@@ -577,8 +577,6 @@ where
             .client()
             .simple_query(
                 "
-                    DELETE FROM entity_has_left_entity;
-                    DELETE FROM entity_has_right_entity;
                     DELETE FROM entity_edge;
                     DELETE FROM entity_is_of_type;
                     DELETE FROM entity_temporal_metadata;
@@ -1006,8 +1004,6 @@ where
         let mut entity_edition_rows = Vec::with_capacity(params.len());
         let mut entity_temporal_metadata_rows = Vec::with_capacity(params.len());
         let mut entity_is_of_type_rows = Vec::with_capacity(params.len());
-        let mut entity_has_left_entity_rows = Vec::new();
-        let mut entity_has_right_entity_rows = Vec::new();
         let mut entity_edge_rows = Vec::new();
 
         let mut policies = Vec::new();
@@ -1271,22 +1267,6 @@ where
             }
 
             let link_data = params.link_data.inspect(|link_data| {
-                entity_has_left_entity_rows.push(EntityHasLeftEntityRow {
-                    web_id: entity_id.web_id,
-                    entity_uuid: entity_id.entity_uuid,
-                    left_web_id: link_data.left_entity_id.web_id,
-                    left_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance.clone(),
-                });
-                entity_has_right_entity_rows.push(EntityHasRightEntityRow {
-                    web_id: entity_id.web_id,
-                    entity_uuid: entity_id.entity_uuid,
-                    right_web_id: link_data.right_entity_id.web_id,
-                    right_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance.clone(),
-                });
                 entity_edge_rows.extend([
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
@@ -1377,14 +1357,6 @@ where
                 &entity_temporal_metadata_rows,
             ),
             InsertStatementBuilder::from_rows(Table::EntityIsOfType, &entity_is_of_type_rows),
-            InsertStatementBuilder::from_rows(
-                Table::EntityHasLeftEntity,
-                &entity_has_left_entity_rows,
-            ),
-            InsertStatementBuilder::from_rows(
-                Table::EntityHasRightEntity,
-                &entity_has_right_entity_rows,
-            ),
             InsertStatementBuilder::from_rows(Table::EntityEdge, &entity_edge_rows),
         ];
 

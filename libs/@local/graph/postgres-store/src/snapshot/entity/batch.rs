@@ -25,9 +25,8 @@ use crate::{
         postgres::{
             AsClient, PostgresStore,
             query::rows::{
-                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow,
-                EntityHasLeftEntityRow, EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
-                EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
+                EntityIsOfTypeRow, EntityTemporalMetadataRow,
             },
         },
     },
@@ -39,8 +38,6 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
-    LeftLinks(Vec<EntityHasLeftEntityRow>),
-    RightLinks(Vec<EntityHasRightEntityRow>),
     EntityEdges(Vec<EntityEdgeRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
 }
@@ -73,14 +70,6 @@ where
 
                     CREATE TEMPORARY TABLE entity_temporal_metadata_tmp
                         (LIKE entity_temporal_metadata INCLUDING ALL)
-                        ON COMMIT DROP;
-
-                    CREATE TEMPORARY TABLE entity_has_left_entity_tmp
-                        (LIKE entity_has_left_entity INCLUDING ALL)
-                        ON COMMIT DROP;
-
-                    CREATE TEMPORARY TABLE entity_has_right_entity_tmp
-                        (LIKE entity_has_right_entity INCLUDING ALL)
                         ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_edge_tmp
@@ -225,50 +214,6 @@ where
                     tracing::info!("Read {} entity temporal metadata", rows.len());
                 }
             }
-            Self::LeftLinks(links) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_has_left_entity_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_has_left_entity[])
-                            RETURNING 1;
-                        ",
-                        &[&links],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} left entity links", rows.len());
-                }
-            }
-            Self::RightLinks(links) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_has_right_entity_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_has_right_entity[])
-                            RETURNING 1;
-                        ",
-                        &[&links],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} right entity links", rows.len());
-                }
-            }
             Self::EntityEdges(edges) => {
                 let rows = client
                     .query(
@@ -341,12 +286,6 @@ where
 
                     INSERT INTO entity_is_of_type
                         SELECT * FROM entity_is_of_type_tmp;
-
-                    INSERT INTO entity_has_left_entity
-                        SELECT * FROM entity_has_left_entity_tmp;
-
-                    INSERT INTO entity_has_right_entity
-                        SELECT * FROM entity_has_right_entity_tmp;
 
                     INSERT INTO entity_edge
                         SELECT * FROM entity_edge_tmp;
