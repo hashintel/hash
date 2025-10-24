@@ -1,1 +1,1 @@
-#input(limit, type: Integer, default: 10)
+if input(#exists, limit) input(#load?, limit) #as(10, type: Integer)

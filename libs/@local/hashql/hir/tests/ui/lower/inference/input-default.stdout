@@ -1,19 +1,30 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#input(x, type: Number, default: #as(42, type: _0))
+if input(#exists, x) input(#load?, x) #as(#as(42, type: _0), type: Number)
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#input(x, type: Number, default: #as(42, type: _0«Integer»))
+if input(#exists, x) input(#load?, x) #as(#as(42, type: _0«Integer»),
+type: Number)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #input(x, type: Number, default: #as(42, type: _0«Integer»))
-└→ Number
+┌─ if input(#exists, x) input(#load?, x) #as(#as(42, type: _0«Integer»),
+│  type: Number)
+└→ (Number | Number)
 
 ┌─ #as(42, type: _0«Integer»)
 └→ _0«Integer»
 
 ┌─ 42
 └→ Integer
+
+┌─ input(#load?, x)
+└→ Number
+
+┌─ input(#exists, x)
+└→ Boolean
+
+┌─ #as(#as(42, type: _0«Integer»), type: Number)
+└→ Number
 
