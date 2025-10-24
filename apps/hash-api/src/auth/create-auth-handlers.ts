@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { Session } from "@ory/client";
+import type { Session } from "@ory/kratos-client";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
@@ -135,6 +135,10 @@ export const getUserAndSession = async ({
 
   if (kratosSession) {
     const { identity } = kratosSession;
+
+    if (!identity) {
+      throw new Error("Could not find kratos identity for session");
+    }
 
     const { id: kratosIdentityId } = identity;
 
