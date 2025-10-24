@@ -221,7 +221,7 @@ runs:
         labels: |
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
-          org.opencontainers.image.description="API and data store for HASH"
+          org.opencontainers.image.description="Frontend application for HASH"
         secrets: |
           GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
