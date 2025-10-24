@@ -71,12 +71,11 @@ use crate::{
             Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
-        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let, VarId},
         operation::{
-            BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
-            UnaryOperation,
+            BinaryOperation, InputOperation, Operation, TypeAssertion, TypeConstructor,
+            TypeOperation, UnaryOperation,
         },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
@@ -219,10 +218,6 @@ pub trait Visitor<'heap> {
         walk_let(self, r#let);
     }
 
-    fn visit_input(&mut self, input: &'heap Input<'heap>) {
-        walk_input(self, input);
-    }
-
     fn visit_operation(&mut self, operation: &'heap Operation<'heap>) {
         walk_operation(self, operation);
     }
@@ -245,6 +240,10 @@ pub trait Visitor<'heap> {
 
     fn visit_unary_operation(&mut self, operation: &'heap UnaryOperation<'heap>) {
         walk_unary_operation(self, operation);
+    }
+
+    fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
+        walk_input_operation(self, operation);
     }
 
     fn visit_access(&mut self, access: &'heap Access<'heap>) {
@@ -331,7 +330,6 @@ pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, node: Node<
         NodeKind::Data(data) => visitor.visit_data(data),
         NodeKind::Variable(variable) => visitor.visit_variable(variable),
         NodeKind::Let(r#let) => visitor.visit_let(r#let),
-        NodeKind::Input(input) => visitor.visit_input(input),
         NodeKind::Operation(operation) => visitor.visit_operation(operation),
         NodeKind::Access(access) => visitor.visit_access(access),
         NodeKind::Call(call) => visitor.visit_call(call),
@@ -473,23 +471,6 @@ pub fn walk_let<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_node(*body);
 }
 
-pub fn walk_input<'heap, T: Visitor<'heap> + ?Sized>(
-    visitor: &mut T,
-    Input {
-        name,
-        r#type,
-        default,
-    }: &'heap Input<'heap>,
-) {
-    visitor.visit_ident(name);
-
-    visitor.visit_type_id(*r#type);
-
-    if let Some(default) = default {
-        visitor.visit_node(*default);
-    }
-}
-
 pub fn walk_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     operation: &'heap Operation<'heap>,
@@ -497,6 +478,7 @@ pub fn walk_operation<'heap, T: Visitor<'heap> + ?Sized>(
     match operation {
         Operation::Type(operation) => visitor.visit_type_operation(operation),
         Operation::Binary(operation) => visitor.visit_binary_operation(operation),
+        Operation::Input(operation) => visitor.visit_input_operation(operation),
     }
 }
 
@@ -546,6 +528,15 @@ pub fn walk_unary_operation<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(op.span);
 
     visitor.visit_node(*expr);
+}
+
+pub fn walk_input_operation<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    InputOperation { op, name }: &'heap InputOperation<'heap>,
+) {
+    visitor.visit_span(op.span);
+
+    visitor.visit_ident(name);
 }
 
 pub fn walk_access<'heap, T: Visitor<'heap> + ?Sized>(

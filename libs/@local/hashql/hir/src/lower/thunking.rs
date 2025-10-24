@@ -211,7 +211,6 @@ impl<'ctx, 'env, 'hir, 'heap> Thunking<'ctx, 'env, 'hir, 'heap> {
             }
             NodeKind::Data(_)
             | NodeKind::Let(_)
-            | NodeKind::Input(_)
             | NodeKind::Operation(_)
             | NodeKind::Call(_)
             | NodeKind::Branch(_)

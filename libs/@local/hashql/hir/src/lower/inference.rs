@@ -32,9 +32,11 @@ use crate::{
         closure::{Closure, extract_signature, extract_signature_generic},
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
-        input::Input,
         r#let::{Binding, Let, VarIdMap},
-        operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        operation::{
+            BinaryOperation, InputOp, InputOperation, TypeAssertion, TypeConstructor,
+            UnaryOperation,
+        },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -363,22 +365,34 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
             .insert_type_id(self.current.id, self.context.map.type_id(body.id));
     }
 
-    fn visit_input(&mut self, input: &'heap Input<'heap>) {
-        visit::walk_input(self, input);
+    // fn visit_input(&mut self, input: &'heap Input<'heap>) {
+    //     visit::walk_input(self, input);
 
-        // We simply take on the type of the input.
-        self.context
-            .map
-            .insert_type_id(self.current.id, input.r#type);
+    //     // We simply take on the type of the input.
+    //     self.context
+    //         .map
+    //         .insert_type_id(self.current.id, input.r#type);
 
-        // If a default exists, we additionally need to discharge a constraint that the default is
-        // `<:` to the type specified.
-        if let Some(default) = &input.default {
-            self.inference.collect_constraints(
-                Variance::Covariant,
-                self.context.map.type_id(default.id),
-                input.r#type,
-            );
+    //     // If a default exists, we additionally need to discharge a constraint that the default
+    // is     // `<:` to the type specified.
+    //     if let Some(default) = &input.default {
+    //         self.inference.collect_constraints(
+    //             Variance::Covariant,
+    //             self.context.map.type_id(default.id),
+    //             input.r#type,
+    //         );
+    //     }
+    // }
+
+    fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
+        match operation.op.value {
+            // We don't need to do anything, because reification already inserts the type
+            InputOp::Load { required: _ } => {}
+            InputOp::Exists => {
+                // Boolean expression
+                let bool = TypeBuilder::spanned(self.current.span, self.env).boolean();
+                self.context.map.insert_type_id(self.current.id, bool);
+            }
         }
     }
 

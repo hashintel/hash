@@ -37,10 +37,9 @@ use crate::{
         call::{Call, CallArgument, PointerKind},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
-        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let, VarId},
-        operation::{Operation, TypeAssertion, TypeOperation},
+        operation::{InputOp, InputOperation, Operation, TypeAssertion, TypeOperation},
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
@@ -118,6 +117,23 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             function,
             arguments,
         }))
+    }
+
+    fn wrap_type_assertion_node(
+        &mut self,
+        span: SpanId,
+        value: Node<'heap>,
+        r#type: &Type<'heap>,
+    ) -> Node<'heap> {
+        self.context.interner.intern_node(NodeData {
+            id: self.context.counter.hir.next(),
+            span,
+            kind: NodeKind::Operation(Operation::Type(TypeOperation::Assertion(TypeAssertion {
+                value,
+                r#type: self.types.anonymous[r#type.id],
+                force: false,
+            }))),
+        })
     }
 
     fn wrap_type_assertion(
@@ -478,38 +494,83 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         Some(Fold::Partial(self.wrap_type_assertion(span, kind, r#type)))
     }
 
+    const fn input_node_kind(span: SpanId, name: Ident<'heap>, op: InputOp) -> NodeKind<'heap> {
+        NodeKind::Operation(Operation::Input(InputOperation {
+            op: Spanned { span, value: op },
+            name,
+        }))
+    }
+
+    fn input_node(&mut self, span: SpanId, name: Ident<'heap>, op: InputOp) -> Node<'heap> {
+        self.context.interner.intern_node(NodeData {
+            id: self.context.counter.hir.next(),
+            span,
+            kind: Self::input_node_kind(span, name, op),
+        })
+    }
+
+    fn input_expr_default(
+        &mut self,
+        span: SpanId,
+        name: Ident<'heap>,
+        r#type: &Type<'heap>,
+        default: Expr<'heap>,
+    ) -> Option<NodeKind<'heap>> {
+        // `input(name, type: type, default: expr)` is the same as
+        // `if INPUT_EXISTS(name) then INPUT_LOAD(name) else (default as type)`
+        let default = self.expr(default)?;
+
+        let then = self.input_node(span, name, InputOp::Load { required: false });
+        let type_id = self.types.anonymous[r#type.id];
+        self.context.map.insert_type_id(then.id, type_id);
+
+        Some(NodeKind::Branch(Branch::If(If {
+            test: self.input_node(span, name, InputOp::Exists),
+            then,
+            r#else: self.wrap_type_assertion_node(span, default, r#type),
+        })))
+    }
+
+    fn input_expr_required(
+        &mut self,
+        hir_id: HirId,
+        span: SpanId,
+        r#type: &Type<'heap>,
+        name: Ident<'heap>,
+    ) -> NodeKind<'heap> {
+        let type_id = self.types.anonymous[r#type.id];
+        self.context.map.insert_type_id(hir_id, type_id);
+
+        Self::input_node_kind(span, name, InputOp::Load { required: true })
+    }
+
     fn input_expr(
         &mut self,
+        hir_id: HirId,
         InputExpr {
             id: _,
-            span: _,
+            span,
             name,
             r#type,
             default,
         }: InputExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
-        let kind = NodeKind::Input(Input {
-            name,
-            r#type: self.types.anonymous[r#type.id],
-            default: if let Some(default) = default {
-                Some(self.expr(*default)?)
-            } else {
-                None
-            },
-        });
-
-        Some(kind)
+        if let Some(default) = default {
+            self.input_expr_default(span, name, &r#type, *default)
+        } else {
+            Some(self.input_expr_required(hir_id, span, &r#type, name))
+        }
     }
 
     fn closure_expr(
         &mut self,
+        hir_id: HirId,
         ClosureExpr {
             id: _,
             span: _,
             signature,
             body,
         }: ClosureExpr<'heap>,
-        hir_id: HirId,
     ) -> Option<NodeKind<'heap>> {
         let signature_def = self.types.signatures[signature.id];
         self.context.map.insert_type_def(hir_id, signature_def);
@@ -766,8 +827,8 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
                 ));
                 return None;
             }
-            ExprKind::Input(input) => (input.span, self.input_expr(input)?),
-            ExprKind::Closure(closure) => (closure.span, self.closure_expr(closure, hir_id)?),
+            ExprKind::Input(input) => (input.span, self.input_expr(hir_id, input)?),
+            ExprKind::Closure(closure) => (closure.span, self.closure_expr(hir_id, closure)?),
             ExprKind::If(r#if) => (r#if.span, self.if_expr(r#if)?),
             ExprKind::Field(field) => (field.span, self.field_expr(field)?),
             ExprKind::Index(index) => (index.span, self.index_expr(index)?),

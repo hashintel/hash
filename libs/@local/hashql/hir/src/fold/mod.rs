@@ -73,12 +73,11 @@ use crate::{
             Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
-        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let, VarId},
         operation::{
-            BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
-            UnaryOperation,
+            BinaryOperation, InputOperation, Operation, TypeAssertion, TypeConstructor,
+            TypeOperation, UnaryOperation,
         },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
@@ -277,10 +276,6 @@ pub trait Fold<'heap> {
         walk_binder(self, binding)
     }
 
-    fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
-        walk_input(self, input)
-    }
-
     fn fold_operation(&mut self, operation: Operation<'heap>) -> Self::Output<Operation<'heap>> {
         walk_operation(self, operation)
     }
@@ -318,6 +313,13 @@ pub trait Fold<'heap> {
         operation: UnaryOperation<'heap>,
     ) -> Self::Output<UnaryOperation<'heap>> {
         walk_unary_operation(self, operation)
+    }
+
+    fn fold_input_operation(
+        &mut self,
+        operation: InputOperation<'heap>,
+    ) -> Self::Output<InputOperation<'heap>> {
+        walk_input_operation(self, operation)
     }
 
     fn fold_access(&mut self, access: Access<'heap>) -> Self::Output<Access<'heap>> {
@@ -482,7 +484,6 @@ pub fn walk_node_data<'heap, T: Fold<'heap> + ?Sized>(
         NodeKind::Data(data) => NodeKind::Data(visitor.fold_data(data)?),
         NodeKind::Variable(variable) => NodeKind::Variable(visitor.fold_variable(variable)?),
         NodeKind::Let(r#let) => NodeKind::Let(visitor.fold_let(r#let)?),
-        NodeKind::Input(input) => NodeKind::Input(visitor.fold_input(input)?),
         NodeKind::Operation(operation) => NodeKind::Operation(visitor.fold_operation(operation)?),
         NodeKind::Access(access) => NodeKind::Access(visitor.fold_access(access)?),
         NodeKind::Call(call) => NodeKind::Call(visitor.fold_call(call)?),
@@ -697,31 +698,6 @@ pub fn walk_binder<'heap, T: Fold<'heap> + ?Sized>(
     Try::from_output(Binder { id, span, name })
 }
 
-pub fn walk_input<'heap, T: Fold<'heap> + ?Sized>(
-    visitor: &mut T,
-    Input {
-        name,
-        r#type,
-        default,
-    }: Input<'heap>,
-) -> T::Output<Input<'heap>> {
-    let name = visitor.fold_ident(name)?;
-
-    let r#type = visitor.fold_type_id(r#type)?;
-
-    let default = if let Some(default) = default {
-        Some(visitor.fold_nested_node(default)?)
-    } else {
-        None
-    };
-
-    Try::from_output(Input {
-        name,
-        r#type,
-        default,
-    })
-}
-
 pub fn walk_operation<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     operation: Operation<'heap>,
@@ -731,6 +707,7 @@ pub fn walk_operation<'heap, T: Fold<'heap> + ?Sized>(
         Operation::Binary(operation) => {
             Operation::Binary(visitor.fold_binary_operation(operation)?)
         }
+        Operation::Input(operation) => Operation::Input(visitor.fold_input_operation(operation)?),
     };
 
     Try::from_output(operation)
@@ -806,6 +783,20 @@ pub fn walk_unary_operation<'heap, T: Fold<'heap> + ?Sized>(
     let expr = visitor.fold_nested_node(expr)?;
 
     Try::from_output(UnaryOperation { op, expr })
+}
+
+pub fn walk_input_operation<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    InputOperation { op, name }: InputOperation<'heap>,
+) -> T::Output<InputOperation<'heap>> {
+    let op = Spanned {
+        span: visitor.fold_span(op.span)?,
+        value: op.value,
+    };
+
+    let name = visitor.fold_ident(name)?;
+
+    Try::from_output(InputOperation { op, name })
 }
 
 pub fn walk_access<'heap, T: Fold<'heap> + ?Sized>(

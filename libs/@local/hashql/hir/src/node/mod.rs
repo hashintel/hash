@@ -4,7 +4,6 @@ pub mod call;
 pub mod closure;
 pub mod data;
 pub mod graph;
-pub mod input;
 pub mod kind;
 pub mod r#let;
 pub mod operation;
