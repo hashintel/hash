@@ -41,108 +41,120 @@ export const Badge: React.FC<BadgeProps> = ({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: "[4px]",
         fontWeight: "medium",
         textAlign: "center",
         whiteSpace: "nowrap",
         userSelect: "none",
+        overflow: "clip",
 
-        // Color schemes
+        // Color schemes - using design tokens from Figma
         "&[data-color-scheme='gray']": {
-          backgroundColor: "gray.20",
-          color: "gray.80",
+          backgroundColor: "core.gray.20",
+          color: "core.gray.80",
         },
         "&[data-color-scheme='brand']": {
-          backgroundColor: "blue.10",
-          color: "blue.80",
+          backgroundColor: "core.blue.10",
+          color: "core.blue.80",
         },
         "&[data-color-scheme='green']": {
-          backgroundColor: "green.20",
-          color: "green.80",
+          backgroundColor: "core.green.10",
+          color: "core.green.80",
         },
         "&[data-color-scheme='orange']": {
-          backgroundColor: "orange.20",
-          color: "orange.80",
+          backgroundColor: "core.orange.10",
+          color: "core.orange.80",
         },
         "&[data-color-scheme='red']": {
-          backgroundColor: "red.20",
-          color: "red.80",
+          backgroundColor: "core.red.00",
+          color: "core.red.80",
         },
         "&[data-color-scheme='purple']": {
-          backgroundColor: "purple.20",
-          color: "purple.80",
+          backgroundColor: "core.purple.00",
+          color: "core.purple.80",
         },
         "&[data-color-scheme='pink']": {
-          backgroundColor: "pink.20",
-          color: "pink.80",
+          backgroundColor: "core.pink.10",
+          color: "core.pink.80",
         },
         "&[data-color-scheme='yellow']": {
-          backgroundColor: "yellow.20",
-          color: "yellow.80",
+          backgroundColor: "core.yellow.10",
+          color: "core.yellow.80",
         },
 
-        // Sizes - rounded badges
+        // Sizes - rounded badges (based on Figma specs)
         "&[data-square='false'][data-size='xs']": {
           fontSize: "[9px]",
           lineHeight: "[12px]",
-          paddingX: "[4px]",
-          paddingY: "[2px]",
-          gap: "[4px]",
-          minHeight: "[16px]",
+          paddingX: "spacing.3", // 4px
+          paddingY: "spacing.0", // 0px
+          gap: "spacing.3", // 4px
+          height: "[14px]",
+          borderRadius: "radius.2", // 4px
         },
         "&[data-square='false'][data-size='sm']": {
-          fontSize: "[12px]",
-          lineHeight: "[12px]",
-          paddingX: "[6px]",
-          paddingY: "[4px]",
-          gap: "[4px]",
-          minHeight: "[20px]",
+          fontSize: "size.textxs", // 12px
+          lineHeight: "leading.none.textxs", // 12px
+          paddingX: "spacing.3", // 4px
+          paddingY: "spacing.0", // 0px
+          gap: "spacing.3", // 4px
+          height: "[16px]",
+          borderRadius: "radius.2", // 4px
         },
         "&[data-square='false'][data-size='md']": {
-          fontSize: "[14px]",
-          lineHeight: "[14px]",
-          paddingX: "[8px]",
-          paddingY: "[5px]",
-          gap: "[6px]",
-          minHeight: "[24px]",
+          fontSize: "size.textsm", // 14px
+          lineHeight: "leading.none.textsm", // 14px
+          paddingX: "spacing.5", // 8px
+          paddingY: "spacing.0", // 0px
+          gap: "spacing.3", // 4px
+          height: "[20px]",
+          borderRadius: "radius.3", // 6px
         },
         "&[data-square='false'][data-size='lg']": {
-          fontSize: "[16px]",
-          lineHeight: "[16px]",
-          paddingX: "[10px]",
-          paddingY: "[6px]",
-          gap: "[6px]",
-          minHeight: "[28px]",
+          fontSize: "size.textbase", // 16px
+          lineHeight: "leading.none.textbase", // 16px
+          paddingX: "spacing.5", // 8px
+          paddingY: "spacing.0", // 0px
+          gap: "spacing.3", // 4px
+          height: "[24px]",
+          borderRadius: "radius.3", // 6px
         },
 
-        // Sizes - square badges
+        // Sizes - square badges (based on Figma specs)
         "&[data-square='true'][data-size='xs']": {
           fontSize: "[9px]",
           lineHeight: "[12px]",
-          width: "[16px]",
-          height: "[16px]",
-          padding: "0",
+          paddingX: "spacing.3", // 4px
+          paddingY: "spacing.0", // 0px
+          width: "[14px]",
+          height: "[14px]",
+          borderRadius: "radius.2", // 4px
         },
         "&[data-square='true'][data-size='sm']": {
-          fontSize: "[12px]",
-          lineHeight: "[12px]",
-          width: "[20px]",
-          height: "[20px]",
-          padding: "0",
+          fontSize: "size.textxs", // 12px
+          lineHeight: "leading.none.textxs", // 12px
+          paddingX: "spacing.3", // 4px
+          paddingY: "spacing.0", // 0px
+          width: "[16px]",
+          height: "[16px]",
+          borderRadius: "radius.2", // 4px
         },
         "&[data-square='true'][data-size='md']": {
-          fontSize: "[14px]",
-          lineHeight: "[14px]",
-          width: "[24px]",
-          height: "[24px]",
-          padding: "0",
+          fontSize: "size.textsm", // 14px
+          lineHeight: "leading.none.textsm", // 14px
+          paddingX: "spacing.0", // 0px
+          paddingY: "spacing.0", // 0px
+          width: "[20px]",
+          height: "[20px]",
+          borderRadius: "radius.3", // 6px
         },
         "&[data-square='true'][data-size='lg']": {
-          fontSize: "[16px]",
-          lineHeight: "[16px]",
-          width: "[28px]",
-          height: "[28px]",
-          padding: "0",
+          fontSize: "size.textbase", // 16px
+          lineHeight: "leading.none.textbase", // 16px
+          paddingX: "spacing.5", // 8px
+          paddingY: "spacing.0", // 0px
+          width: "[24px]",
+          height: "[24px]",
+          borderRadius: "radius.3", // 6px
         },
       })}
     >
