@@ -66,5 +66,5 @@ figma.connect(
         {children}
       </Button>
     ),
-  }
+  },
 );
