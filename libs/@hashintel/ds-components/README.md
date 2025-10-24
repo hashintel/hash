@@ -20,7 +20,7 @@ To help LLMs find the correct mapping between Figma variables and PandaCSS token
 
 > **Note:**
 >
-> Figma MCP needs to be setup in the Figma app.
+> Figma MCP needs to be set up in the Figma app.
 >
 > ArkUI MCP config should not be committed to the repository. Instead, configure it in your User MCP config.
 
