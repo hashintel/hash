@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
+# ENV MISE_TRUSTED_CONFIG_PATHS="/app"
 ENV PATH="/mise/shims:$PATH"
 
 COPY .config/mise /etc/mise
@@ -30,7 +31,8 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
-RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
+RUN mise trust && \
+    turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
     find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" && \
