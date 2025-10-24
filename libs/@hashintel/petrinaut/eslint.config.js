@@ -20,12 +20,6 @@ export default [
     },
   },
   {
-    files: ["dev/vite.config.ts"],
-    rules: {
-      "@typescript-eslint/no-unsafe-call": "off",
-    },
-  },
-  {
     rules: {
       "no-restricted-imports": [
         "error",
