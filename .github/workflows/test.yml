@@ -198,11 +198,12 @@ jobs:
         uses: ./.github/actions/build-docker-images
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
           hash-graph: ${{ matrix.name == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.name == '@apps/hash-ai-worker-ts' }}
           hash-integration-worker: ${{ matrix.name == '@apps/hash-integration-worker' }}
-          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
           hash-api: ${{ matrix.name == '@apps/hash-api' }}
+          hash-frontend: ${{ matrix.name == '@apps/hash-frontend' }}
 
   integration-tests:
     name: Integration

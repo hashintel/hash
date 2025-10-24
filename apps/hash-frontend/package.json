@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "build:docker": "docker buildx build --tag hash-frontend --file ../../infra/docker/frontend/prod/Dockerfile ../../ --load --build-arg FRONTEND_URL=\"$FRONTEND_URL\" --build-arg API_ORIGIN=\"$API_ORIGIN\"",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
