@@ -16,9 +16,9 @@ in
      %5 = (b:0 == a:0)
      %6 = (a:0 == b:0)
      %7 = ::graph::head::entities(%4) |> ::graph::body::filter(#fn(vertex:0:
-         _0«Entity[(id: EntityRecordId[(edition_id:
-           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+         Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+           entity_id: EntityId[(draft_id: (None[Null]
+             | Some[DraftId[Uuid[String]]]), entity_uuid:
             EntityUuid[Uuid[String]], web_id:
             WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
           (None[Null]
@@ -28,11 +28,11 @@ in
              WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
             EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
              entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-         _1«Boolean» ->
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]):
+         Boolean ->
              #let 
              in
-             %5) |> ::graph::body::filter(#fn(vertex:1: _2«Entity[(id:
+             %5) |> ::graph::body::filter(#fn(vertex:1: Entity[(id:
           EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
             entity_uuid: EntityUuid[Uuid[String]], web_id:
@@ -44,8 +44,8 @@ in
              WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
             EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
              entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-         _3«Boolean» ->
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]):
+         Boolean ->
              #let 
              in
              %6) |> ::graph::tail::collect

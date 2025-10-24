@@ -14,7 +14,7 @@ if true ::core::option::Some(::graph::tail::collect(::graph::body::filter(::grap
      %10 = if true #let %3 = ::graph::tmp::decision_time_now()
               %4 = (a:0 == b:0)
               %5 = ::graph::head::entities(%3)
-                  |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                  |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
                    EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
                     entity_id: EntityId[(draft_id: (None[Null]
                       | Some[DraftId[Uuid[String]]]), entity_uuid:
@@ -29,11 +29,26 @@ if true ::core::option::Some(::graph::tail::collect(::graph::body::filter(::grap
                        | Some[DraftId[Uuid[String]]]), entity_uuid:
                       EntityUuid[Uuid[String]], web_id:
                       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]»): _1«Boolean» ->
+                   properties: ?)]): Boolean ->
                       #let 
                       in
                       %4) |> ::graph::tail::collect
-              %6 = #ctor(fn<T?25>(?25«List<Entity[(id:
+              %6 = #ctor(fn(List<Entity[(id: EntityRecordId[(edition_id:
+                    EntityEditionId[Uuid[String]], entity_id:
+                    EntityId[(draft_id: (None[Null]
+                      | Some[DraftId[Uuid[String]]]), entity_uuid:
+                     EntityUuid[Uuid[String]], web_id:
+                     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+                   (None[Null]
+                    | Some[LinkData[(left_entity_id: EntityId[(draft_id:
+                      (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+                      EntityUuid[Uuid[String]], web_id:
+                      WebId[ActorGroupEntityUuid[Uuid[String]]])],
+                     right_entity_id: EntityId[(draft_id: (None[Null]
+                       | Some[DraftId[Uuid[String]]]), entity_uuid:
+                      EntityUuid[Uuid[String]], web_id:
+                      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
+                   properties: ?)]>) -> Some[List<Entity[(id:
                    EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
                     entity_id: EntityId[(draft_id: (None[Null]
                       | Some[DraftId[Uuid[String]]]), entity_uuid:
@@ -48,22 +63,7 @@ if true ::core::option::Some(::graph::tail::collect(::graph::body::filter(::grap
                        | Some[DraftId[Uuid[String]]]), entity_uuid:
                       EntityUuid[Uuid[String]], web_id:
                       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]>») -> Some[?25«List<Entity[(id:
-                   EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-                    entity_id: EntityId[(draft_id: (None[Null]
-                      | Some[DraftId[Uuid[String]]]), entity_uuid:
-                     EntityUuid[Uuid[String]], web_id:
-                     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-                   (None[Null]
-                    | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                      (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                     right_entity_id: EntityId[(draft_id: (None[Null]
-                       | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]>»], arguments: [T])
+                   properties: ?)]>], arguments: [T])
               %7 = %6(%5)
          in
          %7 #let %8 = #ctor(fn() -> None[Null], arguments: [])

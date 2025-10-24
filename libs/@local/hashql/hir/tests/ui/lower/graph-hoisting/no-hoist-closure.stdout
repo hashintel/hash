@@ -11,7 +11,7 @@ c:0()
 
 #let a:0 = true
      b:0 = true
-     c:0 = #fn(): _0«Boolean» ->
+     c:0 = #fn(): Boolean ->
              #let %3 = (a:0 == b:0)
              in
              %3

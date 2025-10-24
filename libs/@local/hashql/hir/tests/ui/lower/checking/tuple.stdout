@@ -8,6 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ #as((1, 2, 3), type: (Number, Number, Number))
+└→ (Number, Number, Number)
+
 ┌─ 1
 └→ Integer
 
@@ -19,7 +22,4 @@
 
 ┌─ (1, 2, 3)
 └→ (Integer, Integer, Integer)
-
-┌─ #as((1, 2, 3), type: (Number, Number, Number))
-└→ (Number, Number, Number)
 

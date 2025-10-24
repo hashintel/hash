@@ -3,7 +3,7 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
 6 │     ["fn", { "#tuple": [] }, { "#struct": { "graph": "_" } }, "_", "graph"],
   │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ This is not a graph intrinsic operation
   │
-  ├ help: #fn(graph:0: _0«Graph[('marker: Entity[(id:
+  ├ help: #fn(graph:0: Graph[('marker: Entity[(id:
   │         EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
   │          entity_id: EntityId[(draft_id: (None[Null]
   │            | Some[DraftId[Uuid[String]]]), entity_uuid:
@@ -18,7 +18,7 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │             | Some[DraftId[Uuid[String]]]), entity_uuid:
   │            EntityUuid[Uuid[String]], web_id:
   │            WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-  │         properties: ?)])]»): _1«Graph[('marker: Entity[(id:
+  │         properties: ?)])]): Graph[('marker: Entity[(id:
   │         EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
   │          entity_id: EntityId[(draft_id: (None[Null]
   │            | Some[DraftId[Uuid[String]]]), entity_uuid:
@@ -33,6 +33,6 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │             | Some[DraftId[Uuid[String]]]), entity_uuid:
   │            EntityUuid[Uuid[String]], web_id:
   │            WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-  │         properties: ?)])]» ->
+  │         properties: ?)])] ->
   │           graph:0 is not a valid graph operation. Graph operation chains can only contain intrinsic functions that are part of the HashQL graph API. Higher-order functions (HOFs) and user-defined functions are not supported yet. To track support for user-defined functions see https://linear.app/hash/issue/H-4776/hashql-allow-user-defined-functions-in-graph-pipelines
   ╰ note: Graph intrinsics are built-in operations like `::graph::head::entities`, `::graph::body::filter`, and `::graph::tail::collect` that can be optimized during compilation. Only these predefined operations can be used to build graph query chains.

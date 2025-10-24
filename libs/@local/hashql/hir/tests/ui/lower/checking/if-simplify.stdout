@@ -8,6 +8,9 @@ if true 3 4
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ if true 3 4
+└→ Integer
+
 ┌─ true
 └→ Boolean
 
@@ -15,8 +18,5 @@ if true 3 4
 └→ Integer
 
 ┌─ 4
-└→ Integer
-
-┌─ if true 3 4
 └→ Integer
 

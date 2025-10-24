@@ -10,6 +10,17 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ #fn(lhs:0: _0«Integer», rhs:0: _1«Integer»): _2«Integer» ->
+│      ::core::math::add(lhs:0, rhs:0)(2, 3)
+└→ _4«Integer»
+
+┌─ #fn(lhs:0: _0«Integer», rhs:0: _1«Integer»): _2«Integer» ->
+│      ::core::math::add(lhs:0, rhs:0)
+└→ fn(_0«Integer», _1«Integer») -> _2«Integer»
+
+┌─ ::core::math::add(lhs:0, rhs:0)
+└→ _3«Integer»
+
 ┌─ ::core::math::add
 └→ fn<T?25: Number, U?26: Number>(?25«Integer», ?26«Integer») -> (?25«Integer»
     | ?26«Integer»)
@@ -20,20 +31,9 @@
 ┌─ rhs:0
 └→ _1«Integer»
 
-┌─ ::core::math::add(lhs:0, rhs:0)
-└→ _3«Integer»
-
-┌─ #fn(lhs:0: _0«Integer», rhs:0: _1«Integer»): _2«Integer» ->
-│      ::core::math::add(lhs:0, rhs:0)
-└→ fn(_0«Integer», _1«Integer») -> _2«Integer»
-
 ┌─ 2
 └→ Integer
 
 ┌─ 3
 └→ Integer
-
-┌─ #fn(lhs:0: _0«Integer», rhs:0: _1«Integer»): _2«Integer» ->
-│      ::core::math::add(lhs:0, rhs:0)(2, 3)
-└→ _4«Integer»
 

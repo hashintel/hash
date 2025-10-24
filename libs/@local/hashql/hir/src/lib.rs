@@ -24,6 +24,7 @@ pub mod error;
 pub mod fold;
 pub mod intern;
 pub mod lower;
+pub mod map;
 pub mod node;
 pub mod path;
 pub mod pretty;

@@ -7,13 +7,25 @@ foo:0(2, 3)
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#let foo:0 = #fn<T:0?26: Integer>(a:0: ?26«Integer», b:0: ?26«Integer»):
-         ?26«Integer» ->
+#let foo:0 = #fn<T:0?29: Integer>(a:0: ?29, b:0: ?29): ?29 ->
              ::core::math::add(a:0, b:0)
 in
 foo:0(2, 3)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ #let foo:0 = #fn<T:0?29: Integer>(a:0: ?29, b:0: ?29): ?29 ->
+│               ::core::math::add(a:0, b:0)
+│  in
+│  foo:0(2, 3)
+└→ Integer
+
+┌─ #fn<T:0?29: Integer>(a:0: ?29, b:0: ?29): ?29 ->
+│      ::core::math::add(a:0, b:0)
+└→ fn<T:0?29: Integer>(?29, ?29) -> ?29
+
+┌─ ::core::math::add(a:0, b:0)
+└→ Integer
 
 ┌─ ::core::math::add
 └→ fn(Integer, Integer) -> Integer
@@ -24,12 +36,8 @@ foo:0(2, 3)
 ┌─ b:0
 └→ Integer
 
-┌─ ::core::math::add(a:0, b:0)
+┌─ foo:0(2, 3)
 └→ Integer
-
-┌─ #fn<T:0?26: Integer>(a:0: ?26«Integer», b:0: ?26«Integer»): ?26«Integer» ->
-│      ::core::math::add(a:0, b:0)
-└→ fn<T:0?29: Integer>(?29, ?29) -> ?29
 
 ┌─ foo:0
 └→ fn(Integer, Integer) -> Integer
@@ -38,15 +46,5 @@ foo:0(2, 3)
 └→ Integer
 
 ┌─ 3
-└→ Integer
-
-┌─ foo:0(2, 3)
-└→ Integer
-
-┌─ #let foo:0 = #fn<T:0?26: Integer>(a:0: ?26«Integer», b:0: ?26«Integer»):
-│           ?26«Integer» ->
-│               ::core::math::add(a:0, b:0)
-│  in
-│  foo:0(2, 3)
 └→ Integer
 

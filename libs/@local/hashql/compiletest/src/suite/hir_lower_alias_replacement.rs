@@ -40,6 +40,7 @@ pub(crate) fn hir_lower_alias_replacement<'heap>(
             &PrettyPrintEnvironment {
                 env: environment,
                 symbols: &context.symbols,
+                map: &context.map
             },
             PrettyOptions::default().without_color()
         )
@@ -96,6 +97,7 @@ impl Suite for HirLowerAliasReplacementSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )

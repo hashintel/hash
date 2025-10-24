@@ -1,13 +1,13 @@
 use hashql_core::{
     heap::Heap,
-    intern::{InternMap, InternSet, Interned},
+    intern::{InternSet, Interned},
     span::Spanned,
     symbol::Ident,
     r#type::TypeId,
 };
 
 use crate::node::{
-    Node, PartialNode,
+    Node, NodeData,
     call::CallArgument,
     closure::ClosureParam,
     data::{DictField, StructField},
@@ -25,7 +25,7 @@ pub struct Interner<'heap> {
     pub graph_read_body: InternSet<'heap, [GraphReadBody<'heap>]>,
     pub bindings: InternSet<'heap, [Binding<'heap>]>,
 
-    pub node: InternMap<'heap, Node<'heap>>,
+    pub node: InternSet<'heap, NodeData<'heap>>,
 
     struct_fields: InternSet<'heap, [StructField<'heap>]>,
     pub dict_fields: InternSet<'heap, [DictField<'heap>]>,
@@ -45,7 +45,7 @@ impl<'heap> Interner<'heap> {
             dict_fields: InternSet::new(heap),
             bindings: InternSet::new(heap),
 
-            node: InternMap::new(heap),
+            node: InternSet::new(heap),
         }
     }
 
@@ -113,7 +113,7 @@ impl<'heap> Interner<'heap> {
         self.dict_fields.intern_slice(fields)
     }
 
-    pub fn intern_node(&self, node: PartialNode<'heap>) -> Node<'heap> {
-        self.node.intern_partial(node)
+    pub fn intern_node(&self, node: NodeData<'heap>) -> Interned<'heap, NodeData<'heap>> {
+        self.node.intern(node)
     }
 }

@@ -212,7 +212,7 @@ where
         IdSlice::from_raw_mut(&mut self.raw)
     }
 
-    fn fill_until(&mut self, index: I, fill: impl FnMut() -> T) -> &mut T {
+    pub fn fill_until(&mut self, index: I, fill: impl FnMut() -> T) -> &mut T {
         let new_length = index.as_usize() + 1;
 
         if self.len() < new_length {

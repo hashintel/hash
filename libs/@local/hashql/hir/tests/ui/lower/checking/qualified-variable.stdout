@@ -8,6 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ ::core::math::add(123, 456)
+└→ Integer
+
 ┌─ ::core::math::add
 └→ fn(Integer, Integer) -> Integer
 
@@ -15,8 +18,5 @@
 └→ Integer
 
 ┌─ 456
-└→ Integer
-
-┌─ ::core::math::add(123, 456)
 └→ Integer
 

@@ -59,7 +59,7 @@ use crate::{
     fold::{self, Fold, beef::Beef},
     intern::Interner,
     node::{
-        Node, PartialNode,
+        Node, NodeData,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::{Call, CallArgument},
@@ -85,7 +85,7 @@ use crate::{
 ///
 /// Non-atoms include control flow, operations, calls, and qualified variables
 /// (which require module thunking in the future).
-pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
+pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
@@ -126,7 +126,12 @@ pub(crate) fn ensure_local_variable<'heap>(
     };
     bindings.push(binding);
 
-    context.interner.intern_node(PartialNode {
+    // The type of that variable is that of the node itself
+    let id = context.counter.hir.next();
+    context.map.copy_to(node.id, id);
+
+    context.interner.intern_node(NodeData {
+        id,
         span: node.span,
         kind: NodeKind::Variable(Variable::Local(LocalVariable {
             id: Spanned {
@@ -146,7 +151,7 @@ pub(crate) fn ensure_local_variable<'heap>(
 /// - Access expressions (field/index access on other projections)
 ///
 /// Projections are a subset of atoms that represent addressable locations.
-const fn is_projection(node: &Node<'_>) -> bool {
+const fn is_projection(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
@@ -317,6 +322,10 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
 
+        // Check if the id from the new node is the same as the one from the source node
+        // if they aren't then we can reuse the same id. Why?
+        // Only `let` expressions "erase" themselves, therefore we just no-op.
+        let prev_hir_id = node.id;
         let Ok(mut node) = fold::walk_nested_node(self, node);
         node = self.ensure_atom(node);
 
@@ -324,8 +333,22 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
+            let id = if node.id == prev_hir_id {
+                // The item was already an atom, therefore nothing to reuse
+                let id = self.context.counter.hir.next();
+
+                // Copy any information from the underlying node as this is a simple let, and
+                // therefore takes the type of the body.
+                self.context.map.copy_to(prev_hir_id, node.id);
+                id
+            } else {
+                // We've "taken over" the id of the previous node
+                prev_hir_id
+            };
+
             // We need to wrap the collected bindings into a new let node
-            node = self.context.interner.intern_node(PartialNode {
+            node = self.context.interner.intern_node(NodeData {
+                id,
                 span: node.span,
                 kind: NodeKind::Let(Let {
                     bindings: self.context.interner.bindings.intern_slice(&bindings),

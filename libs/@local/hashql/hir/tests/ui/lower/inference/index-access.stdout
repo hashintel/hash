@@ -12,23 +12,23 @@ foo:0[0]
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 42
-└→ Integer
+┌─ #let foo:0 = [42]
+│  in
+│  foo:0[0]
+└→ _1«(Integer | Null)»
 
 ┌─ [42]
 └→ List<_0«Integer»>
+
+┌─ 42
+└→ Integer
+
+┌─ foo:0[0]
+└→ _1«(Integer | Null)»
 
 ┌─ foo:0
 └→ List<_0«Integer»>
 
 ┌─ 0
 └→ Integer
-
-┌─ foo:0[0]
-└→ _1«(Integer | Null)»
-
-┌─ #let foo:0 = [42]
-│  in
-│  foo:0[0]
-└→ _1«(Integer | Null)»
 

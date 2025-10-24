@@ -94,7 +94,7 @@ pub struct GraphReadCompiler<'env, 'heap> {
 
     diagnostics: GraphReadCompilerIssues,
 
-    locals: VarIdMap<&'heap Node<'heap>>,
+    locals: VarIdMap<Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
     output: HirIdMap<FilterSlice>,
     variables: VarIdMap<FilterSlice>,
@@ -150,7 +150,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                             current_span: None,
                             param_id: closure.signature.params[0].name.id,
                         },
-                        &closure.body,
+                        closure.body,
                         &mut sink,
                     );
 
@@ -183,7 +183,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 }
 
 impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: Node<'heap>) {
         if self.output.contains_key(&node.id) {
             return; // We've already processed this node, so skip it.
         }
@@ -228,7 +228,7 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
             value,
         } in &r#let.bindings
         {
-            self.locals.insert(binder.id, value);
+            self.locals.insert(binder.id, *value);
         }
 
         visit::walk_let(self, r#let);
