@@ -18,7 +18,7 @@
     "start:test:healthcheck": "wait-on --timeout 600000 http://localhost:3000"
   },
   "dependencies": {
-    "@apollo/client": "3.10.5",
+    "@apollo/client": "3.14.0",
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/hook": "0.1.8",
