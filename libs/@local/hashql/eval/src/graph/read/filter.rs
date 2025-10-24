@@ -26,7 +26,7 @@ use super::{
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
 /// // Returns true if the node represents `true`
 /// assert!(is_bool(true_node, true));
 /// // Returns false if the node represents `false` when checking for `true`
