@@ -365,25 +365,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
             .insert_type_id(self.current.id, self.context.map.type_id(body.id));
     }
 
-    // fn visit_input(&mut self, input: &'heap Input<'heap>) {
-    //     visit::walk_input(self, input);
-
-    //     // We simply take on the type of the input.
-    //     self.context
-    //         .map
-    //         .insert_type_id(self.current.id, input.r#type);
-
-    //     // If a default exists, we additionally need to discharge a constraint that the default
-    // is     // `<:` to the type specified.
-    //     if let Some(default) = &input.default {
-    //         self.inference.collect_constraints(
-    //             Variance::Covariant,
-    //             self.context.map.type_id(default.id),
-    //             input.r#type,
-    //         );
-    //     }
-    // }
-
     fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
         match operation.op.value {
             // We don't need to do anything, because reification already inserts the type
