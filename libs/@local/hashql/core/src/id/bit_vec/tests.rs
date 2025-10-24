@@ -17,13 +17,11 @@
 //!
 //! Implementation and maintenance:
 //! - Applied clippy-driven fixes (no intended semantic changes).
+//! - Removed benchmarks
 #![expect(clippy::too_many_lines, clippy::min_ident_chars, clippy::unwrap_used)]
-extern crate test;
 
 use alloc::rc::Rc;
-use core::{hint::black_box, marker::PhantomData, ops::RangeBounds};
-
-use test::Bencher;
+use core::{marker::PhantomData, ops::RangeBounds};
 
 use super::GrowableBitSet;
 use crate::{
@@ -799,39 +797,4 @@ fn dense_contains_any() {
 
     set.insert(TestId::from_usize(22));
     assert!(set.contains_any(TestId::from_usize(20)..TestId::from_usize(59)));
-}
-
-newtype!(struct BenchId(u32 is 0..=u32::MAX));
-
-#[bench]
-fn bench_insert(b: &mut Bencher) {
-    let mut bs = DenseBitSet::new_filled(99999_usize);
-    b.iter(|| {
-        black_box(bs.insert(black_box(BenchId::from_u32(100))));
-    });
-}
-
-#[bench]
-fn bench_remove(b: &mut Bencher) {
-    let mut bs = DenseBitSet::new_filled(99999_usize);
-    b.iter(|| {
-        black_box(bs.remove(black_box(BenchId::from_u32(100))));
-    });
-}
-
-#[bench]
-fn bench_iter(b: &mut Bencher) {
-    let bs = DenseBitSet::new_filled(99999_usize);
-    b.iter(|| {
-        bs.iter().map(|b: BenchId| black_box(b)).for_each(drop);
-    });
-}
-
-#[bench]
-fn bench_intersect(b: &mut Bencher) {
-    let mut ba: DenseBitSet<BenchId> = DenseBitSet::new_filled(99999_usize);
-    let bb = DenseBitSet::new_filled(99999_usize);
-    b.iter(|| {
-        ba.intersect(black_box(&bb));
-    });
 }
