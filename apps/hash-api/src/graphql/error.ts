@@ -1,14 +1,12 @@
 import { ApolloServerErrorCode } from "@apollo/server/errors";
 import { GraphQLError } from "graphql";
 
-export const any = (message: string, extensions?: Record<string, unknown>) =>
-  new GraphQLError(message, { extensions });
 export const code = (
   // eslint-disable-next-line @typescript-eslint/no-shadow
   code: string,
   message: string,
   extensions?: Record<string, unknown>,
-) => any(message, { code, ...extensions });
+) => new GraphQLError(message, { extensions: { code, ...extensions } });
 
 export const badUserInput = (
   message: string,

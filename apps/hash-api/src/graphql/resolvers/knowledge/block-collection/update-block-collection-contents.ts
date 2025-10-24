@@ -144,7 +144,7 @@ export const updateBlockCollectionContents: ResolverFn<
     };
   } catch (error) {
     if (error instanceof globalThis.Error) {
-      throw Error.any(`Could not apply update: ${error.message}`);
+      throw Error.internal(`Could not apply update: ${error.message}`);
     }
 
     throw Error.internal(`Could not apply update: ${JSON.stringify(error)}`);
