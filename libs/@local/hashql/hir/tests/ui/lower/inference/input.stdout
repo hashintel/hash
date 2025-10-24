@@ -1,13 +1,13 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#input(x, type: Integer)
+input(#load!, x)
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#input(x, type: Integer)
+input(#load!, x)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #input(x, type: Integer)
+┌─ input(#load!, x)
 └→ Integer
 
