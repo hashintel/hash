@@ -118,10 +118,7 @@ export const Card: Story = {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M8 0L16 8L8 16L0 8L8 0Z"
-              fill="currentColor"
-            />
+            <path d="M8 0L16 8L8 16L0 8L8 0Z" fill="currentColor" />
           </svg>
         ),
       },
