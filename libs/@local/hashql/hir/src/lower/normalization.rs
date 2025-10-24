@@ -284,7 +284,7 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     ///
     /// turns into:
     ///
-    /// ```
+    /// ```text
     /// let %1 = bar(x) in
     /// let %2 = baz(y) in
     /// let %3 = foo(%1, %2) in
