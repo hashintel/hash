@@ -481,11 +481,11 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
 
         // Check if the right side has been used as a boundary, if that is the case, we
         // transform it into an `if/else` expression
-        let is_shortcut = is_anf_atom(&right);
+        let is_right_atom = is_anf_atom(&right);
 
         // There is no short circuiting behaviour here required, meaning that we can just issue a
         // normal binary operation
-        if !is_shortcut {
+        if is_right_atom {
             return BinaryOperation { op, left, right };
         }
 

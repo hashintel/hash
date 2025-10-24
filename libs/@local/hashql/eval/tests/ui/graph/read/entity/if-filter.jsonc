@@ -1,4 +1,4 @@
-//@ run: fail
+//@ run: pass
 //@ description: Test if filter with branch fails
 // biome-ignore format: readability
 ["::graph::tail::collect",
@@ -6,7 +6,6 @@
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       ["if", {"#literal": true}, {"#literal": true}, {"#literal": false}]
-      //~^ ERROR conditional expressions are not supported in filter contexts
     ]
   ]
 ]
