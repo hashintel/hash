@@ -40,15 +40,15 @@ export default defineConfig({
         button: path.resolve(__dirname, "src/components/Button/button.tsx"),
         checkbox: path.resolve(
           __dirname,
-          "src/components/Checkbox/checkbox.tsx"
+          "src/components/Checkbox/checkbox.tsx",
         ),
         "refractive-pane": path.resolve(
           __dirname,
-          "src/components/RefractivePane/refractive-pane.tsx"
+          "src/components/RefractivePane/refractive-pane.tsx",
         ),
         "segmented-control": path.resolve(
           __dirname,
-          "src/components/SegmentedControl/segmented-control.tsx"
+          "src/components/SegmentedControl/segmented-control.tsx",
         ),
         slider: path.resolve(__dirname, "src/components/Slider/slider.tsx"),
         switch: path.resolve(__dirname, "src/components/Switch/switch.tsx"),

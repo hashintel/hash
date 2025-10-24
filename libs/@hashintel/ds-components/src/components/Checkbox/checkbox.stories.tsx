@@ -116,8 +116,8 @@ export const Interactive: Story = {
             {checked === "indeterminate"
               ? "Indeterminate"
               : checked
-              ? "Checked"
-              : "Unchecked"}
+                ? "Checked"
+                : "Unchecked"}
           </strong>
         </div>
         <div style={{ display: "flex", gap: "8px" }}>

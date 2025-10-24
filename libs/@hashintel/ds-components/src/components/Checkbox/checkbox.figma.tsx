@@ -37,5 +37,5 @@ figma.connect(
         label={props.label}
       />
     ),
-  }
+  },
 );

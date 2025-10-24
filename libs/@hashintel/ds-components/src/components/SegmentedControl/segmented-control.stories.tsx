@@ -128,7 +128,7 @@ export const Interactive: Story = {
 
   render: (args) => {
     const [selectedValue, setSelectedValue] = useState(
-      args.defaultValue ?? "option1"
+      args.defaultValue ?? "option1",
     );
 
     return (
