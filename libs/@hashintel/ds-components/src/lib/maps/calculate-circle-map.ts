@@ -1,5 +1,7 @@
 import { createImageData } from "canvas";
 
+import type { ProcessPixelFunction } from "./process-pixel.type";
+
 /**
  * Generates a circular (or rounded rectangle) map and allows processing of each pixel.
  * Used by Diplacement and Specular maps.
@@ -11,14 +13,7 @@ export function calculateCircleMap(props: {
   fillColor: number;
   /** Restricts pixel processing to a certain distance from the border. */
   maximumDistanceToBorder?: number;
-  processPixel: (
-    x: number,
-    y: number,
-    buffer: Uint8ClampedArray<ArrayBufferLike>,
-    offset: number,
-    distanceFromCenter: number,
-    opacity: number,
-  ) => void;
+  processPixel: ProcessPixelFunction;
 }) {
   const { fillColor, processPixel, maximumDistanceToBorder } = props;
 
@@ -74,15 +69,24 @@ export function calculateCircleMap(props: {
       // Process pixels that are in bezel or near bezel edge for anti-aliasing
       if (isInBezel) {
         const distanceFromCenter = Math.sqrt(distanceToCenterSquared);
-
+        const distanceFromBorder = radius - distanceFromCenter;
+        const distanceFromBorderRatio = distanceFromBorder / radius;
+        const angle = Math.atan2(y, x);
+        // H-5525: Fix antialiasing calculation
         const opacity =
-          distanceToCenterSquared <= radiusSquared
-            ? 1
-            : 1 -
-              (distanceFromCenter - Math.sqrt(radiusSquared)) /
-                (Math.sqrt(radiusPlusOneSquared) - Math.sqrt(radiusSquared));
+          distanceToCenterSquared > radiusSquared ? 1 - distanceFromBorder : 1;
 
-        processPixel(x, y, imageData.data, idx, distanceFromCenter, opacity);
+        processPixel(
+          x,
+          y,
+          imageData.data,
+          idx,
+          distanceFromCenter,
+          distanceFromBorder,
+          distanceFromBorderRatio,
+          angle,
+          opacity,
+        );
       }
     }
   }

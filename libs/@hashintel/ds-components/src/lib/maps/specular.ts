@@ -29,7 +29,17 @@ export function calculateSpecularImage(props: {
     fillColor: 0x00000000,
     radius,
     maximumDistanceToBorder: NEAR_EDGE_DISTANCE * pixelRatio,
-    processPixel(x, y, buffer, offset, distanceFromCenter, opacity) {
+    processPixel(
+      x,
+      y,
+      buffer,
+      offset,
+      distanceFromCenter,
+      _distanceFromBorder,
+      _distanceFromBorderRatio,
+      _angle,
+      opacity,
+    ) {
       const distanceFromSide = radius - distanceFromCenter;
 
       // Viewed from top
