@@ -35,7 +35,7 @@ export function calculateRoundedSquareMap(props: {
   const radius = Math.min(props.radius, width / 2, height / 2);
   const cornerWidth = Math.max(
     radius,
-    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2),
+    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2)
   );
 
   const widthBetweenCorners = width - cornerWidth * 2;
@@ -49,30 +49,31 @@ export function calculateRoundedSquareMap(props: {
   const angleEnd = Math.atan2(cornerWidth, cornerWidth - radius);
   const aperture = angleEnd - angleStart;
 
-  for (let y1 = 0; y1 < height; y1++) {
-    for (let x1 = 0; x1 < width; x1++) {
-      const idx = (y1 * width + x1) * 4;
+  // Iterate over every pixel in the buffer
+  for (let bufferY = 0; bufferY < height; bufferY++) {
+    for (let bufferX = 0; bufferX < width; bufferX++) {
+      const idx = (bufferY * width + bufferX) * 4;
 
-      const isOnLeftSide = x1 < cornerWidth;
-      const isOnRightSide = x1 >= width - cornerWidth;
-      const isOnTopSide = y1 < cornerWidth;
-      const isOnBottomSide = y1 >= height - cornerWidth;
+      const isOnLeftSide = bufferX < cornerWidth;
+      const isOnRightSide = bufferX >= width - cornerWidth;
+      const isOnTopSide = bufferY < cornerWidth;
+      const isOnBottomSide = bufferY >= height - cornerWidth;
 
       // Virtual x value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const x = isOnLeftSide
-        ? x1 - cornerWidth
+        ? bufferX - cornerWidth
         : isOnRightSide
-          ? x1 - cornerWidth - widthBetweenCorners
-          : 0;
+        ? bufferX - cornerWidth - widthBetweenCorners
+        : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const y = isOnTopSide
-        ? y1 - cornerWidth
+        ? bufferY - cornerWidth
         : isOnBottomSide
-          ? y1 - cornerWidth - heightBetweenCorners
-          : 0;
+        ? bufferY - cornerWidth - heightBetweenCorners
+        : 0;
 
       const pointAngleInSquare = Math.atan2(Math.abs(y), Math.abs(x));
 
@@ -148,7 +149,7 @@ export function calculateRoundedSquareMap(props: {
           distanceFromBorder,
           distanceFromBorderRatio,
           angle,
-          opacity,
+          opacity
         );
       }
     }
