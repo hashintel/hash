@@ -35,7 +35,7 @@ export function calculateRoundedSquareMap(props: {
   const radius = Math.min(props.radius, width / 2, height / 2);
   const cornerWidth = Math.max(
     radius,
-    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2)
+    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2),
   );
 
   const widthBetweenCorners = width - cornerWidth * 2;
@@ -63,16 +63,16 @@ export function calculateRoundedSquareMap(props: {
       const x = isOnLeftSide
         ? x1 - cornerWidth
         : isOnRightSide
-        ? x1 - cornerWidth - widthBetweenCorners
-        : 0;
+          ? x1 - cornerWidth - widthBetweenCorners
+          : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const y = isOnTopSide
         ? y1 - cornerWidth
         : isOnBottomSide
-        ? y1 - cornerWidth - heightBetweenCorners
-        : 0;
+          ? y1 - cornerWidth - heightBetweenCorners
+          : 0;
 
       const pointAngleInSquare = Math.atan2(Math.abs(y), Math.abs(x));
 
@@ -148,7 +148,7 @@ export function calculateRoundedSquareMap(props: {
           distanceFromBorder,
           distanceFromBorderRatio,
           angle,
-          opacity
+          opacity,
         );
       }
     }

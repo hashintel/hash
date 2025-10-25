@@ -178,11 +178,11 @@ export const Preview: Story = {
           args.bezelWidth,
           bezelHeightFn,
           args.refractiveIndex,
-          128
+          128,
         );
 
         const maximumDisplacement = Math.max(
-          ...precomputedDisplacementMap.map(Math.abs)
+          ...precomputedDisplacementMap.map(Math.abs),
         );
 
         // Calculate the displacement map pattern
@@ -222,7 +222,7 @@ export const Preview: Story = {
         ctx.fillText(
           "Error calculating displacement map",
           canvas.width / 2,
-          canvas.height / 2
+          canvas.height / 2,
         );
         // Log error for debugging
         // eslint-disable-next-line no-console
