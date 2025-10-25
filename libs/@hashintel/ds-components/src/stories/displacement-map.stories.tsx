@@ -12,10 +12,8 @@ import {
   type SurfaceFnDef,
 } from "../lib/surface-equations";
 
-// Define the bezel height function types
 type BezelHeightType = "CONVEX" | "CONCAVE" | "LIP";
 
-// Define the args type for the displacement map function parameters
 interface DisplacementMapArgs {
   width: number;
   height: number;
@@ -141,7 +139,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// Bezel height function implementations from surface-equations
 const bezelHeightFunctions: Record<BezelHeightType, SurfaceFnDef> = {
   CONVEX,
   CONCAVE,
@@ -181,11 +178,11 @@ export const Preview: Story = {
           args.bezelWidth,
           bezelHeightFn,
           args.refractiveIndex,
-          128,
+          128
         );
 
         const maximumDisplacement = Math.max(
-          ...precomputedDisplacementMap.map(Math.abs),
+          ...precomputedDisplacementMap.map(Math.abs)
         );
 
         // Calculate the displacement map pattern
@@ -225,7 +222,7 @@ export const Preview: Story = {
         ctx.fillText(
           "Error calculating displacement map",
           canvas.width / 2,
-          canvas.height / 2,
+          canvas.height / 2
         );
         // Log error for debugging
         // eslint-disable-next-line no-console
