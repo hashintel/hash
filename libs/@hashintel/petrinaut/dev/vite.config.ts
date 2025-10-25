@@ -8,7 +8,4 @@ export default defineConfig({
   server: {
     open: true,
   },
-  define: {
-    "process.env.NODE_ENV": '"development"',
-  },
 });
