@@ -20,6 +20,8 @@ export function getEnvStorageType(): StorageType {
 export const LOCAL_FILE_UPLOAD_PATH =
   process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 
+export const GRAPHQL_PATH = "/graphql";
+
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
   origin: [

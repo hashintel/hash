@@ -211,6 +211,16 @@ where
     pub fn as_mut_slice(&mut self) -> &mut IdSlice<I, T> {
         IdSlice::from_raw_mut(&mut self.raw)
     }
+
+    fn fill_until(&mut self, index: I, fill: impl FnMut() -> T) -> &mut T {
+        let new_length = index.as_usize() + 1;
+
+        if self.len() < new_length {
+            self.raw.resize_with(new_length, fill);
+        }
+
+        &mut self[index]
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>
@@ -234,10 +244,8 @@ where
     /// assert!(vec[MyId::from_usize(0)].is_none());
     /// assert_eq!(vec[MyId::from_usize(5)].as_ref().unwrap(), "hello");
     /// ```
-    pub fn insert(&mut self, index: I, value: T) {
-        // fill the vec with default values up to the index
-        self.raw.resize_with(index.as_usize() + 1, || None);
-        self.raw[index.as_usize()] = Some(value);
+    pub fn insert(&mut self, index: I, value: T) -> Option<T> {
+        self.fill_until(index, || None).replace(value)
     }
 
     /// Removes and returns the value at the given ID index.
@@ -274,6 +282,10 @@ where
     /// ```
     pub fn contains(&self, index: I) -> bool {
         self.get(index).and_then(Option::as_ref).is_some()
+    }
+
+    pub fn get_or_insert_with(&mut self, index: I, value: impl FnOnce() -> T) -> &mut T {
+        self.fill_until(index, || None).get_or_insert_with(value)
     }
 }
 

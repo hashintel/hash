@@ -1,8 +1,8 @@
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import { ApolloError, ForbiddenError } from "apollo-server-express";
 
 import type { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const getBlockProtocolBlocksResolver: ResolverFn<
   BlockProtocolBlock[],
@@ -13,7 +13,7 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
   const apiKey = process.env.BLOCK_PROTOCOL_API_KEY;
 
   if (!apiKey) {
-    throw new Error("BLOCK_PROTOCOL_API_KEY env variable is missing!");
+    throw Error.internal("BLOCK_PROTOCOL_API_KEY env variable is missing!");
   }
 
   const res = await fetch(`${blockProtocolHubOrigin}/api/blocks`, {
@@ -21,11 +21,11 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
   });
 
   if (res.status === 401) {
-    throw new ForbiddenError(
+    throw Error.forbidden(
       `Invalid BLOCK_PROTOCOL_API_KEY for ${blockProtocolHubOrigin}`,
     );
   } else if (res.status !== 200) {
-    throw new ApolloError(
+    throw Error.internal(
       `Could not fetch blocks from Block Protocol Hub: ${res.statusText}`,
     );
   }

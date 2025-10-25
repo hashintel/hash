@@ -2,12 +2,11 @@ import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { ApolloError } from "apollo-server-errors";
-import { ForbiddenError } from "apollo-server-express";
 
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const cancelFlow: ResolverFn<
   Promise<boolean>,
@@ -26,7 +25,7 @@ export const cancelFlow: ResolverFn<
   });
 
   if (!flow) {
-    throw new ApolloError(`Flow with id ${flowUuid} not found`, "NOT_FOUND");
+    throw Error.notFound(`Flow with id ${flowUuid} not found`);
   }
 
   const userCanModify = await checkEntityPermission(
@@ -39,7 +38,7 @@ export const cancelFlow: ResolverFn<
   );
 
   if (!userCanModify) {
-    throw new ForbiddenError("You do not have permission to cancel this flow.");
+    throw Error.forbidden("You do not have permission to cancel this flow.");
   }
 
   await temporal.workflowService.requestCancelWorkflowExecution({

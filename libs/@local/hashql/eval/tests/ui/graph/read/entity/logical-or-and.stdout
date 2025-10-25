@@ -26,9 +26,8 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]»): _1«Boolean» ->
-                          #let %3 = (true || #let %2 = (true && false)
-                                   in
-                                   %2)
+                          #let %2 = (true && false)
+                               %3 = (true || %2)
                           in
                           %3) |> ::graph::tail::collect
              in

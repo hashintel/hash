@@ -1,10 +1,10 @@
 import type { MutationDeclineOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { ApolloError } from "apollo-server-errors";
 
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
 
@@ -59,16 +59,16 @@ export const declineOrgInvitationResolver: ResolverFn<
   const invitation = pendingInvitations[0] ?? null;
 
   if (!invitation) {
-    throw new ApolloError("Invitation not found", "NOT_FOUND");
+    throw Error.notFound("Invitation not found");
   }
 
   if ("email" in invitation) {
     if (!user.emails.includes(invitation.email)) {
-      throw new ApolloError("Invitation for user not found", "NOT_FOUND");
+      throw Error.notFound("Invitation for user not found");
     }
   } else if ("shortname" in invitation) {
     if (user.shortname !== invitation.shortname) {
-      throw new ApolloError("Invitation for user not found", "NOT_FOUND");
+      throw Error.notFound("Invitation for user not found");
     }
   }
 

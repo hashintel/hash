@@ -43,7 +43,6 @@ export const gptQueryTypes: RequestHandler<
   Record<string, never>,
   GptQueryTypesResponseBody,
   GptQueryTypesRequestBody
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const { user } = req;
 

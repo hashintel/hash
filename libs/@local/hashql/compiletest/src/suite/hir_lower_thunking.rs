@@ -20,7 +20,7 @@ use hashql_hir::{
 
 use super::{
     Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
-    hir_lower_normalization::hir_lower_normalization,
+    hir_lower_graph_hoisting::hir_lower_graph_hoisting,
 };
 use crate::suite::common::Header;
 
@@ -31,7 +31,7 @@ pub(crate) fn hir_lower_thunking<'heap>(
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
 ) -> Result<Node<'heap>, SuiteDiagnostic> {
-    let node = hir_lower_normalization(heap, expr, environment, context, options)?;
+    let node = hir_lower_graph_hoisting(heap, expr, environment, context, options)?;
 
     let thunking = Thunking::new(context);
     let node = thunking.run(node);

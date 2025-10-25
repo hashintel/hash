@@ -270,14 +270,11 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         }
     }
 
-    fn compile_filter_expr_let<P>(
+    fn compile_filter_expr_let<T>(
         &mut self,
-        context: FilterCompilerContext,
         Let { bindings, body }: &'heap Let<'heap>,
-    ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
-    where
-        P: PartialQueryPath<'heap> + Debug,
-    {
+        recurse: impl FnOnce(&mut Self, &'heap Node<'heap>) -> T,
+    ) -> T {
         for Binding {
             span: _,
             binder,
@@ -287,7 +284,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             self.locals.insert(binder.id, value);
         }
 
-        let result = self.compile_filter_expr(context, body);
+        let result = recurse(self, body);
 
         for Binding {
             span: _,
@@ -578,16 +575,25 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Variable(Variable::Local(local)) => {
                 self.compile_filter_expr_call_ctor(context, span, self.locals[&local.id.value])
             }
+            NodeKind::Call(Call {
+                kind: PointerKind::Thin,
+                function,
+                arguments: _,
+            }) => self.compile_filter_expr_call_ctor(context, span, function),
+            NodeKind::Let(r#let) => self.compile_filter_expr_let(r#let, |this, body| {
+                this.compile_filter_expr_call_ctor(context, span, body)
+            }),
+            NodeKind::Thunk(Thunk { body }) => {
+                self.compile_filter_expr_call_ctor(context, span, body)
+            }
             NodeKind::Data(_)
             | NodeKind::Variable(_)
-            | NodeKind::Let(_)
             | NodeKind::Input(_)
             | NodeKind::Operation(_)
             | NodeKind::Access(_)
             | NodeKind::Call(_)
             | NodeKind::Branch(_)
             | NodeKind::Closure(_)
-            | NodeKind::Thunk(_)
             | NodeKind::Graph(_) => {
                 self.diagnostics.push(call_unsupported(context, span));
                 Err(CompilationError)
@@ -611,12 +617,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     where
         P: PartialQueryPath<'heap> + Debug,
     {
-        if *kind == PointerKind::Thin
-            && let NodeKind::Variable(Variable::Local(local)) = function.kind
-        {
+        if *kind == PointerKind::Thin {
             // Thin pointer to a local variable = calling a thunk
-            let node = self.locals[&local.id.value];
-            return self.compile_filter_expr(context.with_current_span(span), node);
+            return self.compile_filter_expr(context.with_current_span(span), function);
         }
 
         let ctor = self.compile_filter_expr_call_ctor(context, span, function)?;
@@ -667,7 +670,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Variable(variable) => {
                 self.compile_filter_expr_variable(context, node.span, variable)
             }
-            NodeKind::Let(r#let) => self.compile_filter_expr_let(context, r#let),
+            NodeKind::Let(r#let) => self.compile_filter_expr_let(r#let, |this, body| {
+                this.compile_filter_expr(context, body)
+            }),
             NodeKind::Input(input) => Ok(self.compile_filter_expr_input(node.span, input)),
             NodeKind::Operation(operation) => {
                 self.compile_filter_expr_operation(context, node.span, operation)
