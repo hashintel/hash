@@ -1,6 +1,7 @@
+import { useWindowEvent } from "@mantine/hooks";
 import { useCallback } from "react";
-import { useDocumentEventListener, useWindowEventListener } from "rooks";
 
+import { useDocumentEvent } from "../../../../components/hooks/use-document-event";
 import { componentViewTargetSelector } from "../component-view";
 import type { CollabPositionReporter } from "./use-collab-position-reporter";
 
@@ -23,7 +24,7 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
    * the handler must be deferred until the blur event passes and updates `document.activeElement`
    * @see https://stackoverflow.com/a/28932220/1675431
    */
-  useWindowEventListener("blur", () => {
+  useWindowEvent("blur", () => {
     setImmediate(() => {
       const activeElement = document.activeElement;
 
@@ -46,8 +47,8 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
     const target = focusElement?.closest(componentViewTargetSelector);
     report(target?.getAttribute("data-entity-id") ?? null);
   }, [report]);
-  useWindowEventListener("focus", handleInteraction);
-  useDocumentEventListener("selectionchange", handleInteraction);
+  useWindowEvent("focus", handleInteraction);
+  useDocumentEvent("selectionchange", handleInteraction);
 
   /**
    * @todo capture tabindex movements

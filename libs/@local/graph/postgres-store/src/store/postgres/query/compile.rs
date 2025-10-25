@@ -237,13 +237,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if self.artifacts.table_info.tables.insert(table) {
             if !self.include_drafts {
                 self.add_condition(
-                    Condition::Equal(
-                        Some(Expression::ColumnReference {
-                            column: Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
-                            table_alias: Some(alias),
-                        }),
-                        None,
-                    ),
+                    Condition::Exists(Expression::ColumnReference {
+                        column: Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
+                        table_alias: Some(alias),
+                    }),
                     Some(table),
                 );
             }
@@ -462,17 +459,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             ),
             Filter::Not(filter) => Condition::Not(Box::new(self.compile_filter(filter)?)),
             Filter::Equal(lhs, rhs) => Condition::Equal(
-                lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression).0),
-                rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression).0),
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
             ),
             Filter::NotEqual(lhs, rhs) => Condition::NotEqual(
-                lhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression).0),
-                rhs.as_ref()
-                    .map(|expression| self.compile_filter_expression(expression).0),
+                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(rhs).0,
             ),
+            Filter::Exists { path } => Condition::Exists(self.compile_path_column(path)),
             Filter::Greater(lhs, rhs) => Condition::Greater(
                 self.compile_filter_expression(lhs).0,
                 self.compile_filter_expression(rhs).0,
@@ -801,14 +795,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
-        let latest_version_expression = Some(Expression::ColumnReference {
+        let latest_version_expression = Expression::ColumnReference {
             column: Column::OntologyIds(OntologyIds::LatestVersion),
             table_alias: Some(alias),
-        });
-        let version_expression = Some(Expression::ColumnReference {
+        };
+        let version_expression = Expression::ColumnReference {
             column: version_column,
             table_alias: Some(alias),
-        });
+        };
 
         match operator {
             EqualityOperator::Equal => {
@@ -832,18 +826,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
-                    Some(FilterExpression::Path { path }),
-                    Some(FilterExpression::Parameter {
+                    FilterExpression::Path { path },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Text(parameter),
                         convert: None,
-                    }),
+                    },
                 )
                 | (
-                    Some(FilterExpression::Parameter {
+                    FilterExpression::Parameter {
                         parameter: Parameter::Text(parameter),
                         convert: None,
-                    }),
-                    Some(FilterExpression::Path { path }),
+                    },
+                    FilterExpression::Path { path },
                 ) => match (path.terminating_column().0, filter, parameter.as_ref()) {
                     (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
                         Some(
@@ -866,6 +860,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::All(_)
             | Filter::Any(_)
             | Filter::Not(_)
+            | Filter::Exists { .. }
             | Filter::Greater(..)
             | Filter::GreaterOrEqual(..)
             | Filter::Less(..)
@@ -983,7 +978,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 ParameterType::Uuid
             }
             Parameter::OntologyTypeVersion(version) => {
-                self.artifacts.parameters.push(version);
+                self.artifacts.parameters.push(&**version);
                 ParameterType::OntologyTypeVersion
             }
             Parameter::Timestamp(timestamp) => {

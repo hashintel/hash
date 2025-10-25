@@ -14,7 +14,7 @@ runs:
 
   steps:
     - name: Run `mise install` with `ci` environment
-      uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
       with:
         install_args: --env ci --jobs 1
       env:
@@ -39,3 +39,7 @@ runs:
         max_attempts: 5
         retry_wait_seconds: 60
         command: ${{ github.action_path }}/install-rust.sh
+
+    - name: "Install sccache"
+      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      uses: ./.github/actions/install-sccache

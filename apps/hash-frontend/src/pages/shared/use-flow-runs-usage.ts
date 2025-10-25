@@ -1,17 +1,14 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { EntityUuid } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -30,10 +27,10 @@ import { useMemo } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type UsageByFlowRunId = {
   [flowRunId: EntityUuid]: {
@@ -59,9 +56,9 @@ export const useFlowRunsUsage = ({
   const available = !!(process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin);
 
   const { data, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     pollInterval,
     skip: !available,
     fetchPolicy: "network-only",
@@ -86,15 +83,18 @@ export const useFlowRunsUsage = ({
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          // Depths required to retrieve the service the usage record relates to, and the Flow it is associated with
-          hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            // Required to retrieve the service the usage record relates to, and the Flow it is associated with
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
   });
 
@@ -106,9 +106,10 @@ export const useFlowRunsUsage = ({
     const usageByFlowRunId: UsageByFlowRunId = {};
 
     for (const flowRunId of flowRunIds) {
-      const serviceUsageRecordSubgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<UsageRecord>>
-      >(data.getEntitySubgraph.subgraph);
+      const serviceUsageRecordSubgraph =
+        deserializeQueryEntitySubgraphResponse<UsageRecord>(
+          data.queryEntitySubgraph,
+        ).subgraph;
 
       const usageRecordsForFlowRun = getRoots(
         serviceUsageRecordSubgraph,

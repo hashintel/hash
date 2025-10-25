@@ -1,7 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import type {
   EntityRootType,
-  GraphResolveDepths,
   KnowledgeGraphVertices,
   Subgraph,
 } from "@blockprotocol/graph";
@@ -12,15 +11,21 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { currentTimestamp } from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { currentTimestamp, splitEntityId } from "@blockprotocol/type-system";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { useCallback } from "react";
 
 import type {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   SubgraphAndPermissions as SubgraphAndPermissionsGQL,
 } from "../graphql/api-types.gen";
 
@@ -37,12 +42,12 @@ export const useFetchBlockSubgraph = (): ((
     subgraph: Subgraph<EntityRootType>;
   }
 >) => {
-  const [getEntity] = useLazyQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    {
-      fetchPolicy: "cache-and-network",
-    },
-  );
+  const [queryEntitySubgraph] = useLazyQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+  });
 
   const fetchBlockSubgraph = useCallback(
     async (
@@ -50,23 +55,6 @@ export const useFetchBlockSubgraph = (): ((
       blockEntityId?: EntityId,
       fallbackBlockProperties?: PropertyObject,
     ) => {
-      const depths: GraphResolveDepths = {
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 1 },
-        constrainsLinkDestinationsOn: { outgoing: 1 },
-        inheritsFrom: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasRightEntity: {
-          incoming: 2,
-          outgoing: 2,
-        },
-        hasLeftEntity: {
-          incoming: 2,
-          outgoing: 2,
-        },
-      };
-
       if (!blockEntityId) {
         // when inserting a block in the frontend we don't yet have an entity associated with it
         // there's a delay while the request to the API to insert it is processed
@@ -164,11 +152,50 @@ export const useFetchBlockSubgraph = (): ((
         } satisfies SubgraphAndPermissions;
       }
 
-      return getEntity({
+      const [webId, entityUuid, draftId] = splitEntityId(blockEntityId);
+      return queryEntitySubgraph({
         variables: {
-          entityId: blockEntityId,
-          includePermissions: true,
-          ...depths,
+          request: {
+            filter: {
+              all: [
+                {
+                  equal: [{ path: ["webId"] }, { parameter: webId }],
+                },
+                {
+                  equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+                },
+                ...(draftId
+                  ? [
+                      {
+                        equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            graphResolveDepths: almostFullOntologyResolveDepths,
+            traversalPaths: [
+              {
+                edges: Array(2)
+                  .fill([
+                    { kind: "has-left-entity", direction: "incoming" },
+                    { kind: "has-right-entity", direction: "outgoing" },
+                  ])
+                  .flat(),
+              },
+              {
+                edges: Array(2)
+                  .fill([
+                    { kind: "has-right-entity", direction: "incoming" },
+                    { kind: "has-left-entity", direction: "outgoing" },
+                  ])
+                  .flat(),
+              },
+            ],
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeDrafts: !!draftId,
+            includePermissions: true,
+          },
         },
       })
         .then(({ data, error }) => {
@@ -180,14 +207,13 @@ export const useFetchBlockSubgraph = (): ((
             );
           }
 
-          const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-            EntityRootType<HashEntity>
-          >(data.getEntity.subgraph);
+          const response = deserializeQueryEntitySubgraphResponse(
+            data.queryEntitySubgraph,
+          );
 
           return {
-            subgraph,
-            userPermissionsOnEntities:
-              data.getEntity.userPermissionsOnEntities!,
+            subgraph: response.subgraph,
+            userPermissionsOnEntities: response.entityPermissions!,
           } satisfies SubgraphAndPermissions;
         })
         .catch((err) => {
@@ -196,7 +222,7 @@ export const useFetchBlockSubgraph = (): ((
           throw err;
         });
     },
-    [getEntity],
+    [queryEntitySubgraph],
   );
 
   return fetchBlockSubgraph;

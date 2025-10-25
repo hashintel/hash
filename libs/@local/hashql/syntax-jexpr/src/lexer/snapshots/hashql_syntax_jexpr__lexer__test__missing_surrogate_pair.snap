@@ -3,12 +3,9 @@ source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
 description: Missing low surrogate in surrogate pair
 expression: "\"\\uD800\""
 ---
-[31m[lexer::invalid-string] Error:[0m Invalid string literal
-   ╭─[ <unknown>:1:9 ]
-   │
- 1 │ "\uD800"
-   │         │ 
-   │         ╰─ Invalid escape sequence
-   │ 
-   │ Help: expected low surrogate
-───╯
+error[lexer::invalid-string]: Invalid string literal
+  ╭▸ 
+1 │ "\uD800"
+  │         ━ Invalid escape sequence
+  │
+  ╰ help: expected low surrogate

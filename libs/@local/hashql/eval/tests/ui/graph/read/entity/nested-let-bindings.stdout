@@ -1,40 +1,78 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
- EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-  EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
-   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
-  | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-     | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-    web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-    EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-_1«Boolean» ->
-    #let entity_uuid:0 = vertex:0.id.entity_id.entity_uuid in
-    #let user_id:0 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
-    arguments: [])(#ctor(fn(String) -> Uuid[String],
-    arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")) in
-    (entity_uuid:0 == user_id:0)) |> ::graph::tail::collect
+#let %3 = thunk(() ->
+         #let %9 = ::graph::tmp::decision_time_now()
+                  %10 = %9()
+             in
+             %10
+         )
+     %4 = thunk(() ->
+         #let %11 = #ctor(fn(String) -> Uuid[String], arguments: [])
+             in
+             %11
+         )
+     %5 = thunk(() ->
+         #let %12 = %4()
+                  %13 = %12("e2851dbb-7376-4959-9bca-f72cafc4448f")
+             in
+             %13
+         )
+     %6 = thunk(() ->
+         #let %14 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
+                  arguments: [])
+             in
+             %14
+         )
+     user_id:0 = thunk(() ->
+         #let %15 = %5()
+                  %16 = %6()
+                  %17 = %16(%15)
+             in
+             %17
+         )
+     %8 = thunk(() ->
+         #let %18 = %3()
+                  %20 = ::graph::head::entities(%18)
+                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                       EntityRecordId[(edition_id:
+                        EntityEditionId[Uuid[String]], entity_id:
+                        EntityId[(draft_id: (None[Null]
+                          | Some[DraftId[Uuid[String]]]), entity_uuid:
+                         EntityUuid[Uuid[String]], web_id:
+                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
+                       link_data: (None[Null]
+                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
+                          (None[Null] | Some[DraftId[Uuid[String]]]),
+                          entity_uuid: EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
+                         right_entity_id: EntityId[(draft_id: (None[Null]
+                           | Some[DraftId[Uuid[String]]]), entity_uuid:
+                          EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
+                       properties: ?)]»): _1«Boolean» ->
+                          #let entity_uuid:0 = vertex:0.id.entity_id.entity_uuid
+                               %19 = user_id:0()
+                               %7 = (entity_uuid:0 == %19)
+                          in
+                          %7) |> ::graph::tail::collect
+             in
+             %20
+         )
+in
+%8
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
 [
     Equal(
-        Some(
-            Path {
-                path: Uuid,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Text(
-                    "e2851dbb-7376-4959-9bca-f72cafc4448f",
-                ),
-                convert: None,
-            },
-        ),
+        Path {
+            path: Uuid,
+        },
+        Parameter {
+            parameter: Text(
+                "e2851dbb-7376-4959-9bca-f72cafc4448f",
+            ),
+            convert: None,
+        },
     ),
 ]

@@ -1,16 +1,13 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   ArchivedPropertyValueWithMetadata,
@@ -23,8 +20,8 @@ import { createContext, useCallback, useContext, useMemo } from "react";
 import type {
   CountEntitiesQuery,
   CountEntitiesQueryVariables,
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
   UpdateEntitiesMutation,
   UpdateEntitiesMutationVariables,
   UpdateEntityMutation,
@@ -32,7 +29,6 @@ import type {
 } from "../graphql/api-types.gen";
 import {
   countEntitiesQuery,
-  getEntitySubgraphQuery,
   updateEntitiesMutation,
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
@@ -122,10 +118,10 @@ export const NotificationCountContextProvider: FunctionComponent<
     },
   );
 
-  const [getEntitySubgraph] = useLazyQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+  const [queryEntities] = useLazyQuery<
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     fetchPolicy: "network-only",
   });
 
@@ -145,9 +141,8 @@ export const NotificationCountContextProvider: FunctionComponent<
 
   const getNotificationsLinkingToEntity = useCallback(
     async ({ targetEntityId }: { targetEntityId: EntityId }) => {
-      const relatedNotificationData = await getEntitySubgraph({
+      const relatedNotificationData = await queryEntities({
         variables: {
-          includePermissions: false,
           request: {
             filter: {
               all: [
@@ -171,26 +166,22 @@ export const NotificationCountContextProvider: FunctionComponent<
                 },
               ],
             },
-            graphResolveDepths: zeroedGraphResolveDepths,
             temporalAxes: currentTimeInstantTemporalAxes,
             includeDrafts: false,
+            includePermissions: false,
           },
         },
       });
 
-      if (!relatedNotificationData.data?.getEntitySubgraph.subgraph) {
+      if (!relatedNotificationData.data?.queryEntities) {
         return [];
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<Notification>>
-      >(relatedNotificationData.data.getEntitySubgraph.subgraph);
-
-      const notifications = getRoots(subgraph);
-
-      return notifications;
+      return deserializeQueryEntitiesResponse(
+        relatedNotificationData.data.queryEntities,
+      ).entities;
     },
-    [authenticatedUser?.accountId, getEntitySubgraph],
+    [authenticatedUser?.accountId, queryEntities],
   );
 
   const markNotificationAsRead = useCallback<

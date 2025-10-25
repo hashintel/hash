@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/struct.rs
 description: Rejects non-object values for structs
 expression: "{\"#struct\": [\"not\", \"an-object\"]}"
 ---
-[31m[parser::object::struct-expected-object] Error:[0m Expected object for #struct definition
-   ╭─[ <unknown>:1:13 ]
-   │
- 1 │ {"#struct": ["not", "an-object"]}
-   │             ┬  
-   │             ╰── Expected an object here
-   │ 
-   │ Help: The #struct construct requires an object with field definitions, but found `[`. Use curly braces to define the struct fields: {"field1": value1, "field2": value2}
-   │ 
-   │ Note: Structs in J-Expr represent collections of named fields, where each field can have a different type.
-───╯
+error[parser::object::struct-expected-object]: Expected object for #struct definition
+  ╭▸ 
+1 │ {"#struct": ["not", "an-object"]}
+  │             ━ Expected an object here
+  │
+  ├ help: The #struct construct requires an object with field definitions, but found `[`. Use curly braces to define the struct fields: {"field1": value1, "field2": value2}
+  ╰ note: Structs in J-Expr represent collections of named fields, where each field can have a different type.

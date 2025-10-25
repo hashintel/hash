@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Binary operation with left-side complex expression
+["&&", [">=", { "#literal": 4 }, { "#literal": 3 }], { "#literal": true }]

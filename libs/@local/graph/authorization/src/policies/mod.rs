@@ -73,7 +73,7 @@ pub enum Effect {
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[repr(transparent)]
-pub struct PolicyId(Uuid);
+pub struct PolicyId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl PolicyId {
     #[must_use]

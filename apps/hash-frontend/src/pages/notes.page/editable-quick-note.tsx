@@ -1,19 +1,24 @@
 import { useMutation, useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, WebId } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
-import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
-import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   ArchivedPropertyValueWithMetadata,
   NoteProperties,
@@ -27,8 +32,8 @@ import { useAccountPages } from "../../components/hooks/use-account-pages";
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -122,27 +127,49 @@ export const EditableQuickNote: FunctionComponent<{
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
-  const { data } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntityQuery,
-    {
-      variables: {
+  const [webId, entityUuid, draftId] = splitEntityId(blockCollectionEntityId);
+  const { data } = useQuery<
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["webId"] }, { parameter: webId }],
+            },
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            ...(draftId
+              ? [
+                  {
+                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                  },
+                ]
+              : []),
+          ],
+        },
+        traversalPaths: [
+          getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
+        ],
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: !!draftId,
         includePermissions: false,
-        entityId: blockCollectionEntityId,
-        ...zeroedGraphResolveDepths,
-        ...getBlockCollectionResolveDepth({ blockDataDepth: 1 }),
       },
-      fetchPolicy: "cache-and-network",
     },
-  );
+    fetchPolicy: "cache-and-network",
+  });
 
   const mostRecentContents = useMemo(
     () =>
-      data?.getEntity
+      data?.queryEntitySubgraph
         ? getBlockCollectionContents({
             blockCollectionEntityId,
-            blockCollectionSubgraph: deserializeSubgraph(
-              data.getEntity.subgraph,
-            ),
+            blockCollectionSubgraph: deserializeQueryEntitySubgraphResponse(
+              data.queryEntitySubgraph,
+            ).subgraph,
           })
         : undefined,
     [blockCollectionEntityId, data],

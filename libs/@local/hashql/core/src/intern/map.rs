@@ -7,7 +7,7 @@ use core::{
 
 use super::Interned;
 use crate::{
-    collection::ConcurrentHashMap,
+    collections::ConcurrentHashMap,
     heap::Heap,
     id::{HasId, Id},
 };

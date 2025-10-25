@@ -1,11 +1,11 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const blockTypedef = gql`
   type Block {
     """
     The block's linked child entity.
     """
-    blockChildEntity: SerializedEntity!
+    blockChildEntity: Entity!
     """
     The component id of the block.
     """

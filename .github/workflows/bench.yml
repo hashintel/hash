@@ -18,7 +18,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  optimize-ci: # Do not run benches in the middle of the stack
+    runs-on: ubuntu-24.04
+    name: Optimize CI
+    outputs:
+      skip: ${{ steps.check_skip.outputs.skip }}
+    steps:
+      - name: Optimize CI
+        id: check_skip
+        uses: withgraphite/graphite-ci-action@6213dcfab02da542aaf534e087282a928ff4374a
+        with:
+          graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
+
   setup:
+    needs: [optimize-ci]
+    if: needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     outputs:
       unit: ${{ steps.packages.outputs.unit }}
@@ -67,6 +81,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
+      - name: Clean up disk
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/install-tools
@@ -86,13 +104,6 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/warm-up-repo
 
-      - name: Cache Rust dependencies
-        if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Run base benches
         if: github.event_name == 'pull_request'
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -109,6 +120,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Clean up disk
+        if: github.event_name != 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -185,6 +200,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
+      - name: Clean up disk
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/install-tools
@@ -206,13 +225,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Cache Rust dependencies
-        if: github.event_name == 'pull_request'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
@@ -269,6 +281,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Clean up disk
+        if: github.event_name != 'pull_request'
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -375,8 +391,8 @@ jobs:
 
   passed:
     name: Benches passed
-    needs: [setup, unit-benches, integration-benches]
-    if: always()
+    needs: [setup, unit-benches, integration-benches, optimize-ci]
+    if: always() && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -396,7 +412,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one bench job failed for a Pull Request in the Merge Queue failed <@U02NLJY0FGX>" # Notifies T
+          SLACK_MESSAGE: "At least one bench job for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Tests failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

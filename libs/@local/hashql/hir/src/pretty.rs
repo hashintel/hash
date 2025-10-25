@@ -1,60 +1,196 @@
+use alloc::borrow::Cow;
+use core::cmp;
+
 use hashql_core::{
-    literal::LiteralKind,
     pretty::{PrettyOptions, PrettyPrint, PrettyPrintBoundary},
     span::Spanned,
     r#type::{TypeId, environment::Environment},
+    value::Primitive,
 };
 use hashql_diagnostics::color::Style;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
+    context::SymbolRegistry,
     node::{
         Node,
-        access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
-        branch::Branch,
+        access::{Access, FieldAccess, IndexAccess},
+        branch::{Branch, If},
         call::Call,
         closure::Closure,
-        data::{Data, DataKind, Literal},
+        data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         graph::{
-            Graph, GraphKind,
+            Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         input::Input,
         kind::NodeKind,
-        r#let::Let,
-        operation::{
-            BinaryOperation, Operation, OperationKind, TypeOperation,
-            r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
-        },
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        r#let::{Binding, Let},
+        operation::{BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+        thunk::Thunk,
+        variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
 };
 
-impl<'heap> PrettyPrint<'heap> for Literal<'heap> {
-    fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
-        match self.kind {
-            LiteralKind::Null => RcDoc::text("null"),
-            LiteralKind::Boolean(true) => RcDoc::text("true"),
-            LiteralKind::Boolean(false) => RcDoc::text("false"),
-            LiteralKind::Float(float_literal) => RcDoc::text(float_literal.value.unwrap()),
-            LiteralKind::Integer(integer_literal) => RcDoc::text(integer_literal.value.unwrap()),
-            LiteralKind::String(string_literal) => RcDoc::text(format!(
-                r#""{}""#,
-                string_literal.value.as_str().escape_debug()
-            )),
+pub struct PrettyPrintEnvironment<'env, 'heap> {
+    pub env: &'env Environment<'heap>,
+    pub symbols: &'env SymbolRegistry<'heap>,
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Primitive<'heap> {
+    fn pretty(
+        &self,
+        _: &PrettyPrintEnvironment<'env, 'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match self {
+            Primitive::Null => RcDoc::text("null"),
+            Primitive::Boolean(true) => RcDoc::text("true"),
+            Primitive::Boolean(false) => RcDoc::text("false"),
+            Primitive::Float(float_literal) => RcDoc::text(float_literal.as_symbol().unwrap()),
+            Primitive::Integer(integer_literal) => {
+                RcDoc::text(integer_literal.as_symbol().unwrap())
+            }
+            Primitive::String(string_literal) => {
+                RcDoc::text(format!(r#""{}""#, string_literal.as_str().escape_debug()))
+            }
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Data<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Tuple<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            DataKind::Literal(literal) => literal.pretty(env, boundary),
+        if self.fields.is_empty() {
+            return RcDoc::text("()");
+        }
+
+        if self.fields.len() == 1 {
+            return RcDoc::text("(")
+                .append(self.fields[0].pretty(env, boundary))
+                .append(RcDoc::text(","))
+                .append(RcDoc::text(")"));
+        }
+
+        RcAllocator
+            .intersperse(
+                self.fields.iter().map(|field| field.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .parens()
+            .group()
+            .into_doc()
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for StructField<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text(self.name.value.unwrap())
+            .append(RcDoc::text(":"))
+            .append(RcDoc::line())
+            .append(self.value.pretty(env, boundary))
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Struct<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        if self.fields.is_empty() {
+            return RcDoc::text("(:)");
+        }
+
+        RcAllocator
+            .intersperse(
+                self.fields.iter().map(|field| field.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .parens()
+            .group()
+            .into_doc()
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for List<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcAllocator
+            .intersperse(
+                self.elements
+                    .iter()
+                    .map(|element| element.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .brackets()
+            .group()
+            .into_doc()
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for DictField<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        self.key
+            .pretty(env, boundary)
+            .append(RcDoc::text(":"))
+            .append(RcDoc::space())
+            .append(self.value.pretty(env, boundary))
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Dict<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcAllocator
+            .intersperse(
+                self.fields.iter().map(|field| field.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .nest(2)
+            .group()
+            .braces()
+            .group()
+            .into_doc()
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Data<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match &self {
+            Self::Primitive(primitive) => primitive.pretty(env, boundary),
+            Self::Tuple(tuple) => tuple.pretty(env, boundary),
+            Self::Struct(r#struct) => r#struct.pretty(env, boundary),
+            Self::List(list) => list.pretty(env, boundary),
+            Self::Dict(dict) => dict.pretty(env, boundary),
         }
     }
 }
@@ -95,16 +231,25 @@ fn pretty_print_arguments<'heap>(
         .into_doc()
 }
 
-impl<'heap> PrettyPrint<'heap> for LocalVariable<'heap> {
-    fn pretty(&self, env: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
-        RcDoc::text(self.name.value.unwrap())
-            .append(pretty_print_arguments(&self.arguments, env))
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for LocalVariable<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        let name = env.symbols.binder.get(self.id.value).map_or_else(
+            || Cow::Owned(self.to_binder(env.symbols).mangled().to_string()),
+            |name| Cow::Borrowed(name.unwrap()),
+        );
+
+        RcDoc::text(name)
+            .append(pretty_print_arguments(&self.arguments, env.env))
             .group()
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for QualifiedPath<'heap> {
-    fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
+impl<'heap, E> PrettyPrint<'heap, E> for QualifiedPath<'heap> {
+    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
         RcDoc::text("::")
             .append(RcDoc::intersperse(
                 self.0.iter().map(|ident| RcDoc::text(ident.value.unwrap())),
@@ -114,60 +259,79 @@ impl<'heap> PrettyPrint<'heap> for QualifiedPath<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for QualifiedVariable<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for QualifiedVariable<'heap>
+{
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         self.path
             .pretty(env, boundary)
-            .append(pretty_print_arguments(&self.arguments, env))
+            .append(pretty_print_arguments(&self.arguments, env.env))
             .group()
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Variable<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Variable<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            VariableKind::Local(local) => local.pretty(env, boundary),
-            VariableKind::Qualified(qualified) => qualified.pretty(env, boundary),
+        match self {
+            Self::Local(local) => local.pretty(env, boundary),
+            Self::Qualified(qualified) => qualified.pretty(env, boundary),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Let<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Binding<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text(self.binder.mangled().to_string())
+            .append(RcDoc::space())
+            .append(RcDoc::text("="))
+            .append(RcDoc::space())
+            .append(self.value.pretty(env, boundary).nest(4))
+            .group()
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Let<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text("#let")
-            .append(RcDoc::softline())
-            .append(self.name.value.unwrap())
-            .append(RcDoc::softline())
-            .append(RcDoc::text("="))
-            .append(RcDoc::softline())
-            .group()
-            .append(self.value.pretty(env, boundary))
-            .group()
-            .append(RcDoc::softline())
-            .append("in")
-            .group()
+            .append(RcDoc::space())
+            .append(RcDoc::intersperse(
+                self.bindings.iter().enumerate().map(|(index, binding)| {
+                    RcAllocator
+                        .nil()
+                        .append(binding.pretty(env, boundary))
+                        .indent(cmp::min(index, 1) * 5)
+                }),
+                RcDoc::hardline(),
+            ))
+            .append(RcDoc::line())
+            .append(RcDoc::text("in"))
             .append(RcDoc::hardline())
+            .group()
             .append(self.body.pretty(env, boundary))
             .group()
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Input<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Input<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         let mut doc = RcDoc::text("#input")
@@ -178,7 +342,7 @@ impl<'heap> PrettyPrint<'heap> for Input<'heap> {
             .group()
             .append(RcDoc::softline())
             .append("type: ")
-            .append(pretty_print_type_id(self.r#type, env));
+            .append(pretty_print_type_id(self.r#type, env.env));
 
         if let Some(default) = &self.default {
             doc = doc
@@ -193,13 +357,13 @@ impl<'heap> PrettyPrint<'heap> for Input<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeAssertion<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for TypeAssertion<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        RcDoc::text("#is")
+        RcDoc::text("#as")
             .append(if self.force {
                 RcDoc::text("!")
             } else {
@@ -212,18 +376,24 @@ impl<'heap> PrettyPrint<'heap> for TypeAssertion<'heap> {
             .group()
             .append(RcDoc::softline())
             .append("type: ")
-            .append(pretty_print_type_id(self.r#type, env))
+            .append(pretty_print_type_id(self.r#type, env.env))
             .group()
             .append(")")
             .group()
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeConstructor<'heap> {
-    fn pretty(&self, env: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for TypeConstructor<'heap>
+{
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
         RcDoc::text("#ctor")
             .append("(")
-            .append(pretty_print_type_id(self.closure, env))
+            .append(pretty_print_type_id(self.closure, env.env))
             .append(",")
             .group()
             .append(RcDoc::softline())
@@ -246,29 +416,31 @@ impl<'heap> PrettyPrint<'heap> for TypeConstructor<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeOperation<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for TypeOperation<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            TypeOperationKind::Assertion(assertion) => assertion.pretty(env, boundary),
-            TypeOperationKind::Constructor(constructor) => constructor.pretty(env, boundary),
+        match self {
+            Self::Assertion(assertion) => assertion.pretty(env, boundary),
+            Self::Constructor(constructor) => constructor.pretty(env, boundary),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for BinaryOperation<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for BinaryOperation<'heap>
+{
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text("(")
             .append(self.left.pretty(env, boundary))
             .append(RcDoc::softline())
-            .append(self.op.kind.as_str())
+            .append(self.op.value.as_str())
             .append(RcDoc::softline())
             .append(self.right.pretty(env, boundary))
             .append(")")
@@ -276,23 +448,23 @@ impl<'heap> PrettyPrint<'heap> for BinaryOperation<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Operation<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Operation<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            OperationKind::Type(r#type) => r#type.pretty(env, boundary),
-            OperationKind::Binary(binary) => binary.pretty(env, boundary),
+        match &self {
+            Self::Type(r#type) => r#type.pretty(env, boundary),
+            Self::Binary(binary) => binary.pretty(env, boundary),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for FieldAccess<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for FieldAccess<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         self.expr
@@ -304,10 +476,10 @@ impl<'heap> PrettyPrint<'heap> for FieldAccess<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for IndexAccess<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for IndexAccess<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         self.expr
@@ -319,23 +491,23 @@ impl<'heap> PrettyPrint<'heap> for IndexAccess<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Access<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Access<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            AccessKind::Field(field) => field.pretty(env, boundary),
-            AccessKind::Index(index) => index.pretty(env, boundary),
+        match self {
+            Self::Field(field) => field.pretty(env, boundary),
+            Self::Index(index) => index.pretty(env, boundary),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Call<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Call<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         self.function.pretty(env, boundary).append(
@@ -353,16 +525,39 @@ impl<'heap> PrettyPrint<'heap> for Call<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Branch<'heap> {
-    fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
-        match self.kind {}
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for If<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text("if").append(
+            RcDoc::space()
+                .append(self.test.pretty(env, boundary))
+                .append(RcDoc::space())
+                .append(self.then.pretty(env, boundary))
+                .append(RcDoc::space())
+                .append(self.r#else.pretty(env, boundary)),
+        )
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Branch<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match self {
+            Self::If(r#if) => r#if.pretty(env, boundary),
+        }
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Closure<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         // There are two possibilities here (A):
@@ -370,7 +565,7 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
         // way that's pretty unreadable
         let mut base = RcDoc::text("#fn");
 
-        let mut signature = env.r#type(self.signature.def.id);
+        let mut signature = env.env.r#type(self.signature.def.id);
         if !self.signature.def.arguments.is_empty() {
             let generic = signature.kind.generic().expect("should be a generic");
 
@@ -387,7 +582,7 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
                                 .find(|argument| argument.name == generic.name)
                                 .expect("generic argument should exist");
 
-                            argument.pretty(env, boundary)
+                            argument.pretty(env.env, boundary)
                         }),
                         RcDoc::text(",").append(RcDoc::softline()),
                     )
@@ -396,7 +591,7 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
                     .group(),
             );
 
-            signature = env.r#type(generic.base);
+            signature = env.env.r#type(generic.base);
         }
 
         let closure = signature.kind.closure().expect("should be a closure");
@@ -409,11 +604,11 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
                         .iter()
                         .zip(closure.params)
                         .map(|(param, &r#type)| {
-                            RcDoc::text(param.name.value.unwrap())
+                            RcDoc::text(param.name.mangled().to_string())
                                 .append(":")
                                 .group()
                                 .append(RcDoc::softline())
-                                .append(pretty_print_type_id(r#type, env))
+                                .append(pretty_print_type_id(r#type, env.env))
                                 .group()
                         }),
                     RcDoc::text(",").append(RcDoc::softline()),
@@ -424,7 +619,7 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
         )
         .append(":")
         .append(RcDoc::softline())
-        .append(pretty_print_type_id(closure.returns, env))
+        .append(pretty_print_type_id(closure.returns, env.env))
         .append(RcDoc::softline())
         .append("->")
         .append(RcDoc::hardline())
@@ -437,10 +632,29 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GraphReadHead<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Thunk<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text("thunk(() ->")
+            .append(RcDoc::line())
+            .append(
+                RcAllocator
+                    .nil()
+                    .append(self.body.pretty(env, boundary))
+                    .nest(4),
+            )
+            .append(RcDoc::line_())
+            .append(")")
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphReadHead<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match self {
@@ -456,10 +670,10 @@ impl<'heap> PrettyPrint<'heap> for GraphReadHead<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GraphReadBody<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphReadBody<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match self {
@@ -475,26 +689,25 @@ impl<'heap> PrettyPrint<'heap> for GraphReadBody<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GraphReadTail {
-    fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphReadTail {
+    fn pretty(
+        &self,
+        _: &PrettyPrintEnvironment<'env, 'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
         match self {
             Self::Collect => RcDoc::text("::graph::tail::collect"),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GraphRead<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphRead<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        let Self {
-            span: _,
-            head,
-            body,
-            tail,
-        } = &self;
+        let Self { head, body, tail } = &self;
 
         let mut doc = head.pretty(env, boundary);
         for node in body {
@@ -517,22 +730,22 @@ impl<'heap> PrettyPrint<'heap> for GraphRead<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Graph<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Graph<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        match &self.kind {
-            GraphKind::Read(read) => read.pretty(env, boundary),
+        match self {
+            Self::Read(read) => read.pretty(env, boundary),
         }
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Node<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Node<'heap> {
     fn pretty(
         &self,
-        env: &Environment<'heap>,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match &self.kind {
@@ -545,6 +758,7 @@ impl<'heap> PrettyPrint<'heap> for Node<'heap> {
             NodeKind::Call(call) => call.pretty(env, boundary),
             NodeKind::Branch(branch) => branch.pretty(env, boundary),
             NodeKind::Closure(closure) => closure.pretty(env, boundary),
+            NodeKind::Thunk(thunk) => thunk.pretty(env, boundary),
             NodeKind::Graph(graph) => graph.pretty(env, boundary),
         }
     }

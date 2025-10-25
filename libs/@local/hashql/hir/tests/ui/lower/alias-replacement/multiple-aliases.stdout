@@ -1,13 +1,15 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let x:0 = 10 in
-#let y:0 = 20 in
-#let a:0 = x:0 in
-#let b:0 = y:0 in
+#let x:0 = 10
+     y:0 = 20
+     a:0 = x:0
+     b:0 = y:0
+in
 ::core::math::add(::core::math::mul(a:0, b:0), ::core::math::sub(x:0, y:0))
 
 ════ HIR after alias replacement ═══════════════════════════════════════════════
 
-#let x:0 = 10 in
-#let y:0 = 20 in
+#let x:0 = 10
+     y:0 = 20
+in
 ::core::math::add(::core::math::mul(x:0, y:0), ::core::math::sub(x:0, y:0))

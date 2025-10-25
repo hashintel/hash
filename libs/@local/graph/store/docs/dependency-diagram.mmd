@@ -29,43 +29,47 @@ graph TD
     17[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
     18[<a href="../hashql_eval/index.html">hashql-eval</a>]
     19[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    20[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    21[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    22[<a href="../error_stack/index.html">error-stack</a>]
-    23[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    24[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    25[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    20[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    21[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    22[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    23[<a href="../error_stack/index.html">error-stack</a>]
+    24[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    25[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    26[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 9
     1 --> 8
-    1 -.-> 25
+    1 -.-> 26
     2 -.-> 3
     2 --> 15
     4 --> 6
     4 --> 10
     4 --> 13
+    4 --> 18
+    4 --> 21
     5 --> 1
     6 --> 12
     7 --> 5
     7 --> 11
-    7 --> 21
+    7 --> 22
     8 --> 2
     9 --> 4
     10 --> 7
-    11 -.-> 25
-    12 -.-> 25
+    11 -.-> 26
+    12 -.-> 26
     13 -.-> 1
     13 --> 14
     15 -.-> 14
     15 --> 14
-    15 --> 22
+    15 --> 23
     16 -.-> 17
     17 --> 18
-    17 --> 20
+    17 --> 21
     18 --> 7
     18 --> 19
     19 -.-> 17
-    20 --> 16
-    21 --> 1
-    23 -.-> 4
-    24 -.-> 6
-    25 --> 7
+    20 --> 19
+    21 --> 16
+    22 --> 1
+    24 -.-> 4
+    25 -.-> 6
+    26 --> 7

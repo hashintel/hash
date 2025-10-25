@@ -6,15 +6,16 @@ use core::{
 };
 
 use hashql_core::{
-    collection::{FastHashMap, fast_hash_map},
+    collections::{FastHashMap, fast_hash_map},
     heap::{self, Heap},
-    literal::LiteralKind,
     span::SpanId,
     symbol::{Ident, IdentKind},
+    value::Primitive,
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 use self::error::{
-    BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
+    BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnosticIssues,
     duplicate_closure_generic, duplicate_closure_parameter, duplicate_generic_constraint,
     field_index_out_of_bounds, field_literal_type_annotation, fn_generics_with_type_annotation,
     fn_params_with_type_annotation, invalid_argument_length, invalid_binding_name_not_path,
@@ -103,18 +104,18 @@ impl Display for SpecialFormKind {
 
 pub struct SpecialFormExpander<'heap> {
     heap: &'heap Heap,
-    diagnostics: Vec<SpecialFormExpanderDiagnostic>,
+    diagnostics: SpecialFormExpanderDiagnosticIssues,
 }
 
 impl<'heap> SpecialFormExpander<'heap> {
     pub const fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<SpecialFormExpanderDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> SpecialFormExpanderDiagnosticIssues {
         mem::take(&mut self.diagnostics)
     }
 
@@ -473,7 +474,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                     .push(field_literal_type_annotation(r#type.span));
             }
 
-            let LiteralKind::Integer(integer) = literal.kind else {
+            let Primitive::Integer(integer) = literal.kind else {
                 self.diagnostics
                     .push(invalid_field_literal_type(literal.span));
                 return None;
@@ -487,7 +488,7 @@ impl<'heap> SpecialFormExpander<'heap> {
 
             return Some(Ident {
                 span: literal.span,
-                value: integer.value,
+                value: integer.as_symbol(),
                 kind: IdentKind::Lexical,
             });
         }

@@ -34,5 +34,5 @@ Expr#4294967040@34
               Expr#4294967040@32
                 ExprKind (Literal)
                   LiteralExpr#4294967040@31
-                    LiteralKind (Integer)
-                      IntegerLiteral (1)
+                    Primitive (Integer)
+                      Integer (1)

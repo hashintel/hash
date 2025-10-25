@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/design-system",
-  "version": "0.0.9-canary.1",
+  "version": "0.0.9-canary.2",
   "description": "HASH Design System",
   "repository": {
     "type": "git",
@@ -14,7 +14,8 @@
     ".": "./src/components.ts",
     "./constants": "./src/constants.ts",
     "./palettes": "./src/palettes.ts",
-    "./theme": "./src/theme.ts"
+    "./theme": "./src/theme.ts",
+    "./theme-override": "./theme-override.d.ts"
   },
   "types": "./src/components.ts",
   "typesVersions": {
@@ -30,6 +31,9 @@
       ],
       "theme": [
         "./src/theme.ts"
+      ],
+      "theme-override": [
+        "./theme-override.d.ts"
       ]
     }
   },
@@ -51,10 +55,10 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "clsx": "1.2.1",
+    "clsx": "2.1.1",
     "echarts": "5.6.0",
     "react-loading-skeleton": "3.5.0"
   },
@@ -66,14 +70,12 @@
     "@local/tsconfig": "0.0.0-private",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "@storybook/react": "7.6.20",
-    "@types/react": "19.1.9",
-    "@types/react-dom": "19.1.7",
-    "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "typescript": "5.7.3"
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.38.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@emotion/cache": "^11.14.0",

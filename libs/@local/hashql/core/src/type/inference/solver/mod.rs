@@ -27,6 +27,7 @@ mod topo;
 
 use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
+use hashql_diagnostics::DiagnosticIssues;
 
 use self::{
     graph::{EdgeKind, Graph},
@@ -39,15 +40,16 @@ use super::{
     variable::{VariableId, VariableLookup, VariableProvenance},
 };
 use crate::{
-    collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
+    collections::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
-        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment, Variance},
+        environment::{InferenceEnvironment, LatticeEnvironment, Variance},
         error::{
-            bound_constraint_violation, conflicting_equality_constraints,
-            incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
-            unconstrained_type_variable, unconstrained_type_variable_floating,
-            unresolved_selection_constraint, unsatisfiable_upper_constraint,
+            TypeCheckDiagnosticIssues, TypeCheckStatus, bound_constraint_violation,
+            conflicting_equality_constraints, incompatible_lower_equal_constraint,
+            incompatible_upper_equal_constraint, unconstrained_type_variable,
+            unconstrained_type_variable_floating, unresolved_selection_constraint,
+            unsatisfiable_upper_constraint,
         },
         kind::{PrimitiveType, TypeKind, UnionType},
         lattice::{Projection, Subscript},
@@ -307,8 +309,8 @@ pub struct InferenceSolver<'env, 'heap> {
     inference: InferenceEnvironment<'env, 'heap>,
 
     /// Diagnostics for type error reporting
-    diagnostics: Diagnostics,
-    persistent_diagnostics: Diagnostics,
+    diagnostics: TypeCheckDiagnosticIssues,
+    persistent_diagnostics: TypeCheckDiagnosticIssues,
 
     /// Constraints to be solved
     constraints: Vec<Constraint<'heap>>,
@@ -333,8 +335,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             lattice,
             inference,
 
-            diagnostics: Diagnostics::new(),
-            persistent_diagnostics: Diagnostics::new(),
+            diagnostics: DiagnosticIssues::new(),
+            persistent_diagnostics: DiagnosticIssues::new(),
 
             constraints,
             unification,
@@ -400,7 +402,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // meaning it won't be rerun.
                         self.persistent_diagnostics
                             .push(conflicting_equality_constraints(
-                                &self.lattice,
+                                &*self.lattice,
                                 variable,
                                 self.lattice.r#type(lhs),
                                 self.lattice.r#type(rhs),
@@ -576,7 +578,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             // this is a persistent diagnostic
                             self.persistent_diagnostics
                                 .push(conflicting_equality_constraints(
-                                    &self.lattice,
+                                    &*self.lattice,
                                     variable,
                                     self.lattice.r#type(existing),
                                     self.lattice.r#type(r#type),
@@ -1123,7 +1125,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             {
                 // Report error: incompatible bounds
                 self.diagnostics.push(bound_constraint_violation(
-                    &self.lattice,
+                    &*self.lattice,
                     variable,
                     self.lattice.r#type(lower),
                     self.lattice.r#type(upper),
@@ -1579,8 +1581,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// # Returns
     ///
     /// Substitution mapping variables to inferred types and any diagnostics.
-    #[must_use]
-    pub fn solve(mut self) -> (Substitution, Diagnostics) {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the type inference fails.
+    pub fn solve(mut self) -> TypeCheckStatus<Substitution> {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
         // allocation. Each fix-point iteration requires temporary data structures that we can
         // reclaim and re-use, reducing memory usage. The bump allocator's memory consumption
@@ -1668,9 +1673,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Step 4: Collect all diagnostics from the solving process
         let mut diagnostics = self.diagnostics;
-        diagnostics.merge(self.persistent_diagnostics);
-        diagnostics.merge(self.lattice.take_diagnostics());
+        diagnostics.append(&mut self.persistent_diagnostics);
+        diagnostics.append(&mut self.lattice.take_diagnostics());
 
-        (substitution, diagnostics)
+        diagnostics.into_status(substitution)
     }
 }

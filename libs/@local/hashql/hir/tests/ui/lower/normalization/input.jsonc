@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Input declaration with complex default expression
+["input", "foo", "Boolean", ["<=", { "#literal": 2 }, { "#literal": 3 }]]

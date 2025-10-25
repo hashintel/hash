@@ -3,13 +3,12 @@ import type { Logger } from "@local/hash-backend-utils/logger";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import type { RedisClient } from "@local/hash-backend-utils/redis";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import { systemAccountId } from "../graph/system-account";
 import {
@@ -41,22 +40,19 @@ const sendEntityToRelevantProcessor = ({
 
 export const createIntegrationSyncBackWatcher = async ({
   graphApi,
+  redis: rootCache,
   logger,
   vaultClient,
 }: {
   graphApi: GraphApi;
+  redis: RedisClient;
   logger: Logger;
   vaultClient: VaultClient;
 }) => {
   const queueName = getRequiredEnv("HASH_INTEGRATION_QUEUE_NAME");
 
-  const redisClient = new AsyncRedisClient(logger, {
-    host: getRequiredEnv("HASH_REDIS_HOST"),
-    port: Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-    tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
-  });
-
-  const queue = new RedisQueueExclusiveConsumer(redisClient);
+  const redis = rootCache.duplicate();
+  const queue = new RedisQueueExclusiveConsumer(redis);
 
   const processQueueMessage = () => {
     queue
@@ -76,24 +72,23 @@ export const createIntegrationSyncBackWatcher = async ({
           return maybeMachineId;
         });
 
-        const entity = (
-          await graphApi
-            .getEntities(linearBotAccountId, {
-              filter: {
-                equal: [
-                  { path: ["editionId"] },
-                  { parameter: entityEdition.entityEditionId },
-                ],
-              },
-              temporalAxes: fullDecisionTimeAxis,
-              includeDrafts: false,
-            })
-            .then(({ data: response }) =>
-              response.entities.map((graphEntity) =>
-                mapGraphApiEntityToEntity(graphEntity, null, true),
-              ),
-            )
-        )[0];
+        const {
+          entities: [entity],
+        } = await queryEntities(
+          { graphApi },
+          { actorId: linearBotAccountId },
+          {
+            filter: {
+              equal: [
+                { path: ["editionId"] },
+                { parameter: entityEdition.entityEditionId },
+              ],
+            },
+            temporalAxes: fullDecisionTimeAxis,
+            includeDrafts: false,
+            includePermissions: false,
+          },
+        );
 
         if (!entity) {
           /**
@@ -132,7 +127,7 @@ export const createIntegrationSyncBackWatcher = async ({
     stop: async () => {
       clearInterval(interval);
       await queue.release();
-      await redisClient.close();
+      await redis.close();
     },
 
     start: async () => {

@@ -1,34 +1,29 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
-  GraphResolveDepths,
+  Filter,
+  TraversalPath,
 } from "@local/hash-graph-client";
-import type {
-  ConversionRequest,
-  GetEntitySubgraphRequest,
-  HashEntity,
+import {
+  type ConversionRequest,
+  deserializeQueryEntitySubgraphResponse,
 } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import {
-  getEntitySubgraphQuery,
-  queryEntitiesQuery,
-} from "../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
 /**
  * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
@@ -40,7 +35,7 @@ type UseEntityTypeEntitiesQueryParams = {
   cursor?: EntityQueryCursor | null;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
-  graphResolveDepths?: Partial<GraphResolveDepths>;
+  traversalPaths: TraversalPath[];
   includeArchived?: boolean;
   includeTypeIds?: boolean;
   webIds?: WebId[];
@@ -59,89 +54,82 @@ export const generateUseEntityTypeEntitiesFilter = ({
   "entityTypeBaseUrl" | "entityTypeIds" | "includeArchived" | "webIds"
 > & {
   excludeWebIds?: WebId[];
-}): GetEntitySubgraphRequest["filter"] => {
-  return {
-    // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-    //   @see https://linear.app/hash/issue/H-1207
-    all: [
-      ...(!includeArchived
-        ? [
-            {
-              notEqual: [{ path: ["archived"] }, { parameter: true }],
-            },
-            {
-              any: [
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        systemPropertyTypes.archived.propertyTypeBaseUrl,
-                      ],
-                    },
-                    null,
-                  ],
-                },
-                {
-                  equal: [
-                    {
-                      path: [
-                        "properties",
-                        systemPropertyTypes.archived.propertyTypeBaseUrl,
-                      ],
-                    },
-                    { parameter: false },
-                  ],
-                },
-              ],
-            },
-          ]
-        : []),
-      ...(webIds?.length
-        ? [
-            {
-              any: webIds.map((webId) => ({
-                equal: [{ path: ["webId"] }, { parameter: webId }],
-              })),
-            },
-          ]
-        : []),
-      ...(excludeWebIds?.length
-        ? [
-            {
-              all: excludeWebIds.map((webId) => ({
-                notEqual: [{ path: ["webId"] }, { parameter: webId }],
-              })),
-            },
-          ]
-        : []),
-      ...(entityTypeBaseUrl
-        ? [
-            {
-              equal: [
-                { path: ["type", "baseUrl"] },
-                { parameter: entityTypeBaseUrl },
-              ],
-            },
-          ]
-        : entityTypeIds?.length
-          ? [
+}): Filter => ({
+  all: [
+    ...(!includeArchived
+      ? [
+          {
+            notEqual: [{ path: ["archived"] }, { parameter: true }],
+          },
+          {
+            any: [
               {
-                any: entityTypeIds.map((entityTypeId) => ({
-                  equal: [
-                    { path: ["type", "versionedUrl"] },
-                    { parameter: entityTypeId },
+                exists: {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
                   ],
-                })),
+                },
               },
-            ]
-          : []),
-      ...(!entityTypeIds && !entityTypeBaseUrl
-        ? [ignoreNoisySystemTypesFilter]
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.archived.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: false },
+                ],
+              },
+            ],
+          },
+        ]
+      : []),
+    ...(webIds?.length
+      ? [
+          {
+            any: webIds.map((webId) => ({
+              equal: [{ path: ["webId"] }, { parameter: webId }],
+            })),
+          },
+        ]
+      : []),
+    ...(excludeWebIds?.length
+      ? [
+          {
+            all: excludeWebIds.map((webId) => ({
+              notEqual: [{ path: ["webId"] }, { parameter: webId }],
+            })),
+          },
+        ]
+      : []),
+    ...(entityTypeBaseUrl
+      ? [
+          {
+            equal: [
+              { path: ["type", "baseUrl"] },
+              { parameter: entityTypeBaseUrl },
+            ],
+          },
+        ]
+      : entityTypeIds?.length
+        ? [
+            {
+              any: entityTypeIds.map((entityTypeId) => ({
+                equal: [
+                  { path: ["type", "versionedUrl"] },
+                  { parameter: entityTypeId },
+                ],
+              })),
+            },
+          ]
         : []),
-    ],
-  };
-};
+    ...(!entityTypeIds && !entityTypeBaseUrl
+      ? [ignoreNoisySystemTypesFilter]
+      : []),
+  ],
+});
 
 /**
  * These are the variables for the query which populates the "Entities" section of the sidebar,
@@ -151,7 +139,7 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
   webId,
 }: {
   webId: WebId;
-}): GetEntitySubgraphQueryVariables => {
+}): QueryEntitiesQueryVariables => {
   return {
     request: {
       /**
@@ -167,11 +155,10 @@ export const generateSidebarEntityTypeEntitiesQueryVariables = ({
         webIds: [webId],
         includeArchived: false,
       }),
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-    includePermissions: false,
   };
 };
 
@@ -179,11 +166,11 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
   webIds,
   entityTypeBaseUrl,
   entityTypeIds,
-  graphResolveDepths,
+  traversalPaths,
   includeArchived,
   sort,
   ...rest
-}: UseEntityTypeEntitiesQueryParams): GetEntitySubgraphQueryVariables => {
+}: UseEntityTypeEntitiesQueryParams): QueryEntitySubgraphQueryVariables => {
   return {
     request: {
       ...rest,
@@ -199,53 +186,50 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
         entityTypeBaseUrl,
         entityTypeIds,
       }),
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        ...graphResolveDepths,
-      },
-      includeDrafts: false,
-      includeEntityTypes: "resolvedWithDataTypeChildren",
+      traversalPaths,
       sortingPaths: sort ? [sort] : undefined,
       /**
        * @todo H-2633 when we use entity archival via timestamp, this will need varying to include archived entities
        */
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includeEntityTypes: "resolvedWithDataTypeChildren",
+      includePermissions: false,
     },
-    includePermissions: false,
-  } satisfies GetEntitySubgraphQueryVariables;
+  } satisfies QueryEntitySubgraphQueryVariables;
 };
 
 export const useEntityTypeEntities = (
   params: UseEntityTypeEntitiesQueryParams,
-  onCompleted?: (data: GetEntitySubgraphQuery) => void,
+  onCompleted?: (data: QueryEntitySubgraphQuery) => void,
 ): Omit<EntitiesVisualizerData, "tableData" | "updateTableData"> => {
-  const variables = useMemo<GetEntitySubgraphQueryVariables>(
+  const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => generateUseEntityTypeEntitiesQueryVariables(params),
     [params],
   );
 
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted,
     variables,
   });
 
   const hadCachedContent = useMemo(
-    () => !!apolloClient.readQuery({ query: queryEntitiesQuery, variables }),
+    () =>
+      !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
     [variables],
   );
 
   const subgraph = useMemo(
     () =>
-      data?.getEntitySubgraph.subgraph
-        ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-            data.getEntitySubgraph.subgraph,
-          )
+      data?.queryEntitySubgraph
+        ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
+            .subgraph
         : undefined,
-    [data?.getEntitySubgraph.subgraph],
+    [data?.queryEntitySubgraph],
   );
 
   const entities = useMemo(
@@ -254,7 +238,7 @@ export const useEntityTypeEntities = (
   );
 
   return {
-    ...data?.getEntitySubgraph,
+    ...data?.queryEntitySubgraph,
     entities,
     hadCachedContent,
     loading,

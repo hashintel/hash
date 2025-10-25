@@ -24,16 +24,13 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   AllFilter,
   CountEntitiesParams,
   DiffEntityResult,
   Filter,
-  GraphResolveDepths,
   HasPermissionForEntitiesParams,
 } from "@local/hash-graph-client";
 import type {
@@ -43,34 +40,24 @@ import type {
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
-  type GetEntitiesRequest,
-  type GetEntitySubgraphRequest,
   HashEntity,
   HashLinkEntity,
+  queryEntities,
+  queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  mapGraphApiEntityToEntity,
-  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
-  mapGraphApiSubgraphToSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
-import { ApolloError } from "apollo-server-errors";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 import type {
   EntityDefinition,
-  GetEntitySubgraphResponse,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
-import { isTestEnv } from "../../../lib/env-config";
+import * as GraphQlError from "../../../graphql/error";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
@@ -166,95 +153,6 @@ export const createEntity = async <
   return entity;
 };
 
-export const getEntities: ImpureGraphFunction<
-  GetEntitiesRequest & { temporalClient?: TemporalClient },
-  Promise<HashEntity[]>
-> = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  await rewriteSemanticFilter(params.filter, temporalClient);
-
-  const isRequesterAdmin = isTestEnv
-    ? false
-    : await isUserHashInstanceAdmin(
-        { graphApi },
-        { actorId },
-        { userAccountId: actorId },
-      );
-
-  return await graphApi
-    .getEntities(actorId, params)
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId, isRequesterAdmin),
-      ),
-    );
-};
-
-/**
- * Get entities by a structural query.
- *
- * @param params.query the structural query to filter entities by.
- */
-export const getEntitySubgraphResponse: ImpureGraphFunction<
-  GetEntitySubgraphRequest,
-  Promise<
-    Omit<
-      GetEntitySubgraphResponse,
-      "userPermissionsOnEntities" | "subgraph"
-    > & { subgraph: Subgraph<EntityRootType<HashEntity>> }
-  >
-> = async ({ graphApi, temporalClient }, { actorId }, params) => {
-  await rewriteSemanticFilter(params.filter, temporalClient);
-
-  const isRequesterAdmin = isTestEnv
-    ? false
-    : await isUserHashInstanceAdmin(
-        { graphApi },
-        { actorId },
-        { userAccountId: actorId },
-      );
-
-  return await graphApi.getEntitySubgraph(actorId, params).then(({ data }) => {
-    const {
-      subgraph: unfilteredSubgraph,
-      definitions,
-      closedMultiEntityTypes,
-      ...rest
-    } = data;
-
-    const subgraph = mapGraphApiSubgraphToSubgraph<EntityRootType<HashEntity>>(
-      unfilteredSubgraph,
-      actorId,
-      isRequesterAdmin,
-    );
-    // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
-    for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
-      const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
-
-      if (
-        // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
-        //                    the latest revision
-        (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
-          .archived &&
-        // if the vertex is in the roots of the query, then it is intentionally included
-        !subgraph.roots.find((root) => root.baseId === entityId)
-      ) {
-        delete subgraph.vertices[entityId];
-      }
-    }
-
-    return {
-      closedMultiEntityTypes,
-      definitions: definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            definitions,
-          )
-        : undefined,
-      subgraph,
-      ...rest,
-    };
-  });
-};
-
 export const countEntities: ImpureGraphFunction<
   CountEntitiesParams,
   Promise<number>
@@ -319,26 +217,20 @@ export const getLatestEntityById: ImpureGraphFunction<
      * ...whether the prioritisation is fixed behavior or varied by parameter.
      */
     allFilter.push({
-      equal: [
-        { path: ["draftId"] },
-        // @ts-expect-error -- Support null in Path parameter in structural queries in Node
-        //                     see https://linear.app/hash/issue/H-1207
-        null,
-      ],
+      exists: { path: ["draftId"] },
     });
   }
 
-  const [entity, ...unexpectedEntities] = await getEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: allFilter,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!draftId,
+  const {
+    entities: [entity, ...unexpectedEntities],
+  } = await queryEntities(context, authentication, {
+    filter: {
+      all: allFilter,
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: !!draftId,
+    includePermissions: false,
+  });
 
   if (unexpectedEntities.length > 0) {
     const errorMessage = `Latest entity with entityId ${entityId} returned more than one result with ids: ${unexpectedEntities
@@ -503,10 +395,7 @@ export const createEntityWithLinks = async <
     // First element will be the root entity.
     rootEntity = entities[0].entity;
   } else {
-    throw new ApolloError(
-      "Could not create entity tree",
-      "INTERNAL_SERVER_ERROR",
-    );
+    throw GraphQlError.internal("Could not create entity tree");
   }
 
   await Promise.all(
@@ -514,7 +403,7 @@ export const createEntityWithLinks = async <
       if (link) {
         const parentEntity = entities[link.parentIndex];
         if (!parentEntity) {
-          throw new ApolloError("Could not find parent entity");
+          throw GraphQlError.notFound("Could not find parent entity");
         }
 
         // links are created as an outgoing link from the parent entity to the children.
@@ -654,11 +543,12 @@ export const getEntityIncomingLinks: ImpureGraphFunction<
     });
   }
 
-  return await getEntities(context, authentication, {
+  return await queryEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) =>
+    includePermissions: false,
+  }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
@@ -749,11 +639,12 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
     );
   }
 
-  return await getEntities(context, authentication, {
+  return await queryEntities(context, authentication, {
     filter,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
-  }).then((entities) =>
+    includePermissions: false,
+  }).then(({ entities }) =>
     entities.map((linkEntity) => {
       if (!isEntityLinkEntity(linkEntity)) {
         throw new Error(
@@ -774,47 +665,41 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
     entityId: EntityId;
-    graphResolveDepths: Partial<GraphResolveDepths>;
+    traversalPaths: TraversalPath[];
   },
   Promise<Subgraph<EntityRootType<HashEntity>>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entityId, graphResolveDepths } = params;
+  const { entityId, traversalPaths } = params;
 
-  const { subgraph } = await getEntitySubgraphResponse(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["webId"] },
-              {
-                parameter: extractWebIdFromEntityId(entityId),
-              },
-            ],
-          },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
-      },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        ...graphResolveDepths,
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
+  const { subgraph } = await queryEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["uuid"] },
+            {
+              parameter: extractEntityUuidFromEntityId(entityId),
+            },
+          ],
+        },
+        {
+          equal: [
+            { path: ["webId"] },
+            {
+              parameter: extractWebIdFromEntityId(entityId),
+            },
+          ],
+        },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
     },
-  );
+    traversalPaths,
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   return subgraph;
 };
@@ -880,7 +765,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const [entityEditable, membersEditable] = await Promise.all([
     isPublicUser
-      ? false
+      ? Promise.resolve(false)
       : await checkEntityPermission(
           graphContext,
           { actorId },
@@ -888,7 +773,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
         ),
     isAccountGroup
       ? isPublicUser
-        ? false
+        ? Promise.resolve(false)
         : await getActorGroupRole(
             graphContext.graphApi,
             { actorId },

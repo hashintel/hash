@@ -1,6 +1,4 @@
-use alloc::sync::Arc;
-
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanAncestors, SpanId, SpanTable};
 use hashql_diagnostics::Diagnostic;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
@@ -22,9 +20,12 @@ pub(crate) mod syntax_kind_set;
 pub(crate) mod token;
 pub(crate) mod token_kind;
 
+pub(crate) struct LexerContext<'source> {
+    pub spans: &'source mut SpanTable<Span>,
+}
+
 pub(crate) struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,
-    spans: Arc<SpanStorage<Span>>,
 }
 
 impl<'source> Lexer<'source> {
@@ -34,7 +35,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Panics if the source is larger than 4GiB.
     #[must_use]
-    pub(crate) fn new(source: &'source [u8], storage: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+    pub(crate) fn new(source: &'source [u8]) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
@@ -42,7 +43,6 @@ impl<'source> Lexer<'source> {
 
         Self {
             inner: logos::Lexer::new(source).spanned(),
-            spans: storage.into(),
         }
     }
 
@@ -59,6 +59,7 @@ impl<'source> Lexer<'source> {
 
     pub(crate) fn advance(
         &mut self,
+        context: &mut LexerContext,
     ) -> Option<Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>> {
         let (kind, span) = self.inner.next()?;
 
@@ -73,12 +74,12 @@ impl<'source> Lexer<'source> {
         match kind {
             Ok(kind) => Some(Ok(Token { kind, span })),
             Err(LexerError::Number { error, range }) => {
-                let span = self.spans.insert(Span::new(range));
+                let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
 
                 Some(Err(from_hifijson_num_error(&error, span)))
             }
             Err(LexerError::String { error, range }) => {
-                let span = self.spans.insert(Span::new(range));
+                let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
 
                 Some(Err(from_hifijson_str_error(&error, span)))
             }
@@ -104,7 +105,7 @@ impl<'source> Lexer<'source> {
                     4
                 } else {
                     // Invalid UTF-8 sequence
-                    let span = self.spans.insert(Span::new(span));
+                    let span = context.spans.insert(Span::new(span), SpanAncestors::EMPTY);
                     return Some(Err(from_invalid_utf8_error(span)));
                 };
 
@@ -117,45 +118,41 @@ impl<'source> Lexer<'source> {
                 self.inner
                     .bump(usize::min((expected_len as usize) - 1, length));
 
-                let span = self.spans.insert(Span::new(span));
+                let span = context.spans.insert(Span::new(span), SpanAncestors::EMPTY);
                 Some(Err(from_unrecognized_character_error(span)))
             }
         }
     }
 }
 
-impl<'source> Iterator for Lexer<'source> {
-    type Item = Result<Token<'source>, Diagnostic<LexerDiagnosticCategory, SpanId>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.advance()
-    }
-}
-
 #[cfg(test)]
 mod test {
     #![expect(clippy::non_ascii_literal)]
-    use alloc::sync::Arc;
-
-    use hashql_core::span::{SpanId, storage::SpanStorage};
-    use hashql_diagnostics::Diagnostic;
+    use hashql_core::span::{SpanId, SpanTable};
+    use hashql_diagnostics::{Diagnostic, source::SourceId};
     use insta::{assert_snapshot, with_settings};
     use text_size::TextRange;
 
-    use super::{Lexer, error::LexerDiagnosticCategory, token::Token};
+    use super::{Lexer, LexerContext, error::LexerDiagnosticCategory, token::Token};
     use crate::{span::Span, test::render_diagnostic};
 
-    fn parse(
-        source: &str,
-        storage: impl Into<Arc<SpanStorage<Span>>>,
-    ) -> Result<Vec<Token<'_>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
-        let lexer = Lexer::new(source.as_bytes(), storage.into());
+    fn parse<'source>(
+        source: &'source str,
+        spans: &mut SpanTable<Span>,
+    ) -> Result<Vec<Token<'source>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
+        let mut lexer = Lexer::new(source.as_bytes());
 
-        lexer.collect()
+        let mut tokens = Vec::new();
+        while let Some(token) = lexer.advance(&mut LexerContext { spans }) {
+            let token = token?;
+            tokens.push(token);
+        }
+
+        Ok(tokens)
     }
 
     macro assert_parse($source:expr, $description:literal) {{
-        let tokens = parse($source, SpanStorage::new()).expect("should parse successfully");
+        let tokens = parse($source, &mut SpanTable::new(SourceId::new_unchecked(0x00))).expect("should parse successfully");
         // we're not super interested in the spans (a different test covers these)
         let compiled = tokens
             .into_iter()
@@ -171,10 +168,10 @@ mod test {
     }}
 
     macro assert_parse_fail($source:expr, $description:literal) {{
-        let spans = Arc::new(SpanStorage::new());
-        let diagnostic = parse($source, Arc::clone(&spans)).expect_err("should fail to parse");
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
+        let diagnostic = parse($source, &mut spans).expect_err("should fail to parse");
 
-        let report = render_diagnostic($source, diagnostic, &spans);
+        let report = render_diagnostic($source, &diagnostic, &spans);
 
         with_settings!({
             description => $description
@@ -348,12 +345,12 @@ mod test {
     #[test]
     fn span_range() {
         let source = r#"{"key": 42}"#;
-        let storage = SpanStorage::new();
-        let mut lexer = Lexer::new(source.as_bytes(), storage);
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
+        let mut lexer = Lexer::new(source.as_bytes());
 
-        let advance = |lexer: &mut Lexer| {
+        let mut advance = |lexer: &mut Lexer| {
             lexer
-                .advance()
+                .advance(&mut LexerContext { spans: &mut spans })
                 .expect("should have a token")
                 .expect("token should be valid")
                 .span
@@ -380,27 +377,18 @@ mod test {
         assert_eq!(span, TextRange::new(10.into(), 11.into()));
 
         // Lexer should be exhausted
-        assert!(lexer.advance().is_none());
-    }
-
-    #[test]
-    fn iterator_implementation() {
-        let source = "[1, 2, 3]";
-        let storage = SpanStorage::new();
-        let lexer = Lexer::new(source.as_bytes(), storage);
-
-        // Should get 7 tokens: [, 1, ,, 2, ,, 3, ]
-        let tokens: Vec<_> = lexer
-            .collect::<Result<_, _>>()
-            .expect("should parse successfully");
-        assert_eq!(tokens.len(), 7);
+        assert!(
+            lexer
+                .advance(&mut LexerContext { spans: &mut spans })
+                .is_none()
+        );
     }
 
     #[test]
     fn custom_error_handling() {
         let source = r#"{"key": 42.}"#;
-        let spans = Arc::new(SpanStorage::new());
-        let result = parse(source, Arc::clone(&spans));
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
+        let result = parse(source, &mut spans);
 
         assert!(result.is_err(), "should fail to parse invalid number");
         let diagnostic = result.expect_err("should fail to parse invalid number");
@@ -436,13 +424,13 @@ mod test {
 
         for bytes in invalid_sequences {
             // Create a storage for spans
-            let storage = Arc::new(SpanStorage::new());
+            let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
 
             // Create a lexer directly from the bytes
-            let mut lexer = Lexer::new(bytes, Arc::clone(&storage));
+            let mut lexer = Lexer::new(bytes);
 
             // Get the first token
-            let result = lexer.next();
+            let result = lexer.advance(&mut LexerContext { spans: &mut spans });
 
             let diagnostic = result
                 .expect("Lexer should produce a result for invalid UTF-8")

@@ -15,7 +15,7 @@
 
 // Good reference to begin with: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 #![no_std]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(doc, nightly), feature(doc_cfg))]
 #![cfg_attr(
     not(miri),
     doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))

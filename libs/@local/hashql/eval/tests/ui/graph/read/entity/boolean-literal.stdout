@@ -1,39 +1,53 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
- EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-  EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
-   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
-  | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-     | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
-    web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-    EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-_1«Boolean» ->
-    true) |> ::graph::tail::collect
+#let %1 = thunk(() ->
+         #let %3 = ::graph::tmp::decision_time_now()
+                  %4 = %3()
+             in
+             %4
+         )
+     %2 = thunk(() ->
+         #let %5 = %1()
+                  %6 = ::graph::head::entities(%5)
+                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                       EntityRecordId[(edition_id:
+                        EntityEditionId[Uuid[String]], entity_id:
+                        EntityId[(draft_id: (None[Null]
+                          | Some[DraftId[Uuid[String]]]), entity_uuid:
+                         EntityUuid[Uuid[String]], web_id:
+                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
+                       link_data: (None[Null]
+                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
+                          (None[Null] | Some[DraftId[Uuid[String]]]),
+                          entity_uuid: EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
+                         right_entity_id: EntityId[(draft_id: (None[Null]
+                           | Some[DraftId[Uuid[String]]]), entity_uuid:
+                          EntityUuid[Uuid[String]], web_id:
+                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
+                       properties: ?)]»): _1«Boolean» ->
+                          true) |> ::graph::tail::collect
+             in
+             %6
+         )
+in
+%2
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
 [
     Equal(
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
-        Some(
-            Parameter {
-                parameter: Boolean(
-                    true,
-                ),
-                convert: None,
-            },
-        ),
+        Parameter {
+            parameter: Boolean(
+                true,
+            ),
+            convert: None,
+        },
+        Parameter {
+            parameter: Boolean(
+                true,
+            ),
+            convert: None,
+        },
     ),
 ]

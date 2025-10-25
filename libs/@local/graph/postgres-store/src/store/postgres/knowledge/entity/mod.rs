@@ -15,12 +15,12 @@ use hash_graph_authorization::policies::{
 };
 use hash_graph_store::{
     entity::{
-        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryCursor,
-        EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
-        EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityPermissions,
+        EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval,
+        EntityTypesError, EntityValidationReport, EntityValidationType,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryConversion, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -28,7 +28,10 @@ use hash_graph_store::{
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams},
+        edges::{
+            BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, GraphResolveDepths,
+            KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
+        },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
             PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
@@ -102,193 +105,321 @@ impl<C> PostgresStore<C>
 where
     C: AsClient,
 {
+    /// Resolves `is-of-type` edges from entities to their entity types.
+    ///
+    /// Queries the database for `is-of-type` edges connecting the provided entities to their
+    /// corresponding [`EntityType`]s, applies permission filtering, and inserts the discovered
+    /// edges into the subgraph. Returns the discovered entity types for further traversal.
+    ///
+    /// [`EntityType`]: type_system::ontology::entity_type::EntityType
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
+    ///   from
+    /// * `next_traversal` - Traversal parameters to apply to discovered entity types
+    /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
+    /// * `provider` - Store provider for permission checks
+    /// * `subgraph` - Subgraph to populate with discovered edges and vertices
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails or permission filtering encounters an
+    /// error.
+    async fn resolve_is_of_type_edge<'edges>(
+        &self,
+        entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        next_traversal: BorrowedTraversalParams<'edges>,
+        traversal_context: &mut TraversalContext<'edges>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<
+        Vec<(
+            EntityTypeUuid,
+            BorrowedTraversalParams<'edges>,
+            RightBoundedTemporalInterval<VariableAxis>,
+        )>,
+        Report<QueryError>,
+    > {
+        let mut shared_edges_traversal_data =
+            EntityEdgeTraversalData::new(&subgraph.temporal_axes.resolved);
+
+        for (entity_vertex_id, traversal_interval) in entities {
+            shared_edges_traversal_data.push(entity_vertex_id, traversal_interval);
+        }
+
+        let mut entity_type_queue = Vec::new();
+
+        if shared_edges_traversal_data.is_empty() {
+            return Ok(entity_type_queue);
+        }
+
+        let traversed_edges = self
+            .read_shared_edges(&shared_edges_traversal_data, Some(0))
+            .await?;
+
+        let filtered_traversed_edges = Self::filter_entity_types_by_permission(
+            traversed_edges,
+            provider,
+            subgraph.temporal_axes.resolved.clone(),
+        )
+        .await?;
+        for edge in filtered_traversed_edges {
+            subgraph.insert_edge(
+                &edge.left_endpoint,
+                SharedEdgeKind::IsOfType,
+                EdgeDirection::Outgoing,
+                edge.right_endpoint.clone(),
+            );
+
+            let next_traversal = traversal_context.add_entity_type_id(
+                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
+                next_traversal,
+                edge.traversal_interval,
+            );
+
+            if let Some((entity_type_uuid, next_traversal, interval)) = next_traversal {
+                entity_type_queue.push((entity_type_uuid, next_traversal, interval));
+            }
+        }
+
+        Ok(entity_type_queue)
+    }
+
+    /// Resolves a single entity edge type for a collection of entities.
+    ///
+    /// Queries the database for edges of the specified [`EntityTraversalEdge`] connecting the
+    /// provided entities to other entities. Discovered edges are inserted into the subgraph, and
+    /// newly discovered entities are returned for the next traversal hop.
+    ///
+    /// # Arguments
+    ///
+    /// * `entities` - Collection of entity vertex IDs with their temporal intervals to traverse
+    ///   from
+    /// * `edge` - The type of entity edge to traverse
+    /// * `next_traversal` - Traversal parameters to apply to discovered entities
+    /// * `traversal_context` - Context tracking visited vertices to prevent duplicates
+    /// * `provider` - Store provider for permission checks
+    /// * `subgraph` - Subgraph to populate with discovered edges and vertices
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails.
+    async fn resolve_entity_edge<'edges>(
+        &self,
+        entities: impl IntoIterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>,
+        edge: &EntityTraversalEdge,
+        next_traversal: BorrowedTraversalParams<'edges>,
+        traversal_context: &mut TraversalContext<'edges>,
+        provider: &StoreProvider<'_, Self>,
+        subgraph: &mut Subgraph,
+    ) -> Result<Vec<(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)>, Report<QueryError>>
+    {
+        let mut traversal_data = EntityEdgeTraversalData::new(&subgraph.temporal_axes.resolved);
+
+        for (entity_vertex_id, traversal_interval) in entities {
+            traversal_data.push(entity_vertex_id, traversal_interval);
+        }
+
+        let mut entity_queue = Vec::new();
+
+        if traversal_data.is_empty() {
+            return Ok(entity_queue);
+        }
+
+        let (edge_kind, edge_direction, reference_table) = match edge {
+            EntityTraversalEdge::HasLeftEntity { direction } => (
+                KnowledgeGraphEdgeKind::HasLeftEntity,
+                *direction,
+                ReferenceTable::EntityHasLeftEntity,
+            ),
+            EntityTraversalEdge::HasRightEntity { direction } => (
+                KnowledgeGraphEdgeKind::HasRightEntity,
+                *direction,
+                ReferenceTable::EntityHasRightEntity,
+            ),
+        };
+
+        let traversed_edges = self
+            .read_knowledge_edges(&traversal_data, reference_table, edge_direction, provider)
+            .await?;
+
+        for edge in traversed_edges {
+            subgraph.insert_edge(
+                &edge.left_endpoint,
+                edge_kind,
+                edge_direction,
+                EntityIdWithInterval {
+                    entity_id: edge.right_endpoint.base_id,
+                    interval: edge.edge_interval,
+                },
+            );
+
+            let new_entity = traversal_context.add_entity_id(
+                edge.right_endpoint_edition_id,
+                next_traversal,
+                edge.traversal_interval,
+            );
+
+            if new_entity {
+                entity_queue.push((edge.right_endpoint, edge.traversal_interval));
+            }
+        }
+
+        Ok(entity_queue)
+    }
+
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(
         level = "info",
-        skip(self, entity_queue, traversal_context, provider, subgraph)
+        skip(self, entity_ids, traversal_context, provider, subgraph)
     )]
     #[expect(clippy::too_many_lines)]
-    #[expect(clippy::todo, reason = "Incomplete implementation")]
-    pub(crate) async fn traverse_entities(
+    pub(crate) async fn traverse_entities<'edges>(
         &self,
-        mut entity_queue: Vec<(
-            EntityVertexId,
-            Cow<'_, SubgraphTraversalParams>,
-            RightBoundedTemporalInterval<VariableAxis>,
-        )>,
-        traversal_context: &mut TraversalContext,
+        entity_ids: impl IntoIterator<Item = EntityVertexId>,
+        traversal_params: BorrowedTraversalParams<'edges>,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
-        let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
+        let mut entities = entity_ids
+            .into_iter()
+            .map(|id| (id, subgraph.temporal_axes.resolved.variable_interval()))
+            .collect::<Vec<_>>();
 
-        let mut entity_type_queue = Vec::new();
-        let process_traversal_edges_span = tracing::trace_span!("process_traversal_edges");
+        match traversal_params {
+            BorrowedTraversalParams::ResolveDepths {
+                mut traversal_path,
+                graph_resolve_depths,
+            } => {
+                // Collect all entities (original + discovered during traversal) for `is_of_type`
+                // resolution. The `is_of_type` flag applies to all entities encountered, not just
+                // the starting set.
+                let mut shared_edge_data = Vec::new();
+                if graph_resolve_depths.is_of_type {
+                    shared_edge_data.extend(entities.iter().copied());
+                }
 
-        while !entity_queue.is_empty() {
-            let mut shared_edges_to_traverse = Option::<EntityEdgeTraversalData>::None;
-            let mut knowledge_edges_to_traverse =
-                HashMap::<(KnowledgeGraphEdgeKind, EdgeDirection), EntityEdgeTraversalData>::new();
-
-            let entity_edges = [
-                (
-                    KnowledgeGraphEdgeKind::HasLeftEntity,
-                    EdgeDirection::Incoming,
-                    ReferenceTable::EntityHasLeftEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasRightEntity,
-                    EdgeDirection::Incoming,
-                    ReferenceTable::EntityHasRightEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasLeftEntity,
-                    EdgeDirection::Outgoing,
-                    ReferenceTable::EntityHasLeftEntity,
-                ),
-                (
-                    KnowledgeGraphEdgeKind::HasRightEntity,
-                    EdgeDirection::Outgoing,
-                    ReferenceTable::EntityHasRightEntity,
-                ),
-            ];
-
-            #[expect(clippy::iter_with_drain, reason = "false positive, vector is reused")]
-            for (entity_vertex_id, subgraph_traversal_params, traversal_interval) in
-                entity_queue.drain(..)
-            {
-                tracing::trace_span!(
-                    "traverse_edges",
-                    entity_id = %entity_vertex_id.base_id,
-                    entity_revision = %entity_vertex_id.revision_id,
-                    traversal_interval = ?traversal_interval
-                )
-                .in_scope(|| match &*subgraph_traversal_params {
-                    SubgraphTraversalParams::ResolveDepths {
-                        graph_resolve_depths,
-                    } => {
-                        if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                            .decrement_depth_for_edge(
-                                SharedEdgeKind::IsOfType,
-                                EdgeDirection::Outgoing,
-                            )
-                        {
-                            shared_edges_to_traverse
-                                .get_or_insert_with(|| {
-                                    EntityEdgeTraversalData::new(
-                                        subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                        variable_axis,
-                                    )
-                                })
-                                .push(
-                                    entity_vertex_id,
-                                    traversal_interval,
-                                    new_graph_resolve_depths,
-                                );
-                        }
-
-                        for (edge_kind, edge_direction, _) in entity_edges {
-                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                                .decrement_depth_for_edge(edge_kind, edge_direction)
-                            {
-                                knowledge_edges_to_traverse
-                                    .entry((edge_kind, edge_direction))
-                                    .or_insert_with(|| {
-                                        EntityEdgeTraversalData::new(
-                                            subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                            variable_axis,
-                                        )
-                                    })
-                                    .push(
-                                        entity_vertex_id,
-                                        traversal_interval,
-                                        new_graph_resolve_depths,
-                                    );
-                            }
-                        }
-                    }
-                    SubgraphTraversalParams::Paths { traversal_paths: _ } => todo!("https://linear.app/hash/issue/BE-103/implement-path-based-query-traversal-depths"),
-                });
-            }
-
-            if let Some(traversal_data) = shared_edges_to_traverse.take() {
-                entity_type_queue.extend(
-                    Self::filter_entity_types_by_permission(
-                        self.read_shared_edges(&traversal_data, Some(0)).await?,
-                        provider,
-                        subgraph.temporal_axes.resolved.clone(),
-                    )
-                    .await?
-                    .flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            SharedEdgeKind::IsOfType,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
-
-                        traversal_context
-                            .add_entity_type_id(
-                                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                            .map(|(entity_type_uuid, graph_resolve_depths, interval)| {
-                                (
-                                    entity_type_uuid,
-                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
-                                        graph_resolve_depths,
-                                    }),
-                                    interval,
-                                )
-                            })
-                    }),
-                );
-            }
-
-            for (edge_kind, edge_direction, table) in entity_edges {
-                if let Some(traversal_data) =
-                    knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
+                // Sequentially traverse all entity edges in the path. Each iteration processes
+                // one edge and updates `entities` with the discovered entities for the next hop.
+                while let Some((edge, next_traversal_path)) = traversal_path.split_first()
+                    && !entities.is_empty()
                 {
-                    let knowledge_edges = self
-                        .read_knowledge_edges(traversal_data, table, edge_direction, provider)
-                        .await?;
-                    let _entered = process_traversal_edges_span.enter();
-                    entity_queue.extend(knowledge_edges.flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            edge_kind,
-                            edge_direction,
-                            EntityIdWithInterval {
-                                entity_id: edge.right_endpoint.base_id,
-                                interval: edge.edge_interval,
-                            },
-                        );
+                    traversal_path = next_traversal_path;
 
-                        traversal_context
-                            .add_entity_id(
-                                edge.right_endpoint_edition_id,
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                            .map(move |(_, graph_resolve_depths, interval)| {
-                                (
-                                    edge.right_endpoint,
-                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
-                                        graph_resolve_depths,
-                                    }),
-                                    interval,
+                    entities = self
+                        .resolve_entity_edge(
+                            entities,
+                            edge,
+                            BorrowedTraversalParams::ResolveDepths {
+                                traversal_path,
+                                graph_resolve_depths,
+                            },
+                            traversal_context,
+                            provider,
+                            subgraph,
+                        )
+                        .await?;
+
+                    // Also collect entities discovered during traversal for `is_of_type` resolution
+                    if graph_resolve_depths.is_of_type {
+                        shared_edge_data.extend(entities.iter().copied());
+                    }
+                }
+
+                let entity_types = self
+                    .resolve_is_of_type_edge(
+                        shared_edge_data,
+                        BorrowedTraversalParams::ResolveDepths {
+                            // We have consumed all edges in the traversal path
+                            traversal_path: &[],
+                            graph_resolve_depths: GraphResolveDepths {
+                                is_of_type: false,
+                                ..graph_resolve_depths
+                            },
+                        },
+                        traversal_context,
+                        provider,
+                        subgraph,
+                    )
+                    .await?;
+
+                self.traverse_entity_types(entity_types, traversal_context, provider, subgraph)
+                    .await?;
+            }
+            BorrowedTraversalParams::Path { mut traversal_path } => {
+                // Unlike `ResolveDepths`, in Path mode `IsOfType` edges are part of the traversal
+                // path array itself and are handled inline during iteration (see match below).
+                while let Some((edge, next_traversal_path)) = traversal_path.split_first()
+                    && !entities.is_empty()
+                {
+                    traversal_path = next_traversal_path;
+                    let next_traversal = BorrowedTraversalParams::Path { traversal_path };
+
+                    match edge {
+                        TraversalEdge::IsOfType => {
+                            let entity_types = self
+                                .resolve_is_of_type_edge(
+                                    entities,
+                                    next_traversal,
+                                    traversal_context,
+                                    provider,
+                                    subgraph,
                                 )
-                            })
-                    }));
+                                .await?;
+
+                            self.traverse_entity_types(
+                                entity_types,
+                                traversal_context,
+                                provider,
+                                subgraph,
+                            )
+                            .await?;
+
+                            // We have finished the traversal here, as the rest will be handled in
+                            // the entity types traversal.
+                            break;
+                        }
+                        TraversalEdge::HasLeftEntity { direction } => {
+                            entities = self
+                                .resolve_entity_edge(
+                                    entities,
+                                    &EntityTraversalEdge::HasLeftEntity {
+                                        direction: *direction,
+                                    },
+                                    next_traversal,
+                                    traversal_context,
+                                    provider,
+                                    subgraph,
+                                )
+                                .await?;
+                        }
+                        TraversalEdge::HasRightEntity { direction } => {
+                            entities = self
+                                .resolve_entity_edge(
+                                    entities,
+                                    &EntityTraversalEdge::HasRightEntity {
+                                        direction: *direction,
+                                    },
+                                    next_traversal,
+                                    traversal_context,
+                                    provider,
+                                    subgraph,
+                                )
+                                .await?;
+                        }
+                        TraversalEdge::InheritsFrom
+                        | TraversalEdge::ConstrainsLinksOn
+                        | TraversalEdge::ConstrainsLinkDestinationsOn
+                        | TraversalEdge::ConstrainsPropertiesOn
+                        | TraversalEdge::ConstrainsValuesOn => {}
+                    }
                 }
             }
         }
-
-        self.traverse_entity_types(entity_type_queue, traversal_context, provider, subgraph)
-            .await?;
 
         Ok(())
     }
@@ -407,12 +538,12 @@ where
 
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    async fn get_entities_impl(
+    async fn query_entities_impl(
         &self,
-        params: &GetEntitiesParams<'_>,
+        params: &QueryEntitiesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
@@ -650,11 +781,7 @@ where
             (entities, cursor)
         };
 
-        Ok(GetEntitiesResponse {
-            #[expect(
-                clippy::if_then_some_else_none,
-                reason = "False positive, use of `await`"
-            )]
+        Ok(QueryEntitiesResponse {
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
                     self.get_closed_multi_entity_types(
@@ -715,6 +842,8 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            // Populated later
+            permissions: None,
         })
     }
 }
@@ -1254,11 +1383,11 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
@@ -1276,7 +1405,7 @@ where
         let temporal_axes = params.temporal_axes.resolve();
 
         let mut response = self
-            .get_entities_impl(&params, &temporal_axes, &policy_components)
+            .query_entities_impl(&params, &temporal_axes, &policy_components)
             .await?;
 
         if !params.conversions.is_empty() {
@@ -1287,16 +1416,50 @@ where
             }
         }
 
+        if params.include_permissions {
+            let entity_ids = response
+                .entities
+                .iter()
+                .map(|entity| entity.metadata.record_id.entity_id)
+                .collect::<Vec<_>>();
+
+            let update_permissions = self
+                .has_permission_for_entities(
+                    policy_components.actor_id().into(),
+                    HasPermissionForEntitiesParams {
+                        action: ActionName::UpdateEntity,
+                        entity_ids: Cow::Borrowed(&entity_ids),
+                        temporal_axes: params.temporal_axes,
+                        include_drafts: params.include_drafts,
+                    },
+                )
+                .await
+                .change_context(QueryError)?;
+
+            let mut permissions: HashMap<EntityId, EntityPermissions> =
+                HashMap::with_capacity(update_permissions.len());
+
+            for (entity_id, editions) in update_permissions {
+                permissions.entry(entity_id).or_default().update = editions;
+            }
+
+            debug_assert!(
+                response.permissions.is_none(),
+                "Should not be populated yet"
+            );
+            response.permissions = Some(permissions);
+        }
+
         Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
+        params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -1304,10 +1467,11 @@ where
             .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
+        let actor = policy_components.actor_id();
 
         let provider = StoreProvider::new(self, &policy_components);
 
-        let (mut request, traversal_params) = params.into_request();
+        let (mut request, traversal_params) = params.into_parts();
         request
             .filter
             .convert_parameters(&provider)
@@ -1317,7 +1481,7 @@ where
         let temporal_axes = request.temporal_axes.resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let GetEntitiesResponse {
+        let QueryEntitiesResponse {
             entities: root_entities,
             cursor,
             count,
@@ -1328,8 +1492,9 @@ where
             edition_created_by_ids,
             type_ids,
             type_titles,
+            permissions,
         } = self
-            .get_entities_impl(&request, &temporal_axes, &policy_components)
+            .query_entities_impl(&request, &temporal_axes, &policy_components)
             .await?;
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes);
@@ -1347,26 +1512,67 @@ where
 
             let mut traversal_context = TraversalContext::default();
 
-            // TODO: We currently pass in the subgraph as mutable reference, thus we cannot borrow
-            // the       vertices and have to `.collect()` the keys.
-            self.traverse_entities(
-                subgraph
-                    .vertices
-                    .entities
-                    .keys()
-                    .map(|id| {
-                        (
-                            *id,
-                            Cow::Borrowed(&traversal_params),
-                            subgraph.temporal_axes.resolved.variable_interval(),
+            let entity_ids = subgraph
+                .vertices
+                .entities
+                .keys()
+                .copied()
+                .collect::<Vec<_>>();
+
+            // Iterate over each traversal path and call traverse_entities separately
+            match &traversal_params {
+                SubgraphTraversalParams::Paths { traversal_paths } => {
+                    for path in traversal_paths {
+                        self.traverse_entities(
+                            entity_ids.iter().copied(),
+                            BorrowedTraversalParams::Path {
+                                traversal_path: &path.edges,
+                            },
+                            &mut traversal_context,
+                            &provider,
+                            &mut subgraph,
                         )
-                    })
-                    .collect(),
-                &mut traversal_context,
-                &provider,
-                &mut subgraph,
-            )
-            .await?;
+                        .await?;
+                    }
+                }
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                } => {
+                    if traversal_paths.is_empty() {
+                        if graph_resolve_depths.is_of_type {
+                            // If no entity traversal paths are specified, still initialize
+                            // the traversal with ontology resolve depths to enable
+                            // traversal of ontology edges (e.g., isOfType, inheritsFrom)
+                            self.traverse_entities(
+                                entity_ids,
+                                BorrowedTraversalParams::ResolveDepths {
+                                    traversal_path: &[],
+                                    graph_resolve_depths: *graph_resolve_depths,
+                                },
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        for path in traversal_paths {
+                            self.traverse_entities(
+                                entity_ids.iter().copied(),
+                                BorrowedTraversalParams::ResolveDepths {
+                                    traversal_path: &path.edges,
+                                    graph_resolve_depths: *graph_resolve_depths,
+                                },
+                                &mut traversal_context,
+                                &provider,
+                                &mut subgraph,
+                            )
+                            .await?;
+                        }
+                    }
+                }
+            }
 
             traversal_context
                 .read_traversed_vertices(self, &mut subgraph, request.include_drafts)
@@ -1380,11 +1586,7 @@ where
                 }
             }
 
-            Ok(GetEntitySubgraphResponse {
-                #[expect(
-                    clippy::if_then_some_else_none,
-                    reason = "False positive, use of `await`"
-                )]
+            Ok(QueryEntitySubgraphResponse {
                 closed_multi_entity_types: if request.include_entity_types.is_some() {
                     Some(
                         self.get_closed_multi_entity_types(
@@ -1437,7 +1639,6 @@ where
                     }
                     None | Some(IncludeEntityTypeOption::Closed) => None,
                 },
-                subgraph,
                 cursor,
                 count,
                 web_ids,
@@ -1445,6 +1646,41 @@ where
                 edition_created_by_ids,
                 type_ids,
                 type_titles,
+                entity_permissions: if request.include_permissions {
+                    debug_assert!(permissions.is_none(), "Should not be populated yet");
+
+                    let entity_ids = subgraph
+                        .vertices
+                        .entities
+                        .keys()
+                        .map(|vertex_id| vertex_id.base_id)
+                        .collect::<Vec<_>>();
+
+                    let update_permissions = self
+                        .has_permission_for_entities(
+                            actor.into(),
+                            HasPermissionForEntitiesParams {
+                                action: ActionName::UpdateEntity,
+                                entity_ids: Cow::Borrowed(&entity_ids),
+                                temporal_axes: request.temporal_axes,
+                                include_drafts: request.include_drafts,
+                            },
+                        )
+                        .await
+                        .change_context(QueryError)?;
+
+                    let mut permissions: HashMap<EntityId, EntityPermissions> =
+                        HashMap::with_capacity(update_permissions.len());
+
+                    for (entity_id, editions) in update_permissions {
+                        permissions.entry(entity_id).or_default().update = editions;
+                    }
+
+                    Some(permissions)
+                } else {
+                    None
+                },
+                subgraph,
             })
         }
         .instrument(tracing::trace_span!("construct_subgraph"))
@@ -1582,13 +1818,13 @@ where
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &[Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
                     convert: None,
-                }),
+                },
             )],
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),

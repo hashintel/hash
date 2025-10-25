@@ -3,13 +3,14 @@ use core::ops::Index;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
-    collection::{FastHashMap, TinyVec},
+    collections::{FastHashMap, TinyVec},
     intern::Interned,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
-        environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
+        environment::{Environment, instantiate::InstantiateEnvironment},
+        error::TypeCheckDiagnosticIssues,
         kind::generic::GenericArgumentReference,
     },
 };
@@ -58,7 +59,7 @@ impl<'heap> TypeDef<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeDef<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -93,15 +94,11 @@ pub struct Local<'heap, T> {
     pub value: T,
 }
 
-impl<'heap, T> PrettyPrint<'heap> for Local<'heap, T>
+impl<'heap, E, T> PrettyPrint<'heap, E> for Local<'heap, T>
 where
-    T: PrettyPrint<'heap>,
+    T: PrettyPrint<'heap, E>,
 {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+    fn pretty(&self, env: &E, boundary: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
             .append(RcDoc::space())
             .append(RcDoc::text(self.name.unwrap()))
@@ -147,13 +144,23 @@ impl<'heap, T> Locals<'heap, T> {
         self.lookup.insert(name, index);
     }
 
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.storage.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.storage.is_empty()
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Local<'heap, T>> {
         self.storage.iter()
     }
 }
 
 impl<'heap> Locals<'heap, TypeDef<'heap>> {
-    pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
+    pub fn finish(&mut self, env: &Environment<'heap>) -> TypeCheckDiagnosticIssues {
         // Once finished we need to go over once to instantiate every call (now that everything is
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);

@@ -15,6 +15,13 @@ export const scalars = {
     "@local/hash-isomorphic-utils/system-types/canvas#HasSpatiallyPositionedContentProperties",
 
   DataTypeWithMetadata: "@blockprotocol/type-system#DataTypeWithMetadata",
+  QueryDataTypesParams: "@local/hash-graph-sdk/data-type#QueryDataTypesParams",
+  QueryDataTypesResponse:
+    "@local/hash-graph-sdk/data-type#QueryDataTypesResponse",
+  QueryDataTypeSubgraphParams:
+    "@local/hash-graph-sdk/data-type#QueryDataTypeSubgraphParams",
+  QueryDataTypeSubgraphResponse:
+    "@local/hash-graph-sdk/data-type#SerializedQueryDataTypeSubgraphResponse",
   ConstructDataTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructDataTypeParams",
   DataTypeFullConversionTargetsMap:
@@ -28,22 +35,47 @@ export const scalars = {
   ClosedMultiEntityTypesDefinitions:
     "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
+  QueryEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesParams",
+  QueryEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypesResponse",
+  QueryEntityTypeSubgraphParams:
+    "@local/hash-graph-sdk/entity-type#QueryEntityTypeSubgraphParams",
+  QueryEntityTypeSubgraphResponse:
+    "@local/hash-graph-sdk/entity-type#SerializedQueryEntityTypeSubgraphResponse",
+  GetClosedMultiEntityTypesParams:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesParams",
+  GetClosedMultiEntityTypesResponse:
+    "@local/hash-graph-sdk/entity-type#GetClosedMultiEntityTypesResponse",
   ConstructEntityTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata:
     "@blockprotocol/type-system#PropertyTypeWithMetadata",
+  QueryPropertyTypesParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesParams",
+  QueryPropertyTypesResponse:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypesResponse",
+  QueryPropertyTypeSubgraphParams:
+    "@local/hash-graph-sdk/property-type#QueryPropertyTypeSubgraphParams",
+  QueryPropertyTypeSubgraphResponse:
+    "@local/hash-graph-sdk/property-type#SerializedQueryPropertyTypeSubgraphResponse",
   ConstructPropertyTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 
-  SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
+  Entity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
-  GetEntitySubgraphRequest:
-    "@local/hash-graph-sdk/entity#GetEntitySubgraphRequest",
+  QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
+  QueryEntitiesResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitiesResponse",
+  QueryEntitySubgraphRequest:
+    "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
+  QueryEntitySubgraphResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitySubgraphResponse",
   EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
   PropertyObject: "@blockprotocol/type-system#PropertyObject",
   PropertyArray: "@blockprotocol/type-system#PropertyArray",
@@ -68,6 +100,7 @@ export const scalars = {
 
   UserPermissionsOnEntities:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntities",
+  EntityPermissionsMap: "@local/hash-graph-sdk/entity#EntityPermissionsMap",
   UserPermissions: "@local/hash-graph-sdk/authorization#UserPermissions",
   UserPermissionsOnEntityType:
     "@local/hash-graph-sdk/authorization#UserPermissionsOnEntityType",
@@ -78,7 +111,7 @@ export const scalars = {
 
   GraphElementVertexId: "@blockprotocol/graph#GraphElementVertexId",
   Edges: "@blockprotocol/graph#Edges",
-  SerializedVertices: "@local/hash-graph-sdk/entity#SerializedVertices",
+  Vertices: "@local/hash-graph-sdk/entity#SerializedVertices",
   LinkData: "@blockprotocol/type-system#LinkData",
   SubgraphTemporalAxes: "@blockprotocol/graph#SubgraphTemporalAxes",
 

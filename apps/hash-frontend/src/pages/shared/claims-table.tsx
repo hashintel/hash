@@ -448,9 +448,7 @@ export const ClaimsTable = memo(
         if (!subjectEntityId) {
           subjectEntityId = claimToSubjectRecord[claim.entityId];
 
-          if (!objectEntityId) {
-            objectEntityId = claimToObjectRecord[claim.entityId];
-          }
+          objectEntityId ??= claimToObjectRecord[claim.entityId];
         }
 
         const status = includeStatusColumn

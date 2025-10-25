@@ -1,6 +1,4 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityTypeRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityType,
@@ -14,10 +12,7 @@ import {
   isExternalOntologyElementMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback, useMemo } from "react";
 
 import type {
@@ -141,22 +136,17 @@ export const useGetEntityTypeDependents = (): {
 
             const dependentTypesAtLatestVersion = await queryEntityTypes({
               variables: {
-                filter: generateDependentsFilter(baseUrl),
-                latestOnly: true,
-                ...zeroedGraphResolveDepths,
+                request: {
+                  filter: generateDependentsFilter(baseUrl),
+                  temporalAxes: currentTimeInstantTemporalAxes,
+                },
               },
             }).then((resp) => {
               if (!resp.data) {
                 throw new Error("No data returned from queryEntityTypes");
               }
 
-              const types = getRoots<EntityTypeRootType>(
-                mapGqlSubgraphFieldsFragmentToSubgraph(
-                  resp.data.queryEntityTypes,
-                ),
-              );
-
-              return types;
+              return resp.data.queryEntityTypes.entityTypes;
             });
 
             return {

@@ -1,20 +1,27 @@
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  deserializeQueryEntityTypeSubgraphResponse,
+  type QueryEntityTypeSubgraphParams,
+} from "@local/hash-graph-sdk/entity-type";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { useEffect } from "react";
 
 import type {
-  GetEntityTypesQuery,
-  GetEntityTypesQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntityTypesQuery } from "../../graphql/queries/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/entity-type.queries";
 import { queryGraphQlApi } from "../../shared/query-graphql-api";
 import { useStorageSync } from "./use-storage-sync";
 
-const getEntityTypesSubgraph = () => {
-  return queryGraphQlApi<GetEntityTypesQuery, GetEntityTypesQueryVariables>(
-    getEntityTypesQuery,
-  ).then(({ data: { queryEntityTypes } }) => queryEntityTypes);
+const queryEntityTypeSubgraph = (request: QueryEntityTypeSubgraphParams) => {
+  return queryGraphQlApi<
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
+    request,
+  }).then(({ data }) => data.queryEntityTypeSubgraph);
 };
 
 export const useEntityTypes = () => {
@@ -25,9 +32,18 @@ export const useEntityTypes = () => {
   );
 
   useEffect(() => {
-    void getEntityTypesSubgraph().then((apiSubgraph) => {
+    void queryEntityTypeSubgraph({
+      filter: { all: [] },
+      temporalAxes: fullTransactionTimeAxis,
+      graphResolveDepths: {
+        constrainsValuesOn: 255,
+        constrainsPropertiesOn: 255,
+        inheritsFrom: 255,
+      },
+      traversalPaths: [],
+    }).then((response) => {
       const mappedSubgraph =
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(apiSubgraph);
+        deserializeQueryEntityTypeSubgraphResponse(response).subgraph;
 
       const apiEntityTypes = getRoots<EntityTypeRootType>(mappedSubgraph);
 

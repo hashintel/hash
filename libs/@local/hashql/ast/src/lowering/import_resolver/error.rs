@@ -5,7 +5,7 @@ use core::{
 };
 
 use hashql_core::{
-    collection::FastHashSet,
+    collections::FastHashSet,
     module::{
         ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},
@@ -17,18 +17,18 @@ use hashql_core::{
     symbol::{Ident, Symbol},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
 
 use crate::node::path::Path;
 
 pub(crate) type ImportResolverDiagnostic = Diagnostic<ImportResolverDiagnosticCategory, SpanId>;
+
+pub(crate) type ImportResolverDiagnosticIssues =
+    DiagnosticIssues<ImportResolverDiagnosticCategory, SpanId>;
 
 const GENERIC_ARGUMENTS_IN_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-arguments-in-use-path",
@@ -92,24 +92,19 @@ pub(crate) fn generic_arguments_in_use_path(
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::GenericArgumentsInUsePath,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(span, "Remove these generic arguments"));
 
-    // Add primary and secondary labels
-    diagnostic.labels.extend([
-        Label::new(span, "Remove these generic arguments")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(use_span, "In this import statement")
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-    ]);
+    diagnostic
+        .labels
+        .push(Label::new(use_span, "In this import statement"));
 
-    diagnostic.add_help(Help::new(
+    diagnostic.add_message(Message::help(
         "Use statements don't accept generic type parameters. Remove the angle brackets and type \
          parameters.\n\nExample: Use `module::Type` instead of `module::Type<T>`.",
     ));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This error is still valid, but should've been caught in an earlier stage of the compiler \
          pipeline.",
     ));
@@ -120,19 +115,14 @@ pub(crate) fn generic_arguments_in_use_path(
 /// Error when a path has no segments
 pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::Bug);
+        Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::Bug)
+            .primary(Label::new(span, "Specify a path here"));
 
-    diagnostic.labels.push(
-        Label::new(span, "Specify a path here")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
-
-    diagnostic.add_help(Help::new(
+    diagnostic.add_message(Message::help(
         "Add a valid path with at least one identifier, such as `module` or `module::item`.",
     ));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Import statements require a non-empty path to identify what module or item you want to \
          bring into scope. This error is still valid, but should've been caught in an earlier \
          stage of the compiler pipeline.",
@@ -145,37 +135,28 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
 pub(crate) fn generic_arguments_in_module(
     spans: impl IntoIterator<Item = SpanId>,
 ) -> ImportResolverDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ImportResolverDiagnosticCategory::GenericArgumentsInModule,
-        Severity::Error,
-    );
-
     let mut spans = spans.into_iter();
     let primary = spans.next().expect("spans should be non-empty");
 
-    // Primary label highlighting the invalid generic arguments
-    diagnostic.labels.push(
-        Label::new(primary, "Remove this generic argument")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    let mut diagnostic = Diagnostic::new(
+        ImportResolverDiagnosticCategory::GenericArgumentsInModule,
+        Severity::Error,
+    )
+    .primary(Label::new(primary, "Remove this generic argument"));
 
-    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
-    for (index, secondary) in spans.enumerate() {
-        diagnostic.labels.push(
-            Label::new(secondary, "... and this generic argument")
-                .with_order(-((index + 1) as i32))
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
+    for secondary in spans {
+        diagnostic
+            .labels
+            .push(Label::new(secondary, "... and this generic argument"));
     }
 
-    diagnostic.add_help(Help::new(
+    diagnostic.add_message(Message::help(
         "Generic arguments can only appear on the final type in a path. Remove them from this \
          module segment or move them to the final type in the path.\n\nCorrect: \
          `module::submodule::Type<T>`\nIncorrect: `module<T>::submodule::Type`",
     ));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Module paths don't accept generic parameters because modules themselves aren't generic. \
          Only the final type in a path can have generic parameters.\n\nThe path resolution \
          happens before any generic type checking, so generic arguments can only be applied after \
@@ -262,24 +243,19 @@ pub(crate) fn unresolved_variable<'heap>(
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedVariable,
         Severity::Error,
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            ident.span,
-            format!("Cannot find variable '{}'", ident.value),
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    )
+    .primary(Label::new(
+        ident.span,
+        format!("Cannot find variable '{}'", ident.value),
+    ));
 
     // Filter out suggestions that are already available locally
     suggestions.retain(|suggestion| !locals.contains(&suggestion.name));
 
     let help = build_unresolved_variable_help(registry, universe, ident, locals, &suggestions);
-    diagnostic.add_help(Help::new(help));
+    diagnostic.add_message(Message::help(help));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Variables must be defined before they can be used. This could be a typo, a variable used \
          outside its scope, or a missing declaration. If it's a function or type from another \
          module, you might need to import it first.",
@@ -436,7 +412,7 @@ pub(crate) fn from_resolution_error<'heap>(
     name: Option<(SpanId, Symbol<'heap>)>,
     error: ResolutionError<'heap>,
 ) -> ImportResolverDiagnostic {
-    let mut diagnostic = Diagnostic::new(
+    let diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedImport,
         Severity::Error,
     );
@@ -450,52 +426,45 @@ pub(crate) fn from_resolution_error<'heap>(
 
     match error {
         ResolutionError::InvalidQueryLength { expected } => {
-            diagnostic.labels.push(
+            let mut diagnostic = diagnostic.primary(
                 // Primary label highlighting the problematic path
-                Label::new(path.span, "Expected more path segments")
-                    .with_order(0)
-                    .with_color(Color::Ansi(AnsiColor::Red)),
+                Label::new(path.span, "Expected more path segments"),
             );
 
             if let Some(use_span) = use_span {
                 // Secondary label showing the context of the use statement
-                diagnostic.labels.push(
-                    Label::new(use_span, "In this import statement")
-                        .with_order(1)
-                        .with_color(Color::Ansi(AnsiColor::Blue)),
-                );
+                diagnostic
+                    .labels
+                    .push(Label::new(use_span, "In this import statement"));
             }
 
-            diagnostic.add_help(Help::new(format!(
+            diagnostic.add_message(Message::help(format!(
                 "This import path needs at least {expected} segments to be valid. Add the missing \
                  segments to complete the path."
             )));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "Import paths must be complete to properly identify the item you want to import. \
                  Incomplete paths cannot be resolved.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::ModuleRequired { depth, found } => {
             let (path_segment_span, _) = segments[depth];
 
-            diagnostic.labels.extend([
-                // Primary label showing the item that can't contain other items
-                Label::new(
-                    path_segment_span,
-                    format!(
-                        "'{}' cannot contain other items",
-                        FormatPath(path.rooted, &segments, Some(depth))
-                    ),
-                )
-                .with_order(0)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-                // Secondary label showing the full path context
-                Label::new(path.span, "In this path")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+            let mut diagnostic = diagnostic.primary(Label::new(
+                path_segment_span,
+                format!(
+                    "'{}' cannot contain other items",
+                    FormatPath(path.rooted, &segments, Some(depth))
+                ),
+            ));
+
+            diagnostic
+                .labels
+                .push(Label::new(path.span, "In this path"));
 
             let universe = match found {
                 Some(Universe::Value) => "a value",
@@ -503,15 +472,17 @@ pub(crate) fn from_resolution_error<'heap>(
                 None => "not a module",
             };
 
-            diagnostic.add_help(Help::new(format!(
+            diagnostic.add_message(Message::help(format!(
                 "'{}' is {universe}. Only modules can contain other items. Check your import path.",
                 FormatPath(path.rooted, &segments, Some(depth))
             )));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "The '::' syntax can only be used with modules to access their members. Values \
                  and types cannot contain other items.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::PackageNotFound {
@@ -521,19 +492,15 @@ pub(crate) fn from_resolution_error<'heap>(
         } => {
             let (package_span, package_name) = segments[depth];
 
-            diagnostic.labels.push(
+            let mut diagnostic = diagnostic.primary(
                 // Primary label highlighting the missing package
-                Label::new(package_span, format!("Missing package '{package_name}'"))
-                    .with_order(0)
-                    .with_color(Color::Ansi(AnsiColor::Red)),
+                Label::new(package_span, format!("Missing package '{package_name}'")),
             );
 
             if let Some(use_span) = use_span {
                 diagnostic.labels.push(
                     // Secondary label showing the context
-                    Label::new(use_span, "In this import statement")
-                        .with_order(1)
-                        .with_color(Color::Ansi(AnsiColor::Blue)),
+                    Label::new(use_span, "In this import statement"),
                 );
             }
 
@@ -545,12 +512,14 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.add_help(Help::new(help));
+            diagnostic.add_message(Message::help(help));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "Packages must be installed and properly configured in your project dependencies \
                  before they can be imported.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::ImportNotFound {
@@ -560,21 +529,15 @@ pub(crate) fn from_resolution_error<'heap>(
         } => {
             let (import_span, import_name) = segments[depth];
 
-            diagnostic.labels.push(
-                Label::new(
-                    import_span,
-                    format!("'{import_name}' needs to be imported first"),
-                )
-                .with_order(0)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-            );
+            let mut diagnostic = diagnostic.primary(Label::new(
+                import_span,
+                format!("'{import_name}' needs to be imported first"),
+            ));
 
             if let Some(use_span) = use_span {
                 diagnostic.labels.push(
                     // Add a secondary label for context
-                    Label::new(use_span, "In this import statement")
-                        .with_order(1)
-                        .with_color(Color::Ansi(AnsiColor::Blue)),
+                    Label::new(use_span, "In this import statement"),
                 );
             }
 
@@ -587,12 +550,14 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.add_help(Help::new(help));
+            diagnostic.add_message(Message::help(help));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "Before using an item from another module, you must import it with a 'use' \
                  statement or access it with a fully qualified path.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::ModuleNotFound {
@@ -602,15 +567,14 @@ pub(crate) fn from_resolution_error<'heap>(
         } => {
             let (module_span, module_name) = segments[depth];
 
-            diagnostic.labels.extend([
-                Label::new(module_span, format!("Module '{module_name}' not found"))
-                    .with_order(0)
-                    .with_color(Color::Ansi(AnsiColor::Red)),
-                // Add secondary label for context
-                Label::new(path.span, "In this path")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+            let mut diagnostic = diagnostic.primary(Label::new(
+                module_span,
+                format!("Module '{module_name}' not found"),
+            ));
+
+            diagnostic
+                .labels
+                .push(Label::new(path.span, "In this path"));
 
             let mut help = format!(
                 "The module '{}' doesn't exist in this scope. Check the spelling and ensure the \
@@ -622,12 +586,14 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.add_help(Help::new(help));
+            diagnostic.add_message(Message::help(help));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "Modules must be properly defined and exported from their parent module to be \
                  accessible.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::ItemNotFound {
@@ -646,26 +612,18 @@ pub(crate) fn from_resolution_error<'heap>(
                 )
             };
 
-            diagnostic.labels.push(
-                Label::new(item_span, label_text)
-                    .with_order(0)
-                    .with_color(Color::Ansi(AnsiColor::Red)),
-            );
+            let mut diagnostic = diagnostic.primary(Label::new(item_span, label_text));
 
             // Add a secondary label highlighting the module
             if depth > 0 {
                 let module_span = segments[depth - 1].0;
-                diagnostic.labels.push(
-                    Label::new(module_span, "This module")
-                        .with_order(1)
-                        .with_color(Color::Ansi(AnsiColor::Blue)),
-                );
+                diagnostic
+                    .labels
+                    .push(Label::new(module_span, "This module"));
             } else if let Some(use_span) = use_span {
-                diagnostic.labels.push(
-                    Label::new(use_span, "In this import")
-                        .with_order(1)
-                        .with_color(Color::Ansi(AnsiColor::Blue)),
-                );
+                diagnostic
+                    .labels
+                    .push(Label::new(use_span, "In this import"));
             } else {
                 // No secondary label needed - neither module nor import context available
             }
@@ -678,12 +636,14 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.add_help(Help::new(help));
+            diagnostic.add_message(Message::help(help));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "Items must be defined and accessible from the importing location. Make sure the \
                  item exists and is public.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::Ambiguous(item) => {
@@ -695,63 +655,58 @@ pub(crate) fn from_resolution_error<'heap>(
                 })
                 .unwrap_or(path.span);
 
-            diagnostic.labels.extend([
-                // Primary label, pointing to the problem
-                Label::new(item_span, format!("'{}' is ambiguous", item.name()))
-                    .with_order(0)
-                    .with_color(Color::Ansi(AnsiColor::Red)),
-                // Secondary label, pointing to the path
-                Label::new(path.span, "In this path")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+            let mut diagnostic = diagnostic.primary(Label::new(
+                item_span,
+                format!("'{}' is ambiguous", item.name()),
+            ));
 
-            diagnostic.add_help(Help::new(format!(
+            diagnostic
+                .labels
+                .push(Label::new(path.span, "In this path"));
+
+            diagnostic.add_message(Message::help(format!(
                 "The name '{}' could refer to multiple different items in {}. Use a fully \
                  qualified path to specify which one you want.",
                 item.name(),
                 FormatPath(path.rooted, &segments, None)
             )));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "When multiple items with the same name are in scope, you must use a fully \
                  qualified path to avoid ambiguity. Consider using explicit imports instead of \
                  glob imports to prevent name conflicts.",
             ));
+
+            diagnostic
         }
 
         ResolutionError::ModuleEmpty { depth } => {
             let (module_span, _) = segments[depth];
 
-            diagnostic.labels.extend([
-                // Primary label, pointing to the module
-                Label::new(
-                    module_span,
-                    format!(
-                        "Module '{}' has no exported members",
-                        FormatPath(path.rooted, &segments, Some(depth))
-                    ),
-                )
-                .with_order(0)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-                // Secondary label, pointing to the path
-                Label::new(path.span, "In this import path")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+            let mut diagnostic = diagnostic.primary(Label::new(
+                module_span,
+                format!(
+                    "Module '{}' has no exported members",
+                    FormatPath(path.rooted, &segments, Some(depth))
+                ),
+            ));
 
-            diagnostic.add_help(Help::new(
+            diagnostic
+                .labels
+                .push(Label::new(path.span, "In this import path"));
+
+            diagnostic.add_message(Message::help(
                 "This module exists but doesn't expose any items that can be imported. Check if \
                  you're importing the correct module or if the module has any public exports.",
             ));
 
-            diagnostic.add_note(Note::new(
+            diagnostic.add_message(Message::note(
                 "To use items from a module, they must be marked as public/exported. If you're \
                  using a glob import pattern like 'module::*', try using specific imports instead \
                  to see what's available.",
             ));
+
+            diagnostic
         }
     }
-
-    diagnostic
 }

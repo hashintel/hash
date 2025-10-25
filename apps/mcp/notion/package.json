@@ -19,21 +19,21 @@
   "dependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@modelcontextprotocol/sdk": "1.17.1",
+    "@modelcontextprotocol/sdk": "1.20.1",
     "@notionhq/client": "2.3.0",
     "dotenv-flow": "3.3.0",
     "notion-to-md": "3.1.9",
-    "zod": "3.25.76",
+    "zod": "4.1.12",
     "zod-to-json-schema": "3.24.6"
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.16.5",
+    "@types/node": "22.18.11",
     "chokidar-cli": "3.0.0",
-    "eslint": "9.20.1",
+    "eslint": "9.38.0",
     "rimraf": "6.0.1",
     "shx": "0.4.0",
-    "tsx": "4.20.3",
-    "typescript": "5.7.3"
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   }
 }

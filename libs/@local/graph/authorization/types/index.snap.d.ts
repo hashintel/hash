@@ -11,7 +11,7 @@ export interface Policy {
 	actions: ActionName[];
 	resource: (ResourceConstraint | null);
 }
-import type { Brand } from "@local/advanced-types/brand";
+import type { Brand } from "@blockprotocol/type-system-rs";
 export type PolicyId = Brand<string, "PolicyId">;
 export interface ResolvedPolicy {
 	effect: Effect;
@@ -20,156 +20,156 @@ export interface ResolvedPolicy {
 }
 export type ActionName = "createPolicy" | "createDataType" | "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewPolicy" | "viewDataType" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updatePolicy" | "updateDataType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archivePolicy" | "archiveDataType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "deletePolicy" | "instantiate";
 export type PrincipalConstraint = {
-	type: "actor"
+	type: "actor";
 } & ActorId | {
-	type: "actorType"
-	actorType: ActorType
+	type: "actorType";
+	actorType: ActorType;
 } | {
-	type: "actorGroup"
-	actorType?: ActorType
+	type: "actorGroup";
+	actorType?: ActorType;
 } & ActorGroupId | {
-	type: "role"
-	actorType?: ActorType
+	type: "role";
+	actorType?: ActorType;
 } & RoleId;
 export type ResourceConstraint = {
-	type: "meta"
+	type: "meta";
 } & MetaResourceConstraint | {
-	type: "web"
-	webId: WebId
+	type: "web";
+	webId: WebId;
 } | {
-	type: "entity"
+	type: "entity";
 } & EntityResourceConstraint | {
-	type: "entityType"
+	type: "entityType";
 } & EntityTypeResourceConstraint | {
-	type: "propertyType"
+	type: "propertyType";
 } & PropertyTypeResourceConstraint | {
-	type: "dataType"
+	type: "dataType";
 } & DataTypeResourceConstraint;
 export type DataTypeId = string;
 export type DataTypeResourceConstraint = {
-	filter: DataTypeResourceFilter
+	filter: DataTypeResourceFilter;
 } | {
-	id: DataTypeId
+	id: DataTypeId;
 } | {
-	webId: WebId
-	filter: DataTypeResourceFilter
+	webId: WebId;
+	filter: DataTypeResourceFilter;
 };
 export type DataTypeResourceFilter = {
-	type: "all"
-	filters: DataTypeResourceFilter[]
+	type: "all";
+	filters: DataTypeResourceFilter[];
 } | {
-	type: "any"
-	filters: DataTypeResourceFilter[]
+	type: "any";
+	filters: DataTypeResourceFilter[];
 } | {
-	type: "not"
-	filter: DataTypeResourceFilter
+	type: "not";
+	filter: DataTypeResourceFilter;
 } | {
-	type: "isBaseUrl"
-	baseUrl: BaseUrl
+	type: "isBaseUrl";
+	baseUrl: BaseUrl;
 } | {
-	type: "isVersion"
-	version: OntologyTypeVersion
+	type: "isVersion";
+	version: OntologyTypeVersion;
 } | {
-	type: "isRemote"
+	type: "isRemote";
 };
 export type EntityResourceConstraint = {
-	filter: EntityResourceFilter
+	filter: EntityResourceFilter;
 } | {
-	id: EntityUuid
+	id: EntityUuid;
 } | {
-	webId: WebId
-	filter: EntityResourceFilter
+	webId: WebId;
+	filter: EntityResourceFilter;
 };
 export type EntityResourceFilter = {
-	type: "all"
-	filters: EntityResourceFilter[]
+	type: "all";
+	filters: EntityResourceFilter[];
 } | {
-	type: "any"
-	filters: EntityResourceFilter[]
+	type: "any";
+	filters: EntityResourceFilter[];
 } | {
-	type: "not"
-	filter: EntityResourceFilter
+	type: "not";
+	filter: EntityResourceFilter;
 } | {
-	type: "isOfType"
-	entityType: VersionedUrl
+	type: "isOfType";
+	entityType: VersionedUrl;
 } | {
-	type: "isOfBaseType"
-	entityType: BaseUrl
+	type: "isOfBaseType";
+	entityType: BaseUrl;
 } | {
-	type: "createdByPrincipal"
+	type: "createdByPrincipal";
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {
-	filter: EntityTypeResourceFilter
+	filter: EntityTypeResourceFilter;
 } | {
-	id: EntityTypeId
+	id: EntityTypeId;
 } | {
-	webId: WebId
-	filter: EntityTypeResourceFilter
+	webId: WebId;
+	filter: EntityTypeResourceFilter;
 };
 export type EntityTypeResourceFilter = {
-	type: "all"
-	filters: EntityTypeResourceFilter[]
+	type: "all";
+	filters: EntityTypeResourceFilter[];
 } | {
-	type: "any"
-	filters: EntityTypeResourceFilter[]
+	type: "any";
+	filters: EntityTypeResourceFilter[];
 } | {
-	type: "not"
-	filter: EntityTypeResourceFilter
+	type: "not";
+	filter: EntityTypeResourceFilter;
 } | {
-	type: "isBaseUrl"
-	baseUrl: BaseUrl
+	type: "isBaseUrl";
+	baseUrl: BaseUrl;
 } | {
-	type: "isVersion"
-	version: OntologyTypeVersion
+	type: "isVersion";
+	version: OntologyTypeVersion;
 } | {
-	type: "isRemote"
+	type: "isRemote";
 };
 export type MetaResourceConstraint = {
-	filter: MetaResourceFilter
+	filter: MetaResourceFilter;
 } | {
-	webId: WebId
-	filter: MetaResourceFilter
+	webId: WebId;
+	filter: MetaResourceFilter;
 };
 export type MetaResourceFilter = {
-	type: "all"
-	filters: MetaResourceFilter[]
+	type: "all";
+	filters: MetaResourceFilter[];
 } | {
-	type: "any"
-	filters: MetaResourceFilter[]
+	type: "any";
+	filters: MetaResourceFilter[];
 } | {
-	type: "not"
-	filter: MetaResourceFilter
+	type: "not";
+	filter: MetaResourceFilter;
 } | {
-	type: "hasAction"
-	action: ActionName
+	type: "hasAction";
+	action: ActionName;
 };
 export type PropertyTypeId = string;
 export type PropertyTypeResourceConstraint = {
-	filter: PropertyTypeResourceFilter
+	filter: PropertyTypeResourceFilter;
 } | {
-	id: PropertyTypeId
+	id: PropertyTypeId;
 } | {
-	webId: WebId
-	filter: PropertyTypeResourceFilter
+	webId: WebId;
+	filter: PropertyTypeResourceFilter;
 };
 export type PropertyTypeResourceFilter = {
-	type: "all"
-	filters: PropertyTypeResourceFilter[]
+	type: "all";
+	filters: PropertyTypeResourceFilter[];
 } | {
-	type: "any"
-	filters: PropertyTypeResourceFilter[]
+	type: "any";
+	filters: PropertyTypeResourceFilter[];
 } | {
-	type: "not"
-	filter: PropertyTypeResourceFilter
+	type: "not";
+	filter: PropertyTypeResourceFilter;
 } | {
-	type: "isBaseUrl"
-	baseUrl: BaseUrl
+	type: "isBaseUrl";
+	baseUrl: BaseUrl;
 } | {
-	type: "isVersion"
-	version: OntologyTypeVersion
+	type: "isVersion";
+	version: OntologyTypeVersion;
 } | {
-	type: "isRemote"
+	type: "isRemote";
 };
 export interface PolicyCreationParams {
 	name?: string;
@@ -183,22 +183,22 @@ export interface PolicyFilter {
 	principal?: PrincipalFilter;
 }
 export type PolicyUpdateOperation = {
-	type: "add-action"
-	action: ActionName
+	type: "add-action";
+	action: ActionName;
 } | {
-	type: "remove-action"
-	action: ActionName
+	type: "remove-action";
+	action: ActionName;
 } | {
-	type: "set-resource-constraint"
-	resourceConstraint: (ResourceConstraint | null)
+	type: "set-resource-constraint";
+	resourceConstraint: (ResourceConstraint | null);
 } | {
-	type: "set-effect"
-	effect: Effect
+	type: "set-effect";
+	effect: Effect;
 };
 export type PrincipalFilter = {
-	filter: "unconstrained"
+	filter: "unconstrained";
 } | {
-	filter: "constrained"
+	filter: "constrained";
 } & PrincipalConstraint;
 export interface ResolvePoliciesParams {
 	actions: ActionName[];

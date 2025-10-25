@@ -19,25 +19,22 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-ada-url               = { workspace = true }
 circular-buffer       = { workspace = true }
-ecow                  = { workspace = true }
 hifijson              = { workspace = true, features = ["alloc"] }
 json-number           = { workspace = true }
-justjson              = { workspace = true, features = ["nightly"] }
 logos                 = { workspace = true, features = ["export_derive"] }
 simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }
+url                   = { workspace = true }
 winnow                = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+hashql-diagnostics = { workspace = true, features = ["render"] }
+insta              = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-ariadne    = { workspace = true }
-insta      = { workspace = true }
-serde      = { workspace = true }
-serde_json = { workspace = true }
-test-fuzz  = { workspace = true }

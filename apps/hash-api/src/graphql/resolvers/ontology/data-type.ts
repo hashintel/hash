@@ -1,27 +1,24 @@
-import type { DataTypeRootType } from "@blockprotocol/graph";
 import type {
   DataTypeWithMetadata,
   OntologyTemporalMetadata,
 } from "@blockprotocol/type-system";
 import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
-import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
+import type {
+  QueryDataTypesResponse,
+  SerializedQueryDataTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/data-type";
+import {
+  findDataTypeConversionTargets,
+  queryDataTypes,
+  queryDataTypeSubgraph,
+  serializeQueryDataTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/data-type";
 import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-sdk/ontology";
-import {
-  currentTimeInstantTemporalAxes,
-  fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  mapGraphApiSubgraphToSubgraph,
-  serializeSubgraph,
-} from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import {
   archiveDataType,
   checkPermissionsOnDataType,
   createDataType,
-  getDataTypeConversionTargets,
-  getDataTypeSubgraphById,
   unarchiveDataType,
   updateDataType,
 } from "../../../graph/ontology/primitive/data-type";
@@ -31,100 +28,49 @@ import type {
   MutationUnarchiveDataTypeArgs,
   MutationUpdateDataTypeArgs,
   QueryCheckUserPermissionsOnDataTypeArgs,
-  QueryGetDataTypeArgs,
-  QueryGetDataTypeConversionTargetsArgs,
+  QueryFindDataTypeConversionTargetsArgs,
   QueryQueryDataTypesArgs,
+  QueryQueryDataTypeSubgraphArgs,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
 import { graphQLContextToImpureGraphContext } from "../util";
 
-export const queryDataTypes: ResolverFn<
-  Promise<SerializedSubgraph>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryQueryDataTypesArgs
-> = async (
-  _,
-  { constrainsValuesOn, filter, includeArchived, inheritsFrom, latestOnly },
-  { dataSources, authentication },
-) => {
-  const { graphApi } = dataSources;
-
-  const latestOnlyFilter = {
-    equal: [{ path: ["version"] }, { parameter: "latest" }],
-  };
-
-  const { data: response } = await graphApi.getDataTypeSubgraph(
-    authentication.actorId,
-    {
-      filter: latestOnly
-        ? filter
-          ? { all: [filter, latestOnlyFilter] }
-          : latestOnlyFilter
-        : (filter ?? { all: [] }),
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        inheritsFrom,
-        constrainsValuesOn,
-      },
-      temporalAxes: includeArchived
-        ? fullTransactionTimeAxis
-        : currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    },
-  );
-
-  return serializeSubgraph(
-    mapGraphApiSubgraphToSubgraph<DataTypeRootType>(
-      response.subgraph,
-      authentication.actorId,
-    ),
-  );
-};
-
-export const getDataType: ResolverFn<
-  Promise<SerializedSubgraph>,
+export const queryDataTypesResolver: ResolverFn<
+  Promise<QueryDataTypesResponse>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetDataTypeArgs
-> = async (
-  _,
-  { dataTypeId, constrainsValuesOn, includeArchived },
-  graphQLContext,
-) =>
-  serializeSubgraph(
-    await getDataTypeSubgraphById(
-      graphQLContextToImpureGraphContext(graphQLContext),
-      graphQLContext.authentication,
-      {
-        dataTypeId,
-        /** @todo - make these configurable once non-primitive data types are a thing
-         * @see https://linear.app/hash/issue/H-2994
-         */
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn,
-        },
-        temporalAxes: includeArchived
-          ? fullTransactionTimeAxis
-          : currentTimeInstantTemporalAxes,
-      },
-    ),
+  QueryQueryDataTypesArgs
+> = async (_, { request }, graphQLContext) =>
+  queryDataTypes(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
   );
 
-export const getDataTypeConversionTargetsResolver: ResolverFn<
+export const queryDataTypeSubgraphResolver: ResolverFn<
+  Promise<SerializedQueryDataTypeSubgraphResponse>,
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryDataTypeSubgraphArgs
+> = async (_, { request }, graphQLContext) =>
+  queryDataTypeSubgraph(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
+    graphQLContext.authentication,
+    request,
+  ).then(serializeQueryDataTypeSubgraphResponse);
+
+export const findDataTypeConversionTargetsResolver: ResolverFn<
   Promise<DataTypeFullConversionTargetsMap>,
   Record<string, never>,
   GraphQLContext,
-  QueryGetDataTypeConversionTargetsArgs
-> = async (_, { dataTypeIds }, graphQLContext) => {
-  return await getDataTypeConversionTargets(
-    graphQLContextToImpureGraphContext(graphQLContext),
+  QueryFindDataTypeConversionTargetsArgs
+> = async (_, { dataTypeIds }, graphQLContext) =>
+  findDataTypeConversionTargets(
+    graphQLContextToImpureGraphContext(graphQLContext).graphApi,
     graphQLContext.authentication,
     { dataTypeIds },
   );
-};
 
 export const createDataTypeResolver: ResolverFn<
   Promise<DataTypeWithMetadata>,

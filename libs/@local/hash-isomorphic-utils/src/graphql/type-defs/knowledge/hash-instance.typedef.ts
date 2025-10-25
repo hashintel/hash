@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const hashInstanceTypedef = gql`
   type EnabledIntegrations {
@@ -7,7 +7,7 @@ export const hashInstanceTypedef = gql`
   }
 
   type HashInstanceSettings {
-    entity: SerializedEntity!
+    entity: Entity!
     isUserAdmin: Boolean!
     enabledIntegrations: EnabledIntegrations!
   }

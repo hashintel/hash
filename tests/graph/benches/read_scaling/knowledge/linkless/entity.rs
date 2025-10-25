@@ -7,7 +7,7 @@ use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_store::{
-    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},
+    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams},
     filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -180,9 +180,9 @@ pub fn bench_get_entity_by_id(
         },
         |entity_record_id| async move {
             store
-                .get_entities(
+                .query_entities(
                     actor_id,
-                    GetEntitiesParams {
+                    QueryEntitiesParams {
                         filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -205,6 +205,7 @@ pub fn bench_get_entity_by_id(
                         include_edition_created_by_ids: false,
                         include_type_ids: false,
                         include_type_titles: false,
+                        include_permissions: false,
                     },
                 )
                 .await

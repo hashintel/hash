@@ -3,16 +3,12 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs
 description: Empty arrays are not valid J-Expr function calls
 expression: "[]"
 ---
-[31m[parser::array::empty] Error:[0m Empty array not allowed
-   ╭─[ <unknown>:1:1 ]
-   │
- 1 │ []
-   │ ─┬  
-   │  ╰── Empty array not allowed
-   │ 
-   │ Help: In J-Expr syntax, arrays must contain at least one element that represents the function to be called. For example: ["add", {"#literal": 1}, {"#literal": 2}] calls the 'add' function with arguments 1 and 2.
-   │ 
-   │ Note: Valid examples:
-   │       - `["get", "user"]` - Calls 'get' with argument 'user'
-   │       - `["map", "identity", [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array
-───╯
+error[parser::array::empty]: Empty array not allowed
+  ╭▸ 
+1 │ []
+  │ ━━ Empty array not allowed
+  │
+  ├ help: In J-Expr syntax, arrays must contain at least one element that represents the function to be called. For example: ["add", {"#literal": 1}, {"#literal": 2}] calls the 'add' function with arguments 1 and 2.
+  ╰ note: Valid examples:
+          - `["get", "user"]` - Calls 'get' with argument 'user'
+          - `["map", "identity", [{"#literal": 1}, {"#literal": 2}, {"#literal": 3}]]` - Calls 'map' with a function and array

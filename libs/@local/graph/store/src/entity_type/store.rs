@@ -29,7 +29,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -47,49 +50,52 @@ pub struct CreateEntityTypeParams {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
-pub enum GetEntityTypeSubgraphParams<'p> {
+pub enum QueryEntityTypeSubgraphParams<'p> {
     #[serde(rename_all = "camelCase")]
     ResolveDepths {
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
-        request: CommonGetEntityTypesParams<'p>,
+        request: CommonQueryEntityTypesParams<'p>,
     },
     #[serde(rename_all = "camelCase")]
     Paths {
         traversal_paths: Vec<TraversalPath>,
         #[serde(borrow, flatten)]
-        request: CommonGetEntityTypesParams<'p>,
+        request: CommonQueryEntityTypesParams<'p>,
     },
 }
 
-impl<'a> GetEntityTypeSubgraphParams<'a> {
+impl<'a> QueryEntityTypeSubgraphParams<'a> {
     #[must_use]
-    pub const fn request(&self) -> &CommonGetEntityTypesParams<'a> {
+    pub const fn request(&self) -> &CommonQueryEntityTypesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub const fn request_mut(&mut self) -> &mut CommonGetEntityTypesParams<'a> {
+    pub const fn request_mut(&mut self) -> &mut CommonQueryEntityTypesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub fn into_request(self) -> (CommonGetEntityTypesParams<'a>, SubgraphTraversalParams) {
+    pub fn into_request(self) -> (CommonQueryEntityTypesParams<'a>, SubgraphTraversalParams) {
         match self {
             Self::Paths {
                 traversal_paths,
                 request,
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
+                traversal_paths,
                 graph_resolve_depths,
                 request,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ),
@@ -122,10 +128,10 @@ impl<'a> GetEntityTypeSubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                if graph_resolve_depths.constrains_properties_on > 0 {
                     actions.push(ActionName::ViewPropertyType);
 
-                    if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                    if graph_resolve_depths.constrains_values_on > 0 {
                         actions.push(ActionName::ViewDataType);
                     }
                 }
@@ -137,7 +143,7 @@ impl<'a> GetEntityTypeSubgraphParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct GetEntityTypeSubgraphResponse {
+pub struct QueryEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
@@ -152,36 +158,38 @@ pub struct CountEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
-pub struct CommonGetEntityTypesParams<'p> {
+pub struct CommonQueryEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub after: Option<VersionedUrl>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub limit: Option<usize>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_count: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_web_ids: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_edition_created_by_ids: bool,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetEntityTypesParams<'p> {
+pub struct QueryEntityTypesParams<'p> {
     #[serde(borrow, flatten)]
-    pub request: CommonGetEntityTypesParams<'p>,
+    pub request: CommonQueryEntityTypesParams<'p>,
     #[serde(default)]
     pub include_entity_types: Option<IncludeEntityTypeOption>,
 }
@@ -244,7 +252,7 @@ impl EntityTypeResolveDefinitions {
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetEntityTypesResponse {
+pub struct QueryEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -252,7 +260,11 @@ pub struct GetEntityTypesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub definitions: Option<EntityTypeResolveDefinitions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -277,6 +289,7 @@ pub struct GetClosedMultiEntityTypesParams {
     pub entity_type_ids: Vec<Vec<VersionedUrl>>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_resolved: Option<IncludeResolvedEntityTypeOption>,
 }
 
@@ -389,27 +402,27 @@ pub trait EntityTypeStore {
         params: CountEntityTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`]s specified by the [`GetEntityTypeSubgraphParams`].
+    /// Get the [`Subgraph`]s specified by the [`QueryEntityTypeSubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    fn get_entity_type_subgraph(
+    fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
+        params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntityTypeSubgraphResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`EntityType`]s specified by the [`GetEntityTypesParams`].
+    /// Get the [`EntityType`]s specified by the [`QueryEntityTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`EntityType`] doesn't exist.
-    fn get_entity_types(
+    fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetEntityTypesParams<'_>,
-    ) -> impl Future<Output = Result<GetEntityTypesResponse, Report<QueryError>>> + Send;
+        params: QueryEntityTypesParams<'_>,
+    ) -> impl Future<Output = Result<QueryEntityTypesResponse, Report<QueryError>>> + Send;
 
     /// Resolves and builds closed type hierarchies for multiple sets of entity types.
     ///

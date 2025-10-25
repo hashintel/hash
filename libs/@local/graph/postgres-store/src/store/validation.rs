@@ -190,7 +190,7 @@ where
     type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
     type Error = QueryError;
 
-    async fn lookup_data_type_by_uuid(
+    async fn get_data_type_by_uuid(
         &self,
         data_type_uuid: DataTypeUuid,
     ) -> Result<Arc<DataTypeWithMetadata>, Report<QueryError>> {
@@ -236,7 +236,7 @@ where
         Ok(schema)
     }
 
-    async fn lookup_closed_data_type_by_uuid(
+    async fn get_closed_data_type_by_uuid(
         &self,
         data_type_uuid: DataTypeUuid,
     ) -> Result<Arc<ClosedDataType>, Report<QueryError>> {

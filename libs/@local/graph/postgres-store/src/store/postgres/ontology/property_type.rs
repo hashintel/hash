@@ -12,15 +12,18 @@ use hash_graph_store::{
     filter::Filter,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeQueryPath,
-        PropertyTypeStore, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-        UpdatePropertyTypesParams,
+        HasPermissionForPropertyTypesParams, PropertyTypeQueryPath, PropertyTypeStore,
+        QueryPropertyTypeSubgraphParams, QueryPropertyTypeSubgraphResponse,
+        QueryPropertyTypesParams, QueryPropertyTypesResponse, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{Ordering, QueryResult as _, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
-        edges::{EdgeDirection, OntologyEdgeKind, SubgraphTraversalParams},
+        edges::{
+            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind, SubgraphTraversalParams,
+            TraversalEdge,
+        },
         identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
@@ -143,18 +146,18 @@ where
             }))
     }
 
-    async fn get_property_types_impl(
+    async fn query_property_types_impl(
         &self,
-        params: GetPropertyTypesParams<'_>,
+        params: QueryPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let policy_filter = Filter::<PropertyTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewPropertyType),
             policy_components.optimization_data(ActionName::ViewPropertyType),
         );
 
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -245,7 +248,7 @@ where
             (property_types, cursor)
         };
 
-        Ok(GetPropertyTypesResponse {
+        Ok(QueryPropertyTypesResponse {
             cursor,
             property_types,
             count,
@@ -260,15 +263,14 @@ where
         clippy::too_many_lines,
         reason = "We currenty have two traversal approaches"
     )]
-    #[expect(clippy::todo, reason = "Incomplete implementation")]
-    pub(crate) async fn traverse_property_types(
+    pub(crate) async fn traverse_property_types<'edges>(
         &self,
         mut property_type_queue: Vec<(
             PropertyTypeUuid,
-            Cow<'_, SubgraphTraversalParams>,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        traversal_context: &mut TraversalContext,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -282,109 +284,140 @@ where
             for (property_type_ontology_id, subgraph_traversal_params, traversal_interval) in
                 property_type_queue.drain(..)
             {
-                match &*subgraph_traversal_params {
-                    SubgraphTraversalParams::ResolveDepths {
-                        graph_resolve_depths,
+                match subgraph_traversal_params {
+                    BorrowedTraversalParams::ResolveDepths {
+                        traversal_path,
+                        graph_resolve_depths: depths,
                     } => {
                         for edge_kind in [
                             OntologyEdgeKind::ConstrainsValuesOn,
                             OntologyEdgeKind::ConstrainsPropertiesOn,
                         ] {
-                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                                .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                            if let Some(new_graph_resolve_depths) =
+                                depths.decrement_depth_for_edge_kind(edge_kind)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(property_type_ontology_id),
-                                    new_graph_resolve_depths,
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        traversal_path,
+                                        graph_resolve_depths: new_graph_resolve_depths,
+                                    },
                                     traversal_interval,
                                 );
                             }
                         }
                     }
-                    SubgraphTraversalParams::Paths { traversal_paths: _ } => todo!("https://linear.app/hash/issue/BE-103/implement-path-based-query-traversal-depths"),
+                    BorrowedTraversalParams::Path { traversal_path } => {
+                        let Some((edge, rest)) = traversal_path.split_first() else {
+                            continue;
+                        };
+
+                        let edge_kind = match edge {
+                            TraversalEdge::ConstrainsPropertiesOn => {
+                                OntologyEdgeKind::ConstrainsPropertiesOn
+                            }
+                            TraversalEdge::ConstrainsValuesOn => {
+                                OntologyEdgeKind::ConstrainsValuesOn
+                            }
+                            TraversalEdge::InheritsFrom
+                            | TraversalEdge::ConstrainsLinksOn
+                            | TraversalEdge::ConstrainsLinkDestinationsOn
+                            | TraversalEdge::IsOfType
+                            | TraversalEdge::HasLeftEntity { .. }
+                            | TraversalEdge::HasRightEntity { .. } => continue,
+                        };
+
+                        edges_to_traverse.entry(edge_kind).or_default().push(
+                            OntologyTypeUuid::from(property_type_ontology_id),
+                            BorrowedTraversalParams::Path {
+                                traversal_path: rest,
+                            },
+                            traversal_interval,
+                        );
+                    }
                 }
             }
 
-            if let Some(traversal_data) =
-                edges_to_traverse.get(&OntologyEdgeKind::ConstrainsValuesOn)
-            {
-                data_type_queue.extend(
-                    Self::filter_data_types_by_permission(
-                        self.read_ontology_edges::<PropertyTypeVertexId, DataTypeVertexId>(
-                            traversal_data,
-                            ReferenceTable::PropertyTypeConstrainsValuesOn,
-                        )
-                        .await?,
-                        provider,
-                        subgraph.temporal_axes.resolved.clone(),
-                    )
-                    .await?
-                    .flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            OntologyEdgeKind::ConstrainsValuesOn,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+            for (edge_kind, table) in [(
+                OntologyEdgeKind::ConstrainsValuesOn,
+                ReferenceTable::PropertyTypeConstrainsValuesOn,
+            )] {
+                let Some(traversal_data) = edges_to_traverse.remove(&edge_kind) else {
+                    continue;
+                };
 
-                        traversal_context
-                            .add_data_type_id(
-                                DataTypeUuid::from(edge.right_endpoint_ontology_id),
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                            .map(|(data_type_uuid, graph_resolve_depths, interval)| {
-                                (
-                                    data_type_uuid,
-                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
-                                        graph_resolve_depths,
-                                    }),
-                                    interval,
-                                )
-                            })
-                    }),
-                );
+                let traversed_edges = self
+                    .read_ontology_edges::<PropertyTypeVertexId, DataTypeVertexId>(
+                        &traversal_data,
+                        table,
+                    )
+                    .await?;
+
+                let filtered_traversed_edges = Self::filter_data_types_by_permission(
+                    traversed_edges,
+                    provider,
+                    subgraph.temporal_axes.resolved.clone(),
+                )
+                .await?;
+
+                for edge in filtered_traversed_edges {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        EdgeDirection::Outgoing,
+                        edge.right_endpoint.clone(),
+                    );
+
+                    let next_traversal = traversal_context.add_data_type_id(
+                        DataTypeUuid::from(edge.right_endpoint_ontology_id),
+                        edge.traversal_params,
+                        edge.traversal_interval,
+                    );
+                    if let Some((data_type_uuid, traversal_params, interval)) = next_traversal {
+                        data_type_queue.push((data_type_uuid, traversal_params, interval));
+                    }
+                }
             }
 
-            if let Some(traversal_data) =
-                edges_to_traverse.get(&OntologyEdgeKind::ConstrainsPropertiesOn)
-            {
-                property_type_queue.extend(
-                    Self::filter_property_types_by_permission(
-                        self.read_ontology_edges::<PropertyTypeVertexId, PropertyTypeVertexId>(
-                            traversal_data,
-                            ReferenceTable::PropertyTypeConstrainsPropertiesOn,
-                        )
-                        .await?,
-                        provider,
-                        subgraph.temporal_axes.resolved.clone(),
-                    )
-                    .await?
-                    .flat_map(|edge| {
-                        subgraph.insert_edge(
-                            &edge.left_endpoint,
-                            OntologyEdgeKind::ConstrainsPropertiesOn,
-                            EdgeDirection::Outgoing,
-                            edge.right_endpoint.clone(),
-                        );
+            for (edge_kind, table) in [(
+                OntologyEdgeKind::ConstrainsPropertiesOn,
+                ReferenceTable::PropertyTypeConstrainsPropertiesOn,
+            )] {
+                let Some(traversal_data) = edges_to_traverse.remove(&edge_kind) else {
+                    continue;
+                };
 
-                        traversal_context
-                            .add_property_type_id(
-                                PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
-                                edge.resolve_depths,
-                                edge.traversal_interval,
-                            )
-                            .map(|(property_type_uuid, graph_resolve_depths, interval)| {
-                                (
-                                    property_type_uuid,
-                                    Cow::Owned(SubgraphTraversalParams::ResolveDepths {
-                                        graph_resolve_depths,
-                                    }),
-                                    interval,
-                                )
-                            })
-                    }),
-                );
+                let traversed_edges = self
+                    .read_ontology_edges::<PropertyTypeVertexId, PropertyTypeVertexId>(
+                        &traversal_data,
+                        table,
+                    )
+                    .await?;
+
+                let filtered_traversed_edges = Self::filter_property_types_by_permission(
+                    traversed_edges,
+                    provider,
+                    subgraph.temporal_axes.resolved.clone(),
+                )
+                .await?;
+
+                for edge in filtered_traversed_edges {
+                    subgraph.insert_edge(
+                        &edge.left_endpoint,
+                        edge_kind,
+                        EdgeDirection::Outgoing,
+                        edge.right_endpoint.clone(),
+                    );
+
+                    let next_traversal = traversal_context.add_property_type_id(
+                        PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
+                        edge.traversal_params,
+                        edge.traversal_interval,
+                    );
+                    if let Some((property_type_uuid, traversal_params, interval)) = next_traversal {
+                        property_type_queue.push((property_type_uuid, traversal_params, interval));
+                    }
+                }
             }
         }
 
@@ -620,7 +653,7 @@ where
         );
 
         let temporal_axes = params.temporal_axes.resolve();
-        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
@@ -646,11 +679,11 @@ where
             .await)
     }
 
-    async fn get_property_types(
+    async fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+        mut params: QueryPropertyTypesParams<'_>,
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
@@ -664,16 +697,17 @@ where
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.resolve();
-        self.get_property_types_impl(params, &temporal_axes, &policy_components)
+        self.query_property_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn get_property_type_subgraph(
+    #[expect(clippy::too_many_lines)]
+    async fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
+        params: QueryPropertyTypeSubgraphParams<'_>,
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
         let actions = params.view_actions();
 
         let policy_components = PolicyComponents::builder(self)
@@ -695,14 +729,13 @@ where
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
-        let include_drafts = request.include_drafts;
 
-        let GetPropertyTypesResponse {
+        let QueryPropertyTypesResponse {
             property_types,
             cursor,
             count,
         } = self
-            .get_property_types_impl(request, &temporal_axes, &policy_components)
+            .query_property_types_impl(request, &temporal_axes, &policy_components)
             .await?;
 
         let (property_type_ids, property_type_vertex_ids): (Vec<_>, Vec<_>) = property_types
@@ -727,12 +760,56 @@ where
         self.traverse_property_types(
             property_type_ids
                 .into_iter()
-                .map(|id| {
-                    (
-                        id,
-                        Cow::Borrowed(&traversal_params),
-                        subgraph.temporal_axes.resolved.variable_interval(),
-                    )
+                .flat_map(|id| {
+                    match &traversal_params {
+                        // TODO: The `vec` is not ideal as the flattening intermediate type but this
+                        //       branch will be removed anyway after the migration to traversal path
+                        //       based traversal is done
+                        SubgraphTraversalParams::Paths { traversal_paths } => traversal_paths
+                            .iter()
+                            .map(|path| {
+                                (
+                                    id,
+                                    BorrowedTraversalParams::Path {
+                                        traversal_path: &path.edges,
+                                    },
+                                    subgraph.temporal_axes.resolved.variable_interval(),
+                                )
+                            })
+                            .collect(),
+                        SubgraphTraversalParams::ResolveDepths {
+                            traversal_paths,
+                            graph_resolve_depths,
+                        } => {
+                            if traversal_paths.is_empty() {
+                                // If no entity traversal paths are specified, still initialize
+                                // the traversal queue with ontology resolve depths to enable
+                                // traversal of ontology edges (e.g., constrainsValuesOn)
+                                vec![(
+                                    id,
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        traversal_path: &[],
+                                        graph_resolve_depths: *graph_resolve_depths,
+                                    },
+                                    subgraph.temporal_axes.resolved.variable_interval(),
+                                )]
+                            } else {
+                                traversal_paths
+                                    .iter()
+                                    .map(|path| {
+                                        (
+                                            id,
+                                            BorrowedTraversalParams::ResolveDepths {
+                                                traversal_path: &path.edges,
+                                                graph_resolve_depths: *graph_resolve_depths,
+                                            },
+                                            subgraph.temporal_axes.resolved.variable_interval(),
+                                        )
+                                    })
+                                    .collect()
+                            }
+                        }
+                    }
                 })
                 .collect(),
             &mut traversal_context,
@@ -742,10 +819,10 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, include_drafts)
+            .read_traversed_vertices(self, &mut subgraph, false)
             .await?;
 
-        Ok(GetPropertyTypeSubgraphResponse {
+        Ok(QueryPropertyTypeSubgraphResponse {
             subgraph,
             cursor,
             count,
@@ -783,19 +860,20 @@ where
 
             old_property_type_ids.push(VersionedUrl {
                 base_url: parameters.schema.id.base_url.clone(),
-                version: OntologyTypeVersion::new(
-                    parameters
+                version: OntologyTypeVersion {
+                    major: parameters
                         .schema
                         .id
                         .version
-                        .inner()
+                        .major
                         .checked_sub(1)
                         .ok_or(UpdateError)
                         .attach(
                             "The version of the property type is already at the lowest possible \
                              value",
                         )?,
-                ),
+                    pre_release: None,
+                },
             });
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());

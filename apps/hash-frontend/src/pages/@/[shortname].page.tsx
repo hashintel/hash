@@ -1,10 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type {
-  DataTypeRootType,
-  EntityRootType,
-  EntityTypeRootType,
-  PropertyTypeRootType,
-} from "@blockprotocol/graph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -16,12 +10,11 @@ import type {
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
@@ -29,16 +22,16 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   QueryDataTypesQuery,
   QueryDataTypesQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
@@ -73,11 +66,8 @@ const ProfilePage: NextPageWithLayout = () => {
   const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
     useUserOrOrg({
       shortname: profileShortname,
-      graphResolveDepths: {
-        // Required to gather the avatar of the user/org (outgoing link), and an org's memberships (incoming links)
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
-      },
+      includeAvatar: true,
+      includeMembersOfOrg: true,
       includePermissions: true,
     });
 
@@ -108,17 +98,29 @@ const ProfilePage: NextPageWithLayout = () => {
   >(queryEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      filter: {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: profileWebId! },
-        ],
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["version"],
+                },
+                { parameter: "latest" },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: profileWebId! },
+              ],
+            },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
       },
-      ...zeroedGraphResolveDepths,
-      includeArchived: true,
-      latestOnly: true,
     },
     skip: !profileWebId,
   });
@@ -129,18 +131,29 @@ const ProfilePage: NextPageWithLayout = () => {
   >(queryPropertyTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      filter: {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: profileWebId! },
-        ],
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["version"],
+                },
+                { parameter: "latest" },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: profileWebId! },
+              ],
+            },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
       },
-
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
-      includeArchived: true,
     },
     skip: !profileWebId,
   });
@@ -151,17 +164,29 @@ const ProfilePage: NextPageWithLayout = () => {
   >(queryDataTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      filter: {
-        equal: [
-          {
-            path: ["webId"],
-          },
-          { parameter: profileWebId! },
-        ],
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["version"],
+                },
+                { parameter: "latest" },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                { parameter: profileWebId! },
+              ],
+            },
+          ],
+        },
+        temporalAxes: fullTransactionTimeAxis,
       },
-      ...zeroedGraphResolveDepths,
-      includeArchived: true,
-      latestOnly: true,
     },
     skip: !profileWebId,
   });
@@ -174,31 +199,15 @@ const ProfilePage: NextPageWithLayout = () => {
     )[] = [];
 
     if (propertyTypesData) {
-      const propertyTypes = getRoots<PropertyTypeRootType>(
-        mapGqlSubgraphFieldsFragmentToSubgraph(
-          propertyTypesData.queryPropertyTypes,
-        ),
-      );
-
-      types.push(...propertyTypes);
+      types.push(...propertyTypesData.queryPropertyTypes.propertyTypes);
     }
 
     if (entityTypesData) {
-      const entityTypes = getRoots<EntityTypeRootType>(
-        mapGqlSubgraphFieldsFragmentToSubgraph(
-          entityTypesData.queryEntityTypes,
-        ),
-      );
-
-      types.push(...entityTypes);
+      types.push(...entityTypesData.queryEntityTypes.entityTypes);
     }
 
     if (dataTypesData) {
-      const dataTypes = getRoots<DataTypeRootType>(
-        mapGqlSubgraphFieldsFragmentToSubgraph(dataTypesData.queryDataTypes),
-      );
-
-      types.push(...dataTypes);
+      types.push(...dataTypesData.queryDataTypes.dataTypes);
     }
 
     return types;
@@ -256,11 +265,10 @@ const ProfilePage: NextPageWithLayout = () => {
   );
 
   const { data: pinnedEntityTypesData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -290,12 +298,13 @@ const ProfilePage: NextPageWithLayout = () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
@@ -303,9 +312,9 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        pinnedEntityTypesData.getEntitySubgraph.subgraph,
-      )
+    ? deserializeQueryEntitySubgraphResponse(
+        pinnedEntityTypesData.queryEntitySubgraph,
+      ).subgraph
     : undefined;
 
   const allPinnedEntities = useMemo(

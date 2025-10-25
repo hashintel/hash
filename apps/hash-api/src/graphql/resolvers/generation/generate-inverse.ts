@@ -1,10 +1,9 @@
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
-import { ApolloError } from "apollo-server-errors";
-import { ForbiddenError } from "apollo-server-express";
 import { backOff } from "exponential-backoff";
 
 import type { QueryGenerateInverseArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+import * as Error from "../../error";
 import { getOpenAiClient } from "./shared/openai-client";
 
 const generatePrompt = (relationship: string): string => `
@@ -45,7 +44,7 @@ export const generateInverseResolver: ResolverFn<
   QueryGenerateInverseArgs
 > = async (_, params, graphQLContext) => {
   if (!graphQLContext.user?.isAccountSignupComplete) {
-    throw new ForbiddenError("No user found");
+    throw Error.forbidden("No user found");
   }
 
   const { relationship } = params;
@@ -68,7 +67,7 @@ export const generateInverseResolver: ResolverFn<
         const message = response.choices[0]?.message.content;
 
         if (!message) {
-          throw new Error("Empty response from AI model");
+          throw Error.internal("Empty response from AI model");
         }
 
         return message;
@@ -84,7 +83,7 @@ export const generateInverseResolver: ResolverFn<
     graphQLContext.logger.error(
       `Failed to generate inverse relationship for '${relationship}': ${stringifyError(err)}`,
     );
-    throw new ApolloError(
+    throw Error.internal(
       `Failed to generate inverse relationship for ${relationship}`,
     );
   }

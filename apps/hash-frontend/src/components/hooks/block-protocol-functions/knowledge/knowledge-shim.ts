@@ -10,7 +10,6 @@ import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
   EntityRootType,
-  GraphResolveDepths,
   QueryOperationInput,
   ReadOrModifyResourceError,
   Subgraph,
@@ -24,6 +23,11 @@ import type {
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type {
+  EntityTraversalPath,
+  GraphResolveDepths,
+  TraversalPath,
+} from "@rust/hash-graph-store/types";
 
 import type {
   FileEntityCreationInput,
@@ -34,8 +38,15 @@ import type {
 
 export type GetEntityData = {
   entityId: EntityId;
-  graphResolveDepths?: Partial<GraphResolveDepths>;
-};
+} & (
+  | {
+      graphResolveDepths: GraphResolveDepths;
+      traversalPaths: EntityTraversalPath[];
+    }
+  | {
+      traversalPaths: TraversalPath[];
+    }
+);
 
 /** @todo-0.3 - we really want some type safety on these if we can find it, but this doesn't work */
 // export type GetEntityMessageCallback = Subtype<
@@ -84,8 +95,15 @@ export type UploadFileRequestCallback = MessageCallback<
 
 export type QueryEntitiesRequest = {
   operation: QueryOperationInput;
-  graphResolveDepths?: Partial<GraphResolveDepths>;
-};
+} & (
+  | {
+      graphResolveDepths: GraphResolveDepths;
+      traversalPaths: EntityTraversalPath[];
+    }
+  | {
+      traversalPaths: TraversalPath[];
+    }
+);
 
 export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,

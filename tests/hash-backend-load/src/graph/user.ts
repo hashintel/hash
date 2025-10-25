@@ -1,24 +1,28 @@
-import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
+import type { DistributiveField } from "@local/advanced-types/distribute";
+import type { QueryEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getGraphApiClient, getSystemAccountId } from "./api";
 
 export const getUser = async (params: {
   authentication: AuthenticationContext;
-  filter: GetEntitiesRequest["filter"];
+  filter: DistributiveField<QueryEntitiesRequest, "filter">;
   includeDrafts?: boolean;
 }): Promise<HashEntity<User> | undefined> => {
   const systemAccountId = await getSystemAccountId();
-  const [userEntity, ...unexpectedEntities] = await getGraphApiClient()
-    .getEntities(systemAccountId, {
+  const {
+    entities: [userEntity, ...unexpectedEntities],
+  } = await queryEntities<User>(
+    { graphApi: getGraphApiClient() },
+    { actorId: systemAccountId },
+    {
       filter: {
         all: [
           {
@@ -45,10 +49,9 @@ export const getUser = async (params: {
         },
       },
       includeDrafts: params.includeDrafts ?? false,
-    })
-    .then(({ data: { entities } }) =>
-      entities.map((entity) => mapGraphApiEntityToEntity<User>(entity, null)),
-    );
+      includePermissions: false,
+    },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(`Critical: More than one user entity found in the graph.`);

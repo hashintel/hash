@@ -24,7 +24,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -42,49 +45,52 @@ pub struct CreatePropertyTypeParams {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
-pub enum GetPropertyTypeSubgraphParams<'a> {
+pub enum QueryPropertyTypeSubgraphParams<'a> {
     #[serde(rename_all = "camelCase")]
     ResolveDepths {
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
-        request: GetPropertyTypesParams<'a>,
+        request: QueryPropertyTypesParams<'a>,
     },
     #[serde(rename_all = "camelCase")]
     Paths {
         traversal_paths: Vec<TraversalPath>,
         #[serde(borrow, flatten)]
-        request: GetPropertyTypesParams<'a>,
+        request: QueryPropertyTypesParams<'a>,
     },
 }
 
-impl<'a> GetPropertyTypeSubgraphParams<'a> {
+impl<'a> QueryPropertyTypeSubgraphParams<'a> {
     #[must_use]
-    pub const fn request(&self) -> &GetPropertyTypesParams<'a> {
+    pub const fn request(&self) -> &QueryPropertyTypesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub const fn request_mut(&mut self) -> &mut GetPropertyTypesParams<'a> {
+    pub const fn request_mut(&mut self) -> &mut QueryPropertyTypesParams<'a> {
         match self {
             Self::Paths { request, .. } | Self::ResolveDepths { request, .. } => request,
         }
     }
 
     #[must_use]
-    pub fn into_request(self) -> (GetPropertyTypesParams<'a>, SubgraphTraversalParams) {
+    pub fn into_request(self) -> (QueryPropertyTypesParams<'a>, SubgraphTraversalParams) {
         match self {
             Self::Paths {
                 traversal_paths,
                 request,
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
+                traversal_paths,
                 graph_resolve_depths,
                 request,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ),
@@ -110,7 +116,7 @@ impl<'a> GetPropertyTypeSubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if graph_resolve_depths.constrains_values_on > 0 {
                     actions.push(ActionName::ViewDataType);
                 }
             }
@@ -121,7 +127,7 @@ impl<'a> GetPropertyTypeSubgraphParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct GetPropertyTypeSubgraphResponse {
+pub struct QueryPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
@@ -134,31 +140,36 @@ pub struct CountPropertyTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, PropertyTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetPropertyTypesParams<'p> {
+pub struct QueryPropertyTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, PropertyTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub include_drafts: bool,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub after: Option<VersionedUrl>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub limit: Option<usize>,
     #[serde(default)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub include_count: bool,
 }
 
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
-pub struct GetPropertyTypesResponse {
+pub struct QueryPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub count: Option<usize>,
 }
 
@@ -261,29 +272,29 @@ pub trait PropertyTypeStore {
         params: CountPropertyTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, Report<QueryError>>> + Send;
 
-    /// Get the [`Subgraph`] specified by the [`GetPropertyTypeSubgraphParams`].
+    /// Get the [`Subgraph`] specified by the [`QueryPropertyTypeSubgraphParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
-    fn get_property_type_subgraph(
+    fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> impl Future<Output = Result<GetPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
+        params: QueryPropertyTypeSubgraphParams<'_>,
+    ) -> impl Future<Output = Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>>> + Send;
 
-    /// Get the [`PropertyTypes`] specified by the [`GetPropertyTypesParams`].
+    /// Get the [`PropertyTypes`] specified by the [`QueryPropertyTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`PropertyType`] doesn't exist.
     ///
     /// [`PropertyTypes`]: PropertyType
-    fn get_property_types(
+    fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetPropertyTypesParams<'_>,
-    ) -> impl Future<Output = Result<GetPropertyTypesResponse, Report<QueryError>>> + Send;
+        params: QueryPropertyTypesParams<'_>,
+    ) -> impl Future<Output = Result<QueryPropertyTypesResponse, Report<QueryError>>> + Send;
 
     /// Update the definition of an existing [`PropertyType`].
     ///

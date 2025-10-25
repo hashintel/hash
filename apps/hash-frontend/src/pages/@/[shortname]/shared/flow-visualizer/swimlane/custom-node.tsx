@@ -225,7 +225,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                 "&::before": { background: "none" },
               }}
             >
-              Your worker wants your advice
+              Your agent wants your advice
               <ArrowRightRegularIcon sx={{ ...statusBarTextSx, ml: 0.8 }} />
             </Button>
           ) : (

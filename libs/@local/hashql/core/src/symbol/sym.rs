@@ -92,21 +92,31 @@ symbols![lexical; LEXICAL;
     bit_shl,
     bit_shr,
     bit_xor,
+    core,
     div,
+    draft_id,
+    entity_edition_id,
+    entity_id,
+    entity_uuid,
     eq,
     gt,
     gte,
+    id,
     index,
     input,
     kernel,
+    left_entity_id,
+    link_data,
     lt,
     lte,
     math,
     mul,
     ne,
     not,
+    option,
     or,
     pow,
+    properties,
     r#fn: "fn",
     r#if: "if",
     r#is: "is",
@@ -115,8 +125,10 @@ symbols![lexical; LEXICAL;
     r#newtype: "newtype",
     r#type: "type",
     r#use: "use",
+    right_entity_id,
     special_form,
     sub,
+    web_id,
 ];
 
 symbols![digit; DIGITS;
@@ -156,7 +168,13 @@ symbols![symbol; SYMBOLS;
     tilde: "~",
 ];
 
-pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS];
+symbols![path; PATHS;
+    option: "::core::option::Option",
+    some: "::core::option::Some",
+    none: "::core::option::None",
+];
+
+pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS];
 
 #[cfg(test)]
 mod test {

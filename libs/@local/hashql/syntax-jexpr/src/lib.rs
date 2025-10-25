@@ -19,10 +19,8 @@
 
 extern crate alloc;
 
-use alloc::sync::Arc;
-
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::storage::SpanStorage};
+use hashql_core::{heap::Heap, span::SpanTable};
 
 use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory, ResultExt as _},
@@ -37,17 +35,14 @@ pub mod span;
 #[cfg(test)]
 pub(crate) mod test;
 
-pub struct Parser<'heap> {
+pub struct Parser<'heap, 'spans> {
     heap: &'heap Heap,
-    spans: Arc<SpanStorage<Span>>,
+    spans: &'spans mut SpanTable<Span>,
 }
 
-impl<'heap> Parser<'heap> {
-    pub fn new(heap: &'heap Heap, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
-        Self {
-            heap,
-            spans: spans.into(),
-        }
+impl<'heap, 'spans> Parser<'heap, 'spans> {
+    pub const fn new(heap: &'heap Heap, spans: &'spans mut SpanTable<Span>) -> Self {
+        Self { heap, spans }
     }
 
     /// Parse an expression from a byte slice.
@@ -57,10 +52,10 @@ impl<'heap> Parser<'heap> {
     /// - Lexer errors if the input contains invalid tokens
     /// - Parser errors if the tokens don't form a valid expression
     /// - Unexpected EOF if the input is incomplete
-    pub fn parse_expr(&self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
-        let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
+    pub fn parse_expr(&mut self, source: &[u8]) -> Result<Expr<'heap>, JExprDiagnostic> {
+        let lexer = lexer::Lexer::new(source);
 
-        let mut state = ParserState::new(self.heap, lexer, Arc::clone(&self.spans));
+        let mut state = ParserState::new(self.heap, lexer, self.spans);
 
         let expr = parser::expr::parse_expr(&mut state)
             .change_category(JExprDiagnosticCategory::Parser)?;
@@ -75,10 +70,10 @@ impl<'heap> Parser<'heap> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::sync::Arc;
 
     use hashql_ast::format::SyntaxDump as _;
-    use hashql_core::{heap::Heap, span::storage::SpanStorage};
+    use hashql_core::{heap::Heap, span::SpanTable};
+    use hashql_diagnostics::source::SourceId;
     use insta::{assert_snapshot, with_settings};
 
     use crate::{Parser, test::render_diagnostic};
@@ -95,15 +90,15 @@ mod tests {
     /// Attempt to parse an input string and return either a successful result or formatted error
     fn parse_input(input: &'static str) -> Result<ParseTestResult, String> {
         let heap = Heap::new();
-        let spans = Arc::new(SpanStorage::new());
-        let parser = Parser::new(&heap, Arc::clone(&spans));
+        let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
+        let mut parser = Parser::new(&heap, &mut spans);
 
         match parser.parse_expr(input.as_bytes()) {
             Ok(expr) => Ok(ParseTestResult {
                 dump: expr.syntax_dump_to_string(),
                 input,
             }),
-            Err(diagnostic) => Err(render_diagnostic(input, diagnostic, &spans)),
+            Err(diagnostic) => Err(render_diagnostic(input, &diagnostic, &spans)),
         }
     }
 

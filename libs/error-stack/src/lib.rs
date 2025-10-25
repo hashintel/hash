@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-09-10&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-10-21&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -477,7 +477,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(nightly, feature(error_generic_member_access))]
 #![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg, doc_cfg))]
+#![cfg_attr(all(doc, nightly), feature(doc_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
     not(miri),

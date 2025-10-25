@@ -3234,13 +3234,13 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
     ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
-        let previous_version = OntologyTypeVersion::new(
-            url.version
-                .inner()
-                .checked_sub(1)
-                .ok_or(UpdateError)
-                .attach("The version of the data type is already at the lowest possible value")?,
-        );
+        let previous_version =
+            OntologyTypeVersion {
+                major: url.version.major.checked_sub(1).ok_or(UpdateError).attach(
+                    "The version of the data type is already at the lowest possible value",
+                )?,
+                pre_release: None,
+            };
         let Some(web_id) = self
             .as_client()
             .query_opt(

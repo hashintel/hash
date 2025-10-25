@@ -6,14 +6,14 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import type {
-  ConversionRequest,
-  HashEntity,
+import {
+  type ConversionRequest,
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
-import type { GetEntitySubgraphQuery } from "../../../graphql/api-types.gen";
+import type { QueryEntitySubgraphQuery } from "../../../graphql/api-types.gen";
 import { useEntityTypeEntities } from "../../../shared/use-entity-type-entities";
 import type { VisualizerView } from "../visualizer-views";
 import type {
@@ -25,7 +25,7 @@ import { useEntitiesTableData } from "./use-entities-table-data";
 
 export type EntitiesVisualizerData = Partial<
   Pick<
-    GetEntitySubgraphQuery["getEntitySubgraph"],
+    QueryEntitySubgraphQuery["queryEntitySubgraph"],
     | "closedMultiEntityTypes"
     | "count"
     | "createdByIds"
@@ -46,7 +46,7 @@ export type EntitiesVisualizerData = Partial<
    * The cached content will be replaced automatically and the value updated when the network request completes.
    */
   loading: boolean;
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   tableData: EntitiesTableData | null;
   updateTableData: UpdateTableDataFn;
@@ -106,24 +106,26 @@ export const useEntitiesVisualizerData = (params: {
       includeArchived,
       limit,
       webIds: webIdsParam,
-      graphResolveDepths:
+      traversalPaths:
         view === "Graph"
-          ? {
-              /**
-               * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
-               * We skip asking the graph to resolve them.
-               * This does mean that links to entities outside the users' webs are not reflected in the graph view,
-               * unless they have clicked to include entities from other webs.
-               */
-              hasLeftEntity: { outgoing: 0, incoming: 0 },
-              hasRightEntity: { outgoing: 0, incoming: 0 },
-            }
+          ? /**
+             * The graph view gets all entities in the selected web anyway, so it will have all the links regardless.
+             * We skip asking the graph to resolve them.
+             * This does mean that links to entities outside the users' webs are not reflected in the graph view,
+             * unless they have clicked to include entities from other webs.
+             */
+            []
           : /**
              * The table view only needs outgoing: 1 for each, in order to be able to display the source and target of links.
-             */ {
-              hasLeftEntity: { outgoing: 1, incoming: 0 },
-              hasRightEntity: { outgoing: 1, incoming: 0 },
-            },
+             */
+            [
+              {
+                edges: [
+                  { kind: "has-left-entity", direction: "outgoing" },
+                  { kind: "has-right-entity", direction: "outgoing" },
+                ],
+              },
+            ],
       sort,
     },
     (data) => {
@@ -131,17 +133,17 @@ export const useEntitiesVisualizerData = (params: {
         return;
       }
 
-      const newSubgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.getEntitySubgraph.subgraph);
+      const newSubgraph = deserializeQueryEntitySubgraphResponse(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
       const newEntities = getRoots(newSubgraph);
 
       updateTableData({
         appliedPaginationCursor: cursor ?? null,
         closedMultiEntityTypesRootMap:
-          data.getEntitySubgraph.closedMultiEntityTypes ?? {},
-        definitions: data.getEntitySubgraph.definitions,
+          data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
+        definitions: data.queryEntitySubgraph.definitions,
         entities: newEntities,
         subgraph: newSubgraph,
       });

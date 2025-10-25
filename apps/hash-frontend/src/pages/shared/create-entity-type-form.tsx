@@ -314,12 +314,6 @@ export const CreateEntityTypeForm = ({
                       title: titleToValidate,
                       version: makeOntologyTypeVersion({ major: 1 }),
                     }).versionedUrl,
-                    graphResolveDepths: {
-                      constrainsValuesOn: { outgoing: 0 },
-                      constrainsPropertiesOn: { outgoing: 0 },
-                      constrainsLinksOn: { outgoing: 0 },
-                      constrainsLinkDestinationsOn: { outgoing: 0 },
-                    },
                   },
                 });
 

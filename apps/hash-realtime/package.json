@@ -16,17 +16,16 @@
   },
   "dependencies": {
     "@local/hash-backend-utils": "0.0.0-private",
-    "set-interval-async": "2.0.3",
+    "set-interval-async": "3.0.3",
     "slonik": "24.2.0",
-    "tsx": "4.20.3",
-    "typescript": "5.7.3"
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/node": "22.16.5",
-    "@types/set-interval-async": "1.0.3",
-    "eslint": "9.20.1",
-    "typescript": "5.7.3"
+    "@types/node": "22.18.11",
+    "eslint": "9.38.0",
+    "typescript": "5.9.3"
   }
 }

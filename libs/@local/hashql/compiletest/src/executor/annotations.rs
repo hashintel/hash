@@ -3,21 +3,30 @@ use core::iter;
 use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink};
 use hashql_diagnostics::{
-    category::canonical_category_name, help::Help, label::Label, note::Note,
-    span::AbsoluteDiagnosticSpan,
+    Label,
+    category::canonical_category_name,
+    diagnostic::{BoxedDiagnostic, Message},
+    source::{DiagnosticSpan, SourceSpan},
 };
 use line_index::{LineCol, LineIndex};
 
 use super::{TrialError, render_diagnostic};
-use crate::{annotation::diagnostic::DiagnosticAnnotation, suite::ResolvedSuiteDiagnostic};
+use crate::annotation::diagnostic::DiagnosticAnnotation;
 
-fn filter_labels<'label>(
+fn filter_labels<'label, S, R>(
+    resolver: &mut R,
     line_index: &LineIndex,
     line_number: u32,
-    labels: &'label [Label<AbsoluteDiagnosticSpan>],
-) -> impl IntoIterator<Item = &'label Label<AbsoluteDiagnosticSpan>> {
-    labels.iter().filter(move |label| {
-        let range = label.span().range();
+    labels: impl IntoIterator<Item = &'label Label<S>>,
+) -> impl IntoIterator<Item = &'label Label<S>>
+where
+    S: DiagnosticSpan<R> + 'label,
+{
+    labels.into_iter().filter(move |label| {
+        let span =
+            SourceSpan::resolve(label.span(), resolver).expect("should be able to resolve span");
+
+        let range = span.range();
 
         let LineCol {
             line: start,
@@ -29,13 +38,16 @@ fn filter_labels<'label>(
     })
 }
 
-pub(crate) fn verify_annotations(
+pub(crate) fn verify_annotations<S, R>(
     source: &str,
+    resolver: &mut R,
     line_index: &LineIndex,
-    diagnostics: &[ResolvedSuiteDiagnostic],
+    diagnostics: &[BoxedDiagnostic<'static, S>],
     annotations: &[DiagnosticAnnotation],
     sink: &mut ReportSink<TrialError>,
-) {
+) where
+    S: DiagnosticSpan<R>,
+{
     // We cannot clone diagnostics here, because of the fact that they are not `Clone` due to
     // the `dyn Trait`.
     let mut visited = vec![false; diagnostics.len()];
@@ -57,9 +69,10 @@ pub(crate) fn verify_annotations(
                     return Some((index, diagnostic, diagnostic.labels.iter().collect()));
                 };
 
-                let labels: Vec<_> = filter_labels(line_index, line_number, &diagnostic.labels)
-                    .into_iter()
-                    .collect();
+                let labels: Vec<_> =
+                    filter_labels(resolver, line_index, line_number, diagnostic.labels.iter())
+                        .into_iter()
+                        .collect();
 
                 if labels.is_empty() {
                     return None;
@@ -78,8 +91,7 @@ pub(crate) fn verify_annotations(
                 let mut sources = labels
                     .iter()
                     .map(|label| label.message())
-                    .chain(diagnostic.help.iter().map(Help::message))
-                    .chain(diagnostic.notes.iter().map(Note::message))
+                    .chain(diagnostic.messages.iter().map(Message::message))
                     .chain(iter::once(canonical_name.as_str()))
                     .map(|value| strip_str(value).to_string());
 
@@ -122,29 +134,55 @@ pub(crate) fn verify_annotations(
         .map(|(index, _)| &diagnostics[index]);
 
     for diagnostic in unmatched {
-        let diagnostic = render_diagnostic(source, diagnostic);
+        let diagnostic = render_diagnostic(source, resolver, diagnostic);
         sink.append(Report::new(TrialError::UnexpectedDiagnostic(diagnostic)));
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::assert_matches::assert_matches;
+    use core::{
+        assert_matches::assert_matches,
+        fmt::{self, Debug, Display},
+    };
 
     use error_stack::ReportSink;
     use hashql_diagnostics::{
-        Diagnostic,
+        Diagnostic, Label,
         category::{DiagnosticCategory, TerminalDiagnosticCategory},
-        label::Label,
         severity::Severity,
+        source::{DiagnosticSpan, SourceId},
     };
     use line_index::{LineIndex, TextRange};
 
     use super::*;
 
+    #[derive(Debug, Copy, Clone)]
+    struct FakeSpan(TextRange);
+
+    impl Display for FakeSpan {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Debug::fmt(&self.0, fmt)
+        }
+    }
+
+    impl<R> DiagnosticSpan<R> for FakeSpan {
+        fn source(&self) -> SourceId {
+            SourceId::new_unchecked(0)
+        }
+
+        fn absolute(&self, _: &mut R) -> Option<SourceSpan> {
+            Some(SourceSpan::from_parts(SourceId::new_unchecked(0), self.0))
+        }
+
+        fn is_synthetic(&self) -> bool {
+            false
+        }
+    }
+
     // Helper to create test spans
-    fn make_span(start: u32, end: u32) -> AbsoluteDiagnosticSpan {
-        AbsoluteDiagnosticSpan::from_range(TextRange::new(start.into(), end.into()))
+    fn make_span(start: u32, end: u32) -> FakeSpan {
+        FakeSpan(TextRange::new(start.into(), end.into()))
     }
 
     // Helper to create a simple diagnostic for testing
@@ -152,21 +190,18 @@ mod tests {
         category: &'static str,
         severity: Severity,
         message: &'static str,
-        span: AbsoluteDiagnosticSpan,
-    ) -> ResolvedSuiteDiagnostic {
+        span: FakeSpan,
+    ) -> Diagnostic<Box<dyn DiagnosticCategory>, FakeSpan> {
         let mock_category = TerminalDiagnosticCategory {
             id: category,
             name: category,
         };
 
-        let mut diagnostic = Diagnostic::new(
+        Diagnostic::new(
             Box::new(mock_category) as Box<dyn DiagnosticCategory>,
             severity,
-        );
-
-        diagnostic.labels.push(Label::new(span, message));
-
-        diagnostic
+        )
+        .primary(Label::new(span, message))
     }
 
     // Helper to create an annotation
@@ -201,7 +236,14 @@ mod tests {
 
         let mut sink = ReportSink::<TrialError>::new();
 
-        verify_annotations(source, &line_index, &diagnostics, &annotations, &mut sink);
+        verify_annotations(
+            source,
+            &mut (),
+            &line_index,
+            &diagnostics,
+            &annotations,
+            &mut sink,
+        );
 
         let result = sink.finish();
 
@@ -229,7 +271,14 @@ mod tests {
 
         let mut sink = ReportSink::<TrialError>::new();
 
-        verify_annotations(source, &line_index, &diagnostics, &annotations, &mut sink);
+        verify_annotations(
+            source,
+            &mut (),
+            &line_index,
+            &diagnostics,
+            &annotations,
+            &mut sink,
+        );
 
         let report = sink.finish().expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
@@ -256,7 +305,14 @@ mod tests {
 
         let mut sink = ReportSink::<TrialError>::new();
 
-        verify_annotations(source, &line_index, &diagnostics, &annotations, &mut sink);
+        verify_annotations(
+            source,
+            &mut (),
+            &line_index,
+            &diagnostics,
+            &annotations,
+            &mut sink,
+        );
 
         let report = sink.finish().expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
@@ -281,7 +337,14 @@ mod tests {
 
         let mut sink = ReportSink::<TrialError>::new();
 
-        verify_annotations(source, &line_index, &diagnostics, &annotations, &mut sink);
+        verify_annotations(
+            source,
+            &mut (),
+            &line_index,
+            &diagnostics,
+            &annotations,
+            &mut sink,
+        );
 
         let report = sink.finish().expect_err("should have errored out");
         let context: Vec<_> = report.current_contexts().collect();
@@ -313,7 +376,14 @@ mod tests {
 
         let mut sink = ReportSink::<TrialError>::new();
 
-        verify_annotations(source, &line_index, &diagnostics, &annotations, &mut sink);
+        verify_annotations(
+            source,
+            &mut (),
+            &line_index,
+            &diagnostics,
+            &annotations,
+            &mut sink,
+        );
 
         // Should report one of the diagnostics as unexpected
         let report = sink.finish().expect_err("should have errored out");
@@ -328,14 +398,19 @@ mod tests {
         let source = "line1\nline2\nline3";
         let line_index = LineIndex::new(source);
 
-        let labels = vec![
-            Label::new(make_span(0, 5), "label on line 1"), // line1
-            Label::new(make_span(6, 11), "label on line 2"), // line2
-            Label::new(make_span(12, 17), "label on line 3"), // line3
-        ];
+        let mut diagnostic =
+            make_diagnostic("temp", Severity::Error, "label on line 1", make_span(0, 5));
+        diagnostic
+            .labels
+            .push(Label::new(make_span(6, 11), "label on line 2"));
+        diagnostic
+            .labels
+            .push(Label::new(make_span(12, 17), "label on line 3"));
 
         // Filter for line 1 (1-indexed)
-        let filtered: Vec<_> = filter_labels(&line_index, 1, &labels).into_iter().collect();
+        let filtered: Vec<_> = filter_labels(&mut (), &line_index, 1, diagnostic.labels.iter())
+            .into_iter()
+            .collect();
 
         assert_eq!(filtered.len(), 1);
         assert_eq!(filtered[0].message(), "label on line 1");

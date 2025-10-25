@@ -1,16 +1,11 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { Entity } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -27,13 +22,13 @@ import type {
 import { useEffect, useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
-import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
@@ -52,9 +47,9 @@ export const useLinearIntegrations = (): {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { data: linearIntegrationsData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -74,15 +69,18 @@ export const useLinearIntegrations = (): {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { outgoing: 0, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 0 },
-        },
-        includeDrafts: false,
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
   });
 
@@ -99,14 +97,12 @@ export const useLinearIntegrations = (): {
       return [];
     }
 
-    const subgraph = linearIntegrationsData.getEntitySubgraph.subgraph;
+    const subgraph =
+      deserializeQueryEntitySubgraphResponse<LinearIntegrationType>(
+        linearIntegrationsData.queryEntitySubgraph,
+      ).subgraph;
 
-    const mappedSubgraph =
-      mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity<LinearIntegrationType>>
-      >(subgraph);
-
-    const linearIntegrationEntities = getRoots(mappedSubgraph);
+    const linearIntegrationEntities = getRoots(subgraph);
 
     return linearIntegrationEntities.map((entity) => {
       return {

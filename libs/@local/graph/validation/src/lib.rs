@@ -246,7 +246,7 @@ mod tests {
         type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
         type Error = InvalidDataType;
 
-        async fn lookup_data_type_by_uuid(
+        async fn get_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
         ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
@@ -256,7 +256,7 @@ mod tests {
                 .ok_or_else(|| Report::new(InvalidDataType))
         }
 
-        async fn lookup_closed_data_type_by_uuid(
+        async fn get_closed_data_type_by_uuid(
             &self,
             data_type_uuid: DataTypeUuid,
         ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
@@ -285,7 +285,7 @@ mod tests {
             parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidDataType>> {
             Ok(self
-                .lookup_data_type_by_ref(child)
+                .get_data_type_by_url(child)
                 .await?
                 .schema
                 .all_of

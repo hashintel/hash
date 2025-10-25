@@ -30,12 +30,13 @@ pub enum Parameter<'p> {
     Vector(Embedding<'p>),
     Any(PropertyValue),
     #[serde(skip)]
-    Uuid(Uuid),
+    Uuid(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid),
     #[serde(skip)]
-    OntologyTypeVersion(OntologyTypeVersion),
+    OntologyTypeVersion(Cow<'p, OntologyTypeVersion>),
     #[serde(skip)]
     Timestamp(Timestamp<()>),
 }
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParameterType {
     Boolean,
@@ -89,11 +90,13 @@ impl Parameter<'_> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
             Parameter::Decimal(number) => Parameter::Decimal(number.to_owned()),
-            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
+            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.clone().into_owned())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
             Parameter::Any(value) => Parameter::Any(value.clone()),
             Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
-            Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
+            Parameter::OntologyTypeVersion(version) => {
+                Parameter::OntologyTypeVersion(Cow::Owned(version.clone().into_owned()))
+            }
             Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
@@ -162,7 +165,7 @@ impl fmt::Display for ParameterConversionError {
                         Parameter::Vector(_) => "vector".to_owned(),
                         Parameter::Any(PropertyValue::String(string)) => string.clone(),
                         Parameter::Uuid(uuid) => uuid.to_string(),
-                        Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+                        Parameter::OntologyTypeVersion(version) => version.to_string(),
                         Parameter::Timestamp(timestamp) => timestamp.to_string(),
                         Parameter::Any(PropertyValue::Object(_)) => "object".to_owned(),
                         Parameter::Any(PropertyValue::Array(_)) => "array".to_owned(),
@@ -212,7 +215,7 @@ impl Parameter<'_> {
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) => {
                 // Special case for checking `version == "latest"
                 if text != "latest" {
-                    *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                    *self = Parameter::OntologyTypeVersion(Cow::Owned(
                         text.parse().change_context_lazy(|| {
                             ParameterConversionError::InvalidParameterType {
                                 actual: self.to_owned().into(),

@@ -987,6 +987,51 @@
         }
       }
     },
+    "/data-types/find/conversions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "find_data_type_conversion_targets",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindDataTypeConversionTargetsParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindDataTypeConversionTargetsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/data-types/load": {
       "post": {
         "tags": [
@@ -1092,7 +1137,7 @@
           "Graph",
           "DataType"
         ],
-        "operationId": "get_data_types",
+        "operationId": "query_data_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1108,7 +1153,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypesParams"
+                "$ref": "#/components/schemas/QueryDataTypesParams"
               }
             }
           },
@@ -1120,7 +1165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDataTypesResponse"
+                  "$ref": "#/components/schemas/QueryDataTypesResponse"
                 }
               }
             }
@@ -1134,58 +1179,13 @@
         }
       }
     },
-    "/data-types/query/conversions": {
-      "post": {
-        "tags": [
-          "Graph",
-          "DataType"
-        ],
-        "operationId": "get_data_type_conversion_targets",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GetDataTypeConversionTargetsParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetDataTypeConversionTargetsResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
     "/data-types/query/subgraph": {
       "post": {
         "tags": [
           "Graph",
           "DataType"
         ],
-        "operationId": "get_data_type_subgraph",
+        "operationId": "query_data_type_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1201,7 +1201,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetDataTypeSubgraphParams"
+                "$ref": "#/components/schemas/QueryDataTypeSubgraphParams"
               }
             }
           },
@@ -1213,7 +1213,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetDataTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/QueryDataTypeSubgraphResponse"
                 }
               }
             }
@@ -1590,7 +1590,7 @@
           "Graph",
           "Entity"
         ],
-        "operationId": "get_entities",
+        "operationId": "query_entities",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1599,6 +1599,16 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "Whether the request is used interactively",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
             }
           },
           {
@@ -1627,7 +1637,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntitiesRequest"
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
               }
             }
           },
@@ -1639,7 +1649,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntitiesResponse"
+                  "$ref": "#/components/schemas/QueryEntitiesResponse"
                 }
               }
             }
@@ -1708,7 +1718,7 @@
           "Graph",
           "Entity"
         ],
-        "operationId": "get_entity_subgraph",
+        "operationId": "query_entity_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -1717,6 +1727,16 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "Interactive",
+            "in": "header",
+            "description": "Whether the query is interactive",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
             }
           },
           {
@@ -1745,7 +1765,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntitySubgraphRequest"
+                "$ref": "#/components/schemas/QueryEntitySubgraphRequest"
               }
             }
           },
@@ -1757,7 +1777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntitySubgraphResponse"
+                  "$ref": "#/components/schemas/QueryEntitySubgraphResponse"
                 }
               }
             }
@@ -2224,7 +2244,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "get_entity_types",
+        "operationId": "query_entity_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2240,7 +2260,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntityTypesParams"
+                "$ref": "#/components/schemas/QueryEntityTypesParams"
               }
             }
           },
@@ -2252,7 +2272,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntityTypesResponse"
+                  "$ref": "#/components/schemas/QueryEntityTypesResponse"
                 }
               }
             }
@@ -2320,7 +2340,7 @@
           "Graph",
           "EntityType"
         ],
-        "operationId": "get_entity_type_subgraph",
+        "operationId": "query_entity_type_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2336,7 +2356,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetEntityTypeSubgraphParams"
+                "$ref": "#/components/schemas/QueryEntityTypeSubgraphParams"
               }
             }
           },
@@ -2348,7 +2368,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetEntityTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/QueryEntityTypeSubgraphResponse"
                 }
               }
             }
@@ -3090,7 +3110,7 @@
           "Graph",
           "PropertyType"
         ],
-        "operationId": "get_property_types",
+        "operationId": "query_property_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3106,7 +3126,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
               }
             }
           },
@@ -3118,7 +3138,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetPropertyTypesResponse"
+                  "$ref": "#/components/schemas/QueryPropertyTypesResponse"
                 }
               }
             }
@@ -3138,7 +3158,7 @@
           "Graph",
           "PropertyType"
         ],
-        "operationId": "get_property_type_subgraph",
+        "operationId": "query_property_type_subgraph",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3154,7 +3174,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GetPropertyTypeSubgraphParams"
+                "$ref": "#/components/schemas/QueryPropertyTypeSubgraphParams"
               }
             }
           },
@@ -3174,7 +3194,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetPropertyTypeSubgraphResponse"
+                  "$ref": "#/components/schemas/QueryPropertyTypeSubgraphResponse"
                 }
               }
             }
@@ -3587,12 +3607,11 @@
           "propertyName": "kind"
         }
       },
-      "CommonGetEntityTypesParams": {
+      "CommonQueryEntityTypesParams": {
         "type": "object",
         "required": [
           "filter",
-          "temporalAxes",
-          "includeDrafts"
+          "temporalAxes"
         ],
         "properties": {
           "after": {
@@ -3600,16 +3619,12 @@
               {
                 "$ref": "#/components/schemas/VersionedUrl"
               }
-            ],
-            "nullable": true
+            ]
           },
           "filter": {
             "$ref": "#/components/schemas/Filter"
           },
           "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
             "type": "boolean"
           },
           "includeEditionCreatedByIds": {
@@ -3620,7 +3635,6 @@
           },
           "limit": {
             "type": "integer",
-            "nullable": true,
             "minimum": 0
           },
           "temporalAxes": {
@@ -4330,25 +4344,12 @@
         },
         "additionalProperties": false
       },
-      "EdgeResolveDepths": {
-        "type": "object",
-        "required": [
+      "EdgeDirection": {
+        "type": "string",
+        "enum": [
           "incoming",
           "outgoing"
-        ],
-        "properties": {
-          "incoming": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "outgoing": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        },
-        "additionalProperties": false
+        ]
       },
       "Edges": {
         "type": "object",
@@ -4509,6 +4510,17 @@
         },
         "additionalProperties": false
       },
+      "EntityPermissions": {
+        "type": "object",
+        "properties": {
+          "update": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityEditionId"
+            }
+          }
+        }
+      },
       "EntityProvenance": {
         "allOf": [
           {
@@ -4532,6 +4544,78 @@
         "items": {
           "type": "object"
         }
+      },
+      "EntityQueryOptions": {
+        "type": "object",
+        "required": [
+          "temporalAxes",
+          "includeDrafts",
+          "includePermissions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "includeCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ],
+            "nullable": true
+          },
+          "includePermissions": {
+            "type": "boolean"
+          },
+          "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeTypeTitles": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
+          "sortingPaths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityQuerySortingRecord"
+            },
+            "nullable": true
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
       },
       "EntityQuerySortingPath": {
         "type": "array",
@@ -4635,12 +4719,65 @@
         },
         "additionalProperties": false
       },
-      "EntityTraversalEdgeDirection": {
-        "type": "string",
-        "enum": [
-          "incoming",
-          "outgoing"
-        ]
+      "EntityTraversalEdge": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "HasLeftEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-left-entity"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "HasRightEntityEdge",
+            "required": [
+              "direction",
+              "kind"
+            ],
+            "properties": {
+              "direction": {
+                "$ref": "#/components/schemas/EdgeDirection"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "has-right-entity"
+                ]
+              }
+            }
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "EntityTraversalPath": {
+        "type": "object",
+        "required": [
+          "edges"
+        ],
+        "properties": {
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTraversalEdge"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "EntityType": {
         "$ref": "./models/entity_type.json"
@@ -5018,6 +5155,18 @@
           },
           {
             "type": "object",
+            "title": "ExistsFilter",
+            "required": [
+              "exists"
+            ],
+            "properties": {
+              "exists": {
+                "$ref": "#/components/schemas/PathExpression"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "GreaterFilter",
             "required": [
               "notEqual"
@@ -5157,74 +5306,44 @@
       "FilterExpression": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "PathExpression",
-            "required": [
-              "path"
-            ],
-            "properties": {
-              "path": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/DataTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/PropertyTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/EntityTypeQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/EntityQueryToken"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Selector"
-                    },
-                    {
-                      "type": "string",
-                      "enum": [
-                        "convert"
-                      ]
-                    },
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    }
-                  ]
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PathExpression"
           },
           {
-            "type": "object",
-            "title": "ParameterExpression",
-            "required": [
-              "parameter"
-            ],
-            "properties": {
-              "convert": {
-                "type": "object",
-                "required": [
-                  "from",
-                  "to"
-                ],
-                "properties": {
-                  "from": {
-                    "$ref": "#/components/schemas/VersionedUrl"
-                  },
-                  "to": {
-                    "$ref": "#/components/schemas/VersionedUrl"
-                  }
-                }
-              },
-              "parameter": {}
-            }
+            "$ref": "#/components/schemas/ParameterExpression"
           }
         ]
+      },
+      "FindDataTypeConversionTargetsParams": {
+        "type": "object",
+        "required": [
+          "dataTypeIds"
+        ],
+        "properties": {
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "FindDataTypeConversionTargetsResponse": {
+        "type": "object",
+        "required": [
+          "conversions"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/components/schemas/DataTypeConversionTargets"
+              }
+            }
+          }
+        }
       },
       "GetClosedMultiEntityTypesParams": {
         "type": "object",
@@ -5247,8 +5366,7 @@
               {
                 "$ref": "#/components/schemas/IncludeResolvedEntityTypeOption"
               }
-            ],
-            "nullable": true
+            ]
           },
           "temporalAxes": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -5277,703 +5395,6 @@
           }
         }
       },
-      "GetDataTypeConversionTargetsParams": {
-        "type": "object",
-        "required": [
-          "dataTypeIds"
-        ],
-        "properties": {
-          "dataTypeIds": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetDataTypeConversionTargetsResponse": {
-        "type": "object",
-        "required": [
-          "conversions"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/components/schemas/DataTypeConversionTargets"
-              }
-            }
-          }
-        }
-      },
-      "GetDataTypeSubgraphParams": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetDataTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetDataTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetDataTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetDataTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetDataTypesResponse": {
-        "type": "object",
-        "required": [
-          "dataTypes"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "dataTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeWithMetadata"
-            }
-          }
-        }
-      },
-      "GetEntitiesRequest": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "conversions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QueryConversion"
-            }
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "includeEditionCreatedByIds": {
-            "type": "boolean"
-          },
-          "includeEntityTypes": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/IncludeEntityTypeOption"
-              }
-            ],
-            "nullable": true
-          },
-          "includeTypeIds": {
-            "type": "boolean"
-          },
-          "includeTypeTitles": {
-            "type": "boolean"
-          },
-          "includeWebIds": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "sortingPaths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityQuerySortingRecord"
-            },
-            "nullable": true
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetEntitiesResponse": {
-        "type": "object",
-        "required": [
-          "entities"
-        ],
-        "properties": {
-          "closedMultiEntityTypes": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
-            }
-          },
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "createdByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
-            ],
-            "nullable": true
-          },
-          "definitions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
-              }
-            ]
-          },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "entities": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Entity"
-            }
-          },
-          "typeIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "typeTitles": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "GetEntitySubgraphRequest": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetEntitiesRequest"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetEntitiesRequest"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetEntitySubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "closedMultiEntityTypes": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
-            }
-          },
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "createdByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityQueryCursor"
-              }
-            ],
-            "nullable": true
-          },
-          "definitions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
-              }
-            ]
-          },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          },
-          "typeIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "typeTitles": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "GetEntityTypeSubgraphParams": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CommonGetEntityTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetEntityTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "GetEntityTypesParams": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/CommonGetEntityTypesParams"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "includeEntityTypes": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
-                  }
-                ],
-                "nullable": true
-              }
-            }
-          }
-        ]
-      },
-      "GetEntityTypesResponse": {
-        "type": "object",
-        "required": [
-          "entityTypes"
-        ],
-        "properties": {
-          "closedEntityTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ClosedEntityType"
-            }
-          },
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "definitions": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
-              }
-            ]
-          },
-          "editionCreatedByIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "entityTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityTypeWithMetadata"
-            }
-          },
-          "webIds": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        }
-      },
-      "GetPropertyTypeSubgraphParams": {
-        "oneOf": [
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "graphResolveDepths"
-                ],
-                "properties": {
-                  "graphResolveDepths": {
-                    "$ref": "#/components/schemas/GraphResolveDepths"
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/GetPropertyTypesParams"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "traversalPaths"
-                ],
-                "properties": {
-                  "traversalPaths": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/TraversalPath"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "GetPropertyTypeSubgraphResponse": {
-        "type": "object",
-        "required": [
-          "subgraph"
-        ],
-        "properties": {
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "subgraph": {
-            "$ref": "#/components/schemas/Subgraph"
-          }
-        }
-      },
-      "GetPropertyTypesParams": {
-        "type": "object",
-        "required": [
-          "filter",
-          "temporalAxes",
-          "includeDrafts"
-        ],
-        "properties": {
-          "after": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "filter": {
-            "$ref": "#/components/schemas/Filter"
-          },
-          "includeCount": {
-            "type": "boolean"
-          },
-          "includeDrafts": {
-            "type": "boolean"
-          },
-          "limit": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "temporalAxes": {
-            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetPropertyTypesResponse": {
-        "type": "object",
-        "required": [
-          "propertyTypes"
-        ],
-        "properties": {
-          "count": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0
-          },
-          "cursor": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VersionedUrl"
-              }
-            ],
-            "nullable": true
-          },
-          "propertyTypes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyTypeWithMetadata"
-            }
-          }
-        }
-      },
       "GraphElementVertexId": {
         "oneOf": [
           {
@@ -5992,40 +5413,34 @@
       },
       "GraphResolveDepths": {
         "type": "object",
-        "required": [
-          "inheritsFrom",
-          "constrainsValuesOn",
-          "constrainsPropertiesOn",
-          "constrainsLinksOn",
-          "constrainsLinkDestinationsOn",
-          "isOfType",
-          "hasLeftEntity",
-          "hasRightEntity"
-        ],
         "properties": {
           "constrainsLinkDestinationsOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsLinksOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsPropertiesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "constrainsValuesOn": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
-          },
-          "hasLeftEntity": {
-            "$ref": "#/components/schemas/EdgeResolveDepths"
-          },
-          "hasRightEntity": {
-            "$ref": "#/components/schemas/EdgeResolveDepths"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "inheritsFrom": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
           },
           "isOfType": {
-            "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -7116,15 +6531,9 @@
         },
         "additionalProperties": false
       },
-      "OntologyTraversalEdgeDirection": {
-        "type": "string",
-        "enum": [
-          "outgoing"
-        ]
-      },
       "OntologyTypeRecordId": {
         "type": "object",
-        "description": "An identifier for an ontology type record consisting of a base URL and version.\n\nThis type provides a structured representation of an ontology type identifier\nthat can be used in database records and type definitions. It contains the same\ncomponents as a [`VersionedUrl`] but in a structured form rather than a string.\n\n# Examples\n\n```\nuse std::str::FromStr;\n\nuse type_system::ontology::id::{\nBaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl,\n};\n\n// Create from individual components\nlet base_url = BaseUrl::new(\"https://example.com/types/data-type/text/\".to_owned())?;\nlet version = OntologyTypeVersion::new(1);\nlet record_id = OntologyTypeRecordId { base_url, version };\n\n// Convert between VersionedUrl and OntologyTypeRecordId\nlet url = VersionedUrl::from_str(\"https://example.com/types/data-type/text/v/1\")?;\nlet record_id = OntologyTypeRecordId::from(url.clone());\nlet url2 = VersionedUrl::from(record_id);\nassert_eq!(url, url2);\n# Ok::<(), Box<dyn core::error::Error>>(())\n```",
+        "description": "An identifier for an ontology type record consisting of a base URL and version.\n\nThis type provides a structured representation of an ontology type identifier\nthat can be used in database records and type definitions. It contains the same\ncomponents as a [`VersionedUrl`] but in a structured form rather than a string.\n\n# Examples\n\n```\nuse std::str::FromStr;\n\nuse type_system::ontology::id::{\nBaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl,\n};\n\n// Create from individual components\nlet base_url = BaseUrl::new(\"https://example.com/types/data-type/text/\".to_owned())?;\nlet version = OntologyTypeVersion::from_str(\"1\")?;\nlet record_id = OntologyTypeRecordId { base_url, version };\n\n// Convert between VersionedUrl and OntologyTypeRecordId\nlet url = VersionedUrl::from_str(\"https://example.com/types/data-type/text/v/1\")?;\nlet record_id = OntologyTypeRecordId::from(url.clone());\nlet url2 = VersionedUrl::from(record_id);\nassert_eq!(url, url2);\n# Ok::<(), Box<dyn core::error::Error>>(())\n```",
         "required": [
           "baseUrl",
           "version"
@@ -7139,8 +6548,7 @@
         }
       },
       "OntologyTypeVersion": {
-        "type": "string",
-        "description": "A strongly-typed wrapper for ontology type version numbers.\n\n[`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].\nIt ensures that version numbers are always valid unsigned integers and provides\ntype safety throughout the system.\n\n# Examples\n\n```\nuse type_system::ontology::id::OntologyTypeVersion;\n\nlet version = OntologyTypeVersion::new(1);\nassert_eq!(version.inner(), 1);\n```"
+        "type": "string"
       },
       "OntologyTypeVertexId": {
         "oneOf": [
@@ -7529,19 +6937,30 @@
           }
         ]
       },
-      "OutgoingEdgeResolveDepth": {
+      "ParameterExpression": {
         "type": "object",
+        "title": "ParameterExpression",
         "required": [
-          "outgoing"
+          "parameter"
         ],
         "properties": {
-          "outgoing": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
-        },
-        "additionalProperties": false
+          "convert": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "properties": {
+              "from": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              },
+              "to": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            }
+          },
+          "parameter": {}
+        }
       },
       "PartialEntityType": {
         "$ref": "./models/partial_entity_type.json"
@@ -7593,6 +7012,49 @@
           }
         },
         "additionalProperties": false
+      },
+      "PathExpression": {
+        "type": "object",
+        "title": "PathExpression",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DataTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/PropertyTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/EntityTypeQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/EntityQueryToken"
+                },
+                {
+                  "$ref": "#/components/schemas/Selector"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "convert"
+                  ]
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        }
       },
       "PermissionResponse": {
         "type": "object",
@@ -8349,6 +7811,713 @@
         },
         "additionalProperties": false
       },
+      "QueryDataTypeSubgraphParams": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryDataTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths",
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryDataTypeSubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
+      "QueryDataTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryDataTypesResponse": {
+        "type": "object",
+        "required": [
+          "dataTypes"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "dataTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeWithMetadata"
+            }
+          }
+        }
+      },
+      "QueryEntitiesRequest": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {}
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryEntitiesResponse": {
+        "type": "object",
+        "required": [
+          "entities"
+        ],
+        "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
+          },
+          "permissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
+            }
+          },
+          "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "QueryEntitySubgraphRequest": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "query",
+                  "traversalPaths",
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "query": {},
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter",
+                  "traversalPaths",
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  },
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "query",
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "query": {},
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryOptions"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "filter",
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "filter": {
+                    "$ref": "#/components/schemas/Filter"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryEntitySubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityQueryCursor"
+              }
+            ],
+            "nullable": true
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "entityPermissions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/EntityPermissions"
+            }
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          },
+          "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "typeTitles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "QueryEntityTypeSubgraphParams": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommonQueryEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths",
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommonQueryEntityTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryEntityTypeSubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "QueryEntityTypesParams": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonQueryEntityTypesParams"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "includeEntityTypes": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IncludeEntityTypeOption"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "QueryEntityTypesResponse": {
+        "type": "object",
+        "required": [
+          "entityTypes"
+        ],
+        "properties": {
+          "closedEntityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClosedEntityType"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "entityTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      },
+      "QueryPropertyTypeSubgraphParams": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths",
+                  "graphResolveDepths"
+                ],
+                "properties": {
+                  "graphResolveDepths": {
+                    "$ref": "#/components/schemas/GraphResolveDepths"
+                  },
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityTraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryPropertyTypesParams"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "traversalPaths"
+                ],
+                "properties": {
+                  "traversalPaths": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TraversalPath"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "QueryPropertyTypeSubgraphResponse": {
+        "type": "object",
+        "required": [
+          "subgraph"
+        ],
+        "properties": {
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "nullable": true
+          },
+          "subgraph": {
+            "$ref": "#/components/schemas/Subgraph"
+          }
+        }
+      },
+      "QueryPropertyTypesParams": {
+        "type": "object",
+        "required": [
+          "filter",
+          "temporalAxes"
+        ],
+        "properties": {
+          "after": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/Filter"
+          },
+          "includeCount": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryPropertyTypesResponse": {
+        "type": "object",
+        "required": [
+          "propertyTypes"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
+          "propertyTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyTypeWithMetadata"
+            }
+          }
+        }
+      },
       "QueryTemporalAxes": {
         "oneOf": [
           {
@@ -8770,13 +8939,9 @@
             "type": "object",
             "title": "InheritsFromEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8789,13 +8954,9 @@
             "type": "object",
             "title": "ConstrainsValuesOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8808,13 +8969,9 @@
             "type": "object",
             "title": "ConstrainsPropertiesOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8827,13 +8984,9 @@
             "type": "object",
             "title": "ConstrainsLinksOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8846,13 +8999,9 @@
             "type": "object",
             "title": "ConstrainsLinkDestinationsOnEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8865,13 +9014,9 @@
             "type": "object",
             "title": "IsOfTypeEdge",
             "required": [
-              "direction",
               "kind"
             ],
             "properties": {
-              "direction": {
-                "$ref": "#/components/schemas/OntologyTraversalEdgeDirection"
-              },
               "kind": {
                 "type": "string",
                 "enum": [
@@ -8889,7 +9034,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",
@@ -8908,7 +9053,7 @@
             ],
             "properties": {
               "direction": {
-                "$ref": "#/components/schemas/EntityTraversalEdgeDirection"
+                "$ref": "#/components/schemas/EdgeDirection"
               },
               "kind": {
                 "type": "string",

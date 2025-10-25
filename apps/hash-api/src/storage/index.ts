@@ -12,6 +12,7 @@ import {
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -21,11 +22,10 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Express } from "express";
+import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { CacheAdapter } from "../cache";
 import type { ImpureGraphContext } from "../graph/context-types";
-import { getEntities } from "../graph/knowledge/primitive/entity";
 import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
 import { logger } from "../logger";
 import { LocalFileSystemStorageProvider } from "./local-file-storage";
@@ -99,31 +99,36 @@ const getFileEntity = async (
   const { entityId, key, includeDrafts = false } = params;
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const fileEntityRevisions = await getEntities(context, authentication, {
-    filter: {
-      all: [
-        {
-          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-        },
-        {
-          equal: [{ path: ["webId"] }, { parameter: webId }],
-        },
-        {
-          equal: [
-            {
-              path: [
-                "properties",
-                systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
-              ],
-            },
-            { parameter: key },
-          ],
-        },
-      ],
+  const { entities: fileEntityRevisions } = await queryEntities(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          {
+            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+          },
+          {
+            equal: [{ path: ["webId"] }, { parameter: webId }],
+          },
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: key },
+            ],
+          },
+        ],
+      },
+      temporalAxes: fullDecisionTimeAxis,
+      includeDrafts,
+      includePermissions: false,
     },
-    temporalAxes: fullDecisionTimeAxis,
-    includeDrafts,
-  });
+  );
 
   const latestFileEntityRevision = fileEntityRevisions.reduce<
     Entity | undefined
@@ -156,13 +161,9 @@ const getFileEntity = async (
  * @param storageProvider - the provider we're using for file storage
  * @param cache - a cache to store presigned URLs so we don't needlessly create URLs for every download
  */
-export const setupFileDownloadProxyHandler = (
-  app: Express,
-  cache: CacheAdapter,
-) => {
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- should likely be using express-async-handler
-  app.get("/file/:key(*)", async (req, res) => {
-    const key = req.params.key;
+export const setupFileDownloadProxyHandler = (app: Express, cache: Keyv) => {
+  app.get("/file/*splat", async (req, res) => {
+    const key = (req.params as { splat: string[] }).splat.join("/");
     const urlOnly = req.query.urlOnly;
 
     // We purposefully return 404 for all error cases.
@@ -220,7 +221,7 @@ export const setupFileDownloadProxyHandler = (
       return;
     }
 
-    let presignUrl = await cache.get(key);
+    let presignUrl = await cache.get<string>(key);
 
     if (!presignUrl) {
       const { fileStorageProvider: storageProviderName } = simplifyProperties(
@@ -266,10 +267,12 @@ export const setupFileDownloadProxyHandler = (
       }
 
       try {
-        await cache.setExpiring(
+        await cache.set(
           key,
           presignUrl,
-          DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET_SECONDS,
+          (DOWNLOAD_URL_EXPIRATION_SECONDS -
+            DOWNLOAD_URL_CACHE_OFFSET_SECONDS) *
+            1000,
         );
       } catch (error) {
         logger.warn(

@@ -1,22 +1,30 @@
 use hashql_ast::lowering::ExtractedTypes;
-use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
+use hashql_core::r#type::environment::Environment;
+use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 
 use self::{
     alias::AliasReplacement,
     checking::TypeChecking,
     ctor::ConvertTypeConstructor,
-    error::{LoweringDiagnostic, LoweringDiagnosticCategory},
+    error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
+    hoist::{GraphHoisting, GraphHoistingConfig},
     inference::TypeInference,
+    normalization::{Normalization, NormalizationState},
     specialization::Specialization,
+    thunking::Thunking,
 };
-use crate::{fold::Fold as _, intern::Interner, node::Node, visit::Visitor as _};
+use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
 pub mod alias;
 pub mod checking;
 pub mod ctor;
+pub mod dataflow;
 pub mod error;
+pub mod hoist;
 pub mod inference;
+pub mod normalization;
 pub mod specialization;
+pub mod thunking;
 
 /// Lowers the given node by performing different phases.
 ///
@@ -31,61 +39,81 @@ pub fn lower<'heap>(
     node: Node<'heap>,
     types: &ExtractedTypes<'heap>,
     env: &mut Environment<'heap>,
-    registry: &ModuleRegistry<'heap>,
-    interner: &Interner<'heap>,
-) -> Result<Node<'heap>, Vec<LoweringDiagnostic>> {
-    let mut replacement = AliasReplacement::new(interner);
+    context: &mut HirContext<'_, 'heap>,
+) -> LoweringDiagnosticStatus<Node<'heap>> {
+    let mut diagnostics = DiagnosticIssues::new();
+    let mut replacement = AliasReplacement::new(context, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
-    let replacement_diagnostics = replacement.take_diagnostics();
 
-    let mut converter = ConvertTypeConstructor::new(interner, &types.locals, registry, env);
-    let node = match converter.fold_node(node) {
-        Ok(_) if !replacement_diagnostics.is_empty() => return Err(replacement_diagnostics),
-        Ok(node) => node,
-        Err(mut diagnostics) => {
-            diagnostics.extend(replacement_diagnostics);
-            return Err(diagnostics);
-        }
-    };
+    let mut converter = ConvertTypeConstructor::new(context, &types.locals, env, &mut diagnostics);
+    let Ok(node) = converter.fold_node(node);
 
-    let mut inference = TypeInference::new(env, registry);
+    let Success {
+        value: node,
+        advisories,
+    } = diagnostics.into_status(node)?;
+
+    // Pre type-checking diagnostic boundary
+
+    let mut diagnostics = advisories.generalize();
+
+    let mut inference = TypeInference::new(env, context);
     inference.visit_node(&node);
 
-    let (solver, inference_residual, inference_diagnostics) = inference.finish();
-    let (substitution, solver_diagnostics) = solver.solve();
+    let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
-    // Diagnostic checkpoint, if an error happened during the inference phase, then we cannot
-    // continue
-    let diagnostics: Vec<_> = inference_diagnostics
-        .into_iter()
-        .chain(solver_diagnostics)
-        .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking))
-        .collect();
-    if !diagnostics.is_empty() {
-        return Err(diagnostics);
-    }
+    let mut result = solver
+        .solve()
+        .map_category(LoweringDiagnosticCategory::TypeChecking);
+    result.append_diagnostics(&mut diagnostics);
+    result.append_diagnostics(&mut inference_diagnostics);
+
+    // Type-inference diagnostic boundary
+    let Success {
+        value: substitution,
+        advisories,
+    } = result?;
+    let mut diagnostics = advisories.generalize();
 
     env.substitution = substitution;
 
-    let mut checking = TypeChecking::new(env, registry, inference_residual);
+    let mut checking = TypeChecking::new(env, context, inference_residual);
     checking.visit_node(&node);
 
-    let (mut residual, checking_diagnostics) = checking.finish();
+    let mut result = checking.finish();
+    result.append_diagnostics(&mut diagnostics);
 
-    // Diagnostic checkpoint, if an error happened during the type checking phase, then we cannot
-    // continue
-    if !checking_diagnostics.is_empty() {
-        return Err(checking_diagnostics);
-    }
+    let Success {
+        value: mut residual,
+        advisories,
+    } = result?;
 
-    let mut specialization =
-        Specialization::new(env, interner, &mut residual.types, residual.intrinsics);
-    let node = specialization.fold_node(node).map_err(|diagnostics| {
-        diagnostics
-            .into_iter()
-            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::Specialization))
-            .collect::<Vec<_>>()
-    })?;
+    // Post type-checking diagnostic boundary
+    let mut diagnostics = advisories.generalize();
 
-    Ok(node)
+    let mut specialization = Specialization::new(
+        env,
+        context,
+        &mut residual.types,
+        residual.intrinsics,
+        &mut diagnostics,
+    );
+    let Ok(node) = specialization.fold_node(node);
+
+    let mut norm_state = NormalizationState::default();
+    let normalization = Normalization::new(context, &mut norm_state);
+    let node = normalization.run(node);
+
+    // Graph hoisting does *not* break HIR(ANF)
+    let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let node = graph_hoisting.run(node);
+
+    let thunking = Thunking::new(context);
+    let node = thunking.run(node);
+
+    // Thunking breaks normalization, so re-normalize
+    let normalization = Normalization::new(context, &mut norm_state);
+    let node = normalization.run(node);
+
+    diagnostics.into_status(node)
 }

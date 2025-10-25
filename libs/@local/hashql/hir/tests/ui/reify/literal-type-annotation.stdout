@@ -1,1 +1,1 @@
-#is(10, type: Number)
+#as(10, type: Number)

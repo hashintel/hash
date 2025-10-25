@@ -119,14 +119,11 @@ pub enum Filter<'p, R: QueryRecord> {
     All(Vec<Self>),
     Any(Vec<Self>),
     Not(Box<Self>),
-    Equal(
-        Option<FilterExpression<'p, R>>,
-        Option<FilterExpression<'p, R>>,
-    ),
-    NotEqual(
-        Option<FilterExpression<'p, R>>,
-        Option<FilterExpression<'p, R>>,
-    ),
+    Equal(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    NotEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
+    Exists {
+        path: R::QueryPath<'p>,
+    },
     Greater(FilterExpression<'p, R>, FilterExpression<'p, R>),
     GreaterOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
@@ -154,22 +151,24 @@ where
     pub fn for_versioned_url(versioned_url: &'p VersionedUrl) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: <R::QueryPath<'p>>::base_url(),
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(versioned_url.base_url.as_str())),
                     convert: None,
-                }),
+                },
             ),
             Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: <R::QueryPath<'p>>::version(),
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(versioned_url.version),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                        &versioned_url.version,
+                    )),
                     convert: None,
-                }),
+                },
             ),
         ])
     }
@@ -179,13 +178,13 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
     #[must_use]
     pub const fn for_data_type_uuid(data_type_uuid: DataTypeUuid) -> Self {
         Self::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: DataTypeQueryPath::OntologyId,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(data_type_uuid.into_uuid()),
                 convert: None,
-            }),
+            },
         )
     }
 
@@ -224,18 +223,18 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
     ) -> Self {
         let data_type_id = DataTypeUuid::from_url(versioned_url);
         Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: DataTypeQueryPath::DataTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth,
                     path: Box::new(DataTypeQueryPath::OntologyId),
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(data_type_id.into_uuid()),
                 convert: None,
-            }),
+            },
         )
     }
 
@@ -252,29 +251,26 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                 Self::Not(Box::new(Self::for_resource_filter(filter)))
             }
             DataTypeResourceFilter::IsBaseUrl { base_url } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(base_url.as_str())),
                     convert: None,
-                }),
+                },
             ),
             DataTypeResourceFilter::IsVersion { version } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
-                }),
+                },
             ),
-            DataTypeResourceFilter::IsRemote => Self::Equal(
-                Some(FilterExpression::Path {
-                    path: DataTypeQueryPath::WebId,
-                }),
-                None,
-            ),
+            DataTypeResourceFilter::IsRemote => Self::Exists {
+                path: DataTypeQueryPath::WebId,
+            },
         }
     }
 
@@ -282,25 +278,25 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
     pub fn for_resource_constraint(resource_constraint: &'p ResourceConstraint) -> Self {
         match resource_constraint {
             ResourceConstraint::Web { web_id } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: DataTypeQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid((*web_id).into()),
                     convert: None,
-                }),
+                },
             ),
             ResourceConstraint::DataType(data_type_constraint) => match data_type_constraint {
                 DataTypeResourceConstraint::Exact { id } => Self::for_versioned_url(id.as_url()),
                 DataTypeResourceConstraint::Web { web_id, filter } => Self::All(vec![
                     Self::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: DataTypeQueryPath::WebId,
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Uuid((*web_id).into()),
                             convert: None,
-                        }),
+                        },
                     ),
                     Self::for_resource_filter(filter),
                 ]),
@@ -359,13 +355,13 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
             [] => {}
             &[data_type_uuid] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: DataTypeQueryPath::OntologyId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(data_type_uuid.into_uuid()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             data_type_uuids => {
@@ -384,13 +380,13 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
             [] => {}
             &[web_id] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: DataTypeQueryPath::WebId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(web_id.into()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             web_ids => {
@@ -440,13 +436,13 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
     pub fn for_resource_constraint(resource_constraint: &'p ResourceConstraint) -> Self {
         match resource_constraint {
             ResourceConstraint::Web { web_id } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid((*web_id).into()),
                     convert: None,
-                }),
+                },
             ),
             ResourceConstraint::PropertyType(property_type_constraint) => {
                 match property_type_constraint {
@@ -455,13 +451,13 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     }
                     PropertyTypeResourceConstraint::Web { web_id, filter } => Self::All(vec![
                         Self::Equal(
-                            Some(FilterExpression::Path {
+                            FilterExpression::Path {
                                 path: PropertyTypeQueryPath::WebId,
-                            }),
-                            Some(FilterExpression::Parameter {
+                            },
+                            FilterExpression::Parameter {
                                 parameter: Parameter::Uuid((*web_id).into()),
                                 convert: None,
-                            }),
+                            },
                         ),
                         Self::for_resource_filter(filter),
                     ]),
@@ -490,29 +486,26 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                 Self::Not(Box::new(Self::for_resource_filter(filter)))
             }
             PropertyTypeResourceFilter::IsBaseUrl { base_url } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(base_url.as_str())),
                     convert: None,
-                }),
+                },
             ),
             PropertyTypeResourceFilter::IsVersion { version } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: PropertyTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
-                }),
+                },
             ),
-            PropertyTypeResourceFilter::IsRemote => Self::Equal(
-                Some(FilterExpression::Path {
-                    path: PropertyTypeQueryPath::WebId,
-                }),
-                None,
-            ),
+            PropertyTypeResourceFilter::IsRemote => Self::Exists {
+                path: PropertyTypeQueryPath::WebId,
+            },
         }
     }
 
@@ -557,13 +550,13 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
             [] => {}
             &[property_type_uuid] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: PropertyTypeQueryPath::OntologyId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(property_type_uuid.into_uuid()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             property_type_uuids => {
@@ -582,13 +575,13 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
             [] => {}
             &[web_id] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: PropertyTypeQueryPath::WebId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(web_id.into()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             web_ids => {
@@ -647,29 +640,26 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                 Self::Not(Box::new(Self::for_resource_filter(filter)))
             }
             EntityTypeResourceFilter::IsBaseUrl { base_url } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(base_url.as_str())),
                     convert: None,
-                }),
+                },
             ),
             EntityTypeResourceFilter::IsVersion { version } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
-                }),
+                },
             ),
-            EntityTypeResourceFilter::IsRemote => Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::WebId,
-                }),
-                None,
-            ),
+            EntityTypeResourceFilter::IsRemote => Self::Exists {
+                path: EntityTypeQueryPath::WebId,
+            },
         }
     }
 
@@ -677,13 +667,13 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
     pub fn for_resource_constraint(resource_constraint: &'p ResourceConstraint) -> Self {
         match resource_constraint {
             ResourceConstraint::Web { web_id } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityTypeQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid((*web_id).into()),
                     convert: None,
-                }),
+                },
             ),
             ResourceConstraint::EntityType(entity_type_constraint) => {
                 match entity_type_constraint {
@@ -692,13 +682,13 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     }
                     EntityTypeResourceConstraint::Web { web_id, filter } => Self::All(vec![
                         Self::Equal(
-                            Some(FilterExpression::Path {
+                            FilterExpression::Path {
                                 path: EntityTypeQueryPath::OntologyId,
-                            }),
-                            Some(FilterExpression::Parameter {
+                            },
+                            FilterExpression::Parameter {
                                 parameter: Parameter::Uuid((*web_id).into()),
                                 convert: None,
-                            }),
+                            },
                         ),
                         Self::for_resource_filter(filter),
                     ]),
@@ -761,13 +751,13 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
             [] => {}
             &[entity_type_uuid] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityTypeQueryPath::OntologyId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(entity_type_uuid.into_uuid()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             entity_type_uuids => {
@@ -786,13 +776,13 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
             [] => {}
             &[web_id] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityTypeQueryPath::WebId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(web_id.into()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             web_ids => {
@@ -832,22 +822,22 @@ impl<'p> Filter<'p, Entity> {
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
         let web_id_filter = Self::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::WebId,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_id.web_id.into()),
                 convert: None,
-            }),
+            },
         );
         let entity_uuid_filter = Self::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_id.entity_uuid.into()),
                 convert: None,
-            }),
+            },
         );
 
         if let Some(draft_id) = entity_id.draft_id {
@@ -855,13 +845,13 @@ impl<'p> Filter<'p, Entity> {
                 web_id_filter,
                 entity_uuid_filter,
                 Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityQueryPath::DraftId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(draft_id.into()),
                         convert: None,
-                    }),
+                    },
                 ),
             ])
         } else {
@@ -872,17 +862,17 @@ impl<'p> Filter<'p, Entity> {
     #[must_use]
     pub const fn for_entity_by_base_type_id(base_type_id: &'p BaseUrl) -> Self {
         Filter::Equal(
-            Some(FilterExpression::Path {
+            FilterExpression::Path {
                 path: EntityQueryPath::EntityTypeEdge {
                     edge_kind: SharedEdgeKind::IsOfType,
                     path: EntityTypeQueryPath::BaseUrl,
                     inheritance_depth: None,
                 },
-            }),
-            Some(FilterExpression::Parameter {
+            },
+            FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed(base_type_id.as_str())),
                 convert: None,
-            }),
+            },
         )
     }
 
@@ -891,17 +881,19 @@ impl<'p> Filter<'p, Entity> {
         Filter::All(vec![
             Self::for_entity_by_base_type_id(&entity_type_id.base_url),
             Filter::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::EntityTypeEdge {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::Version,
                         inheritance_depth: None,
                     },
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(entity_type_id.version),
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                        &entity_type_id.version,
+                    )),
                     convert: None,
-                }),
+                },
             ),
         ])
     }
@@ -938,19 +930,19 @@ impl<'p> Filter<'p, Entity> {
                 Self::Not(Box::new(Self::for_resource_filter(filter, actor_id)))
             }
             EntityResourceFilter::CreatedByPrincipal => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
                         PathToken::Field(Cow::Borrowed("createdById")),
                     ]))),
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Any(PropertyValue::String(
                         actor_id
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
                             .to_string(),
                     )),
                     convert: None,
-                }),
+                },
             ),
             EntityResourceFilter::IsOfType { entity_type } => {
                 Self::for_entity_by_type_id(entity_type)
@@ -968,33 +960,33 @@ impl<'p> Filter<'p, Entity> {
     ) -> Self {
         match resource_constraint {
             ResourceConstraint::Web { web_id } => Self::Equal(
-                Some(FilterExpression::Path {
+                FilterExpression::Path {
                     path: EntityQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
+                },
+                FilterExpression::Parameter {
                     parameter: Parameter::Uuid((*web_id).into()),
                     convert: None,
-                }),
+                },
             ),
             ResourceConstraint::Entity(entity_constraint) => match entity_constraint {
                 EntityResourceConstraint::Exact { id } => Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid((*id).into()),
                         convert: None,
-                    }),
+                    },
                 ),
                 EntityResourceConstraint::Web { web_id, filter } => Self::All(vec![
                     Self::Equal(
-                        Some(FilterExpression::Path {
+                        FilterExpression::Path {
                             path: EntityQueryPath::WebId,
-                        }),
-                        Some(FilterExpression::Parameter {
+                        },
+                        FilterExpression::Parameter {
                             parameter: Parameter::Uuid((*web_id).into()),
                             convert: None,
-                        }),
+                        },
                     ),
                     Self::for_resource_filter(filter, actor_id),
                 ]),
@@ -1057,13 +1049,13 @@ impl<'p> Filter<'p, Entity> {
             [] => {}
             &[entity_uuid] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(entity_uuid.into()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             entity_uuids => {
@@ -1082,13 +1074,13 @@ impl<'p> Filter<'p, Entity> {
             [] => {}
             &[web_id] => {
                 permits.push(Self::Equal(
-                    Some(FilterExpression::Path {
+                    FilterExpression::Path {
                         path: EntityQueryPath::WebId,
-                    }),
-                    Some(FilterExpression::Parameter {
+                    },
+                    FilterExpression::Parameter {
                         parameter: Parameter::Uuid(web_id.into()),
                         convert: None,
-                    }),
+                    },
                 ));
             }
             web_ids => {
@@ -1152,30 +1144,29 @@ where
             }
             Self::Not(filter) => Box::pin(filter.convert_parameters(data_type_provider)).await?,
             Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => {
-                if let Some(lhs) = lhs {
-                    lhs.apply_parameter_conversion(data_type_provider).await?;
-                }
-                if let Some(rhs) = rhs {
-                    rhs.apply_parameter_conversion(data_type_provider).await?;
-                }
+                lhs.apply_parameter_conversion(data_type_provider).await?;
+                rhs.apply_parameter_conversion(data_type_provider).await?;
 
                 match (lhs, rhs) {
                     (
-                        Some(FilterExpression::Parameter {
+                        FilterExpression::Parameter {
                             parameter,
                             convert: _,
-                        }),
-                        Some(FilterExpression::Path { path }),
+                        },
+                        FilterExpression::Path { path },
                     )
                     | (
-                        Some(FilterExpression::Path { path }),
-                        Some(FilterExpression::Parameter {
+                        FilterExpression::Path { path },
+                        FilterExpression::Parameter {
                             parameter,
                             convert: _,
-                        }),
+                        },
                     ) => parameter.convert_to_parameter_type(&path.expected_type())?,
                     (..) => {}
                 }
+            }
+            Self::Exists { path: _ } => {
+                // Nothing to convert
             }
             Self::Greater(lhs, rhs)
             | Self::GreaterOrEqual(lhs, rhs)
@@ -1382,14 +1373,14 @@ mod tests {
         type DataTypeWithMetadata = DataTypeWithMetadata;
         type Error = !;
 
-        async fn lookup_data_type_by_uuid(
+        async fn get_data_type_by_uuid(
             &self,
             _: DataTypeUuid,
         ) -> Result<Self::DataTypeWithMetadata, Report<!>> {
             unimplemented!()
         }
 
-        async fn lookup_closed_data_type_by_uuid(
+        async fn get_closed_data_type_by_uuid(
             &self,
             _: DataTypeUuid,
         ) -> Result<Self::ClosedDataType, Report<Self::Error>> {
@@ -1436,7 +1427,10 @@ mod tests {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base url"),
-            version: OntologyTypeVersion::new(1),
+            version: OntologyTypeVersion {
+                major: 1,
+                pre_release: None,
+            },
         };
 
         let expected = json!({
@@ -1511,27 +1505,6 @@ mod tests {
         test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected).await;
     }
 
-    #[tokio::test]
-    async fn null_check() {
-        let expected = json!({
-          "notEqual": [
-            { "path": ["description"] },
-            null
-          ]
-        });
-
-        test_filter_representation(
-            &Filter::<DataTypeWithMetadata>::NotEqual(
-                Some(FilterExpression::Path {
-                    path: DataTypeQueryPath::Description,
-                }),
-                None,
-            ),
-            &expected,
-        )
-        .await;
-    }
-
     mod policy_conversion {
         use hash_graph_authorization::policies::{
             Effect, OptimizationData, Policy, PolicyId,
@@ -1593,13 +1566,13 @@ mod tests {
                     assert_eq!(permits.len(), 1);
                     match &permits[0] {
                         Filter::Equal(
-                            Some(FilterExpression::Path {
+                            FilterExpression::Path {
                                 path: EntityQueryPath::Uuid,
-                            }),
-                            Some(FilterExpression::Parameter {
+                            },
+                            FilterExpression::Parameter {
                                 parameter: Parameter::Uuid(uuid),
                                 ..
-                            }),
+                            },
                         ) => {
                             assert_eq!(*uuid, Uuid::from(entity_uuid));
                         }
@@ -1687,13 +1660,13 @@ mod tests {
                     for permit in &permits {
                         match permit {
                             Filter::Equal(
-                                Some(FilterExpression::Path {
+                                FilterExpression::Path {
                                     path: EntityQueryPath::Uuid,
-                                }),
-                                Some(FilterExpression::Parameter {
+                                },
+                                FilterExpression::Parameter {
                                     parameter: Parameter::Uuid(uuid),
                                     ..
-                                }),
+                                },
                             ) => {
                                 found_uuids.push(*uuid);
                             }
@@ -1869,9 +1842,9 @@ mod tests {
                         matches!(
                             permit,
                             Filter::Equal(
-                                Some(FilterExpression::Path {
+                                FilterExpression::Path {
                                     path: EntityQueryPath::WebId
-                                }),
+                                },
                                 _
                             )
                         )

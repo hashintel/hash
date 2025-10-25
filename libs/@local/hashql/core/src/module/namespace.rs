@@ -10,7 +10,7 @@ use super::{
     resolver::{Reference, ResolveIter},
 };
 use crate::{
-    collection::FastHashSet,
+    collections::FastHashSet,
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
     symbol::Symbol,
 };

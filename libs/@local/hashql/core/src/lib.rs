@@ -26,16 +26,16 @@
     slice_partition_dedup,
     slice_swap_unchecked,
     variant_count,
+    get_disjoint_mut_helpers
 )]
 
 extern crate alloc;
 
-pub mod collection;
+pub mod algorithms;
+pub mod collections;
 pub mod heap;
 pub mod id;
 pub mod intern;
-pub mod literal;
-pub mod math;
 pub mod module;
 pub mod pretty;
 pub mod similarity;

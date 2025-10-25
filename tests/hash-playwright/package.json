@@ -11,13 +11,13 @@
     "test:integration": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project chromium"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@playwright/test": "1.54.1",
-    "execa": "5.1.1",
+    "@playwright/test": "1.56.1",
+    "execa": "9.6.0",
     "graphql": "16.11.0",
     "js-yaml": "4.1.0"
   },
@@ -26,11 +26,11 @@
     "@apps/hash-realtime": "0.0.0-private",
     "@apps/hash-search-loader": "0.0.0-private",
     "@apps/plugin-browser": "0.0.9",
-    "@blockprotocol/graph": "0.4.0-canary.0",
+    "@blockprotocol/graph": "0.4.0-canary.2",
     "@graphql-codegen/cli": "^5.0.3",
     "@local/eslint": "0.0.0-private",
-    "eslint": "9.20.1",
+    "eslint": "9.38.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   }
 }

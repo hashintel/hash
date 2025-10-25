@@ -11,7 +11,6 @@ import type {
   CreateResourceError,
   DataTypeRootType,
   EntityTypeRootType,
-  GraphResolveDepths,
   PropertyTypeRootType,
   ReadOrModifyResourceError,
   Subgraph,
@@ -24,6 +23,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
+import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 

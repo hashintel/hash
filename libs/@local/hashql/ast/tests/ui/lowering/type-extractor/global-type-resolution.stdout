@@ -8,20 +8,20 @@ Expr#0@27
               Expr#5@18
                 ExprKind (Literal)
                   LiteralExpr#6@17
-                    LiteralKind (Integer)
-                      IntegerLiteral (1)
+                    Primitive (Integer)
+                      Integer (1)
             ListElement#7@20
               Expr#8@20
                 ExprKind (Literal)
                   LiteralExpr#9@19
-                    LiteralKind (Integer)
-                      IntegerLiteral (2)
+                    Primitive (Integer)
+                      Integer (2)
             ListElement#10@22
               Expr#11@22
                 ExprKind (Literal)
                   LiteralExpr#12@21
-                    LiteralKind (Integer)
-                      IntegerLiteral (3)
+                    Primitive (Integer)
+                      Integer (3)
       Type#13@16
         TypeKind (Path)
           Path#14@16 (rooted: true)

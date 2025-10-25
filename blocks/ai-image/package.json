@@ -33,11 +33,11 @@
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
     "@blockprotocol/service": "0.1.4",
-    "@hashintel/block-design-system": "0.0.2",
-    "@hashintel/design-system": "0.0.9-canary.1",
+    "@hashintel/block-design-system": "0.0.5",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "@mui/material": "5.18.0",
     "react-sizeme": "3.0.2",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
@@ -49,7 +49,7 @@
     "prettier": "3.6.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",

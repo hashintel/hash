@@ -7,7 +7,7 @@ use alloc::borrow::Cow;
 use core::ops::Index;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     module::{
         ModuleRegistry,
         locals::{TypeDef, TypeLocals},
@@ -17,19 +17,24 @@ use hashql_core::{
         environment::{Environment, instantiate::InstantiateEnvironment},
     },
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 pub use self::definition::TypeDefinitionExtractor;
 use self::{
-    error::TypeExtractorDiagnostic,
+    error::TypeExtractorDiagnosticIssues,
     translate::{Reference, SpannedGenericArguments, TranslationUnit},
 };
 use crate::{
-    node::{expr::closure::ClosureSignature, id::NodeId, r#type::Type},
+    node::{
+        expr::closure::ClosureSignature,
+        id::{NodeId, NodeIdMap},
+        r#type::Type,
+    },
     visit::Visitor,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AnonymousTypes(FastHashMap<NodeId, TypeId>);
+pub struct AnonymousTypes(NodeIdMap<TypeId>);
 
 impl Index<NodeId> for AnonymousTypes {
     type Output = TypeId;
@@ -49,7 +54,7 @@ impl IntoIterator for AnonymousTypes {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClosureSignatures<'heap>(FastHashMap<NodeId, TypeDef<'heap>>);
+pub struct ClosureSignatures<'heap>(NodeIdMap<TypeDef<'heap>>);
 
 impl<'heap> Index<NodeId> for ClosureSignatures<'heap> {
     type Output = TypeDef<'heap>;
@@ -72,8 +77,8 @@ pub struct TypeExtractor<'env, 'heap> {
     unit: TranslationUnit<'env, 'heap, TypeLocals<'heap>>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
-    types: FastHashMap<NodeId, TypeId>,
-    closures: FastHashMap<NodeId, TypeDef<'heap>>,
+    types: NodeIdMap<TypeId>,
+    closures: NodeIdMap<TypeDef<'heap>>,
 }
 
 impl<'env, 'heap> TypeExtractor<'env, 'heap> {
@@ -87,7 +92,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             unit: TranslationUnit {
                 env: environment,
                 registry,
-                diagnostics: Vec::new(),
+                diagnostics: DiagnosticIssues::new(),
                 locals,
                 bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
             },
@@ -97,7 +102,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         }
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<TypeExtractorDiagnostic> {
+    pub fn take_diagnostics(&mut self) -> TypeExtractorDiagnosticIssues {
         core::mem::take(&mut self.unit.diagnostics)
     }
 

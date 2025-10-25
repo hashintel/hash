@@ -1,4 +1,9 @@
-import { IconButton, Select, TextField } from "@hashintel/design-system";
+import {
+  IconButton,
+  Select,
+  TextField,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import {
   Box,
   outlinedInputClasses,
@@ -10,7 +15,6 @@ import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
 import type { ServiceAccountKind } from "../../../../lib/user-and-org";
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
-import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../../shared/ui";
 import type { UserProfileFormData } from "./user-profile-info-form";
 import { urlRegex } from "./util";

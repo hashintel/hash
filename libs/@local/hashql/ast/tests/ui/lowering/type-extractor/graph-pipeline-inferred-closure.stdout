@@ -97,8 +97,8 @@ Expr#0@90
                                               Expr#75@84
                                                 ExprKind (Literal)
                                                   LiteralExpr#76@83
-                                                    LiteralKind (String)
-                                                      StringLiteral (e2851dbb-7376-4959-9bca-f72cafc4448f)
+                                                    Primitive (String)
+                                                      String (e2851dbb-7376-4959-9bca-f72cafc4448f)
 
 ------------------------
 ------------------------

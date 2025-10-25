@@ -1,6 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, EntityType } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
@@ -15,6 +13,7 @@ import type {
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
+  deserializeQueryEntitiesResponse,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
@@ -23,16 +22,14 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo, useState } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   SelectorAutocompleteProps<HashEntity, Multiple>,
@@ -66,9 +63,9 @@ export const EntitySelector = <Multiple extends boolean>({
   const [query, setQuery] = useState("");
 
   const { data: entitiesData, loading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       request: {
         filter:
@@ -82,33 +79,29 @@ export const EntitySelector = <Multiple extends boolean>({
                 ),
               },
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: zeroedGraphResolveDepths,
         includeDrafts,
         includeEntityTypes: "resolved",
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     fetchPolicy: "cache-and-network",
   });
 
-  const entitiesSubgraph = entitiesData
-    ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-        entitiesData.getEntitySubgraph.subgraph,
-      )
+  const entities = entitiesData
+    ? deserializeQueryEntitiesResponse(entitiesData.queryEntities).entities
     : undefined;
 
   const closedMultiEntityTypesRootMap =
-    entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+    entitiesData?.queryEntities.closedMultiEntityTypes;
 
   const sortedAndFilteredEntities = useMemo(() => {
-    if (!entitiesSubgraph) {
+    if (!entities) {
       return [];
     }
-    const subgraphRoots = getRoots(entitiesSubgraph);
 
     const hasLiveVersion: Record<EntityId, boolean> = {};
 
-    return subgraphRoots
+    return entities
       .filter((entity) => {
         const rootEntityId = entity.metadata.recordId.entityId;
 
@@ -145,7 +138,7 @@ export const EntitySelector = <Multiple extends boolean>({
             return false;
           }
           if (
-            subgraphRoots.some(
+            entities.some(
               (possiblyLiveEntity) =>
                 possiblyLiveEntity.metadata.recordId.entityId === liveEntityId,
             )
@@ -166,7 +159,7 @@ export const EntitySelector = <Multiple extends boolean>({
           b.metadata.temporalVersioning.decisionTime.start.limit,
         ),
       );
-  }, [entitiesSubgraph, entityIdsToFilterOut, includeDrafts]);
+  }, [entities, entityIdsToFilterOut, includeDrafts]);
 
   return (
     <SelectorAutocomplete<HashEntity, Multiple>
@@ -187,7 +180,7 @@ export const EntitySelector = <Multiple extends boolean>({
       onInputChange={(_, value) => setQuery(value)}
       options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => {
-        const typesMap = entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+        const typesMap = entitiesData?.queryEntities.closedMultiEntityTypes;
 
         if (!typesMap) {
           throw new Error(
@@ -231,8 +224,7 @@ export const EntitySelector = <Multiple extends boolean>({
       inputPlaceholder="Search for an entity"
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => {
-          const typesMap =
-            entitiesData?.getEntitySubgraph.closedMultiEntityTypes;
+          const typesMap = entitiesData?.queryEntities.closedMultiEntityTypes;
 
           if (!typesMap) {
             throw new Error(

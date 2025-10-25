@@ -1,27 +1,28 @@
 use alloc::rc::Rc;
 use core::{mem, ops::Deref};
 
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
 use super::{
-    Diagnostics, Environment,
+    Environment,
     context::{
         provision::{ProvisionedGuard, ProvisionedScope},
         replace::{ReplacementGuard, ReplacementScope},
     },
 };
 use crate::{
-    collection::{FastHashMap, FastHashSet},
+    collections::{FastHashMap, FastHashSet},
     intern::Provisioned,
     r#type::{
-        PartialType, TypeId,
-        error::TypeCheckDiagnostic,
+        PartialType, TypeId, TypeIdMap,
+        error::{TypeCheckDiagnostic, TypeCheckDiagnosticIssues},
         inference::Inference as _,
         kind::{
             Param, TypeKind,
             generic::{
-                GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
-                GenericSubstitutions,
+                GenericArgument, GenericArgumentId, GenericArgumentSet, GenericArguments,
+                GenericSubstitution, GenericSubstitutions,
             },
         },
     },
@@ -44,7 +45,7 @@ pub enum ArgumentsState {
 #[derive(Debug)]
 pub struct InstantiateEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    diagnostics: Diagnostics,
+    diagnostics: TypeCheckDiagnosticIssues,
 
     // We split these into two scopes, to ensure that the behaviour or generic arguments is that
     // any "override" down the line of a generic argument results in new arguments. We only
@@ -52,17 +53,17 @@ pub struct InstantiateEnvironment<'env, 'heap> {
     substitutions_scope: Rc<ReplacementScope<GenericArgumentId>>,
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
     // Arguments that are overridden / are allowed to not be unscoped
-    unscoped_arguments: FastHashSet<GenericArgumentId>,
+    unscoped_arguments: GenericArgumentSet,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
-    substitutions: FastHashMap<TypeId, Option<TypeId>>,
+    substitutions: TypeIdMap<Option<TypeId>>,
 }
 
 impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
-            diagnostics: Diagnostics::default(),
+            diagnostics: DiagnosticIssues::default(),
 
             substitutions_scope: Rc::default(),
             argument_scope: Rc::default(),
@@ -75,8 +76,8 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn take_diagnostics(&mut self) -> Diagnostics {
-        core::mem::take(&mut self.diagnostics)
+    pub fn take_diagnostics(&mut self) -> TypeCheckDiagnosticIssues {
+        mem::take(&mut self.diagnostics)
     }
 
     #[inline]
@@ -270,13 +271,13 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn enter_unscoped(
         &mut self,
         arguments: impl IntoIterator<Item = GenericArgumentId>,
-    ) -> FastHashSet<GenericArgumentId> {
+    ) -> GenericArgumentSet {
         let old = mem::take(&mut self.unscoped_arguments);
         self.unscoped_arguments.extend(arguments);
         old
     }
 
-    pub fn exit_unscoped(&mut self, arguments: FastHashSet<GenericArgumentId>) {
+    pub fn exit_unscoped(&mut self, arguments: GenericArgumentSet) {
         self.unscoped_arguments = arguments;
     }
 }

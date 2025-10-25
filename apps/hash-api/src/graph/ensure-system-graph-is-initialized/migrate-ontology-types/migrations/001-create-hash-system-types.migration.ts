@@ -1,3 +1,4 @@
+import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
@@ -1733,17 +1734,16 @@ const migrate: MigrationFunction = async ({
    */
   await Promise.all(
     blockProtocolDataTypeIds.map(async (dataTypeId) => {
-      const existingDataType = await context.graphApi
-        .getDataTypes(authentication.actorId, {
-          filter: {
-            equal: [{ path: ["versionedUrl"] }, { parameter: dataTypeId }],
-          },
-          includeDrafts: false,
+      const existingDataType = await getDataTypeById(
+        context.graphApi,
+        authentication,
+        {
+          dataTypeId,
           temporalAxes: fullTransactionTimeAxis,
-        })
-        .then((response) => response.data.dataTypes);
+        },
+      );
 
-      if (existingDataType.length > 0) {
+      if (existingDataType) {
         return;
       }
 

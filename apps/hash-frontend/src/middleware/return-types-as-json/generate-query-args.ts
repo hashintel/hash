@@ -1,14 +1,15 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import type { DocumentNode } from "graphql";
 
 import type {
-  GetDataTypeQueryVariables,
-  GetEntityTypeQueryVariables,
-  GetPropertyTypeQueryVariables,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getDataTypeQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { getPropertyTypeQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
  * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string
@@ -23,8 +24,6 @@ const queryStringFromNode = (node: DocumentNode) => {
   return string;
 };
 
-const zeroDepth = { outgoing: 0 };
-
 type OntologyType = "data-type" | "entity-type" | "property-type";
 
 export const generateQueryArgs = (
@@ -33,41 +32,45 @@ export const generateQueryArgs = (
 ): {
   query: string;
   variables:
-    | GetDataTypeQueryVariables
-    | GetEntityTypeQueryVariables
-    | GetPropertyTypeQueryVariables;
+    | QueryDataTypesQueryVariables
+    | QueryEntityTypesQueryVariables
+    | QueryPropertyTypesQueryVariables;
 } => {
   switch (ontologyType) {
     case "data-type":
       return {
-        query: queryStringFromNode(getDataTypeQuery),
+        query: queryStringFromNode(queryDataTypesQuery),
         variables: {
-          dataTypeId: versionedUrl,
-          constrainsValuesOn: zeroDepth,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
     case "entity-type":
       return {
-        query: queryStringFromNode(getEntityTypeQuery),
+        query: queryStringFromNode(queryEntityTypesQuery),
         variables: {
-          entityTypeId: versionedUrl,
-          constrainsLinkDestinationsOn: zeroDepth,
-          constrainsLinksOn: zeroDepth,
-          constrainsPropertiesOn: zeroDepth,
-          constrainsValuesOn: zeroDepth,
-          inheritsFrom: zeroDepth,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
     case "property-type":
       return {
-        query: queryStringFromNode(getPropertyTypeQuery),
+        query: queryStringFromNode(queryPropertyTypesQuery),
         variables: {
-          constrainsValuesOn: zeroDepth,
-          constrainsPropertiesOn: zeroDepth,
-          propertyTypeId: versionedUrl,
-          includeArchived: true,
+          request: {
+            filter: {
+              equal: [{ path: ["versionedUrl"] }, { parameter: versionedUrl }],
+            },
+            temporalAxes: fullTransactionTimeAxis,
+          },
         },
       };
   }

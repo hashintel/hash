@@ -47,7 +47,8 @@ use super::{
     },
 };
 use crate::{
-    collection::{FastHashMap, SmallVec},
+    collections::{FastHashMap, SmallVec},
+    heap::Heap,
     intern::Provisioned,
     span::SpanId,
     symbol::Symbol,
@@ -192,6 +193,25 @@ where
         builder: &'builder TypeBuilder<'env, 'heap>,
     ) -> GenericArgument<'heap> {
         (self.0)(id, builder).into_generic_argument(id, builder)
+    }
+}
+
+pub trait IntoSymbol<'heap> {
+    fn intern_into_symbol(self, heap: &'heap Heap) -> Symbol<'heap>;
+}
+
+impl<'heap, T> IntoSymbol<'heap> for T
+where
+    T: AsRef<str>,
+{
+    fn intern_into_symbol(self, heap: &'heap Heap) -> Symbol<'heap> {
+        heap.intern_symbol(self.as_ref())
+    }
+}
+
+impl<'heap> IntoSymbol<'heap> for Symbol<'heap> {
+    fn intern_into_symbol(self, _: &'heap Heap) -> Self {
+        self
     }
 }
 
@@ -474,21 +494,9 @@ impl<'builder, 'env, 'heap> IntoStructField<'builder, 'env, 'heap> for StructFie
     }
 }
 
-impl<'builder, 'env, 'heap> IntoStructField<'builder, 'env, 'heap> for (Symbol<'heap>, TypeId) {
-    fn into_struct_field(
-        self,
-        _: Provisioned<TypeId>,
-        _: &'builder TypeBuilder<'env, 'heap>,
-    ) -> StructField<'heap> {
-        let (name, value) = self;
-
-        StructField { name, value }
-    }
-}
-
 impl<'builder, 'env, 'heap, N> IntoStructField<'builder, 'env, 'heap> for (N, TypeId)
 where
-    N: AsRef<str>,
+    N: IntoSymbol<'heap>,
 {
     fn into_struct_field(
         self,
@@ -498,7 +506,7 @@ where
         let (name, value) = self;
 
         StructField {
-            name: builder.env.heap.intern_symbol(name.as_ref()),
+            name: name.intern_into_symbol(builder.env.heap),
             value,
         }
     }
@@ -830,12 +838,12 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     #[must_use]
     pub fn opaque<'this>(
         &'this self,
-        name: &str,
+        name: impl IntoSymbol<'heap>,
         repr: impl IntoType<'this, 'env, 'heap>,
     ) -> TypeId {
         self.partial(|id| {
             TypeKind::Opaque(OpaqueType {
-                name: self.env.heap.intern_symbol(name),
+                name: name.intern_into_symbol(self.env.heap),
                 repr: repr.into_type(id, self),
             })
         })
@@ -1399,8 +1407,8 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// );
     /// ```
     #[must_use]
-    pub fn fresh_argument(&mut self, name: impl AsRef<str>) -> GenericArgumentId {
-        let name = self.env.heap.intern_symbol(name.as_ref());
+    pub fn fresh_argument(&mut self, name: impl IntoSymbol<'heap>) -> GenericArgumentId {
+        let name = name.intern_into_symbol(self.env.heap);
         let id = self.env.counter.generic_argument.next();
 
         self.arguments.insert(id, name);
