@@ -1,6 +1,6 @@
 import { createImageData } from "canvas";
 
-import type { ProcessPixelFunction } from "./process-pixel";
+import type { ProcessPixelFunction } from "./process-pixel.type";
 
 /**
  * Generates a circular (or rounded rectangle) map and allows processing of each pixel.
@@ -49,16 +49,16 @@ export function calculateCircleMap(props: {
       const x = isOnLeftSide
         ? x1 - radius
         : isOnRightSide
-          ? x1 - radius - widthBetweenRadiuses
-          : 0;
+        ? x1 - radius - widthBetweenRadiuses
+        : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const y = isOnTopSide
         ? y1 - radius
         : isOnBottomSide
-          ? y1 - radius - heightBetweenRadiuses
-          : 0;
+        ? y1 - radius - heightBetweenRadiuses
+        : 0;
 
       const distanceToCenterSquared = x * x + y * y;
 
@@ -72,6 +72,7 @@ export function calculateCircleMap(props: {
         const distanceFromBorder = radius - distanceFromCenter;
         const distanceFromBorderRatio = distanceFromBorder / radius;
         const angle = Math.atan2(y, x);
+        // H-5525: Fix antialiasing calculation
         const opacity =
           distanceToCenterSquared > radiusSquared ? 1 - distanceFromBorder : 1;
 
@@ -84,7 +85,7 @@ export function calculateCircleMap(props: {
           distanceFromBorder,
           distanceFromBorderRatio,
           angle,
-          opacity,
+          opacity
         );
       }
     }
