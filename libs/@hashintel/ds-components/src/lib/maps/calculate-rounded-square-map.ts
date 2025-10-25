@@ -13,7 +13,7 @@ function calculateBorderIntersection(
   radius: number,
   cornerWidth: number,
   x: number,
-  y: number
+  y: number,
 ) {
   const angleStart = Math.atan2(cornerWidth - radius, cornerWidth);
   const angleEnd = Math.atan2(cornerWidth, cornerWidth - radius);
@@ -81,7 +81,7 @@ export function calculateRoundedSquareMap(props: {
   const radius = Math.min(props.radius, width / 2, height / 2);
   const cornerWidth = Math.max(
     radius,
-    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2)
+    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2),
   );
 
   const widthBetweenCorners = width - cornerWidth * 2;
@@ -106,23 +106,23 @@ export function calculateRoundedSquareMap(props: {
       const x = isOnLeftSide
         ? bufferX - cornerWidth
         : isOnRightSide
-        ? bufferX - cornerWidth - widthBetweenCorners
-        : 0;
+          ? bufferX - cornerWidth - widthBetweenCorners
+          : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const y = isOnTopSide
         ? bufferY - cornerWidth
         : isOnBottomSide
-        ? bufferY - cornerWidth - heightBetweenCorners
-        : 0;
+          ? bufferY - cornerWidth - heightBetweenCorners
+          : 0;
 
       // Find the intersection point on the border of the rounded square
       const [intersectionX, intersectionY] = calculateBorderIntersection(
         radius,
         cornerWidth,
         x,
-        y
+        y,
       );
 
       const distanceToCenterSquared = x * x + y * y;
@@ -162,7 +162,7 @@ export function calculateRoundedSquareMap(props: {
           distanceFromBorder,
           distanceFromBorderRatio,
           angle,
-          opacity
+          opacity,
         );
       }
     }
