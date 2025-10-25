@@ -35,7 +35,8 @@ import { SimulationContextProvider } from "./petrinaut/simulation-context";
 import { SimulationControls } from "./petrinaut/simulation-controls";
 import { nodeDimensions } from "./petrinaut/styling";
 import { TitleAndNetSelect } from "./petrinaut/title-and-net-select";
-import { defaultTokenTypes, TokenTypes } from "./petrinaut/token-types";
+import { TokenTypes } from "./petrinaut/token-types";
+import { defaultTokenTypes } from "./petrinaut/token-types/default-token-types";
 import { TransitionEditor } from "./petrinaut/transition-editor";
 import { TransitionNode } from "./petrinaut/transition-node";
 import type {

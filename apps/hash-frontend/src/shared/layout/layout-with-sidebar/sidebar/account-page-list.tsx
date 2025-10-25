@@ -120,6 +120,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const [expandedPageIds, setExpandedPageIds] = useLocalStorage<string[]>({
     key: "hash-expanded-sidebar-pages",
     defaultValue: [],
+    getInitialValueInEffect: false,
   });
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);

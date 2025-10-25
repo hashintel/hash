@@ -1,5 +1,5 @@
-import type { ElkNode } from "elkjs/lib/elk.bundled.js";
-import ELK from "elkjs/lib/elk.bundled.js";
+import type { ElkNode } from "elkjs";
+import ELK from "elkjs";
 import { useCallback } from "react";
 import { useReactFlow } from "reactflow";
 
