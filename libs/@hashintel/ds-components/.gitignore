@@ -1,2 +1,5 @@
+# Used for Figma access token
+.env
+
 # PandaCSS
 styled-system
