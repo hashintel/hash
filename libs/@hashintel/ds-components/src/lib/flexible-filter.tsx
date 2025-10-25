@@ -32,13 +32,14 @@ type Parts = {
 // The parts can then be rendered and composited together to form a scalable image with correct corners and edges.
 //
 
-function splitImageDataToParts(
-  imageData: ImageData,
-  cornerWidth_: number,
-  pixelRatio: number,
-): Parts {
-  const cornerWidth = cornerWidth_ * pixelRatio;
-  const lateralPartSize = LATERAL_PART_SIZE * pixelRatio;
+function splitImageDataToParts(props: {
+  imageData: ImageData;
+  cornerWidth: number;
+  pixelRatio: number;
+}): Parts {
+  const { imageData } = props;
+  const cornerWidth = props.cornerWidth * props.pixelRatio;
+  const lateralPartSize = LATERAL_PART_SIZE * props.pixelRatio;
 
   if (imageData.width !== cornerWidth * 2 + lateralPartSize) {
     throw new Error("ImageData width is too small for the given corner width");
@@ -53,49 +54,49 @@ function splitImageDataToParts(
     lateralPartSize,
     cornerWidth,
     cornerWidth,
-    0,
+    0
   );
   const topRight = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     cornerWidth + lateralPartSize,
-    0,
+    0
   );
   const left = imageDataToUrl(
     imageData,
     cornerWidth,
     lateralPartSize,
     0,
-    cornerWidth,
+    cornerWidth
   );
   const right = imageDataToUrl(
     imageData,
     cornerWidth,
     lateralPartSize,
     cornerWidth + lateralPartSize,
-    cornerWidth,
+    cornerWidth
   );
   const bottomLeft = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     0,
-    cornerWidth + lateralPartSize,
+    cornerWidth + lateralPartSize
   );
   const bottom = imageDataToUrl(
     imageData,
     lateralPartSize,
     cornerWidth,
     cornerWidth,
-    cornerWidth + lateralPartSize,
+    cornerWidth + lateralPartSize
   );
   const bottomRight = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     cornerWidth + lateralPartSize,
-    cornerWidth + lateralPartSize,
+    cornerWidth + lateralPartSize
   );
 
   return {
@@ -128,6 +129,13 @@ type CompositePartsProps = {
   hideRight?: boolean;
 };
 
+/**
+ * Component that renders the 8 parts of an image and composites them together.
+ *
+ * Used internally by the Filter component, for DisplacementMap and SpecularMap.
+ *
+ * @private
+ */
 const CompositeParts: React.FC<CompositePartsProps> = memo(
   ({
     imageData,
@@ -142,7 +150,11 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
     hideRight,
   }) => {
     const parts = useTransform(() =>
-      splitImageDataToParts(imageData.get(), cornerWidth.get(), pixelRatio),
+      splitImageDataToParts({
+        imageData: imageData.get(),
+        cornerWidth: cornerWidth.get(),
+        pixelRatio,
+      })
     );
 
     return (
@@ -257,7 +269,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           ))}
       </>
     );
-  },
+  }
 );
 
 //
@@ -308,12 +320,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     // If bezelWidth < radius, corners will be in a circle shape
     // If bezelWidth >= radius, corners will be in a rounded square shape
     const cornerWidth = useTransform(() =>
-      Math.max(radius.get(), bezelWidth.get()),
+      Math.max(radius.get(), bezelWidth.get())
     );
 
-    // Calculated image will always be a square that contains 4 corners + 1 pixel for middle
+    /** Calculated image will always be a square that contains 4 corners + {@link LATERAL_PART_SIZE} pixel for middle * */
     const imageSide = useTransform(
-      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE,
+      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE
     );
 
     const map = useTransform(() => {
@@ -321,12 +333,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         glassThickness.get(),
         bezelWidth.get(),
         bezelHeightFn,
-        refractiveIndex.get(),
+        refractiveIndex.get()
       );
     });
 
     const maximumDisplacement = useTransform(() =>
-      Math.max(...map.get().map(Math.abs)),
+      Math.max(...map.get().map(Math.abs))
     );
 
     const displacementMap = useTransform(() => {
@@ -352,7 +364,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     });
 
     const scale = useTransform(
-      () => maximumDisplacement.get() * scaleRatio.get(),
+      () => maximumDisplacement.get() * scaleRatio.get()
     );
 
     const content = (
@@ -433,7 +445,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         <defs>{content}</defs>
       </svg>
     );
-  },
+  }
 );
 
 //
@@ -461,6 +473,18 @@ type FilterProps = {
   hideRight?: boolean;
 };
 
+/**
+ * SVG Filter component that creates a refactive filter usable as backdrop-filter CSS property.
+ *
+ * Usage:
+ *
+ * ```tsx
+ * return <>
+ *   <Filter id="glass-filter" />
+ *   <div style={{ backdrop-filter: "url(#glass-filter)" }} />
+ * </>
+ * ```
+ */
 export const Filter: React.FC<FilterProps> = memo(
   ({
     id,
@@ -500,5 +524,5 @@ export const Filter: React.FC<FilterProps> = memo(
       hideRight={hideRight}
       hideTop={hideTop}
     />
-  ),
+  )
 );
