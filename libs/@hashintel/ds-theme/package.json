@@ -10,5 +10,13 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "scripts": {
+    "generate:panda": "tsx scripts/toPanda.ts"
+  },
+  "devDependencies": {
+    "@types/lodash.setwith": "^4.3.9",
+    "lodash.setwith": "^4.3.2",
+    "tsx": "4.20.6"
+  }
 }
