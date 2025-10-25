@@ -120,8 +120,6 @@ pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
 ///
 /// A [`Node`] containing either the original local variable or a new local
 /// variable reference to the bound expression.
-///
-/// [`Node`]: crate::node::Node
 pub(crate) fn ensure_local_variable<'heap>(
     context: &mut HirContext<'_, 'heap>,
     bindings: &mut Vec<Binding<'heap>>,
@@ -346,8 +344,6 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     ///
     /// This is the most commonly used normalization function, as most contexts in
     /// ANF require atomic operands.
-    ///
-    /// [`is_anf_atom`]: is_anf_atom
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_anf_atom(&node) {
             return node;
@@ -392,10 +388,6 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     /// - Closure and thunk bodies
     /// - Conditional expression branches
     /// - Short-circuiting operation operands
-    ///
-    /// [`Binding`]: crate::node::r#let::Binding
-    /// [`Let`]: crate::node::r#let::Let
-    /// [`VecPool`]: hashql_core::collections::pool::VecPool
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
         // The current amount of bindings is a good indicator for the size of vector we're expecting
@@ -461,8 +453,6 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     /// while the left operand is evaluated in the current boundary. When the right operand
     /// contains complex expressions that require normalization, the transformation uses
     /// the trampoline mechanism to replace the binary operation with an [`If`] expression.
-    ///
-    /// [`If`]: crate::node::branch::If
     fn fold_binary_bool(&mut self, operation: BinaryOperation<'heap>) -> BinaryOperation<'heap> {
         let BinaryOperation { op, left, right } = operation;
 
@@ -562,10 +552,6 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     /// - Removing [`TypeAssertion`] nodes completely
     /// - Flattening nested [`Let`] expressions
     /// - Converting short-circuiting operations to [`If`] expressions
-    ///
-    /// [`TypeAssertion`]: crate::node::operation::TypeAssertion
-    /// [`Let`]: crate::node::r#let::Let
-    /// [`If`]: crate::node::branch::If
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
         let previous = mem::replace(&mut self.current, node.ptr());
@@ -660,8 +646,6 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     ///
     /// This flattening process eliminates nested [`Let`] structures, creating
     /// a single flat sequence of bindings at each boundary level.
-    ///
-    /// [`Let`]: crate::node::r#let::Let
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         let Ok(Let { bindings: _, body }) = fold::walk_let(self, r#let);
 
