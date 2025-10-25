@@ -131,7 +131,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         body: &'heap [GraphReadBody<'heap>],
     ) -> Result<Vec<Filter<'heap, R>>, CompilationError>
     where
-        R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath: Debug>>,
+        R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath: Debug> + Clone>,
     {
         let mut filters = Ok(Vec::new());
 

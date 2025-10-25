@@ -26,15 +26,15 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]): Boolean ->
-                          #let %7 = (1 > 2)
-                               %8 = (%7 && #let %5 = (1 >= 2)
-                                        %6 = (%5 && #let %3 = (1 < 2)
-                                                 %2 = (1 <= 2)
-                                                 %4 = (%3 && %2)
+                          #let %2 = (1 > 2)
+                               %8 = if %2 #let %3 = (1 >= 2)
+                                        %7 = if %3 #let %4 = (1 < 2)
+                                                 %5 = (1 <= 2)
+                                                 %6 = if %4 %5 false
                                             in
-                                            %4)
+                                            %6 false
                                    in
-                                   %6)
+                                   %7 false
                           in
                           %8) |> ::graph::tail::collect
              in

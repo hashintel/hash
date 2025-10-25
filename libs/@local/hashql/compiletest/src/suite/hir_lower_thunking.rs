@@ -37,7 +37,7 @@ pub(crate) fn hir_lower_thunking<'heap>(
     let node = thunking.run(node);
 
     let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
+    let normalization = Normalization::new(context, environment, &mut normalization_state);
     let node = normalization.run(node);
 
     Ok(node)
