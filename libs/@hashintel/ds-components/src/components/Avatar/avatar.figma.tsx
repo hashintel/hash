@@ -32,7 +32,7 @@ figma.connect(
         shape={props.shape}
       />
     ),
-  }
+  },
 );
 
 /**
@@ -61,7 +61,7 @@ figma.connect(
     example: (props) => (
       <Avatar fallback={props.initials} size={props.size} shape={props.shape} />
     ),
-  }
+  },
 );
 
 /**
@@ -98,7 +98,7 @@ figma.connect(
         shape={props.shape}
       />
     ),
-  }
+  },
 );
 
 /**
@@ -131,5 +131,5 @@ figma.connect(
         shape="square"
       />
     ),
-  }
+  },
 );
