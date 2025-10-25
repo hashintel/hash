@@ -25,10 +25,12 @@ use crate::{
             Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
-        input::Input,
         kind::NodeKind,
         r#let::{Binding, Let},
-        operation::{BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+        operation::{
+            BinaryOperation, InputOp, InputOperation, Operation, TypeAssertion, TypeConstructor,
+            TypeOperation,
+        },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
@@ -331,35 +333,6 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Le
     }
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Input<'heap> {
-    fn pretty(
-        &self,
-        env: &PrettyPrintEnvironment<'env, 'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, Style> {
-        let mut doc = RcDoc::text("#input")
-            .append("(")
-            .group()
-            .append(self.name.value.unwrap())
-            .append(",")
-            .group()
-            .append(RcDoc::softline())
-            .append("type: ")
-            .append(pretty_print_type_id(self.r#type, env.env));
-
-        if let Some(default) = &self.default {
-            doc = doc
-                .append(",")
-                .group()
-                .append(RcDoc::softline())
-                .append("default: ")
-                .append(default.pretty(env, boundary).group());
-        }
-
-        doc.group().append(")").group()
-    }
-}
-
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for TypeAssertion<'heap> {
     fn pretty(
         &self,
@@ -463,6 +436,26 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
 }
 
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
+    for InputOperation<'heap>
+{
+    fn pretty(
+        &self,
+        _: &PrettyPrintEnvironment<'env, 'heap>,
+        _: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        let prefix = match self.op.value {
+            InputOp::Exists => "input(#exists, ",
+            InputOp::Load { required: false } => "input(#load?, ",
+            InputOp::Load { required: true } => "input(#load!, ",
+        };
+
+        RcDoc::text(prefix)
+            .append(self.name.value.unwrap())
+            .append(")")
+    }
+}
+
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
     for (HirId, &Operation<'heap>)
 {
     fn pretty(
@@ -474,6 +467,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>>
         match op {
             Operation::Type(r#type) => (id, r#type).pretty(env, boundary),
             Operation::Binary(binary) => binary.pretty(env, boundary),
+            Operation::Input(input) => input.pretty(env, boundary),
         }
     }
 }
@@ -777,7 +771,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for No
             NodeKind::Data(data) => data.pretty(env, boundary),
             NodeKind::Variable(variable) => variable.pretty(env, boundary),
             NodeKind::Let(r#let) => r#let.pretty(env, boundary),
-            NodeKind::Input(input) => input.pretty(env, boundary),
+
             NodeKind::Operation(operation) => (self.id, operation).pretty(env, boundary),
             NodeKind::Access(access) => access.pretty(env, boundary),
             NodeKind::Call(call) => call.pretty(env, boundary),

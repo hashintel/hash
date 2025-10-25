@@ -1,6 +1,6 @@
 use super::{
     access::Access, branch::Branch, call::Call, closure::Closure, data::Data, graph::Graph,
-    input::Input, r#let::Let, operation::Operation, thunk::Thunk, variable::Variable,
+    r#let::Let, operation::Operation, thunk::Thunk, variable::Variable,
 };
 
 /// The different kinds of nodes available in the HashQL High-Level Intermediate Representation.
@@ -39,12 +39,6 @@ pub enum NodeKind<'heap> {
     /// Let expressions bind a value to a name within a body expression,
     /// creating a new variable accessible only within that scope.
     Let(Let<'heap>),
-
-    /// Represents an external input parameter for a query or function.
-    ///
-    /// Input parameters define values that can be provided externally
-    /// to parameterize queries, with optional type constraints and default values.
-    Input(Input<'heap>),
 
     // Operations and access
     /// Represents a computational operation on one or more values.

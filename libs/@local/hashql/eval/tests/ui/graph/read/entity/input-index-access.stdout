@@ -7,7 +7,7 @@
              %7
          )
      %2 = thunk(() ->
-         #let %8 = #input(user_ids, type: List<EntityUuid[Uuid[String]]>)
+         #let %8 = input(#load!, user_ids)
              in
              %8
          )
