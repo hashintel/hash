@@ -1,5 +1,5 @@
 use crate::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     r#type::{
         TypeBuilder, TypeId,
         builder::lazy,

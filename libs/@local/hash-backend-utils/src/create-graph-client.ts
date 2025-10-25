@@ -7,14 +7,13 @@ import {
 import type { Status } from "@local/status";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
-import HttpAgent, { HttpsAgent } from "agentkeepalive";
-import type { DataSource } from "apollo-datasource";
+import { HttpAgent, HttpsAgent } from "agentkeepalive";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
 import type { Logger } from "./logger.js";
 
-type GraphApi = GraphApiClient & DataSource;
+type GraphApi = GraphApiClient;
 
 const agentConfig = {
   maxSockets: 128,

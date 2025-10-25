@@ -2,8 +2,7 @@ import "reactflow/dist/style.css";
 
 import { customColors } from "@hashintel/design-system/theme";
 import { Box, Fade, Stack, Typography } from "@mui/material";
-import type { ElkNode } from "elkjs/lib/elk.bundled.js";
-import ELK from "elkjs/lib/elk.bundled.js";
+import ELK, { type ElkNode } from "elkjs";
 import { useEffect, useMemo } from "react";
 import ReactFlow, {
   Background,

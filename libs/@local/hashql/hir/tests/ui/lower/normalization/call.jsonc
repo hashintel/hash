@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Function call with complex argument expression
 [
   "let",
   "foo",

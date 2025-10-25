@@ -25,7 +25,6 @@ export const upsertGptOauthClient: RequestHandler<
   Record<string, never>,
   UpsertOAuthClientResponseBody,
   UpsertOAuthClientRequestBody
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const { user } = req;
   const { redirectUri } = req.body;

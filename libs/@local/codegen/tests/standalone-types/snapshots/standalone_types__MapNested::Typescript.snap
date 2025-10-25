@@ -5,26 +5,26 @@ expression: generated
 export interface MapNested {
 	nested_maps: {
 		[key: string]: {
-			[key: string]: number
-		}
+			[key: string]: number;
+		};
 	};
 	triple_nested: {
 		[key: string]: {
 			[key: string]: {
-				[key: string]: boolean
-			}
-		}
+				[key: string]: boolean;
+			};
+		};
 	};
 	btree_nested: {
 		[key: string]: {
-			[key: number]: string
-		}
+			[key: number]: string;
+		};
 	};
 	mixed_nesting: {
 		[key: string]: {
 			[key: number]: {
-				[key: string]: boolean
-			}
-		}
+				[key: string]: boolean;
+			};
+		};
 	};
 }

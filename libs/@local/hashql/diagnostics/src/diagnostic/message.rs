@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::borrow::Borrow;
+use core::{borrow::Borrow, slice};
 
 #[cfg(feature = "render")]
 use annotate_snippets::{Group, Level};
@@ -361,5 +361,14 @@ impl<S> Messages<S> {
 impl<S> const Default for Messages<S> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<'this, S> IntoIterator for &'this Messages<S> {
+    type IntoIter = slice::Iter<'this, Message<S>>;
+    type Item = &'this Message<S>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.messages.iter()
     }
 }

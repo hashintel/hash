@@ -31,16 +31,16 @@
     "@rust/hash-graph-authorization": "0.0.0-private",
     "@rust/hash-graph-store": "0.0.0-private",
     "@temporalio/client": "1.12.1",
-    "effect": "3.13.11",
-    "uuid": "11.1.0"
+    "effect": "3.18.4",
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@vitest/coverage-istanbul": "3.2.4",
-    "eslint": "9.20.1",
+    "eslint": "9.38.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.3",
+    "typescript": "5.9.3",
     "vitest": "3.2.4"
   }
 }

@@ -6533,7 +6533,7 @@
       },
       "OntologyTypeRecordId": {
         "type": "object",
-        "description": "An identifier for an ontology type record consisting of a base URL and version.\n\nThis type provides a structured representation of an ontology type identifier\nthat can be used in database records and type definitions. It contains the same\ncomponents as a [`VersionedUrl`] but in a structured form rather than a string.\n\n# Examples\n\n```\nuse std::str::FromStr;\n\nuse type_system::ontology::id::{\nBaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl,\n};\n\n// Create from individual components\nlet base_url = BaseUrl::new(\"https://example.com/types/data-type/text/\".to_owned())?;\nlet version = OntologyTypeVersion::new(1);\nlet record_id = OntologyTypeRecordId { base_url, version };\n\n// Convert between VersionedUrl and OntologyTypeRecordId\nlet url = VersionedUrl::from_str(\"https://example.com/types/data-type/text/v/1\")?;\nlet record_id = OntologyTypeRecordId::from(url.clone());\nlet url2 = VersionedUrl::from(record_id);\nassert_eq!(url, url2);\n# Ok::<(), Box<dyn core::error::Error>>(())\n```",
+        "description": "An identifier for an ontology type record consisting of a base URL and version.\n\nThis type provides a structured representation of an ontology type identifier\nthat can be used in database records and type definitions. It contains the same\ncomponents as a [`VersionedUrl`] but in a structured form rather than a string.\n\n# Examples\n\n```\nuse std::str::FromStr;\n\nuse type_system::ontology::id::{\nBaseUrl, OntologyTypeRecordId, OntologyTypeVersion, VersionedUrl,\n};\n\n// Create from individual components\nlet base_url = BaseUrl::new(\"https://example.com/types/data-type/text/\".to_owned())?;\nlet version = OntologyTypeVersion::from_str(\"1\")?;\nlet record_id = OntologyTypeRecordId { base_url, version };\n\n// Convert between VersionedUrl and OntologyTypeRecordId\nlet url = VersionedUrl::from_str(\"https://example.com/types/data-type/text/v/1\")?;\nlet record_id = OntologyTypeRecordId::from(url.clone());\nlet url2 = VersionedUrl::from(record_id);\nassert_eq!(url, url2);\n# Ok::<(), Box<dyn core::error::Error>>(())\n```",
         "required": [
           "baseUrl",
           "version"
@@ -6548,8 +6548,7 @@
         }
       },
       "OntologyTypeVersion": {
-        "type": "string",
-        "description": "A strongly-typed wrapper for ontology type version numbers.\n\n[`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].\nIt ensures that version numbers are always valid unsigned integers and provides\ntype safety throughout the system.\n\n# Examples\n\n```\nuse type_system::ontology::id::OntologyTypeVersion;\n\nlet version = OntologyTypeVersion::new(1);\nassert_eq!(version.inner(), 1);\n```"
+        "type": "string"
       },
       "OntologyTypeVertexId": {
         "oneOf": [

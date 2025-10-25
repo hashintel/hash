@@ -1317,7 +1317,10 @@ mod tests {
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
                 )
                 .expect("invalid base url"),
-                version: OntologyTypeVersion::new(1),
+                version: OntologyTypeVersion {
+                    major: 1,
+                    pre_release: None,
+                },
             };
 
             let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();

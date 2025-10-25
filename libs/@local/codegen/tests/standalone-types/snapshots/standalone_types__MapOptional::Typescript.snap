@@ -4,15 +4,15 @@ expression: generated
 ---
 export interface MapOptional {
 	maybe_map: ({
-		[key: string]: number
+		[key: string]: number;
 	} | null);
 	map_of_optionals: {
-		[key: string]: (number | null)
+		[key: string]: (number | null);
 	};
 	maybe_btree: ({
-		[key: string]: string
+		[key: string]: string;
 	} | null);
 	btree_of_optionals: {
-		[key: string]: (number | null)
+		[key: string]: (number | null);
 	};
 }

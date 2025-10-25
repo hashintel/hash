@@ -348,7 +348,7 @@ export const FlowVisualizer = () => {
       > = {};
 
       for (const step of selectedFlowRun.steps) {
-        const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+        const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
 
         for (const log of step.logs) {
           if (

@@ -3,20 +3,20 @@ use core::fmt::Debug;
 
 use hash_graph_store::filter::{FilterExpression, QueryRecord};
 use hashql_core::{
-    literal::LiteralKind,
     span::SpanId,
-    value::{self, Opaque, Value},
+    value::{self, Opaque, Primitive, Value},
 };
 use hashql_hir::node::{
     Node,
     access::{Access, FieldAccess, IndexAccess},
-    call::Call,
+    call::{Call, PointerKind},
     data::{Data, DictField},
     graph::Graph,
     input::Input,
     kind::NodeKind,
     r#let::{Binding, Let},
     operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+    thunk::Thunk,
     variable::{LocalVariable, Variable},
 };
 
@@ -102,7 +102,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         P: PartialQueryPath<'heap> + Debug,
     {
         match data {
-            Data::Literal(literal) => Ok(IntermediateExpression::Value {
+            Data::Primitive(literal) => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Primitive(*literal)),
                 span,
             }),
@@ -270,14 +270,11 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         }
     }
 
-    fn compile_filter_expr_let<P>(
+    fn compile_filter_expr_let<T>(
         &mut self,
-        context: FilterCompilerContext,
         Let { bindings, body }: &'heap Let<'heap>,
-    ) -> Result<IntermediateExpression<'env, 'heap, P>, CompilationError>
-    where
-        P: PartialQueryPath<'heap> + Debug,
-    {
+        recurse: impl FnOnce(&mut Self, &'heap Node<'heap>) -> T,
+    ) -> T {
         for Binding {
             span: _,
             binder,
@@ -287,7 +284,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             self.locals.insert(binder.id, value);
         }
 
-        let result = self.compile_filter_expr(context, body);
+        let result = recurse(self, body);
 
         for Binding {
             span: _,
@@ -517,8 +514,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     }
                 };
 
-                let value =
-                    value.unwrap_or_else(|| Cow::Owned(Value::Primitive(LiteralKind::Null)));
+                let value = value.unwrap_or_else(|| Cow::Owned(Value::Primitive(Primitive::Null)));
 
                 IntermediateExpression::Value { value, span }
             }
@@ -579,9 +575,19 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Variable(Variable::Local(local)) => {
                 self.compile_filter_expr_call_ctor(context, span, self.locals[&local.id.value])
             }
+            NodeKind::Call(Call {
+                kind: PointerKind::Thin,
+                function,
+                arguments: _,
+            }) => self.compile_filter_expr_call_ctor(context, span, function),
+            NodeKind::Let(r#let) => self.compile_filter_expr_let(r#let, |this, body| {
+                this.compile_filter_expr_call_ctor(context, span, body)
+            }),
+            NodeKind::Thunk(Thunk { body }) => {
+                self.compile_filter_expr_call_ctor(context, span, body)
+            }
             NodeKind::Data(_)
             | NodeKind::Variable(_)
-            | NodeKind::Let(_)
             | NodeKind::Input(_)
             | NodeKind::Operation(_)
             | NodeKind::Access(_)
@@ -603,6 +609,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
         context: FilterCompilerContext,
         span: SpanId,
         Call {
+            kind,
             function,
             arguments,
         }: &'heap Call<'heap>,
@@ -610,13 +617,18 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     where
         P: PartialQueryPath<'heap> + Debug,
     {
+        if *kind == PointerKind::Thin {
+            // Thin pointer to a local variable = calling a thunk
+            return self.compile_filter_expr(context.with_current_span(span), function);
+        }
+
         let ctor = self.compile_filter_expr_call_ctor(context, span, function)?;
 
         match &**arguments {
             [] => Ok(IntermediateExpression::Value {
                 value: Cow::Owned(Value::Opaque(Opaque::new(
                     ctor.name,
-                    Value::Primitive(LiteralKind::Null),
+                    Value::Primitive(Primitive::Null),
                 ))),
                 span,
             }),
@@ -658,7 +670,9 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             NodeKind::Variable(variable) => {
                 self.compile_filter_expr_variable(context, node.span, variable)
             }
-            NodeKind::Let(r#let) => self.compile_filter_expr_let(context, r#let),
+            NodeKind::Let(r#let) => self.compile_filter_expr_let(r#let, |this, body| {
+                this.compile_filter_expr(context, body)
+            }),
             NodeKind::Input(input) => Ok(self.compile_filter_expr_input(node.span, input)),
             NodeKind::Operation(operation) => {
                 self.compile_filter_expr_operation(context, node.span, operation)
@@ -672,6 +686,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 ));
                 Err(CompilationError)
             }
+            NodeKind::Thunk(Thunk { body }) => self.compile_filter_expr(context, body),
             NodeKind::Graph(graph) => match graph {
                 Graph::Read(_) => {
                     self.diagnostics.push(nested_graph_read_unsupported(

@@ -27,12 +27,11 @@ impl core::error::Error for TupleError<'_> {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{FloatLiteral, LiteralKind},
-///     value::{Tuple, Value},
+///     value::{Float, Primitive, Tuple, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let float = |value: &'static str| Value::Primitive(LiteralKind::Float(FloatLiteral { value: heap.intern_symbol(value) }));
+/// # let float = |value: &'static str| Value::Primitive(Primitive::Float(Float::new_unchecked(heap.intern_symbol(value))));
 ///
 /// // A 3D point represented as a tuple
 /// let point = Tuple::from_values([float("1.23"), float("4.56"), float("7.89")]);
@@ -55,12 +54,11 @@ impl<'heap> Tuple<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Tuple, Value},
+    ///     value::{Primitive, String, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let values = [
     ///     string("red"),
@@ -94,13 +92,12 @@ impl<'heap> Tuple<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Primitive, String, Tuple, TupleError, Value},
     ///     symbol::Symbol,
-    ///     value::{Tuple, TupleError, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let tuple = Tuple::from_values([string("first"), string("second")]);
     ///
@@ -140,12 +137,11 @@ impl<'heap> Tuple<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Tuple, Value},
+    ///     value::{Primitive, String, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_tuple = Tuple::from_values([]);
     /// assert_eq!(empty_tuple.len(), 0);
@@ -165,12 +161,11 @@ impl<'heap> Tuple<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Tuple, Value},
+    ///     value::{Primitive, String, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_tuple = Tuple::from_values([]);
     /// assert!(empty_tuple.is_empty());
@@ -190,12 +185,11 @@ impl<'heap> Tuple<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Tuple, Value},
+    ///     value::{Primitive, String, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let tuple = Tuple::from_values([string("first"), string("second"), string("third")]);
     ///

@@ -2,10 +2,10 @@ use alloc::borrow::Cow;
 use core::cmp;
 
 use hashql_core::{
-    literal::LiteralKind,
     pretty::{PrettyOptions, PrettyPrint, PrettyPrintBoundary},
     span::Spanned,
     r#type::{TypeId, environment::Environment},
+    value::Primitive,
 };
 use hashql_diagnostics::color::Style;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
@@ -27,6 +27,7 @@ use crate::{
         kind::NodeKind,
         r#let::{Binding, Let},
         operation::{BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
@@ -37,22 +38,23 @@ pub struct PrettyPrintEnvironment<'env, 'heap> {
     pub symbols: &'env SymbolRegistry<'heap>,
 }
 
-impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for LiteralKind<'heap> {
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Primitive<'heap> {
     fn pretty(
         &self,
         _: &PrettyPrintEnvironment<'env, 'heap>,
         _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match self {
-            LiteralKind::Null => RcDoc::text("null"),
-            LiteralKind::Boolean(true) => RcDoc::text("true"),
-            LiteralKind::Boolean(false) => RcDoc::text("false"),
-            LiteralKind::Float(float_literal) => RcDoc::text(float_literal.value.unwrap()),
-            LiteralKind::Integer(integer_literal) => RcDoc::text(integer_literal.value.unwrap()),
-            LiteralKind::String(string_literal) => RcDoc::text(format!(
-                r#""{}""#,
-                string_literal.value.as_str().escape_debug()
-            )),
+            Primitive::Null => RcDoc::text("null"),
+            Primitive::Boolean(true) => RcDoc::text("true"),
+            Primitive::Boolean(false) => RcDoc::text("false"),
+            Primitive::Float(float_literal) => RcDoc::text(float_literal.as_symbol().unwrap()),
+            Primitive::Integer(integer_literal) => {
+                RcDoc::text(integer_literal.as_symbol().unwrap())
+            }
+            Primitive::String(string_literal) => {
+                RcDoc::text(format!(r#""{}""#, string_literal.as_str().escape_debug()))
+            }
         }
     }
 }
@@ -184,7 +186,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Da
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         match &self {
-            Self::Literal(literal) => literal.pretty(env, boundary),
+            Self::Primitive(primitive) => primitive.pretty(env, boundary),
             Self::Tuple(tuple) => tuple.pretty(env, boundary),
             Self::Struct(r#struct) => r#struct.pretty(env, boundary),
             Self::List(list) => list.pretty(env, boundary),
@@ -630,6 +632,25 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Cl
     }
 }
 
+impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for Thunk<'heap> {
+    fn pretty(
+        &self,
+        env: &PrettyPrintEnvironment<'env, 'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        RcDoc::text("thunk(() ->")
+            .append(RcDoc::line())
+            .append(
+                RcAllocator
+                    .nil()
+                    .append(self.body.pretty(env, boundary))
+                    .nest(4),
+            )
+            .append(RcDoc::line_())
+            .append(")")
+    }
+}
+
 impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for GraphReadHead<'heap> {
     fn pretty(
         &self,
@@ -737,6 +758,7 @@ impl<'env, 'heap> PrettyPrint<'heap, PrettyPrintEnvironment<'env, 'heap>> for No
             NodeKind::Call(call) => call.pretty(env, boundary),
             NodeKind::Branch(branch) => branch.pretty(env, boundary),
             NodeKind::Closure(closure) => closure.pretty(env, boundary),
+            NodeKind::Thunk(thunk) => thunk.pretty(env, boundary),
             NodeKind::Graph(graph) => graph.pretty(env, boundary),
         }
     }

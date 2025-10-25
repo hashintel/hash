@@ -3,10 +3,10 @@ source: libs/@local/codegen/tests/standalone-types/main.rs
 expression: generated
 ---
 export type EnumUntagged = null | [] | number | [boolean, string] | Record<string, never> | {
-	value: number
+	value: number;
 } | {
-	value_1: number
-	value_2: string
+	value_1: number;
+	value_2: string;
 } | {
-	name: string
+	name: string;
 } & StructSimple;

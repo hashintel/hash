@@ -1,11 +1,15 @@
 use core::ops::Index;
 
 use super::Symbol;
-use crate::{collection::FastHashMap, id::Id};
+use crate::{
+    collections::FastHashMap,
+    id::{Id, IdVec},
+};
 
 #[derive(Debug)]
 enum SymbolTableInner<'heap, I> {
-    Dense(Vec<Symbol<'heap>>),
+    Dense(IdVec<I, Symbol<'heap>>),
+    Gapped(IdVec<I, Option<Symbol<'heap>>>),
     Sparse(FastHashMap<I, Symbol<'heap>>),
 }
 
@@ -16,13 +20,21 @@ enum SymbolTableInner<'heap, I> {
 ///
 /// # Storage Strategies
 ///
-/// To accommodate different access patterns, [`SymbolTable`] supports two storage strategies:
+/// To accommodate different access patterns, [`SymbolTable`] supports three storage strategies:
 ///
 /// ## Dense Storage
 ///
 /// Created with [`SymbolTable::dense()`], this mode uses a [`Vec`] internally and requires
 /// IDs to be inserted sequentially starting from 0. This provides optimal memory efficiency
 /// and cache performance for contiguous ID ranges.
+///
+/// ## Gapped Storage
+///
+/// Created with [`SymbolTable::gapped()`], this mode uses a [`Vec`] of [`Option<Symbol>`]
+/// internally and allows insertion at arbitrary indices. Unlike dense storage, gaps are allowed in
+/// the ID sequence. This provides a balance between the memory efficiency of dense storage and the
+/// flexibility of sparse storage, making it ideal for scenarios where most IDs are contiguous but
+/// some gaps may exist.
 ///
 /// ## Sparse Storage
 ///
@@ -41,6 +53,14 @@ enum SymbolTableInner<'heap, I> {
 /// let mut dense_table = SymbolTable::<MyId>::dense();
 /// dense_table.insert(MyId::from_u32(0), symbol);
 /// assert_eq!(dense_table.get(MyId::from_u32(0)), Some(symbol));
+///
+/// // Gapped storage for mostly contiguous IDs with some gaps
+/// let mut gapped_table = SymbolTable::<MyId>::gapped();
+/// gapped_table.insert(MyId::from_u32(0), symbol);
+/// gapped_table.insert(MyId::from_u32(5), symbol); // Gap at IDs 1-4
+/// assert_eq!(gapped_table.get(MyId::from_u32(0)), Some(symbol));
+/// assert_eq!(gapped_table.get(MyId::from_u32(2)), None); // Gap
+/// assert_eq!(gapped_table.get(MyId::from_u32(5)), Some(symbol));
 ///
 /// // Sparse storage for arbitrary IDs
 /// let mut sparse_table = SymbolTable::<MyId>::sparse();
@@ -74,7 +94,28 @@ where
     #[must_use]
     pub const fn dense() -> Self {
         Self {
-            inner: SymbolTableInner::Dense(Vec::new()),
+            inner: SymbolTableInner::Dense(IdVec::new()),
+        }
+    }
+
+    /// Creates a new symbol table using gapped vector-based storage.
+    ///
+    /// Gapped tables allow insertion at arbitrary indices within a vector, automatically
+    /// filling gaps with `None` values. This provides better memory locality than sparse
+    /// tables while still allowing non-contiguous ID ranges.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{symbol::SymbolTable, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// let table = SymbolTable::<MyId>::gapped();
+    /// // Insertions can have gaps: 0, 5, 3, 10, ...
+    /// ```
+    #[must_use]
+    pub const fn gapped() -> Self {
+        Self {
+            inner: SymbolTableInner::Gapped(IdVec::new()),
         }
     }
 
@@ -100,9 +141,11 @@ where
 
     /// Inserts a symbol associated with the given identifier.
     ///
-    /// For dense tables, the `id` must be sequential starting from 0. For sparse tables,
-    /// any `id` value is accepted. If the `id` already exists in a sparse table,
-    /// the previous symbol is replaced.
+    /// - For dense tables, the `id` must be sequential starting from 0.
+    /// - For gapped tables, any `id` value is accepted, and gaps will be filled with `None`.
+    /// - For sparse tables, any `id` value is accepted.
+    ///
+    /// If the `id` already exists in a gapped or sparse table, the previous symbol is replaced.
     ///
     /// # Panics
     ///
@@ -121,7 +164,7 @@ where
     /// table.insert(MyId::from_u32(1), symbol); // Sequential insertion
     /// ```
     ///
-    /// Non-sequential insertions will panic:
+    /// Non-sequential insertions will panic in dense tables:
     ///
     /// ```should_panic
     /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
@@ -136,12 +179,15 @@ where
         match &mut self.inner {
             SymbolTableInner::Dense(vec) => {
                 assert_eq!(
-                    id.as_usize(),
-                    vec.len(),
+                    id,
+                    vec.bound(),
                     "insertions into dense symbol tables must be sequential and contiguous"
                 );
 
                 vec.push(symbol);
+            }
+            SymbolTableInner::Gapped(vec) => {
+                vec.insert(id, symbol);
             }
             SymbolTableInner::Sparse(map) => {
                 map.insert(id, symbol);
@@ -152,7 +198,7 @@ where
     /// Retrieves the symbol associated with the given identifier.
     ///
     /// Returns the [`Symbol`] if the `id` exists in the table, or [`None`] if
-    /// the `id` is not found.
+    /// the `id` is not found or if the entry is a gap (in gapped tables).
     ///
     /// # Examples
     ///
@@ -169,7 +215,8 @@ where
     /// ```
     pub fn get(&self, id: I) -> Option<Symbol<'heap>> {
         match &self.inner {
-            SymbolTableInner::Dense(vec) => vec.get(id.as_usize()).copied(),
+            SymbolTableInner::Dense(vec) => vec.get(id).copied(),
+            SymbolTableInner::Gapped(vec) => vec.get(id).copied().flatten(),
             SymbolTableInner::Sparse(map) => map.get(&id).copied(),
         }
     }
@@ -183,7 +230,8 @@ where
 
     fn index(&self, index: I) -> &Self::Output {
         match &self.inner {
-            SymbolTableInner::Dense(vec) => &vec[index.as_usize()],
+            SymbolTableInner::Dense(vec) => &vec[index],
+            SymbolTableInner::Gapped(vec) => vec[index].as_ref().expect("index out of bounds"),
             SymbolTableInner::Sparse(map) => &map[&index],
         }
     }

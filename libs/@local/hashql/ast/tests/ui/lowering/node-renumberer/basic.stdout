@@ -11,11 +11,11 @@ Expr#0@8
         Expr#8@5
           ExprKind (Literal)
             LiteralExpr#9@4
-              LiteralKind (Integer)
-                IntegerLiteral (3)
+              Primitive (Integer)
+                Integer (3)
       Argument#10@7
         Expr#11@7
           ExprKind (Literal)
             LiteralExpr#12@6
-              LiteralKind (Integer)
-                IntegerLiteral (4)
+              Primitive (Integer)
+                Integer (4)

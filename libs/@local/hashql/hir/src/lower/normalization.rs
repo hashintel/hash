@@ -52,7 +52,7 @@
 
 use core::{convert::Infallible, mem};
 
-use hashql_core::span::Spanned;
+use hashql_core::{collections::pool::VecPool, span::Spanned};
 
 use crate::{
     context::HirContext,
@@ -70,6 +70,7 @@ use crate::{
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
+        thunk::Thunk,
         variable::{LocalVariable, Variable},
     },
 };
@@ -84,20 +85,57 @@ use crate::{
 ///
 /// Non-atoms include control flow, operations, calls, and qualified variables
 /// (which require module thunking in the future).
-const fn is_atom(node: &Node<'_>) -> bool {
+pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
     match node.kind {
-        NodeKind::Data(_) | NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
-        // Qualified variables are *not* atoms, because of module thunking in the future
-        // see: https://linear.app/hash/issue/BE-67/hashql-implement-modules
-        NodeKind::Variable(Variable::Qualified(_))
+        NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
+        NodeKind::Data(_)
         | NodeKind::Let(_)
         | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
         | NodeKind::Closure(_)
+        | NodeKind::Thunk(_)
         | NodeKind::Graph(_) => false,
     }
+}
+
+/// Ensures that a node is represented as a local variable.
+///
+/// If the node is already a local variable, returns it unchanged. Otherwise,
+/// creates a new binding with a fresh variable and adds it to the current
+/// binding stack.
+pub(crate) fn ensure_local_variable<'heap>(
+    context: &mut HirContext<'_, 'heap>,
+    bindings: &mut Vec<Binding<'heap>>,
+    node: Node<'heap>,
+) -> Node<'heap> {
+    if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
+        return node;
+    }
+
+    let binder_id = context.counter.var.next();
+    let binding = Binding {
+        span: node.span,
+        binder: Binder {
+            id: binder_id,
+            span: node.span,
+            name: None,
+        },
+        value: node,
+    };
+    bindings.push(binding);
+
+    context.interner.intern_node(PartialNode {
+        span: node.span,
+        kind: NodeKind::Variable(Variable::Local(LocalVariable {
+            id: Spanned {
+                span: node.span,
+                value: binder_id,
+            },
+            arguments: context.interner.intern_type_ids(&[]),
+        })),
+    })
 }
 
 /// Determines if a node is a projection (place expression).
@@ -110,44 +148,49 @@ const fn is_atom(node: &Node<'_>) -> bool {
 /// Projections are a subset of atoms that represent addressable locations.
 const fn is_projection(node: &Node<'_>) -> bool {
     match node.kind {
-        NodeKind::Variable(Variable::Local(_)) | NodeKind::Access(_) => true,
+        NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
-        | NodeKind::Variable(Variable::Qualified(_))
         | NodeKind::Let(_)
         | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
         | NodeKind::Closure(_)
+        | NodeKind::Thunk(_)
         | NodeKind::Graph(_) => false,
     }
 }
 
-/// Configuration options for HIR(ANF) normalization.
+/// State and configuration for HIR(ANF) normalization.
 ///
-/// This struct controls various aspects of the normalization process, primarily
-/// focused on performance optimizations and resource management.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct NormalizationOptions {
-    /// Maximum number of binding vectors to cache in the recycler pool.
+/// This struct contains performance optimizations and reusable resources for
+/// the normalization process, primarily focused on reducing allocations.
+///
+/// This struct can be reused across multiple normalization runs to avoid
+/// unnecessary reallocations.
+#[derive(Debug)]
+pub struct NormalizationState<'heap> {
+    /// Pool of reusable binding vectors to reduce allocations
     ///
     /// The normalization process frequently creates temporary vectors to accumulate
     /// `let` bindings at boundary points. To reduce allocation overhead, completed
     /// vectors are cached in a recycler pool for reuse.
     ///
-    /// A higher value reduces allocations at the cost of increased memory usage.
+    /// A higher capacity value reduces allocations at the cost of increased memory usage.
     /// A value of 0 disables recycling entirely.
     ///
     /// # Default Value
     ///
     /// The default is 4, which provides a good balance between memory usage and
     /// allocation reduction for typical workloads.
-    pub max_recycle: usize,
+    pub recycler: VecPool<Binding<'heap>>,
 }
 
-impl Default for NormalizationOptions {
+impl Default for NormalizationState<'_> {
     fn default() -> Self {
-        Self { max_recycle: 4 }
+        Self {
+            recycler: VecPool::new(4),
+        }
     }
 }
 
@@ -163,10 +206,8 @@ pub struct Normalization<'ctx, 'env, 'heap> {
     bindings: Vec<Binding<'heap>>,
     /// Optional node replacement mechanism for structural transformations
     trampoline: Option<Node<'heap>>,
-    /// Pool of reusable binding vectors to reduce allocations
-    recycler: Vec<Vec<Binding<'heap>>>,
-    /// Maximum number of vectors to keep in the recycler pool
-    max_recycle: usize,
+    /// State that is shared during multiple normalization passes
+    state: &'ctx mut NormalizationState<'heap>,
 }
 
 impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
@@ -175,17 +216,16 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// # Arguments
     ///
     /// - `context`: Mutable reference to the HIR context for interning and variable generation
-    /// - `options`: Configuration options controlling the normalization behavior
+    /// - `state`: Shared state containing configuration and reusable resources
     pub const fn new(
         context: &'ctx mut HirContext<'env, 'heap>,
-        options: NormalizationOptions,
+        state: &'ctx mut NormalizationState<'heap>,
     ) -> Self {
         Self {
             context,
             bindings: Vec::new(),
             trampoline: None,
-            recycler: Vec::new(),
-            max_recycle: options.max_recycle,
+            state,
         }
     }
 
@@ -213,38 +253,8 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         node
     }
 
-    /// Ensures that a node is represented as a local variable.
-    ///
-    /// If the node is already a local variable, returns it unchanged. Otherwise,
-    /// creates a new binding with a fresh variable and adds it to the current
-    /// binding stack.
     fn ensure_local_variable(&mut self, node: Node<'heap>) -> Node<'heap> {
-        if matches!(node.kind, NodeKind::Variable(Variable::Local(_))) {
-            return node;
-        }
-
-        let binder_id = self.context.counter.var.next();
-        let binding = Binding {
-            span: node.span,
-            binder: Binder {
-                id: binder_id,
-                span: node.span,
-                name: None,
-            },
-            value: node,
-        };
-        self.bindings.push(binding);
-
-        self.context.interner.intern_node(PartialNode {
-            span: node.span,
-            kind: NodeKind::Variable(Variable::Local(LocalVariable {
-                id: Spanned {
-                    span: node.span,
-                    value: binder_id,
-                },
-                arguments: self.context.interner.intern_type_ids(&[]),
-            })),
-        })
+        ensure_local_variable(self.context, &mut self.bindings, node)
     }
 
     /// Ensures that a node is a valid projection (place expression).
@@ -264,7 +274,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// If the node is already an atom, returns it unchanged. Otherwise,
     /// converts it to a local variable binding.
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
-        if is_atom(&node) {
+        if is_anf_atom(&node) {
             return node;
         }
 
@@ -282,14 +292,12 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// Panics if the trampoline is already occupied, indicating multiple
     /// replacements attempted for the same node.
     fn trampoline(&mut self, node: Node<'heap>) {
-        match &mut self.trampoline {
-            None => {
-                self.trampoline = Some(node);
-            }
-            Some(_) => {
-                panic!("trampoline has been inserted to multiple times");
-            }
-        }
+        assert!(
+            self.trampoline.is_none(),
+            "trampoline has been inserted to multiple times"
+        );
+
+        self.trampoline = Some(node);
     }
 
     /// Processes a node within a normalization boundary.
@@ -303,11 +311,8 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
     /// transformation process.
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
-        let bindings = self.recycler.pop().unwrap_or_else(|| {
-            // The current amount of bindings is a good indicator for the size of vector we're
-            // expecting
-            Vec::with_capacity(self.bindings.len())
-        });
+        // The current amount of bindings is a good indicator for the size of vector we're expecting
+        let bindings = self.state.recycler.acquire_with(self.bindings.len());
 
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
@@ -316,7 +321,7 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         node = self.ensure_atom(node);
 
         // Restore the outer vector and retrieve the collected bindings
-        let mut bindings = core::mem::replace(&mut self.bindings, outer);
+        let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
             // We need to wrap the collected bindings into a new let node
@@ -327,15 +332,9 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
                     body: node,
                 }),
             });
-
-            bindings.clear();
         }
 
-        // If we haven't reached the limit, add the vector to the recycler
-        if self.recycler.len() < self.max_recycle {
-            self.recycler.push(bindings);
-        }
-
+        self.state.recycler.release(bindings);
         node
     }
 }
@@ -611,11 +610,13 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// arguments are handled separately by `fold_call_argument`.
     fn fold_call(&mut self, call: Call<'heap>) -> Self::Output<Call<'heap>> {
         let Ok(Call {
+            kind,
             function,
             arguments,
         }) = fold::walk_call(self, call);
 
         Ok(Call {
+            kind,
             function: self.ensure_atom(function),
             arguments,
         })
@@ -674,6 +675,16 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         let body = self.boundary(body);
 
         Ok(Closure { signature, body })
+    }
+
+    /// Folds thunk definitions with boundary handling.
+    ///
+    /// Thunk bodies form natural boundaries since they represent module-level
+    /// delayed computations. The body is wrapped in its own normalization boundary.
+    fn fold_thunk(&mut self, Thunk { body }: Thunk<'heap>) -> Self::Output<Thunk<'heap>> {
+        let body = self.boundary(body);
+
+        Ok(Thunk { body })
     }
 
     /// Folds graph read head operations with axis atomicity requirements.

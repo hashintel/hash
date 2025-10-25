@@ -9,15 +9,16 @@ use core::{fmt::Debug, ops::Range};
 
 use hash_graph_store::filter::{Filter, QueryRecord};
 use hashql_core::{
-    collection::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
+    collections::FastHashMap, heap::Heap, span::SpanId, symbol::Symbol, value::Value,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     node::{
-        HirId, Node,
+        HirId, HirIdMap, Node,
         graph::read::{GraphRead, GraphReadBody, GraphReadHead},
         kind::NodeKind,
-        r#let::{Binding, Let, VarId},
+        r#let::{Binding, Let, VarId, VarIdMap},
+        thunk::Thunk,
         variable::LocalVariable,
     },
     visit::{self, Visitor},
@@ -68,7 +69,10 @@ impl FilterCompilerContext {
     const fn with_current_span(self, span: SpanId) -> Self {
         Self {
             span: self.span,
-            current_span: Some(span),
+            current_span: match self.current_span {
+                None => Some(span),
+                Some(_) => self.current_span,
+            },
             param_id: self.param_id,
         }
     }
@@ -77,7 +81,7 @@ impl FilterCompilerContext {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GraphReadCompilerResidual<'heap> {
     pub filters: Filters<'heap>,
-    pub output: FastHashMap<HirId, FilterSlice>,
+    pub output: HirIdMap<FilterSlice>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -90,10 +94,10 @@ pub struct GraphReadCompiler<'env, 'heap> {
 
     diagnostics: GraphReadCompilerIssues,
 
-    locals: FastHashMap<VarId, &'heap Node<'heap>>,
+    locals: VarIdMap<&'heap Node<'heap>>,
     inputs: &'env FastHashMap<Symbol<'heap>, Value<'heap>>,
-    output: FastHashMap<HirId, FilterSlice>,
-    variables: FastHashMap<VarId, FilterSlice>,
+    output: HirIdMap<FilterSlice>,
+    variables: VarIdMap<FilterSlice>,
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
@@ -205,6 +209,14 @@ impl<'heap> Visitor<'heap> for GraphReadCompiler<'_, 'heap> {
         visit::walk_local_variable(self, variable);
 
         if let Some(output) = self.variables.get(&variable.id.value) {
+            self.output.insert(self.current, output.clone());
+        }
+    }
+
+    fn visit_thunk(&mut self, thunk: &'heap Thunk<'heap>) {
+        visit::walk_thunk(self, thunk);
+
+        if let Some(output) = self.output.get(&thunk.body.id) {
             self.output.insert(self.current, output.clone());
         }
     }

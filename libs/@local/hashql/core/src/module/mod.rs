@@ -23,7 +23,7 @@ use self::{
 };
 pub use self::{resolver::Reference, universe::Universe};
 use crate::{
-    collection::{FastHashMap, FastHashSet},
+    collections::{FastHashMap, FastHashSet},
     heap::Heap,
     id::{HasId, Id as _},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},

@@ -4,12 +4,12 @@ import { removeActorGroupMember } from "@local/hash-graph-sdk/principal/actor-gr
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationRemoveUserFromOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { ApolloError } from "apollo-server-errors";
 
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import { getUserById } from "../../../../graph/knowledge/system-types/user";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const removeUserFromOrgResolver: ResolverFn<
@@ -29,10 +29,7 @@ export const removeUserFromOrgResolver: ResolverFn<
       entityId: orgEntityId,
     });
   } catch {
-    throw new ApolloError(
-      `Organization with webId ${orgWebId} not found`,
-      "NOT_FOUND",
-    );
+    throw Error.notFound(`Organization with webId ${orgWebId} not found`);
   }
 
   try {
@@ -40,10 +37,7 @@ export const removeUserFromOrgResolver: ResolverFn<
       entityId: userEntityId,
     });
   } catch {
-    throw new ApolloError(
-      `User with entityId ${userEntityId} not found`,
-      "NOT_FOUND",
-    );
+    throw Error.notFound(`User with entityId ${userEntityId} not found`);
   }
 
   const membershipLink = await queryEntities(context, authentication, {
@@ -97,10 +91,7 @@ export const removeUserFromOrgResolver: ResolverFn<
   }).then(({ entities }) => entities[0]);
 
   if (!membershipLink) {
-    throw new ApolloError(
-      "User is not a member of this organization",
-      "BAD_REQUEST",
-    );
+    throw Error.badRequest("User is not a member of this organization");
   }
 
   await Promise.all([

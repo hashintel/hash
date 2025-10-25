@@ -7,11 +7,11 @@ Expr#4294967040@8
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
-              LiteralKind (Integer)
-                IntegerLiteral (1)
+              Primitive (Integer)
+                Integer (1)
       Argument#4294967040@7
         Expr#4294967040@7
           ExprKind (Literal)
             LiteralExpr#4294967040@6
-              LiteralKind (Integer)
-                IntegerLiteral (4)
+              Primitive (Integer)
+                Integer (4)

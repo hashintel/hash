@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import chalk from "chalk";
-import execa from "execa";
+import { execa } from "execa";
 import fs from "fs-extra";
 
 import { UserFriendlyError } from "./shared/errors";

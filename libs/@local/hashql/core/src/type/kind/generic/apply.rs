@@ -4,7 +4,7 @@ use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use super::{GenericArgumentId, Param};
 use crate::{
-    collection::SmallVec,
+    collections::SmallVec,
     intern::Interned,
     pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, RED},
     span::SpanId,

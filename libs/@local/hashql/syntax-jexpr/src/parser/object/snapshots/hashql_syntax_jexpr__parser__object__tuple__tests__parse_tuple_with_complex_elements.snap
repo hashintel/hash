@@ -18,14 +18,14 @@ Expr#4294967040@22
                 Expr#4294967040@5
                   ExprKind (Literal)
                     LiteralExpr#4294967040@4
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               Argument#4294967040@7
                 Expr#4294967040@7
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)
       TupleElement#4294967040@14
         Expr#4294967040@14
           ExprKind (List)
@@ -34,14 +34,14 @@ Expr#4294967040@22
                 Expr#4294967040@10
                   ExprKind (Literal)
                     LiteralExpr#4294967040@9
-                      LiteralKind (String)
-                        StringLiteral (a)
+                      Primitive (String)
+                        String (a)
               ListElement#4294967040@12
                 Expr#4294967040@12
                   ExprKind (Literal)
                     LiteralExpr#4294967040@11
-                      LiteralKind (String)
-                        StringLiteral (b)
+                      Primitive (String)
+                        String (b)
       TupleElement#4294967040@20
         Expr#4294967040@20
           ExprKind (Dict)
@@ -50,10 +50,10 @@ Expr#4294967040@22
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@15
-                      LiteralKind (String)
-                        StringLiteral (key)
+                      Primitive (String)
+                        String (key)
                 Expr#4294967040@17
                   ExprKind (Literal)
                     LiteralExpr#4294967040@16
-                      LiteralKind (Integer)
-                        IntegerLiteral (42)
+                      Primitive (Integer)
+                        Integer (42)

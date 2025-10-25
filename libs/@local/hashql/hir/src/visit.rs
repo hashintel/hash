@@ -53,10 +53,10 @@
 //!
 //! [`Fold`]: crate::fold::Fold
 use hashql_core::{
-    literal::LiteralKind,
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
+    value::Primitive,
 };
 
 use crate::{
@@ -78,6 +78,7 @@ use crate::{
             BinaryOperation, Operation, TypeAssertion, TypeConstructor, TypeOperation,
             UnaryOperation,
         },
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable, Variable},
     },
     path::QualifiedPath,
@@ -166,7 +167,7 @@ pub trait Visitor<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
-    fn visit_literal(&mut self, literal: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, literal: &'heap Primitive<'heap>) {
         // do nothing, no fields to walk
     }
 
@@ -286,6 +287,10 @@ pub trait Visitor<'heap> {
         walk_closure_param(self, param);
     }
 
+    fn visit_thunk(&mut self, thunk: &'heap Thunk<'heap>) {
+        walk_thunk(self, thunk);
+    }
+
     fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
         walk_graph(self, graph);
     }
@@ -333,13 +338,14 @@ pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
         NodeKind::Call(call) => visitor.visit_call(call),
         NodeKind::Branch(branch) => visitor.visit_branch(branch),
         NodeKind::Closure(closure) => visitor.visit_closure(closure),
+        NodeKind::Thunk(thunk) => visitor.visit_thunk(thunk),
         NodeKind::Graph(graph) => visitor.visit_graph(graph),
     }
 }
 
 pub fn walk_data<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, data: &'heap Data<'heap>) {
     match data {
-        Data::Literal(literal) => visitor.visit_literal(literal),
+        Data::Primitive(primitive) => visitor.visit_primitive(primitive),
         Data::Tuple(tuple) => visitor.visit_tuple(tuple),
         Data::Struct(r#struct) => visitor.visit_struct(r#struct),
         Data::List(list) => visitor.visit_list(list),
@@ -581,6 +587,7 @@ pub fn walk_index_access<'heap, T: Visitor<'heap> + ?Sized>(
 pub fn walk_call<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Call {
+        kind: _,
         function,
         arguments,
     }: &'heap Call<'heap>,
@@ -650,6 +657,13 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(*span);
 
     visitor.visit_binder(name);
+}
+
+pub fn walk_thunk<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    Thunk { body }: &'heap Thunk<'heap>,
+) {
+    visitor.visit_node(body);
 }
 
 pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(visitor: &mut T, graph: &'heap Graph<'heap>) {

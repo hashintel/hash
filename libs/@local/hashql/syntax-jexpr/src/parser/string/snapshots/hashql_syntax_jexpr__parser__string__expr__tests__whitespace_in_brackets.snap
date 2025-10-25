@@ -14,7 +14,7 @@ IndexByLiteral(
             1,
         ),
         kind: Integer(
-            IntegerLiteral {
+            Integer {
                 value: Symbol(
                     "42",
                 ),

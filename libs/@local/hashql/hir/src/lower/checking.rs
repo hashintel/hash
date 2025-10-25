@@ -1,8 +1,7 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, HashMapExt as _},
-    literal::LiteralKind,
+    collections::{FastHashMap, FastHashSet, HashMapExt as _},
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -11,13 +10,14 @@ use hashql_core::{
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
-        PartialType, TypeBuilder, TypeId,
+        PartialType, TypeBuilder, TypeId, TypeIdMap,
         environment::{
             AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment, Variance,
         },
         error::TypeCheckDiagnosticIssues,
         kind::{PrimitiveType, TypeKind, generic::GenericArgumentReference},
     },
+    value::Primitive,
 };
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -32,7 +32,7 @@ use crate::{
     context::HirContext,
     lower::error::generic_argument_mismatch,
     node::{
-        HirId, HirPtr, Node,
+        HirId, HirIdMap, HirIdSet, HirPtr, Node,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -40,39 +40,40 @@ use crate::{
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::{Let, VarId},
+        r#let::{Let, VarIdMap},
         operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
 };
 
 pub struct TypeCheckingResidual<'heap> {
-    pub types: FastHashMap<HirId, TypeId>,
+    pub types: HirIdMap<TypeId>,
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
-    pub intrinsics: FastHashMap<HirId, &'static str>,
+    pub intrinsics: HirIdMap<&'static str>,
 }
 
 pub struct TypeChecking<'env, 'heap> {
     env: &'env Environment<'heap>,
     context: &'env HirContext<'env, 'heap>,
 
-    locals: FastHashMap<VarId, Local<'heap>>,
-    inference: FastHashMap<HirId, TypeId>,
-    intrinsics: FastHashMap<HirId, &'static str>,
+    locals: VarIdMap<Local<'heap>>,
+    inference: HirIdMap<TypeId>,
+    intrinsics: HirIdMap<&'static str>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
     analysis: AnalysisEnvironment<'env, 'heap>,
     simplify: SimplifyEnvironment<'env, 'heap>,
 
     current: HirPtr,
-    visited: FastHashSet<HirId>,
+    visited: HirIdSet,
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
 
-    types: FastHashMap<HirId, TypeId>,
+    types: HirIdMap<TypeId>,
     inputs: FastHashMap<Symbol<'heap>, TypeId>,
-    simplified: FastHashMap<TypeId, TypeId>,
+    simplified: TypeIdMap<TypeId>,
 }
 
 impl<'env, 'heap> TypeChecking<'env, 'heap> {
@@ -240,7 +241,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.current = previous;
     }
 
-    fn visit_literal(&mut self, _: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, _: &'heap Primitive<'heap>) {
         self.transfer_type(self.current.id);
     }
 
@@ -461,6 +462,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.verify_subtype(self.types[&closure.body.id], returns);
 
         self.types.insert_unique(self.current.id, inferred);
+    }
+
+    fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {
+        unreachable!("thunk operations shouldn't be present yet");
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {

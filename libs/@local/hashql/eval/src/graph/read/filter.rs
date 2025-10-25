@@ -3,9 +3,11 @@ use core::fmt::Debug;
 use hash_graph_store::filter::{Filter, FilterExpression, Parameter, QueryRecord};
 use hashql_hir::node::{
     Node,
+    call::{Call, PointerKind},
     kind::NodeKind,
     r#let::{Binding, Let},
     operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeOperation},
+    thunk::Thunk,
     variable::{LocalVariable, Variable},
 };
 
@@ -67,7 +69,6 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                 filter
             }
-
             NodeKind::Operation(Operation::Binary(BinaryOperation { op, left, right })) => {
                 let func = match op.value {
                     BinOp::And => {
@@ -122,6 +123,15 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 r#type: _,
                 force: _,
             }))) => self.compile_filter(context, value, sink),
+            NodeKind::Thunk(Thunk { body }) => self.compile_filter(context, body, sink),
+            NodeKind::Call(Call {
+                kind: PointerKind::Thin,
+                function,
+                arguments: _,
+            }) => {
+                // A thin call is a call to a thunk, so simply redirect to the thunks body
+                self.compile_filter(context, function, sink)
+            }
             // If we came to this match arm using these nodes, then that means that the filter
             // must have evaluated to a boolean expression. Therefore we can just check if the
             // expression evaluates to true.

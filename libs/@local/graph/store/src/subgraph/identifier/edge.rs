@@ -11,7 +11,7 @@ pub trait EdgeEndpoint {
     type RevisionId;
 
     fn base_id(&self) -> &Self::BaseId;
-    fn revision_id(&self) -> Self::RevisionId;
+    fn revision_id(&self) -> &Self::RevisionId;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ impl EdgeEndpoint for EntityIdWithInterval {
         &self.entity_id
     }
 
-    fn revision_id(&self) -> Self::RevisionId {
-        self.interval
+    fn revision_id(&self) -> &Self::RevisionId {
+        &self.interval
     }
 }

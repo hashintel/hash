@@ -39,7 +39,7 @@ use hash_graph_store::{
 };
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collection::fast_hash_map,
+    collections::fast_hash_map,
     heap::Heap,
     module::ModuleRegistry,
     span::{SpanId, SpanTable},

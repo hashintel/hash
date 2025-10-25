@@ -164,7 +164,9 @@ where
                     path: <R::QueryPath<'p>>::version(),
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(versioned_url.version),
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                        &versioned_url.version,
+                    )),
                     convert: None,
                 },
             ),
@@ -262,7 +264,7 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                     path: DataTypeQueryPath::Version,
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
                 },
             ),
@@ -497,7 +499,7 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     path: PropertyTypeQueryPath::Version,
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
                 },
             ),
@@ -651,7 +653,7 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     path: EntityTypeQueryPath::Version,
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(*version),
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(version)),
                     convert: None,
                 },
             ),
@@ -887,7 +889,9 @@ impl<'p> Filter<'p, Entity> {
                     },
                 },
                 FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(entity_type_id.version),
+                    parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                        &entity_type_id.version,
+                    )),
                     convert: None,
                 },
             ),
@@ -1423,7 +1427,10 @@ mod tests {
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
             )
             .expect("invalid base url"),
-            version: OntologyTypeVersion::new(1),
+            version: OntologyTypeVersion {
+                major: 1,
+                pre_release: None,
+            },
         };
 
         let expected = json!({

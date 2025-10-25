@@ -860,19 +860,20 @@ where
 
             old_property_type_ids.push(VersionedUrl {
                 base_url: parameters.schema.id.base_url.clone(),
-                version: OntologyTypeVersion::new(
-                    parameters
+                version: OntologyTypeVersion {
+                    major: parameters
                         .schema
                         .id
                         .version
-                        .inner()
+                        .major
                         .checked_sub(1)
                         .ok_or(UpdateError)
                         .attach(
                             "The version of the property type is already at the lowest possible \
                              value",
                         )?,
-                ),
+                    pre_release: None,
+                },
             });
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
