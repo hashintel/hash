@@ -4,6 +4,52 @@ import { calculateCircleMap } from "./calculate-circle-map";
 import type { ProcessPixelFunction } from "./process-pixel.type";
 
 /**
+ * Calculates the intersection point on the border of the rounded square,
+ * given by projecting a line from corner center through point (x, y), to the border.
+ *
+ * See this notebook: https://observablehq.com/d/879ebd7e070ed87c
+ */
+function calculateBorderIntersection(
+  radius: number,
+  cornerWidth: number,
+  x: number,
+  y: number
+) {
+  const angleStart = Math.atan2(cornerWidth - radius, cornerWidth);
+  const angleEnd = Math.atan2(cornerWidth, cornerWidth - radius);
+  const aperture = angleEnd - angleStart;
+
+  const pointAngleInSquare = Math.atan2(Math.abs(y), Math.abs(x));
+
+  if (pointAngleInSquare <= angleStart || pointAngleInSquare >= angleEnd) {
+    // Outside the cone
+    if (Math.abs(y) > Math.abs(x)) {
+      return [
+        Math.abs(x / y) * cornerWidth * Math.sign(x),
+        cornerWidth * Math.sign(y),
+      ] as const;
+    } else {
+      return [
+        cornerWidth * Math.sign(x),
+        Math.abs(y / x) * cornerWidth * Math.sign(y),
+      ] as const;
+    }
+  } else {
+    // Inside the cone
+    const pointAngleInCone =
+      (pointAngleInSquare - angleStart) / (aperture / (Math.PI / 2));
+
+    const intersectionX = Math.cos(pointAngleInCone);
+    const intersectionY = Math.sin(pointAngleInCone);
+
+    return [
+      (cornerWidth - radius + intersectionX * radius) * Math.sign(x),
+      (cornerWidth - radius + intersectionY * radius) * Math.sign(y),
+    ] as const;
+  }
+}
+
+/**
  * Generates a circular (or rounded rectangle) map and allows processing of each pixel.
  * Used by Diplacement and Specular maps.
  */
@@ -45,10 +91,6 @@ export function calculateRoundedSquareMap(props: {
   const radiusPlusOne = radius + 1;
   const radiusPlusOneSquared = radiusPlusOne ** 2;
 
-  const angleStart = Math.atan2(cornerWidth - radius, cornerWidth);
-  const angleEnd = Math.atan2(cornerWidth, cornerWidth - radius);
-  const aperture = angleEnd - angleStart;
-
   // Iterate over every pixel in the buffer
   for (let bufferY = 0; bufferY < height; bufferY++) {
     for (let bufferX = 0; bufferX < width; bufferX++) {
@@ -75,42 +117,13 @@ export function calculateRoundedSquareMap(props: {
         ? bufferY - cornerWidth - heightBetweenCorners
         : 0;
 
-      const pointAngleInSquare = Math.atan2(Math.abs(y), Math.abs(x));
-
-      function calculateBorderIntersection() {
-        if (
-          pointAngleInSquare <= angleStart ||
-          pointAngleInSquare >= angleEnd
-        ) {
-          // Outside the cone
-          if (Math.abs(y) > Math.abs(x)) {
-            return [
-              Math.abs(x / y) * cornerWidth * Math.sign(x),
-              cornerWidth * Math.sign(y),
-            ] as const;
-          } else {
-            return [
-              cornerWidth * Math.sign(x),
-              Math.abs(y / x) * cornerWidth * Math.sign(y),
-            ] as const;
-          }
-        } else {
-          // Inside the cone
-          const pointAngleInCone =
-            (pointAngleInSquare - angleStart) / (aperture / (Math.PI / 2));
-
-          const intersectionX = Math.cos(pointAngleInCone);
-          const intersectionY = Math.sin(pointAngleInCone);
-
-          return [
-            (cornerWidth - radius + intersectionX * radius) * Math.sign(x),
-            (cornerWidth - radius + intersectionY * radius) * Math.sign(y),
-          ] as const;
-        }
-      }
-
       // Find the intersection point on the border of the rounded square
-      const [intersectionX, intersectionY] = calculateBorderIntersection();
+      const [intersectionX, intersectionY] = calculateBorderIntersection(
+        radius,
+        cornerWidth,
+        x,
+        y
+      );
 
       const distanceToCenterSquared = x * x + y * y;
       const distanceToBorderSquared =
