@@ -29,7 +29,17 @@ export function calculateSpecularImage(props: {
     fillColor: 0x00000000,
     radius,
     maximumDistanceToBorder: NEAR_EDGE_DISTANCE * pixelRatio,
-    processPixel(x, y, buffer, offset, distanceFromCenter, opacity) {
+    processPixel(
+      x,
+      y,
+      buffer,
+      offset,
+      distanceFromCenter,
+      _distanceFromBorder,
+      _distanceFromBorderRatio,
+      _angle,
+      opacity
+    ) {
       const distanceFromSide = radius - distanceFromCenter;
 
       // Viewed from top
@@ -38,7 +48,7 @@ export function calculateSpecularImage(props: {
 
       // Dot product of orientation
       const dotProduct = Math.abs(
-        cos * specular_vector[0] + sin * specular_vector[1],
+        cos * specular_vector[0] + sin * specular_vector[1]
       );
 
       const coefficient =
