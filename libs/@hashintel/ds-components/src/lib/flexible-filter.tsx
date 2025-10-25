@@ -54,49 +54,49 @@ function splitImageDataToParts(props: {
     lateralPartSize,
     cornerWidth,
     cornerWidth,
-    0
+    0,
   );
   const topRight = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     cornerWidth + lateralPartSize,
-    0
+    0,
   );
   const left = imageDataToUrl(
     imageData,
     cornerWidth,
     lateralPartSize,
     0,
-    cornerWidth
+    cornerWidth,
   );
   const right = imageDataToUrl(
     imageData,
     cornerWidth,
     lateralPartSize,
     cornerWidth + lateralPartSize,
-    cornerWidth
+    cornerWidth,
   );
   const bottomLeft = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     0,
-    cornerWidth + lateralPartSize
+    cornerWidth + lateralPartSize,
   );
   const bottom = imageDataToUrl(
     imageData,
     lateralPartSize,
     cornerWidth,
     cornerWidth,
-    cornerWidth + lateralPartSize
+    cornerWidth + lateralPartSize,
   );
   const bottomRight = imageDataToUrl(
     imageData,
     cornerWidth,
     cornerWidth,
     cornerWidth + lateralPartSize,
-    cornerWidth + lateralPartSize
+    cornerWidth + lateralPartSize,
   );
 
   return {
@@ -154,7 +154,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
         imageData: imageData.get(),
         cornerWidth: cornerWidth.get(),
         pixelRatio,
-      })
+      }),
     );
 
     return (
@@ -269,7 +269,7 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
           ))}
       </>
     );
-  }
+  },
 );
 
 //
@@ -320,12 +320,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     // If bezelWidth < radius, corners will be in a circle shape
     // If bezelWidth >= radius, corners will be in a rounded square shape
     const cornerWidth = useTransform(() =>
-      Math.max(radius.get(), bezelWidth.get())
+      Math.max(radius.get(), bezelWidth.get()),
     );
 
     /** Calculated image will always be a square that contains 4 corners + {@link LATERAL_PART_SIZE} pixel for middle * */
     const imageSide = useTransform(
-      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE
+      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE,
     );
 
     const map = useTransform(() => {
@@ -333,12 +333,12 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         glassThickness.get(),
         bezelWidth.get(),
         bezelHeightFn,
-        refractiveIndex.get()
+        refractiveIndex.get(),
       );
     });
 
     const maximumDisplacement = useTransform(() =>
-      Math.max(...map.get().map(Math.abs))
+      Math.max(...map.get().map(Math.abs)),
     );
 
     const displacementMap = useTransform(() => {
@@ -364,7 +364,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
     });
 
     const scale = useTransform(
-      () => maximumDisplacement.get() * scaleRatio.get()
+      () => maximumDisplacement.get() * scaleRatio.get(),
     );
 
     const content = (
@@ -445,7 +445,7 @@ const FILTER: React.FC<FILTER_PROPS> = memo(
         <defs>{content}</defs>
       </svg>
     );
-  }
+  },
 );
 
 //
@@ -524,5 +524,5 @@ export const Filter: React.FC<FilterProps> = memo(
       hideRight={hideRight}
       hideTop={hideTop}
     />
-  )
+  ),
 );

@@ -49,16 +49,16 @@ export function calculateCircleMap(props: {
       const x = isOnLeftSide
         ? x1 - radius
         : isOnRightSide
-        ? x1 - radius - widthBetweenRadiuses
-        : 0;
+          ? x1 - radius - widthBetweenRadiuses
+          : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
       const y = isOnTopSide
         ? y1 - radius
         : isOnBottomSide
-        ? y1 - radius - heightBetweenRadiuses
-        : 0;
+          ? y1 - radius - heightBetweenRadiuses
+          : 0;
 
       const distanceToCenterSquared = x * x + y * y;
 
@@ -85,7 +85,7 @@ export function calculateCircleMap(props: {
           distanceFromBorder,
           distanceFromBorderRatio,
           angle,
-          opacity
+          opacity,
         );
       }
     }
