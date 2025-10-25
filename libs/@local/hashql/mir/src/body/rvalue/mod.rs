@@ -9,10 +9,10 @@ mod binary;
 mod input;
 mod unary;
 
-use self::input::Input;
 pub use self::{
     aggregate::{Aggregate, AggregateKind},
     binary::Binary,
+    input::Input,
     unary::Unary,
 };
 use crate::body::operand::Operand;

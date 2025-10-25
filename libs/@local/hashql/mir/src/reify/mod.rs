@@ -4,16 +4,22 @@ use hashql_core::{
     id::{IdCounter, IdVec},
     span::SpanId,
     symbol::Symbol,
-    r#type::{TypeId, environment::Environment},
+    r#type::environment::Environment,
 };
-use hashql_hir::node::{
-    Node,
-    access::{Access, FieldAccess, IndexAccess},
-    data::{Data, Dict, List, Struct, Tuple},
-    kind::NodeKind,
-    r#let::{Binding, Let, VarIdVec},
-    operation::{BinaryOperation, Operation, TypeConstructor, TypeOperation, UnaryOperation},
-    variable::Variable,
+use hashql_hir::{
+    context::HirContext,
+    node::{
+        Node,
+        access::{Access, FieldAccess, IndexAccess},
+        data::{Data, Dict, List, Struct, Tuple},
+        kind::NodeKind,
+        r#let::{Binding, Let, VarIdVec},
+        operation::{
+            BinaryOperation, InputOperation, Operation, TypeConstructor, TypeOperation,
+            UnaryOperation,
+        },
+        variable::Variable,
+    },
 };
 
 use crate::{
@@ -24,7 +30,7 @@ use crate::{
         local::Local,
         operand::Operand,
         place::{Place, Projection},
-        rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{Return, Terminator, TerminatorKind},
     },
@@ -32,22 +38,23 @@ use crate::{
     intern::Interner,
 };
 
-struct ReifyContext<'ctx, 'heap> {
-    bodies: &'ctx mut DefIdVec<Body<'heap>>,
-    interner: &'ctx Interner<'heap>,
-    environment: &'ctx Environment<'heap>,
+struct ReifyContext<'mir, 'hir, 'env, 'heap> {
+    bodies: &'mir mut DefIdVec<Body<'heap>>,
+    interner: &'mir Interner<'heap>,
+    environment: &'env Environment<'heap>,
+    hir: &'hir HirContext<'hir, 'heap>,
     heap: &'heap Heap,
 }
 
-struct BodyContext<'ctx, 'heap> {
-    blocks: &'ctx mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+struct BodyContext<'mir, 'heap> {
+    blocks: &'mir mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     locals: VarIdVec<Local>,
     counter: IdCounter<Local>,
 }
 
-struct BlockCompiler<'ctx, 'reify, 'heap> {
-    context: &'ctx mut ReifyContext<'reify, 'heap>,
-    blocks: &'ctx mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+struct BlockCompiler<'mir, 'hir, 'env, 'heap> {
+    context: &'mir mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+    blocks: &'mir mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     locals: VarIdVec<Option<Local>>,
 
     current_block: BasicBlock<'heap>,
@@ -56,8 +63,8 @@ struct BlockCompiler<'ctx, 'reify, 'heap> {
     result_into: Option<Local>, // if none it's a `Return` call
 }
 
-impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
-    fn compile_local(&self, node: &Node<'heap>) -> Local {
+impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
+    fn compile_local(&self, node: Node<'heap>) -> Local {
         match node.kind {
             NodeKind::Variable(Variable::Local(local)) => self.locals[local.id.value]
                 .unwrap_or_else(|| {
@@ -70,13 +77,24 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
         }
     }
 
-    fn compile_place(&self, node: &Node<'heap>) -> Place<'heap> {
+    fn compile_place(&self, node: Node<'heap>) -> Place<'heap> {
         let mut projections = Vec::new();
 
         let mut current = node;
         loop {
             match current.kind {
                 NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
+                    let type_id = self.context.hir.map.type_id(current.id);
+                    let r#type = self.context.environment.r#type(type_id);
+
+                    // TODO: what about union types? I mean intersection types don't survive this
+                    // stage / aren't accounted for, but selection over tuples/structs is possible.
+                    // Although one cannot access either/or, so a union of structs, or a union of
+                    // tuples, because numbers aren't valid field names.
+                    // So we would need to go through the type (which is simplified - so unions are
+                    // simplified into a single type as well) and check what it
+                    // is.
+
                     // TODO: this isn't correct, we need type information here to know *what* we're
                     // targetting, is it a (closed) struct, is it a tuple?
 
@@ -105,21 +123,21 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
         }
     }
 
-    fn compile_operand(&self, node: &Node<'heap>) -> Operand<'heap> {
+    fn compile_operand(&self, node: Node<'heap>) -> Operand<'heap> {
         match node.kind {
             NodeKind::Variable(Variable::Qualified(_)) => {
                 todo!("diagnostic: not supported (yet)") // <- would be an FnPtr
             }
-            &NodeKind::Data(Data::Primitive(primitive)) => {
+            NodeKind::Data(Data::Primitive(primitive)) => {
                 Operand::Constant(Constant::Primitive(primitive))
             }
             _ => Operand::Place(self.compile_place(node)),
         }
     }
 
-    fn compile_rvalue_data(&self, data: &Data<'heap>) -> RValue<'heap> {
+    fn compile_rvalue_data(&self, data: Data<'heap>) -> RValue<'heap> {
         match data {
-            &Data::Primitive(primitive) => {
+            Data::Primitive(primitive) => {
                 RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
             }
             Data::Struct(Struct { fields }) => {
@@ -128,7 +146,7 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
 
                 for field in fields {
                     field_names.push(field.name.value);
-                    operands.push(self.compile_operand(&field.value));
+                    operands.push(self.compile_operand(field.value));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -141,8 +159,8 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
             Data::Dict(Dict { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len() * 2, self.context.heap);
                 for field in fields {
-                    operands.push(self.compile_operand(&field.key));
-                    operands.push(self.compile_operand(&field.value));
+                    operands.push(self.compile_operand(field.key));
+                    operands.push(self.compile_operand(field.value));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -152,7 +170,7 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
             }
             Data::Tuple(Tuple { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
-                for field in fields {
+                for &field in fields {
                     operands.push(self.compile_operand(field));
                 }
 
@@ -163,7 +181,7 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
             }
             Data::List(List { elements }) => {
                 let mut operands = IdVec::with_capacity_in(elements.len(), self.context.heap);
-                for element in elements {
+                for &element in elements {
                     operands.push(self.compile_operand(element));
                 }
 
@@ -244,18 +262,14 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
     fn compile_rvalue_type_operation(
         &mut self,
         span: SpanId,
-        operation: &TypeOperation<'heap>,
+        operation: TypeOperation<'heap>,
     ) -> RValue<'heap> {
         match operation {
             TypeOperation::Assertion(_) => {
                 todo!("diagnostic: assertions no longer exist in HIR(ANF)")
             }
-            TypeOperation::Constructor(TypeConstructor {
-                name,
-                closure: _,
-                arguments: _,
-            }) => {
-                let def = self.compile_type_ctor(span, *name);
+            TypeOperation::Constructor(TypeConstructor { name }) => {
+                let def = self.compile_type_ctor(span, name);
                 RValue::Load(Operand::Constant(Constant::FnPtr(def)))
             }
         }
@@ -263,7 +277,7 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
 
     fn compile_rvalue_binary_operation(
         &self,
-        BinaryOperation { op, left, right }: &BinaryOperation<'heap>,
+        BinaryOperation { op, left, right }: BinaryOperation<'heap>,
     ) -> RValue<'heap> {
         let left = self.compile_operand(left);
         let right = self.compile_operand(right);
@@ -277,7 +291,7 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
 
     fn compile_rvalue_unary_operation(
         &self,
-        UnaryOperation { op, expr }: &UnaryOperation<'heap>,
+        UnaryOperation { op, expr }: UnaryOperation<'heap>,
     ) -> RValue<'heap> {
         let operand = self.compile_operand(expr);
 
@@ -287,10 +301,20 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
         })
     }
 
+    fn compile_rvalue_input_operation(
+        &self,
+        InputOperation { op, name }: InputOperation<'heap>,
+    ) -> RValue<'heap> {
+        RValue::Input(Input {
+            op: op.value,
+            name: name.value,
+        })
+    }
+
     fn compile_rvalue_operation(
         &mut self,
         span: SpanId,
-        operation: &Operation<'heap>,
+        operation: Operation<'heap>,
     ) -> RValue<'heap> {
         match operation {
             Operation::Type(type_operation) => {
@@ -302,6 +326,9 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
             Operation::Unary(unary_operation, _) => {
                 self.compile_rvalue_unary_operation(unary_operation)
             }
+            Operation::Input(input_operation) => {
+                self.compile_rvalue_input_operation(input_operation)
+            }
         }
     }
 
@@ -310,7 +337,6 @@ impl<'ctx, 'reify, 'heap> BlockCompiler<'ctx, 'reify, 'heap> {
             NodeKind::Data(data) => self.compile_rvalue_data(data),
             NodeKind::Variable(variable) => todo!(),
             NodeKind::Let(_) => unreachable!("HIR(ANF) does not have nested let bindings"),
-            NodeKind::Input(input) => todo!(), // Transform into INPUT_EXISTS + INPUT_LOAD calls
             NodeKind::Operation(operation) => {
                 self.compile_rvalue_operation(binding.value.span, operation)
             }
