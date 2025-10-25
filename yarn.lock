@@ -4881,7 +4881,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@rollup/plugin-commonjs": "npm:28.0.8"
     "@rollup/plugin-node-resolve": "npm:16.0.3"
-    "@rollup/plugin-typescript": "npm:12.1.4"
+    "@rollup/plugin-typescript": "npm:12.2.0"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.18.11"
     "@types/react": "npm:19.2.2"
@@ -13211,9 +13211,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rollup/plugin-typescript@npm:12.1.4":
-  version: 12.1.4
-  resolution: "@rollup/plugin-typescript@npm:12.1.4"
+"@rollup/plugin-typescript@npm:12.2.0":
+  version: 12.2.0
+  resolution: "@rollup/plugin-typescript@npm:12.2.0"
   dependencies:
     "@rollup/pluginutils": "npm:^5.1.0"
     resolve: "npm:^1.22.1"
@@ -13226,7 +13226,7 @@ __metadata:
       optional: true
     tslib:
       optional: true
-  checksum: 10c0/b5bf7f54794d0b33ae5441c5aa202a95beb7068c206f40102f94997e888756c06c2bfe00517eb74a58771078432f94e8a34e99f5c6dbf89a22b49431b83c4798
+  checksum: 10c0/67e3d637244273e6a60aa4a07dac9053d9f93710691f567050fd81e94d7a2a2611860ddd74faa4bbf216dac5fffea7b97448b7bcf41452ddb8c0df8e1994f73e
   languageName: node
   linkType: hard
 
@@ -16649,7 +16649,7 @@ __metadata:
     "@ory/client": "npm:1.1.41"
     "@rollup/plugin-commonjs": "npm:28.0.8"
     "@rollup/plugin-node-resolve": "npm:16.0.3"
-    "@rollup/plugin-typescript": "npm:12.1.4"
+    "@rollup/plugin-typescript": "npm:12.2.0"
     "@types/dotenv-flow": "npm:3.3.3"
     artillery: "npm:2.0.26"
     dotenv-flow: "npm:3.3.0"

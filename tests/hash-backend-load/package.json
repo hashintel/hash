@@ -52,7 +52,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-commonjs": "28.0.8",
     "@rollup/plugin-node-resolve": "16.0.3",
-    "@rollup/plugin-typescript": "12.1.4",
+    "@rollup/plugin-typescript": "12.2.0",
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.38.0",
     "rimraf": "6.0.1",
