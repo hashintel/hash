@@ -4,8 +4,6 @@
 //! of return values back to the calling context. They are the primary mechanism
 //! for functions to complete and provide results to their callers.
 
-use hashql_core::heap;
-
 use crate::body::operand::Operand;
 
 /// A return terminator in the HashQL MIR.
