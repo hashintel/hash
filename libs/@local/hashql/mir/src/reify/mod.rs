@@ -1,15 +1,15 @@
 #![expect(clippy::todo)]
-use core::{fmt::Pointer, iter, mem};
+use core::{iter, mem};
 
 use hashql_core::{
     collections::FastHashMap,
     heap::{self, Heap},
     id::{
-        Id, IdCounter, IdVec,
-        bit_vec::{BitRelations, MixedBitSet},
+        Id as _, IdCounter, IdVec,
+        bit_vec::{BitRelations as _, MixedBitSet},
     },
     span::{SpanId, Spanned},
-    symbol::{Symbol, SymbolTable},
+    symbol::Symbol,
     r#type::{
         Type, TypeId,
         environment::Environment,
@@ -34,7 +34,7 @@ use hashql_hir::{
         },
         variable::Variable,
     },
-    visit::Visitor,
+    visit::Visitor as _,
 };
 
 use crate::{
@@ -129,7 +129,7 @@ struct Rewire {
 }
 
 impl Rewire {
-    fn goto(id: BasicBlockId) -> Self {
+    const fn goto(id: BasicBlockId) -> Self {
         Self {
             kind: RewireKind::Goto,
             id,
@@ -244,7 +244,7 @@ struct ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'heap> {
 }
 
 impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'heap> {
-    pub fn new(
+    const fn new(
         context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
         state: &'ctx mut CrossCompileState<'heap>,
     ) -> Self {
@@ -259,7 +259,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_local(&self, node: Node<'heap>) -> Local {
+    fn local(&self, node: Node<'heap>) -> Local {
         match node.kind {
             NodeKind::Variable(Variable::Local(local)) => self.locals[local.id.value]
                 .unwrap_or_else(|| {
@@ -272,7 +272,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_place(&self, node: Node<'heap>) -> Place<'heap> {
+    fn place(&self, node: Node<'heap>) -> Place<'heap> {
         let mut projections = Vec::new();
 
         let mut current = node;
@@ -322,7 +322,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                     current = expr;
                 }
                 NodeKind::Access(Access::Index(IndexAccess { expr, index })) => {
-                    projections.push(Projection::Index(self.compile_local(index)));
+                    projections.push(Projection::Index(self.local(index)));
                     current = expr;
                 }
                 _ => break,
@@ -330,7 +330,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
 
         // At this point the variable *must* be a local, due to HIR(ANF) rules
-        let local = self.compile_local(current);
+        let local = self.local(current);
         // projections are built outside -> inside, we need to reverse them
         projections.reverse();
 
@@ -340,7 +340,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_operand(&self, node: Node<'heap>) -> Operand<'heap> {
+    fn operand(&self, node: Node<'heap>) -> Operand<'heap> {
         match node.kind {
             NodeKind::Variable(Variable::Qualified(_)) => {
                 todo!("diagnostic: not supported (yet)") // <- would be an FnPtr
@@ -348,7 +348,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             NodeKind::Data(Data::Primitive(primitive)) => {
                 Operand::Constant(Constant::Primitive(primitive))
             }
-            _ => Operand::Place(self.compile_place(node)),
+            NodeKind::Variable(Variable::Local(local))
+                if let Some(&ptr) = self.state.thunks.get(&local.id.value) =>
+            {
+                Operand::Constant(Constant::FnPtr(ptr))
+            }
+            _ => Operand::Place(self.place(node)),
         }
     }
 
@@ -363,7 +368,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
 
                 for field in fields {
                     field_names.push(field.name.value);
-                    operands.push(self.compile_operand(field.value));
+                    operands.push(self.operand(field.value));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -376,8 +381,8 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             Data::Dict(Dict { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len() * 2, self.context.heap);
                 for field in fields {
-                    operands.push(self.compile_operand(field.key));
-                    operands.push(self.compile_operand(field.value));
+                    operands.push(self.operand(field.key));
+                    operands.push(self.operand(field.value));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -388,7 +393,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             Data::Tuple(Tuple { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
                 for &field in fields {
-                    operands.push(self.compile_operand(field));
+                    operands.push(self.operand(field));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -399,7 +404,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             Data::List(List { elements }) => {
                 let mut operands = IdVec::with_capacity_in(elements.len(), self.context.heap);
                 for &element in elements {
-                    operands.push(self.compile_operand(element));
+                    operands.push(self.operand(element));
                 }
 
                 RValue::Aggregate(Aggregate {
@@ -410,7 +415,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_rvalue_type_operation(
+    fn rvalue_type_operation(
         &mut self,
         hir_id: HirId,
         span: SpanId,
@@ -429,17 +434,26 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                 let ptr = compiler.compile_ctor(hir_id, span, ctor);
                 self.state.ctor.insert(name, ptr);
 
-                RValue::Load(Operand::Constant(Constant::FnPtr(ptr)))
+                let ptr = Operand::Constant(Constant::FnPtr(ptr));
+                let env = Operand::Constant(Constant::Unit);
+                let mut operands = IdVec::with_capacity_in(2, self.context.heap);
+                operands.push(ptr);
+                operands.push(env);
+
+                RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Closure,
+                    operands,
+                })
             }
         }
     }
 
-    fn compile_rvalue_binary_operation(
+    fn rvalue_binary_operation(
         &self,
         BinaryOperation { op, left, right }: BinaryOperation<'heap>,
     ) -> RValue<'heap> {
-        let left = self.compile_operand(left);
-        let right = self.compile_operand(right);
+        let left = self.operand(left);
+        let right = self.operand(right);
 
         RValue::Binary(Binary {
             op: op.value,
@@ -448,11 +462,11 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         })
     }
 
-    fn compile_rvalue_unary_operation(
+    fn rvalue_unary_operation(
         &self,
         UnaryOperation { op, expr }: UnaryOperation<'heap>,
     ) -> RValue<'heap> {
-        let operand = self.compile_operand(expr);
+        let operand = self.operand(expr);
 
         RValue::Unary(Unary {
             op: op.value,
@@ -460,7 +474,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         })
     }
 
-    const fn compile_rvalue_input_operation(
+    const fn rvalue_input_operation(
         InputOperation { op, name }: InputOperation<'heap>,
     ) -> RValue<'heap> {
         RValue::Input(Input {
@@ -477,29 +491,23 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     ) -> RValue<'heap> {
         match operation {
             Operation::Type(type_operation) => {
-                self.compile_rvalue_type_operation(hir_id, span, type_operation)
+                self.rvalue_type_operation(hir_id, span, type_operation)
             }
-            Operation::Binary(binary_operation) => {
-                self.compile_rvalue_binary_operation(binary_operation)
-            }
-            Operation::Unary(unary_operation, _) => {
-                self.compile_rvalue_unary_operation(unary_operation)
-            }
-            Operation::Input(input_operation) => {
-                Self::compile_rvalue_input_operation(input_operation)
-            }
+            Operation::Binary(binary_operation) => self.rvalue_binary_operation(binary_operation),
+            Operation::Unary(unary_operation, _) => self.rvalue_unary_operation(unary_operation),
+            Operation::Input(input_operation) => Self::rvalue_input_operation(input_operation),
         }
     }
 
     fn rvalue_variable(&self, node: Node<'heap>) -> RValue<'heap> {
-        RValue::Load(self.compile_operand(node))
+        RValue::Load(self.operand(node))
     }
 
     fn rvalue_access(&self, node: Node<'heap>) -> RValue<'heap> {
-        RValue::Load(self.compile_operand(node))
+        RValue::Load(self.operand(node))
     }
 
-    fn compile_rvalue_call_thin(
+    fn rvalue_call_thin(
         &self,
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
@@ -507,25 +515,25 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         let mut arguments = IdVec::with_capacity_in(call_arguments.len(), self.context.heap);
 
         for CallArgument { span: _, value } in call_arguments {
-            arguments.push(self.compile_operand(*value));
+            arguments.push(self.operand(*value));
         }
 
         // A thin call is very simple, as the calling convention means that we do not need to worry
         // about the environment (which would be the first argument).
         RValue::Apply(Apply {
-            function: self.compile_operand(function),
+            function: self.operand(function),
             arguments,
         })
     }
 
-    fn compile_rvalue_call_fat(
+    fn rvalue_call_fat(
         &self,
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
         // The argument to a fat call *must* be a place, it cannot be a constant, because a constant
         // cannot represent a fat-pointer, which is only constructed using an aggregate.
-        let function = match self.compile_operand(function) {
+        let function = match self.operand(function) {
             Operand::Place(place) => place,
             Operand::Constant(_) => todo!("diagnostic: fat calls on constants are not supported"),
         };
@@ -542,7 +550,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         arguments.push(Operand::Place(environment));
 
         for CallArgument { span: _, value } in call_arguments {
-            arguments.push(self.compile_operand(*value));
+            arguments.push(self.operand(*value));
         }
 
         RValue::Apply(Apply {
@@ -560,8 +568,8 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }: Call<'heap>,
     ) -> RValue<'heap> {
         match kind {
-            PointerKind::Fat => self.compile_rvalue_call_fat(function, &arguments),
-            PointerKind::Thin => self.compile_rvalue_call_thin(function, &arguments),
+            PointerKind::Fat => self.rvalue_call_fat(function, &arguments),
+            PointerKind::Thin => self.rvalue_call_thin(function, &arguments),
         }
     }
 
@@ -595,7 +603,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         span: SpanId,
         branch::If { test, then, r#else }: branch::If<'heap>,
     ) {
-        let test = self.compile_operand(test);
+        let test = self.operand(test);
 
         let (then, then_operand) = self.compile_node(then);
         let (r#else, else_operand) = self.compile_node(r#else);
@@ -750,7 +758,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
 
         // body is always an anf atom, therefore compile to operand
         Spanned {
-            value: self.compile_operand(body),
+            value: self.operand(body),
             span: body.span,
         }
     }
@@ -775,9 +783,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     ) -> DefId {
         let mut args = 0;
 
-        // Create the parameters for the function, if thin we have a first (%0) that is the
-        // environment
-        let env = if source == Source::Closure {
+        // Closures and type constructors are fat pointers, the reason is that they are
+        // constructible by users and therefore always correspond to a fat call.
+        // In the future we might want to specialize `ctor` in a way that allows us to move them to
+        // `ctor` (although that would require that we move functions into a separate type from
+        // closures).
+        let env = if matches!(source, Source::Closure | Source::Ctor(_)) {
             let local = self.local_counter.next();
             args += 1;
 
@@ -870,44 +881,38 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             Some(VarId::new(0))
         };
 
-        self.compile_impl(
-            Source::Ctor(ctor.name),
-            span,
-            param.into_iter(),
-            None,
-            |this, block| {
-                let output = this.local_counter.next();
-                let lhs = Place::local(output, this.context.interner);
+        self.compile_impl(Source::Ctor(ctor.name), span, param, None, |this, block| {
+            let output = this.local_counter.next();
+            let lhs = Place::local(output, this.context.interner);
 
-                let operand = if let Some(param) = param {
-                    Operand::Place(Place::local(
-                        this.locals[param]
-                            .unwrap_or_else(|| unreachable!("We just verified this local exists")),
-                        this.context.interner,
-                    ))
-                } else {
-                    Operand::Constant(Constant::Unit)
-                };
+            let operand = if let Some(param) = param {
+                Operand::Place(Place::local(
+                    this.locals[param]
+                        .unwrap_or_else(|| unreachable!("We just verified this local exists")),
+                    this.context.interner,
+                ))
+            } else {
+                Operand::Constant(Constant::Unit)
+            };
 
-                let mut operands = IdVec::with_capacity_in(1, this.context.heap);
-                operands.push(operand);
+            let mut operands = IdVec::with_capacity_in(1, this.context.heap);
+            operands.push(operand);
 
-                let rhs = RValue::Aggregate(Aggregate {
-                    kind: AggregateKind::Opaque(ctor.name),
-                    operands,
-                });
+            let rhs = RValue::Aggregate(Aggregate {
+                kind: AggregateKind::Opaque(ctor.name),
+                operands,
+            });
 
-                block.push_statement(Statement {
-                    span,
-                    kind: StatementKind::Assign(Assign { lhs, rhs }),
-                });
+            block.push_statement(Statement {
+                span,
+                kind: StatementKind::Assign(Assign { lhs, rhs }),
+            });
 
-                Spanned {
-                    value: Operand::Place(lhs),
-                    span,
-                }
-            },
-        )
+            Spanned {
+                value: Operand::Place(lhs),
+                span,
+            }
+        })
     }
 }
 
