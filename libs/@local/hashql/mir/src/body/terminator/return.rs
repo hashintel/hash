@@ -27,7 +27,7 @@ use crate::body::operand::Operand;
 /// When executed, a return terminator issues an [`RValue::Load`] operation for every operand.
 ///
 /// [`RValue::Load`]: crate::body::rvalue::RValue::Load
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Return<'heap> {
     /// The return values to provide to the calling context.
     ///
@@ -41,5 +41,5 @@ pub struct Return<'heap> {
     /// - **Single value**: Most functions return one value
     /// - **Multiple values**: Functions can return tuple-like multiple values
     /// - **No values**: Empty collection represents unit/void return type
-    pub values: heap::Box<'heap, [Operand<'heap>]>,
+    pub value: Operand<'heap>,
 }

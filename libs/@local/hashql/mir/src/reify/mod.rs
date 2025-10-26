@@ -1,10 +1,11 @@
 #![expect(clippy::todo)]
 use core::{iter, mem};
+use std::assert_matches::debug_assert_matches;
 
 use hashql_core::{
     heap::{self, Heap},
     id::{IdCounter, IdVec},
-    span::SpanId,
+    span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
         Type, TypeId,
@@ -17,6 +18,7 @@ use hashql_hir::{
     node::{
         HirId, Node,
         access::{Access, FieldAccess, IndexAccess},
+        branch,
         call::{Call, CallArgument, PointerKind},
         data::{Data, Dict, List, Struct, Tuple},
         kind::NodeKind,
@@ -39,7 +41,7 @@ use crate::{
         place::{FieldIndex, Place, Projection},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
-        terminator::{Return, Terminator, TerminatorKind},
+        terminator::{Branch, Goto, Return, Target, Terminator, TerminatorKind},
     },
     def::{DefId, DefIdVec},
     intern::Interner,
@@ -117,14 +119,13 @@ fn unwrap_closure_type<'heap>(type_id: TypeId, env: &Environment<'heap>) -> Clos
 
 struct BlockCompiler<'mir, 'hir, 'env, 'heap> {
     context: &'mir mut ReifyContext<'mir, 'hir, 'env, 'heap>,
-    blocks: &'mir mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+    blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     locals: VarIdVec<Option<Local>>,
     local_counter: IdCounter<Local>,
+    // current_block: BasicBlock<'heap>,
+    // current_block_id: Option<BasicBlockId>,
 
-    current_block: BasicBlock<'heap>,
-    current_block_id: Option<BasicBlockId>,
-
-    result_into: Option<Local>, // if none it's a `Return` call
+    // result_into: Option<Local>, // if none it's a `Return` call
 }
 
 impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
@@ -495,25 +496,76 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
         }
     }
 
-    fn finish_block(&mut self, terminator: Terminator<'heap>, params: &[Local]) -> BasicBlockId {
-        self.current_block.terminator = terminator;
-        let block = mem::replace(
-            &mut self.current_block,
-            BasicBlock {
-                params: self.context.interner.locals.intern_slice(params),
-                statements: Vec::new_in(self.context.heap),
-                terminator: Terminator {
-                    span: SpanId::SYNTHETIC,
-                    kind: TerminatorKind::Unreachable,
-                },
-            },
-        );
-        let id = self.blocks.push(block);
+    // fn finish_block(&mut self, terminator: Terminator<'heap>, params: &[Local]) -> BasicBlockId {
+    //     self.current_block.terminator = terminator;
+    //     let block = mem::replace(
+    //         &mut self.current_block,
+    //         BasicBlock {
+    //             params: self.context.interner.locals.intern_slice(params),
+    //             statements: Vec::new_in(self.context.heap),
+    //             terminator: Terminator {
+    //                 span: SpanId::SYNTHETIC,
+    //                 kind: TerminatorKind::Unreachable,
+    //             },
+    //         },
+    //     );
+    //     let id = self.blocks.push(block);
 
-        *self.current_block_id.get_or_insert(id)
+    //     *self.current_block_id.get_or_insert(id)
+    // }
+
+    fn terminator_goto(&self, block: &mut BasicBlock<'heap>, operand: Spanned<Operand<'heap>>) {
+        block.terminator = Terminator {
+            span: operand.span,
+            kind: TerminatorKind::Goto(Goto {
+                target: Target {
+                    block: (),
+                    args: self
+                        .context
+                        .interner
+                        .operands
+                        .intern_slice(&[operand.value]),
+                },
+            }),
+        }
     }
 
-    fn compile_binding(&mut self, binding: &Binding<'heap>) {
+    fn compile_branch_if(
+        &mut self,
+        block: &mut BasicBlock<'heap>,
+        rewire_goto: &mut Vec<BasicBlockId>,
+        span: SpanId,
+        branch::If { test, then, r#else }: branch::If<'heap>,
+    ) {
+        let test = self.compile_operand(test);
+
+        let (mut then, then_operand) = self.compile_node(then);
+        let (mut r#else, else_operand) = self.compile_node(r#else);
+
+        // We now need to wire *both* to be goto to the next block
+        self.terminator_goto(&mut then, then_operand);
+        self.terminator_goto(&mut r#else, else_operand);
+
+        let then = self.blocks.push(then);
+        let r#else = self.blocks.push(r#else);
+
+        // finish of the current block with a terminator
+        debug_assert_eq!(block.terminator.kind, TerminatorKind::Unreachable);
+        block.terminator = Terminator {
+            span,
+            kind: TerminatorKind::Branch(Branch {
+                test,
+                then: Target::block(then, self.context.interner),
+                r#else: Target::block(r#else, self.context.interner),
+            }),
+        }
+
+        // Create a new block
+    }
+
+    fn compile_branch(&mut self, block: &mut BasicBlock<'heap>, branch: branch::Branch<'heap>) {}
+
+    fn compile_binding(&mut self, block: &mut BasicBlock<'heap>, binding: &Binding<'heap>) {
         let local = self.local_counter.next();
         self.locals.insert(binding.binder.id, local);
 
@@ -536,7 +588,7 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
             NodeKind::Graph(graph) => todo!(), // this turns into a terminator
         };
 
-        self.current_block.statements.push(Statement {
+        block.statements.push(Statement {
             span: binding.span,
             kind: StatementKind::Assign(Assign {
                 lhs: Place {
@@ -546,6 +598,38 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
                 rhs: rvalue,
             }),
         });
+    }
+
+    fn compile_node(&mut self, node: Node<'heap>) -> (BasicBlock<'heap>, Spanned<Operand<'heap>>) {
+        // The code is in ANF, so either the body is an atom *or* a set of let bindings
+        let (bindings, body) = match node.kind {
+            NodeKind::Let(Let { bindings, body }) => (bindings.0, body),
+            _ => (&[] as &[_], node),
+        };
+
+        // Create a new block, that we're going to be using for all our data
+        let mut block = BasicBlock {
+            params: self.context.interner.locals.intern_slice(&[]),
+            statements: heap::Vec::new_in(self.context.heap),
+            terminator: Terminator {
+                span: node.span,
+                kind: TerminatorKind::Unreachable,
+            },
+        };
+
+        for binding in bindings {
+            self.compile_binding(&mut block, binding);
+        }
+
+        // body is always an anf atom, therefore compile to operand
+        let body = Spanned {
+            value: self.compile_operand(body),
+            span: body.span,
+        };
+
+        // The final terminator is still set to `Unreachable`, the caller must set the goto if
+        // required
+        return (block, body);
     }
 }
 

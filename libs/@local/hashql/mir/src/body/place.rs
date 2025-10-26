@@ -46,6 +46,13 @@ pub struct Place<'heap> {
 }
 
 impl<'heap> Place<'heap> {
+    pub fn local(local: Local, interner: &Interner<'heap>) -> Self {
+        Self {
+            local,
+            projections: interner.projections.intern_slice(&[]),
+        }
+    }
+
     #[must_use]
     pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
         let mut projections = self.projections.to_vec();
