@@ -259,8 +259,8 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
 }
 
 pub struct Thunks {
-    // Thunks are very sparse, as we do not allow for nested thunks, therefore we can safely use a
-    // vector here without blowing up memory usage.
+    // Thunks are very sparse, and are always only the first few ids, as we do not allow for nested
+    // thunks, therefore we can safely use a vector here without blowing up memory usage.
     defs: VarIdVec<Option<DefId>>,
     set: MixedBitSet<VarId>,
 }
@@ -1012,7 +1012,6 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
 
         let body = on_block(&mut self, &mut block);
-        // let body = self.compile_body(&mut block, node);
 
         block.finish(
             Terminator {
