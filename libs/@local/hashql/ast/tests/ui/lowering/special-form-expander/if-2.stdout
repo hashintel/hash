@@ -4,9 +4,9 @@ Expr#4294967040@12
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8
-            LiteralKind (True)
+            Primitive (True)
       Expr#4294967040@11
         ExprKind (Literal)
           LiteralExpr#4294967040@10
-            LiteralKind (Integer)
-              IntegerLiteral (1)
+            Primitive (Integer)
+              Integer (1)

@@ -3,14 +3,10 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Rejects dict entry with too many items in array format
 expression: "{\"#dict\": [\n            [{\"#literal\": \"key1\"}, {\"#literal\": \"value1\"}, {\"#literal\": \"extra\"}]\n        ]}"
 ---
-[31m[parser::object::dict-entry-too-many-items] Error:[0m Too many items in dictionary entry
-   ╭─[ <unknown>:2:60 ]
-   │
- 2 │             [{"#literal": "key1"}, {"#literal": "value1"}, {"#literal": "extra"}]
-   │                                                            ──────────┬──────────  
-   │                                                                      ╰──────────── Remove this element
-   │ 
-   │ Help: Dictionary entries must contain exactly 2 items (key and value), but found 3
-   │ 
-   │ Note: Dictionary entries must have exactly two elements: a key and a value.
-───╯
+error[parser::object::dict-entry-too-many-items]: Too many items in dictionary entry
+  ╭▸ 
+2 │             [{"#literal": "key1"}, {"#literal": "value1"}, {"#literal": "extra"}]
+  │                                                            ━━━━━━━━━━━━━━━━━━━━━ Remove this element
+  │
+  ├ help: Dictionary entries must contain exactly 2 items (key and value), but found 3
+  ╰ note: Dictionary entries must have exactly two elements: a key and a value.

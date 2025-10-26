@@ -7,10 +7,14 @@ use hashql_ast::node::{
         call::{Argument, LabeledArgument},
     },
     id::NodeId,
+    path::{Path, PathSegment},
 };
 
 use self::{
-    error::{empty, labeled_argument_invalid_identifier, labeled_argument_missing_prefix},
+    error::{
+        empty, labeled_argument_invalid_identifier, labeled_argument_missing_prefix,
+        labeled_arguments_length_mismatch,
+    },
     visit::visit_array,
 };
 use super::{error::ParserDiagnostic, string::parse_ident_labelled_argument_from_string};
@@ -24,10 +28,64 @@ use crate::{
     span::Span,
 };
 
+fn parse_labelled_argument_shorthand<'heap>(
+    state: &mut ParserState<'heap, '_, '_>,
+) -> Result<Vec<LabeledArgument<'heap>>, ParserDiagnostic> {
+    let token = state
+        .advance(SyntaxKind::String)
+        .change_category(From::from)?;
+
+    let TokenKind::String(value) = token.kind else {
+        unreachable!()
+    };
+
+    let token_span = state.insert_range(token.span);
+    let key = match parse_ident_labelled_argument_from_string(state, token_span, &value) {
+        Ok(value) => value,
+        Err(error) => {
+            let error = (error.offset(), error.into_inner());
+
+            return Err(
+                labeled_argument_invalid_identifier(state.spans(), token_span, error)
+                    .map_category(From::from),
+            );
+        }
+    };
+
+    Ok(vec![LabeledArgument {
+        id: NodeId::PLACEHOLDER,
+        span: token_span,
+        label: key,
+        value: Argument {
+            id: NodeId::PLACEHOLDER,
+            span: token_span,
+            value: state.heap().boxed(Expr {
+                id: NodeId::PLACEHOLDER,
+                span: token_span,
+                kind: ExprKind::Path(Path {
+                    id: NodeId::PLACEHOLDER,
+                    span: token_span,
+                    rooted: false,
+                    segments: {
+                        let mut segments = state.heap().vec(Some(1));
+                        segments.push(PathSegment {
+                            id: NodeId::PLACEHOLDER,
+                            span: token_span,
+                            name: key,
+                            arguments: state.heap().vec(Some(0)),
+                        });
+                        segments
+                    },
+                }),
+            }),
+        },
+    }])
+}
+
 // Peek twice, we know if it's a labeled argument if the first token is `{` and the second a
 // string that starts with `:`.
 fn parse_labelled_argument<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<Option<Vec<LabeledArgument<'heap>>>, ParserDiagnostic> {
     let Some(peek1) = state
         .peek()
@@ -35,6 +93,14 @@ fn parse_labelled_argument<'heap>(
     else {
         return Ok(None);
     };
+
+    // absolute paths start with `::`, so ignore them
+    if let TokenKind::String(peek1) = &peek1.kind
+        && peek1.starts_with(':')
+        && !peek1.starts_with("::")
+    {
+        return parse_labelled_argument_shorthand(state).map(Some);
+    }
 
     if peek1.kind.syntax() != SyntaxKind::LBrace {
         return Ok(None);
@@ -61,7 +127,7 @@ fn parse_labelled_argument<'heap>(
 
     let mut labeled_arguments = Vec::new();
 
-    visit_object(state, token, |state, key| {
+    let range = visit_object(state, token, |state, key| {
         if !key.value.starts_with(':') {
             return Err(
                 labeled_argument_missing_prefix(state.insert_range(key.span), key.value)
@@ -75,6 +141,7 @@ fn parse_labelled_argument<'heap>(
         let key = match parse_ident_labelled_argument_from_string(state, key_span, &key.value) {
             Ok(value) => value,
             Err(error) => {
+                let error = (error.offset(), error.into_inner());
                 return Err(
                     labeled_argument_invalid_identifier(state.spans(), key_span, error)
                         .map_category(From::from),
@@ -99,11 +166,23 @@ fn parse_labelled_argument<'heap>(
         Ok(())
     })?;
 
+    if labeled_arguments.len() != 1 {
+        return Err(labeled_arguments_length_mismatch(
+            state.insert_range(range),
+            labeled_arguments
+                .iter()
+                .skip(1)
+                .map(|argument| argument.span),
+            labeled_arguments.len(),
+        )
+        .map_category(From::from));
+    }
+
     Ok(Some(labeled_arguments))
 }
 
 pub(crate) fn parse_array<'heap, 'source>(
-    state: &mut ParserState<'heap, 'source>,
+    state: &mut ParserState<'heap, 'source, '_>,
     token: Token<'source>,
 ) -> Result<Expr<'heap>, ParserDiagnostic> {
     debug_assert_eq!(token.kind.syntax(), SyntaxKind::LBracket);
@@ -138,7 +217,6 @@ pub(crate) fn parse_array<'heap, 'source>(
     let span = state.insert_span(Span {
         range: span,
         pointer: Some(state.current_pointer()),
-        parent_id: None,
     });
 
     let Some(function) = function else {
@@ -209,6 +287,50 @@ mod tests {
             description => "Parses a function call with labeled arguments"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_labeled_arguments_shorthand() {
+        // Function call with labeled arguments
+        let result = run_array(r#"["greet", "age", ":name"]"#).expect("should parse successfully");
+
+        with_settings!({
+            description => "Parses a function call with labeled arguments"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_multiple_labeled_arguments() {
+        // Function call with labeled arguments
+        let error = run_array(
+            r##"
+                ["greet",
+                    {":age": {"#literal": 30},
+                     ":gender": {"#literal": "non-binary"}
+                    }
+                ]"##,
+        )
+        .expect_err("should fail to parse");
+
+        with_settings!({
+            description => "Multiple labeled arguments cannot exist in a single object"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_empty_object() {
+        // Function call with labeled arguments
+        let error = run_array(r#"["greet", {}]"#).expect_err("should fail to parse");
+
+        with_settings!({
+            description => "Empty objects are not allowed"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
         });
     }
 

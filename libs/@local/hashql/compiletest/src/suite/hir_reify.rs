@@ -1,4 +1,7 @@
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::{
+    lowering::{ExtractedTypes, lower},
+    node::expr::Expr,
+};
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
@@ -6,9 +9,30 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
-use hashql_hir::{intern::Interner, node::Node};
+use hashql_hir::{
+    context::HirContext, intern::Interner, node::Node, pretty::PrettyPrintEnvironment,
+};
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{Suite, SuiteDiagnostic, common::process_status};
+
+pub(crate) fn hir_reify<'heap>(
+    heap: &'heap Heap,
+    mut expr: Expr<'heap>,
+    environment: &Environment<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    diagnostics: &mut Vec<SuiteDiagnostic>,
+) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
+    let result = lower(
+        heap.intern_symbol("::main"),
+        &mut expr,
+        environment,
+        context.modules,
+    );
+    let types = process_status(diagnostics, result)?;
+
+    let node = process_status(diagnostics, Node::from_ast(expr, context, &types))?;
+    Ok((node, types))
+}
 
 pub(crate) struct HirReifySuite;
 
@@ -20,29 +44,24 @@ impl Suite for HirReifySuite {
     fn run<'heap>(
         &self,
         heap: &'heap Heap,
-        mut expr: Expr<'heap>,
+        expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
-
-        let (types, lower_diagnostics) = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
-            &environment,
-            &registry,
-        );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
-
         let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
+        let mut context = HirContext::new(&interner, &registry);
 
-        let node = node.expect("should be `Some` if there are non-fatal errors");
+        let (node, _) = hir_reify(heap, expr, &environment, &mut context, diagnostics)?;
 
         Ok(node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
+            .pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color(),
+            )
             .to_string())
     }
 }

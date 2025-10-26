@@ -21,15 +21,12 @@
 
 use core::fmt::{self, Display, Formatter, FormattingOptions};
 
-use hashql_core::{
-    literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
-    span::SpanId,
-};
+use hashql_core::{span::SpanId, value};
 
 use crate::node::{
     expr::{
-        CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr, InputExpr,
-        IsExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
+        AsExpr, CallExpr, ClosureExpr, DictExpr, Expr, ExprKind, FieldExpr, IfExpr, IndexExpr,
+        InputExpr, LetExpr, ListExpr, LiteralExpr, NewTypeExpr, StructExpr, TupleExpr, TypeExpr,
         UseExpr,
         call::{Argument, LabeledArgument},
         closure::{ClosureParam, ClosureSignature},
@@ -280,73 +277,65 @@ impl_syntax_dump!(struct TupleExpr(); []elements ?r#type);
 impl_syntax_dump!(struct ListElement(); value);
 impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
 
-impl SyntaxDump for FloatLiteral<'_> {
+impl SyntaxDump for value::Float<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { value } = self;
-
         write_header(
             fmt,
             depth,
-            "FloatLiteral",
+            "Float",
             None,
             None,
-            Some(&format!("{value}")),
+            Some(&format!("{}", self.as_symbol())),
         )
     }
 }
 
-impl SyntaxDump for IntegerLiteral<'_> {
+impl SyntaxDump for value::Integer<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { value } = self;
-
         write_header(
             fmt,
             depth,
-            "IntegerLiteral",
+            "Integer",
             None,
             None,
-            Some(&format!("{value}")),
+            Some(&format!("{}", self.as_symbol())),
         )
     }
 }
 
-impl SyntaxDump for StringLiteral<'_> {
+impl SyntaxDump for value::String<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
-        let Self { value } = self;
-
         write_header(
             fmt,
             depth,
-            "StringLiteral",
+            "String",
             None,
             None,
-            Some(&format!("{value}")),
+            Some(&format!("{}", self.as_symbol())),
         )
     }
 }
 
-impl SyntaxDump for LiteralKind<'_> {
+impl SyntaxDump for value::Primitive<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
-            Self::Null => write_header(fmt, depth, "LiteralKind", None, None, Some("Null")),
-            Self::Boolean(true) => {
-                write_header(fmt, depth, "LiteralKind", None, None, Some("True"))
-            }
+            Self::Null => write_header(fmt, depth, "Primitive", None, None, Some("Null")),
+            Self::Boolean(true) => write_header(fmt, depth, "Primitive", None, None, Some("True")),
             Self::Boolean(false) => {
-                write_header(fmt, depth, "LiteralKind", None, None, Some("False"))
+                write_header(fmt, depth, "Primitive", None, None, Some("False"))
             }
             Self::Float(float) => {
-                write_header(fmt, depth, "LiteralKind", None, None, Some("Float"))?;
+                write_header(fmt, depth, "Primitive", None, None, Some("Float"))?;
 
                 float.syntax_dump(fmt, depth + 1)
             }
             Self::Integer(integer) => {
-                write_header(fmt, depth, "LiteralKind", None, None, Some("Integer"))?;
+                write_header(fmt, depth, "Primitive", None, None, Some("Integer"))?;
 
                 integer.syntax_dump(fmt, depth + 1)
             }
             Self::String(string) => {
-                write_header(fmt, depth, "LiteralKind", None, None, Some("String"))?;
+                write_header(fmt, depth, "Primitive", None, None, Some("String"))?;
 
                 string.syntax_dump(fmt, depth + 1)
             }
@@ -429,7 +418,7 @@ impl_syntax_dump!(struct ClosureExpr(); signature body);
 #[rustfmt::skip]
 impl_syntax_dump!(struct IfExpr(); test then ?r#else);
 
-impl_syntax_dump!(struct IsExpr(); value r#type);
+impl_syntax_dump!(struct AsExpr(); value r#type);
 
 #[rustfmt::skip]
 impl_syntax_dump!(struct FieldExpr(field); value);
@@ -509,10 +498,10 @@ impl SyntaxDump for ExprKind<'_> {
 
                 if_expr.syntax_dump(fmt, depth + 1)
             }
-            Self::Is(is_expr) => {
-                write_header(fmt, depth, "ExprKind", None, None, Some("Is"))?;
+            Self::As(as_expr) => {
+                write_header(fmt, depth, "ExprKind", None, None, Some("As"))?;
 
-                is_expr.syntax_dump(fmt, depth + 1)
+                as_expr.syntax_dump(fmt, depth + 1)
             }
             Self::Field(field_expr) => {
                 write_header(fmt, depth, "ExprKind", None, None, Some("Field"))?;

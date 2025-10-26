@@ -10,13 +10,13 @@
 //! The [`Debug`] implementation can be easily extended using hooks. Hooks are functions of the
 //! signature `Fn(&T, &mut HookContext<T>)`, they provide an ergonomic way to partially modify the
 //! output format and enable custom output for types that are not necessarily added via
-//! [`Report::attach_printable`] or are unable to implement [`Display`].
+//! [`Report::attach`] or are unable to implement [`Display`].
 //!
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
 //! Hooks are called for contexts which provide additional values through [`Context::provide`] and
-//! attachments which are added via [`Report::attach`] or [`Report::attach_printable`]. The order of
+//! attachments which are added via [`Report::attach`] or [`Report::attach_opaque`]. The order of
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
 //! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
 //! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
@@ -96,10 +96,10 @@
 //!
 //!
 //! let report = Report::new(Error::from(ErrorKind::InvalidInput))
-//!     .attach_printable(ErrorCode(404))
-//!     .attach(Suggestion("try to be connected to the internet."))
-//!     .attach(Suggestion("try better next time!"))
-//!     .attach(Warning("unable to fetch resource"));
+//!     .attach(ErrorCode(404))
+//!     .attach_opaque(Suggestion("try to be connected to the internet."))
+//!     .attach_opaque(Suggestion("try better next time!"))
+//!     .attach_opaque(Warning("unable to fetch resource"));
 //!
 //! # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
 //! # fn render(value: String) -> String {

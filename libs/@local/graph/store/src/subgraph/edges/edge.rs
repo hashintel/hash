@@ -26,13 +26,15 @@ where
     }
 }
 
-/// The direction of an edge in a graph.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
 pub enum EdgeDirection {
-    /// Represents an edge that points from the left endpoint to the right endpoint.
-    Outgoing,
     /// Represents a reversed edge that points from the right endpoint to the left endpoint.
     Incoming,
+    /// Represents an edge that points from the left endpoint to the right endpoint.
+    Outgoing,
 }
 
 impl EdgeDirection {

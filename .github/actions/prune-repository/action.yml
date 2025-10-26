@@ -23,8 +23,26 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hashql-ast"; then
             SCOPES="$SCOPES @rust/hashql-compiletest"
           fi
-          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-postgres-queries"; then
-            SCOPES="$SCOPES @local/repo-chores"
+          if echo "$DEPENDENCIES" | grep -q "@rust/hashql-hir"; then
+            SCOPES="$SCOPES @rust/hashql-compiletest"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hashql-mir"; then
+            SCOPES="$SCOPES @rust/hashql-compiletest"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hashql-eval"; then
+            SCOPES="$SCOPES @rust/hashql-compiletest"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@blockprotocol/type-system-rs"; then
+            SCOPES="$SCOPES @rust/hash-graph-test-data"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-types"; then
+            SCOPES="$SCOPES @rust/hash-graph-test-data"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-type-fetcher"; then
+            SCOPES="$SCOPES @apps/hash-graph"
+          fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-test-server"; then
+            SCOPES="$SCOPES @apps/hash-graph"
           fi
         done <<< "${{ inputs.scope }}"
 

@@ -20,19 +20,21 @@ import type {
   Entity as GraphApiEntity,
   Filter,
 } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { SvgIconProps } from "@mui/material";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
@@ -43,10 +45,10 @@ import type {
   FlowRun,
   GetClosedMultiEntityTypesQuery,
   GetClosedMultiEntityTypesQueryVariables,
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
@@ -64,7 +66,7 @@ import type { ProposedEntityOutput } from "./shared/types";
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents?.[0]?.outputs;
+  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
 
   const deliverables: DeliverableData[] = [];
 
@@ -385,8 +387,11 @@ export const Outputs = ({
   >(getClosedMultiEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
-      entityTypeIds: uniqueProposedEntityTypeSets,
-      includeArchived: false,
+      request: {
+        entityTypeIds: uniqueProposedEntityTypeSets,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeResolved: "resolvedWithDataTypeChildren",
+      },
     },
     skip: proposedEntities.length === 0,
   });
@@ -395,9 +400,9 @@ export const Outputs = ({
     if (!proposedEntitiesTypesData) {
       return previousProposedEntitiesTypesData
         ? {
-            closedMultiEntityTypes:
+            entityTypes:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
-                .closedMultiEntityTypes,
+                .entityTypes,
             definitions:
               previousProposedEntitiesTypesData.getClosedMultiEntityTypes
                 .definitions,
@@ -406,9 +411,8 @@ export const Outputs = ({
     }
 
     return {
-      closedMultiEntityTypes:
-        proposedEntitiesTypesData.getClosedMultiEntityTypes
-          .closedMultiEntityTypes,
+      entityTypes:
+        proposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
       definitions:
         proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
     };
@@ -417,20 +421,18 @@ export const Outputs = ({
   const {
     data: persistedEntitiesSubgraphData,
     previousData: previousPersistedEntitiesSubgraphData,
-  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
-    getEntitySubgraphQuery,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
     {
       variables: {
-        includePermissions: false,
         request: {
           filter: persistedEntitiesFilter,
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            ...fullOntologyResolveDepths,
-          },
+          graphResolveDepths: almostFullOntologyResolveDepths,
+          traversalPaths: [],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
           includeEntityTypes: "resolved",
+          includePermissions: false,
         },
       },
       skip: !persistedEntities.length,
@@ -441,20 +443,20 @@ export const Outputs = ({
   const persistedEntitiesSubgraph = useMemo(() => {
     if (!persistedEntitiesSubgraphData) {
       return previousPersistedEntitiesSubgraphData
-        ? deserializeSubgraph<EntityRootType<HashEntity>>(
-            previousPersistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
-          )
+        ? deserializeQueryEntitySubgraphResponse(
+            previousPersistedEntitiesSubgraphData.queryEntitySubgraph,
+          ).subgraph
         : undefined;
     }
 
     return deserializeSubgraph<EntityRootType<HashEntity>>(
-      persistedEntitiesSubgraphData.getEntitySubgraph.subgraph,
+      persistedEntitiesSubgraphData.queryEntitySubgraph.subgraph,
     );
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
   const persistedEntitiesTypesInfo = useMemo<
     | {
-        closedMultiEntityTypes: ClosedMultiEntityTypesRootMap;
+        entityTypes: ClosedMultiEntityTypesRootMap;
         definitions: ClosedMultiEntityTypesDefinitions;
       }
     | undefined
@@ -467,8 +469,8 @@ export const Outputs = ({
     }
 
     if (
-      !data.getEntitySubgraph.closedMultiEntityTypes ||
-      !data.getEntitySubgraph.definitions
+      !data.queryEntitySubgraph.closedMultiEntityTypes ||
+      !data.queryEntitySubgraph.definitions
     ) {
       throw new Error(
         "No closed multi entity types or definitions found on persistedEntitiesSubgraphData",
@@ -476,8 +478,8 @@ export const Outputs = ({
     }
 
     return {
-      closedMultiEntityTypes: data.getEntitySubgraph.closedMultiEntityTypes,
-      definitions: data.getEntitySubgraph.definitions,
+      entityTypes: data.queryEntitySubgraph.closedMultiEntityTypes,
+      definitions: data.queryEntitySubgraph.definitions,
     };
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
@@ -540,17 +542,6 @@ export const Outputs = ({
           ),
         },
         [mockedEntity.metadata.recordId],
-        {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-          hasRightEntity: {
-            outgoing: 1,
-            incoming: 1,
-          },
-        },
         {
           initial: currentTimeInstantTemporalAxes,
           resolved: {
@@ -721,8 +712,8 @@ export const Outputs = ({
           ) : (
             <EntityResultGraph
               closedMultiEntityTypesRootMap={
-                persistedEntitiesTypesInfo?.closedMultiEntityTypes ??
-                proposedEntitiesTypesInfo?.closedMultiEntityTypes
+                persistedEntitiesTypesInfo?.entityTypes ??
+                proposedEntitiesTypesInfo?.entityTypes
               }
               entities={entitiesForGraph}
             />

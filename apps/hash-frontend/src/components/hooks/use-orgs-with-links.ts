@@ -1,22 +1,20 @@
 import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { useMemo } from "react";
 
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
 import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
@@ -30,14 +28,13 @@ export const useOrgsWithLinks = ({
 }): {
   loading: boolean;
   orgs?: Org[];
-  refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
+  refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 } => {
   const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           all: [
@@ -61,37 +58,53 @@ export const useOrgsWithLinks = ({
             ),
           ],
         },
-        graphResolveDepths: {
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          inheritsFrom: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          // These depths are chosen to cover the following:
-          // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
-          // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { incoming: 1, outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            // 1. the org's avatar (org -> [hasLeftEntity incoming 1] hasAvatar [hasRightEntity outgoing 1] -> avatar)
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            // 2. the org's members (user <- [hasLeftEntity outgoing 1] orgMembership [hasRightEntity incoming 1] <- org)
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-and-network",
     skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
   });
 
-  const { getEntitySubgraph: subgraphAndPermissions } = data ?? {};
+  const { queryEntitySubgraph: queryEntitySubgraphResponse } = data ?? {};
 
   const orgs = useMemo(() => {
-    if (!subgraphAndPermissions) {
+    if (!queryEntitySubgraphResponse) {
       return undefined;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(subgraphAndPermissions.subgraph);
+    const subgraph = deserializeQueryEntitySubgraphResponse(
+      queryEntitySubgraphResponse,
+    ).subgraph;
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {
@@ -101,7 +114,7 @@ export const useOrgsWithLinks = ({
       }
       return constructOrg({ subgraph, orgEntity });
     });
-  }, [subgraphAndPermissions]);
+  }, [queryEntitySubgraphResponse]);
 
   return {
     loading,

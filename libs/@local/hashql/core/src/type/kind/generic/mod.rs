@@ -11,9 +11,9 @@ pub use self::{
 };
 use super::TypeKind;
 use crate::{
-    collection::{SmallVec, TinyVec},
+    collections::{SmallVec, TinyVec},
     intern::Interned,
-    newtype, newtype_producer,
+    newtype, newtype_collections, newtype_producer,
     pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -34,6 +34,8 @@ newtype!(
 );
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
+
+newtype_collections!(pub type GenericArgument* from GenericArgumentId);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GenericArgumentReference<'heap> {
@@ -70,12 +72,8 @@ impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GenericArgumentReference<'heap> {
-    fn pretty(
-        &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+impl<'heap, E> PrettyPrint<'heap, E> for GenericArgumentReference<'heap> {
+    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
     }
 }
@@ -114,7 +112,7 @@ impl<'heap> GenericArgument<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericArgument<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -200,7 +198,7 @@ impl<'heap> Deref for GenericArguments<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericArguments<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -542,7 +540,7 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Generic<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Generic<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

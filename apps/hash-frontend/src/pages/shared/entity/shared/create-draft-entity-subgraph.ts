@@ -10,10 +10,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,
@@ -56,11 +53,6 @@ export const createDraftEntitySubgraph = ({
   );
 
   return {
-    depths: {
-      ...zeroedGraphResolveDepths,
-      hasLeftEntity: { incoming: 1, outgoing: 1 },
-      hasRightEntity: { incoming: 1, outgoing: 1 },
-    },
     edges: {},
     temporalAxes: {
       initial: currentTimeInstantTemporalAxes,

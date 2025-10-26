@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: "Rejects duplicate #type keys in dict"
 expression: "{\"#dict\": {}, \"#type\": \"Dict<String, Int>\", \"#type\": \"Dict<String, Boolean>\"}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
-   ╭─[ <unknown>:1:45 ]
-   │
- 1 │ {"#dict": {}, "#type": "Dict<String, Int>", "#type": "Dict<String, Boolean>"}
-   │               ───┬───                       ───┬───  
-   │                  │                             ╰───── Duplicate key
-   │                  │                                   
-   │                  ╰─────────────────────────────────── First occurrence of `#type`
-   │ 
-   │ Help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.
-───╯
+error[parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#dict": {}, "#type": "Dict<String, Int>", "#type": "Dict<String, Boolean>"}
+  │               ┬──────                       ━━━━━━━ Duplicate key
+  │               │
+  │               First occurrence of `#type`
+  │
+  ╰ help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.

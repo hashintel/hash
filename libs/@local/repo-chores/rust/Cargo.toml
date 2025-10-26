@@ -43,4 +43,4 @@ workspace = true
 
 [[bin]]
 name = "repo-chores-cli"
-path = "bin/cli/main.rs"
+path = "bin/cli.rs"

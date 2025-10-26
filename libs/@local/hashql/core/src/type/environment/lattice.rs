@@ -1,13 +1,17 @@
-use core::ops::Deref;
+use core::{mem, ops::Deref};
 
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
+use super::{Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
 use crate::{
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        error::{circular_type_reference, recursive_type_projection, recursive_type_subscript},
+        error::{
+            TypeCheckDiagnosticIssues, circular_type_reference, recursive_type_projection,
+            recursive_type_subscript,
+        },
         inference::{Substitution, VariableKind, VariableLookup},
         kind::{IntersectionType, TypeKind, UnionType},
         lattice::{Lattice as _, Projection, Subscript},
@@ -18,7 +22,7 @@ use crate::{
 #[derive(Debug)]
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    pub diagnostics: Diagnostics,
+    pub diagnostics: TypeCheckDiagnosticIssues,
 
     boundary: RecursionBoundary<'heap>,
 
@@ -33,7 +37,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            diagnostics: Diagnostics::new(),
+            diagnostics: DiagnosticIssues::new(),
             simplify_lattice: true,
             inference: false,
             simplify: SimplifyEnvironment::new(environment),
@@ -75,12 +79,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Diagnostics {
-        let mut this = core::mem::take(&mut self.diagnostics);
+    pub fn take_diagnostics(&mut self) -> TypeCheckDiagnosticIssues {
+        let mut this = mem::take(&mut self.diagnostics);
         let simplify = self.simplify.take_diagnostics();
 
-        if let Some(simplify) = simplify {
-            this.merge(simplify);
+        if let Some(mut simplify) = simplify {
+            this.append(&mut simplify);
         }
 
         this
@@ -149,9 +153,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.diagnostics
             .push(circular_type_reference(self.source, lhs, rhs));
 
-        if cycle.should_discharge() {
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
+            return rhs.id;
+        }
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, rhs.id, lhs.id) {
             return lhs.id;
         }
+
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create a union type.
 
         // If they aren't in a subtyping relationship, create a union type
         let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
@@ -257,9 +267,16 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.diagnostics
             .push(circular_type_reference(self.source, lhs, rhs));
 
-        if cycle.should_discharge() {
+        // Check the subtyping relationship
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
             return lhs.id;
         }
+        if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, rhs.id, lhs.id) {
+            return rhs.id;
+        }
+
+        // If we're at this point and should still discharge, it means that lhs and rhs are
+        // unrelated to each other, therefore create an intersection type.
 
         // If they aren't in a subtyping relationship, create an intersection type
         let kind = self

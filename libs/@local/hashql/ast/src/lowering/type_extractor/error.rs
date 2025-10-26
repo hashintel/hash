@@ -10,12 +10,9 @@ use hashql_core::{
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, DiagnosticIssues, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
 
@@ -23,6 +20,8 @@ use super::translate::VariableReference;
 use crate::node::path::{Path, PathSegmentArgument};
 
 pub(crate) type TypeExtractorDiagnostic = Diagnostic<TypeExtractorDiagnosticCategory, SpanId>;
+pub(crate) type TypeExtractorDiagnosticIssues =
+    DiagnosticIssues<TypeExtractorDiagnosticCategory, SpanId>;
 
 const DUPLICATE_TYPE_ALIAS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "duplicate-type-alias",
@@ -84,6 +83,11 @@ const UNUSED_GENERIC_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Generic parameter not used in type definition",
 };
 
+const NON_CONTRACTIVE_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "non-contractive-type",
+    name: "Invalid recursive type definition",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
@@ -98,6 +102,7 @@ pub enum TypeExtractorDiagnosticCategory {
     DuplicateStructField,
     GenericConstraintNotAllowed,
     UnusedGenericParameter,
+    NonContractiveType,
     TypeCheck(TypeCheckDiagnosticCategory),
 }
 
@@ -124,6 +129,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
             Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
             Self::UnusedGenericParameter => Some(&UNUSED_GENERIC_PARAMETER),
+            Self::NonContractiveType => Some(&NON_CONTRACTIVE_TYPE),
             Self::TypeCheck(category) => Some(category),
         }
     }
@@ -142,18 +148,17 @@ pub(crate) fn duplicate_type_alias(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateTypeAlias,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(
+        original_span,
+        format!("Type '{name}' first defined here"),
+    ));
 
-    diagnostic.labels.extend([
-        Label::new(original_span, format!("Type '{name}' first defined here"))
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-        Label::new(duplicate_span, "... but was redefined here")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    ]);
+    diagnostic
+        .labels
+        .push(Label::new(duplicate_span, "... but was redefined here"));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
          have given these identical names unique internal identifiers to avoid this collision.",
     ));
@@ -173,23 +178,19 @@ pub(crate) fn generic_constraint_not_allowed(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericConstraintNotAllowed,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        constraint_span,
+        format!("Constraint on `{name}` not allowed here"),
+    ));
 
-    diagnostic.labels.extend([
-        Label::new(
-            constraint_span,
-            format!("Constraint on `{name}` not allowed here"),
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(type_span, "... in this type instantiation")
-            .with_order(-1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-    ]);
+    diagnostic
+        .labels
+        .push(Label::new(type_span, "... in this type instantiation"));
 
-    diagnostic.add_help(Help::new(format!("Use `{name}` without a constraint")));
+    diagnostic.add_message(Message::help(format!("Use `{name}` without a constraint")));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Type constraints cannot be specified at the usage site in HashQL. Constraints on type \
          parameters must be declared where the type is defined, not where it is used.",
     ));
@@ -210,21 +211,17 @@ pub(crate) fn duplicate_newtype(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateNewtype,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(
+        original_span,
+        format!("Newtype '{name}' first defined here"),
+    ));
 
-    diagnostic.labels.extend([
-        Label::new(
-            original_span,
-            format!("Newtype '{name}' first defined here"),
-        )
-        .with_order(1)
-        .with_color(Color::Ansi(AnsiColor::Blue)),
-        Label::new(duplicate_span, "... but was redefined here")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    ]);
+    diagnostic
+        .labels
+        .push(Label::new(duplicate_span, "... but was redefined here"));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This likely represents a compiler bug in the name mangling pass. The compiler \
          encountered duplicate newtype definitions with the same name that should have been given \
          unique internal identifiers. The name mangler should have prevented this collision \
@@ -254,7 +251,7 @@ pub(crate) fn generic_parameter_mismatch<'heap, T>(
 where
     T: Into<GenericArgumentReference<'heap>> + Copy,
 {
-    let mut diagnostic = Diagnostic::new(
+    let diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericParameterMismatch,
         Severity::Error,
     );
@@ -294,36 +291,22 @@ where
         )
     };
 
-    diagnostic
-        .labels
-        .push(Label::new(variable.span(), message).with_color(Color::Ansi(AnsiColor::Red)));
-
-    let mut index = -1;
+    let mut diagnostic = diagnostic.primary(Label::new(variable.span(), message));
 
     for &missing in missing {
-        diagnostic.labels.push(
-            Label::new(
-                variable.span(),
-                format!(
-                    "Missing parameter `{}`",
-                    demangle_unwrap(missing.into().name)
-                ),
-            )
-            .with_order(index)
-            .with_color(Color::Ansi(AnsiColor::Yellow)),
-        );
-
-        index -= 1;
+        diagnostic.labels.push(Label::new(
+            variable.span(),
+            format!(
+                "Missing parameter `{}`",
+                demangle_unwrap(missing.into().name)
+            ),
+        ));
     }
 
     for extraneous in extraneous {
-        diagnostic.labels.push(
-            Label::new(extraneous.span(), "Remove this argument")
-                .with_order(index)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
-
-        index -= 1;
+        diagnostic
+            .labels
+            .push(Label::new(extraneous.span(), "Remove this argument"));
     }
 
     let params = parameters
@@ -340,9 +323,9 @@ where
         Ordering::Equal => format!("Use: {usage}"),
     };
 
-    diagnostic.add_help(Help::new(help));
+    diagnostic.add_message(Message::help(help));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Generic type parameters allow types to work with different data types while maintaining \
          type safety. Each generic type has specific requirements for the number and names of \
          type parameters it accepts. For example, List<T> requires exactly one type parameter, \
@@ -365,12 +348,8 @@ pub(crate) fn unbound_type_variable<'heap>(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnboundTypeVariable,
         Severity::Bug,
-    );
-
-    diagnostic.labels.push(
-        Label::new(span, format!("Cannot find type '{name}'"))
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    )
+    .primary(Label::new(span, format!("Cannot find type '{name}'")));
 
     let suggestions = did_you_mean(name, locals, Some(3), None);
 
@@ -381,10 +360,10 @@ pub(crate) fn unbound_type_variable<'heap>(
             .intersperse("`, `")
             .collect();
 
-        diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
+        diagnostic.add_message(Message::help(format!("Did you mean `{suggestions}`?")));
     }
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This is likely a compiler bug in the name resolution system. The type checker has \
          encountered a name that wasn't properly resolved earlier in compilation. The name \
          resolution pass should have caught this error or provided a more specific error message.",
@@ -403,7 +382,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
     expected: usize,
     actual: usize,
 ) -> TypeExtractorDiagnostic {
-    let mut diagnostic = Diagnostic::new(
+    let diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::IntrinsicParameterMismatch,
         Severity::Error,
     );
@@ -420,9 +399,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         )
     };
 
-    diagnostic
-        .labels
-        .push(Label::new(span, message).with_color(Color::Ansi(AnsiColor::Red)));
+    let mut diagnostic = diagnostic.primary(Label::new(span, message));
 
     let help_example = match name {
         "::kernel::type::List" => Cow::Borrowed("List<ElementType>"),
@@ -443,7 +420,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         format!("Remove extra parameter(s): `{help_example}`")
     };
 
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
     // Add a note explaining the purpose of the intrinsic type
     let note_message = match name {
@@ -464,7 +441,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         }
     };
 
-    diagnostic.add_note(Note::new(note_message));
+    diagnostic.add_message(Message::note(note_message));
 
     diagnostic
 }
@@ -482,12 +459,8 @@ pub(crate) fn unknown_intrinsic_type(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnknownIntrinsicType,
         Severity::Bug,
-    );
-
-    diagnostic.labels.push(
-        Label::new(span, format!("Unknown intrinsic type `{name}`"))
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    )
+    .primary(Label::new(span, format!("Unknown intrinsic type `{name}`")));
 
     let similar = did_you_mean(
         heap.intern_symbol(name),
@@ -498,7 +471,7 @@ pub(crate) fn unknown_intrinsic_type(
 
     if similar.is_empty() {
         // Provide helpful guidance even without close matches
-        diagnostic.add_help(Help::new(
+        diagnostic.add_message(Message::help(
             "Check the HashQL documentation for a complete list of available intrinsic types. \
              Make sure you're using the correct namespace and capitalization for the type you're \
              trying to use.",
@@ -510,12 +483,12 @@ pub(crate) fn unknown_intrinsic_type(
             .intersperse("`, `")
             .collect();
 
-        diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
+        diagnostic.add_message(Message::help(format!("Did you mean `{suggestions}`?")));
     }
 
     let available: String = available.iter().copied().intersperse("`, `").collect();
 
-    diagnostic.add_note(Note::new(format!(
+    diagnostic.add_message(Message::note(format!(
         "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
          blocks provided by the language runtime. They form the basis of the type system and \
          cannot be redefined by user code.\n\nThis is likely a compiler bug. The import resolver \
@@ -538,23 +511,19 @@ pub(crate) fn invalid_resolved_item(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::InvalidResolution,
         Severity::Bug,
-    );
+    )
+    .primary(Label::new(
+        span,
+        format!(
+            "a {} was expected here",
+            match expected {
+                Universe::Type => "value",
+                Universe::Value => "type",
+            }
+        ),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            span,
-            format!(
-                "a {} was expected here",
-                match expected {
-                    Universe::Type => "value",
-                    Universe::Value => "type",
-                }
-            ),
-        )
-        .with_color(Color::Ansi(AnsiColor::Red)),
-    );
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "Found a {actual:?} instead of a {}. This is an internal compiler issue with type \
          resolution, not a problem with your code.",
         match expected {
@@ -563,7 +532,7 @@ pub(crate) fn invalid_resolved_item(
         }
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This is likely a compiler bug in the import resolution system. The compiler has confused \
          types and values during name resolution. The import resolver should have caught this \
          error before reaching this stage.",
@@ -577,7 +546,7 @@ pub(crate) fn invalid_resolved_item(
 /// This diagnostic is generated when path resolution fails due to a compiler bug.
 #[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
-    let mut diagnostic = Diagnostic::new(
+    let diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::ResolutionError,
         Severity::Bug,
     );
@@ -594,18 +563,20 @@ pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtr
         .intersperse("::")
         .collect::<String>();
 
-    diagnostic.labels.push(
-        Label::new(path.span, format!("Could not resolve '{path_display}'"))
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
+    let mut diagnostic = diagnostic.primary(Label::new(
+        path.span,
+        format!("Could not resolve '{path_display}'"),
+    ));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "This is likely a compiler bug in the name resolution system. During type checking, the \
          compiler failed to resolve a path that should have been properly processed by earlier \
          compilation stages. Either the path resolution should have succeeded or a more specific \
          error should have been reported earlier in compilation.",
     ));
-    diagnostic.add_note(Note::new(format!("Technical error details:\n{error:#?}")));
+    diagnostic.add_message(Message::note(format!(
+        "Technical error details:\n{error:#?}"
+    )));
 
     diagnostic
 }
@@ -621,34 +592,24 @@ pub(crate) fn duplicate_struct_fields(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateStructField,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        original_span,
+        format!("Field `{field_name}` first defined here"),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            original_span,
-            format!("Field `{field_name}` first defined here"),
-        )
-        .with_order(1)
-        .with_color(Color::Ansi(AnsiColor::Blue)),
-    );
-
-    let mut index = -1;
     for duplicate in duplicates {
-        diagnostic.labels.push(
-            Label::new(duplicate, "..., but was redefined here")
-                .with_order(index)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
-
-        index -= 1;
+        diagnostic
+            .labels
+            .push(Label::new(duplicate, "..., but was redefined here"));
     }
 
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "To fix this error, you can either:\n1. Rename the duplicate `{field_name}` field to a \
          different name, or\n2. Remove the redundant field definition entirely if it's not needed"
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Struct types in HashQL require that each field has a unique name. Having multiple fields \
          with the same name would create ambiguity when accessing fields through dot notation or \
          destructuring. The compiler enforces this constraint to ensure clear and predictable \
@@ -671,36 +632,74 @@ pub(crate) fn unused_generic_parameter(
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnusedGenericParameter,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(
+        param_span,
+        format!(
+            "Generic parameter `{}` declared here...",
+            demangle(&param.name)
+        ),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            param_span,
-            format!(
-                "Generic parameter `{}` declared here...",
-                demangle(&param.name)
-            ),
-        )
-        .with_order(0),
-    );
+    diagnostic.labels.push(Label::new(
+        type_def_span,
+        "...but never used in this type definition",
+    ));
 
-    diagnostic.labels.push(
-        Label::new(type_def_span, "...but never used in this type definition")
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-    );
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "Generic parameter `{}` is declared but not referenced. Either remove the unused \
          parameter or incorporate it into your type definition.",
         demangle(&param.name)
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Each generic parameter should serve a purpose in parameterizing the type. Unused \
          parameters can make code harder to understand and may indicate a design oversight or \
          incomplete implementation. They are unconstrained variables, and therefore considered \
          erroneous.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a non-contractive recursive type.
+///
+/// This diagnostic is generated when a recursive type definition violates the contractive
+/// constraint, which could lead to non-termination during type checking. A recursive type
+/// is contractive if every recursive reference is protected by at least one type constructor.
+pub(crate) fn non_contractive_recursive_type(
+    type_span: SpanId,
+    recursive_ref_span: SpanId,
+    type_name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let type_name = demangle_unwrap(type_name);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::NonContractiveType,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        recursive_ref_span,
+        format!("Type `{type_name}` cannot reference itself directly"),
+    ));
+
+    diagnostic.labels.push(Label::new(
+        type_span,
+        "... in this recursive type definition",
+    ));
+
+    diagnostic.add_message(Message::help(format!(
+        "Add structure around the recursive reference. Such as, but not limited to, a struct, \
+         tuple, or union with at least one non-recursive alternative:\n- `type {type_name} = \
+         {type_name} | Null`\n- `type {type_name} = (value: {type_name})`\n- `type {type_name} = \
+         ({type_name}, String)`"
+    )));
+
+    diagnostic.add_message(Message::note(
+        "Recursive types need some 'structure' between the type and itself (be 'contractive') to \
+         ensure type checking terminates. This means every recursive reference must be protected \
+         by at least one type constructor (struct, tuple, etc.). Direct self-references like \
+         `type T = T` are not allowed as they do not guarantee progression during type checking.",
     ));
 
     diagnostic

@@ -104,7 +104,6 @@ export class LocalFileSystemStorageProvider
 
   /** Sets up express routes required for uploading and downloading files */
   setupExpressRoutes(app: Express) {
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     app.put(UPLOAD_BASE_URL, async (req, res, _next) => {
       await new Promise<void>((resolve, reject) => {
         const fileData: Uint8Array[] = [];

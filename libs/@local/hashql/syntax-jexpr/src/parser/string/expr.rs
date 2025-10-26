@@ -1,26 +1,32 @@
+use core::num::ParseIntError;
+
 use hashql_ast::node::{
     expr::{Expr, ExprKind, FieldExpr, IndexExpr, LiteralExpr},
     id::NodeId,
 };
 use hashql_core::{
-    literal::{IntegerLiteral, LiteralKind},
     symbol::{Ident, IdentKind},
+    value::{self, Primitive},
 };
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
-    combinator::{
-        alt, cut_err, delimited, dispatch, eof, fail, peek, preceded, repeat, terminated,
-    },
-    error::{AddContext, ParserError, StrContext, StrContextValue},
+    combinator::{alt, cut_err, dispatch, eof, fail, peek, preceded, repeat, terminated},
+    error::{AddContext, FromExternalError, ParserError, StrContext, StrContextValue},
     token::any,
 };
 
-use super::{combinator::ws, context::Input, ident::parse_ident, path::parse_path};
+use super::{
+    combinator::{Alt2, ws},
+    context::Input,
+    ident::parse_ident,
+    path::parse_path,
+};
 
 #[derive(Debug)]
 enum Access<'heap> {
-    Index(LiteralExpr<'heap>),
+    IndexByLiteral(LiteralExpr<'heap>),
+    IndexByExpr(Expr<'heap>),
     Field(Ident<'heap>),
 }
 
@@ -30,26 +36,31 @@ fn parse_field_access<'heap, 'span, 'source, E>(
 ) -> ModalResult<Access<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
+    let _: &'source str = ws(".").parse_next(input)?;
 
-    preceded(
-        ws("."),
-        alt((
-            parse_ident.map(Access::Field),
-            digit1.with_span().map(|(digit, range)| {
-                Access::Field(Ident {
-                    span: context.span(range),
-
-                    value: context.heap.intern_symbol(digit),
-                    kind: IdentKind::Lexical, // Do we need to specify a different kind here?
+    match peek(any).parse_next(input)? {
+        '0'..='9' => {
+            let (digit, range) = digit1
+                .with_span()
+                .try_map(|(digits, range): (&str, _)| {
+                    // Ensure the value is within bounds
+                    digits.parse::<usize>().map(|_| (digits, range))
                 })
-            }),
-        )),
-    )
-    .context(StrContext::Label("field"))
-    .parse_next(input)
+                .parse_next(input)?;
+
+            Ok(Access::Field(Ident {
+                span: input.state.span(range),
+
+                value: input.state.heap.intern_symbol(digit),
+                kind: IdentKind::Lexical, // Do we need to specify a different kind here?
+            }))
+        }
+
+        _ => parse_ident.map(Access::Field).parse_next(input),
+    }
 }
 
 fn parse_index_access<'heap, 'span, 'source, E>(
@@ -57,29 +68,33 @@ fn parse_index_access<'heap, 'span, 'source, E>(
 ) -> ModalResult<Access<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
+    let _: &'source str = ws("[").parse_next(input)?;
 
     // super limited version that only allows literal access instead of arbitrary expressions
-    delimited(
-        ws("["),
-        digit1.with_span().map(|(digit, range)| {
-            let span = context.span(range);
+    let access = match peek(any).parse_next(input)? {
+        '0'..='9' => {
+            let (digit, range) = digit1.with_span().parse_next(input)?;
 
-            Access::Index(LiteralExpr {
+            Access::IndexByLiteral(LiteralExpr {
                 id: NodeId::PLACEHOLDER,
-                span,
-                kind: LiteralKind::Integer(IntegerLiteral {
-                    value: context.heap.intern_symbol(digit),
-                }),
+                span: input.state.span(range),
+                kind: Primitive::Integer(value::Integer::new_unchecked(
+                    input.state.heap.intern_symbol(digit),
+                )),
                 r#type: None,
             })
-        }),
-        ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']')))),
-    )
-    .context(StrContext::Label("index"))
-    .parse_next(input)
+        }
+        _ => parse_expr_path.map(Access::IndexByExpr).parse_next(input)?,
+    };
+
+    let _: &'source str =
+        ws(cut_err("]").context(StrContext::Expected(StrContextValue::CharLiteral(']'))))
+            .parse_next(input)?;
+
+    Ok(access)
 }
 
 pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
@@ -87,19 +102,18 @@ pub(crate) fn parse_expr_path<'heap, 'span, 'source, E>(
 ) -> ModalResult<Expr<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    (
+    let ((path, path_span), access): (_, Vec<_>) = (
         parse_path.with_span(),
         repeat(
             0..,
             preceded(
                 multispace0,
                 dispatch! {peek(any);
-                    '[' => parse_index_access,
-                    '.' => parse_field_access,
+                    '[' => parse_index_access.context(StrContext::Label("index")),
+                    '.' => parse_field_access.context(StrContext::Label("field")),
                     _ => fail
                         .context(StrContext::Expected(StrContextValue::CharLiteral('[')))
                         .context(StrContext::Expected(StrContextValue::CharLiteral('.')))
@@ -108,49 +122,57 @@ where
             ),
         ),
     )
-        .map(|((path, path_span), access): (_, Vec<_>)| {
-            let mut range = path_span;
+        .parse_next(input)?;
 
-            let mut expr = Expr {
+    let mut range = path_span;
+
+    let mut expr = Expr {
+        id: NodeId::PLACEHOLDER,
+        span: path.span,
+        kind: ExprKind::Path(path),
+    };
+
+    for (access, span) in access {
+        range.end = span.end;
+
+        let span = input.state.span(range.clone());
+
+        // We de-sugar into expressions directly instead of special forms, not to save
+        // on memory, but just because it is a lot easier and terse to create these
+        // nodes instead of fully-fledged call nodes.
+        let kind = match access {
+            Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
                 id: NodeId::PLACEHOLDER,
-                span: path.span,
-                kind: ExprKind::Path(path),
-            };
-
-            for (access, span) in access {
-                range.end = span.end;
-
-                let span = context.span(range.clone());
-
-                let kind = match access {
-                    Access::Index(literal) => ExprKind::Index(IndexExpr {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        value: context.heap.boxed(expr),
-                        index: context.heap.boxed(Expr {
-                            id: NodeId::PLACEHOLDER,
-                            span: literal.span,
-                            kind: ExprKind::Literal(literal),
-                        }),
-                    }),
-                    Access::Field(ident) => ExprKind::Field(FieldExpr {
-                        id: NodeId::PLACEHOLDER,
-                        span,
-                        value: context.heap.boxed(expr),
-                        field: ident,
-                    }),
-                };
-
-                expr = Expr {
+                span,
+                value: input.state.heap.boxed(expr),
+                index: input.state.heap.boxed(Expr {
                     id: NodeId::PLACEHOLDER,
-                    span,
-                    kind,
-                };
-            }
+                    span: literal.span,
+                    kind: ExprKind::Literal(literal),
+                }),
+            }),
+            Access::IndexByExpr(index) => ExprKind::Index(IndexExpr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                value: input.state.heap.boxed(expr),
+                index: input.state.heap.boxed(index),
+            }),
+            Access::Field(ident) => ExprKind::Field(FieldExpr {
+                id: NodeId::PLACEHOLDER,
+                span,
+                value: input.state.heap.boxed(expr),
+                field: ident,
+            }),
+        };
 
-            expr
-        })
-        .parse_next(input)
+        expr = Expr {
+            id: NodeId::PLACEHOLDER,
+            span,
+            kind,
+        };
+    }
+
+    Ok(expr)
 }
 
 // super limited set of expressions that are supported in strings for convenience
@@ -159,20 +181,24 @@ pub(crate) fn parse_expr<'heap, 'span, 'source, E>(
 ) -> ModalResult<Expr<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
+        + FromExternalError<Input<'heap, 'span, 'source>, ParseIntError>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
-    let context = input.state;
-
-    alt((
-        terminated('_', eof).span().map(|span| Expr {
-            id: NodeId::PLACEHOLDER,
-            span: context.span(span),
-            kind: ExprKind::Underscore,
-        }),
-        parse_expr_path,
+    let alt = alt((
+        terminated('_', ws(eof)).span().map(Alt2::Left),
+        parse_expr_path.map(Alt2::Right),
     ))
     .context(StrContext::Label("expression"))
-    .parse_next(input)
+    .parse_next(input)?;
+
+    match alt {
+        Alt2::Left(span) => Ok(Expr {
+            id: NodeId::PLACEHOLDER,
+            span: input.state.span(span),
+            kind: ExprKind::Underscore,
+        }),
+        Alt2::Right(right) => Ok(right),
+    }
 }
 
 #[cfg(test)]
@@ -194,6 +220,7 @@ mod tests {
         // Error cases
         missing_field_name(".") => "Missing field name",
         invalid_field_name(".@field") => "Invalid field name",
+        index_too_large(".18446744073709551616") => "Index too large",
     );
 
     // Tests for index access
@@ -222,6 +249,14 @@ mod tests {
         // Index access
         single_index_access("foo[0]") => "Single index access",
         chained_index_access("foo[0][1]") => "Chained index access",
+
+        // Index access with identifier
+        index_access_with_ident("foo[bar]") => "Index access with identifier",
+        index_access_with_ident_chained("foo[bar][baz]") => "Chained index access with identifier",
+
+        // Index access mixed
+        index_access_mixed("foo[bar][0]") => "Mixed index access",
+        index_access_field_access("foo[bar.0]") => "Field then index access",
 
         // Mixed access
         mixed_access_1("foo.bar[0]") => "Field then index access",

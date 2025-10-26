@@ -1,6 +1,10 @@
 import { useMutation } from "@apollo/client";
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
-import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  IconButton,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -33,7 +37,6 @@ import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-re
 import { CustomLinkIcon } from "../../../shared/icons/custom-link-icon";
 import { GripDotsVerticalRegularIcon } from "../../../shared/icons/grip-dots-vertical-regular-icon";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
-import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, Link, Modal } from "../../../shared/ui";
 import { entityTypeIcons } from "../../../shared/use-entity-icon";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";

@@ -28,8 +28,8 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "@hashintel/block-design-system": "0.0.2",
-    "@hashintel/design-system": "0.0.8",
+    "@hashintel/block-design-system": "0.0.5",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@mui/material": "5.18.0",
     "echarts": "5.6.0",
@@ -50,7 +50,7 @@
     "prettier": "3.6.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",

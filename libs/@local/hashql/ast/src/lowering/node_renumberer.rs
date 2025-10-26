@@ -21,7 +21,7 @@ impl NodeRenumberer {
 impl Visitor<'_> for NodeRenumberer {
     fn visit_id(&mut self, id: &mut NodeId) {
         *id = self.next;
-        self.next = self.next.next();
+        self.next.increment_by(1);
     }
 }
 

@@ -10,11 +10,11 @@ use hash_graph_store::{
     error::QueryError,
     filter::Filter,
     subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths},
+        edges::EdgeDirection,
         identifier::{EntityTypeVertexId, EntityVertexId},
         temporal_axes::{
-            PinnedAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableAxis,
-            VariableTemporalAxisUnresolved,
+            PinnedAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
+            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxisUnresolved,
         },
     },
 };
@@ -48,21 +48,19 @@ pub struct EntityEdgeTraversalData {
     entity_uuids: Vec<EntityUuid>,
     entity_revision_ids: Vec<Timestamp<VariableAxis>>,
     intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
-    resolve_depths: Vec<GraphResolveDepths>,
     pinned_timestamp: Timestamp<PinnedAxis>,
     variable_axis: TimeAxis,
 }
 
 impl EntityEdgeTraversalData {
-    pub const fn new(pinned_timestamp: Timestamp<PinnedAxis>, variable_axis: TimeAxis) -> Self {
+    pub fn new(temporal_axes: &QueryTemporalAxes) -> Self {
         Self {
             web_ids: Vec::new(),
             entity_uuids: Vec::new(),
             entity_revision_ids: Vec::new(),
             intervals: Vec::new(),
-            resolve_depths: Vec::new(),
-            pinned_timestamp,
-            variable_axis,
+            pinned_timestamp: temporal_axes.pinned_timestamp(),
+            variable_axis: temporal_axes.variable_time_axis(),
         }
     }
 
@@ -70,13 +68,19 @@ impl EntityEdgeTraversalData {
         &mut self,
         vertex_id: EntityVertexId,
         interval: RightBoundedTemporalInterval<VariableAxis>,
-        resolve_depth: GraphResolveDepths,
     ) {
         self.web_ids.push(vertex_id.base_id.web_id);
         self.entity_uuids.push(vertex_id.base_id.entity_uuid);
         self.entity_revision_ids.push(vertex_id.revision_id);
         self.intervals.push(interval);
-        self.resolve_depths.push(resolve_depth);
+    }
+
+    pub const fn len(&self) -> usize {
+        self.web_ids.len()
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -85,7 +89,6 @@ pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
     pub right_endpoint_ontology_id: OntologyTypeUuid,
-    pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
@@ -93,7 +96,6 @@ pub struct KnowledgeEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityVertexId,
     pub right_endpoint_edition_id: EntityEditionId,
-    pub resolve_depths: GraphResolveDepths,
     pub edge_interval: LeftClosedTemporalInterval<VariableAxis>,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -193,7 +195,6 @@ where
                             revision_id: row.get(2),
                         },
                         right_endpoint_ontology_id,
-                        resolve_depths: traversal_data.resolve_depths[index],
                         traversal_interval: row.get(4),
                     },
                 )
@@ -322,7 +323,6 @@ where
                         },
                         right_endpoint_edition_id,
                         edge_interval: row.get(5),
-                        resolve_depths: traversal_data.resolve_depths[index],
                         traversal_interval: row.get(6),
                     },
                 )

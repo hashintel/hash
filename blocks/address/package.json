@@ -35,13 +35,13 @@
     "@blockprotocol/service": "0.1.4",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@hashintel/block-design-system": "0.0.2",
-    "@hashintel/design-system": "0.0.8",
+    "@hashintel/block-design-system": "0.0.5",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "@mui/material": "5.18.0",
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
@@ -53,7 +53,7 @@
     "prettier": "3.6.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",

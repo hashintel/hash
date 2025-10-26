@@ -1,4 +1,3 @@
-import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
@@ -12,13 +11,13 @@ import type {
 import { SchemaType } from "@google-cloud/vertexai";
 import { sleep } from "@local/hash-backend-utils/utils";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import dedent from "dedent";
 import get from "lodash/get.js";
@@ -399,8 +398,10 @@ export const getLlmAnalysisOfDoc = async ({
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
 
-  const docsEntityTypeSubgraph = await graphApiClient
-    .getEntityTypeSubgraph(userAuthentication.actorId, {
+  const docsEntityType = await queryEntityTypeSubgraph(
+    graphApiClient,
+    userAuthentication,
+    {
       filter: {
         all: [
           {
@@ -415,31 +416,23 @@ export const getLlmAnalysisOfDoc = async ({
           },
         ],
       },
-      includeDrafts: false,
 
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        inheritsFrom: { outgoing: 255 },
+        ...almostFullOntologyResolveDepths,
+        constrainsLinkDestinationsOn: 255,
+        constrainsLinksOn: 255,
       },
-    })
-    .then(({ data: response }) =>
-      mapGraphApiSubgraphToSubgraph<EntityTypeRootType>(
-        response.subgraph,
-        userAuthentication.actorId,
-      ),
-    );
+      traversalPaths: [],
+    },
+  );
 
   // const docEntityTypes
-  const dereferencedDocEntityTypes = getEntityTypes(docsEntityTypeSubgraph)
+  const dereferencedDocEntityTypes = getEntityTypes(docsEntityType.subgraph)
     .map((entityType) =>
       dereferenceEntityType({
         entityTypeId: entityType.schema.$id,
-        subgraph: docsEntityTypeSubgraph,
+        subgraph: docsEntityType.subgraph,
         simplifyPropertyKeys: true,
       }),
     )

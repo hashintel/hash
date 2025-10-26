@@ -9,12 +9,14 @@ import type {
   CreateEntityParameters,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  HashLinkEntity,
+  queryEntitySubgraph,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -40,11 +42,7 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import {
-  createEntity,
-  getEntitySubgraphResponse,
-  updateEntity,
-} from "../primitive/entity";
+import { createEntity, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
 import type { Comment } from "./comment";
@@ -242,7 +240,7 @@ export const getMentionNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
     context,
     authentication,
     {
@@ -258,13 +256,19 @@ export const getMentionNotification: ImpureGraphFunction<
           pageOrNotificationNotArchivedFilter,
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
+      traversalPaths: [
+        {
+          edges: [
+            {
+              kind: "has-left-entity",
+              direction: "incoming",
+            },
+          ],
+        },
+      ],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 
@@ -495,7 +499,7 @@ export const getCommentNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await getEntitySubgraphResponse(
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
     context,
     authentication,
     {
@@ -512,17 +516,12 @@ export const getCommentNotification: ImpureGraphFunction<
           {
             any: [
               {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  // @ts-expect-error -- We need to update the type definition of `EntityStructuralQuery` to allow for this
-                  //   @see https://linear.app/hash/issue/H-1207
-                  null,
-                ],
+                exists: {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.archived.propertyTypeBaseUrl,
+                  ],
+                },
               },
               {
                 equal: [
@@ -539,13 +538,20 @@ export const getCommentNotification: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        // Get the outgoing links of the entities
-        hasLeftEntity: { outgoing: 0, incoming: 1 },
-      },
+      traversalPaths: [
+        {
+          // Get the outgoing links of the entities
+          edges: [
+            {
+              kind: "has-left-entity",
+              direction: "incoming",
+            },
+          ],
+        },
+      ],
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
+      includePermissions: false,
     },
   );
 

@@ -1,0 +1,51 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "a",
+  { "#literal": true },
+  [
+    "let",
+    "b",
+    { "#literal": true },
+    [
+      "::graph::tail::collect",
+      [
+        "::graph::body::filter",
+        ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "vertex1": "_" } },
+          "_",
+          [
+            "let",
+            "c",
+            [
+              "::graph::tail::collect",
+              [
+                "::graph::body::filter",
+                [
+                  "::graph::head::entities",
+                  ["::graph::tmp::decision_time_now"]
+                ],
+                [
+                  "fn",
+                  { "#tuple": [] },
+                  { "#struct": { "vertex2": "_" } },
+                  "_",
+                  [
+                    "==",
+                    "vertex1.id.entity_id.entity_uuid",
+                    "vertex2.id.entity_id.entity_uuid"
+                  ]
+                ]
+              ]
+            ],
+            { "#literal": true }
+          ]
+        ]
+      ]
+    ]
+  ]
+]

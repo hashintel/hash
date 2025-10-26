@@ -8,6 +8,7 @@ pub mod input;
 pub mod kind;
 pub mod r#let;
 pub mod operation;
+pub mod thunk;
 pub mod variable;
 
 use hashql_core::{
@@ -32,12 +33,27 @@ id::newtype!(
     pub struct HirId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type HirId* from HirId);
+
 impl HirId {
     /// A placeholder ID used during initial parsing.
     ///
     /// When parsing, we initially give all AST nodes this placeholder ID. After resolving special
     /// forms, the nodes are renumbered to have small indices.
     pub const PLACEHOLDER: Self = <Self as id::Id>::MAX;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct HirPtr {
+    pub id: HirId,
+    pub span: SpanId,
+}
+
+impl HirPtr {
+    pub const PLACEHOLDER: Self = Self {
+        id: HirId::PLACEHOLDER,
+        span: SpanId::SYNTHETIC,
+    };
 }
 
 /// A node in the HashQL High-Level Intermediate Representation (HIR).
@@ -66,6 +82,16 @@ pub struct Node<'heap> {
 
     // Consider if we want to intern the `NodeKind` separately
     pub kind: &'heap NodeKind<'heap>,
+}
+
+impl Node<'_> {
+    #[must_use]
+    pub const fn ptr(&self) -> HirPtr {
+        HirPtr {
+            id: self.id,
+            span: self.span,
+        }
+    }
 }
 
 impl HasId for Node<'_> {

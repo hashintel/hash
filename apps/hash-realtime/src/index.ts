@@ -50,7 +50,7 @@ const logger = new Logger({
   metadata: { instanceId: INSTANCE_ID },
 });
 
-const QUEUES = generateQueues(logger);
+const QUEUES = await generateQueues(logger);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

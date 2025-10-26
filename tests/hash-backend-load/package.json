@@ -30,7 +30,7 @@
     "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.0",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
@@ -42,21 +42,21 @@
     "@opentelemetry/sdk-trace-node": "1.30.1",
     "@opentelemetry/semantic-conventions": "1.30.0",
     "@ory/client": "1.1.41",
-    "artillery": "2.0.23",
+    "artillery": "2.0.26",
     "dotenv-flow": "3.3.0",
-    "uuid": "11.1.0"
+    "uuid": "13.0.0"
   },
   "devDependencies": {
     "@apps/hash-api": "0.0.0-private",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@rollup/plugin-commonjs": "28.0.6",
-    "@rollup/plugin-node-resolve": "16.0.1",
+    "@rollup/plugin-commonjs": "28.0.8",
+    "@rollup/plugin-node-resolve": "16.0.3",
     "@rollup/plugin-typescript": "12.1.4",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "9.20.1",
+    "eslint": "9.38.0",
     "rimraf": "6.0.1",
-    "rollup": "4.46.2",
-    "typescript": "5.7.3"
+    "rollup": "4.52.5",
+    "typescript": "5.9.3"
   }
 }

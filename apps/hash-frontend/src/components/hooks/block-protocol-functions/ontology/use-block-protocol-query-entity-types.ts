@@ -1,22 +1,26 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityTypeRootType } from "@blockprotocol/graph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+  fullTransactionTimeAxis,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
+  QueryEntityTypeSubgraphQuery,
+  QueryEntityTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntityTypesQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypeSubgraphQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
 import type { QueryEntityTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryEntityTypes = (): {
   queryEntityTypes: QueryEntityTypesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    QueryEntityTypesQuery,
-    QueryEntityTypesQueryVariables
-  >(queryEntityTypesQuery, {
+    QueryEntityTypeSubgraphQuery,
+    QueryEntityTypeSubgraphQueryVariables
+  >(queryEntityTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -43,14 +47,19 @@ export const useBlockProtocolQueryEntityTypes = (): {
        */
       const response = await queryFn({
         variables: {
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          ...graphResolveDepths,
-          latestOnly,
-          includeArchived,
+          request: {
+            filter: latestOnly
+              ? { equal: [{ path: ["version"] }, { parameter: "latest" }] }
+              : { all: [] },
+            temporalAxes: includeArchived
+              ? fullTransactionTimeAxis
+              : currentTimeInstantTemporalAxes,
+            graphResolveDepths: {
+              ...almostFullOntologyResolveDepths,
+              ...graphResolveDepths,
+            },
+            traversalPaths: [],
+          },
         },
       });
 
@@ -65,12 +74,11 @@ export const useBlockProtocolQueryEntityTypes = (): {
         };
       }
 
-      const subgraph =
-        mapGqlSubgraphFieldsFragmentToSubgraph<EntityTypeRootType>(
-          response.data.queryEntityTypes,
-        );
-
-      return { data: subgraph };
+      return {
+        data: deserializeQueryEntityTypeSubgraphResponse(
+          response.data.queryEntityTypeSubgraph,
+        ).subgraph,
+      };
     },
     [queryFn],
   );

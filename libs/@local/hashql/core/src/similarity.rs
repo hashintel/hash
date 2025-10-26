@@ -5,7 +5,7 @@ use rapidfuzz::distance::{damerau_levenshtein, postfix, prefix};
 use unicase::UniCase;
 use unicode_segmentation::UnicodeSegmentation as _;
 
-use crate::{collection::FastHashSet, symbol::Symbol};
+use crate::{collections::FastHashSet, symbol::Symbol};
 
 struct Similarity<'heap> {
     score: f64,

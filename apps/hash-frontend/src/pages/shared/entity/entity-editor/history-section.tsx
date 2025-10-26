@@ -1,26 +1,24 @@
 import { useQuery } from "@apollo/client";
-import type { EntityVertexId } from "@blockprotocol/graph";
 import type { EntityId } from "@blockprotocol/type-system";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
 import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
+  almostFullOntologyResolveDepths,
   fullDecisionTimeAxis,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { useMemo } from "react";
 
 import type {
   GetEntityDiffsQuery,
   GetEntityDiffsQueryVariables,
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import {
   getEntityDiffsQuery,
-  getEntitySubgraphQuery,
+  queryEntitySubgraphQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { SectionWrapper } from "../../section-wrapper";
 import { getHistoryEvents } from "./history-section/get-history-events";
@@ -31,9 +29,9 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -47,14 +45,12 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
   });
 
@@ -71,9 +67,9 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
      *   Once back references from live editions to drafts they were created from are available (H-3030),
      *   we can follow these references to construct the history.
      */
-    const editions = [
-      ...(editionsData.getEntitySubgraph.subgraph.roots as EntityVertexId[]),
-    ].sort((a, b) => (a.revisionId > b.revisionId ? 1 : -1));
+    const editions = [...editionsData.queryEntitySubgraph.subgraph.roots].sort(
+      (a, b) => (a.revisionId > b.revisionId ? 1 : -1),
+    );
 
     if (!editions.length) {
       return [];
@@ -123,13 +119,13 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
       return [];
     }
 
-    const { subgraph } = editionsData.getEntitySubgraph;
+    const { subgraph } = editionsData.queryEntitySubgraph;
 
     return getHistoryEvents(diffs ?? [], deserializeSubgraph(subgraph));
   }, [diffsData, diffsLoading, diffPairs, editionsData, editionsLoading]);
 
-  const subgraph = editionsData?.getEntitySubgraph.subgraph
-    ? deserializeSubgraph(editionsData.getEntitySubgraph.subgraph)
+  const subgraph = editionsData?.queryEntitySubgraph.subgraph
+    ? deserializeSubgraph(editionsData.queryEntitySubgraph.subgraph)
     : undefined;
 
   const loading = editionsLoading || diffsLoading;

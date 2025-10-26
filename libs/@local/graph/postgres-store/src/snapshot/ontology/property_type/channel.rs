@@ -52,17 +52,16 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
     type Error = Report<SnapshotRestoreError>;
 
     fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        ready!(self.metadata.poll_ready_unpin(cx))
-            .attach_printable("could not poll ontology type sender")?;
+        ready!(self.metadata.poll_ready_unpin(cx)).attach("could not poll ontology type sender")?;
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll schema sender")?;
+            .attach("could not poll schema sender")?;
         ready!(self.constrains_values.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll constrains values edge sender")?;
+            .attach("could not poll constrains values edge sender")?;
         ready!(self.constrains_properties.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll constrains properties edge sender")?;
+            .attach("could not poll constrains properties edge sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -84,7 +83,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 temporal_versioning: property_type.metadata.temporal_versioning,
                 provenance: property_type.metadata.provenance,
             })
-            .attach_printable("could not send metadata")?;
+            .attach("could not send metadata")?;
 
         let values: Vec<_> = schema
             .data_type_references()
@@ -98,7 +97,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             self.constrains_values
                 .start_send_unpin(values)
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send constrains values edge")?;
+                .attach("could not send constrains values edge")?;
         }
 
         let properties: Vec<_> = schema
@@ -115,7 +114,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             self.constrains_properties
                 .start_send_unpin(properties)
                 .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send constrains properties edge")?;
+                .attach("could not send constrains properties edge")?;
         }
 
         self.schema
@@ -124,39 +123,39 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
                 schema,
             })
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send schema")?;
+            .attach("could not send schema")?;
 
         Ok(())
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_flush_unpin(cx))
-            .attach_printable("could not flush ontology type sender")?;
+            .attach("could not flush ontology type sender")?;
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush schema sender")?;
+            .attach("could not flush schema sender")?;
         ready!(self.constrains_values.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush constrains values edge sender")?;
+            .attach("could not flush constrains values edge sender")?;
         ready!(self.constrains_properties.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush constrains properties edge sender")?;
+            .attach("could not flush constrains properties edge sender")?;
 
         Poll::Ready(Ok(()))
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         ready!(self.metadata.poll_close_unpin(cx))
-            .attach_printable("could not close ontology type sender")?;
+            .attach("could not close ontology type sender")?;
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close schema sender")?;
+            .attach("could not close schema sender")?;
         ready!(self.constrains_values.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close constrains values edge sender")?;
+            .attach("could not close constrains values edge sender")?;
         ready!(self.constrains_properties.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close constrains properties edge sender")?;
+            .attach("could not close constrains properties edge sender")?;
 
         Poll::Ready(Ok(()))
     }

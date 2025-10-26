@@ -1,7 +1,7 @@
 // HashQL type system
 
 pub mod builder;
-mod collection;
+mod collections;
 pub mod environment;
 pub mod error;
 pub mod inference;
@@ -19,7 +19,7 @@ use self::{environment::Environment, inference::Variable, kind::TypeKind};
 use crate::{
     id::HasId,
     intern::{Decompose, Interned},
-    newtype,
+    newtype, newtype_collections,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
 };
@@ -27,6 +27,8 @@ use crate::{
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
+
+newtype_collections!(pub type TypeId* from TypeId);
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Type<'heap, K: ?Sized = TypeKind<'heap>> {
@@ -76,9 +78,9 @@ impl Type<'_> {
     }
 }
 
-impl<'heap, K> PrettyPrint<'heap> for Type<'heap, K>
+impl<'heap, K> PrettyPrint<'heap, Environment<'heap>> for Type<'heap, K>
 where
-    K: PrettyPrint<'heap>,
+    K: PrettyPrint<'heap, Environment<'heap>>,
 {
     fn pretty(
         &self,
@@ -93,7 +95,10 @@ where
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
         arguments: kind::GenericArguments<'heap>,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+    ) -> pretty::RcDoc<'heap, anstyle::Style>
+    where
+        Self: PrettyPrint<'heap, Environment<'heap>>,
+    {
         self.kind.pretty_generic(env, boundary, arguments)
     }
 }

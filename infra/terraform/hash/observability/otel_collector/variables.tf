@@ -41,6 +41,16 @@ variable "service_discovery_namespace_name" {
   description = "Name of the service discovery namespace for Service Connect"
 }
 
+variable "tempo_api_dns" {
+  type        = string
+  description = "Tempo API DNS name for metrics scraping"
+}
+
+variable "tempo_api_port" {
+  type        = number
+  description = "Tempo API port number"
+}
+
 variable "tempo_otlp_grpc_dns" {
   type        = string
   description = "Tempo OTLP gRPC DNS name for trace forwarding"
@@ -71,6 +81,36 @@ variable "mimir_http_port" {
   description = "Mimir HTTP API port number"
 }
 
+variable "pyroscope_http_dns" {
+  type        = string
+  description = "Pyroscope HTTP API DNS name for metrics forwarding"
+}
+
+variable "pyroscope_http_port" {
+  type        = number
+  description = "Pyroscope HTTP API port number"
+}
+
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
+}
+
+variable "grafana_dns" {
+  type        = string
+  description = "Grafana service DNS name for metrics scraping"
+}
+
+variable "grafana_port" {
+  type        = number
+  description = "Grafana service port number"
+}
+
+variable "alloy_dns" {
+  type        = string
+  description = "Grafana Alloy DNS name for metrics scraping"
+}
+
+variable "alloy_port" {
+  type        = number
+  description = "Grafana Alloy port number"
 }

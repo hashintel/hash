@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Struct field access expression
+[".", { "#struct": { "foo": { "#literal": true } } }, "foo"]

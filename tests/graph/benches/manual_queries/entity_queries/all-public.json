@@ -1,5 +1,5 @@
 {
-  "type": "getEntities",
+  "type": "queryEntities",
   "actorId": "00000000-0000-0000-0000-000000000000",
   "settings": {
     "sampleSize": 10,
@@ -26,6 +26,7 @@
         }
       }
     },
-    "includeDrafts": false
+    "includeDrafts": false,
+    "includePermissions": false
   }
 }

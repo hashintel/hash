@@ -1,7 +1,6 @@
 {
   "name": "@hashintel/block-design-system",
-  "version": "0.0.2",
-  "private": true,
+  "version": "0.0.5",
   "description": "Block Design System",
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
@@ -11,7 +10,7 @@
     "url": "git@github.com:hashintel/hash.git",
     "directory": "libs/@hashintel/block-design-system"
   },
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
@@ -27,12 +26,11 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.0",
-    "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@hashintel/design-system": "0.0.8",
-    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@blockprotocol/graph": "0.4.0-canary.2",
+    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@hashintel/design-system": "0.0.9-canary.2",
     "lowlight": "2.9.0",
-    "react-syntax-highlighter": "15.6.1",
+    "react-syntax-highlighter": "15.6.6",
     "react-type-animation": "3.2.0"
   },
   "devDependencies": {
@@ -42,14 +40,13 @@
     "@local/tsconfig": "0.0.0-private",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
-    "@types/react": "19.1.9",
-    "@types/react-dom": "19.1.7",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
     "@types/react-syntax-highlighter": "15.5.13",
-    "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "typescript": "5.7.3"
+    "eslint": "9.38.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@emotion/react": "11.14.0",

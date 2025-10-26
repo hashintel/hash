@@ -6,5 +6,5 @@ expression: "{\"#literal\": \"hello\"}"
 Expr#4294967040@1
   ExprKind (Literal)
     LiteralExpr#4294967040@0
-      LiteralKind (String)
-        StringLiteral (hello)
+      Primitive (String)
+        String (hello)

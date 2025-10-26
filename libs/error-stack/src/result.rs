@@ -1,8 +1,6 @@
 #![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 
-use core::fmt;
-
-use crate::{Context, IntoReport, Report};
+use crate::{Attachment, Context, IntoReport, OpaqueAttachment, Report};
 
 #[expect(rustdoc::invalid_html_tags, reason = "False positive")]
 /// <code>[Result](core::result::Result)<T, [Report<C>]></code>
@@ -56,45 +54,83 @@ pub trait ResultExt {
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
 
-    /// Adds a new attachment to the [`Report`] inside the [`Result`].
+    /// Adds a new printable attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more
+    /// information.
     fn attach<A>(self, attachment: A) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
-        A: Send + Sync + 'static;
+        A: Attachment;
 
-    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
+    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more information.
+    /// Applies [`Report::attach`] on the [`Err`] variant, refer to it for more
+    /// information.
+    fn attach_with<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
+    where
+        A: Attachment,
+        F: FnOnce() -> A;
+
+    #[deprecated(
+        note = "Use `attach_opaque_with` instead. `attach_lazy` was renamed to \
+                `attach_opaque_with` and `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
     fn attach_lazy<A, F>(
         self,
         attachment: F,
     ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
-        A: Send + Sync + 'static,
+        A: OpaqueAttachment,
         F: FnOnce() -> A;
 
-    /// Adds a new printable attachment to the [`Report`] inside the [`Result`].
+    /// Adds a new attachment to the [`Report`] inside the [`Result`].
     ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
-    /// information.
+    /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
+    fn attach_opaque<A>(
+        self,
+        attachment: A,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
+    where
+        A: OpaqueAttachment;
+
+    /// Lazily adds a new attachment to the [`Report`] inside the [`Result`].
+    ///
+    /// Applies [`Report::attach_opaque`] on the [`Err`] variant, refer to it for more information.
+    fn attach_opaque_with<A, F>(
+        self,
+        attachment: F,
+    ) -> core::result::Result<Self::Ok, Report<Self::Context>>
+    where
+        A: OpaqueAttachment,
+        F: FnOnce() -> A;
+
+    #[deprecated(
+        note = "Use `attach` instead. `attach` was renamed to `attach_opaque` and \
+                `attach_printable` was renamed to `attach`",
+        since = "0.6.0"
+    )]
     fn attach_printable<A>(
         self,
         attachment: A,
     ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        A: Attachment;
 
-    /// Lazily adds a new printable attachment to the [`Report`] inside the [`Result`].
-    ///
-    /// Applies [`Report::attach_printable`] on the [`Err`] variant, refer to it for more
-    /// information.
+    #[deprecated(
+        note = "Use `attach_with` instead. `attach_lazy` was renamed to `attach_opaque_with` and \
+                `attach_printable_lazy` was renamed to `attach_with`",
+        since = "0.6.0"
+    )]
     fn attach_printable_lazy<A, F>(
         self,
         attachment: F,
     ) -> core::result::Result<Self::Ok, Report<Self::Context>>
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Attachment,
         F: FnOnce() -> A;
 
     /// Changes the context of the [`Report`] inside the [`Result`].
@@ -123,7 +159,7 @@ where
     #[track_caller]
     fn attach<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
     where
-        A: Send + Sync + 'static,
+        A: Attachment,
     {
         match self {
             Ok(value) => Ok(value),
@@ -132,9 +168,9 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
+    fn attach_with<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
     where
-        A: Send + Sync + 'static,
+        A: Attachment,
         F: FnOnce() -> A,
     {
         match self {
@@ -144,13 +180,48 @@ where
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
+    fn attach_lazy<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: OpaqueAttachment,
+        F: FnOnce() -> A,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(error.into_report().attach_printable(attachment)),
+            Err(error) => Err(error.into_report().attach_opaque(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_opaque<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
+    where
+        A: OpaqueAttachment,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(error.into_report().attach_opaque(attachment)),
+        }
+    }
+
+    #[track_caller]
+    fn attach_opaque_with<A, F>(self, attachment: F) -> core::result::Result<T, Report<E::Context>>
+    where
+        A: OpaqueAttachment,
+        F: FnOnce() -> A,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(error.into_report().attach_opaque(attachment())),
+        }
+    }
+
+    #[track_caller]
+    fn attach_printable<A>(self, attachment: A) -> core::result::Result<T, Report<E::Context>>
+    where
+        A: Attachment,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(error.into_report().attach(attachment)),
         }
     }
 
@@ -160,12 +231,12 @@ where
         attachment: F,
     ) -> core::result::Result<T, Report<E::Context>>
     where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        A: Attachment,
         F: FnOnce() -> A,
     {
         match self {
             Ok(value) => Ok(value),
-            Err(error) => Err(error.into_report().attach_printable(attachment())),
+            Err(error) => Err(error.into_report().attach(attachment())),
         }
     }
 

@@ -14,14 +14,14 @@ Expr#0@31
               Expr#10@9
                 ExprKind (Literal)
                   LiteralExpr#11@8
-                    LiteralKind (Integer)
-                      IntegerLiteral (1)
+                    Primitive (Integer)
+                      Integer (1)
             Argument#12@11
               Expr#13@11
                 ExprKind (Literal)
                   LiteralExpr#14@10
-                    LiteralKind (Integer)
-                      IntegerLiteral (1)
+                    Primitive (Integer)
+                      Integer (1)
       Expr#15@21
         ExprKind (Call)
           CallExpr#16@21
@@ -35,14 +35,14 @@ Expr#0@31
               Expr#23@18
                 ExprKind (Literal)
                   LiteralExpr#24@17
-                    LiteralKind (Integer)
-                      IntegerLiteral (10)
+                    Primitive (Integer)
+                      Integer (10)
             Argument#25@20
               Expr#26@20
                 ExprKind (Literal)
                   LiteralExpr#27@19
-                    LiteralKind (Integer)
-                      IntegerLiteral (20)
+                    Primitive (Integer)
+                      Integer (20)
       Expr#28@30
         ExprKind (Call)
           CallExpr#29@30
@@ -56,11 +56,11 @@ Expr#0@31
               Expr#36@27
                 ExprKind (Literal)
                   LiteralExpr#37@26
-                    LiteralKind (Integer)
-                      IntegerLiteral (5)
+                    Primitive (Integer)
+                      Integer (5)
             Argument#38@29
               Expr#39@29
                 ExprKind (Literal)
                   LiteralExpr#40@28
-                    LiteralKind (Integer)
-                      IntegerLiteral (2)
+                    Primitive (Integer)
+                      Integer (2)

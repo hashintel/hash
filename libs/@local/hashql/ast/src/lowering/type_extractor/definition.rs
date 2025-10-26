@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_core::{
-    collection::{FastHashMap, TinyVec, fast_hash_map},
+    collections::{FastHashMap, TinyVec, fast_hash_map},
     module::{
         ModuleRegistry,
         locals::{Local, Locals, TypeLocals},
@@ -11,14 +11,16 @@ use hashql_core::{
     r#type::{
         TypeId,
         environment::Environment,
-        kind::generic::{GenericArgumentId, GenericArgumentReference},
+        kind::generic::{GenericArgumentMap, GenericArgumentReference},
     },
 };
+use hashql_diagnostics::DiagnosticIssues;
 
 use super::{
+    contractive::is_contractive,
     error::{
-        TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
-        duplicate_type_alias,
+        TypeExtractorDiagnosticCategory, TypeExtractorDiagnosticIssues, duplicate_newtype,
+        duplicate_type_alias, non_contractive_recursive_type,
     },
     translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
 };
@@ -32,8 +34,8 @@ use crate::{
 
 type LocalState<'env, 'heap> = (
     FastHashMap<Symbol<'heap>, LocalVariable<'env, 'heap>>,
-    FastHashMap<GenericArgumentId, Option<TypeId>>,
-    Vec<TypeExtractorDiagnostic>,
+    GenericArgumentMap<Option<TypeId>>,
+    TypeExtractorDiagnosticIssues,
 );
 
 pub struct TypeDefinitionExtractor<'env, 'heap> {
@@ -45,7 +47,7 @@ pub struct TypeDefinitionExtractor<'env, 'heap> {
     alias: Vec<(Symbol<'heap>, TypeExpr<'heap>)>,
     opaque: Vec<(Symbol<'heap>, NewTypeExpr<'heap>)>,
 
-    diagnostics: Vec<TypeExtractorDiagnostic>,
+    diagnostics: TypeExtractorDiagnosticIssues,
 }
 
 impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
@@ -64,7 +66,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             alias: Vec::new(),
             opaque: Vec::new(),
 
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
         }
     }
 
@@ -96,7 +98,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     fn setup_locals(&self) -> LocalState<'_, 'heap> {
-        let mut diagnostics = Vec::new();
+        let mut diagnostics = DiagnosticIssues::new();
 
         // Setup the translation unit and environment
         let mut locals = FastHashMap::with_capacity_and_hasher(
@@ -117,6 +119,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: expr.name,
                     r#type: &expr.value,
                     identity: Identity::Structural,
                     arguments,
@@ -136,6 +139,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                 *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
+                    name: expr.name,
                     r#type: &expr.value,
                     identity: Identity::Nominal(
                         self.environment
@@ -202,12 +206,12 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     fn translate(&mut self) -> TypeLocals<'heap> {
-        let (variables, constraints, diagnostics) = self.setup_locals();
+        let (variables, constraints, mut diagnostics) = self.setup_locals();
 
         let mut unit = TranslationUnit {
             env: self.environment,
             registry: self.registry,
-            diagnostics: Vec::new(),
+            diagnostics: DiagnosticIssues::new(),
             locals: &variables,
 
             bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
@@ -232,6 +236,21 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             });
         }
 
+        // check if all variables are contractive (this needs to happen *after* to ensure that
+        // references are resolved)
+        for local in locals.iter() {
+            let variable = &variables[&local.name];
+            let partial = self.environment.types.index_partial(local.value.id);
+
+            if let Err(span) = is_contractive(self.environment, partial.kind) {
+                diagnostics.push(non_contractive_recursive_type(
+                    variable.name.span,
+                    span,
+                    local.name,
+                ));
+            }
+        }
+
         self.diagnostics.extend(unit.diagnostics);
         self.diagnostics.extend(diagnostics);
 
@@ -245,8 +264,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         locals
     }
 
-    #[must_use]
-    pub fn finish(mut self) -> (TypeLocals<'heap>, Vec<TypeExtractorDiagnostic>) {
+    pub fn finish(mut self) -> (TypeLocals<'heap>, TypeExtractorDiagnosticIssues) {
         let locals = self.translate();
 
         (locals, self.diagnostics)
@@ -293,7 +311,7 @@ impl<'heap> Visitor<'heap> for TypeDefinitionExtractor<'_, 'heap> {
             | ExprKind::If(_)
             | ExprKind::Field(_)
             | ExprKind::Index(_)
-            | ExprKind::Is(_)
+            | ExprKind::As(_)
             | ExprKind::Underscore
             | ExprKind::Dummy => unreachable!(),
         };

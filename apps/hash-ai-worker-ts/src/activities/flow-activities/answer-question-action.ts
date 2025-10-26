@@ -1,6 +1,6 @@
-import type { EntityRootType } from "@blockprotocol/graph";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
@@ -8,10 +8,9 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -428,8 +427,10 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
      * rather than a list of entities, to allow for more flexibility in the data provided.
      * This will also always pull the latest version of the entities, which may differ to those passed in.
      */
-    const subgraph = await graphApiClient
-      .getEntitySubgraph(userAuthentication.actorId, {
+    const { subgraph } = await queryEntitySubgraph(
+      { graphApi: graphApiClient },
+      userAuthentication,
+      {
         filter: {
           any: entities.map((entity) => ({
             equal: [
@@ -442,26 +443,42 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
-      })
-      .then(({ data }) =>
-        mapGraphApiSubgraphToSubgraph<EntityRootType>(
-          data.subgraph,
-          userAuthentication.actorId,
-        ),
-      );
+        includePermissions: false,
+      },
+    );
 
     const { entities: simpleEntities, entityTypes: simpleTypes } =
       getSimpleGraph(subgraph);

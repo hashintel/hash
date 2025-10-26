@@ -1,0 +1,1 @@
+#as(::core::math::add, type: Integer)

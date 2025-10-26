@@ -3,14 +3,11 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/tuple.rs
 description: "Rejects duplicate #tuple keys"
 expression: "{\"#tuple\": [], \"#tuple\": []}"
 ---
-[31m[parser::object::duplicate-key] Error:[0m Duplicate key in object
-   ╭─[ <unknown>:1:16 ]
-   │
- 1 │ {"#tuple": [], "#tuple": []}
-   │  ────┬───      ────┬───  
-   │      │             ╰───── Duplicate key
-   │      │                   
-   │      ╰─────────────────── First occurrence of `#tuple`
-   │ 
-   │ Help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.
-───╯
+error[parser::object::duplicate-key]: Duplicate key in object
+  ╭▸ 
+1 │ {"#tuple": [], "#tuple": []}
+  │  ┬───────      ━━━━━━━━ Duplicate key
+  │  │
+  │  First occurrence of `#tuple`
+  │
+  ╰ help: J-Expr does not allow duplicate keys in the same object. Each key must be unique.

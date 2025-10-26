@@ -1,24 +1,55 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    r#type::{environment::Environment, inference::InferenceSolver},
 };
 use hashql_hir::{
-    fold::Fold as _,
+    context::HirContext,
     intern::Interner,
-    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor, inference::TypeInference},
+    lower::inference::{TypeInference, TypeInferenceResidual},
     node::Node,
+    pretty::PrettyPrintEnvironment,
     visit::Visitor as _,
 };
 
 use super::{
     Suite, SuiteDiagnostic,
-    common::{Annotated, Header, process_diagnostics},
+    common::{Annotated, Header},
+    hir_lower_ctor::hir_lower_ctor,
 };
+use crate::suite::{
+    common::{process_issues, process_status},
+    hir_lower_alias_replacement::TestOptions,
+};
+
+pub(crate) fn hir_lower_inference<'env, 'heap>(
+    heap: &'heap Heap,
+    expr: Expr<'heap>,
+    environment: &'env Environment<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    options: &mut TestOptions,
+) -> Result<
+    (
+        Node<'heap>,
+        InferenceSolver<'env, 'heap>,
+        TypeInferenceResidual<'heap>,
+    ),
+    SuiteDiagnostic,
+> {
+    let node = hir_lower_ctor(heap, expr, environment, context, options)?;
+
+    let mut inference = TypeInference::new(environment, context);
+    inference.visit_node(&node);
+
+    let (solver, inference_residual, inference_diagnostics) = inference.finish();
+    process_issues(options.diagnostics, inference_diagnostics)?;
+
+    Ok((node, solver, inference_residual))
+}
 
 pub(crate) struct HirLowerTypeInferenceSuite;
 
@@ -30,55 +61,27 @@ impl Suite for HirLowerTypeInferenceSuite {
     fn run<'heap>(
         &self,
         heap: &'heap Heap,
-        mut expr: Expr<'heap>,
+        expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
+        let (node, solver, inference_residual) = hir_lower_inference(
+            heap,
+            expr,
             &environment,
-            &registry,
-        );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
-
-        let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
-
-        let _ = writeln!(
-            output,
-            "{}\n\n{}",
-            Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
-        );
-
-        let mut replacement = AliasReplacement::new(&interner);
-        let Ok(node) = replacement.fold_node(node);
-
-        let mut converter =
-            ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
-
-        let node = match converter.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
-
-        let mut inference = TypeInference::new(&environment, &registry);
-        inference.visit_node(&node);
-
-        let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_diagnostics(diagnostics, inference_diagnostics)?;
+            &mut context,
+            &mut TestOptions {
+                skip_alias_replacement: false,
+                output: &mut output,
+                diagnostics,
+            },
+        )?;
 
         // We sort so that the output is deterministic
         let mut inference_types: Vec<_> = inference_residual
@@ -88,8 +91,7 @@ impl Suite for HirLowerTypeInferenceSuite {
             .collect();
         inference_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
-        let (substitution, solver_diagnostics) = solver.solve();
-        process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
+        let substitution = process_status(diagnostics, solver.solve())?;
 
         environment.substitution = substitution;
 
@@ -97,7 +99,13 @@ impl Suite for HirLowerTypeInferenceSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         let _ = writeln!(output, "\n{}\n", Header::new("Types"));
@@ -107,10 +115,13 @@ impl Suite for HirLowerTypeInferenceSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner
-                        .node
-                        .index(hir_id)
-                        .pretty_print(&environment, PrettyOptions::default().without_color()),
+                    content: interner.node.index(hir_id).pretty_print(
+                        &PrettyPrintEnvironment {
+                            env: &environment,
+                            symbols: &context.symbols,
+                        },
+                        PrettyOptions::default().without_color()
+                    ),
                     annotation: environment.r#type(type_id).pretty_print(
                         &environment,
                         PrettyOptions::default()

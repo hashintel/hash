@@ -20,7 +20,7 @@ fn check_policy(policy: &ResolvedPolicy) -> Result<(), Box<dyn Error>> {
 
     PolicyValidator
         .validate_policy_set(&policy_set)
-        .attach_printable_lazy(|| format!("policy: {policy:?}"))?;
+        .attach_with(|| format!("policy: {policy:?}"))?;
 
     Ok(())
 }

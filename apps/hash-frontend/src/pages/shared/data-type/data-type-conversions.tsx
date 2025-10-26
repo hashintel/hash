@@ -18,10 +18,10 @@ import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import type {
-  GetDataTypeConversionTargetsQuery,
-  GetDataTypeConversionTargetsQueryVariables,
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
+import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Link } from "../../../shared/ui/link";
 import { useDataTypesContext } from "../data-types-context";
@@ -119,9 +119,9 @@ export const DataTypeConversions = ({
   const { pushToSlideStack } = useSlideStack();
 
   const { data, loading } = useQuery<
-    GetDataTypeConversionTargetsQuery,
-    GetDataTypeConversionTargetsQueryVariables
-  >(getDataTypeConversionTargetsQuery, {
+    FindDataTypeConversionTargetsQuery,
+    FindDataTypeConversionTargetsQueryVariables
+  >(findDataTypeConversionTargetsQuery, {
     variables: {
       /**
        * This fetches the conversions available from the data types that _this_ data type defines conversions to ("local conversions").
@@ -145,7 +145,7 @@ export const DataTypeConversions = ({
     },
   });
 
-  const conversionTargetsMap = data?.getDataTypeConversionTargets;
+  const conversionTargetsMap = data?.findDataTypeConversionTargets;
 
   const conversionTargets = typedEntries(conversionTargetsMap ?? {})
     .flatMap<{

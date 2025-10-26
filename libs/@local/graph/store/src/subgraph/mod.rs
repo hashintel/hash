@@ -10,7 +10,7 @@ use std::collections::hash_map::Entry;
 
 pub use self::record::SubgraphRecord;
 use self::{
-    edges::{Edges, GraphResolveDepths},
+    edges::Edges,
     identifier::GraphElementVertexId,
     temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     vertices::Vertices,
@@ -25,14 +25,12 @@ pub struct Subgraph {
     pub roots: Vec<GraphElementVertexId>,
     pub vertices: Vertices,
     pub edges: Edges,
-    pub depths: GraphResolveDepths,
     pub temporal_axes: SubgraphTemporalAxes,
 }
 
 impl Subgraph {
     #[must_use]
     pub fn new(
-        depths: GraphResolveDepths,
         initial_temporal_axes: QueryTemporalAxesUnresolved,
         resolved_temporal_axes: QueryTemporalAxes,
     ) -> Self {
@@ -40,7 +38,6 @@ impl Subgraph {
             roots: Vec::new(),
             vertices: Vertices::default(),
             edges: Edges::default(),
-            depths,
             temporal_axes: SubgraphTemporalAxes {
                 initial: initial_temporal_axes,
                 resolved: resolved_temporal_axes,
@@ -75,7 +72,7 @@ impl Subgraph {
         direction: EdgeDirection,
         right_endpoint: R,
     ) where
-        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
+        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord + Clone>,
         R: EdgeEndpoint,
         E: EdgeKind<L, R, EdgeSet: Default> + Eq + Hash,
     {

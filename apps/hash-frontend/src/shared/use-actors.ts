@@ -1,24 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitiesResponse,
+  type SerializedQueryEntitiesResponse,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  mapGqlSubgraphFieldsFragmentToSubgraph,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
 
 type MachineActor = {
@@ -45,11 +44,10 @@ export const useActors = (params: {
   );
 
   const { data: machineActorsData, loading: machinesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
-      includePermissions: false,
       request: {
         filter: {
           any: (params.accountIds ? [...new Set(params.accountIds)] : []).map(
@@ -69,9 +67,9 @@ export const useActors = (params: {
             }),
           ),
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
+        includePermissions: false,
       },
     },
     fetchPolicy: "cache-first",
@@ -86,17 +84,18 @@ export const useActors = (params: {
       return;
     }
 
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-      EntityRootType<HashEntity>
-    >(machineActorsData.getEntitySubgraph.subgraph);
+    const entities = deserializeQueryEntitiesResponse(
+      machineActorsData.queryEntities as SerializedQueryEntitiesResponse<Machine>,
+    ).entities;
 
-    const machineActors = getRoots(subgraph).map((entity) => {
+    const machineActors = entities.map((entity) => {
       return {
         accountId: entity.metadata.provenance.edition.createdById,
         kind: "machine" as const,
-        displayName: (entity.properties as MachineProperties)[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
-        ],
+        displayName:
+          entity.properties[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+          ],
       };
     });
 

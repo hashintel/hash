@@ -7,10 +7,13 @@ use hash_graph_authorization::policies::store::{
     CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_store::{
-    entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
+    entity::{
+        CreateEntityParams, EntityQuerySorting, EntityStore as _, QueryEntitiesParams,
+        QueryEntitySubgraphParams,
+    },
     filter::Filter,
     subgraph::{
-        edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
+        edges::{EdgeDirection, SubgraphTraversalParams, TraversalEdge, TraversalPath},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -226,7 +229,7 @@ pub fn bench_get_entity_by_id(
     store: &Store,
     actor_id: ActorEntityUuid,
     entity_metadata_list: &[Entity],
-    graph_resolve_depths: GraphResolveDepths,
+    traversal_params: &SubgraphTraversalParams,
 ) {
     bencher.to_async(runtime).iter_batched(
         || {
@@ -238,38 +241,44 @@ pub fn bench_get_entity_by_id(
                 .choose(&mut rng())
                 .expect("could not choose random entity")
         },
-        |entity_record_id| async move {
-            store
-                .get_entity_subgraph(
-                    actor_id,
-                    GetEntitySubgraphParams {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        conversions: Vec::new(),
-                        include_count: false,
-                        include_entity_types: None,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
-                        include_type_titles: false,
-                    },
-                )
-                .await
-                .expect("failed to read entity from store");
+        |entity_record_id| {
+            let traversal_params = traversal_params.clone();
+            async move {
+                store
+                    .query_entity_subgraph(
+                        actor_id,
+                        QueryEntitySubgraphParams::from_parts(
+                            QueryEntitiesParams {
+                                filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                                    variable: VariableTemporalAxisUnresolved::new(
+                                        Some(TemporalBound::Unbounded),
+                                        None,
+                                    ),
+                                },
+                                sorting: EntityQuerySorting {
+                                    paths: Vec::new(),
+                                    cursor: None,
+                                },
+                                limit: None,
+                                conversions: Vec::new(),
+                                include_count: false,
+                                include_entity_types: None,
+                                include_drafts: false,
+                                include_web_ids: false,
+                                include_created_by_ids: false,
+                                include_edition_created_by_ids: false,
+                                include_type_ids: false,
+                                include_type_titles: false,
+                                include_permissions: false,
+                            },
+                            traversal_params,
+                        ),
+                    )
+                    .await
+                    .expect("failed to read entity from store");
+            }
         },
         SmallInput,
     );
@@ -312,15 +321,39 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
                     store,
                     account_id,
                     entity_list,
-                    GraphResolveDepths {
-                        inherits_from: OutgoingEdgeResolveDepth::default(),
-                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
-                        is_of_type: OutgoingEdgeResolveDepth::default(),
-                        has_left_entity: EdgeResolveDepths::default(),
-                        has_right_entity: EdgeResolveDepths::default(),
+                    &SubgraphTraversalParams::Paths {
+                        traversal_paths: vec![
+                            TraversalPath {
+                                edges: vec![
+                                    TraversalEdge::HasLeftEntity {
+                                        direction: EdgeDirection::Incoming,
+                                    },
+                                    TraversalEdge::HasRightEntity {
+                                        direction: EdgeDirection::Outgoing,
+                                    },
+                                ],
+                            },
+                            TraversalPath {
+                                edges: vec![
+                                    TraversalEdge::HasRightEntity {
+                                        direction: EdgeDirection::Incoming,
+                                    },
+                                    TraversalEdge::HasLeftEntity {
+                                        direction: EdgeDirection::Outgoing,
+                                    },
+                                ],
+                            },
+                            TraversalPath {
+                                edges: vec![TraversalEdge::HasLeftEntity {
+                                    direction: EdgeDirection::Outgoing,
+                                }],
+                            },
+                            TraversalPath {
+                                edges: vec![TraversalEdge::HasLeftEntity {
+                                    direction: EdgeDirection::Outgoing,
+                                }],
+                            },
+                        ],
                     },
                 );
             },
@@ -365,21 +398,39 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
                     store,
                     account_id,
                     entity_metadata_list,
-                    GraphResolveDepths {
-                        inherits_from: OutgoingEdgeResolveDepth::default(),
-                        constrains_values_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_properties_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_links_on: OutgoingEdgeResolveDepth::default(),
-                        constrains_link_destinations_on: OutgoingEdgeResolveDepth::default(),
-                        is_of_type: OutgoingEdgeResolveDepth::default(),
-                        has_left_entity: EdgeResolveDepths {
-                            incoming: 1,
-                            outgoing: 1,
-                        },
-                        has_right_entity: EdgeResolveDepths {
-                            incoming: 1,
-                            outgoing: 1,
-                        },
+                    &SubgraphTraversalParams::Paths {
+                        traversal_paths: vec![
+                            TraversalPath {
+                                edges: vec![
+                                    TraversalEdge::HasLeftEntity {
+                                        direction: EdgeDirection::Incoming,
+                                    },
+                                    TraversalEdge::HasRightEntity {
+                                        direction: EdgeDirection::Outgoing,
+                                    },
+                                ],
+                            },
+                            TraversalPath {
+                                edges: vec![
+                                    TraversalEdge::HasRightEntity {
+                                        direction: EdgeDirection::Incoming,
+                                    },
+                                    TraversalEdge::HasLeftEntity {
+                                        direction: EdgeDirection::Outgoing,
+                                    },
+                                ],
+                            },
+                            TraversalPath {
+                                edges: vec![TraversalEdge::HasLeftEntity {
+                                    direction: EdgeDirection::Outgoing,
+                                }],
+                            },
+                            TraversalPath {
+                                edges: vec![TraversalEdge::HasLeftEntity {
+                                    direction: EdgeDirection::Outgoing,
+                                }],
+                            },
+                        ],
                     },
                 );
             },

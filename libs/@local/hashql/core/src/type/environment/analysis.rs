@@ -1,10 +1,14 @@
 use alloc::rc::Rc;
-use core::ops::{ControlFlow, Deref};
+use core::{
+    mem,
+    ops::{ControlFlow, Deref},
+};
 
+use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
 use super::{
-    Diagnostics, Environment, Variance,
+    Environment, Variance,
     context::{
         provision::ProvisionedScope,
         variance::{VarianceFlow, VarianceState},
@@ -12,7 +16,7 @@ use super::{
 };
 use crate::r#type::{
     Type, TypeId,
-    error::{TypeCheckDiagnostic, circular_type_reference},
+    error::{TypeCheckDiagnostic, TypeCheckDiagnosticIssues, circular_type_reference},
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{Apply, Generic, Infer, IntersectionType, Param, TypeKind, UnionType},
     lattice::Lattice as _,
@@ -26,7 +30,7 @@ use crate::r#type::{
 )]
 pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
-    diagnostics: Option<Diagnostics>,
+    diagnostics: Option<TypeCheckDiagnosticIssues>,
 
     boundary: RecursionBoundary<'heap>,
 
@@ -80,13 +84,21 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn with_diagnostics(&mut self) -> &mut Self {
-        self.diagnostics = Some(Diagnostics::new());
+        self.diagnostics = Some(DiagnosticIssues::new());
 
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
-        self.diagnostics.as_mut().map(core::mem::take)
+    pub fn with_diagnostics_disabled<T>(&mut self, func: impl FnOnce(&mut Self) -> T) -> T {
+        let diagnostics = self.diagnostics.take();
+        let result = func(self);
+        self.diagnostics = diagnostics;
+
+        result
+    }
+
+    pub fn take_diagnostics(&mut self) -> Option<TypeCheckDiagnosticIssues> {
+        self.diagnostics.as_mut().map(mem::take)
     }
 
     pub fn clear_diagnostics(&mut self) {
@@ -95,14 +107,16 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn merge_diagnostics_into(&mut self, diagnostics: &mut Diagnostics) {
+    pub fn merge_diagnostics_into(&mut self, diagnostics: &mut TypeCheckDiagnosticIssues) {
         if let Some(local) = &mut self.diagnostics {
-            local.merge_into(diagnostics);
+            diagnostics.append(local);
         }
     }
 
     pub fn fatal_diagnostics(&self) -> usize {
-        self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
+        self.diagnostics
+            .as_ref()
+            .map_or(0, DiagnosticIssues::critical)
     }
 
     pub(crate) fn resolve_substitution(&self, r#type: Type<'heap>) -> Option<TypeId> {

@@ -1,6 +1,6 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
@@ -8,17 +8,37 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
+use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
-    fold::Fold as _,
-    intern::Interner,
-    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor},
-    node::Node,
+    context::HirContext, fold::Fold as _, intern::Interner, lower::ctor::ConvertTypeConstructor,
+    node::Node, pretty::PrettyPrintEnvironment,
 };
 
 use super::{
     Suite, SuiteDiagnostic,
-    common::{Header, process_diagnostics},
+    common::Header,
+    hir_lower_alias_replacement::{TestOptions, hir_lower_alias_replacement},
 };
+use crate::suite::common::process_issues;
+
+pub(crate) fn hir_lower_ctor<'heap>(
+    heap: &'heap Heap,
+    expr: Expr<'heap>,
+    environment: &Environment<'heap>,
+    context: &mut HirContext<'_, 'heap>,
+    options: &mut TestOptions,
+) -> Result<Node<'heap>, SuiteDiagnostic> {
+    let (node, types) = hir_lower_alias_replacement(heap, expr, environment, context, options)?;
+
+    let mut issues = DiagnosticIssues::new();
+
+    let mut converter =
+        ConvertTypeConstructor::new(context, &types.locals, environment, &mut issues);
+    let Ok(node) = converter.fold_node(node);
+
+    process_issues(options.diagnostics, issues)?;
+    Ok(node)
+}
 
 pub(crate) struct HirLowerCtorSuite;
 
@@ -30,55 +50,39 @@ impl Suite for HirLowerCtorSuite {
     fn run<'heap>(
         &self,
         heap: &'heap Heap,
-        mut expr: Expr<'heap>,
+        expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
-        let (types, lower_diagnostics) = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
+        let node = hir_lower_ctor(
+            heap,
+            expr,
             &environment,
-            &registry,
-        );
-
-        process_diagnostics(diagnostics, lower_diagnostics)?;
-
-        let interner = Interner::new(heap);
-        let (node, reify_diagnostics) = Node::from_ast(expr, &environment, &interner, &types);
-        process_diagnostics(diagnostics, reify_diagnostics)?;
-
-        let node = node.expect("should be `Some` if there are non-fatal errors");
-
-        let _ = writeln!(
-            output,
-            "{}\n\n{}",
-            Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
-        );
-
-        let mut replacement = AliasReplacement::new(&interner);
-        let Ok(node) = replacement.fold_node(node);
-
-        let mut converter =
-            ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
-
-        let node = match converter.fold_node(node) {
-            Ok(node) => node,
-            Err(reported) => {
-                let diagnostic = process_diagnostics(diagnostics, reported)
-                    .expect_err("reported diagnostics should always be fatal");
-                return Err(diagnostic);
-            }
-        };
+            &mut context,
+            &mut TestOptions {
+                skip_alias_replacement: false,
+                output: &mut output,
+                diagnostics,
+            },
+        )?;
 
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after ctor conversion"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         Ok(output)

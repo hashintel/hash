@@ -6,9 +6,6 @@ import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archivePropertyType,
   createPropertyType,
-  getPropertyTypeById,
-  getPropertyTypes,
-  getPropertyTypeSubgraphById,
   unarchivePropertyType,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
@@ -17,10 +14,10 @@ import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -112,14 +109,15 @@ describe("Property type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedPropertyType = await getPropertyTypeById(
-      graphContext,
+      graphContext.graphApi,
       authentication,
       {
         propertyTypeId: createdPropertyType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
 
-    expect(fetchedPropertyType.schema).toEqual(createdPropertyType.schema);
+    expect(fetchedPropertyType?.schema).toEqual(createdPropertyType.schema);
   });
 
   const updatedTitle = "New test!";
@@ -158,32 +156,21 @@ describe("Property type CRU", () => {
       propertyTypeId: createdPropertyType.schema.$id,
     });
 
-    const [archivedPropertyType] = await getPropertyTypes(
-      graphContext,
+    expect(
+      await getPropertyTypeById(graphContext.graphApi, authentication, {
+        propertyTypeId: createdPropertyType.schema.$id,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      }),
+    ).toBeNull();
+
+    const archivedPropertyType = await getPropertyTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdPropertyType.schema.$id },
-          ],
-        },
+        propertyTypeId: createdPropertyType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
-
-    expect(
-      await getPropertyTypes(graphContext, authentication, {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdPropertyType.schema.$id },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      }),
-    ).toHaveLength(0);
-
     expect(
       archivedPropertyType?.metadata.temporalVersioning.transactionTime.end
         .kind,
@@ -193,16 +180,11 @@ describe("Property type CRU", () => {
       propertyTypeId: createdPropertyType.schema.$id,
     });
 
-    const [unarchivedEntityType] = await getPropertyTypes(
-      graphContext,
+    const unarchivedEntityType = await getPropertyTypeById(
+      graphContext.graphApi,
       authentication,
       {
-        filter: {
-          equal: [
-            { path: ["versionedUrl"] },
-            { parameter: createdPropertyType.schema.$id },
-          ],
-        },
+        propertyTypeId: createdPropertyType.schema.$id,
         temporalAxes: fullTransactionTimeAxis,
       },
     );
@@ -219,20 +201,19 @@ describe("Property type CRU", () => {
     const propertyTypeId =
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
 
-    await expect(
-      getPropertyTypeById(
-        graphContext,
+    expect(
+      await getPropertyTypeById(
+        graphContext.graphApi,
         { actorId: publicUserAccountId },
-        { propertyTypeId },
+        { propertyTypeId, temporalAxes: currentTimeInstantTemporalAxes },
       ),
-    ).rejects.toThrow("Could not find property type with ID");
+    ).toBeNull();
 
-    await expect(
-      getPropertyTypeSubgraphById(graphContext, authentication, {
+    expect(
+      await getPropertyTypeById(graphContext.graphApi, authentication, {
         propertyTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
-    ).resolves.not.toThrow();
+    ).not.toBeNull();
   });
 });

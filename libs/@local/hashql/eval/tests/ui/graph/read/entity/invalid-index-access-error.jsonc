@@ -1,16 +1,16 @@
 //@ run: fail
 //@ description: Test internal compiler error on invalid index access
 // biome-ignore format: readability
-["::core::graph::tail::collect",
-  ["::core::graph::body::filter",
-    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
     ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
       // This is one of the few times where we can actually test if we hit a compiler error,
       // because we don't typecheck the input in this test (yet)
       ["==",
         {"#literal": null},
         ["[]",
-          ["input", "user_ids", "Dict<String, ::core::graph::types::knowledge::entity::EntityUuid>"],
+          ["input", "user_ids", "Dict<String, ::graph::types::knowledge::entity::EntityUuid>"],
           {"#literal": "abc"}
           //~^ INTERNAL COMPILER ERROR Index access failed unexpectedly
         ]

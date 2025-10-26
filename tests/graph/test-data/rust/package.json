@@ -6,6 +6,13 @@
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-test-data --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy"
+    "lint:clippy": "just clippy",
+    "test:unit": "mise run test:unit @rust/hash-graph-test-data --test-strategy=powerset"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/error-stack": "0.6.0",
+    "@rust/hash-codec": "0.0.0-private",
+    "@rust/hash-graph-store": "0.0.0-private"
   }
 }

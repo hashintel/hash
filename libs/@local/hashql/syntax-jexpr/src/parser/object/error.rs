@@ -1,15 +1,13 @@
 use alloc::borrow::Cow;
 
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::span::{SpanId, SpanTable};
 use hashql_diagnostics::{
-    Diagnostic,
+    Diagnostic, Label,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    help::Help,
-    label::Label,
-    note::Note,
+    diagnostic::Message,
     severity::Severity,
 };
-use winnow::error::{ContextError, ParseError};
+use winnow::error::ContextError;
 
 use crate::{
     lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind},
@@ -251,108 +249,86 @@ Empty objects don't have semantic meaning in J-Expr.
 "##;
 
 pub(crate) fn empty(span: SpanId) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Severity::Error);
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::Empty, Severity::Error)
+        .primary(Label::new(span, "Add required fields to this object"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Add required fields to this object"));
-
-    diagnostic.add_help(Help::new(EMPTY_HELP));
-    diagnostic.add_note(Note::new(EMPTY_NOTE));
+    diagnostic.add_message(Message::help(EMPTY_HELP));
+    diagnostic.add_message(Message::note(EMPTY_NOTE));
 
     diagnostic
 }
 
 const TRAILING_COMMA_HELP: &str = r#"J-Expr does not support trailing commas in objects. Use `{"key": value}` instead of `{"key": value,}`"#;
 
-#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Severity::Error);
+    let (&first, rest) = spans.split_first().expect("Should have at least one span");
 
-    for (index, &span) in spans.iter().rev().enumerate() {
-        let message = if index == 0 {
-            "Remove this trailing comma"
-        } else {
-            "... and this trailing comma"
-        };
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::TrailingComma, Severity::Error)
+        .primary(Label::new(first, "Remove this trailing comma"));
 
+    for &span in rest {
         diagnostic
             .labels
-            .push(Label::new(span, message).with_order(index as i32));
+            .push(Label::new(span, "... and this trailing comma"));
     }
 
-    diagnostic.add_help(Help::new(TRAILING_COMMA_HELP));
+    diagnostic.add_message(Message::help(TRAILING_COMMA_HELP));
 
     diagnostic
 }
 
 const LEADING_COMMA_HELP: &str = r#"J-Expr does not support leading commas in objects. Use `{"key1": value1, "key2": value2}` format."#;
 
-#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Severity::Error);
+    let (&first, rest) = spans.split_first().expect("Should have at least one span");
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::LeadingComma, Severity::Error)
+        .primary(Label::new(first, "Remove this leading comma"));
 
-    for (index, &span) in spans.iter().rev().enumerate() {
-        let message = if index == 0 {
-            "Remove this leading comma"
-        } else {
-            "... and this leading comma"
-        };
-
+    for &span in rest {
         diagnostic
             .labels
-            .push(Label::new(span, message).with_order(index as i32));
+            .push(Label::new(span, "... and this leading comma"));
     }
 
-    diagnostic.add_help(Help::new(LEADING_COMMA_HELP));
+    diagnostic.add_message(Message::help(LEADING_COMMA_HELP));
 
     diagnostic
 }
 
 const CONSECUTIVE_COMMA_HELP: &str = r#"J-Expr requires exactly one comma between key-value pairs. Use `{"key1": value1, "key2": value2}` format."#;
 
-#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ObjectDiagnostic {
+    let (&first, rest) = spans.split_first().expect("Should have at least one span");
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Severity::Error);
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveComma, Severity::Error)
+            .primary(Label::new(first, "Remove this extra comma"));
 
-    for (index, &span) in spans.iter().rev().enumerate() {
-        let message = if index == 0 {
-            "Remove this extra comma"
-        } else {
-            "... and this extra comma"
-        };
-
+    for &span in rest {
         diagnostic
             .labels
-            .push(Label::new(span, message).with_order(index as i32));
+            .push(Label::new(span, "... and this extra comma"));
     }
 
-    diagnostic.add_help(Help::new(CONSECUTIVE_COMMA_HELP));
+    diagnostic.add_message(Message::help(CONSECUTIVE_COMMA_HELP));
 
     diagnostic
 }
 
 const CONSECUTIVE_COLON_HELP: &str = r#"J-Expr requires exactly one colon between a key and its value. Use `{"key": value}` format."#;
 
-#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn consecutive_colons(spans: &[SpanId]) -> ObjectDiagnostic {
+    let (&first, rest) = spans.split_first().expect("Expected at least one span");
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Severity::Error);
+        Diagnostic::new(ObjectDiagnosticCategory::ConsecutiveColon, Severity::Error)
+            .primary(Label::new(first, "Remove this extra colon"));
 
-    for (index, &span) in spans.iter().rev().enumerate() {
-        let message = if index == 0 {
-            "Remove this extra colon"
-        } else {
-            "... and this extra colon"
-        };
-
+    for &span in rest {
         diagnostic
             .labels
-            .push(Label::new(span, message).with_order(index as i32));
+            .push(Label::new(span, "... and this extra colon"));
     }
 
-    diagnostic.add_help(Help::new(CONSECUTIVE_COLON_HELP));
+    diagnostic.add_message(Message::help(CONSECUTIVE_COLON_HELP));
 
     diagnostic
 }
@@ -362,16 +338,15 @@ pub(crate) fn unknown_key(
     key: impl AsRef<str>,
     expected: &[&'static str],
 ) -> Diagnostic<ObjectDiagnosticCategory, SpanId> {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Severity::Error);
-
-    diagnostic.labels.push(Label::new(
-        span,
-        if expected.is_empty() {
-            format!("Remove the `{}` key", key.as_ref())
-        } else {
-            format!("Replace `{}` with a valid key", key.as_ref())
-        },
-    ));
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::UnknownKey, Severity::Error)
+        .primary(Label::new(
+            span,
+            if expected.is_empty() {
+                format!("Remove the `{}` key", key.as_ref())
+            } else {
+                format!("Replace `{}` with a valid key", key.as_ref())
+            },
+        ));
 
     let help_message = if expected.is_empty() {
         Cow::Borrowed(
@@ -403,25 +378,23 @@ pub(crate) fn unknown_key(
         ))
     };
 
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
     diagnostic
 }
 
 pub(crate) fn orphaned_type(span: SpanId) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Severity::Error);
+    let mut diagnostic =
+        Diagnostic::new(ObjectDiagnosticCategory::OrphanedType, Severity::Error).primary(
+            Label::new(span, "Add a primary construct to use with #type"),
+        );
 
-    diagnostic.labels.push(Label::new(
-        span,
-        "Add a primary construct to use with #type",
-    ));
-
-    diagnostic.add_help(Help::new(
+    diagnostic.add_message(Message::help(
         "The `#type` field must be used alongside a primary construct like `#struct`, `#list`, \
          etc. It cannot be used alone in an object.",
     ));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         r##"The `#type` field is used to annotate the type of a construct. Valid examples include:
     - `{"#struct": {...}, "#type": "Person"}`
     - `{"#list": [...], "#type": "List<Number>"}`
@@ -443,21 +416,15 @@ pub(crate) fn duplicate_key(
     duplicate_span: SpanId,
     key: impl AsRef<str>,
 ) -> ObjectDiagnostic {
-    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Severity::Error);
+    let mut diagnostic = Diagnostic::new(ObjectDiagnosticCategory::DuplicateKey, Severity::Error)
+        .primary(Label::new(duplicate_span, "Duplicate key"));
 
-    diagnostic
-        .labels
-        .push(Label::new(duplicate_span, "Duplicate key").with_order(0));
+    diagnostic.labels.push(Label::new(
+        first_span,
+        format!("First occurrence of `{}`", key.as_ref()),
+    ));
 
-    diagnostic.labels.push(
-        Label::new(
-            first_span,
-            format!("First occurrence of `{}`", key.as_ref()),
-        )
-        .with_order(1),
-    );
-
-    diagnostic.add_help(Help::new(
+    diagnostic.add_message(Message::help(
         "J-Expr does not allow duplicate keys in the same object. Each key must be unique.",
     ));
 
@@ -466,28 +433,25 @@ pub(crate) fn duplicate_key(
 
 const STRUCT_KEY_IDENTIFIER_NOTE: &str = "Struct field keys must be valid HashQL identifiers";
 
-pub(crate) fn struct_key_expected_identifier<I>(
-    spans: &SpanStorage<Span>,
+pub(crate) fn struct_key_expected_identifier(
+    spans: &mut SpanTable<Span>,
     key_span: SpanId,
-    parse_error: ParseError<I, ContextError>,
+    parse_error: (usize, ContextError),
 ) -> ObjectDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::StructKeyExpectedIdentifier,
         Severity::Error,
-    );
-
-    diagnostic
-        .labels
-        .push(Label::new(key_span, "Invalid struct field key"));
+    )
+    .primary(Label::new(key_span, "Invalid struct field key"));
 
     let (_, expected) =
         crate::parser::string::error::convert_parse_error(spans, key_span, parse_error);
 
     if let Some(expected) = expected {
-        diagnostic.add_help(Help::new(expected));
+        diagnostic.add_message(Message::help(expected));
     }
 
-    diagnostic.add_note(Note::new(STRUCT_KEY_IDENTIFIER_NOTE));
+    diagnostic.add_message(Message::note(STRUCT_KEY_IDENTIFIER_NOTE));
 
     diagnostic
 }
@@ -496,19 +460,16 @@ pub(crate) fn dict_entry_expected_array(span: SpanId, found: SyntaxKind) -> Obje
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryExpectedArray,
         Severity::Error,
-    );
-
-    diagnostic
-        .labels
-        .push(Label::new(span, "Expected an array for dictionary entry"));
+    )
+    .primary(Label::new(span, "Expected an array for dictionary entry"));
 
     let help_message = format!(
         "Found {found}, but dictionary entries must be arrays with exactly two elements [key, \
          value]"
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "In the array-of-pairs format for dictionaries, each entry must be a two-element array.",
     ));
 
@@ -522,50 +483,48 @@ pub(crate) fn dict_entry_too_few_items(span: SpanId, found: usize) -> ObjectDiag
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooFewItems,
         Severity::Error,
-    );
-
-    let label_text = if found == 0 {
-        "Empty dictionary entry"
-    } else {
-        "Incomplete dictionary entry"
-    };
-
-    diagnostic.labels.push(Label::new(span, label_text));
+    )
+    .primary(Label::new(
+        span,
+        if found == 0 {
+            "Empty dictionary entry"
+        } else {
+            "Incomplete dictionary entry"
+        },
+    ));
 
     let help_message = format!("Expected 2 items (key and value), but found only {found}");
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(DICT_ENTRY_FORMAT_NOTE));
+    diagnostic.add_message(Message::note(DICT_ENTRY_FORMAT_NOTE));
 
     diagnostic
 }
 
-#[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn dict_entry_too_many_items(excess_element_spans: &[SpanId]) -> ObjectDiagnostic {
+    let (&first, rest) = excess_element_spans
+        .split_first()
+        .expect("Should have at least one element");
+
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictEntryTooManyItems,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(first, "Remove this element"));
 
-    for (idx, &span) in excess_element_spans.iter().enumerate() {
-        let message = if idx == 0 {
-            "Remove this element"
-        } else {
-            "... and this element"
-        };
-
+    for &span in rest {
         diagnostic
             .labels
-            .push(Label::new(span, message).with_order((idx + 1) as i32));
+            .push(Label::new(span, "... and this element"));
     }
 
     let help_message = format!(
         "Dictionary entries must contain exactly 2 items (key and value), but found {}",
         2 + excess_element_spans.len()
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(DICT_ENTRY_FORMAT_NOTE));
+    diagnostic.add_message(Message::note(DICT_ENTRY_FORMAT_NOTE));
 
     diagnostic
 }
@@ -574,21 +533,17 @@ pub(crate) fn tuple_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDia
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::TupleExpectedArray,
         Severity::Error,
-    );
-
-    // More accurate label for the position
-    diagnostic
-        .labels
-        .push(Label::new(span, "Expected an array here"));
+    )
+    .primary(Label::new(span, "Expected an array here"));
 
     // More specific help with clear guidance
     let help_message = format!(
         "The #tuple construct requires an array of elements, but found {found}. Use square \
          brackets to define the tuple elements: [element1, element2, ...]"
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Tuples in J-Expr represent fixed-size ordered collections where each position can have a \
          different type.",
     ));
@@ -598,21 +553,17 @@ pub(crate) fn tuple_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDia
 
 pub(crate) fn list_expected_array(span: SpanId, found: SyntaxKind) -> ObjectDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ObjectDiagnosticCategory::ListExpectedArray, Severity::Error);
-
-    // More accurate label for the position
-    diagnostic
-        .labels
-        .push(Label::new(span, "Expected an array here"));
+        Diagnostic::new(ObjectDiagnosticCategory::ListExpectedArray, Severity::Error)
+            .primary(Label::new(span, "Expected an array here"));
 
     // More specific help with clear guidance
     let help_message = format!(
         "The #list construct requires an array of elements, but found {found}. Use square \
          brackets to define the list elements: [element1, element2, ...]"
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Lists in J-Expr represent variable-length collections where all elements must have the \
          same type.",
     ));
@@ -624,21 +575,17 @@ pub(crate) fn struct_expected_object(span: SpanId, found: SyntaxKind) -> ObjectD
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::StructExpectedObject,
         Severity::Error,
-    );
-
-    // More accurate label for the position
-    diagnostic
-        .labels
-        .push(Label::new(span, "Expected an object here"));
+    )
+    .primary(Label::new(span, "Expected an object here"));
 
     // More specific help with clear guidance
     let help_message = format!(
         "The #struct construct requires an object with field definitions, but found {found}. Use \
          curly braces to define the struct fields: {{\"field1\": value1, \"field2\": value2}}"
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Structs in J-Expr represent collections of named fields, where each field can have a \
          different type.",
     ));
@@ -650,10 +597,8 @@ pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDia
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::DictExpectedFormat,
         Severity::Error,
-    );
-
-    // More accurate label for the position
-    diagnostic.labels.push(Label::new(
+    )
+    .primary(Label::new(
         span,
         "Expected an object or array of pairs here",
     ));
@@ -663,9 +608,9 @@ pub(crate) fn dict_expected_format(span: SpanId, found: SyntaxKind) -> ObjectDia
         "Found {found}, but the #dict construct requires either an object {{key: value, ...}} or \
          an array of pairs [[key, value], ...]"
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         r#"Valid dictionary formats:
     1. Object syntax: {"key1": value1, "key2": value2, ...}
     2. Array of pairs: [[key1, value1], [key2, value2], ...]"#,
@@ -678,18 +623,15 @@ pub(crate) fn type_expected_string(span: SpanId, found: SyntaxKind) -> ObjectDia
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::TypeExpectedString,
         Severity::Error,
-    );
+    )
+    .primary(Label::new(span, "Invalid type specification"));
 
-    diagnostic
-        .labels
-        .push(Label::new(span, "Invalid type specification"));
-
-    diagnostic.add_help(Help::new(format!(
+    diagnostic.add_message(Message::help(format!(
         "Found {found}, which is not a valid type specification. Types must be represented as a \
          string.",
     )));
 
-    diagnostic.add_note(Note::new(
+    diagnostic.add_message(Message::note(
         "Types in J-Expr must be specified through an embedded language represented in a string \
          that mimics that of Rust and TypeScript. See the language documentation for more details.",
     ));
@@ -701,17 +643,14 @@ pub(crate) fn literal_expected_primitive(span: SpanId, found: SyntaxKind) -> Obj
     let mut diagnostic = Diagnostic::new(
         ObjectDiagnosticCategory::LiteralExpectedPrimitive,
         Severity::Error,
-    );
-
-    diagnostic
-        .labels
-        .push(Label::new(span, "Invalid literal value in this context"));
+    )
+    .primary(Label::new(span, "Invalid literal value in this context"));
 
     let help_message = format!(
         "Found {found}, which is not a valid primitive literal. Primitive literals are either \
          strings, numbers, or booleans."
     );
-    diagnostic.add_help(Help::new(help_message));
+    diagnostic.add_message(Message::help(help_message));
 
     diagnostic
 }

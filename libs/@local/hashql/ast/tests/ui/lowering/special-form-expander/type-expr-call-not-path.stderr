@@ -1,17 +1,13 @@
-[special-form-expander::invalid-type-expression] Error: Invalid type expression
-   ╭─[ <unknown>:7:5 ]
-   │
- 7 │     ["+", { "#literal": 1 }, { "#literal": 2 }],
-   │     ─────────────────────┬─────────────────────  
-   │                          ╰─────────────────────── Function call with non-path callee cannot be used as a type
-   │ 
-   │ Help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
-   │ 
-   │ Note: Valid type expressions include:
-   │       - Type names: String, Int, Float
-   │       - Struct types: {name: String, age: Int}
-   │       - Tuple types: (String, Int, Boolean)
-   │       - Unions: (| String Int)
-   │       - Intersections: (& String Int)
-   │       - Generic types: Array<String>, Option<Int>
-───╯
+error[special-form-expander::invalid-type-expression]: Invalid type expression
+  ╭▸ 
+7 │     ["+", { "#literal": 1 }, { "#literal": 2 }],
+  │     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Function call with non-path callee cannot be used as a type
+  │
+  ├ help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
+  ╰ note: Valid type expressions include:
+          - Type names: String, Int, Float
+          - Struct types: {name: String, age: Int}
+          - Tuple types: (String, Int, Boolean)
+          - Unions: (| String Int)
+          - Intersections: (& String Int)
+          - Generic types: Array<String>, Option<Int>

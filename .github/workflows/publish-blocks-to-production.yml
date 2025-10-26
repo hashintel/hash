@@ -15,7 +15,7 @@ jobs:
     outputs:
       block-dir-names: ${{ steps.list-block-dir-names.outputs.block-dir-names }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -41,7 +41,7 @@ jobs:
         block-dir-name: ${{ fromJSON(needs.pick-blocks.outputs.block-dir-names) }}
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo

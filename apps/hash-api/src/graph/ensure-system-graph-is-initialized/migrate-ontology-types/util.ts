@@ -6,15 +6,18 @@ import type {
   BaseUrl,
   Conversions,
   DataType,
+  DataTypeMetadata,
   DataTypeReference,
   DataTypeWithMetadata,
   Entity,
   EntityType,
+  EntityTypeMetadata,
   EntityTypeWithMetadata,
   OneOfSchema,
   OntologyTypeRecordId,
   PropertyObjectWithMetadata,
   PropertyType,
+  PropertyTypeMetadata,
   PropertyTypeReference,
   PropertyTypeWithMetadata,
   PropertyValueArray,
@@ -37,7 +40,11 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
+import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -60,19 +67,9 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-types";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { getEntities } from "../../knowledge/primitive/entity";
-import {
-  createDataType,
-  getDataTypeById,
-} from "../../ontology/primitive/data-type";
-import {
-  createEntityType,
-  getEntityTypeById,
-} from "../../ontology/primitive/entity-type";
-import {
-  createPropertyType,
-  getPropertyTypeById,
-} from "../../ontology/primitive/property-type";
+import { createDataType } from "../../ontology/primitive/data-type";
+import { createEntityType } from "../../ontology/primitive/entity-type";
+import { createPropertyType } from "../../ontology/primitive/property-type";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import { getOrCreateOwningWebId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
@@ -229,9 +226,14 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
 
   migrationState.dataTypeVersions[baseUrl] = versionNumber;
 
-  const existingDataType = await getDataTypeById(context, authentication, {
-    dataTypeId,
-  }).catch((error: Error) => {
+  const existingDataType = await getDataTypeById(
+    context.graphApi,
+    authentication,
+    {
+      dataTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  ).catch((error: Error) => {
     if (error instanceof NotFoundError) {
       return null;
     }
@@ -257,16 +259,18 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalDataType(systemActorMachineId, {
-      // Specify the schema so that self-hosted instances don't need network access to hash.ai
-      schema: dataTypeSchema,
-      conversions,
-      provenance: context.provenance,
-    });
+    const { data: dataTypeMetadata } =
+      await context.graphApi.loadExternalDataType(systemActorMachineId, {
+        // Specify the schema so that self-hosted instances don't need network access to hash.ai
+        schema: dataTypeSchema,
+        conversions,
+        provenance: context.provenance,
+      });
 
-    return await getDataTypeById(context, authentication, {
-      dataTypeId: dataTypeSchema.$id,
-    });
+    return {
+      schema: dataTypeSchema,
+      metadata: dataTypeMetadata as DataTypeMetadata,
+    };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdDataType = await createDataType(
@@ -311,15 +315,10 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
   migrationState.propertyTypeVersions[baseUrl] = versionNumber;
 
   const existingPropertyType = await getPropertyTypeById(
-    context,
+    context.graphApi,
     authentication,
-    { propertyTypeId },
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+    { propertyTypeId, temporalAxes: currentTimeInstantTemporalAxes },
+  );
 
   if (existingPropertyType) {
     return existingPropertyType;
@@ -340,15 +339,17 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an
      * in-instance web, although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
-      // Specify the schema so that self-hosted instances don't need network access to hash.ai
-      schema: propertyTypeSchema,
-      provenance: context.provenance,
-    });
+    const propertyTypeMetadata =
+      await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
+        // Specify the schema so that self-hosted instances don't need network access to hash.ai
+        schema: propertyTypeSchema,
+        provenance: context.provenance,
+      });
 
-    return await getPropertyTypeById(context, authentication, {
-      propertyTypeId: propertyTypeSchema.$id,
-    });
+    return {
+      schema: propertyTypeSchema,
+      metadata: propertyTypeMetadata.data as PropertyTypeMetadata,
+    };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdPropertyType = await createPropertyType(
@@ -516,14 +517,14 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
 
   migrationState.entityTypeVersions[baseUrl] = versionNumber;
 
-  const existingEntityType = await getEntityTypeById(context, authentication, {
-    entityTypeId,
-  }).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
+  const existingEntityType = await getEntityTypeById(
+    context.graphApi,
+    authentication,
+    {
+      entityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
 
   if (existingEntityType) {
     return existingEntityType;
@@ -545,15 +546,19 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalEntityType(systemActorMachineId, {
-      // Specify the schema so that self-hosted instances don't need network access to hash.ai
-      schema: entityTypeSchema,
-      provenance: context.provenance,
-    });
+    const entityTypeMetadata = await context.graphApi.loadExternalEntityType(
+      systemActorMachineId,
+      {
+        // Specify the schema so that self-hosted instances don't need network access to hash.ai
+        schema: entityTypeSchema,
+        provenance: context.provenance,
+      },
+    );
 
-    return await getEntityTypeById(context, authentication, {
-      entityTypeId: entityTypeSchema.$id,
-    });
+    return {
+      schema: entityTypeSchema,
+      metadata: entityTypeMetadata.data as EntityTypeMetadata,
+    };
   } else {
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
     const createdEntityType = await createEntityType(
@@ -695,15 +700,21 @@ export const updateSystemEntityType: ImpureGraphFunction<
     baseUrl,
     nextEntityTypeVersion,
   );
-  try {
-    await getEntityTypeById(context, authentication, {
-      entityTypeId: nextEntityTypeId,
-    });
 
+  const nextEntityType = await getEntityTypeById(
+    context.graphApi,
+    authentication,
+    {
+      entityTypeId: nextEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
+
+  if (nextEntityType) {
     migrationState.entityTypeVersions[baseUrl] = nextEntityTypeVersion;
 
     return { updatedEntityTypeId: nextEntityTypeId };
-  } catch {
+  } else {
     // the next version doesn't exist, continue to create it
   }
 
@@ -774,16 +785,26 @@ export const updateSystemPropertyType: ImpureGraphFunction<
     );
   }
 
+  const nextPropertyTypeVersion = incrementOntologyTypeVersion(version);
   const nextPropertyTypeId = versionedUrlFromComponents(
     baseUrl,
-    incrementOntologyTypeVersion(version),
+    nextPropertyTypeVersion,
   );
-  try {
-    await getPropertyTypeById(context, authentication, {
+
+  const nextPropertyType = await getPropertyTypeById(
+    context.graphApi,
+    authentication,
+    {
       propertyTypeId: nextPropertyTypeId,
-    });
+      temporalAxes: currentTimeInstantTemporalAxes,
+    },
+  );
+
+  if (nextPropertyType) {
+    migrationState.propertyTypeVersions[baseUrl] = nextPropertyTypeVersion;
+
     return { updatedPropertyTypeId: nextPropertyTypeId };
-  } catch {
+  } else {
     // the next version doesn't exist, continue to create it
   }
 
@@ -858,16 +879,23 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
       migrationState,
     });
 
-    const { schema: dependentSchema } = await getEntityTypeById(
-      context,
+    const currentDependentEntityType = await getEntityTypeById(
+      context.graphApi,
       authentication,
       {
         entityTypeId: currentDependentEntityTypeId,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
 
+    if (!currentDependentEntityType) {
+      throw new Error(
+        `Expected dependent entity type ${currentDependentEntityTypeId} to exist`,
+      );
+    }
+
     const newDependentSchema = upgradeEntityTypeDependencies({
-      schema: dependentSchema,
+      schema: currentDependentEntityType.schema,
       upgradedEntityTypeIds: [
         ...upgradedEntityTypeIds,
         ...nextDependentEntityTypeIds,
@@ -893,7 +921,7 @@ export const getEntitiesByType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
   Promise<Entity[]>
 > = async (context, authentication, { entityTypeId }) =>
-  getEntities(context, authentication, {
+  queryEntities(context, authentication, {
     filter: {
       all: [
         generateVersionedUrlMatchingFilter(entityTypeId, {
@@ -901,16 +929,17 @@ export const getEntitiesByType: ImpureGraphFunction<
         }),
       ],
     },
-    includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
-  });
+    includeDrafts: false,
+    includePermissions: false,
+  }).then(({ entities }) => entities);
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
-  const [users, orgs] = await Promise.all([
-    getEntities(context, authentication, {
+  const [{ entities: users }, { entities: orgs }] = await Promise.all([
+    queryEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -921,10 +950,11 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
-    getEntities(context, authentication, {
+    queryEntities(context, authentication, {
       filter: {
         all: [
           {
@@ -935,8 +965,9 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
           },
         ],
       },
-      includeDrafts: false,
       temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     }),
   ]);
 

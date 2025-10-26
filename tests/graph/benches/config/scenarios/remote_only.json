@@ -1,0 +1,13 @@
+{
+  "runId": 1,
+  "numShards": 16,
+  "setup": [
+    {
+      "type": "generate-data-types",
+      "id": "remote-only-data-types",
+      "configRef": "data_types/remote_only",
+      "count": 100
+    }
+  ],
+  "benches": []
+}

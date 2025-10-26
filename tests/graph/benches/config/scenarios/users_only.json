@@ -1,0 +1,13 @@
+{
+  "runId": 1,
+  "numShards": 8,
+  "setup": [
+    {
+      "type": "generate-users",
+      "id": "users-basic",
+      "configRef": "users/basic",
+      "count": 1000
+    }
+  ],
+  "benches": []
+}

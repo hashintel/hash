@@ -14,7 +14,7 @@ runs:
 
   steps:
     - name: Run `mise install` with `ci` environment
-      uses: jdx/mise-action@bfb9fa0b029db830a8c570757cee683df207a6c5 # v2.4.0
+      uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
       with:
         install_args: --env ci --jobs 1
       env:
@@ -33,14 +33,13 @@ runs:
 
     - name: "Install Rust"
       if: ${{ inputs.rust == true || inputs.rust == 'true' }}
-      shell: bash
-      run: |
-        COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"
-        TOOLCHAIN_CHANNEL="$(yq '.toolchain.channel' rust-toolchain.toml)"
-        rustup toolchain install "$TOOLCHAIN_CHANNEL"
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 20
+        max_attempts: 5
+        retry_wait_seconds: 60
+        command: ${{ github.action_path }}/install-rust.sh
 
-        for component in $COMPONENTS; do
-          rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
-        done
-
-        echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
+    - name: "Install sccache"
+      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      uses: ./.github/actions/install-sccache

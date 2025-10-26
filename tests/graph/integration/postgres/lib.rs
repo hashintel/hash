@@ -45,30 +45,30 @@ use hash_graph_store::{
     account::{AccountStore as _, CreateUserActorParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
-        GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
-        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
-        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
+        FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams,
+        QueryDataTypeSubgraphResponse, QueryDataTypesParams, QueryDataTypesResponse,
+        UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
-        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, QueryEntitiesParams,
+        QueryEntitiesResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
-        GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        GetClosedMultiEntityTypesResponse, HasPermissionForEntityTypesParams,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams,
+        QueryEntityTypeSubgraphResponse, QueryEntityTypesParams, QueryEntityTypesResponse,
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        HasPermissionForPropertyTypesParams, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
+        QueryPropertyTypeSubgraphResponse, QueryPropertyTypesParams, QueryPropertyTypesResponse,
         UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
@@ -189,6 +189,7 @@ impl DatabaseTestWrapper {
             .create_user_actor(
                 system_account_id.into(),
                 CreateUserActorParams {
+                    user_id: None,
                     shortname: Some("bench-user".to_owned()),
                     registration_complete: true,
                 },
@@ -291,11 +292,11 @@ impl DataTypeStore for DatabaseApi<'_> {
         self.store.count_data_types(actor_id, params).await
     }
 
-    async fn get_data_types(
+    async fn query_data_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypesParams<'_>,
-    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        mut params: QueryDataTypesParams<'_>,
+    ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -305,13 +306,12 @@ impl DataTypeStore for DatabaseApi<'_> {
                 actor_id,
                 CountDataTypesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    temporal_axes: params.temporal_axes,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_data_types(actor_id, params).await?;
+        let mut response = self.store.query_data_types(actor_id, params).await?;
 
         // We can ensure that `count_data_types` and `get_data_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -326,27 +326,30 @@ impl DataTypeStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_data_type_subgraph(
+    async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetDataTypeSubgraphParams<'_>,
-    ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        mut params: QueryDataTypeSubgraphParams<'_>,
+    ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
+        let request = params.request_mut();
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_data_types(
                 actor_id,
                 CountDataTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_data_type_subgraph(actor_id, params).await?;
+        let mut response = self
+            .store
+            .query_data_type_subgraph(actor_id, params)
+            .await?;
 
         // We can ensure that `count_data_types` and `get_data_type_subgraph` return the same count;
         assert_eq!(response.count, Some(count));
@@ -398,13 +401,13 @@ impl DataTypeStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn get_data_type_conversion_targets(
+    async fn find_data_type_conversion_targets(
         &self,
         actor_id: ActorEntityUuid,
-        params: GetDataTypeConversionTargetsParams,
-    ) -> Result<GetDataTypeConversionTargetsResponse, Report<QueryError>> {
+        params: FindDataTypeConversionTargetsParams,
+    ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
         self.store
-            .get_data_type_conversion_targets(actor_id, params)
+            .find_data_type_conversion_targets(actor_id, params)
             .await
     }
 
@@ -443,11 +446,11 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         self.store.count_property_types(actor_id, params).await
     }
 
-    async fn get_property_types(
+    async fn query_property_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetPropertyTypesParams<'_>,
-    ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+        mut params: QueryPropertyTypesParams<'_>,
+    ) -> Result<QueryPropertyTypesResponse, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -457,13 +460,12 @@ impl PropertyTypeStore for DatabaseApi<'_> {
                 actor_id,
                 CountPropertyTypesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    temporal_axes: params.temporal_axes,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_property_types(actor_id, params).await?;
+        let mut response = self.store.query_property_types(actor_id, params).await?;
 
         // We can ensure that `count_property_types` and `get_property_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -479,29 +481,30 @@ impl PropertyTypeStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_property_type_subgraph(
+    async fn query_property_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetPropertyTypeSubgraphParams<'_>,
-    ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        mut params: QueryPropertyTypeSubgraphParams<'_>,
+    ) -> Result<QueryPropertyTypeSubgraphResponse, Report<QueryError>> {
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_property_types(
                 actor_id,
                 CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
                 },
             )
             .await?;
 
         let mut response = self
             .store
-            .get_property_type_subgraph(actor_id, params)
+            .query_property_type_subgraph(actor_id, params)
             .await?;
 
         // We can ensure that `count_property_types` and `get_property_type_subgraph` return the
@@ -587,27 +590,28 @@ impl EntityTypeStore for DatabaseApi<'_> {
         self.store.count_entity_types(actor_id, params).await
     }
 
-    async fn get_entity_types(
+    async fn query_entity_types(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypesParams<'_>,
-    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        mut params: QueryEntityTypesParams<'_>,
+    ) -> Result<QueryEntityTypesResponse, Report<QueryError>> {
+        let request = &mut params.request;
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entity_types(
                 actor_id,
                 CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_entity_types(actor_id, params).await?;
+        let mut response = self.store.query_entity_types(actor_id, params).await?;
 
         // We can ensure that `count_entity_types` and `get_entity_types` return the same count;
         assert_eq!(response.count, Some(count));
@@ -643,29 +647,30 @@ impl EntityTypeStore for DatabaseApi<'_> {
             .await
     }
 
-    async fn get_entity_type_subgraph(
+    async fn query_entity_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntityTypeSubgraphParams<'_>,
-    ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        mut params: QueryEntityTypeSubgraphParams<'_>,
+    ) -> Result<QueryEntityTypeSubgraphResponse, Report<QueryError>> {
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entity_types(
                 actor_id,
                 CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
                 },
             )
             .await?;
 
         let mut response = self
             .store
-            .get_entity_type_subgraph(actor_id, params)
+            .query_entity_type_subgraph(actor_id, params)
             .await?;
 
         // We can ensure that `count_entity_types` and `get_entity_type_subgraph` return the same
@@ -751,11 +756,11 @@ impl EntityStore for DatabaseApi<'_> {
         self.store.validate_entities(actor_id, params).await
     }
 
-    async fn get_entities(
+    async fn query_entities(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitiesParams<'_>,
-    ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
+        mut params: QueryEntitiesParams<'_>,
+    ) -> Result<QueryEntitiesResponse<'static>, Report<QueryError>> {
         let include_count = params.include_count;
         let has_limit = params.limit.is_some();
         params.include_count = true;
@@ -765,13 +770,13 @@ impl EntityStore for DatabaseApi<'_> {
                 actor_id,
                 CountEntitiesParams {
                     filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
+                    temporal_axes: params.temporal_axes,
                     include_drafts: params.include_drafts,
                 },
             )
             .await?;
 
-        let mut response = self.store.get_entities(actor_id, params).await?;
+        let mut response = self.store.query_entities(actor_id, params).await?;
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));
@@ -786,26 +791,28 @@ impl EntityStore for DatabaseApi<'_> {
         Ok(response)
     }
 
-    async fn get_entity_subgraph(
+    async fn query_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
-        mut params: GetEntitySubgraphParams<'_>,
-    ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let include_count = params.include_count;
-        let has_limit = params.limit.is_some();
-        params.include_count = true;
+        mut params: QueryEntitySubgraphParams<'_>,
+    ) -> Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>> {
+        let request = params.request_mut();
+
+        let include_count = request.include_count;
+        let has_limit = request.limit.is_some();
+        request.include_count = true;
 
         let count = self
             .count_entities(
                 actor_id,
                 CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
+                    filter: request.filter.clone(),
+                    temporal_axes: request.temporal_axes,
+                    include_drafts: request.include_drafts,
                 },
             )
             .await?;
-        let mut response = self.store.get_entity_subgraph(actor_id, params).await?;
+        let mut response = self.store.query_entity_subgraph(actor_id, params).await?;
 
         // We can ensure that `count_entities` and `get_entity` return the same count;
         assert_eq!(response.count, Some(count));

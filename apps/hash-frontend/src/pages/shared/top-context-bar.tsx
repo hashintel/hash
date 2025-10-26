@@ -26,7 +26,6 @@ import type { BreadcrumbsProps } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
-import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
 import { isItemType } from "./top-context-bar/util";
 
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
@@ -188,9 +187,15 @@ export const TopContextBar = ({
           {breadcrumbsEndAdornment}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {item && !isItemType(item) && !isEntityPageEntity(item) && (
+          {/*
+           * @todo: bring back draft entity viewers when the GQL resolver
+           * returns the correct number of authorization relationships.
+           *
+           * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
+           */}
+          {/* {item && !isItemType(item) && !isEntityPageEntity(item) && (
             <ShareDropdownMenu entity={item} />
-          )}
+          )} */}
 
           {actionMenuItems?.length ? (
             <ContextBarActionsDropdown>

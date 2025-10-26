@@ -165,25 +165,23 @@ fn prepare(suffix: bool) -> impl Drop {
 fn create_sources_nested() -> Report<ContextA> {
     let r4 = create_report()
         .change_context(ContextA(5))
-        .attach_printable("15")
-        .attach_printable("14");
+        .attach("15")
+        .attach("14");
 
     let r6 = create_report()
         .change_context(ContextA(7))
         .change_context(ContextA(6))
-        .attach_printable("12");
+        .attach("12");
 
-    let r5 = create_report()
-        .change_context(ContextA(9))
-        .attach_printable("11");
+    let r5 = create_report().change_context(ContextA(9)).attach("11");
 
     let mut r3 = create_report()
         .change_context(ContextA(8))
-        .attach_printable("13")
+        .attach("13")
         .expand();
 
     r3.push(r4);
-    let r3 = r3.attach_printable("10").attach_printable("16");
+    let r3 = r3.attach("10").attach("16");
 
     let mut r2 = create_report().change_context(ContextA(4)).expand();
 
@@ -192,25 +190,25 @@ fn create_sources_nested() -> Report<ContextA> {
     r2.push(r6);
 
     let r2 = r2
-        .attach_printable("9")
-        .attach_printable("8")
+        .attach("9")
+        .attach("8")
         .change_context(ContextA(3))
-        .attach_printable("7")
+        .attach("7")
         .change_context(ContextA(10))
-        .attach_printable("5");
+        .attach("5");
 
     let mut r1 = create_report()
-        .attach_printable("6")
+        .attach("6")
         .change_context(ContextA(2))
-        .attach_printable("4")
+        .attach("4")
         .expand();
 
     r1.push(r2);
 
-    r1.attach_printable("3")
+    r1.attach("3")
         .change_context(ContextA(1))
-        .attach_printable("2")
-        .attach_printable("1")
+        .attach("2")
+        .attach("1")
 }
 
 /// This is the main test, to test all different parts at once,
@@ -269,14 +267,14 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report()
-            .attach_printable(PrintableA(0))
-            .attach(AttachmentA)
-            .attach(AttachmentB)
+            .attach(PrintableA(0))
+            .attach_opaque(AttachmentA)
+            .attach_opaque(AttachmentB)
             .change_context(ContextA(0))
-            .attach_printable(PrintableB(0))
-            .attach(AttachmentB)
+            .attach(PrintableB(0))
+            .attach_opaque(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("printable C");
+            .attach("printable C");
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -286,14 +284,14 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report()
-            .attach_printable(PrintableA(0))
-            .attach(AttachmentA)
-            .attach(AttachmentB)
+            .attach(PrintableA(0))
+            .attach_opaque(AttachmentA)
+            .attach_opaque(AttachmentB)
             .change_context(ContextA(0))
-            .attach_printable(PrintableB(0))
-            .attach(AttachmentB)
+            .attach(PrintableB(0))
+            .attach_opaque(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("printable C");
+            .attach("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -315,10 +313,10 @@ mod full {
 
         let report = Report::new(ContextC)
             .change_context(ContextC)
-            .attach_printable(PrintableB(0))
-            .attach(AttachmentB)
+            .attach(PrintableB(0))
+            .attach_opaque(AttachmentB)
             .change_context(ContextB(0))
-            .attach_printable("printable C");
+            .attach("printable C");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -328,8 +326,8 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report()
-            .attach_printable("A multiline\nattachment\nthat might have some\nadditional info")
-            .attach_printable("A multiline\nattachment\nthat might have some\nadditional info");
+            .attach("A multiline\nattachment\nthat might have some\nadditional info")
+            .attach("A multiline\nattachment\nthat might have some\nadditional info");
 
         assert_snapshot!(format!("{report:#?}"));
     }
@@ -353,17 +351,17 @@ mod full {
     fn sources() {
         let _guard = prepare(false);
 
-        let mut root1 = create_report().attach_printable(PrintableA(1)).expand();
-        let root2 = create_report().attach_printable(PrintableB(2));
-        let root3 = create_report().attach_printable(PrintableB(3));
+        let mut root1 = create_report().attach(PrintableA(1)).expand();
+        let root2 = create_report().attach(PrintableB(2));
+        let root3 = create_report().attach(PrintableB(3));
 
         root1.push(root2);
         root1.push(root3);
 
         let report = root1
-            .attach(AttachmentA(1))
+            .attach_opaque(AttachmentA(1))
             .change_context(ContextA(2))
-            .attach(AttachmentB(2));
+            .attach_opaque(AttachmentB(2));
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -391,20 +389,20 @@ mod full {
         let _guard = prepare(false);
 
         let report = {
-            let mut report = create_report().attach_printable(PrintableA(1)).expand();
+            let mut report = create_report().attach(PrintableA(1)).expand();
 
             report.append({
-                let mut report = create_report().attach_printable(PrintableB(2)).expand();
+                let mut report = create_report().attach(PrintableB(2)).expand();
 
-                report.push(create_report().attach_printable(PrintableB(3)));
+                report.push(create_report().attach(PrintableB(3)));
 
-                report.attach_printable(PrintableA(4))
+                report.attach(PrintableA(4))
             });
 
             report
-                .attach(AttachmentA(1))
+                .attach_opaque(AttachmentA(1))
                 .change_context(ContextA(2))
-                .attach(AttachmentB(2))
+                .attach_opaque(AttachmentB(2))
         };
 
         assert_snapshot!(format!("{report:?}"));
@@ -414,24 +412,22 @@ mod full {
     fn complex() {
         let _guard = prepare(false);
 
-        let mut report = create_report().attach_printable(PrintableA(0)).expand();
+        let mut report = create_report().attach(PrintableA(0)).expand();
         report.append({
-            let mut report = create_report().attach_printable(PrintableB(1)).expand();
+            let mut report = create_report().attach(PrintableB(1)).expand();
 
             report.push(
                 create_report()
-                    .attach(AttachmentB(0))
-                    .attach(AttachmentA(1))
-                    .attach_printable(PrintableB(1)),
+                    .attach_opaque(AttachmentB(0))
+                    .attach_opaque(AttachmentA(1))
+                    .attach(PrintableB(1)),
             );
 
-            report.attach(AttachmentA(2)).attach_printable("Test")
+            report.attach_opaque(AttachmentA(2)).attach("Test")
         });
 
         // force the generation of a tree node
-        let report = report
-            .change_context(ContextA(2))
-            .attach_printable(PrintableA(2));
+        let report = report.change_context(ContextA(2)).attach(PrintableA(2));
 
         assert_snapshot!(format!("{report:?}"));
     }
@@ -440,7 +436,7 @@ mod full {
     fn hook() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2_u32);
+        let report = create_report().attach_opaque(2_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             context.push_body("unsigned 32bit integer");
@@ -453,7 +449,7 @@ mod full {
     fn hook_context() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2_u32);
+        let report = create_report().attach_opaque(2_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.increment_counter();
@@ -467,7 +463,7 @@ mod full {
     fn hook_for_context() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2_u32);
+        let report = create_report().attach_opaque(2_u32);
 
         Report::install_debug_hook::<RootError>(|_, _| {
             // This should not be displayed as `RootError` is only used as `Context`, never as
@@ -482,7 +478,7 @@ mod full {
     fn hook_multiple() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(1_u32).attach(2_u64);
+        let report = create_report().attach_opaque(1_u32).attach_opaque(2_u64);
 
         Report::install_debug_hook::<u32>(|_, context| {
             context.push_body("unsigned 32bit integer");
@@ -499,9 +495,9 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report() //
-            .attach(1_u32)
-            .attach(2_u32)
-            .attach(3_u32);
+            .attach_opaque(1_u32)
+            .attach_opaque(2_u32)
+            .attach_opaque(3_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.decrement_counter();
@@ -516,9 +512,9 @@ mod full {
         let _guard = prepare(false);
 
         let report = create_report() //
-            .attach(1_u32)
-            .attach(2_u32)
-            .attach(3_u32);
+            .attach_opaque(1_u32)
+            .attach_opaque(2_u32)
+            .attach_opaque(3_u32);
 
         Report::install_debug_hook::<u32>(|_, context| {
             let idx = context.increment_counter();
@@ -532,7 +528,7 @@ mod full {
     fn hook_alternate() {
         let _guard = prepare(false);
 
-        let report = create_report().attach(2_u64);
+        let report = create_report().attach_opaque(2_u64);
 
         Report::install_debug_hook::<u64>(|_, context| {
             if context.alternate() {

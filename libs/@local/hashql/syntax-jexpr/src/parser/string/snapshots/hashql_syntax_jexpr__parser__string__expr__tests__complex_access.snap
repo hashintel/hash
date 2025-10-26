@@ -27,10 +27,10 @@ Expr#4294967040@13
                         Expr#4294967040@5
                           ExprKind (Literal)
                             LiteralExpr#4294967040@5
-                              LiteralKind (Integer)
-                                IntegerLiteral (0)
+                              Primitive (Integer)
+                                Integer (0)
             Expr#4294967040@7
               ExprKind (Literal)
                 LiteralExpr#4294967040@7
-                  LiteralKind (Integer)
-                    IntegerLiteral (42)
+                  Primitive (Integer)
+                    Integer (42)

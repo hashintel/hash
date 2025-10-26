@@ -25,12 +25,12 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
-    "@rust/error-stack": "0.5.0",
+    "@rust/error-stack": "0.6.0",
     "@rust/hash-codec": "0.0.0-private"
   },
   "devDependencies": {
     "@local/tsconfig": "0.0.0-private",
     "@rust/hash-codegen": "0.0.0-private",
-    "typescript": "5.7.3"
+    "typescript": "5.9.3"
   }
 }

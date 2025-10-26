@@ -3,7 +3,7 @@
 
 [server]
 http_port = ${grafana_port}
-root_url = https://${root_url}
+root_url = ${root_url}
 
 [database]
 type = postgres
@@ -37,3 +37,6 @@ provisioning = /etc/grafana/provisioning
 [analytics]
 reporting_enabled = false
 check_for_updates = false
+
+[metrics]
+enabled = true

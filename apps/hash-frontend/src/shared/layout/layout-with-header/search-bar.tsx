@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getRoots,
@@ -17,26 +13,23 @@ import {
 import { Chip, IconButton } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
@@ -184,15 +177,14 @@ const EntityTypeResult: FunctionComponent<{
 /** extends react's useState by returning an additional value updated after a short delay (debounce) */
 const useQueryText = (): [string, string, (queryText: string) => void] => {
   const [displayedQuery, setDisplayedQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
+  const [submittedQuery, setSubmittedQuery] = useDebouncedState("", 300);
 
   const setQuery = useCallback(
     (query: string) => {
       setDisplayedQuery(query);
-      setSubmittedQuerySoon(query);
+      setSubmittedQuery(query);
     },
-    [setDisplayedQuery, setSubmittedQuerySoon],
+    [setDisplayedQuery, setSubmittedQuery],
   );
 
   return [displayedQuery, submittedQuery, setQuery];
@@ -257,21 +249,21 @@ export const SearchBar: FunctionComponent = () => {
   );
 
   const { data: entityResultData, loading: entitiesLoading } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
+    QueryEntitySubgraphQuery,
+    QueryEntitySubgraphQueryVariables
+  >(queryEntitySubgraphQuery, {
     variables: {
       request: {
         filter: queryFilter,
         temporalAxes: currentTimeInstantTemporalAxes,
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
+        traversalPaths: [],
         includeDrafts: false,
+        includePermissions: false,
       },
-      includePermissions: false,
     },
     skip: !submittedQuery,
   });
@@ -281,16 +273,17 @@ export const SearchBar: FunctionComponent = () => {
     QueryEntityTypesQueryVariables
   >(queryEntityTypesQuery, {
     variables: {
-      filter: queryFilter,
-      latestOnly: true,
-      ...zeroedGraphResolveDepths,
+      request: {
+        filter: queryFilter,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
     },
     skip: !submittedQuery,
   });
 
   const deserializedEntitySubgraph = entityResultData
     ? deserializeSubgraph<EntityRootType<HashEntity>>(
-        entityResultData.getEntitySubgraph.subgraph,
+        entityResultData.queryEntitySubgraph.subgraph,
       )
     : undefined;
 
@@ -301,25 +294,16 @@ export const SearchBar: FunctionComponent = () => {
       : undefined;
   const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
 
-  const entityTypeSubgraph =
-    entityTypeResultData &&
-    /**
-     * Ideally we would use {@link isEntityTypeRootedSubgraph} here, but we cannot because one of the checks it makes
-     * is that the root's revisionId is a stringified integer. In HASH, the revisionId for a type root is a number.
-     * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
-     * H-2489
-     */
-    deserializeSubgraph<EntityTypeRootType>(
-      entityTypeResultData.queryEntityTypes,
-    );
+  const entityTypeResults =
+    (entityTypeResultData &&
+      entityTypeResultData.queryEntityTypes.entityTypes) ??
+    [];
 
-  const entityTypeResults = entityTypeSubgraph
-    ? getRoots(entityTypeSubgraph)
-    : [];
+  useHotkeys([["Escape", () => setResultListVisible(false)]]);
 
-  useKey(["Escape"], () => setResultListVisible(false));
-
-  const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
+  const boxRef = useClickOutside<HTMLDivElement>(() =>
+    setResultListVisible(false),
+  );
 
   const isLoading = entityTypesLoading || entitiesLoading;
 
@@ -334,7 +318,7 @@ export const SearchBar: FunctionComponent = () => {
         height: "100%",
         ...getSearchBarResponsiveStyles(isMobile, displaySearchInput),
       }}
-      ref={rootRef}
+      ref={boxRef}
     >
       {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
       {isMobile && !displaySearchInput ? (

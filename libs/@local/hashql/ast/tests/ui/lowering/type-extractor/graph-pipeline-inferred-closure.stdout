@@ -1,112 +1,107 @@
-Expr#0@100
+Expr#0@90
   ExprKind (Call)
-    CallExpr#1@100
-      Expr#2@9
+    CallExpr#1@90
+      Expr#2@7
         ExprKind (Path)
-          Path#3@9 (rooted: true)
-            PathSegment#4@2 (name: core)
-            PathSegment#5@4 (name: graph)
-            PathSegment#6@6 (name: tail)
-            PathSegment#7@8 (name: collect)
-      Argument#8@99
-        Expr#9@99
+          Path#3@7 (rooted: true)
+            PathSegment#4@2 (name: graph)
+            PathSegment#5@4 (name: tail)
+            PathSegment#6@6 (name: collect)
+      Argument#7@89
+        Expr#8@89
           ExprKind (Call)
-            CallExpr#10@99
-              Expr#11@19
+            CallExpr#9@89
+              Expr#10@15
                 ExprKind (Path)
-                  Path#12@19 (rooted: true)
-                    PathSegment#13@12 (name: core)
-                    PathSegment#14@14 (name: graph)
-                    PathSegment#15@16 (name: body)
-                    PathSegment#16@18 (name: filter)
-              Argument#17@41
-                Expr#18@41
+                  Path#11@15 (rooted: true)
+                    PathSegment#12@10 (name: graph)
+                    PathSegment#13@12 (name: body)
+                    PathSegment#14@14 (name: filter)
+              Argument#15@33
+                Expr#16@33
                   ExprKind (Call)
-                    CallExpr#19@41
-                      Expr#20@29
+                    CallExpr#17@33
+                      Expr#18@23
                         ExprKind (Path)
-                          Path#21@29 (rooted: true)
-                            PathSegment#22@22 (name: core)
-                            PathSegment#23@24 (name: graph)
-                            PathSegment#24@26 (name: head)
-                            PathSegment#25@28 (name: entities)
-                      Argument#26@40
-                        Expr#27@40
+                          Path#19@23 (rooted: true)
+                            PathSegment#20@18 (name: graph)
+                            PathSegment#21@20 (name: head)
+                            PathSegment#22@22 (name: entities)
+                      Argument#23@32
+                        Expr#24@32
                           ExprKind (Call)
-                            CallExpr#28@40
-                              Expr#29@39
+                            CallExpr#25@32
+                              Expr#26@31
                                 ExprKind (Path)
-                                  Path#30@39 (rooted: true)
-                                    PathSegment#31@32 (name: core)
-                                    PathSegment#32@34 (name: graph)
-                                    PathSegment#33@36 (name: tmp)
-                                    PathSegment#34@38 (name: decision_time_now)
-              Argument#35@98
-                Expr#36@98
+                                  Path#27@31 (rooted: true)
+                                    PathSegment#28@26 (name: graph)
+                                    PathSegment#29@28 (name: tmp)
+                                    PathSegment#30@30 (name: decision_time_now)
+              Argument#31@88
+                Expr#32@88
                   ExprKind (Closure)
-                    ClosureExpr#37@98
-                      ClosureSignature#38@98
-                        Generics#39@46
-                        ClosureParam#40@52 (name: vertex:0)
-                          Type#41@51
+                    ClosureExpr#33@88
+                      ClosureSignature#34@88
+                        Generics#35@38
+                        ClosureParam#36@44 (name: vertex:0)
+                          Type#37@43
                             TypeKind (Infer)
-                        Type#42@56
+                        Type#38@48
                           TypeKind (Infer)
-                      Expr#43@97
+                      Expr#39@87
                         ExprKind (Call)
-                          CallExpr#44@97
-                            Expr#45@60
+                          CallExpr#40@87
+                            Expr#41@52
                               ExprKind (Path)
-                                Path#46@60 (rooted: true)
-                                  PathSegment#47@59 (name: core)
-                                  PathSegment#48@59 (name: cmp)
-                                  PathSegment#49@59 (name: eq)
-                            Argument#50@70
-                              Expr#51@70
+                                Path#42@52 (rooted: true)
+                                  PathSegment#43@51 (name: core)
+                                  PathSegment#44@51 (name: cmp)
+                                  PathSegment#45@51 (name: eq)
+                            Argument#46@62
+                              Expr#47@62
                                 ExprKind (Field)
-                                  FieldExpr#52@70 (field: entity_uuid)
-                                    Expr#53@69
+                                  FieldExpr#48@62 (field: entity_uuid)
+                                    Expr#49@61
                                       ExprKind (Field)
-                                        FieldExpr#54@69 (field: entity_id)
-                                          Expr#55@68
+                                        FieldExpr#50@61 (field: entity_id)
+                                          Expr#51@60
                                             ExprKind (Field)
-                                              FieldExpr#56@68 (field: id)
-                                                Expr#57@64
+                                              FieldExpr#52@60 (field: id)
+                                                Expr#53@56
                                                   ExprKind (Path)
-                                                    Path#58@64 (rooted: false)
-                                                      PathSegment#59@63 (name: vertex:0)
-                            Argument#60@96
-                              Expr#61@96
+                                                    Path#54@56 (rooted: false)
+                                                      PathSegment#55@55 (name: vertex:0)
+                            Argument#56@86
+                              Expr#57@86
                                 ExprKind (Call)
-                                  CallExpr#62@96
-                                    Expr#63@84
+                                  CallExpr#58@86
+                                    Expr#59@74
                                       ExprKind (Path)
-                                        Path#64@84 (rooted: true)
-                                          PathSegment#65@73 (name: core)
-                                          PathSegment#66@75 (name: graph)
-                                          PathSegment#67@77 (name: types)
-                                          PathSegment#68@79 (name: knowledge)
-                                          PathSegment#69@81 (name: entity)
-                                          PathSegment#70@83 (name: EntityUuid)
-                                    Argument#71@95
-                                      Expr#72@95
+                                        Path#60@74 (rooted: true)
+                                          PathSegment#61@65 (name: graph)
+                                          PathSegment#62@67 (name: types)
+                                          PathSegment#63@69 (name: knowledge)
+                                          PathSegment#64@71 (name: entity)
+                                          PathSegment#65@73 (name: EntityUuid)
+                                    Argument#66@85
+                                      Expr#67@85
                                         ExprKind (Call)
-                                          CallExpr#73@95
-                                            Expr#74@92
+                                          CallExpr#68@85
+                                            Expr#69@82
                                               ExprKind (Path)
-                                                Path#75@92 (rooted: true)
-                                                  PathSegment#76@87 (name: core)
-                                                  PathSegment#77@89 (name: uuid)
-                                                  PathSegment#78@91 (name: Uuid)
-                                            Argument#79@94
-                                              Expr#80@94
+                                                Path#70@82 (rooted: true)
+                                                  PathSegment#71@77 (name: core)
+                                                  PathSegment#72@79 (name: uuid)
+                                                  PathSegment#73@81 (name: Uuid)
+                                            Argument#74@84
+                                              Expr#75@84
                                                 ExprKind (Literal)
-                                                  LiteralExpr#81@93
-                                                    LiteralKind (String)
-                                                      StringLiteral (e2851dbb-7376-4959-9bca-f72cafc4448f)
+                                                  LiteralExpr#76@83
+                                                    Primitive (String)
+                                                      String (e2851dbb-7376-4959-9bca-f72cafc4448f)
 
 ------------------------
 ------------------------
 ------------------------
 
-38 = fn(_0) -> _1
+34 = fn(_0) -> _1

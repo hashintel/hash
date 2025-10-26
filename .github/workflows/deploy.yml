@@ -23,7 +23,7 @@ jobs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 2
 
@@ -68,7 +68,7 @@ jobs:
             automation/data/pipelines/hash/${{ env.VAULT_ROLE }} sentry_auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -107,7 +107,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one deployment job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
+          SLACK_MESSAGE: "At least one deployment job for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Deployment failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

@@ -1,22 +1,25 @@
 import { useLazyQuery } from "@apollo/client";
-import type { DataTypeRootType } from "@blockprotocol/graph";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
 import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
+  QueryDataTypeSubgraphQuery,
+  QueryDataTypeSubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryDataTypesQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+import { queryDataTypeSubgraphQuery } from "../../../../graphql/queries/ontology/data-type.queries";
 import type { QueryDataTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryDataTypes = (): {
   queryDataTypes: QueryDataTypesMessageCallback;
 } => {
   const [queryFn] = useLazyQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery, {
+    QueryDataTypeSubgraphQuery,
+    QueryDataTypeSubgraphQueryVariables
+  >(queryDataTypeSubgraphQuery, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -41,9 +44,14 @@ export const useBlockProtocolQueryDataTypes = (): {
        */
       const response = await queryFn({
         variables: {
-          constrainsValuesOn: { outgoing: 255 },
-          inheritsFrom: { outgoing: 255 },
-          latestOnly: true,
+          request: {
+            filter: {
+              all: [],
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            graphResolveDepths: almostFullOntologyResolveDepths,
+            traversalPaths: [],
+          },
         },
       });
 
@@ -58,11 +66,11 @@ export const useBlockProtocolQueryDataTypes = (): {
         };
       }
 
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<DataTypeRootType>(
-        response.data.queryDataTypes,
-      );
-
-      return { data: subgraph };
+      return {
+        data: deserializeQueryDataTypeSubgraphResponse(
+          response.data.queryDataTypeSubgraph,
+        ).subgraph,
+      };
     },
     [queryFn],
   );

@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { JsonObject } from "@blockprotocol/core";
-import execa from "execa";
+import { execa } from "execa";
 import fs from "fs-extra";
 
 import { monorepoRootDirPath } from "./shared/monorepo";

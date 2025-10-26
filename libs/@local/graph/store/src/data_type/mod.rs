@@ -3,10 +3,10 @@ pub use self::{
     query::{DataTypeQueryPath, DataTypeQueryToken},
     store::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
-        DataTypeConversionTargets, DataTypeStore, GetDataTypeConversionTargetsParams,
-        GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams,
-        GetDataTypeSubgraphResponse, GetDataTypesParams, GetDataTypesResponse,
-        HasPermissionForDataTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        DataTypeConversionTargets, DataTypeStore, FindDataTypeConversionTargetsParams,
+        FindDataTypeConversionTargetsResponse, HasPermissionForDataTypesParams,
+        QueryDataTypeSubgraphParams, QueryDataTypeSubgraphResponse, QueryDataTypesParams,
+        QueryDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
 };

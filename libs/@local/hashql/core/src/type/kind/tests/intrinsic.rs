@@ -1,5 +1,7 @@
 use core::assert_matches::assert_matches;
 
+use hashql_diagnostics::Success;
+
 use crate::{
     heap::Heap,
     pretty::PrettyPrint as _,
@@ -1262,8 +1264,11 @@ fn list_subscript() {
         primitive!(env, PrimitiveType::Integer),
     );
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1294,7 +1299,11 @@ fn list_subscript_mismatch() {
         primitive!(env, PrimitiveType::String),
     );
 
-    let (_, diagnostics) = inference.into_solver().solve();
+    let diagnostics = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
 
@@ -1351,8 +1360,11 @@ fn dict_subscript() {
         primitive!(env, PrimitiveType::Number),
     );
 
-    let (substitution, diagnostics) = inference.into_solver().solve();
-    assert!(diagnostics.is_empty());
+    let Success {
+        value: substitution,
+        advisories,
+    } = inference.into_solver().solve().expect("should have solved");
+    assert!(advisories.is_empty());
 
     assert_equiv!(
         env,
@@ -1387,7 +1399,11 @@ fn dict_subscript_mismatch() {
         primitive!(env, PrimitiveType::Integer),
     );
 
-    let (_, diagnostics) = inference.into_solver().solve();
+    let diagnostics = inference
+        .into_solver()
+        .solve()
+        .expect_err("solver should error out");
+    let diagnostics = diagnostics.into_issues();
     assert_eq!(diagnostics.len(), 2);
     let diagnostics = diagnostics.into_vec();
 

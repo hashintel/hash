@@ -4,9 +4,11 @@ import {
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
 import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
+import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { ApolloError, UserInputError } from "apollo-server-express";
+import { GraphQLError } from "graphql";
 
+import * as Error from "../../../../../graphql/error";
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
 import { systemAccountId } from "../../../../system-account";
@@ -26,26 +28,27 @@ const validateAccountShortname = async (
   shortname: string,
 ) => {
   if (shortnameContainsInvalidCharacter({ shortname })) {
-    throw new UserInputError(
+    throw Error.badUserInput(
       "Shortname may only contain letters, numbers, - or _",
     );
   }
+
   if (shortname[0] === "-") {
-    throw new UserInputError("Shortname cannot start with '-'");
+    throw Error.badUserInput("Shortname cannot start with '-'");
   }
 
   if (
     shortnameIsRestricted({ shortname }) ||
     (await shortnameIsTaken(context, authentication, { shortname }))
   ) {
-    throw new ApolloError(`Shortname "${shortname}" taken`, "NAME_TAKEN");
+    throw Error.code("NAME_TAKEN", "Shortname taken");
   }
 
   if (shortname.length < shortnameMinimumLength) {
-    throw new UserInputError("Shortname must be at least 4 characters long.");
+    throw Error.badUserInput("Shortname must be at least 4 characters long.");
   }
   if (shortname.length > shortnameMaximumLength) {
-    throw new UserInputError("Shortname cannot be longer than 24 characters");
+    throw Error.badUserInput("Shortname cannot be longer than 24 characters");
   }
 };
 
@@ -58,7 +61,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       propertyPatches,
     });
     if (isShortnameRemoved) {
-      throw new UserInputError("Cannot unset shortname");
+      throw Error.badUserInput("Cannot unset shortname");
     }
 
     const isEmailRemoved = isValueRemovedByPatches<UserProperties>({
@@ -66,7 +69,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       propertyPatches,
     });
     if (isEmailRemoved) {
-      throw new UserInputError("Cannot unset email");
+      throw Error.badUserInput("Cannot unset email");
     }
 
     const getNewValueForPath =
@@ -82,7 +85,24 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       updatedEmails &&
       updatedEmails.sort().join(",") !== currentEmails.sort().join(",")
     ) {
-      throw new UserInputError("Cannot change email");
+      throw Error.badUserInput("Cannot change email");
+    }
+
+    const currentFeatureFlags = user.enabledFeatureFlags;
+
+    const updatedFeatureFlags = getNewValueForPath(
+      "https://hash.ai/@h/types/property-type/enabled-feature-flags/",
+    );
+
+    if (
+      updatedFeatureFlags &&
+      updatedFeatureFlags.sort().join(",") !==
+        currentFeatureFlags.sort().join(",") &&
+      !(await isUserHashInstanceAdmin(context, authentication, {
+        userAccountId: authentication.actorId,
+      }))
+    ) {
+      throw Error.badUserInput("Cannot change feature flags");
     }
 
     const currentShortname = user.shortname;
@@ -97,14 +117,16 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
 
     if (updatedShortname) {
       if (currentShortname && currentShortname !== updatedShortname) {
-        throw new UserInputError("Cannot change shortname");
+        throw Error.badUserInput("Cannot change shortname");
       }
 
-      await validateAccountShortname(
-        context,
-        { actorId: user.accountId },
-        updatedShortname,
-      );
+      if (!currentShortname) {
+        await validateAccountShortname(
+          context,
+          { actorId: user.accountId },
+          updatedShortname,
+        );
+      }
     }
 
     const isDisplayNameRemoved = isValueRemovedByPatches<UserProperties>({
@@ -116,7 +138,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       (updatedDisplayName !== undefined && !updatedDisplayName) ||
       isDisplayNameRemoved
     ) {
-      throw new ApolloError("Cannot unset display name");
+      throw new GraphQLError("Cannot unset display name");
     }
 
     const isIncompleteUser = !user.isAccountSignupComplete;
@@ -128,7 +150,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
        * and prevent them from receiving ownership of the web.
        */
       if (!(await userHasAccessToHash(context, authentication, user))) {
-        throw new Error(
+        throw Error.forbidden(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
         );
       }

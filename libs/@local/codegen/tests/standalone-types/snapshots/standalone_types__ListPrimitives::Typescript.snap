@@ -16,4 +16,5 @@ export interface ListPrimitives {
 	btree_integer_set: number[];
 	linked_string_list: string[];
 	linked_integer_list: number[];
+	non_empty_list?: [number, ...number[]];
 }

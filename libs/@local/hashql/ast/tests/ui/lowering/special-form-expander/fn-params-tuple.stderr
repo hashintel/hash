@@ -1,11 +1,7 @@
-[special-form-expander::invalid-fn-params-expression] Error: Invalid expression in function parameters
-   ╭─[ <unknown>:6:3 ]
-   │
- 6 │   { "#tuple": [] },
-   │   ────────┬───────  
-   │           ╰───────── Use a struct expression for parameters
-   │ 
-   │ Help: Function parameters must be specified as a struct where field names are parameter names and field values are parameter types. Other expression types are not valid in this context.
-   │ 
-   │ Note: Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)
-───╯
+error[special-form-expander::invalid-fn-params-expression]: Invalid expression in function parameters
+  ╭▸ 
+6 │   { "#tuple": [] },
+  │   ━━━━━━━━━━━━━━━━ Use a struct expression for parameters
+  │
+  ├ help: Function parameters must be specified as a struct where field names are parameter names and field values are parameter types. Other expression types are not valid in this context.
+  ╰ note: Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)

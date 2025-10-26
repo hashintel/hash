@@ -98,6 +98,26 @@ variable "mimir_http_port" {
   description = "Port for Mimir HTTP API service"
 }
 
+variable "pyroscope_http_dns" {
+  type        = string
+  description = "DNS name for Pyroscope HTTP API service"
+}
+
+variable "pyroscope_http_port" {
+  type        = number
+  description = "Port for Pyroscope HTTP API service"
+}
+
 variable "ssl_config" {
   description = "Shared SSL configuration for container certificates"
+}
+
+variable "external_load_balancer_arn_suffix" {
+  type        = string
+  description = "ARN suffix of the external ALB for CloudWatch metrics"
+}
+
+variable "critical_alerts_topic_arn" {
+  type        = string
+  description = "ARN of the critical alerts SNS topic"
 }

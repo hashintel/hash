@@ -5,7 +5,7 @@ expression: "[ 42 ]"
 info:
   kind: Ok
 ---
-Index(
+IndexByLiteral(
     LiteralExpr {
         id: NodeId(
             4294967040,
@@ -14,7 +14,7 @@ Index(
             1,
         ),
         kind: Integer(
-            IntegerLiteral {
+            Integer {
                 value: Symbol(
                     "42",
                 ),

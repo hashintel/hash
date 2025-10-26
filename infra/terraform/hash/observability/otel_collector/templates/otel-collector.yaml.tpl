@@ -19,6 +19,45 @@ receivers:
       http:
         endpoint: 0.0.0.0:${http_port_external}
 
+  prometheus:
+    config:
+      scrape_configs:
+        # Observability stack services self-monitoring
+        - job_name: ${prefix}-otel-gateway
+          scrape_interval: 5s
+          static_configs:
+            - targets: [localhost:8888]
+        - job_name: '${prefix}-grafana'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${grafana_dns}:${grafana_port}']
+          metrics_path: '/metrics'
+        - job_name: '${prefix}-mimir'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${mimir_http_dns}:${mimir_http_port}']
+          metrics_path: '/metrics'
+        - job_name: '${prefix}-loki'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${loki_http_dns}:${loki_http_port}']
+          metrics_path: '/metrics'
+        - job_name: '${prefix}-tempo'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${tempo_api_dns}:${tempo_api_port}']
+          metrics_path: '/metrics'
+        - job_name: '${prefix}-pyroscope'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['${pyroscope_http_dns}:${pyroscope_http_port}']
+          metrics_path: '/metrics'
+        - job_name: '${prefix}-alloy'
+          scrape_interval: 60s
+          static_configs:
+            - targets: ['${alloy_dns}:${alloy_port}']
+          metrics_path: '/metrics'
+
 processors:
   # Memory limiter to prevent OOM kills (512MB container - 50MB overhead = ~450MB limit)
   memory_limiter:
@@ -71,6 +110,19 @@ extensions:
 
 service:
   extensions: [health_check]
+  telemetry:
+    resource:
+      # This will set the `job` label for this service so it
+      # should be aligned with the `job_name`
+      service.name: ${prefix}-otel-gateway
+    metrics:
+      level: basic
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
 
   pipelines:
     # Input pipelines - add environment attributes and forward to common processing
@@ -113,7 +165,7 @@ service:
       exporters: [otlp/tempo]
 
     metrics:
-      receivers: [forward/metrics]
+      receivers: [forward/metrics, prometheus]
       processors: [batch]
       exporters: [otlphttp/mimir]
 

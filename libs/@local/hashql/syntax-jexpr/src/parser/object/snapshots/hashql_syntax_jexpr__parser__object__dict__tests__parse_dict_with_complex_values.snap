@@ -10,19 +10,19 @@ Expr#4294967040@33
         Expr#4294967040@0
           ExprKind (Literal)
             LiteralExpr#4294967040@0
-              LiteralKind (String)
-                StringLiteral (simple)
+              Primitive (String)
+                String (simple)
         Expr#4294967040@2
           ExprKind (Literal)
             LiteralExpr#4294967040@1
-              LiteralKind (String)
-                StringLiteral (value)
+              Primitive (String)
+                String (value)
       DictEntry#4294967040@12
         Expr#4294967040@4
           ExprKind (Literal)
             LiteralExpr#4294967040@4
-              LiteralKind (String)
-                StringLiteral (nested)
+              Primitive (String)
+                String (nested)
         Expr#4294967040@11
           ExprKind (Struct)
             StructExpr#4294967040@10
@@ -30,14 +30,14 @@ Expr#4294967040@33
                 Expr#4294967040@8
                   ExprKind (Literal)
                     LiteralExpr#4294967040@7
-                      LiteralKind (String)
-                        StringLiteral (Alice)
+                      Primitive (String)
+                        String (Alice)
       DictEntry#4294967040@20
         Expr#4294967040@13
           ExprKind (Literal)
             LiteralExpr#4294967040@13
-              LiteralKind (String)
-                StringLiteral (list)
+              Primitive (String)
+                String (list)
         Expr#4294967040@19
           ExprKind (List)
             ListExpr#4294967040@18
@@ -45,20 +45,20 @@ Expr#4294967040@33
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               ListElement#4294967040@17
                 Expr#4294967040@17
                   ExprKind (Literal)
                     LiteralExpr#4294967040@16
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)
       DictEntry#4294967040@31
         Expr#4294967040@21
           ExprKind (Literal)
             LiteralExpr#4294967040@21
-              LiteralKind (String)
-                StringLiteral (function)
+              Primitive (String)
+                String (function)
         Expr#4294967040@30
           ExprKind (Call)
             CallExpr#4294967040@30
@@ -70,11 +70,11 @@ Expr#4294967040@33
                 Expr#4294967040@27
                   ExprKind (Literal)
                     LiteralExpr#4294967040@26
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               Argument#4294967040@29
                 Expr#4294967040@29
                   ExprKind (Literal)
                     LiteralExpr#4294967040@28
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)

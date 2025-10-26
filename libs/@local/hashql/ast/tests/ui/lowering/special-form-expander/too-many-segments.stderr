@@ -1,13 +1,10 @@
-[special-form-expander::unknown-special-form] Error: Unknown special form
-   ╭─[ <unknown>:4:4 ]
-   │
- 4 │   "::kernel::special_form::if::extra",
-   │    ────────────────┬─────────────┬──  
-   │                    │             ╰──── Remove this extra segment
-   │                    │                  
-   │                    ╰────────────────── Fix this path to have exactly 3 segments
-   │ 
-   │ Help: Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly 3 segments
-   │ 
-   │ Note: Found path with 4 segments, but special form paths must have exactly 3 segments
-───╯
+error[special-form-expander::unknown-special-form]: Unknown special form
+  ╭▸ 
+4 │   "::kernel::special_form::if::extra",
+  │    ┯━━━━━━━━━━━━━━━━━━━━━━━━━━━┬────
+  │    │                           │
+  │    │                           Remove this extra segment
+  │    Fix this path to have exactly 3 segments
+  │
+  ├ help: Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly 3 segments
+  ╰ note: Found path with 4 segments, but special form paths must have exactly 3 segments

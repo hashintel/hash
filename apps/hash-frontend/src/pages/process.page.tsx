@@ -1,9 +1,9 @@
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
-import { ProcessEditor } from "./process.page/process-editor";
+import { ProcessEditorWrapper } from "./process.page/process-editor-wrapper";
 
 const ProcessPage: NextPageWithLayout = () => {
-  return <ProcessEditor />;
+  return <ProcessEditorWrapper />;
 };
 
 ProcessPage.getLayout = (page) =>

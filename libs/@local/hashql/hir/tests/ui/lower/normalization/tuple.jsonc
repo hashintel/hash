@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tuple with complex element expression
+{ "#tuple": [["<=", { "#literal": 2 }, { "#literal": 3 }]] }

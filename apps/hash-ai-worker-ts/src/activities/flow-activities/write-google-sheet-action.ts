@@ -184,7 +184,34 @@ export const writeGoogleSheetAction: FlowActionActivity<{
        *
        * @todo once we start using a Structural Query instead, it can specify the traversal depth itself (1 becomes variable)
        */
-      traversalDepth: isPersistedEntities ? 0 : 1,
+      traversalPaths: isPersistedEntities
+        ? []
+        : [
+            {
+              edges: [
+                {
+                  kind: "has-left-entity",
+                  direction: "incoming",
+                },
+                {
+                  kind: "has-right-entity",
+                  direction: "outgoing",
+                },
+              ],
+            },
+            {
+              edges: [
+                {
+                  kind: "has-right-entity",
+                  direction: "incoming",
+                },
+                {
+                  kind: "has-left-entity",
+                  direction: "outgoing",
+                },
+              ],
+            },
+          ],
     });
 
     sheetRequests = convertSubgraphToSheetRequests({

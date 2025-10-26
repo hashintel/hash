@@ -16,12 +16,13 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     entity_type::{
-        ArchiveEntityTypeParams, CreateEntityTypeParams, EntityTypeQueryToken,
-        EntityTypeResolveDefinitions, EntityTypeStore, GetClosedMultiEntityTypesParams,
-        GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams, GetEntityTypesParams,
-        GetEntityTypesResponse, HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CreateEntityTypeParams,
+        EntityTypeQueryToken, EntityTypeResolveDefinitions, EntityTypeStore,
+        GetClosedMultiEntityTypesParams, GetClosedMultiEntityTypesResponse,
+        HasPermissionForEntityTypesParams, IncludeEntityTypeOption,
+        IncludeResolvedEntityTypeOption, QueryEntityTypeSubgraphParams, QueryEntityTypesParams,
+        QueryEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
     pool::StorePool,
     query::ConflictBehavior,
@@ -36,7 +37,7 @@ use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         entity_type::{EntityType, EntityTypeMetadata, EntityTypeWithMetadata},
-        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, VersionedUrl},
         json_schema::{DomainValidator, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
@@ -58,8 +59,8 @@ use crate::rest::{
 
         create_entity_type,
         load_external_entity_type,
-        get_entity_types,
-        get_entity_type_subgraph,
+        query_entity_types,
+        query_entity_type_subgraph,
         get_closed_multi_entity_types,
         update_entity_type,
         update_entity_types,
@@ -78,14 +79,15 @@ use crate::rest::{
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
             EntityTypeQueryToken,
-            GetEntityTypesParams,
-            GetEntityTypesResponse,
+            QueryEntityTypesParams,
+            CommonQueryEntityTypesParams,
+            QueryEntityTypesResponse,
             GetClosedMultiEntityTypesParams,
             IncludeEntityTypeOption,
             GetClosedMultiEntityTypesResponse,
             EntityTypeResolveDefinitions,
-            GetEntityTypeSubgraphParams,
-            GetEntityTypeSubgraphResponse,
+            QueryEntityTypeSubgraphParams,
+            QueryEntityTypeSubgraphResponse,
             ArchiveEntityTypeParams,
             UnarchiveEntityTypeParams,
             IncludeResolvedEntityTypeOption,
@@ -117,9 +119,9 @@ impl EntityTypeResource {
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(get_entity_types::<S>))
+                        .route("/", post(query_entity_types::<S>))
                         .route("/multi", post(get_closed_multi_entity_types::<S>))
-                        .route("/subgraph", post(get_entity_type_subgraph::<S>)),
+                        .route("/subgraph", post(query_entity_type_subgraph::<S>)),
                 )
                 .route("/load", post(load_external_entity_type::<S>))
                 .route("/archive", put(archive_entity_type::<S>))
@@ -447,7 +449,7 @@ where
 #[utoipa::path(
     post,
     path = "/entity-types/query",
-    request_body = GetEntityTypesParams,
+    request_body = QueryEntityTypesParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -456,7 +458,7 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityTypesResponse,
+            body = QueryEntityTypesResponse,
             description = "Gets a a list of entity types that satisfy the given query.",
         ),
 
@@ -464,13 +466,13 @@ where
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_types<S>(
+async fn query_entity_types<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityTypesResponse>, Response>
+) -> Result<Json<QueryEntityTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -484,11 +486,11 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_entity_types(
+        .query_entity_types(
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetEntityTypesParams::deserialize(&request)
+            QueryEntityTypesParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
@@ -564,9 +566,13 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct GetEntityTypeSubgraphResponse {
+struct QueryEntityTypeSubgraphResponse {
     subgraph: Subgraph,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     cursor: Option<VersionedUrl>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -579,7 +585,7 @@ struct GetEntityTypeSubgraphResponse {
 #[utoipa::path(
     post,
     path = "/entity-types/query/subgraph",
-    request_body = GetEntityTypeSubgraphParams,
+    request_body = QueryEntityTypeSubgraphParams,
     tag = "EntityType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -588,20 +594,20 @@ struct GetEntityTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = GetEntityTypeSubgraphResponse,
+            body = QueryEntityTypeSubgraphResponse,
             description = "A subgraph rooted at entity types that satisfy the given query, each resolved to the requested depth.",
         ),
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn get_entity_type_subgraph<S>(
+async fn query_entity_type_subgraph<S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetEntityTypeSubgraphResponse>, Response>
+) -> Result<Json<QueryEntityTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -615,16 +621,16 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .get_entity_type_subgraph(
+        .query_entity_type_subgraph(
             actor_id,
-            GetEntityTypeSubgraphParams::deserialize(&request)
+            QueryEntityTypeSubgraphParams::deserialize(&request)
                 .map_err(Report::from)
                 .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
         .map(|response| {
-            Json(GetEntityTypeSubgraphResponse {
+            Json(QueryEntityTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
                 count: response.count,
@@ -678,7 +684,7 @@ where
         provenance,
     }) = body;
 
-    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+    type_to_update.version.major += 1;
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
@@ -739,8 +745,7 @@ where
                  mut type_to_update,
                  provenance,
              }| {
-                type_to_update.version =
-                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+                type_to_update.version.major += 1;
 
                 Ok(UpdateEntityTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)
@@ -784,7 +789,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UpdateEntityTypeEmbeddingParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -827,7 +832,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = ArchiveEntityTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -840,10 +845,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })
@@ -879,7 +884,7 @@ where
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
     let params = UnarchiveEntityTypeParams::deserialize(body)
-        .attach(hash_status::StatusCode::InvalidArgument)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -892,10 +897,10 @@ where
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
-                report = report.attach(hash_status::StatusCode::NotFound);
+                report = report.attach_opaque(hash_status::StatusCode::NotFound);
             }
             if report.contains::<VersionedUrlAlreadyExists>() {
-                report = report.attach(hash_status::StatusCode::AlreadyExists);
+                report = report.attach_opaque(hash_status::StatusCode::AlreadyExists);
             }
             report_to_response(report)
         })

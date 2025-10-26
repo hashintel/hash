@@ -91,10 +91,10 @@
 use core::mem;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     heap::Heap,
     module::{
-        ModuleRegistry, Universe,
+        ModuleRegistry, Reference, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
@@ -238,9 +238,9 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         // This is very conservative, in *theory* we should take a look at the whole path and use
         // that as import, but as we're only interested in special-forms, which are only imported as
         // name, we can safely just use the name.
-        let import = self
+        let reference = self
             .namespace
-            .resolve_relative(
+            .resolve(
                 [name],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
@@ -248,6 +248,10 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
                 },
             )
             .ok()?;
+
+        let Reference::Item(import) = reference else {
+            return None;
+        };
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
@@ -410,6 +414,17 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             self.walk_call(expr, to, None);
             return;
         };
+
+        // Check that the path itself is not generic, if it is, there is no safe way to create an
+        // alias
+        if from
+            .segments
+            .iter()
+            .any(|segment| !segment.arguments.is_empty())
+        {
+            walk_call_expr(self, expr);
+            return;
+        }
 
         // We have a new mapping from path to type
         self.resolve = true;

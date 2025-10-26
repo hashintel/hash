@@ -138,9 +138,9 @@ impl<T> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Error("unable to reach remote host"))
-    ///     .attach(Warning("disk nearly full"))
-    ///     .attach(Error("cannot resolve example.com: unknown host"));
+    ///     .attach_opaque(Error("unable to reach remote host"))
+    ///     .attach_opaque(Warning("disk nearly full"))
+    ///     .attach_opaque(Error("cannot resolve example.com: unknown host"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -249,8 +249,8 @@ impl<T: 'static> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("use a file you can read next time!"))
-    ///     .attach(Suggestion("don't press any random keys!"));
+    ///     .attach_opaque(Suggestion("use a file you can read next time!"))
+    ///     .attach_opaque(Suggestion("don't press any random keys!"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {
@@ -314,8 +314,8 @@ impl<T: 'static> HookContext<T> {
     /// });
     ///
     /// let report = Report::new(std::io::Error::from(ErrorKind::InvalidInput))
-    ///     .attach(Suggestion("use a file you can read next time!"))
-    ///     .attach(Suggestion("don't press any random keys!"));
+    ///     .attach_opaque(Suggestion("use a file you can read next time!"))
+    ///     .attach_opaque(Suggestion("don't press any random keys!"));
     ///
     /// # Report::set_color_mode(error_stack::fmt::ColorMode::Emphasis);
     /// # fn render(value: String) -> String {

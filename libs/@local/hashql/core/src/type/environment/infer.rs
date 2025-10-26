@@ -60,6 +60,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         core::mem::take(&mut self.constraints)
     }
 
+    pub(crate) fn is_invariant(&self) -> bool {
+        self.variance.get() == Variance::Invariant
+    }
+
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance.get() == Variance::Invariant {
@@ -143,6 +147,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         ));
 
         variable
+    }
+
+    pub fn add_variables(&mut self, variables: impl IntoIterator<Item = Variable>) {
+        // This acts like registering variables, because we unify each variable with themselves,
+        // therefore adding the node, but no edges.
+        self.constraints
+            .extend(variables.into_iter().map(|variable| Constraint::Unify {
+                lhs: variable,
+                rhs: variable,
+            }));
     }
 
     #[must_use]

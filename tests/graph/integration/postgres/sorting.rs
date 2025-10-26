@@ -4,12 +4,12 @@ use std::collections::HashSet;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
-        EntityStore as _, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+        EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse,
     },
     filter::{Filter, JsonPath, PathToken},
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::GraphResolveDepths,
         identifier::GraphElementVertexId,
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
@@ -66,7 +66,7 @@ async fn test_root_sorting(
     let mut entities = Vec::new();
 
     loop {
-        let GetEntitySubgraphResponse {
+        let QueryEntitySubgraphResponse {
             mut subgraph,
             count,
             cursor: new_cursor,
@@ -77,10 +77,12 @@ async fn test_root_sorting(
             edition_created_by_ids: _,
             type_ids: _,
             type_titles: _,
-        } = api
-            .get_entity_subgraph(
-                api.account_id,
-                GetEntitySubgraphParams {
+            entity_permissions: _,
+        } = Box::pin(api.query_entity_subgraph(
+            api.account_id,
+            QueryEntitySubgraphParams::Paths {
+                traversal_paths: Vec::new(),
+                request: QueryEntitiesParams {
                     filter: Filter::All(Vec::new()),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -92,7 +94,6 @@ async fn test_root_sorting(
                     },
                     limit: Some(chunk_size),
                     conversions: Vec::new(),
-                    graph_resolve_depths: GraphResolveDepths::default(),
                     include_count: true,
                     include_entity_types: None,
                     include_drafts: false,
@@ -101,10 +102,12 @@ async fn test_root_sorting(
                     include_edition_created_by_ids: false,
                     include_type_ids: false,
                     include_type_titles: false,
+                    include_permissions: false,
                 },
-            )
-            .await
-            .expect("could not get entity");
+            },
+        ))
+        .await
+        .expect("could not get entity");
         let new_entities = subgraph
             .roots
             .into_iter()
@@ -178,14 +181,20 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
     let page_entity_type = VersionedUrl {
         base_url: BaseUrl::new(
             "https://blockprotocol.org/@alice/types/entity-type/page/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     };
     let entities_properties = [
         (entity::PERSON_ALICE_V1, &person_entity_type),

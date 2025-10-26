@@ -1,9 +1,13 @@
 /**
  * Structured logging library based on winston.
  */
+import { trace } from "@opentelemetry/api";
+import type { AnyValue, AnyValueMap } from "@opentelemetry/api-logs";
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { format } from "logform";
 import type { LeveledLogMethod } from "winston";
 import * as winston from "winston";
+import Transport from "winston-transport";
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
@@ -23,6 +27,52 @@ const getDefaultLoggerLevel = () => {
   const envLogLevel = process.env.LOG_LEVEL;
   return envLogLevel && tbdIsLogLevel(envLogLevel) ? envLogLevel : "info";
 };
+
+function mapWinstonLevelToOtel(level: string): SeverityNumber {
+  switch (level) {
+    case "error":
+      return SeverityNumber.ERROR;
+    case "warn":
+      return SeverityNumber.WARN;
+    case "info":
+      return SeverityNumber.INFO;
+    case "debug":
+      return SeverityNumber.DEBUG;
+    default:
+      return SeverityNumber.TRACE;
+  }
+}
+
+function toAnyValue(value: unknown): AnyValue {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  const typeofValue = typeof value;
+  if (
+    typeofValue === "string" ||
+    typeofValue === "number" ||
+    typeofValue === "boolean"
+  ) {
+    return value as AnyValue;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return String(value);
+  }
+}
+
+function sanitizeAttributes(obj: Record<string, unknown>): AnyValueMap {
+  const out: AnyValueMap = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const anyValue = toAnyValue(value);
+    if (anyValue !== undefined) {
+      out[key] = anyValue;
+    }
+  }
+  return out;
+}
 
 /**
  * In some places we want to prefix a console log with a specific string,
@@ -50,10 +100,6 @@ const rewriteForConsole = format(
       };
 
       message = JSON.stringify(restMessage, (key, value) => {
-        /**
-         * Don't include any 'detailedFields' in the console if provided
-         * - if provided, they will appear in other destinations (e.g. DataDog).
-         */
         if (detailedFields?.includes(key)) {
           return undefined;
         }
@@ -70,6 +116,41 @@ const rewriteForConsole = format(
     };
   },
 );
+
+class OpenTelemetryLogTransport extends Transport {
+  override log(
+    info: winston.Logform.TransformableInfo & { message: unknown },
+    callback: () => void,
+  ): void {
+    setImmediate(() => this.emit("logged", info));
+
+    try {
+      const globalProvider = logs.getLoggerProvider();
+      const otelLogger = globalProvider.getLogger("winston", "1.0.0");
+
+      const { level, message, ...rest } = info;
+
+      const attributes: AnyValueMap = sanitizeAttributes(rest);
+
+      const spanContext = trace.getActiveSpan()?.spanContext();
+      if (spanContext) {
+        attributes.trace_id = spanContext.traceId as AnyValue;
+        attributes.span_id = spanContext.spanId as AnyValue;
+      }
+
+      otelLogger.emit({
+        body: toAnyValue(message),
+        severityText: level.toUpperCase(),
+        severityNumber: mapWinstonLevelToOtel(level),
+        attributes,
+      });
+    } catch {
+      // best-effort: do not throw from logger
+    }
+
+    callback();
+  }
+}
 
 export class Logger {
   silly: LeveledLogMethod;
@@ -138,6 +219,11 @@ export class Logger {
           path: `/api/v2/logs?dd-api-key=${process.env.DATADOG_API_KEY}&ddsource=nodejs&service=${cfg.serviceName}`,
         }),
       );
+    }
+
+    // Add OpenTelemetry transport if OTel is initialized (env-driven)
+    if (process.env.HASH_OTLP_ENDPOINT) {
+      logger.add(new OpenTelemetryLogTransport({ level }));
     }
 
     this.silly = logger.silly.bind(logger);

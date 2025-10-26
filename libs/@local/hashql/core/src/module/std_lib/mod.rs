@@ -1,11 +1,12 @@
 mod core;
+mod graph;
 mod kernel;
 
 use ::core::iter;
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
-    collection::SmallVec,
+    collections::SmallVec,
     heap::Heap,
     module::{
         PartialModule,
@@ -233,9 +234,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     pub(super) fn register(&mut self) {
-        type Root = (self::core::Core, self::kernel::Kernel);
+        type Root = (self::core::Core, self::kernel::Kernel, self::graph::Graph);
 
-        let roots: smallvec::SmallVec<_, 2> =
+        let roots: smallvec::SmallVec<_, 3> =
             Root::modules(self, ModuleId::ROOT).into_iter().collect();
 
         for id in roots {
