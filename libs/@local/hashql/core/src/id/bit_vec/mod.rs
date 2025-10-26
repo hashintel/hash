@@ -1261,6 +1261,15 @@ impl<T: Id> MixedBitSet<T> {
     }
 
     #[inline]
+    #[must_use]
+    pub fn count(&self) -> usize {
+        match self {
+            Self::Small(set) => set.count(),
+            Self::Large(set) => set.count(),
+        }
+    }
+
+    #[inline]
     pub fn contains(&self, elem: T) -> bool {
         match self {
             Self::Small(set) => set.contains(elem),

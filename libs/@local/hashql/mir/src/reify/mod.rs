@@ -4,7 +4,10 @@ use core::{fmt::Pointer, iter, mem};
 use hashql_core::{
     collections::FastHashMap,
     heap::{self, Heap},
-    id::{Id, IdCounter, IdVec, bit_vec::MixedBitSet},
+    id::{
+        Id, IdCounter, IdVec,
+        bit_vec::{BitRelations, MixedBitSet},
+    },
     span::{SpanId, Spanned},
     symbol::{Symbol, SymbolTable},
     r#type::{
@@ -15,6 +18,7 @@ use hashql_core::{
 };
 use hashql_hir::{
     context::HirContext,
+    lower::dataflow::{VariableDefinitions, VariableDependencies},
     node::{
         HirId, Node,
         access::{Access, FieldAccess, IndexAccess},
@@ -30,6 +34,7 @@ use hashql_hir::{
         },
         variable::Variable,
     },
+    visit::Visitor,
 };
 
 use crate::{
@@ -347,7 +352,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_rvalue_data(&self, data: Data<'heap>) -> RValue<'heap> {
+    fn rvalue_data(&self, data: Data<'heap>) -> RValue<'heap> {
         match data {
             Data::Primitive(primitive) => {
                 RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
@@ -464,7 +469,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         })
     }
 
-    fn compile_rvalue_operation(
+    fn rvalue_operation(
         &mut self,
         hir_id: HirId,
         span: SpanId,
@@ -486,11 +491,11 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_rvalue_variable(&self, node: Node<'heap>) -> RValue<'heap> {
+    fn rvalue_variable(&self, node: Node<'heap>) -> RValue<'heap> {
         RValue::Load(self.compile_operand(node))
     }
 
-    fn compile_rvalue_access(&self, node: Node<'heap>) -> RValue<'heap> {
+    fn rvalue_access(&self, node: Node<'heap>) -> RValue<'heap> {
         RValue::Load(self.compile_operand(node))
     }
 
@@ -546,7 +551,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         })
     }
 
-    fn compile_rvalue_call(
+    fn rvalue_call(
         &self,
         Call {
             kind,
@@ -613,7 +618,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         );
     }
 
-    fn compile_branch(
+    fn transform_branch(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         span: SpanId,
@@ -624,38 +629,92 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         }
     }
 
-    fn compile_closure(
+    fn rvalue_closure(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         span: SpanId,
         closure: Closure<'heap>,
-    ) {
+    ) -> RValue<'heap> {
+        let mut dependencies = VariableDependencies::new(self.context.hir);
+        dependencies.visit_closure(&closure);
+        let mut dependencies = dependencies.finish();
+
+        let mut definitions = VariableDefinitions::new(self.context.hir);
+        definitions.visit_closure(&closure);
+        let definitions = definitions.finish();
+
+        dependencies.subtract(&definitions);
+        let captures = dependencies;
+        // TODO: also subtract any local variables that are global via pointers
+
+        let compiler = ClosureCompiler::new(self.context, self.state);
+        let ptr = compiler.compile_closure(span, &captures, closure);
+
+        // Now we need to do environment capture, for that create a tuple aggregate of all the
+        // captured variables in a new local
+        let env_local = self.local_counter.next();
+        let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.heap);
+        for var in &captures {
+            let capture_local = self.locals[var].unwrap_or_else(|| {
+                unreachable!("diagnostic: ICE - must have had a local assigned")
+            });
+            tuple_elements.push(Operand::Place(Place::local(
+                capture_local,
+                self.context.interner,
+            )));
+        }
+
+        block.push_statement(Statement {
+            span,
+            kind: StatementKind::Assign(Assign {
+                lhs: Place::local(env_local, self.context.interner),
+                rhs: RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Tuple,
+                    operands: tuple_elements,
+                }),
+            }),
+        });
+
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
-        todo!()
+        let mut closure_operands = IdVec::with_capacity_in(2, self.context.heap);
+        closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
+        closure_operands.push(Operand::Place(Place::local(
+            env_local,
+            self.context.interner,
+        )));
+
+        RValue::Aggregate(Aggregate {
+            kind: AggregateKind::Closure,
+            operands: closure_operands,
+        })
     }
 
-    fn compile_binding(&mut self, block: &mut CurrentBlock<'mir, 'heap>, binding: &Binding<'heap>) {
+    fn transform_binding(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        binding: &Binding<'heap>,
+    ) {
         let local = self.local_counter.next();
         self.locals.insert(binding.binder.id, local);
 
         let rvalue = match binding.value.kind {
-            NodeKind::Data(data) => self.compile_rvalue_data(data),
-            NodeKind::Variable(_) => self.compile_rvalue_variable(binding.value),
+            NodeKind::Data(data) => self.rvalue_data(data),
+            NodeKind::Variable(_) => self.rvalue_variable(binding.value),
             NodeKind::Let(_) => unreachable!("HIR(ANF) does not have nested let bindings"),
             NodeKind::Operation(operation) => {
-                self.compile_rvalue_operation(binding.value.id, binding.value.span, operation)
+                self.rvalue_operation(binding.value.id, binding.value.span, operation)
             }
-            NodeKind::Access(_) => self.compile_rvalue_access(binding.value),
-            NodeKind::Call(call) => self.compile_rvalue_call(call),
+            NodeKind::Access(_) => self.rvalue_access(binding.value),
+            NodeKind::Call(call) => self.rvalue_call(call),
             NodeKind::Branch(branch) => {
                 // This turns into a terminator, and therefore does not contribute a statement
-                let () = self.compile_branch(block, binding.value.span, branch);
+                let () = self.transform_branch(block, binding.value.span, branch);
                 return;
             }
             // This turns into two statements, the first captures the environment, the second create
             // the FnPtr aggregate
-            NodeKind::Closure(closure) => todo!(),
+            NodeKind::Closure(closure) => self.rvalue_closure(block, binding.value.span, closure),
             // We can easily support this, but using a very similar logic to the one in
             // `NodeKind::Closure`
             NodeKind::Thunk(_) => unreachable!("HIR(ANF) does not support nested thunks"),
@@ -686,7 +745,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         };
 
         for binding in bindings {
-            self.compile_binding(block, binding);
+            self.transform_binding(block, binding);
         }
 
         // body is always an anf atom, therefore compile to operand
@@ -710,7 +769,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         mut self,
         source: Source<'heap>,
         span: SpanId,
-        params: &[VarId],
+        params: impl IntoIterator<Item = VarId>,
         captures: Option<&MixedBitSet<VarId>>,
         on_block: impl FnOnce(&mut Self, &mut CurrentBlock<'mir, 'heap>) -> Spanned<Operand<'heap>>,
     ) -> DefId {
@@ -730,7 +789,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             Local::MAX
         };
 
-        for &param in params {
+        for param in params {
             let local = self.local_counter.next();
             args += 1;
 
@@ -782,8 +841,22 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         self.context.bodies.push(block)
     }
 
+    fn compile_closure(
+        self,
+        span: SpanId,
+        captures: &MixedBitSet<VarId>,
+        closure: Closure<'heap>,
+    ) -> DefId {
+        self.compile_impl(
+            Source::Closure,
+            span,
+            closure.signature.params.iter().map(|param| param.name.id),
+            Some(captures),
+            |this, block| this.compile_body(block, closure.body),
+        )
+    }
+
     fn compile_ctor(self, hir_id: HirId, span: SpanId, ctor: TypeConstructor<'heap>) -> DefId {
-        // TODO: only recompile if we really need to
         let closure_type = unwrap_closure_type(
             self.context.hir.map.type_id(hir_id),
             self.context.environment,
@@ -800,7 +873,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         self.compile_impl(
             Source::Ctor(ctor.name),
             span,
-            param.as_slice(),
+            param.into_iter(),
             None,
             |this, block| {
                 let output = this.local_counter.next();
