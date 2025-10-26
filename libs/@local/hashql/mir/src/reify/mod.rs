@@ -1,4 +1,3 @@
-#![expect(clippy::todo)]
 use core::{iter, mem};
 
 use hashql_core::{
@@ -340,7 +339,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                     match first.kind {
                         TypeKind::Tuple(_) => {
                             let Ok(index) = field.value.as_str().parse() else {
-                                todo!("ERR: value too big to be used as index")
+                                panic!("ERR: value too big to be used as index")
                             };
 
                             projections.push(Projection::Field(FieldIndex::new(index)));
@@ -398,7 +397,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     fn operand(&self, node: Node<'heap>) -> Operand<'heap> {
         match node.kind {
             NodeKind::Variable(Variable::Qualified(_)) => {
-                todo!("diagnostic: not supported (yet)") // <- would be an FnPtr
+                panic!("ERR: not supported (yet)") // <- would be an FnPtr
             }
             NodeKind::Data(Data::Primitive(primitive)) => {
                 Operand::Constant(Constant::Primitive(primitive))
@@ -492,7 +491,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     ) -> RValue<'heap> {
         match operation {
             TypeOperation::Assertion(_) => {
-                todo!("diagnostic: assertions no longer exist in HIR(ANF)")
+                panic!("ICE: assertions no longer exist in HIR(ANF)")
             }
             TypeOperation::Constructor(ctor @ TypeConstructor { name }) => {
                 if let Some(&ptr) = self.state.ctor.get(&name) {
@@ -604,7 +603,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         // cannot represent a fat-pointer, which is only constructed using an aggregate.
         let function = match self.operand(function) {
             Operand::Place(place) => place,
-            Operand::Constant(_) => todo!("diagnostic: fat calls on constants are not supported"),
+            Operand::Constant(_) => panic!(
+                "ICE: fat calls on constants are not supported - should not even happen in the \
+                 first place"
+            ),
         };
 
         // To the function we add two projections, one for the function pointer, and one for the
