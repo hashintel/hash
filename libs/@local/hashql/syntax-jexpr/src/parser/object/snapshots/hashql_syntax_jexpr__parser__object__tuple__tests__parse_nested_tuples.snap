@@ -14,14 +14,14 @@ Expr#4294967040@13
                 Expr#4294967040@1
                   ExprKind (Literal)
                     LiteralExpr#4294967040@0
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)
               TupleElement#4294967040@3
                 Expr#4294967040@3
                   ExprKind (Literal)
                     LiteralExpr#4294967040@2
-                      LiteralKind (String)
-                        StringLiteral (a)
+                      Primitive (String)
+                        String (a)
       TupleElement#4294967040@11
         Expr#4294967040@11
           ExprKind (Tuple)
@@ -30,10 +30,10 @@ Expr#4294967040@13
                 Expr#4294967040@7
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
-                      LiteralKind (True)
+                      Primitive (True)
               TupleElement#4294967040@9
                 Expr#4294967040@9
                   ExprKind (Literal)
                     LiteralExpr#4294967040@8
-                      LiteralKind (Float)
-                        FloatLiteral (3.14)
+                      Primitive (Float)
+                        Float (3.14)

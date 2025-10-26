@@ -12,7 +12,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        collection::TypeIdSet,
+        collections::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,

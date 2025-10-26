@@ -108,7 +108,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
     /// # Errors
     ///
     /// Returns an error if the sorting parameters cannot be encoded.
-    fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
+    fn encode(&'s self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
 
     /// Compiles the sorting into column selections and ordering expressions.
     ///

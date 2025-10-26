@@ -3,9 +3,15 @@ export interface NoRestrictedImportsRule {
   patterns: (string | ValidNoRestrictedImportPatternOptions)[];
 }
 
-export interface NoRestrictedImportPathCommonOptions {
+export interface NormalizedNoRestrictedImportsRule {
+  paths: (string | ValidNoRestrictedImportPathOptions)[];
+  patterns: ValidNoRestrictedImportPatternOptions[];
+}
+
+interface NoRestrictedImportPathCommonOptions {
   name: string;
   message?: string;
+  allowTypeImports?: boolean;
 }
 
 export type EitherImportNamesOrAllowImportName =

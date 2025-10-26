@@ -208,7 +208,10 @@ impl<U: WebCatalog, O: WebCatalog, D: DataTypeCatalog> Producer<CreatePropertyTy
                     title_gid.local_id,
                     slug_from_title(&title)
                 ))?,
-                version: OntologyTypeVersion::new(1),
+                version: OntologyTypeVersion {
+                    major: 1,
+                    pre_release: None,
+                },
             },
             title,
             title_plural: None,

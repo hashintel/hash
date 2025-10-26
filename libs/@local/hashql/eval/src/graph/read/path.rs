@@ -7,9 +7,8 @@ use hash_graph_store::{
 };
 use hashql_core::{
     heap::Heap,
-    literal::LiteralKind,
     symbol::{Symbol, sym},
-    value::Value,
+    value::{Primitive, Value},
 };
 
 pub(crate) trait CompleteQueryPath<'heap>: QueryPath {
@@ -253,8 +252,8 @@ impl<'heap> PartialQueryPath<'heap> for PartialLinkDataPath {
 
 fn value_as_usize(value: &Value<'_>) -> Option<usize> {
     match value {
-        Value::Primitive(LiteralKind::Integer(integer)) => integer.as_usize(),
-        Value::Primitive(LiteralKind::Float(float)) if let Some(integer) = float.as_integer() => {
+        Value::Primitive(Primitive::Integer(integer)) => integer.as_usize(),
+        Value::Primitive(Primitive::Float(float)) if let Some(integer) = float.as_integer() => {
             integer.as_usize()
         }
         Value::Primitive(_)

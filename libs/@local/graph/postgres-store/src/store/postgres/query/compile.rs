@@ -978,7 +978,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 ParameterType::Uuid
             }
             Parameter::OntologyTypeVersion(version) => {
-                self.artifacts.parameters.push(version);
+                self.artifacts.parameters.push(&**version);
                 ParameterType::OntologyTypeVersion
             }
             Parameter::Timestamp(timestamp) => {

@@ -55,7 +55,10 @@ fn person_entity_type_id() -> VersionedUrl {
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),
         )
         .expect("couldn't construct Base URL"),
-        version: OntologyTypeVersion::new(1),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
     }
 }
 

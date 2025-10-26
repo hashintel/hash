@@ -16,11 +16,11 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -177,15 +177,14 @@ const EntityTypeResult: FunctionComponent<{
 /** extends react's useState by returning an additional value updated after a short delay (debounce) */
 const useQueryText = (): [string, string, (queryText: string) => void] => {
   const [displayedQuery, setDisplayedQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
+  const [submittedQuery, setSubmittedQuery] = useDebouncedState("", 300);
 
   const setQuery = useCallback(
     (query: string) => {
       setDisplayedQuery(query);
-      setSubmittedQuerySoon(query);
+      setSubmittedQuery(query);
     },
-    [setDisplayedQuery, setSubmittedQuerySoon],
+    [setDisplayedQuery, setSubmittedQuery],
   );
 
   return [displayedQuery, submittedQuery, setQuery];
@@ -300,9 +299,11 @@ export const SearchBar: FunctionComponent = () => {
       entityTypeResultData.queryEntityTypes.entityTypes) ??
     [];
 
-  useKey(["Escape"], () => setResultListVisible(false));
+  useHotkeys([["Escape", () => setResultListVisible(false)]]);
 
-  const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
+  const boxRef = useClickOutside<HTMLDivElement>(() =>
+    setResultListVisible(false),
+  );
 
   const isLoading = entityTypesLoading || entitiesLoading;
 
@@ -317,7 +318,7 @@ export const SearchBar: FunctionComponent = () => {
         height: "100%",
         ...getSearchBarResponsiveStyles(isMobile, displaySearchInput),
       }}
-      ref={rootRef}
+      ref={boxRef}
     >
       {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
       {isMobile && !displaySearchInput ? (

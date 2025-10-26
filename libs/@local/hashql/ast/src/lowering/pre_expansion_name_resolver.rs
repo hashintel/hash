@@ -91,7 +91,7 @@
 use core::mem;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     heap::Heap,
     module::{
         ModuleRegistry, Reference, Universe,

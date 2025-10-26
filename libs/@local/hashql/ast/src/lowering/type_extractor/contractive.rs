@@ -1,5 +1,5 @@
 use hashql_core::{
-    collection::{FastHashSet, fast_hash_set},
+    collections::{FastHashSet, fast_hash_set},
     intern::Interned,
     span::SpanId,
     r#type::{

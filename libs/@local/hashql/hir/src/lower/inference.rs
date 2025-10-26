@@ -1,7 +1,6 @@
 use hashql_core::{
-    collection::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet, HashMapExt as _},
     intern::Interned,
-    literal::LiteralKind,
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -20,13 +19,14 @@ use hashql_core::{
         },
         visit::Visitor as _,
     },
+    value::Primitive,
 };
 
 use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
     context::HirContext,
     node::{
-        HirId, HirPtr, Node,
+        HirIdMap, HirIdSet, HirPtr, Node,
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
@@ -34,8 +34,9 @@ use crate::{
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
         input::Input,
-        r#let::{Binding, Let, VarId},
+        r#let::{Binding, Let, VarIdMap},
         operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
@@ -48,9 +49,9 @@ pub struct Local<'heap> {
 }
 
 pub struct TypeInferenceResidual<'heap> {
-    pub locals: FastHashMap<VarId, Local<'heap>>,
-    pub intrinsics: FastHashMap<HirId, &'static str>,
-    pub types: FastHashMap<HirId, TypeId>,
+    pub locals: VarIdMap<Local<'heap>>,
+    pub intrinsics: HirIdMap<&'static str>,
+    pub types: HirIdMap<TypeId>,
 }
 
 pub struct TypeInference<'env, 'ctx, 'heap> {
@@ -63,11 +64,11 @@ pub struct TypeInference<'env, 'ctx, 'heap> {
 
     current: HirPtr,
 
-    visited: FastHashSet<HirId>,
-    locals: FastHashMap<VarId, Local<'heap>>,
-    types: FastHashMap<HirId, TypeId>,
-    arguments: FastHashMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
-    intrinsics: FastHashMap<HirId, &'static str>,
+    visited: HirIdSet,
+    locals: VarIdMap<Local<'heap>>,
+    types: HirIdMap<TypeId>,
+    arguments: HirIdMap<Interned<'heap, [GenericArgumentReference<'heap>]>>,
+    intrinsics: HirIdMap<&'static str>,
 }
 
 impl<'env, 'ctx, 'heap> TypeInference<'env, 'ctx, 'heap> {
@@ -164,14 +165,14 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
         self.current = previous;
     }
 
-    fn visit_literal(&mut self, literal: &'heap LiteralKind<'heap>) {
+    fn visit_primitive(&mut self, literal: &'heap Primitive<'heap>) {
         let builder = TypeBuilder::spanned(self.current.span, self.env);
         let id = match literal {
-            LiteralKind::Null => builder.null(),
-            LiteralKind::Boolean(_) => builder.boolean(),
-            LiteralKind::Float(_) => builder.number(),
-            LiteralKind::Integer(_) => builder.integer(),
-            LiteralKind::String(_) => builder.string(),
+            Primitive::Null => builder.null(),
+            Primitive::Boolean(_) => builder.boolean(),
+            Primitive::Float(_) => builder.number(),
+            Primitive::Integer(_) => builder.integer(),
+            Primitive::String(_) => builder.string(),
         };
 
         self.types.insert_unique(self.current.id, id);
@@ -564,6 +565,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, 'heap> {
 
         self.types.insert(self.current.id, def.id);
         self.arguments.insert(self.current.id, def.arguments);
+    }
+
+    fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {
+        unreachable!("thunk operations shouldn't be present yet");
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {

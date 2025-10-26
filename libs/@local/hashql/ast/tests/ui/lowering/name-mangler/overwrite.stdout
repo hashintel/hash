@@ -4,8 +4,8 @@ Expr#4294967040@34
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8
-            LiteralKind (Integer)
-              IntegerLiteral (2)
+            Primitive (Integer)
+              Integer (2)
       Expr#4294967040@33
         ExprKind (Call)
           CallExpr#4294967040@33
@@ -27,8 +27,8 @@ Expr#4294967040@34
                     Expr#4294967040@27
                       ExprKind (Literal)
                         LiteralExpr#4294967040@26
-                          LiteralKind (Integer)
-                            IntegerLiteral (4)
+                          Primitive (Integer)
+                            Integer (4)
                     Expr#4294967040@31
                       ExprKind (Path)
                         Path#4294967040@31 (rooted: false)

@@ -1,7 +1,6 @@
 import type { JsonObject } from "@blockprotocol/core";
 import type { ClientOptions } from "@opensearch-project/opensearch";
 import { Client, errors } from "@opensearch-project/opensearch";
-import { DataSource } from "apollo-datasource";
 
 import type { Logger } from "../logger.js";
 import { sleep } from "../utils.js";
@@ -111,13 +110,11 @@ const generateSearchBody = (params: SearchParameters) => {
  * OpenSearch.org search index. Use `OpenSearch.connect` to open a connection to a
  * cluster.
  * */
-export class OpenSearch extends DataSource implements SearchAdapter {
+export class OpenSearch implements SearchAdapter {
   constructor(
     private client: Client,
     private logger: Logger,
-  ) {
-    super();
-  }
+  ) {}
 
   /** Connect to an OpenSearch cluster using the provided configuration. */
   static async connect(

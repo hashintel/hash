@@ -3,7 +3,7 @@ use core::ops::Index;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
-    collection::{FastHashMap, TinyVec},
+    collections::{FastHashMap, TinyVec},
     intern::Interned,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,

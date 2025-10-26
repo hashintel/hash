@@ -5,7 +5,7 @@ use core::{
 };
 
 use hashql_core::{
-    collection::FastHashSet,
+    collections::FastHashSet,
     module::{
         ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},

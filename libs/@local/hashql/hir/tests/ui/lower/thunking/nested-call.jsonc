@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Nested function call thunking transformation
+[
+  "let",
+  "foo",
+  { "#literal": 2 },
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Number" } },
+    "Boolean",
+    [">=", "a", "foo"]
+  ]
+]

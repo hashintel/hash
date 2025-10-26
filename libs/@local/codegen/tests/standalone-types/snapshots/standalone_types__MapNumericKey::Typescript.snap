@@ -4,15 +4,15 @@ expression: generated
 ---
 export interface MapNumericKey {
 	int_to_string: {
-		[key: number]: string
+		[key: number]: string;
 	};
 	int_to_int: {
-		[key: number]: number
+		[key: number]: number;
 	};
 	btree_int_to_string: {
-		[key: number]: string
+		[key: number]: string;
 	};
 	btree_int_to_int: {
-		[key: number]: number
+		[key: number]: number;
 	};
 }

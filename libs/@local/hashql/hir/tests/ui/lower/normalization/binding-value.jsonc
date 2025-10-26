@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Variable binding with complex value expression
 [
   "let",
   "foo",

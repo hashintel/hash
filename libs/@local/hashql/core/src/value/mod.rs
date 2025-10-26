@@ -2,6 +2,7 @@ mod dict;
 mod list;
 
 mod opaque;
+mod primitive;
 mod r#struct;
 mod tuple;
 
@@ -9,10 +10,11 @@ pub use self::{
     dict::Dict,
     list::List,
     opaque::Opaque,
+    primitive::{Float, Integer, Primitive, String},
     r#struct::{Struct, StructError},
     tuple::{Tuple, TupleError},
 };
-use crate::{literal::LiteralKind, symbol::Symbol};
+use crate::symbol::Symbol;
 
 /// Errors that can occur when accessing fields on values.
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
@@ -54,14 +56,13 @@ impl core::error::Error for IndexAccessError {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-///     value::{Dict, List, Struct, Tuple, Value},
+///     value::{Dict, Integer, List, Primitive, String, Struct, Tuple, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
-/// # let boolean = |value: bool| Value::Primitive(LiteralKind::Boolean(value));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
+/// # let boolean = |value: bool| Value::Primitive(Primitive::Boolean(value));
 ///
 /// // Primitive values
 /// let number = integer("42");
@@ -89,7 +90,7 @@ impl core::error::Error for IndexAccessError {}
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, derive_more::From)]
 pub enum Value<'heap> {
     /// A primitive literal value (null, boolean, integer, float, or string).
-    Primitive(LiteralKind<'heap>),
+    Primitive(Primitive<'heap>),
     /// A structured value with named fields.
     Struct(Struct<'heap>),
     /// A fixed-size sequence of values accessed by position.
@@ -110,13 +111,12 @@ impl<'heap> Value<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::Value,
+    ///     value::{Integer, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let number = integer("42");
     /// assert_eq!(number.type_name(), "integer");
@@ -124,17 +124,17 @@ impl<'heap> Value<'heap> {
     /// let text = string("hello");
     /// assert_eq!(text.type_name(), "string");
     ///
-    /// let flag = Value::Primitive(LiteralKind::Boolean(true));
+    /// let flag = Value::Primitive(Primitive::Boolean(true));
     /// assert_eq!(flag.type_name(), "boolean");
     /// ```
     #[must_use]
     pub const fn type_name(&self) -> &'static str {
         match self {
-            Self::Primitive(LiteralKind::Null) => "null",
-            Self::Primitive(LiteralKind::Boolean(_)) => "boolean",
-            Self::Primitive(LiteralKind::Integer(_)) => "integer",
-            Self::Primitive(LiteralKind::Float(_)) => "float",
-            Self::Primitive(LiteralKind::String(_)) => "string",
+            Self::Primitive(Primitive::Null) => "null",
+            Self::Primitive(Primitive::Boolean(_)) => "boolean",
+            Self::Primitive(Primitive::Integer(_)) => "integer",
+            Self::Primitive(Primitive::Float(_)) => "float",
+            Self::Primitive(Primitive::String(_)) => "string",
             Self::Struct(_) => "struct",
             Self::Tuple(_) => "tuple",
             Self::List(_) => "list",
@@ -158,13 +158,12 @@ impl<'heap> Value<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{FieldAccessError, Struct, Tuple, Value},
+    ///     value::{FieldAccessError, Integer, Primitive, String, Struct, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// // Struct field access
     /// let person = Value::Struct(Struct::from_fields(
@@ -216,13 +215,12 @@ impl<'heap> Value<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{Dict, IndexAccessError, List, Value},
+    ///     value::{Dict, IndexAccessError, Integer, List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// // List index access
     /// let list = Value::List(List::from_values([
@@ -263,8 +261,8 @@ impl<'heap> Value<'heap> {
         match self {
             Value::List(list) => {
                 let integer = match index {
-                    &Self::Primitive(LiteralKind::Integer(integer)) => integer,
-                    Self::Primitive(LiteralKind::Float(float))
+                    &Self::Primitive(Primitive::Integer(integer)) => integer,
+                    Self::Primitive(Primitive::Float(float))
                         if let Some(integer) = float.as_integer() =>
                     {
                         integer

@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::{FastHashMap, HashMapExt as _, TinyVec},
+    collections::{FastHashMap, HashMapExt as _, TinyVec},
     span::{SpanId, Spanned},
 };
 
@@ -13,7 +13,7 @@ use crate::{
     node::{
         Node, PartialNode,
         kind::NodeKind,
-        r#let::{Binding, VarId},
+        r#let::{Binding, VarIdMap},
         variable::Variable,
     },
 };
@@ -21,7 +21,7 @@ use crate::{
 #[derive(Debug)]
 pub struct AliasReplacement<'env, 'heap, 'diag> {
     current_span: SpanId,
-    scope: FastHashMap<VarId, Spanned<Variable<'heap>>>,
+    scope: VarIdMap<Spanned<Variable<'heap>>>,
     context: &'env HirContext<'env, 'heap>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }

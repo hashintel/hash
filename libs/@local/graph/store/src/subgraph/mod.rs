@@ -72,7 +72,7 @@ impl Subgraph {
         direction: EdgeDirection,
         right_endpoint: R,
     ) where
-        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord>,
+        L: VertexId<BaseId: Eq + Clone + Hash, RevisionId: Ord + Clone>,
         R: EdgeEndpoint,
         E: EdgeKind<L, R, EdgeSet: Default> + Eq + Hash,
     {

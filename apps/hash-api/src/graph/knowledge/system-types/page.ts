@@ -27,9 +27,9 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { Document } from "@local/hash-isomorphic-utils/system-types/document";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
-import { ApolloError } from "apollo-server-errors";
 import { generateKeyBetween } from "fractional-indexing";
 
+import * as GraphQlError from "../../../graphql/error";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -426,9 +426,8 @@ export const setPageParentPage: ImpureGraphFunction<
         parentPage: page,
       })
     ) {
-      throw new ApolloError(
+      throw GraphQlError.cyclicTree(
         `Could not set '${parentPage.entity.metadata.recordId.entityId}' as parent of '${page.entity.metadata.recordId.entityId}', this would create a cyclic dependency.`,
-        "CYCLIC_TREE",
       );
     }
 

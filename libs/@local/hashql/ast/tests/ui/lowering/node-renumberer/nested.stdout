@@ -14,14 +14,14 @@ Expr#0@50
               Expr#10@13
                 ExprKind (Literal)
                   LiteralExpr#11@12
-                    LiteralKind (Integer)
-                      IntegerLiteral (1)
+                    Primitive (Integer)
+                      Integer (1)
             Argument#12@15
               Expr#13@15
                 ExprKind (Literal)
                   LiteralExpr#14@14
-                    LiteralKind (Integer)
-                      IntegerLiteral (2)
+                    Primitive (Integer)
+                      Integer (2)
       Expr#15@49
         ExprKind (Let)
           LetExpr#16@49 (name: y)
@@ -43,8 +43,8 @@ Expr#0@50
                     Expr#29@34
                       ExprKind (Literal)
                         LiteralExpr#30@33
-                          LiteralKind (Integer)
-                            IntegerLiteral (3)
+                          Primitive (Integer)
+                            Integer (3)
             Expr#31@48
               ExprKind (Call)
                 CallExpr#32@48

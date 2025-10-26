@@ -27,14 +27,14 @@ Expr#0@41
                     Expr#20@34
                       ExprKind (Literal)
                         LiteralExpr#21@33
-                          LiteralKind (Integer)
-                            IntegerLiteral (1)
+                          Primitive (Integer)
+                            Integer (1)
                   Argument#22@36
                     Expr#23@36
                       ExprKind (Literal)
                         LiteralExpr#24@35
-                          LiteralKind (Integer)
-                            IntegerLiteral (2)
+                          Primitive (Integer)
+                            Integer (2)
       Expr#25@40
         ExprKind (Underscore)
 

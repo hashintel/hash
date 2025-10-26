@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_core::{
-    collection::{FastHashMap, TinyVec, fast_hash_map},
+    collections::{FastHashMap, TinyVec, fast_hash_map},
     module::{
         ModuleRegistry,
         locals::{Local, Locals, TypeLocals},
@@ -11,7 +11,7 @@ use hashql_core::{
     r#type::{
         TypeId,
         environment::Environment,
-        kind::generic::{GenericArgumentId, GenericArgumentReference},
+        kind::generic::{GenericArgumentMap, GenericArgumentReference},
     },
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -34,7 +34,7 @@ use crate::{
 
 type LocalState<'env, 'heap> = (
     FastHashMap<Symbol<'heap>, LocalVariable<'env, 'heap>>,
-    FastHashMap<GenericArgumentId, Option<TypeId>>,
+    GenericArgumentMap<Option<TypeId>>,
     TypeExtractorDiagnosticIssues,
 );
 

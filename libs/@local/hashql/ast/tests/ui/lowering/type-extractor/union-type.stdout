@@ -4,8 +4,8 @@ Expr#0@25
       Expr#2@22
         ExprKind (Literal)
           LiteralExpr#3@21
-            LiteralKind (Integer)
-              IntegerLiteral (42)
+            Primitive (Integer)
+              Integer (42)
       Type#4@20
         TypeKind (Union)
           UnionType#5@20

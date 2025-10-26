@@ -2,7 +2,7 @@
 use core::{hash::Hash, hint::cold_path};
 
 use super::Interned;
-use crate::{collection::ConcurrentHashSet, heap::Heap};
+use crate::{collections::ConcurrentHashSet, heap::Heap};
 
 /// A thread-safe interner for values of type `T`.
 ///

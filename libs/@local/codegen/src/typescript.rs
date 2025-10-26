@@ -5,7 +5,7 @@ use oxc::{
         ast::{self, TSTupleElement},
     },
     codegen::Codegen,
-    span::SPAN,
+    span::{Atom, SPAN},
 };
 use specta::NamedType;
 
@@ -73,7 +73,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                                 )
                             })),
                     ),
-                    self.ast.string_literal(SPAN, module, None),
+                    self.ast.string_literal(SPAN, self.ast.str(module), None),
                     None,
                     None::<ast::WithClause<'a>>,
                     ast::ImportOrExportKind::Type,
@@ -180,7 +180,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         if !definition.branded && self.should_export_as_interface(&definition.r#type) {
             self.generate_interface(definition)
         } else {
-            let mut r#type = self.visit_type(&definition.r#type);
+            let mut r#type: ast::TSType<'a> = self.visit_type(&definition.r#type);
 
             if definition.branded {
                 if !self.has_branded_types {
@@ -202,7 +202,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             r#type,
                             self.ast.ts_type_type_reference(
                                 SPAN,
-                                self.ast.ts_type_name_identifier_reference(SPAN, "WebId"),
+                                self.ast.ts_type_name_identifier_reference(
+                                    SPAN,
+                                    Atom::new_const("WebId"),
+                                ),
                                 None::<ast::TSTypeParameterInstantiation<'a>>,
                             ),
                         ]),
@@ -223,8 +226,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             r#type,
                             self.ast.ts_type_type_reference(
                                 SPAN,
-                                self.ast
-                                    .ts_type_name_identifier_reference(SPAN, "ActorEntityUuid"),
+                                self.ast.ts_type_name_identifier_reference(
+                                    SPAN,
+                                    Atom::new_const("ActorEntityUuid"),
+                                ),
                                 None::<ast::TSTypeParameterInstantiation<'a>>,
                             ),
                         ]),
@@ -242,7 +247,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                                 SPAN,
                                 self.ast.ts_literal_string_literal(
                                     SPAN,
-                                    definition.name.as_ref(),
+                                    self.ast.str(definition.name.as_ref()),
                                     None,
                                 ),
                             ),
@@ -253,7 +258,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
 
             self.ast.declaration_ts_type_alias(
                 SPAN,
-                self.ast.binding_identifier(SPAN, definition.name.as_ref()),
+                self.ast
+                    .binding_identifier(SPAN, self.ast.str(definition.name.as_ref())),
                 None::<ast::TSTypeParameterDeclaration<'a>>,
                 r#type,
                 false,
@@ -287,12 +293,16 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                                     ast::Expression::Identifier(
                                         self.ast.alloc_identifier_reference(
                                             SPAN,
-                                            self.collection
-                                                .types
-                                                .get(type_id)
-                                                .expect("type collection should contain the type")
-                                                .name
-                                                .as_ref(),
+                                            self.ast.str(
+                                                self.collection
+                                                    .types
+                                                    .get(type_id)
+                                                    .expect(
+                                                        "type collection should contain the type",
+                                                    )
+                                                    .name
+                                                    .as_ref(),
+                                            ),
                                         ),
                                     ),
                                     None::<ast::TSTypeParameterInstantiation<'a>>,
@@ -306,8 +316,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                                 false, // computed
                                 field.optional,
                                 false, // read-only
-                                self.ast
-                                    .property_key_static_identifier(SPAN, field_name.as_ref()),
+                                self.ast.property_key_static_identifier(
+                                    SPAN,
+                                    self.ast.str(field_name.as_ref()),
+                                ),
                                 Some(self.ast.alloc_ts_type_annotation(
                                     SPAN,
                                     self.visit_type(&field.r#type),
@@ -335,7 +347,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
 
         self.ast.declaration_ts_interface(
             SPAN,
-            self.ast.binding_identifier(SPAN, definition.name.as_ref()),
+            self.ast
+                .binding_identifier(SPAN, self.ast.str(definition.name.as_ref())),
             None::<ast::TSTypeParameterDeclaration<'a>>,
             extends,
             self.ast.ts_interface_body(SPAN, body),
@@ -356,12 +369,14 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             SPAN,
             self.ast.ts_type_name_identifier_reference(
                 SPAN,
-                self.collection
-                    .types
-                    .get(&type_id)
-                    .expect("type collection should contain the type")
-                    .name
-                    .as_ref(),
+                self.ast.str(
+                    self.collection
+                        .types
+                        .get(&type_id)
+                        .expect("type collection should contain the type")
+                        .name
+                        .as_ref(),
+                ),
             ),
             None::<ast::TSTypeParameterInstantiation<'a>>,
         )
@@ -377,7 +392,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 if fields.is_empty() && *deny_unknown {
                     return self.ast.ts_type_type_reference(
                         SPAN,
-                        self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
+                        self.ast
+                            .ts_type_name_identifier_reference(SPAN, Atom::new_const("Record")),
                         Some(self.ast.ts_type_parameter_instantiation(
                             SPAN,
                             self.ast.vec_from_array([
@@ -403,8 +419,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             false, // computed
                             field.optional,
                             false, // read-only
-                            self.ast
-                                .property_key_static_identifier(SPAN, field_name.as_ref()),
+                            self.ast.property_key_static_identifier(
+                                SPAN,
+                                self.ast.str(field_name.as_ref()),
+                            ),
                             Some(
                                 self.ast
                                     .alloc_ts_type_annotation(SPAN, self.visit_type(&field.r#type)),
@@ -439,7 +457,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             Fields::Unit => self.ast.ts_type_literal_type(
                 SPAN,
                 self.ast
-                    .ts_literal_string_literal(SPAN, variant.name.as_ref(), None),
+                    .ts_literal_string_literal(SPAN, self.ast.str(variant.name.as_ref()), None),
             ),
             Fields::Named { .. } | Fields::Unnamed { .. } => {
                 self.ast.ts_type_type_literal(
@@ -450,8 +468,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             false, // computed
                             false, // optional
                             false, // readonly
-                            self.ast
-                                .property_key_static_identifier(SPAN, variant.name.as_ref()),
+                            self.ast.property_key_static_identifier(
+                                SPAN,
+                                self.ast.str(variant.name.as_ref()),
+                            ),
                             Some(self.ast.alloc_ts_type_annotation(
                                 SPAN,
                                 self.visit_fields(&variant.fields),
@@ -474,17 +494,19 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 false, // computed
                 false, // optional
                 false, // read-only
-                self.ast.property_key_static_identifier(SPAN, tag),
-                Some(
-                    self.ast.alloc_ts_type_annotation(
+                self.ast
+                    .property_key_static_identifier(SPAN, self.ast.str(tag)),
+                Some(self.ast.alloc_ts_type_annotation(
+                    SPAN,
+                    self.ast.ts_type_literal_type(
                         SPAN,
-                        self.ast.ts_type_literal_type(
+                        self.ast.ts_literal_string_literal(
                             SPAN,
-                            self.ast
-                                .ts_literal_string_literal(SPAN, variant.name.as_ref(), None),
+                            self.ast.str(variant.name.as_ref()),
+                            None,
                         ),
                     ),
-                ),
+                )),
             ),
         );
 
@@ -506,8 +528,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             false, // computed
                             field.optional,
                             false, // readonly
-                            self.ast
-                                .property_key_static_identifier(SPAN, field_name.as_ref()),
+                            self.ast.property_key_static_identifier(
+                                SPAN,
+                                self.ast.str(field_name.as_ref()),
+                            ),
                             Some(
                                 self.ast
                                     .alloc_ts_type_annotation(SPAN, self.visit_type(&field.r#type)),
@@ -545,17 +569,19 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 false, // computed
                 false, // optional
                 false, // readonly
-                self.ast.property_key_static_identifier(SPAN, tag),
-                Some(
-                    self.ast.alloc_ts_type_annotation(
+                self.ast
+                    .property_key_static_identifier(SPAN, self.ast.str(tag)),
+                Some(self.ast.alloc_ts_type_annotation(
+                    SPAN,
+                    self.ast.ts_type_literal_type(
                         SPAN,
-                        self.ast.ts_type_literal_type(
+                        self.ast.ts_literal_string_literal(
                             SPAN,
-                            self.ast
-                                .ts_literal_string_literal(SPAN, variant.name.as_ref(), None),
+                            self.ast.str(variant.name.as_ref()),
+                            None,
                         ),
                     ),
-                ),
+                )),
             ),
         );
 
@@ -566,7 +592,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     false, // computed
                     false, // optional
                     false, // readonly
-                    self.ast.property_key_static_identifier(SPAN, content),
+                    self.ast
+                        .property_key_static_identifier(SPAN, self.ast.str(content)),
                     Some(
                         self.ast
                             .alloc_ts_type_annotation(SPAN, self.visit_fields(&variant.fields)),

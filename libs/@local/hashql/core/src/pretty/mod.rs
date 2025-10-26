@@ -13,7 +13,7 @@ use ::pretty::{RcDoc, Render, RenderAnnotated};
 use anstyle::{AnsiColor, Color, Style};
 
 use crate::{
-    collection::FastHashSet,
+    collections::FastHashSet,
     r#type::{TypeId, environment::Environment, kind::GenericArguments},
 };
 

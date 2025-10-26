@@ -13,14 +13,14 @@ use crate::symbol::Symbol;
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+///     value::{Integer, Primitive, String},
 ///     symbol::Symbol,
 ///     value::{Opaque, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
 ///
 /// let user_id = Opaque::new(heap.intern_symbol("UserId"), string("user_12345"));
 /// let score = Opaque::new(heap.intern_symbol("Score"), integer("95"));
@@ -42,12 +42,11 @@ impl<'heap> Opaque<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Opaque, Value},
+    ///     value::{Opaque, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let email = Opaque::new(heap.intern_symbol("Email"), string("alice@example.com"));
     /// # let _email = email;
@@ -66,12 +65,11 @@ impl<'heap> Opaque<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Opaque, Value},
+    ///     value::{Opaque, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let username = Opaque::new(heap.intern_symbol("Username"), string("alice"));
     /// assert_eq!(username.name(), heap.intern_symbol("Username"));
@@ -88,12 +86,11 @@ impl<'heap> Opaque<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind},
-    ///     value::{Opaque, Value},
+    ///     value::{Integer, Opaque, Primitive, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let temperature = Opaque::new(heap.intern_symbol("Temperature"), integer("72"));
     /// assert_eq!(temperature.value(), &integer("72"));

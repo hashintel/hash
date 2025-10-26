@@ -10,14 +10,14 @@ Expr#4294967040@15
         Expr#4294967040@3
           ExprKind (Literal)
             LiteralExpr#4294967040@2
-              LiteralKind (String)
-                StringLiteral (Alice)
+              Primitive (String)
+                String (Alice)
       StructEntry#4294967040@9 (key: age)
         Expr#4294967040@8
           ExprKind (Literal)
             LiteralExpr#4294967040@7
-              LiteralKind (Integer)
-                IntegerLiteral (30)
+              Primitive (Integer)
+                Integer (30)
       Type#4294967040@14
         TypeKind (Path)
           Path#4294967040@14 (rooted: false)

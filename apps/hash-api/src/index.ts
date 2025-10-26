@@ -2,6 +2,7 @@ import http from "node:http";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import KeyvRedis from "@keyv/redis";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -11,6 +12,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -23,15 +25,20 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler } from "express";
+import type { ErrorRequestHandler, Request, Response } from "express";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
-import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
+import {
+  createProxyMiddleware,
+  fixRequestBody,
+  responseInterceptor,
+} from "http-proxy-middleware";
 import httpTerminator from "http-terminator";
+import Keyv from "keyv";
 import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
@@ -51,7 +58,6 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
-import { RedisCache } from "./cache";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
@@ -66,6 +72,7 @@ import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watch
 import {
   CORS_CONFIG,
   getEnvStorageType,
+  GRAPHQL_PATH,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
 import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
@@ -78,6 +85,8 @@ import {
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 
 const app = express();
+
+const httpServer = http.createServer(app);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -99,19 +108,66 @@ const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
 const userIdentifierRateLimiter = rateLimit({
   ...baseRateLimitOptions,
   keyGenerator: (req) => {
-    if (req.body.identifier) {
+    if (req.body?.identifier) {
       /**
        * 'identifier' is the field which identifies the user on a signin attempt.
        * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
-      return req.body.identifier;
+      return req.body.identifier as string;
     }
-    return req.ip;
+    return ipKeyGenerator(req.ip!);
   },
 });
 
-const hydraProxy = proxy(hydraPublicUrl ?? "", {
-  proxyReqPathResolver: (req) => req.originalUrl,
+const hydraProxy = createProxyMiddleware<Request, Response>({
+  target: hydraPublicUrl ?? "",
+  pathRewrite: (_, req) => req.originalUrl,
+});
+
+const kratosProxy = createProxyMiddleware<Request, Response>({
+  target: kratosPublicUrl,
+  pathRewrite: {
+    /**
+     * Remove the `/auth` prefix from the request path, so the path is
+     * formatted correctly for the Ory Kratos API.
+     */
+    "^/auth": "",
+  },
+  logger: console,
+  selfHandleResponse: true,
+  on: {
+    proxyReq: fixRequestBody,
+    /**
+     * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
+     * by default, which is not permitted by browsers when including credentials
+     * in requests.
+     *
+     * When setting the value of the `Access-Control-Allow-Origin` header in
+     * the Ory Kratos configuration, the frontend URL is included twice in the
+     * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
+     * which is also not permitted by browsers when including credentials in requests.
+     *
+     * Therefore we manually set the `Access-Control-Allow-Origin` header to the
+     * expected value here before returning the response, to prevent CORS errors
+     * in modern browsers.
+     */
+    proxyRes: (proxyRes, req, res) => {
+      const expectedAccessControlAllowOriginHeader = res.getHeader(
+        "access-control-allow-origin",
+      );
+
+      return responseInterceptor((responseBuffer, _, __, inflightRes) => {
+        if (typeof expectedAccessControlAllowOriginHeader === "string") {
+          inflightRes.setHeader(
+            "access-control-allow-origin",
+            expectedAccessControlAllowOriginHeader,
+          );
+        }
+
+        return Promise.resolve(responseBuffer);
+      })(proxyRes, req, res);
+    },
+  },
 });
 
 const main = async () => {
@@ -120,11 +176,11 @@ const main = async () => {
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
 
-    const [spEmitter] = setupTelemetry();
+    const snowplowTracker = await setupTelemetry();
 
     shutdown.addCleanup("Snowplow Telemetry", async () => {
       logger.info("Flushing [Snowplow] telemetry");
-      spEmitter.flush();
+      await snowplowTracker.flush();
     });
   }
 
@@ -179,6 +235,7 @@ const main = async () => {
   const redisPort = Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
   const redisEncryptedTransit =
     process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
+  const redisUrl = `redis${redisEncryptedTransit ? "s" : ""}://${redisHost}:${redisPort}`;
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
   const graphApiPort = Number.parseInt(
@@ -192,11 +249,8 @@ const main = async () => {
   ]);
 
   // Connect to Redis
-  const redis = new RedisCache(logger, {
-    host: redisHost,
-    port: redisPort,
-    tls: redisEncryptedTransit,
-  });
+  const redis = await createRedisClient({ url: redisUrl, logger }).connect();
+  const keyv = new Keyv({ store: new KeyvRedis(redis) });
   shutdown.addCleanup("Redis", async () => redis.close());
 
   // Connect to the Graph API
@@ -325,51 +379,11 @@ const main = async () => {
    * we check the body in this process in order to rate limit requests based on the user attempting to log in.
    */
   app.use(
-    "/auth/*",
+    "/auth",
     authRouteRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
-    (req, res, next) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "Access-Control-Allow-Origin",
-      );
-
-      if (!kratosPublicUrl) {
-        throw new Error("No kratosPublicUrl provided");
-      }
-
-      return proxy(kratosPublicUrl, {
-        /**
-         * Remove the `/auth` prefix from the request path, so the path is
-         * formatted correctly for the Ory Kratos API.
-         */
-        proxyReqPathResolver: ({ originalUrl }) =>
-          originalUrl.replace("/auth", ""),
-        /**
-         * Ory Kratos includes the wildcard `*` in the `Access-Control-Allow-Origin`
-         * by default, which is not permitted by browsers when including credentials
-         * in requests.
-         *
-         * When setting the value of the `Access-Control-Allow-Origin` header in
-         * the Ory Kratos configuration, the frontend URL is included twice in the
-         * header for some reason (e.g. ["https://localhost:3000", "https://localhost:3000"]),
-         * which is also not permitted by browsers when including credentials in requests.
-         *
-         * Therefore we manually set the `Access-Control-Allow-Origin` header to the
-         * expected value here before returning the response, to prevent CORS errors
-         * in modern browsers.
-         */
-        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
-          if (typeof expectedAccessControlAllowOriginHeader === "string") {
-            userRes.set(
-              "Access-Control-Allow-Origin",
-              expectedAccessControlAllowOriginHeader,
-            );
-          }
-          return proxyResData;
-        },
-      })(req, res, next);
-    },
+    kratosProxy,
   );
 
   // Set up authentication related middleware and routes
@@ -448,16 +462,17 @@ const main = async () => {
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
 
-  const apolloServer = createApolloServer({
+  const [apolloServer, apolloMiddleware] = await createApolloServer({
     graphApi,
     search,
     uploadProvider,
     temporalClient,
     vaultClient,
-    cache: redis,
+    cache: keyv,
     emailTransporter,
     logger,
     statsd,
+    httpServer,
   });
 
   // Make the data sources/clients available to REST controllers
@@ -481,7 +496,7 @@ const main = async () => {
     next();
   });
 
-  setupFileDownloadProxyHandler(app, redis);
+  setupFileDownloadProxyHandler(app, keyv);
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 
@@ -644,11 +659,9 @@ const main = async () => {
   };
   app.use(errorHandler);
 
-  // Create the HTTP server.
   // Note: calling `close` on a `http.Server` stops new connections, but it does not
   // close active connections. This can result in the server hanging indefinitely. We
   // use the `http-terminator` library to shut down the server properly.
-  const httpServer = http.createServer(app);
   const terminator = httpTerminator.createHttpTerminator({
     server: httpServer,
   });
@@ -662,13 +675,13 @@ const main = async () => {
   });
 
   // Start the Apollo GraphQL server.
-  // Note: the server must be started before the middleware can be applied
-  await apolloServer.start();
   shutdown.addCleanup("ApolloServer", async () => apolloServer.stop());
-  apolloServer.applyMiddleware({
-    app,
-    cors: CORS_CONFIG,
-  });
+  app.use(
+    GRAPHQL_PATH,
+    cors<cors.CorsRequest>(CORS_CONFIG),
+    express.json(),
+    apolloMiddleware,
+  );
 
   // Start the HTTP server before setting up the integration listener
   // This is done because the Redis client blocks when instantiated
@@ -676,7 +689,7 @@ const main = async () => {
   await new Promise<void>((resolve) => {
     httpServer.listen({ host: "0.0.0.0", port }, () => {
       logger.info(`Listening on port ${port}`);
-      logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
+      logger.info(`GraphQL path: ${GRAPHQL_PATH}`);
       resolve();
     });
   });
@@ -691,6 +704,7 @@ const main = async () => {
 
     const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
       graphApi,
+      redis,
       logger,
       vaultClient,
     });

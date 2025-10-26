@@ -28,7 +28,7 @@
 use core::{fmt, fmt::Debug, hash::Hash, ops::Try};
 
 use hashql_core::{
-    collection::SmallVec,
+    collections::SmallVec,
     intern::{InternSet, Interned},
 };
 

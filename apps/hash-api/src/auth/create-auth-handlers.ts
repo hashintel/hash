@@ -160,7 +160,6 @@ export const createAuthMiddleware = (params: {
 }): RequestHandler => {
   const { logger, context } = params;
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   return async (req, _res, next) => {
     const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;

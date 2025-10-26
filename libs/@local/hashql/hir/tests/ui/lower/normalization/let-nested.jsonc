@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Nested let bindings with complex expressions
 [
   "let",
   "foo",
