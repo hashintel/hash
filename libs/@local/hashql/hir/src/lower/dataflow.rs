@@ -75,6 +75,7 @@ pub struct VariableDefinitions {
 }
 
 impl VariableDefinitions {
+    #[must_use]
     pub fn new(context: &HirContext) -> Self {
         let set = MixedBitSet::new_empty(context.counter.var.size());
 
