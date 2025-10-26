@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::borrow::Borrow;
+use core::{borrow::Borrow, slice};
 
 #[cfg(feature = "render")]
 use annotate_snippets::{Annotation, AnnotationKind};
@@ -309,5 +309,14 @@ impl<S> Labels<S> {
         Labels {
             labels: self.labels.into_iter().map(func).collect(),
         }
+    }
+}
+
+impl<'this, S> IntoIterator for &'this Labels<S> {
+    type IntoIter = slice::Iter<'this, Label<S>>;
+    type Item = &'this Label<S>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.labels.iter()
     }
 }

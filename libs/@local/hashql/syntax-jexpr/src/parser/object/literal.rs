@@ -2,7 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, LiteralExpr},
     id::NodeId,
 };
-use hashql_core::literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral};
+use hashql_core::value::{self, Primitive};
 use text_size::TextRange;
 
 use super::{
@@ -30,7 +30,7 @@ pub(crate) struct LiteralNode<'heap> {
 
 impl<'heap> LiteralNode<'heap> {
     pub(crate) fn parse(
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: &Key<'_>,
     ) -> Result<Self, ParserDiagnostic> {
         let expr = parse_literal(state)?;
@@ -52,7 +52,7 @@ impl<'heap> LiteralNode<'heap> {
 impl<'heap> State<'heap> for LiteralNode<'heap> {
     fn handle(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         key: Key<'_>,
     ) -> Result<ObjectState<'heap>, ParserDiagnostic> {
         handle_typed("#literal", self.key_span, &mut self.r#type, state, &key)?;
@@ -61,7 +61,7 @@ impl<'heap> State<'heap> for LiteralNode<'heap> {
 
     fn build(
         mut self,
-        state: &mut ParserState<'heap, '_>,
+        state: &mut ParserState<'heap, '_, '_>,
         span: TextRange,
     ) -> Result<Expr<'heap>, ParserDiagnostic> {
         self.expr.r#type = TypeNode::finish(self.r#type, state);
@@ -75,7 +75,7 @@ impl<'heap> State<'heap> for LiteralNode<'heap> {
 }
 
 fn parse_literal<'heap>(
-    state: &mut ParserState<'heap, '_>,
+    state: &mut ParserState<'heap, '_, '_>,
 ) -> Result<LiteralExpr<'heap>, ParserDiagnostic> {
     // We do not use the `expected` of advance here, so that we're able to give the user a better
     // error message.
@@ -86,22 +86,22 @@ fn parse_literal<'heap>(
     let span = state.insert_range(token.span);
 
     let kind = match token.kind {
-        TokenKind::Null => LiteralKind::Null,
+        TokenKind::Null => Primitive::Null,
         TokenKind::Number(number) => {
             if number.has_fraction() || number.has_exponent() {
-                LiteralKind::Float(FloatLiteral {
-                    value: state.intern_symbol(number.as_str()),
-                })
+                Primitive::Float(value::Float::new_unchecked(
+                    state.intern_symbol(number.as_str()),
+                ))
             } else {
-                LiteralKind::Integer(IntegerLiteral {
-                    value: state.intern_symbol(number.as_str()),
-                })
+                Primitive::Integer(value::Integer::new_unchecked(
+                    state.intern_symbol(number.as_str()),
+                ))
             }
         }
-        TokenKind::Bool(value) => LiteralKind::Boolean(value),
-        TokenKind::String(value) => LiteralKind::String(StringLiteral {
-            value: state.intern_symbol(value),
-        }),
+        TokenKind::Bool(value) => Primitive::Boolean(value),
+        TokenKind::String(value) => {
+            Primitive::String(value::String::new(state.intern_symbol(value)))
+        }
         kind @ (TokenKind::LBrace
         | TokenKind::RBrace
         | TokenKind::LBracket

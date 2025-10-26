@@ -1,10 +1,10 @@
 use core::convert::Infallible;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collections::FastHashMap,
     intern::Interned,
     module::{
-        ModuleRegistry, Universe,
+        Universe,
         item::ItemKind,
         locals::{TypeDef, TypeLocals},
     },
@@ -19,46 +19,45 @@ use hashql_core::{
 
 use super::error::{GenericArgumentContext, LoweringDiagnosticIssues, generic_argument_mismatch};
 use crate::{
+    context::HirContext,
     fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
-        HirId, Node, PartialNode,
+        HirIdMap, Node, PartialNode,
         kind::NodeKind,
-        operation::{
-            Operation, OperationKind, TypeOperation,
-            r#type::{TypeConstructor, TypeOperationKind},
-        },
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        operation::{Operation, TypeConstructor, TypeOperation},
+        variable::{LocalVariable, QualifiedVariable, Variable},
     },
 };
 
 pub struct ConvertTypeConstructor<'env, 'heap, 'diag> {
-    interner: &'env Interner<'heap>,
+    context: &'env HirContext<'env, 'heap>,
+
     locals: &'env TypeLocals<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
-    cache: FastHashMap<HirId, Node<'heap>>,
+    current_span: SpanId,
+    cache: HirIdMap<Node<'heap>>,
 
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
 impl<'env, 'heap, 'diag> ConvertTypeConstructor<'env, 'heap, 'diag> {
     pub fn new(
-        interner: &'env Interner<'heap>,
+        context: &'env HirContext<'env, 'heap>,
         locals: &'env TypeLocals<'heap>,
-        registry: &'env ModuleRegistry<'heap>,
         environment: &'env Environment<'heap>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
-            interner,
+            context,
+
             locals,
-            registry,
             environment,
             instantiate: InstantiateEnvironment::new(environment),
 
+            current_span: SpanId::SYNTHETIC,
             cache: FastHashMap::default(),
 
             diagnostics,
@@ -71,23 +70,17 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
         &self,
         variable: &Variable<'heap>,
     ) -> Option<(TypeDef<'heap>, Interned<'heap, [Spanned<TypeId>]>)> {
-        match variable.kind {
-            VariableKind::Local(LocalVariable {
-                span: _,
-                name,
-                arguments,
-            }) => {
-                let local = self.locals.get(name.value)?;
+        match *variable {
+            Variable::Local(LocalVariable { id, arguments }) => {
+                let name = self.context.symbols.binder.get(id.value)?;
+                let local = self.locals.get(name)?;
 
                 Some((local.value, arguments))
             }
-            VariableKind::Qualified(QualifiedVariable {
-                span: _,
-                path,
-                arguments,
-            }) => {
+            Variable::Qualified(QualifiedVariable { path, arguments }) => {
                 let item = self
-                    .registry
+                    .context
+                    .modules
                     .lookup(path.0.iter().map(|ident| ident.value), Universe::Value)?;
 
                 let ItemKind::Constructor(constructor) = item.kind else {
@@ -149,19 +142,12 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
     ) -> Option<Node<'heap>> {
         let make = |constructor| PartialNode {
             span: node.span,
-            kind: NodeKind::Operation(Operation {
-                span: variable.span,
-                kind: OperationKind::Type(TypeOperation {
-                    span: variable.span,
-                    kind: TypeOperationKind::Constructor(constructor),
-                }),
-            }),
+            kind: NodeKind::Operation(Operation::Type(TypeOperation::Constructor(constructor))),
         };
 
         if generic_arguments.is_empty() {
             // We're done here, as we don't need to apply anything
-            return Some(self.interner.intern_node(make(TypeConstructor {
-                span: variable.span,
+            return Some(self.context.interner.intern_node(make(TypeConstructor {
                 name,
                 closure: closure_def.id,
                 arguments: closure_def.arguments,
@@ -174,8 +160,8 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
             self.diagnostics.push(generic_argument_mismatch(
                 GenericArgumentContext::TypeConstructor,
                 node.span,
-                variable.span,
-                variable.name(),
+                self.current_span,
+                variable.name(&self.context.symbols),
                 &closure_def.arguments,
                 &generic_arguments,
             ));
@@ -194,14 +180,13 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
                 },
             );
 
-        let builder = TypeBuilder::spanned(variable.span, self.environment);
+        let builder = TypeBuilder::spanned(self.current_span, self.environment);
         let closure_id = builder.apply(substitutions, closure_def.id);
 
         // We do not need to instantiate here again, because we already had α-renaming in the
         // closure definition, which means that the closure is already unique. As the closure is
         // unused and unique, we don't need to α-rename again.
-        Some(self.interner.intern_node(make(TypeConstructor {
-            span: variable.span,
+        Some(self.context.interner.intern_node(make(TypeConstructor {
             name,
             closure: closure_id,
             arguments: self.environment.intern_generic_argument_references(&[]),
@@ -236,7 +221,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap, '_> {
             opaque_id = generic.base;
         }
 
-        let (name, closure) = self.build_closure(variable.span, opaque_id, generic_parameters);
+        let (name, closure) = self.build_closure(self.current_span, opaque_id, generic_parameters);
         let mut closure_def = TypeDef {
             id: closure,
             arguments: generic_references,
@@ -256,11 +241,14 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
     type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
-        self.interner
+        self.context.interner
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let node_id = node.id;
+
+        let previous = self.current_span;
+        self.current_span = node.span;
 
         let mut node = walk_node(self, node)?;
 
@@ -273,6 +261,8 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap, '_> {
         } else {
             // Node cannot be converted, use the original node as-is
         }
+
+        self.current_span = previous;
 
         Ok(node)
     }

@@ -3,7 +3,11 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type {
+  DistributiveOmit,
+  DistributiveReplaceProperties,
+  ExclusiveUnion,
+} from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   GraphApi,
@@ -76,12 +80,14 @@ export const queryPropertyTypes = (
       cursor: response.cursor as VersionedUrl | undefined,
     }));
 
-export type QueryPropertyTypeSubgraphParams = DistributiveOmit<
-  QueryPropertyTypeSubgraphParamsGraphApi,
-  "after"
-> & {
-  after?: VersionedUrl;
-};
+export type QueryPropertyTypeSubgraphParams = ExclusiveUnion<
+  DistributiveReplaceProperties<
+    QueryPropertyTypeSubgraphParamsGraphApi,
+    {
+      after?: VersionedUrl;
+    }
+  >
+>;
 
 export type QueryPropertyTypeSubgraphResponse = DistributiveOmit<
   QueryPropertyTypeSubgraphResponseGraphApi,

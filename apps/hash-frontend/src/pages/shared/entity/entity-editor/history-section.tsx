@@ -5,9 +5,8 @@ import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
 import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
+  almostFullOntologyResolveDepths,
   fullDecisionTimeAxis,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
@@ -46,10 +45,8 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...fullOntologyResolveDepths,
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
         includeDrafts: true,
         includePermissions: false,

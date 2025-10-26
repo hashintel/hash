@@ -13,10 +13,7 @@ import {
   deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
 } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Box,
   breadcrumbsClasses,
@@ -93,11 +90,26 @@ const ActionsPage = () => {
         filter: getDraftEntitiesFilter,
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [{ kind: "has-left-entity", direction: "outgoing" }],
+          },
+          {
+            edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+          },
+        ],
         includeEntityTypes: "resolved",
         includePermissions: false,
       },

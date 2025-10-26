@@ -1,18 +1,14 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../lib/user-and-org";
 import {
   constructMinimalUser,
@@ -27,9 +23,9 @@ export const useUsers = (): {
   users?: MinimalUser[];
 } => {
   const { data, loading, refetch } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       request: {
         filter: convertBpFilterToGraphFilter({
@@ -40,7 +36,6 @@ export const useUsers = (): {
           ],
           operator: "AND",
         }),
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
@@ -49,29 +44,27 @@ export const useUsers = (): {
     fetchPolicy: "cache-and-network",
   });
 
-  const { queryEntitySubgraph: queryEntitySubgraphData } = data ?? {};
+  const { queryEntities } = data ?? {};
 
   const users = useMemoCompare(
     () => {
-      if (!queryEntitySubgraphData) {
+      if (!queryEntities) {
         return undefined;
       }
 
-      const subgraph = deserializeQueryEntitySubgraphResponse(
-        queryEntitySubgraphData,
-      ).subgraph;
+      return deserializeQueryEntitiesResponse(queryEntities).entities.map(
+        (userEntity) => {
+          if (!isEntityUserEntity(userEntity)) {
+            throw new Error(
+              `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
+            );
+          }
 
-      return getRoots(subgraph).map((userEntity) => {
-        if (!isEntityUserEntity(userEntity)) {
-          throw new Error(
-            `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
-          );
-        }
-
-        return constructMinimalUser({ userEntity });
-      });
+          return constructMinimalUser({ userEntity });
+        },
+      );
     },
-    [queryEntitySubgraphData],
+    [queryEntities],
     /**
      * Check if the previous and new users are the same.
      * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.

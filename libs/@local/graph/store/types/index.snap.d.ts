@@ -11,49 +11,65 @@ export interface CreateEntityPolicyParams {
 export interface EntityPermissions {
 	update?: [EntityEditionId, ...EntityEditionId[]];
 }
-export type EntityTraversalEdgeDirection = "incoming" | "outgoing";
-export type OntologyTraversalEdgeDirection = "outgoing";
+export type EdgeDirection = "incoming" | "outgoing";
+export interface GraphResolveDepths {
+	inheritsFrom?: number;
+	constrainsValuesOn?: number;
+	constrainsPropertiesOn?: number;
+	constrainsLinksOn?: number;
+	constrainsLinkDestinationsOn?: number;
+	isOfType?: boolean;
+}
+export type EntityTraversalEdge = {
+	kind: "has-left-entity";
+	direction: EdgeDirection;
+} | {
+	kind: "has-right-entity";
+	direction: EdgeDirection;
+};
+export type EntityTraversalEdgeKind = {
+	kind: "has-left-entity";
+} | {
+	kind: "has-right-entity";
+};
+export interface EntityTraversalPath {
+	edges: EntityTraversalEdge[];
+}
 export type TraversalEdge = {
-	kind: "inherits-from"
-	direction: OntologyTraversalEdgeDirection
+	kind: "inherits-from";
 } | {
-	kind: "constrains-values-on"
-	direction: OntologyTraversalEdgeDirection
+	kind: "constrains-values-on";
 } | {
-	kind: "constrains-properties-on"
-	direction: OntologyTraversalEdgeDirection
+	kind: "constrains-properties-on";
 } | {
-	kind: "constrains-links-on"
-	direction: OntologyTraversalEdgeDirection
+	kind: "constrains-links-on";
 } | {
-	kind: "constrains-link-destinations-on"
-	direction: OntologyTraversalEdgeDirection
+	kind: "constrains-link-destinations-on";
 } | {
-	kind: "is-of-type"
-	direction: OntologyTraversalEdgeDirection
+	kind: "is-of-type";
 } | {
-	kind: "has-left-entity"
-	direction: EntityTraversalEdgeDirection
+	kind: "has-left-entity";
+	direction: EdgeDirection;
 } | {
-	kind: "has-right-entity"
-	direction: EntityTraversalEdgeDirection
+	kind: "has-right-entity";
+	direction: EdgeDirection;
 };
 export type TraversalEdgeKind = {
-	kind: "inherits-from"
+	kind: "inherits-from";
 } | {
-	kind: "constrains-values-on"
+	kind: "constrains-values-on";
 } | {
-	kind: "constrains-properties-on"
+	kind: "constrains-properties-on";
 } | {
-	kind: "constrains-links-on"
+	kind: "constrains-links-on";
 } | {
-	kind: "constrains-link-destinations-on"
+	kind: "constrains-link-destinations-on";
 } | {
-	kind: "is-of-type"
+	kind: "is-of-type";
 } | {
-	kind: "has-left-entity"
+	kind: "has-left-entity";
 } | {
-	kind: "has-right-entity"
+	kind: "has-right-entity";
 };
 export interface TraversalPath {
 	edges: TraversalEdge[];

@@ -1,5 +1,5 @@
 use hashql_ast::lowering::ExtractedTypes;
-use hashql_core::{module::ModuleRegistry, r#type::environment::Environment};
+use hashql_core::r#type::environment::Environment;
 use hashql_diagnostics::{DiagnosticIssues, StatusExt as _, Success};
 
 use self::{
@@ -7,17 +7,24 @@ use self::{
     checking::TypeChecking,
     ctor::ConvertTypeConstructor,
     error::{LoweringDiagnosticCategory, LoweringDiagnosticStatus},
+    hoist::{GraphHoisting, GraphHoistingConfig},
     inference::TypeInference,
+    normalization::{Normalization, NormalizationState},
     specialization::Specialization,
+    thunking::Thunking,
 };
-use crate::{fold::Fold as _, intern::Interner, node::Node, visit::Visitor as _};
+use crate::{context::HirContext, fold::Fold as _, node::Node, visit::Visitor as _};
 
 pub mod alias;
 pub mod checking;
 pub mod ctor;
+pub mod dataflow;
 pub mod error;
+pub mod hoist;
 pub mod inference;
+pub mod normalization;
 pub mod specialization;
+pub mod thunking;
 
 /// Lowers the given node by performing different phases.
 ///
@@ -32,15 +39,13 @@ pub fn lower<'heap>(
     node: Node<'heap>,
     types: &ExtractedTypes<'heap>,
     env: &mut Environment<'heap>,
-    registry: &ModuleRegistry<'heap>,
-    interner: &Interner<'heap>,
+    context: &mut HirContext<'_, 'heap>,
 ) -> LoweringDiagnosticStatus<Node<'heap>> {
     let mut diagnostics = DiagnosticIssues::new();
-    let mut replacement = AliasReplacement::new(interner, &mut diagnostics);
+    let mut replacement = AliasReplacement::new(context, &mut diagnostics);
     let Ok(node) = replacement.fold_node(node);
 
-    let mut converter =
-        ConvertTypeConstructor::new(interner, &types.locals, registry, env, &mut diagnostics);
+    let mut converter = ConvertTypeConstructor::new(context, &types.locals, env, &mut diagnostics);
     let Ok(node) = converter.fold_node(node);
 
     let Success {
@@ -52,7 +57,7 @@ pub fn lower<'heap>(
 
     let mut diagnostics = advisories.generalize();
 
-    let mut inference = TypeInference::new(env, registry);
+    let mut inference = TypeInference::new(env, context);
     inference.visit_node(&node);
 
     let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
@@ -72,7 +77,7 @@ pub fn lower<'heap>(
 
     env.substitution = substitution;
 
-    let mut checking = TypeChecking::new(env, registry, inference_residual);
+    let mut checking = TypeChecking::new(env, context, inference_residual);
     checking.visit_node(&node);
 
     let mut result = checking.finish();
@@ -88,12 +93,27 @@ pub fn lower<'heap>(
 
     let mut specialization = Specialization::new(
         env,
-        interner,
+        context,
         &mut residual.types,
         residual.intrinsics,
         &mut diagnostics,
     );
     let Ok(node) = specialization.fold_node(node);
+
+    let mut norm_state = NormalizationState::default();
+    let normalization = Normalization::new(context, &mut norm_state);
+    let node = normalization.run(node);
+
+    // Graph hoisting does *not* break HIR(ANF)
+    let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
+    let node = graph_hoisting.run(node);
+
+    let thunking = Thunking::new(context);
+    let node = thunking.run(node);
+
+    // Thunking breaks normalization, so re-normalize
+    let normalization = Normalization::new(context, &mut norm_state);
+    let node = normalization.run(node);
 
     diagnostics.into_status(node)
 }

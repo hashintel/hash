@@ -17,7 +17,10 @@ import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type {
   OrganizationProperties,
   UserProperties,
@@ -119,7 +122,6 @@ export const gptQueryEntities: RequestHandler<
   Record<string, never>,
   GptQueryEntitiesResponseBody,
   GptQueryEntitiesRequestBody
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
 > = async (req, res) => {
   const { user } = req;
 
@@ -222,15 +224,28 @@ export const gptQueryEntities: RequestHandler<
       },
       temporalAxes: currentTimeInstantTemporalAxes,
       graphResolveDepths: {
-        inheritsFrom: { outgoing: 255 },
-        constrainsValuesOn: { outgoing: 255 },
-        constrainsPropertiesOn: { outgoing: 255 },
-        constrainsLinksOn: { outgoing: 255 },
-        constrainsLinkDestinationsOn: { outgoing: 255 },
-        isOfType: { outgoing: 1 },
-        hasLeftEntity: { incoming: depth, outgoing: depth },
-        hasRightEntity: { incoming: depth, outgoing: depth },
+        ...almostFullOntologyResolveDepths,
+        constrainsLinkDestinationsOn: 255,
+        constrainsLinksOn: 255,
       },
+      traversalPaths: [
+        {
+          edges: Array(Math.min(depth, 10))
+            .fill([
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ])
+            .flat(),
+        },
+        {
+          edges: Array(Math.min(depth, 10))
+            .fill([
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ])
+            .flat(),
+        },
+      ],
       includeDrafts: includeDrafts ?? false,
       includePermissions: false,
     },

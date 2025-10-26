@@ -17,7 +17,6 @@ import {
   createEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -28,13 +27,10 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
-  queryEntitySubgraph,
+  queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypes } from "@local/hash-graph-sdk/entity-type";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
   blockProtocolEntityTypes,
@@ -258,7 +254,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read a multi-type entity", async () => {
-    const response = await queryEntitySubgraph(
+    const response = await queryEntities(
       { graphApi },
       { actorId: testUser.accountId },
       {
@@ -267,7 +263,6 @@ describe("Entity CRU", () => {
           // We can use the opportunity to simply test all entities
           all: [],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeEntityTypes: "resolved",
@@ -275,10 +270,8 @@ describe("Entity CRU", () => {
       },
     );
 
-    const entities = getRoots(response.subgraph);
-
     // It should not matter if the entity type is read independently from the response or is part of the response. The result should be the same.
-    for (const entity of entities) {
+    for (const entity of response.entities) {
       const entityTypeFromResponse = getClosedMultiEntityTypeFromMap(
         response.closedMultiEntityTypes,
         entity.metadata.entityTypeIds,
@@ -371,7 +364,7 @@ describe("Entity CRU", () => {
   });
 
   it("can read all latest person entities", async () => {
-    const allEntities = await queryEntitySubgraph(
+    const { entities } = await queryEntities(
       { graphApi },
       { actorId: testUser.accountId },
       {
@@ -390,21 +383,20 @@ describe("Entity CRU", () => {
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
       },
-    ).then(({ subgraph }) => getRoots(subgraph));
+    );
 
-    const newlyUpdated = allEntities.find(
+    const newlyUpdated = entities.find(
       (ent) =>
         ent.metadata.recordId.entityId ===
         updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions of the same entity.
-    expect(allEntities.length).toBe(1);
+    expect(entities.length).toBe(1);
     expect(newlyUpdated).toBeDefined();
 
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(

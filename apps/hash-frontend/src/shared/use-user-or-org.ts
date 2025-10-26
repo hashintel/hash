@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type { GraphResolveDepths } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -10,7 +9,6 @@ import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/en
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -18,6 +16,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { useMemo } from "react";
 
 import type {
@@ -30,7 +29,9 @@ import { isEntityOrgEntity, isEntityUserEntity } from "../lib/user-and-org";
 export const useUserOrOrg = (
   params: {
     includePermissions?: boolean;
-    graphResolveDepths?: Partial<GraphResolveDepths>;
+    includeAvatar?: boolean;
+    includeMembersOfOrg?: boolean;
+    traversalPaths?: TraversalPath[];
   } & (
     | { shortname?: string }
     | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupEntityUuid }
@@ -82,10 +83,40 @@ export const useUserOrOrg = (
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          ...params.graphResolveDepths,
-        },
+        traversalPaths: [
+          ...(params.includeAvatar
+            ? [
+                {
+                  edges: [
+                    {
+                      kind: "has-left-entity" as const,
+                      direction: "incoming" as const,
+                    },
+                    {
+                      kind: "has-right-entity" as const,
+                      direction: "outgoing" as const,
+                    },
+                  ],
+                },
+              ]
+            : []),
+          ...(params.includeMembersOfOrg
+            ? [
+                {
+                  edges: [
+                    {
+                      kind: "has-right-entity" as const,
+                      direction: "incoming" as const,
+                    },
+                    {
+                      kind: "has-left-entity" as const,
+                      direction: "outgoing" as const,
+                    },
+                  ],
+                },
+              ]
+            : []),
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: params.includePermissions ?? false,

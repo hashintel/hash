@@ -8,8 +8,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
@@ -443,17 +443,37 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
             ],
           })),
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsValuesOn: { outgoing: 255 },
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsLinksOn: { outgoing: 1 },
-          constrainsLinkDestinationsOn: { outgoing: 1 },
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
-          hasLeftEntity: { outgoing: 1, incoming: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        graphResolveDepths: almostFullOntologyResolveDepths,
+        traversalPaths: [
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "incoming",
+              },
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-left-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+          {
+            edges: [
+              {
+                kind: "has-right-entity",
+                direction: "outgoing",
+              },
+            ],
+          },
+        ],
         includeDrafts: true,
         temporalAxes: currentTimeInstantTemporalAxes,
         includePermissions: false,

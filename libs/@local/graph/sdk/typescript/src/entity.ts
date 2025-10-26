@@ -46,7 +46,11 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
-import type { DistributiveOmit } from "@local/advanced-types/distribute";
+import type {
+  DistributiveOmit,
+  DistributiveReplaceProperties,
+  ExclusiveUnion,
+} from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
@@ -227,6 +231,16 @@ export type QueryEntitiesResponse<
   permissions?: EntityPermissionsMap;
 };
 
+export type SerializedQueryEntitiesResponse<
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = DistributiveReplaceProperties<
+  QueryEntitiesResponse<PropertyMap>,
+  {
+    entities: SerializedEntity<PropertyMap>[];
+  }
+>;
+
 export const queryEntities = async <
   PropertyMap extends
     TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
@@ -290,12 +304,14 @@ export const queryEntities = async <
     }));
 };
 
-export type QueryEntitySubgraphRequest = DistributiveOmit<
-  QueryEntitySubgraphRequestGraphApi,
-  "conversions"
-> & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
-};
+export type QueryEntitySubgraphRequest = ExclusiveUnion<
+  DistributiveReplaceProperties<
+    QueryEntitySubgraphRequestGraphApi,
+    {
+      conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+    }
+  >
+>;
 
 export type QueryEntitySubgraphResponse<
   PropertyMap extends
@@ -463,24 +479,6 @@ type EntityData<
 type EntityInput<Properties extends PropertyObject> =
   | GraphApiEntity
   | SerializedEntity<Properties>;
-
-const isSerializedEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is SerializedEntity => {
-  return (
-    "entityTypeId" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
-
-const isGraphApiEntity = <Properties extends TypeIdsAndPropertiesForEntity>(
-  entity: EntityInput<TypeIdsAndPropertiesForEntity["properties"]>,
-): entity is GraphApiEntity => {
-  return (
-    "entityTypeIds" in
-    (entity as GraphApiEntity | EntityData<Properties>).metadata
-  );
-};
 
 export const propertyObjectToPatches = (
   object: PropertyObjectWithMetadata,
@@ -1164,13 +1162,7 @@ export class HashEntity<
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
-    if (isSerializedEntity(entity) || isGraphApiEntity(entity)) {
-      this.#entity = entity as EntityData<PropertyMap>;
-    } else {
-      throw new Error(
-        `Expected entity to be either a serialized entity, or a graph api entity, but got ${JSON.stringify(entity, null, 2)}`,
-      );
-    }
+    this.#entity = entity as EntityData<PropertyMap>;
   }
 
   public static async create<T extends TypeIdsAndPropertiesForEntity>(
@@ -1409,3 +1401,23 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
+export const serializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: QueryEntitiesResponse<PropertyMap>,
+): SerializedQueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => entity.toJSON()),
+});
+
+export const deserializeQueryEntitiesResponse = <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  response: SerializedQueryEntitiesResponse<PropertyMap>,
+): QueryEntitiesResponse<PropertyMap> => ({
+  ...response,
+  entities: response.entities.map((entity) => new HashEntity(entity)),
+});

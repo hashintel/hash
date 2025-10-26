@@ -11,7 +11,7 @@ Expr#4294967040@37
         Expr#4294967040@5
           ExprKind (Literal)
             LiteralExpr#4294967040@4
-              LiteralKind (True)
+              Primitive (True)
       Argument#4294967040@27
         Expr#4294967040@27
           ExprKind (Call)
@@ -44,14 +44,14 @@ Expr#4294967040@37
                         Expr#4294967040@23
                           ExprKind (Literal)
                             LiteralExpr#4294967040@22
-                              LiteralKind (Integer)
-                                IntegerLiteral (2)
+                              Primitive (Integer)
+                                Integer (2)
                       Argument#4294967040@25
                         Expr#4294967040@25
                           ExprKind (Literal)
                             LiteralExpr#4294967040@24
-                              LiteralKind (Integer)
-                                IntegerLiteral (1)
+                              Primitive (Integer)
+                                Integer (1)
       Argument#4294967040@36
         Expr#4294967040@36
           ExprKind (Call)
@@ -64,11 +64,11 @@ Expr#4294967040@37
                 Expr#4294967040@33
                   ExprKind (Literal)
                     LiteralExpr#4294967040@32
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                      Primitive (Integer)
+                        Integer (2)
               Argument#4294967040@35
                 Expr#4294967040@35
                   ExprKind (Literal)
                     LiteralExpr#4294967040@34
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                      Primitive (Integer)
+                        Integer (1)

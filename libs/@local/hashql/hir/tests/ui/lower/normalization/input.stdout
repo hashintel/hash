@@ -1,0 +1,10 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+#input(foo, type: Boolean, default: ::core::cmp::lte(2, 3))
+
+════ HIR after normalization ═══════════════════════════════════════════════════
+
+#let %0 = (2 <= 3)
+     %1 = #input(foo, type: Boolean, default: %0)
+in
+%1

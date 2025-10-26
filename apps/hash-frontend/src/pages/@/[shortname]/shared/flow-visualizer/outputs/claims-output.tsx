@@ -6,7 +6,6 @@ import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
@@ -64,11 +63,20 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
             },
           ],
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 1, outgoing: 1 },
-          hasRightEntity: { outgoing: 1, incoming: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [
+              { kind: "has-left-entity", direction: "incoming" },
+              { kind: "has-right-entity", direction: "outgoing" },
+            ],
+          },
+          {
+            edges: [
+              { kind: "has-right-entity", direction: "incoming" },
+              { kind: "has-left-entity", direction: "outgoing" },
+            ],
+          },
+        ],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: true,
         includePermissions: false,

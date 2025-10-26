@@ -695,7 +695,7 @@ export const Grid = <
         rangeSelect="cell"
         ref={gridRef}
         rowHeight={gridRowHeight}
-        rows={sortedAndFilteredRows?.length ? sortedAndFilteredRows.length : 1}
+        rows={sortedAndFilteredRows?.length ?? 1}
         smoothScrollX
         smoothScrollY
         theme={gridTheme}

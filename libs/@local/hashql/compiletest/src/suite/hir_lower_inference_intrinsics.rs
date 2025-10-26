@@ -1,26 +1,22 @@
 use core::fmt::Write as _;
 
-use hashql_ast::{lowering::lower, node::expr::Expr};
+use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
 };
-use hashql_diagnostics::DiagnosticIssues;
-use hashql_hir::{
-    fold::Fold as _,
-    intern::Interner,
-    lower::{ctor::ConvertTypeConstructor, inference::TypeInference},
-    node::Node,
-    visit::Visitor as _,
-};
+use hashql_hir::{context::HirContext, intern::Interner, pretty::PrettyPrintEnvironment};
 
 use super::{
     Suite, SuiteDiagnostic,
     common::{Annotated, Header},
 };
-use crate::suite::common::{process_issues, process_status};
+use crate::suite::{
+    common::process_status, hir_lower_alias_replacement::TestOptions,
+    hir_lower_inference::hir_lower_inference,
+};
 
 pub(crate) struct HirLowerTypeInferenceIntrinsicsSuite;
 
@@ -32,52 +28,27 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
     fn run<'heap>(
         &self,
         heap: &'heap Heap,
-        mut expr: Expr<'heap>,
+        expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let interner = Interner::new(heap);
+        let mut context = HirContext::new(&interner, &registry);
+
         let mut output = String::new();
 
-        let result = lower(
-            heap.intern_symbol("::main"),
-            &mut expr,
+        let (node, solver, inference_residual) = hir_lower_inference(
+            heap,
+            expr,
             &environment,
-            &registry,
-        );
-        let types = process_status(diagnostics, result)?;
-
-        let interner = Interner::new(heap);
-        let node = process_status(
-            diagnostics,
-            Node::from_ast(expr, &environment, &interner, &types),
+            &mut context,
+            &mut TestOptions {
+                skip_alias_replacement: true,
+                output: &mut output,
+                diagnostics,
+            },
         )?;
-
-        let _ = writeln!(
-            output,
-            "{}\n\n{}",
-            Header::new("Initial HIR"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
-        );
-
-        let mut issues = DiagnosticIssues::new();
-
-        let mut converter = ConvertTypeConstructor::new(
-            &interner,
-            &types.locals,
-            &registry,
-            &environment,
-            &mut issues,
-        );
-        let Ok(node) = converter.fold_node(node);
-
-        process_issues(diagnostics, issues)?;
-
-        let mut inference = TypeInference::new(&environment, &registry);
-        inference.visit_node(&node);
-
-        let (solver, inference_residual, inference_diagnostics) = inference.finish();
-        process_issues(diagnostics, inference_diagnostics)?;
 
         // We sort so that the output is deterministic
         let mut inference_intrinsics: Vec<_> = inference_residual
@@ -95,7 +66,13 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            node.pretty_print(&environment, PrettyOptions::default().without_color())
+            node.pretty_print(
+                &PrettyPrintEnvironment {
+                    env: &environment,
+                    symbols: &context.symbols,
+                },
+                PrettyOptions::default().without_color()
+            )
         );
 
         let _ = writeln!(output, "\n{}\n", Header::new("Intrinsics"));
@@ -105,10 +82,13 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner
-                        .node
-                        .index(hir_id)
-                        .pretty_print(&environment, PrettyOptions::default().without_color()),
+                    content: interner.node.index(hir_id).pretty_print(
+                        &PrettyPrintEnvironment {
+                            env: &environment,
+                            symbols: &context.symbols,
+                        },
+                        PrettyOptions::default().without_color()
+                    ),
                     annotation: intrinsic
                 }
             );

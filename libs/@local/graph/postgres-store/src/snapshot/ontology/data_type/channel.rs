@@ -87,7 +87,10 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 closed_schema: Valid::new_unchecked(ClosedDataType {
                     id: VersionedUrl {
                         base_url: schema.id.base_url.clone(),
-                        version: OntologyTypeVersion::new(0),
+                        version: OntologyTypeVersion {
+                            major: 0,
+                            pre_release: None,
+                        },
                     },
                     title: String::new(),
                     title_plural: None,

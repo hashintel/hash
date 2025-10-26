@@ -26,7 +26,7 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        edges::{EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -48,14 +48,15 @@ pub struct CreateDataTypeParams {
 #[serde(untagged, deny_unknown_fields)]
 pub enum QueryDataTypeSubgraphParams<'a> {
     #[serde(rename_all = "camelCase")]
-    ResolveDepths {
-        graph_resolve_depths: GraphResolveDepths,
+    Paths {
+        traversal_paths: Vec<TraversalPath>,
         #[serde(borrow, flatten)]
         request: QueryDataTypesParams<'a>,
     },
     #[serde(rename_all = "camelCase")]
-    Paths {
-        traversal_paths: Vec<TraversalPath>,
+    ResolveDepths {
+        traversal_paths: Vec<EntityTraversalPath>,
+        graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         request: QueryDataTypesParams<'a>,
     },
@@ -84,11 +85,13 @@ impl<'a> QueryDataTypeSubgraphParams<'a> {
                 traversal_paths,
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
-                request,
+                traversal_paths,
                 graph_resolve_depths,
+                request,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ),

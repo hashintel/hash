@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: If-else with complex test condition
+[
+  "if",
+  [">=", { "#literal": 1 }, { "#literal": 2 }],
+  { "#literal": 3 },
+  { "#literal": 4 }
+]

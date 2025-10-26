@@ -117,6 +117,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
@@ -148,13 +151,6 @@ jobs:
           rm -rf $temp_dir
           echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
 
-      - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Show disk usage
         run: df -h
 
@@ -169,7 +165,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+      - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -195,6 +191,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Build image
         uses: ./.github/actions/build-docker-images
         with:
@@ -216,6 +215,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -266,13 +268,6 @@ jobs:
           shell: bash
           command: npx playwright install --with-deps chromium
 
-      - name: Cache Rust dependencies
-        if: steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
       - name: Show disk usage
         run: df -h
 
@@ -289,9 +284,6 @@ jobs:
 
           cp .env.local .env.test.local
           yarn external-services:test up --wait
-
-      - name: Show disk usage
-        run: df -h
 
       - name: Start background tasks
         id: background-tasks
@@ -318,6 +310,9 @@ jobs:
           # Also, the recorded time for the different steps is more accurate.
           turbo run start:test:healthcheck --env-mode=loose
 
+      - name: Show disk usage
+        run: df -h
+
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
@@ -327,7 +322,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+      - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
         with:
           flags: ${{ env.TRIMMED_PACKAGE_NAME }}
@@ -370,6 +365,9 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
 
       - name: Find publish jobs to run
         id: publish
@@ -421,7 +419,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one test job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
+          SLACK_MESSAGE: "At least one test job failed for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Tests failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

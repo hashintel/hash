@@ -1,9 +1,7 @@
-use alloc::sync::Arc;
-
 use circular_buffer::CircularBuffer;
 use hashql_core::{
     heap::Heap,
-    span::{SpanId, storage::SpanStorage},
+    span::{SpanAncestors, SpanId, SpanTable},
     symbol::Symbol,
 };
 use text_size::TextRange;
@@ -12,7 +10,7 @@ use super::error::{ParserDiagnostic, ParserDiagnosticCategory, expected_eof};
 use crate::{
     error::ResultExt as _,
     lexer::{
-        Lexer,
+        Lexer, LexerContext,
         error::{LexerDiagnostic, unexpected_eof, unexpected_token},
         syntax_kind::SyntaxKind,
         syntax_kind_set::SyntaxKindSet,
@@ -34,12 +32,16 @@ struct LookaheadLexer<'source> {
 
 impl<'source> LookaheadLexer<'source> {
     #[expect(clippy::panic_in_result_fn)]
-    fn peek_fill(&mut self, n: usize) -> Result<LookaheadStatus, LexerDiagnostic> {
+    fn peek_fill(
+        &mut self,
+        context: &mut LexerContext,
+        n: usize,
+    ) -> Result<LookaheadStatus, LexerDiagnostic> {
         assert!(n < self.buffer.capacity(), "lookahead buffer overflow");
 
         // Fill the buffer until we have enough tokens or reach eof
         while self.buffer.len() <= n {
-            match self.lexer.advance() {
+            match self.lexer.advance(context) {
                 Some(Ok(token)) => {
                     self.buffer.push_back(token);
                 }
@@ -52,8 +54,12 @@ impl<'source> LookaheadLexer<'source> {
     }
 
     // Peek at the nth token (0-based index)
-    fn peek_n(&mut self, n: usize) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
-        if self.peek_fill(n)? == LookaheadStatus::EndOfInput {
+    fn peek_n(
+        &mut self,
+        context: &mut LexerContext,
+        n: usize,
+    ) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
+        if self.peek_fill(context, n)? == LookaheadStatus::EndOfInput {
             return Ok(None);
         }
 
@@ -62,21 +68,25 @@ impl<'source> LookaheadLexer<'source> {
 
     fn peek_n_span(
         &mut self,
+        context: &mut LexerContext,
         n: usize,
     ) -> Result<Result<&Token<'source>, TextRange>, LexerDiagnostic> {
-        if self.peek_fill(n)? == LookaheadStatus::EndOfInput {
+        if self.peek_fill(context, n)? == LookaheadStatus::EndOfInput {
             return Ok(Err(self.span()));
         }
 
         Ok(Ok(&self.buffer[n]))
     }
 
-    fn advance(&mut self) -> Option<Result<Token<'source>, LexerDiagnostic>> {
+    fn advance(
+        &mut self,
+        context: &mut LexerContext,
+    ) -> Option<Result<Token<'source>, LexerDiagnostic>> {
         if let Some(token) = self.buffer.pop_front() {
             return Some(Ok(token));
         }
 
-        self.lexer.advance()
+        self.lexer.advance(context)
     }
 
     fn span(&self) -> TextRange {
@@ -84,29 +94,40 @@ impl<'source> LookaheadLexer<'source> {
     }
 }
 
-struct ParserContext {
-    spans: Arc<SpanStorage<Span>>,
+struct ParserContext<'spans> {
     stack: Vec<jsonptr::Token<'static>>,
+    spans: &'spans mut SpanTable<Span>,
 }
 
-impl ParserContext {
+impl ParserContext<'_> {
     fn current_pointer(&self) -> jsonptr::PointerBuf {
         jsonptr::PointerBuf::from_tokens(&self.stack)
     }
 
-    fn insert_span(&self, span: Span) -> SpanId {
-        self.spans.insert(span)
+    fn insert_span(&mut self, span: Span) -> SpanId {
+        self.spans.insert(span, SpanAncestors::EMPTY)
     }
 
-    fn insert_range(&self, range: TextRange) -> SpanId {
-        self.spans.insert(Span {
-            range,
-            pointer: Some(self.current_pointer()),
-            parent_id: None,
-        })
+    fn insert_range(&mut self, range: TextRange) -> SpanId {
+        self.spans.insert(
+            Span {
+                range,
+                pointer: Some(self.current_pointer()),
+            },
+            SpanAncestors::EMPTY,
+        )
     }
 
-    fn validate_token<'source, T>(&self, token: T, expected: Expected) -> Result<T, LexerDiagnostic>
+    #[inline]
+    const fn lexer(&mut self) -> LexerContext<'_> {
+        LexerContext { spans: self.spans }
+    }
+
+    fn validate_token<'source, T>(
+        &mut self,
+        token: T,
+        expected: Expected,
+    ) -> Result<T, LexerDiagnostic>
     where
         T: AsRef<Token<'source>>,
     {
@@ -172,18 +193,18 @@ impl From<SyntaxKind> for Expected {
     }
 }
 
-pub(crate) struct ParserState<'heap, 'source> {
+pub(crate) struct ParserState<'heap, 'source, 'spans> {
     heap: &'heap Heap,
     lexer: LookaheadLexer<'source>,
 
-    context: ParserContext,
+    context: ParserContext<'spans>,
 }
 
-impl<'heap, 'source> ParserState<'heap, 'source> {
+impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
     pub(crate) const fn new(
         heap: &'heap Heap,
         lexer: Lexer<'source>,
-        spans: Arc<SpanStorage<Span>>,
+        spans: &'spans mut SpanTable<Span>,
     ) -> Self {
         Self {
             heap,
@@ -192,8 +213,8 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
                 lexer,
             },
             context: ParserContext {
-                spans,
                 stack: Vec::new(),
+                spans,
             },
         }
     }
@@ -218,7 +239,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     ) -> Result<Token<'source>, LexerDiagnostic> {
         let expected = expected.into();
 
-        let Some(token) = self.lexer.advance() else {
+        let Some(token) = self.lexer.advance(&mut self.context.lexer()) else {
             let span = self.insert_range(self.lexer.span());
 
             return Err(unexpected_eof(span, expected.into_set()));
@@ -231,12 +252,12 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
 
     // Peek at the first token
     pub(crate) fn peek(&mut self) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
-        self.lexer.peek_n(0)
+        self.lexer.peek_n(&mut self.context.lexer(), 0)
     }
 
     // Peek at the second token
     pub(crate) fn peek2(&mut self) -> Result<Option<&Token<'source>>, LexerDiagnostic> {
-        self.lexer.peek_n(1)
+        self.lexer.peek_n(&mut self.context.lexer(), 1)
     }
 
     /// Returns a reference to the next token without consuming it, validating it against the
@@ -256,7 +277,7 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     ) -> Result<&Token<'source>, LexerDiagnostic> {
         let expected = expected.into();
 
-        match self.lexer.peek_n_span(0)? {
+        match self.lexer.peek_n_span(&mut self.context.lexer(), 0)? {
             Ok(token) => self.context.validate_token(token, expected),
             Err(span) => {
                 let span = self.context.insert_range(span);
@@ -279,7 +300,9 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
     }
 
     pub(crate) fn finish(mut self) -> Result<(), ParserDiagnostic> {
-        if let Some(token) = self.lexer.advance() {
+        if let Some(token) = self.lexer.advance(&mut LexerContext {
+            spans: self.context.spans,
+        }) {
             let token = token.change_category(ParserDiagnosticCategory::Lexer)?;
 
             let span = self.insert_range(token.span);
@@ -294,11 +317,11 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         self.context.current_pointer()
     }
 
-    pub(crate) fn insert_span(&self, span: Span) -> SpanId {
+    pub(crate) fn insert_span(&mut self, span: Span) -> SpanId {
         self.context.insert_span(span)
     }
 
-    pub(crate) fn insert_range(&self, range: TextRange) -> SpanId {
+    pub(crate) fn insert_range(&mut self, range: TextRange) -> SpanId {
         self.context.insert_range(range)
     }
 
@@ -306,8 +329,8 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
         self.lexer.span()
     }
 
-    pub(crate) fn spans(&self) -> &SpanStorage<Span> {
-        &self.context.spans
+    pub(crate) const fn spans(&mut self) -> &mut SpanTable<Span> {
+        self.context.spans
     }
 
     pub(crate) const fn heap(&self) -> &'heap Heap {
@@ -502,7 +525,7 @@ mod tests {
         for i in 0..4 {
             let token = state
                 .lexer
-                .peek_n(i)
+                .peek_n(&mut state.context.lexer(), i)
                 .expect("should not fail")
                 .expect("should have token");
             assert_eq!(token.kind, number!((i + 1).to_string()));
@@ -518,7 +541,7 @@ mod tests {
         // Peek ahead should fill buffer
         let fourth = state
             .lexer
-            .peek_n(3)
+            .peek_n(&mut state.context.lexer(), 3)
             .expect("should not fail")
             .expect("should have token");
         assert_eq!(fourth.kind, number!("4"));
@@ -537,7 +560,10 @@ mod tests {
         bind_state!(let mut state from context);
 
         // Fill buffer with peeking
-        state.lexer.peek_n(3).expect("should not fail");
+        state
+            .lexer
+            .peek_n(&mut state.context.lexer(), 3)
+            .expect("should not fail");
 
         // Advance and verify buffer contents
         state.advance(SyntaxKind::Number).expect("should not fail"); // consume 1
@@ -546,7 +572,7 @@ mod tests {
         for i in 0..4 {
             let token = state
                 .lexer
-                .peek_n(i)
+                .peek_n(&mut state.context.lexer(), i)
                 .expect("should not fail")
                 .expect("should have token");
             assert_eq!(token.kind, number!((i + 2).to_string()));
@@ -560,7 +586,10 @@ mod tests {
 
         // Fill buffer by peeking
         for i in 0..4 {
-            state.lexer.peek_n(i).expect("should not fail");
+            state
+                .lexer
+                .peek_n(&mut state.context.lexer(), i)
+                .expect("should not fail");
         }
 
         // Consume tokens to force wrap-around
@@ -570,7 +599,7 @@ mod tests {
         // Peek further to wrap around buffer
         let e_token = state
             .lexer
-            .peek_n(2)
+            .peek_n(&mut state.context.lexer(), 2)
             .expect("should not fail")
             .expect("should have token");
         assert_eq!(e_token.kind, TokenKind::String(Cow::Owned("e".to_owned())));

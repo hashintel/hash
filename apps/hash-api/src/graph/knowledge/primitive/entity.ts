@@ -31,7 +31,6 @@ import type {
   CountEntitiesParams,
   DiffEntityResult,
   Filter,
-  GraphResolveDepths,
   HasPermissionForEntitiesParams,
 } from "@local/hash-graph-client";
 import type {
@@ -47,18 +46,16 @@ import {
   queryEntitySubgraph,
 } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
-import { ApolloError } from "apollo-server-errors";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import * as GraphQlError from "../../../graphql/error";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
@@ -398,10 +395,7 @@ export const createEntityWithLinks = async <
     // First element will be the root entity.
     rootEntity = entities[0].entity;
   } else {
-    throw new ApolloError(
-      "Could not create entity tree",
-      "INTERNAL_SERVER_ERROR",
-    );
+    throw GraphQlError.internal("Could not create entity tree");
   }
 
   await Promise.all(
@@ -409,7 +403,7 @@ export const createEntityWithLinks = async <
       if (link) {
         const parentEntity = entities[link.parentIndex];
         if (!parentEntity) {
-          throw new ApolloError("Could not find parent entity");
+          throw GraphQlError.notFound("Could not find parent entity");
         }
 
         // links are created as an outgoing link from the parent entity to the children.
@@ -671,13 +665,13 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
     entityId: EntityId;
-    graphResolveDepths: Partial<GraphResolveDepths>;
+    traversalPaths: TraversalPath[];
   },
   Promise<Subgraph<EntityRootType<HashEntity>>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entityId, graphResolveDepths } = params;
+  const { entityId, traversalPaths } = params;
 
   const { subgraph } = await queryEntitySubgraph(context, authentication, {
     filter: {
@@ -701,10 +695,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
         { equal: [{ path: ["archived"] }, { parameter: false }] },
       ],
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      ...graphResolveDepths,
-    },
+    traversalPaths,
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
     includePermissions: false,
@@ -774,7 +765,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const [entityEditable, membersEditable] = await Promise.all([
     isPublicUser
-      ? false
+      ? Promise.resolve(false)
       : await checkEntityPermission(
           graphContext,
           { actorId },
@@ -782,7 +773,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
         ),
     isAccountGroup
       ? isPublicUser
-        ? false
+        ? Promise.resolve(false)
         : await getActorGroupRole(
             graphContext.graphApi,
             { actorId },

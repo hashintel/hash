@@ -4,7 +4,7 @@ _.file = [".env", ".env.local"]
 [tools]
 # Basic tools
 node        = { version = "22.19.0", postinstall = "corepack enable" }
-"npm:turbo" = "2.5.6"
+"npm:turbo" = "2.5.8"
 
 # Helper to install tools
 cargo-binstall = "1.15.1"
@@ -26,8 +26,8 @@ just                   = "1.42.4"
 markdownlint-cli2      = "0.18.1"
 "npm:@napi-rs/cli"     = "2.18.4"
 "npm:@redocly/cli"     = "2.0.8"
-"npm:renovate"         = "41.121.2"
+"npm:renovate"         = "41.138.5"
 "pipx:sqlfluff"        = "3.4.2"
 sentry-cli             = "2.52.0"
 taplo                  = "0.10.0"
-yq                     = "4.47.1"
+yq                     = "4.47.2"

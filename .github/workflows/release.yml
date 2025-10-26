@@ -28,6 +28,7 @@ jobs:
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1.5.3
         with:
           publish: yarn changeset publish
+          version: yarn changeset version && yarn
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -37,7 +38,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error releasing NPM packages <@U0143NL4GMP>" # Notifies C
+          SLACK_MESSAGE: "Error releasing NPM packages <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Package release failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

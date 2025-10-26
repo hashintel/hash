@@ -1,4 +1,3 @@
-import { ApolloError } from "apollo-server-errors";
 import oEmbedData from "oembed-providers/providers.json";
 
 import type {
@@ -8,6 +7,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 oEmbedData.unshift({
   provider_name: "HASH",
@@ -97,22 +97,20 @@ export const embedCode: ResolverFn<
     url,
     type,
   }).catch((__) => {
-    throw new ApolloError(
+    throw Error.notFound(
       `Embed Code for URL ${url} not found${
         type?.trim() ? ` for type ${type}` : ""
       }`,
-      "NOT_FOUND",
     );
   })) as OembedResponse & { error: boolean };
 
   const { html, error, provider_name, height, width } = embedResponse;
 
   if (error) {
-    throw new ApolloError(
+    throw Error.notFound(
       `Embed Code for URL ${url} not found${
         type?.trim() ? ` for type ${type}` : ""
       }`,
-      "NOT_FOUND",
     );
   }
 

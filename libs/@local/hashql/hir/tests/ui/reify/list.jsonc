@@ -1,4 +1,3 @@
-//@ run: fail
+//@ run: pass
 //@ description: Confirms the error reporting for list literals which are not yet implemented in the reification phase.
 { "#list": [{ "#literal": 2 }] }
-//~^ ERROR `list literal` not supported yet

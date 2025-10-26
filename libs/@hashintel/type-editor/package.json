@@ -26,11 +26,11 @@
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/design-system": "0.0.9-canary.2",
     "@local/hash-isomorphic-utils": "0.0.0-private",
-    "clsx": "1.2.1",
+    "clsx": "2.1.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
     "material-ui-popup-state": "4.1.0",
-    "rooks": "7.14.1",
+    "rooks": "9.3.0",
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
@@ -39,12 +39,13 @@
     "@mui/system": "5.18.0",
     "@types/lodash.memoize": "4.1.9",
     "@types/lodash.uniqueid": "4.0.9",
-    "eslint": "9.20.1",
-    "eslint-plugin-storybook": "0.11.3",
-    "react": "19.1.1",
-    "react-dom": "19.1.1",
-    "react-hook-form": "7.61.1",
-    "typescript": "5.7.3"
+    "eslint": "9.38.0",
+    "eslint-plugin-storybook": "9.1.13",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-hook-form": "7.65.0",
+    "storybook": "9.1.13",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",

@@ -23,47 +23,52 @@ const linear = new LinearClient({
 });
 
 const GetIssueRequestSchema = z.object({
-  issueId: z.string({ description: "The id of the issue to retrieve" }),
+  issueId: z.string().meta({ description: "The id of the issue to retrieve" }),
 });
 
 const AddCommentToIssueRequestSchema = z.object({
-  issueId: z.string({ description: "The id of the issue to add a comment to" }),
+  issueId: z
+    .string()
+    .meta({ description: "The id of the issue to add a comment to" }),
   parentId: z
-    .string({
+    .string()
+    .meta({
       description: "The id of the comment to reply to, if any.",
     })
     .optional(),
-  comment: z.string({
+  comment: z.string().meta({
     description: "The text of the comment to add.",
   }),
-  userId: z.string({
+  userId: z.string().meta({
     description:
       "The id of the user to draw the comment's attention to. This should be the assignee, unless you are replying to a comment from another user.",
   }),
-  userTag: z.string({
+  userTag: z.string().meta({
     description:
       "The tag of the user to draw the comment's attention to. This should be the assignee, unless you are replying to a comment from another user.",
   }),
 });
 
 const CreateIssueRequestSchema = z.object({
-  title: z.string({ description: "The title of the issue to create" }),
+  title: z.string().meta({ description: "The title of the issue to create" }),
   assigneeId: z
-    .string({
+    .string()
+    .meta({
       description:
         "The id of the user to assign the issue to. If the parent issue has an assignee, this MUST be the same as the parent issue's assignee.",
     })
     .optional(),
-  teamId: z.string({
+  teamId: z.string().meta({
     description:
       "The id of the team to assign the issue to (MUST be the same as the parent issue).",
   }),
-  description: z.string({
+  description: z.string().meta({
     description:
       "The description of the issue to create. MUST be formatted as a ProseMirror document. Use checklists for todo items.",
   }),
   parentIssueUuid: z
-    .string({
+    .string()
+    .meta({
       description:
         "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
     })

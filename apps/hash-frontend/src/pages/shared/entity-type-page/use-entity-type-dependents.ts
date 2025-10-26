@@ -1,6 +1,4 @@
 import { useLazyQuery } from "@apollo/client";
-import type { EntityTypeRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   EntityType,
@@ -14,18 +12,14 @@ import {
   isExternalOntologyElementMetadata,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback, useMemo } from "react";
 
 import type {
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../graphql/api-types.gen";
-import { queryEntityTypeSubgraphQuery } from "../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useAuthenticatedUser } from "../auth-info-context";
 
 export type EntityTypeDependent = {
@@ -105,10 +99,10 @@ export const useGetEntityTypeDependents = (): {
   }) => Promise<Record<BaseUrl, EntityTypeDependent>>;
   loading: boolean;
 } => {
-  const [queryEntityTypeSubgraph, { loading }] = useLazyQuery<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
+  const [queryEntityTypes, { loading }] = useLazyQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
     fetchPolicy: "cache-first",
   });
 
@@ -140,28 +134,19 @@ export const useGetEntityTypeDependents = (): {
           nextEntityTypeIds.map(async (nextTypeId) => {
             const { baseUrl } = componentsFromVersionedUrl(nextTypeId);
 
-            const dependentTypesAtLatestVersion = await queryEntityTypeSubgraph(
-              {
-                variables: {
-                  request: {
-                    filter: generateDependentsFilter(baseUrl),
-                    temporalAxes: currentTimeInstantTemporalAxes,
-                    graphResolveDepths: zeroedGraphResolveDepths,
-                  },
+            const dependentTypesAtLatestVersion = await queryEntityTypes({
+              variables: {
+                request: {
+                  filter: generateDependentsFilter(baseUrl),
+                  temporalAxes: currentTimeInstantTemporalAxes,
                 },
               },
-            ).then((resp) => {
+            }).then((resp) => {
               if (!resp.data) {
                 throw new Error("No data returned from queryEntityTypes");
               }
 
-              const types = getRoots<EntityTypeRootType>(
-                deserializeQueryEntityTypeSubgraphResponse(
-                  resp.data.queryEntityTypeSubgraph,
-                ).subgraph,
-              );
-
-              return types;
+              return resp.data.queryEntityTypes.entityTypes;
             });
 
             return {
@@ -251,7 +236,7 @@ export const useGetEntityTypeDependents = (): {
 
       return dependentsByBaseUrl;
     },
-    [queryEntityTypeSubgraph, userWebs],
+    [queryEntityTypes, userWebs],
   );
 
   return useMemo(

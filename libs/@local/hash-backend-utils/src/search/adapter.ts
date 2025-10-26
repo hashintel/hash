@@ -1,5 +1,4 @@
 import type { JsonObject } from "@blockprotocol/core";
-import type { DataSource } from "apollo-datasource";
 
 export type SearchHit = {
   /** The ID of the document matching the query.  */
@@ -64,7 +63,7 @@ export type SearchParameters = {
 };
 
 /** `SearchAdapter` specifies a generic interface to a search index. */
-export interface SearchAdapter extends DataSource {
+export interface SearchAdapter {
   /**
    * Close the connection to the search adapter.
    */

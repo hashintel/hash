@@ -1,13 +1,10 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SyncLinearDataWith } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {
   Box,
   Skeleton,
@@ -22,10 +19,10 @@ import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
@@ -52,8 +49,8 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     data: linearIntegrationSyncLinksData,
     loading,
     refetch,
-  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-    queryEntitySubgraphQuery,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
     {
       variables: {
         request: {
@@ -82,7 +79,6 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
               },
             ],
           },
-          graphResolveDepths: zeroedGraphResolveDepths,
           includeDrafts: false,
           temporalAxes: currentTimeInstantTemporalAxes,
           includePermissions: true,
@@ -98,15 +94,12 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
       return [];
     }
 
-    const { entityPermissions, subgraph } =
-      deserializeQueryEntitySubgraphResponse<SyncLinearDataWith>(
-        linearIntegrationSyncLinksData.queryEntitySubgraph,
-      );
-
-    const links = getRoots(subgraph);
+    const { permissions, entities: links } = deserializeQueryEntitiesResponse(
+      linearIntegrationSyncLinksData.queryEntities,
+    );
 
     return links.map(({ metadata, entityId }) => {
-      const canEdit = !!entityPermissions?.[entityId]?.update;
+      const canEdit = !!permissions?.[entityId]?.update;
 
       return {
         createdById: metadata.provenance.createdById,

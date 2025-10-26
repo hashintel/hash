@@ -3,7 +3,7 @@ use core::ops::Index;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
-    collection::{FastHashMap, TinyVec},
+    collections::{FastHashMap, TinyVec},
     intern::Interned,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,
@@ -59,7 +59,7 @@ impl<'heap> TypeDef<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeDef<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
@@ -94,15 +94,11 @@ pub struct Local<'heap, T> {
     pub value: T,
 }
 
-impl<'heap, T> PrettyPrint<'heap> for Local<'heap, T>
+impl<'heap, E, T> PrettyPrint<'heap, E> for Local<'heap, T>
 where
-    T: PrettyPrint<'heap>,
+    T: PrettyPrint<'heap, E>,
 {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
+    fn pretty(&self, env: &E, boundary: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
             .append(RcDoc::space())
             .append(RcDoc::text(self.name.unwrap()))

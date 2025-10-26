@@ -40,7 +40,10 @@ use crate::{
     filter::Filter,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -285,12 +288,13 @@ pub struct QueryEntitiesResponse<'r> {
 
 #[derive(Debug)]
 pub enum QueryEntitySubgraphParams<'a> {
-    ResolveDepths {
-        graph_resolve_depths: GraphResolveDepths,
-        request: QueryEntitiesParams<'a>,
-    },
     Paths {
         traversal_paths: Vec<TraversalPath>,
+        request: QueryEntitiesParams<'a>,
+    },
+    ResolveDepths {
+        graph_resolve_depths: GraphResolveDepths,
+        traversal_paths: Vec<EntityTraversalPath>,
         request: QueryEntitiesParams<'a>,
     },
 }
@@ -311,7 +315,28 @@ impl<'a> QueryEntitySubgraphParams<'a> {
     }
 
     #[must_use]
-    pub fn into_request(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
+    pub fn from_parts(
+        request: QueryEntitiesParams<'a>,
+        traversal_params: SubgraphTraversalParams,
+    ) -> Self {
+        match traversal_params {
+            SubgraphTraversalParams::Paths { traversal_paths } => Self::Paths {
+                request,
+                traversal_paths,
+            },
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => Self::ResolveDepths {
+                request,
+                traversal_paths,
+                graph_resolve_depths,
+            },
+        }
+    }
+
+    #[must_use]
+    pub fn into_parts(self) -> (QueryEntitiesParams<'a>, SubgraphTraversalParams) {
         match self {
             Self::Paths {
                 request,
@@ -319,10 +344,12 @@ impl<'a> QueryEntitySubgraphParams<'a> {
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
                 request,
+                traversal_paths,
                 graph_resolve_depths,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ),
@@ -359,16 +386,16 @@ impl<'a> QueryEntitySubgraphParams<'a> {
                 }
             }
             Self::ResolveDepths {
-                graph_resolve_depths,
+                graph_resolve_depths: depths,
                 ..
             } => {
-                if graph_resolve_depths.is_of_type.outgoing > 0 {
+                if depths.is_of_type {
                     actions.push(ActionName::ViewEntityType);
 
-                    if graph_resolve_depths.constrains_properties_on.outgoing > 0 {
+                    if depths.constrains_properties_on > 0 {
                         actions.push(ActionName::ViewPropertyType);
 
-                        if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                        if depths.constrains_values_on > 0 {
                             actions.push(ActionName::ViewDataType);
                         }
                     }

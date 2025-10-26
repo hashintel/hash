@@ -4,7 +4,7 @@ Expr#4294967040@31
       Expr#4294967040@17
         ExprKind (Literal)
           LiteralExpr#4294967040@16
-            LiteralKind (True)
+            Primitive (True)
       Type#4294967040@15
         TypeKind (Path)
           Path#4294967040@15 (rooted: false)

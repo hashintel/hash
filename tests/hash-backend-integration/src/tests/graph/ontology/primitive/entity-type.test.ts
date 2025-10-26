@@ -29,7 +29,6 @@ import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import {
   getClosedMultiEntityTypes,
   getEntityTypeById,
-  getEntityTypeSubgraphById,
   hasPermissionForEntityTypes,
   queryEntityTypes,
   queryEntityTypeSubgraph,
@@ -41,7 +40,6 @@ import type {
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
@@ -438,10 +436,10 @@ describe("Entity type CRU", () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          constrainsPropertiesOn: { outgoing: 255 },
-          constrainsValuesOn: { outgoing: 255 },
+          constrainsPropertiesOn: 255,
+          constrainsValuesOn: 255,
         },
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
       },
     );
@@ -569,9 +567,8 @@ describe("Entity type CRU", () => {
     ).toBeNull();
 
     expect(
-      await getEntityTypeSubgraphById(graphContext.graphApi, authentication, {
+      await getEntityTypeById(graphContext.graphApi, authentication, {
         entityTypeId,
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
       }),
     ).not.toBeNull();

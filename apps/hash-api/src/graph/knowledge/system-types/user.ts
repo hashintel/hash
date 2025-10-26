@@ -23,7 +23,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
@@ -666,17 +665,20 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           },
         ],
       },
-      graphResolveDepths: {
-        ...zeroedGraphResolveDepths,
-        hasLeftEntity: {
-          incoming: 0,
-          outgoing: 1,
+      traversalPaths: [
+        {
+          edges: [
+            {
+              kind: "has-right-entity",
+              direction: "incoming",
+            },
+            {
+              kind: "has-left-entity",
+              direction: "outgoing",
+            },
+          ],
         },
-        hasRightEntity: {
-          incoming: 1,
-          outgoing: 0,
-        },
-      },
+      ],
       includeDrafts: false,
       includePermissions: false,
     },

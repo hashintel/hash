@@ -3,7 +3,6 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { DataSource } from "apollo-datasource";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];
@@ -48,9 +47,7 @@ export type FileStorageKey = `${
   | `${string}/` // optional path prefix
   | ""}${EntityId}/${string}/${string}`;
 
-export interface UploadableStorageProvider
-  extends FileStorageProvider,
-    DataSource {
+export interface UploadableStorageProvider extends FileStorageProvider {
   /**
    * Presigns a file upload request for a client to later upload a file
    * @return Promise<Object> contains the presignedPut object with the url to PUT the file to, and the file storage

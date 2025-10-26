@@ -29,10 +29,10 @@ pub(crate) struct Key<'source> {
     pub span: TextRange,
 }
 
-pub(crate) fn visit_object_entry<'arena, 'source, C>(
-    state: &mut ParserState<'arena, 'source>,
+pub(crate) fn visit_object_entry<'arena, 'source, 'spans, C>(
+    state: &mut ParserState<'arena, 'source, 'spans>,
     on_item: &mut impl FnMut(
-        &mut ParserState<'arena, 'source>,
+        &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<(), Diagnostic<C, SpanId>>
@@ -82,11 +82,11 @@ where
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn visit_object<'arena, 'source, C>(
-    state: &mut ParserState<'arena, 'source>,
+pub(crate) fn visit_object<'arena, 'source, 'spans, C>(
+    state: &mut ParserState<'arena, 'source, 'spans>,
     token: Token<'source>,
     mut on_item: impl FnMut(
-        &mut ParserState<'arena, 'source>,
+        &mut ParserState<'arena, 'source, 'spans>,
         Key<'source>,
     ) -> Result<(), Diagnostic<C, SpanId>>,
 ) -> Result<TextRange, Diagnostic<C, SpanId>>
@@ -151,7 +151,6 @@ where
                 let span = state.insert_span(Span {
                     range: next_span,
                     pointer: Some(state.current_pointer()),
-                    parent_id: None,
                 });
 
                 // do not consume the token, so that we can do recoverable parsing (in the future)
@@ -424,7 +423,6 @@ mod tests {
                     state.insert_span(Span {
                         range: token.span,
                         pointer: None,
-                        parent_id: None,
                     }),
                     SyntaxKindSet::COMPLETE,
                 ))

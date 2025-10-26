@@ -10,8 +10,8 @@ Expr#4294967040@21
         Expr#4294967040@0
           ExprKind (Literal)
             LiteralExpr#4294967040@0
-              LiteralKind (String)
-                StringLiteral (outer1)
+              Primitive (String)
+                String (outer1)
         Expr#4294967040@10
           ExprKind (Dict)
             DictExpr#4294967040@9
@@ -19,30 +19,30 @@ Expr#4294967040@21
                 Expr#4294967040@1
                   ExprKind (Literal)
                     LiteralExpr#4294967040@1
-                      LiteralKind (String)
-                        StringLiteral (inner1)
+                      Primitive (String)
+                        String (inner1)
                 Expr#4294967040@3
                   ExprKind (Literal)
                     LiteralExpr#4294967040@2
-                      LiteralKind (String)
-                        StringLiteral (value1)
+                      Primitive (String)
+                        String (value1)
               DictEntry#4294967040@8
                 Expr#4294967040@5
                   ExprKind (Literal)
                     LiteralExpr#4294967040@5
-                      LiteralKind (String)
-                        StringLiteral (inner2)
+                      Primitive (String)
+                        String (inner2)
                 Expr#4294967040@7
                   ExprKind (Literal)
                     LiteralExpr#4294967040@6
-                      LiteralKind (String)
-                        StringLiteral (value2)
+                      Primitive (String)
+                        String (value2)
       DictEntry#4294967040@19
         Expr#4294967040@12
           ExprKind (Literal)
             LiteralExpr#4294967040@12
-              LiteralKind (String)
-                StringLiteral (outer2)
+              Primitive (String)
+                String (outer2)
         Expr#4294967040@18
           ExprKind (Dict)
             DictExpr#4294967040@17
@@ -50,10 +50,10 @@ Expr#4294967040@21
                 Expr#4294967040@13
                   ExprKind (Literal)
                     LiteralExpr#4294967040@13
-                      LiteralKind (String)
-                        StringLiteral (inner3)
+                      Primitive (String)
+                        String (inner3)
                 Expr#4294967040@15
                   ExprKind (Literal)
                     LiteralExpr#4294967040@14
-                      LiteralKind (String)
-                        StringLiteral (value3)
+                      Primitive (String)
+                        String (value3)

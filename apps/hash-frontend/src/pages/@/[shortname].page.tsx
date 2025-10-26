@@ -1,9 +1,4 @@
 import { useQuery } from "@apollo/client";
-import type {
-  DataTypeRootType,
-  EntityTypeRootType,
-  PropertyTypeRootType,
-} from "@blockprotocol/graph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
@@ -15,15 +10,11 @@ import type {
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import { deserializeQueryEntityTypeSubgraphResponse } from "@local/hash-graph-sdk/entity-type";
-import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
@@ -31,19 +22,19 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
-  QueryPropertyTypeSubgraphQuery,
-  QueryPropertyTypeSubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypeSubgraphQuery } from "../../graphql/queries/ontology/property-type.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 import {
   constructOrg,
   constructUser,
@@ -75,11 +66,8 @@ const ProfilePage: NextPageWithLayout = () => {
   const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
     useUserOrOrg({
       shortname: profileShortname,
-      graphResolveDepths: {
-        // Required to gather the avatar of the user/org (outgoing link), and an org's memberships (incoming links)
-        hasLeftEntity: { incoming: 1, outgoing: 1 },
-        hasRightEntity: { incoming: 1, outgoing: 1 },
-      },
+      includeAvatar: true,
+      includeMembersOfOrg: true,
       includePermissions: true,
     });
 
@@ -105,9 +93,9 @@ const ProfilePage: NextPageWithLayout = () => {
     profile?.kind === "org" ? profile.webId : profile?.accountId;
 
   const { data: entityTypesData, loading: entityTypesLoading } = useQuery<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -131,7 +119,6 @@ const ProfilePage: NextPageWithLayout = () => {
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: fullTransactionTimeAxis,
       },
     },
@@ -139,9 +126,9 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const { data: propertyTypesData, loading: propertyTypesLoading } = useQuery<
-    QueryPropertyTypeSubgraphQuery,
-    QueryPropertyTypeSubgraphQueryVariables
-  >(queryPropertyTypeSubgraphQuery, {
+    QueryPropertyTypesQuery,
+    QueryPropertyTypesQueryVariables
+  >(queryPropertyTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -165,7 +152,6 @@ const ProfilePage: NextPageWithLayout = () => {
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: fullTransactionTimeAxis,
       },
     },
@@ -173,9 +159,9 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const { data: dataTypesData, loading: dataTypesLoading } = useQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
+    QueryDataTypesQuery,
+    QueryDataTypesQueryVariables
+  >(queryDataTypesQuery, {
     fetchPolicy: "cache-and-network",
     variables: {
       request: {
@@ -199,7 +185,6 @@ const ProfilePage: NextPageWithLayout = () => {
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: fullTransactionTimeAxis,
       },
     },
@@ -214,33 +199,15 @@ const ProfilePage: NextPageWithLayout = () => {
     )[] = [];
 
     if (propertyTypesData) {
-      const propertyTypes = getRoots<PropertyTypeRootType>(
-        deserializeQueryPropertyTypeSubgraphResponse(
-          propertyTypesData.queryPropertyTypeSubgraph,
-        ).subgraph,
-      );
-
-      types.push(...propertyTypes);
+      types.push(...propertyTypesData.queryPropertyTypes.propertyTypes);
     }
 
     if (entityTypesData) {
-      const entityTypes = getRoots<EntityTypeRootType>(
-        deserializeQueryEntityTypeSubgraphResponse(
-          entityTypesData.queryEntityTypeSubgraph,
-        ).subgraph,
-      );
-
-      types.push(...entityTypes);
+      types.push(...entityTypesData.queryEntityTypes.entityTypes);
     }
 
     if (dataTypesData) {
-      const dataTypes = getRoots<DataTypeRootType>(
-        deserializeQueryDataTypeSubgraphResponse(
-          dataTypesData.queryDataTypeSubgraph,
-        ).subgraph,
-      );
-
-      types.push(...dataTypes);
+      types.push(...dataTypesData.queryDataTypes.dataTypes);
     }
 
     return types;
@@ -331,10 +298,10 @@ const ProfilePage: NextPageWithLayout = () => {
           ],
         },
         graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          inheritsFrom: { outgoing: 255 },
-          isOfType: { outgoing: 1 },
+          inheritsFrom: 255,
+          isOfType: true,
         },
+        traversalPaths: [],
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,

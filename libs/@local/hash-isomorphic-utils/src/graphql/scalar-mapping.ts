@@ -63,14 +63,15 @@ export const scalars = {
   ConstructPropertyTypeParams:
     "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 
-  SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
+  Entity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
-  QueryEntitiesResponse: "@local/hash-graph-sdk/entity#QueryEntitiesResponse",
+  QueryEntitiesResponse:
+    "@local/hash-graph-sdk/entity#SerializedQueryEntitiesResponse",
   QueryEntitySubgraphRequest:
     "@local/hash-graph-sdk/entity#QueryEntitySubgraphRequest",
   QueryEntitySubgraphResponse:
@@ -110,7 +111,7 @@ export const scalars = {
 
   GraphElementVertexId: "@blockprotocol/graph#GraphElementVertexId",
   Edges: "@blockprotocol/graph#Edges",
-  SerializedVertices: "@local/hash-graph-sdk/entity#SerializedVertices",
+  Vertices: "@local/hash-graph-sdk/entity#SerializedVertices",
   LinkData: "@blockprotocol/type-system#LinkData",
   SubgraphTemporalAxes: "@blockprotocol/graph#SubgraphTemporalAxes",
 

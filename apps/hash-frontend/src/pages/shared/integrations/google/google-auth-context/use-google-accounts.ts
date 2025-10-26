@@ -1,21 +1,22 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitiesResponse,
+  type HashEntity,
+  type SerializedQueryEntitiesResponse,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import { useMemo } from "react";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../auth-info-context";
 
 type UseGoogleAccountsResult = {
@@ -28,9 +29,9 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const { data, loading, refetch } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+    QueryEntitiesQuery,
+    QueryEntitiesQueryVariables
+  >(queryEntitiesQuery, {
     variables: {
       request: {
         filter: {
@@ -48,7 +49,6 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
             { equal: [{ path: ["archived"] }, { parameter: false }] },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
@@ -59,13 +59,11 @@ export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   });
 
   return useMemo(() => {
-    const subgraph = data
-      ? deserializeQueryEntitySubgraphResponse<GoogleAccount>(
-          data.queryEntitySubgraph,
-        ).subgraph
-      : undefined;
-
-    const accounts = subgraph ? getRoots(subgraph) : [];
+    const accounts = data
+      ? deserializeQueryEntitiesResponse(
+          data.queryEntities as SerializedQueryEntitiesResponse<GoogleAccount>,
+        ).entities
+      : [];
 
     return {
       accounts,

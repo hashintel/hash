@@ -24,7 +24,10 @@ use crate::{
     query::ConflictBehavior,
     subgraph::{
         Subgraph,
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalEdgeKind,
+            TraversalPath,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
@@ -45,6 +48,7 @@ pub struct CreatePropertyTypeParams {
 pub enum QueryPropertyTypeSubgraphParams<'a> {
     #[serde(rename_all = "camelCase")]
     ResolveDepths {
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         request: QueryPropertyTypesParams<'a>,
@@ -80,11 +84,13 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
                 request,
             } => (request, SubgraphTraversalParams::Paths { traversal_paths }),
             Self::ResolveDepths {
+                traversal_paths,
                 graph_resolve_depths,
                 request,
             } => (
                 request,
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ),
@@ -110,7 +116,7 @@ impl<'a> QueryPropertyTypeSubgraphParams<'a> {
                 graph_resolve_depths,
                 ..
             } => {
-                if graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                if graph_resolve_depths.constrains_values_on > 0 {
                     actions.push(ActionName::ViewDataType);
                 }
             }

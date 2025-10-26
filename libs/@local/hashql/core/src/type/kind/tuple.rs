@@ -5,8 +5,8 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    algorithms::cartesian_product,
     intern::Interned,
-    math::cartesian_product,
     pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
@@ -358,7 +358,7 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
+impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TupleType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,

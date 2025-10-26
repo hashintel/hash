@@ -5,7 +5,7 @@ import { sleep } from "@anthropic-ai/sdk/core";
 import { LinearClient } from "@linear/sdk";
 import chalk from "chalk";
 import { config } from "dotenv-flow";
-import execa from "execa";
+import { execa } from "execa";
 import type { z } from "zod";
 
 import { addLineNumbersToDiff } from "./ai-pr-review/add-diff-line-numbers";

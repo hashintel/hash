@@ -43,12 +43,13 @@ mod ontology;
 
 mod seed;
 
-use core::str::FromStr as _;
+use core::{iter, str::FromStr as _};
 
 use criterion::{BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_store::subgraph::edges::{
-    EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
+    EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+    SubgraphTraversalParams,
 };
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
@@ -109,283 +110,166 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id);
     let _samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
 
-    let graph_resolve_depths = [
-        GraphResolveDepths::default(),
-        GraphResolveDepths {
-            inherits_from: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_values_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_properties_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_links_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            has_right_entity: EdgeResolveDepths {
-                incoming: 0,
-                outgoing: 1,
-            },
-            has_left_entity: EdgeResolveDepths {
-                incoming: 1,
-                outgoing: 0,
-            },
+    let traversal_params = [
+        SubgraphTraversalParams::Paths {
+            traversal_paths: Vec::new(),
         },
-        GraphResolveDepths {
-            inherits_from: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_values_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_properties_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_links_on: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            has_right_entity: EdgeResolveDepths {
-                incoming: 0,
-                outgoing: 1,
-            },
-            has_left_entity: EdgeResolveDepths {
-                incoming: 1,
-                outgoing: 0,
-            },
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths::default(),
+            traversal_paths: vec![EntityTraversalPath {
+                edges: vec![
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EdgeDirection::Outgoing,
+                    },
+                ],
+            }],
         },
-        GraphResolveDepths {
-            inherits_from: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths {
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
-            constrains_values_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            constrains_properties_on: OutgoingEdgeResolveDepth {
-                outgoing: 2,
-                incoming: 0,
-            },
-            constrains_links_on: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            has_right_entity: EdgeResolveDepths {
-                incoming: 0,
-                outgoing: 1,
-            },
-            has_left_entity: EdgeResolveDepths {
-                incoming: 1,
-                outgoing: 0,
-            },
+            traversal_paths: vec![EntityTraversalPath {
+                edges: vec![
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EdgeDirection::Outgoing,
+                    },
+                ],
+            }],
         },
-        GraphResolveDepths {
-            inherits_from: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths {
+                constrains_properties_on: 2,
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
-            constrains_values_on: OutgoingEdgeResolveDepth {
-                outgoing: 2,
-                incoming: 0,
-            },
-            constrains_properties_on: OutgoingEdgeResolveDepth {
-                outgoing: 2,
-                incoming: 0,
-            },
-            constrains_links_on: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                outgoing: 0,
-                incoming: 0,
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            has_right_entity: EdgeResolveDepths {
-                incoming: 0,
-                outgoing: 1,
-            },
-            has_left_entity: EdgeResolveDepths {
-                incoming: 1,
-                outgoing: 0,
-            },
+            traversal_paths: vec![EntityTraversalPath {
+                edges: vec![
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EdgeDirection::Outgoing,
+                    },
+                ],
+            }],
         },
-        GraphResolveDepths {
-            inherits_from: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths {
+                constrains_values_on: 2,
+                constrains_properties_on: 2,
+                constrains_links_on: 1,
+                is_of_type: true,
+                ..GraphResolveDepths::default()
             },
-            constrains_values_on: OutgoingEdgeResolveDepth {
-                outgoing: 255,
-                incoming: 0,
+            traversal_paths: vec![EntityTraversalPath {
+                edges: vec![
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EdgeDirection::Outgoing,
+                    },
+                ],
+            }],
+        },
+        SubgraphTraversalParams::ResolveDepths {
+            graph_resolve_depths: GraphResolveDepths {
+                inherits_from: 1,
+                constrains_values_on: 255,
+                constrains_properties_on: 255,
+                constrains_links_on: 127,
+                constrains_link_destinations_on: 126,
+                is_of_type: true,
             },
-            constrains_properties_on: OutgoingEdgeResolveDepth {
-                outgoing: 255,
-                incoming: 0,
-            },
-            constrains_links_on: OutgoingEdgeResolveDepth {
-                outgoing: 127,
-                incoming: 0,
-            },
-            constrains_link_destinations_on: OutgoingEdgeResolveDepth {
-                outgoing: 126,
-                incoming: 0,
-            },
-            is_of_type: OutgoingEdgeResolveDepth {
-                outgoing: 1,
-                incoming: 0,
-            },
-            has_right_entity: EdgeResolveDepths {
-                incoming: 0,
-                outgoing: 128,
-            },
-            has_left_entity: EdgeResolveDepths {
-                incoming: 127,
-                outgoing: 0,
-            },
+            traversal_paths: vec![EntityTraversalPath {
+                edges: iter::repeat([
+                    EntityTraversalEdge::HasLeftEntity {
+                        direction: EdgeDirection::Incoming,
+                    },
+                    EntityTraversalEdge::HasRightEntity {
+                        direction: EdgeDirection::Outgoing,
+                    },
+                ])
+                .flatten()
+                .take(255)
+                .collect(),
+            }],
         },
     ];
 
-    for graph_resolve_depth in graph_resolve_depths {
-        let function_id = "entity_by_property";
-        let parameter = format!(
-            "depths: DT={}, PT={}, ET={}, E={}",
-            [
-                graph_resolve_depth.constrains_values_on.incoming,
-                graph_resolve_depth.constrains_values_on.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.constrains_properties_on.incoming,
-                graph_resolve_depth.constrains_properties_on.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.inherits_from.incoming,
-                graph_resolve_depth.inherits_from.outgoing,
-                graph_resolve_depth.constrains_links_on.incoming,
-                graph_resolve_depth.constrains_links_on.outgoing,
-                graph_resolve_depth.constrains_link_destinations_on.incoming,
-                graph_resolve_depth.constrains_link_destinations_on.outgoing,
-                graph_resolve_depth.is_of_type.incoming,
-                graph_resolve_depth.is_of_type.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.has_right_entity.incoming,
-                graph_resolve_depth.has_right_entity.outgoing,
-                graph_resolve_depth.has_left_entity.incoming,
-                graph_resolve_depth.has_left_entity.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-        );
+    let parameter_strings = traversal_params
+        .iter()
+        .map(|params| match params {
+            SubgraphTraversalParams::Paths { traversal_paths } => format!(
+                "traversal_paths={}|{}",
+                traversal_paths
+                    .iter()
+                    .map(|path| path.edges.len())
+                    .sum::<usize>(),
+                traversal_paths.len(),
+            ),
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths: depths,
+            } => format!(
+                "traversal_paths={}|{},resolve_depths=inherit:{};values:{};properties:{};links:{};\
+                 link_dests:{};type:{}",
+                traversal_paths
+                    .iter()
+                    .map(|path| path.edges.len())
+                    .sum::<usize>(),
+                traversal_paths.len(),
+                depths.inherits_from,
+                depths.constrains_values_on,
+                depths.constrains_properties_on,
+                depths.constrains_links_on,
+                depths.constrains_link_destinations_on,
+                depths.is_of_type,
+            ),
+        })
+        .collect::<Vec<_>>();
 
+    for (traversal_params, parameter_string) in traversal_params.iter().zip(&parameter_strings) {
+        let function_id = "entity_by_property";
         group.bench_with_input(
-            BenchmarkId::new(function_id, &parameter),
-            &graph_resolve_depth,
-            |bencher, graph_resolve_depth| {
-                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
+            BenchmarkId::new(function_id, parameter_string),
+            traversal_params,
+            |bencher, traversal_params| {
+                let _guard = setup_subscriber(group_id, Some(function_id), Some(parameter_string));
                 knowledge::entity::bench_query_entities_by_property(
                     bencher,
                     &runtime,
                     &store_wrapper.store,
                     store_wrapper.account_id,
-                    *graph_resolve_depth,
+                    traversal_params,
                 );
             },
         );
     }
 
-    for graph_resolve_depth in graph_resolve_depths {
+    for (traversal_params, parameter_string) in traversal_params.into_iter().zip(&parameter_strings)
+    {
         let function_id = "link_by_source_by_property";
-        let parameter = format!(
-            "depths: DT={}, PT={}, ET={}, E={}",
-            [
-                graph_resolve_depth.constrains_values_on.incoming,
-                graph_resolve_depth.constrains_values_on.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.constrains_properties_on.incoming,
-                graph_resolve_depth.constrains_properties_on.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.inherits_from.incoming,
-                graph_resolve_depth.inherits_from.outgoing,
-                graph_resolve_depth.constrains_links_on.incoming,
-                graph_resolve_depth.constrains_links_on.outgoing,
-                graph_resolve_depth.constrains_link_destinations_on.incoming,
-                graph_resolve_depth.constrains_link_destinations_on.outgoing,
-                graph_resolve_depth.is_of_type.incoming,
-                graph_resolve_depth.is_of_type.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-            [
-                graph_resolve_depth.has_right_entity.incoming,
-                graph_resolve_depth.has_right_entity.outgoing,
-                graph_resolve_depth.has_left_entity.incoming,
-                graph_resolve_depth.has_left_entity.outgoing,
-            ]
-            .iter()
-            .sum::<u8>(),
-        );
-
         group.bench_with_input(
-            BenchmarkId::new(function_id, &parameter),
-            &graph_resolve_depth,
-            |bencher, graph_resolve_depth| {
-                let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
+            BenchmarkId::new(function_id, parameter_string),
+            &traversal_params,
+            |bencher, traversal_params| {
+                let _guard = setup_subscriber(group_id, Some(function_id), Some(parameter_string));
                 knowledge::entity::bench_get_link_by_target_by_property(
                     bencher,
                     &runtime,
                     &store_wrapper.store,
                     store_wrapper.account_id,
-                    *graph_resolve_depth,
+                    traversal_params,
                 );
             },
         );

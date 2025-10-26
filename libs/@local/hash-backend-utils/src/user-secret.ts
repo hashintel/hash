@@ -9,7 +9,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -62,10 +61,11 @@ export const getSecretEntitiesForIntegration = async ({
         { equal: [{ path: ["archived"] }, { parameter: false }] },
       ],
     },
-    graphResolveDepths: {
-      ...zeroedGraphResolveDepths,
-      hasRightEntity: { incoming: 0, outgoing: 1 },
-    },
+    traversalPaths: [
+      {
+        edges: [{ kind: "has-right-entity", direction: "outgoing" }],
+      },
+    ],
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts: false,
     includePermissions: false,

@@ -59,6 +59,9 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
@@ -94,13 +97,6 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-
-      - name: Cache Rust dependencies
-        if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          workspaces: ${{ matrix.path }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Show disk usage
         run: df -h
@@ -155,7 +151,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        uses: github/codeql-action/upload-sarif@d198d2fabf39a7f36b5ce57ce70d4942944f006e # v3.31.0
         if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -185,6 +181,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
@@ -192,11 +191,6 @@ jobs:
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
-        with:
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
 
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
@@ -392,7 +386,7 @@ jobs:
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "At least one linting job failed for a Pull Request in the Merge Queue failed <@U0143NL4GMP> <@U02NLJY0FGX>" # Notifies C & T
+          SLACK_MESSAGE: "At least one linting job failed for a Pull Request in the Merge Queue failed <!subteam^S09KH99698T>" # Notifies @devops
           SLACK_TITLE: Linting failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

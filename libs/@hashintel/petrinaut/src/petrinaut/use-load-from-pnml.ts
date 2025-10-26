@@ -14,7 +14,7 @@ import type {
 } from "./types";
 
 const elementToText = (el: Element | null): string =>
-  el?.textContent?.trim() ?? "";
+  el?.textContent.trim() ?? "";
 
 const getElementsBySelector = (selector: string, parentNode: ParentNode) =>
   Array.from(parentNode.querySelectorAll(selector));

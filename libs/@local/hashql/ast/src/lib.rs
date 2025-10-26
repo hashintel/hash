@@ -50,6 +50,7 @@
     // Language Features
     coverage_attribute,
     if_let_guard,
+    macro_metavar_expr_concat,
 
     // Library Features
     allocator_api,

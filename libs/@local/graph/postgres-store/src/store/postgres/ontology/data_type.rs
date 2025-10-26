@@ -23,8 +23,8 @@ use hash_graph_store::{
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
-            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind,
-            OntologyTraversalEdgeDirection, SubgraphTraversalParams, TraversalEdge,
+            BorrowedTraversalParams, EdgeDirection, OntologyEdgeKind, SubgraphTraversalParams,
+            TraversalEdge,
         },
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
@@ -310,14 +310,14 @@ where
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
-    pub(crate) async fn traverse_data_types(
+    pub(crate) async fn traverse_data_types<'edges>(
         &self,
         mut data_type_queue: Vec<(
             DataTypeUuid,
-            BorrowedTraversalParams<'_>,
+            BorrowedTraversalParams<'edges>,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        traversal_context: &mut TraversalContext,
+        traversal_context: &mut TraversalContext<'edges>,
         provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
@@ -331,18 +331,20 @@ where
             {
                 match subgraph_traversal_params {
                     BorrowedTraversalParams::ResolveDepths {
-                        graph_resolve_depths,
+                        traversal_path: _,
+                        graph_resolve_depths: depths,
                     } => {
                         for edge_kind in [
                             OntologyEdgeKind::InheritsFrom,
                             OntologyEdgeKind::ConstrainsValuesOn,
                         ] {
-                            if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                                .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                            if let Some(new_graph_resolve_depths) =
+                                depths.decrement_depth_for_edge_kind(edge_kind)
                             {
                                 edges_to_traverse.entry(edge_kind).or_default().push(
                                     OntologyTypeUuid::from(data_type_ontology_id),
                                     BorrowedTraversalParams::ResolveDepths {
+                                        traversal_path: &[],
                                         graph_resolve_depths: new_graph_resolve_depths,
                                     },
                                     traversal_interval,
@@ -356,16 +358,14 @@ where
                         };
 
                         let edge_kind = match edge {
-                            TraversalEdge::InheritsFrom {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::InheritsFrom,
-                            TraversalEdge::ConstrainsValuesOn {
-                                direction: OntologyTraversalEdgeDirection::Outgoing,
-                            } => OntologyEdgeKind::ConstrainsValuesOn,
-                            TraversalEdge::ConstrainsPropertiesOn { .. }
-                            | TraversalEdge::ConstrainsLinksOn { .. }
-                            | TraversalEdge::ConstrainsLinkDestinationsOn { .. }
-                            | TraversalEdge::IsOfType { .. }
+                            TraversalEdge::InheritsFrom => OntologyEdgeKind::InheritsFrom,
+                            TraversalEdge::ConstrainsValuesOn => {
+                                OntologyEdgeKind::ConstrainsValuesOn
+                            }
+                            TraversalEdge::ConstrainsPropertiesOn
+                            | TraversalEdge::ConstrainsLinksOn
+                            | TraversalEdge::ConstrainsLinkDestinationsOn
+                            | TraversalEdge::IsOfType
                             | TraversalEdge::HasLeftEntity { .. }
                             | TraversalEdge::HasRightEntity { .. } => continue,
                         };
@@ -788,6 +788,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn query_data_type_subgraph(
         &self,
         actor_id: ActorEntityUuid,
@@ -848,15 +849,6 @@ where
                         // TODO: The `vec` is not ideal as the flattening intermediate type but this
                         //       branch will be removed anyway after the migration to traversal path
                         //       based traversal is done
-                        SubgraphTraversalParams::ResolveDepths {
-                            graph_resolve_depths,
-                        } => vec![(
-                            id,
-                            BorrowedTraversalParams::ResolveDepths {
-                                graph_resolve_depths: *graph_resolve_depths,
-                            },
-                            subgraph.temporal_axes.resolved.variable_interval(),
-                        )],
                         SubgraphTraversalParams::Paths { traversal_paths } => traversal_paths
                             .iter()
                             .map(|path| {
@@ -869,6 +861,38 @@ where
                                 )
                             })
                             .collect(),
+                        SubgraphTraversalParams::ResolveDepths {
+                            traversal_paths,
+                            graph_resolve_depths,
+                        } => {
+                            if traversal_paths.is_empty() {
+                                // If no entity traversal paths are specified, still initialize
+                                // the traversal queue with ontology resolve depths to enable
+                                // traversal of ontology edges (e.g., inheritsFrom)
+                                vec![(
+                                    id,
+                                    BorrowedTraversalParams::ResolveDepths {
+                                        traversal_path: &[],
+                                        graph_resolve_depths: *graph_resolve_depths,
+                                    },
+                                    subgraph.temporal_axes.resolved.variable_interval(),
+                                )]
+                            } else {
+                                traversal_paths
+                                    .iter()
+                                    .map(|path| {
+                                        (
+                                            id,
+                                            BorrowedTraversalParams::ResolveDepths {
+                                                traversal_path: &path.edges,
+                                                graph_resolve_depths: *graph_resolve_depths,
+                                            },
+                                            subgraph.temporal_axes.resolved.variable_interval(),
+                                        )
+                                    })
+                                    .collect()
+                            }
+                        }
                     }
                 })
                 .collect(),
@@ -919,18 +943,19 @@ where
 
             old_data_type_ids.push(VersionedUrl {
                 base_url: parameters.schema.id.base_url.clone(),
-                version: OntologyTypeVersion::new(
-                    parameters
+                version: OntologyTypeVersion {
+                    major: parameters
                         .schema
                         .id
                         .version
-                        .inner()
+                        .major
                         .checked_sub(1)
                         .ok_or(UpdateError)
                         .attach(
                             "The version of the data type is already at the lowest possible value",
                         )?,
-                ),
+                    pre_release: None,
+                },
             });
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());

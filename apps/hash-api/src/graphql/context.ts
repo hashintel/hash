@@ -6,7 +6,6 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
-import type { CacheAdapter } from "../cache";
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
@@ -18,7 +17,6 @@ import type { User } from "../graph/knowledge/system-types/user";
 export interface GraphQLContext {
   dataSources: {
     graphApi: GraphApi;
-    cache: CacheAdapter;
     uploadProvider: UploadableStorageProvider;
     search?: SearchAdapter;
   };

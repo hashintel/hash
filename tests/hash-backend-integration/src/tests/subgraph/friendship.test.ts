@@ -59,7 +59,6 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   fullDecisionTimeAxis,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -237,14 +236,12 @@ afterAll(async () => {
 
 describe("Ontology queries", () => {
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
-      ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 1 },
+      inheritsFrom: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 255 },
+      inheritsFrom: 255,
     },
   ])("read data types %#", async (resolve_depths) => {
     const { subgraph } = await queryDataTypeSubgraph(
@@ -255,6 +252,7 @@ describe("Ontology queries", () => {
           all: [],
         },
         graphResolveDepths: resolve_depths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -335,21 +333,18 @@ describe("Ontology queries", () => {
   });
 
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn: { outgoing: 1 },
-      constrainsPropertiesOn: { outgoing: 1 },
+      constrainsValuesOn: 1,
+      constrainsPropertiesOn: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
-      constrainsValuesOn: { outgoing: 255 },
+      constrainsValuesOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
-      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsPropertiesOn: 255,
     },
-  ])("read property types %#", async (resolve_depths) => {
+  ])("read property types %#", async (graphResolveDepths) => {
     const { subgraph } = await queryPropertyTypeSubgraph(
       graphContext.graphApi,
       authentication,
@@ -357,7 +352,8 @@ describe("Ontology queries", () => {
         filter: {
           all: [],
         },
-        graphResolveDepths: resolve_depths,
+        graphResolveDepths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -433,29 +429,24 @@ describe("Ontology queries", () => {
   });
 
   it.each([
-    zeroedGraphResolveDepths,
+    {},
     {
-      ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 1 },
-      constrainsPropertiesOn: { outgoing: 1 },
-      constrainsLinksOn: { outgoing: 1 },
-      constrainsLinkDestinationsOn: { outgoing: 1 },
+      inheritsFrom: 1,
+      constrainsPropertiesOn: 1,
+      constrainsLinksOn: 1,
+      constrainsLinkDestinationsOn: 1,
     },
     {
-      ...zeroedGraphResolveDepths,
-      inheritsFrom: { outgoing: 255 },
+      inheritsFrom: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
-      constrainsPropertiesOn: { outgoing: 255 },
+      constrainsPropertiesOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
-      constrainsLinksOn: { outgoing: 255 },
+      constrainsLinksOn: 255,
     },
     {
-      ...zeroedGraphResolveDepths,
-      constrainsLinkDestinationsOn: { outgoing: 255 },
+      constrainsLinkDestinationsOn: 255,
     },
   ])("read entity types %#", async (resolve_depths) => {
     const { subgraph } = await queryEntityTypeSubgraph(
@@ -466,6 +457,7 @@ describe("Ontology queries", () => {
           all: [],
         },
         graphResolveDepths: resolve_depths,
+        traversalPaths: [],
         temporalAxes: fullDecisionTimeAxis,
       },
     );
@@ -947,7 +939,6 @@ describe("non-zero, simple resolve depths", () => {
             edges: [
               {
                 kind: "is-of-type",
-                direction: "outgoing",
               },
             ],
           },
@@ -1114,21 +1105,12 @@ describe("complex resolve depths", () => {
                 kind: "has-left-entity",
                 direction: "incoming",
               },
-              {
-                kind: "is-of-type",
-                direction: "outgoing",
-              },
-            ],
-          },
-          {
-            edges: [
-              {
-                kind: "is-of-type",
-                direction: "outgoing",
-              },
             ],
           },
         ],
+        graphResolveDepths: {
+          isOfType: true,
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,

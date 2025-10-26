@@ -1,8 +1,8 @@
 import { useLazyQuery } from "@apollo/client";
 import { deserializeQueryPropertyTypeSubgraphResponse } from "@local/hash-graph-sdk/property-type";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useCallback } from "react";
 
@@ -56,11 +56,10 @@ export const useBlockProtocolGetPropertyType = (): {
             },
             temporalAxes: currentTimeInstantTemporalAxes,
             graphResolveDepths: {
-              ...zeroedGraphResolveDepths,
-              constrainsValuesOn: { outgoing: 255 },
-              constrainsPropertiesOn: { outgoing: 255 },
+              ...almostFullOntologyResolveDepths,
               ...graphResolveDepths,
             },
+            traversalPaths: [],
           },
         },
       });

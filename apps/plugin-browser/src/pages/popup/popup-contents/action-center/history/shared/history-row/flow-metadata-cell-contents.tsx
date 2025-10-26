@@ -1,15 +1,13 @@
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   ArrowDownRegularIcon,
   ArrowRightRegularIcon,
   AsteriskRegularIcon,
   ClockRegularIcon,
 } from "@hashintel/design-system";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -21,10 +19,10 @@ import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../../../../graphql/queries/entity.queries";
+import { queryEntitiesQuery } from "../../../../../../../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "../../../../../../../shared/query-graphql-api";
 import type { MinimalFlowRun } from "../../../../../../../shared/storage";
 import { iconSx } from "./styles";
@@ -50,8 +48,8 @@ type TotalUsage = {
 };
 
 const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
-  queryGraphQlApi<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
-    queryEntitySubgraphQuery,
+  queryGraphQlApi<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
     {
       request: {
         filter: {
@@ -70,18 +68,15 @@ const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
             },
           ],
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
       },
     },
   ).then(({ data }) => {
-    const subgraph = deserializeQueryEntitySubgraphResponse(
-      data.queryEntitySubgraph,
-    ).subgraph;
-
-    const usageRecords = getRoots(subgraph);
+    const usageRecords = deserializeQueryEntitiesResponse(
+      data.queryEntities,
+    ).entities;
 
     let inputTokens = 0;
     let outputTokens = 0;

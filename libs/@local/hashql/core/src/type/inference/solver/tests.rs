@@ -3,7 +3,7 @@ use hashql_diagnostics::Success;
 
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
-    collection::{FastHashMap, SmallVec},
+    collections::{FastHashMap, SmallVec},
     heap::Heap,
     pretty::PrettyPrint as _,
     span::SpanId,

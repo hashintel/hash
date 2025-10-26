@@ -32,9 +32,8 @@ import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
+  almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
-  fullOntologyResolveDepths,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { SvgIconProps } from "@mui/material";
@@ -67,7 +66,7 @@ import type { ProposedEntityOutput } from "./shared/types";
 export const getDeliverables = (
   outputs?: FlowRun["outputs"],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents?.[0]?.outputs;
+  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
 
   const deliverables: DeliverableData[] = [];
 
@@ -428,10 +427,8 @@ export const Outputs = ({
       variables: {
         request: {
           filter: persistedEntitiesFilter,
-          graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            ...fullOntologyResolveDepths,
-          },
+          graphResolveDepths: almostFullOntologyResolveDepths,
+          traversalPaths: [],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
           includeEntityTypes: "resolved",

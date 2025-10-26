@@ -14,7 +14,7 @@
 //!
 //! When changing any of these types, make sure that the OpenAPI generator types do not degenerate
 //! into any of these cases.
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::borrow::Cow;
 use core::{cmp, ops::Range};
 
 use axum::{
@@ -30,16 +30,19 @@ use hash_graph_store::{
     filter::Filter,
     query::Ordering,
     subgraph::{
-        edges::{GraphResolveDepths, SubgraphTraversalParams, TraversalPath},
+        edges::{
+            EntityTraversalPath, GraphResolveDepths, SubgraphTraversalParams, TraversalPath,
+            TraversalPathConversionError,
+        },
         temporal_axes::QueryTemporalAxesUnresolved,
     },
 };
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collection::fast_hash_map,
+    collections::fast_hash_map,
     heap::Heap,
     module::ModuleRegistry,
-    span::{SpanId, storage::SpanStorage},
+    span::{SpanId, SpanTable},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::{
@@ -47,7 +50,7 @@ use hashql_diagnostics::{
     category::{DiagnosticCategory, canonical_category_id},
     diagnostic::render::{Format, RenderOptions},
     severity::Critical,
-    source::{Source, Sources},
+    source::{DiagnosticSpan, Source, SourceId, Sources},
 };
 use hashql_eval::{
     error::EvalDiagnosticCategory,
@@ -200,10 +203,8 @@ struct FlatQueryEntitiesRequestData<'q, 's, 'p> {
     include_type_titles: bool,
     include_permissions: bool,
 
-    // `QueryEntitySubgraphRequest::ResolveDepths`
-    graph_resolve_depths: Option<GraphResolveDepths>,
-    // `QueryEntitySubgraphRequest::Paths`
     traversal_paths: Option<Vec<TraversalPath>>,
+    graph_resolve_depths: Option<GraphResolveDepths>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -253,25 +254,25 @@ struct ResolvedSpan {
     pub pointer: Option<String>,
 }
 
-fn resolve_span(id: SpanId, spans: &SpanStorage<Span>) -> Option<ResolvedSpan> {
-    let ancestors = spans.ancestors(id);
+fn resolve_span(id: SpanId, mut spans: &SpanTable<Span>) -> Option<ResolvedSpan> {
+    let absolute = DiagnosticSpan::absolute(&id, &mut spans)?;
+    let mut pointer = spans.get(id)?.pointer.as_ref().map(ToString::to_string);
 
-    let mut base = spans.get_cloned(id)?;
+    for ancestor in spans.ancestors(id) {
+        let Some(ancestor) = spans.get(ancestor) else {
+            continue;
+        };
 
-    for ancestor in ancestors {
-        let parent = spans.get(ancestor)?;
-        base.range += parent.map(|parent| parent.range.start());
-
-        if base.pointer.is_none()
-            && let Some(pointer) = parent.cloned().pointer
+        if pointer.is_none()
+            && let Some(ancestor_pointer) = &ancestor.pointer
         {
-            base.pointer = Some(pointer);
+            pointer = Some(ancestor_pointer.to_string());
         }
     }
 
     Some(ResolvedSpan {
-        range: base.range.into(),
-        pointer: base.pointer.map(|ptr| ptr.to_string()),
+        range: absolute.range().into(),
+        pointer,
     })
 }
 
@@ -279,7 +280,7 @@ fn issues_to_response(
     issues: DiagnosticIssues<HashQLDiagnosticCategory, SpanId>,
     severity: Severity,
     source: &str,
-    mut spans: &SpanStorage<Span>,
+    mut spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     let status_code = match severity {
@@ -311,7 +312,7 @@ fn issues_to_response(
 fn failure_to_response(
     failure: Failure<HashQLDiagnosticCategory, SpanId>,
     source: &str,
-    spans: &SpanStorage<Span>,
+    spans: &SpanTable<Span>,
     options: CompilationOptions,
 ) -> Response {
     // Find the highest diagnostic level
@@ -336,13 +337,13 @@ pub enum EntityQuery<'q> {
 }
 
 impl<'q> EntityQuery<'q> {
-    fn compile_query<'h>(
-        heap: &'h Heap,
-        spans: Arc<SpanStorage<Span>>,
+    fn compile_query<'heap>(
+        heap: &'heap Heap,
+        spans: &mut SpanTable<Span>,
         query: &RawJsonValue,
-    ) -> Status<Filter<'h, Entity>, HashQLDiagnosticCategory, SpanId> {
+    ) -> Status<Filter<'heap, Entity>, HashQLDiagnosticCategory, SpanId> {
         // Parse the query
-        let parser = hashql_syntax_jexpr::Parser::new(heap, spans);
+        let mut parser = hashql_syntax_jexpr::Parser::new(heap, spans);
         let mut ast = parser
             .parse_expr(query.get().as_bytes())
             .map_err(|diagnostic| {
@@ -374,12 +375,13 @@ impl<'q> EntityQuery<'q> {
             })?;
 
         let interner = hashql_hir::intern::Interner::new(heap);
+        let mut context = hashql_hir::context::HirContext::new(&interner, &modules);
 
         // Reify the HIR from the AST
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::node::Node::from_ast(ast, &env, &interner, &types)
+        } = hashql_hir::node::Node::from_ast(ast, &mut context, &types)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Reification(category))
             })
@@ -389,7 +391,7 @@ impl<'q> EntityQuery<'q> {
         let Success {
             value: hir,
             advisories,
-        } = hashql_hir::lower::lower(hir, &types, &mut env, &modules, &interner)
+        } = hashql_hir::lower::lower(hir, &types, &mut env, &mut context)
             .map_category(|category| {
                 HashQLDiagnosticCategory::Hir(HirDiagnosticCategory::Lowering(category))
             })
@@ -452,12 +454,12 @@ impl<'q> EntityQuery<'q> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
             EntityQuery::Query { query } => {
-                let spans = Arc::new(SpanStorage::new());
+                let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
 
                 let Success {
                     value: filter,
                     advisories,
-                } = Self::compile_query(heap, Arc::clone(&spans), query).map_err(|failure| {
+                } = Self::compile_query(heap, &mut spans, query).map_err(|failure| {
                     failure_to_response(failure, query.get(), &spans, options)
                 })?;
                 if !advisories.is_empty() {
@@ -548,9 +550,9 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>> for EntityQue
             include_edition_created_by_ids,
             include_type_ids,
             include_type_titles,
+            include_permissions,
             graph_resolve_depths,
             traversal_paths,
-            include_permissions,
         } = value;
 
         if filter.is_some() {
@@ -631,18 +633,20 @@ impl<'p> EntityQueryOptions<'_, 'p> {
         'p: 'q,
     {
         match traversal {
-            SubgraphTraversalParams::ResolveDepths {
-                graph_resolve_depths,
-            } => QueryEntitySubgraphParams::ResolveDepths {
-                graph_resolve_depths,
-                request: self.into_params(filter),
-            },
             SubgraphTraversalParams::Paths { traversal_paths } => {
                 QueryEntitySubgraphParams::Paths {
                     traversal_paths,
                     request: self.into_params(filter),
                 }
             }
+            SubgraphTraversalParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+            } => QueryEntitySubgraphParams::ResolveDepths {
+                traversal_paths,
+                graph_resolve_depths,
+                request: self.into_params(filter),
+            },
         }
     }
 }
@@ -734,16 +738,13 @@ impl<'q, 's, 'p> QueryEntitiesRequest<'q, 's, 'p> {
 enum QueryEntitySubgraphRequestError {
     #[from]
     QueryEntityRequest(QueryEntitiesRequestError),
+    #[from]
+    UnsupportedGraphTraversalPath(TraversalPathConversionError),
     #[display(
-        "Subgraph request missing traversal parameters. Specify either 'graphResolveDepths' or \
-         'traversalPaths'."
+        "Subgraph request missing traversal parameters. Specify either 'traversalPaths` and \
+         optionally `graphResolveDepths'."
     )]
     MissingSubgraphTraversal,
-    #[display(
-        "Subgraph request has conflicting traversal parameters. Specify only 'graphResolveDepths' \
-         OR 'traversalPaths', not both."
-    )]
-    ConflictingSubgraphTraversal,
 }
 
 impl core::error::Error for QueryEntitySubgraphRequestError {}
@@ -760,6 +761,7 @@ pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
         #[serde(borrow)]
         #[schema(value_type = utoipa::openapi::schema::Value)]
         query: &'q RawJsonValue,
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
@@ -768,6 +770,7 @@ pub enum QueryEntitySubgraphRequest<'q, 's, 'p> {
     ResolveDepthsWithFilter {
         #[serde(borrow)]
         filter: Filter<'q, Entity>,
+        traversal_paths: Vec<EntityTraversalPath>,
         graph_resolve_depths: GraphResolveDepths,
         #[serde(borrow, flatten)]
         options: EntityQueryOptions<'s, 'p>,
@@ -798,41 +801,46 @@ impl<'q, 's, 'p> TryFrom<FlatQueryEntitiesRequestData<'q, 's, 'p>>
 
     fn try_from(mut value: FlatQueryEntitiesRequestData<'q, 's, 'p>) -> Result<Self, Self::Error> {
         let graph_resolve_depths = value.graph_resolve_depths.take();
-        let traversal_paths = value.traversal_paths.take();
+        let traversal_paths = value
+            .traversal_paths
+            .take()
+            .ok_or(QueryEntitySubgraphRequestError::MissingSubgraphTraversal)?;
 
         let request = value.try_into()?;
 
-        match (graph_resolve_depths, traversal_paths, request) {
-            (None, None, _) => Err(QueryEntitySubgraphRequestError::MissingSubgraphTraversal),
-            (Some(_), Some(_), _) => {
-                Err(QueryEntitySubgraphRequestError::ConflictingSubgraphTraversal)
-            }
-            (
-                Some(graph_resolve_depths),
-                None,
-                QueryEntitiesRequest::Filter { filter, options },
-            ) => Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
-                graph_resolve_depths,
-                filter,
-                options,
-            }),
-            (Some(graph_resolve_depths), None, QueryEntitiesRequest::Query { query, options }) => {
-                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
-                    graph_resolve_depths,
-                    query,
-                    options,
-                })
-            }
-            (None, Some(traversal_paths), QueryEntitiesRequest::Filter { filter, options }) => {
+        match (graph_resolve_depths, request) {
+            (None, QueryEntitiesRequest::Filter { filter, options }) => {
                 Ok(QueryEntitySubgraphRequest::PathsWithFilter {
                     traversal_paths,
                     filter,
                     options,
                 })
             }
-            (None, Some(traversal_paths), QueryEntitiesRequest::Query { query, options }) => {
+            (None, QueryEntitiesRequest::Query { query, options }) => {
                 Ok(QueryEntitySubgraphRequest::PathsWithQuery {
                     traversal_paths,
+                    query,
+                    options,
+                })
+            }
+            (Some(graph_resolve_depths), QueryEntitiesRequest::Filter { filter, options }) => {
+                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
+                    traversal_paths: traversal_paths
+                        .into_iter()
+                        .map(EntityTraversalPath::try_from)
+                        .collect::<Result<_, _>>()?,
+                    graph_resolve_depths,
+                    filter,
+                    options,
+                })
+            }
+            (Some(graph_resolve_depths), QueryEntitiesRequest::Query { query, options }) => {
+                Ok(QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
+                    traversal_paths: traversal_paths
+                        .into_iter()
+                        .map(EntityTraversalPath::try_from)
+                        .collect::<Result<_, _>>()?,
+                    graph_resolve_depths,
                     query,
                     options,
                 })
@@ -867,21 +875,25 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
             (
                 EntityQuery::Filter { filter },
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ) => Self::ResolveDepthsWithFilter {
                 filter,
                 options,
+                traversal_paths,
                 graph_resolve_depths,
             },
             (
                 EntityQuery::Query { query },
                 SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
                     graph_resolve_depths,
                 },
             ) => Self::ResolveDepthsWithQuery {
                 query,
                 options,
+                traversal_paths,
                 graph_resolve_depths,
             },
         }
@@ -896,28 +908,6 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
         SubgraphTraversalParams,
     ) {
         match self {
-            QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
-                query,
-                graph_resolve_depths,
-                options,
-            } => (
-                EntityQuery::Query { query },
-                options,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
-            QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
-                filter,
-                graph_resolve_depths,
-                options,
-            } => (
-                EntityQuery::Filter { filter },
-                options,
-                SubgraphTraversalParams::ResolveDepths {
-                    graph_resolve_depths,
-                },
-            ),
             QueryEntitySubgraphRequest::PathsWithQuery {
                 query,
                 traversal_paths,
@@ -935,6 +925,32 @@ impl<'q, 's, 'p> QueryEntitySubgraphRequest<'q, 's, 'p> {
                 EntityQuery::Filter { filter },
                 options,
                 SubgraphTraversalParams::Paths { traversal_paths },
+            ),
+            QueryEntitySubgraphRequest::ResolveDepthsWithQuery {
+                query,
+                traversal_paths,
+                graph_resolve_depths,
+                options,
+            } => (
+                EntityQuery::Query { query },
+                options,
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                },
+            ),
+            QueryEntitySubgraphRequest::ResolveDepthsWithFilter {
+                filter,
+                traversal_paths,
+                graph_resolve_depths,
+                options,
+            } => (
+                EntityQuery::Filter { filter },
+                options,
+                SubgraphTraversalParams::ResolveDepths {
+                    traversal_paths,
+                    graph_resolve_depths,
+                },
             ),
         }
     }

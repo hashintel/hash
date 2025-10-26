@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
   DataTypeWithMetadata,
+  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
@@ -14,8 +15,10 @@ import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-graph-sdk/embeddings";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  deserializeQueryEntitiesResponse,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -93,28 +96,14 @@ export const updateDataTypeEmbeddings = async (
   if ("dataTypes" in params) {
     dataTypes = params.dataTypes;
   } else {
-    const response = await graphActivities.queryEntitySubgraph({
+    const response = await graphActivities.queryDataTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
-        includePermissions: false,
       },
     });
-    dataTypes = await graphActivities.getSubgraphDataTypes({
-      subgraph: response.subgraph,
-    });
+    dataTypes = response.dataTypes;
   }
 
   for (const dataType of dataTypes) {
@@ -179,28 +168,14 @@ export const updatePropertyTypeEmbeddings = async (
   if ("propertyTypes" in params) {
     propertyTypes = params.propertyTypes;
   } else {
-    const response = await graphActivities.queryEntitySubgraph({
+    const response = await graphActivities.queryPropertyTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
-        includePermissions: false,
       },
     });
-    propertyTypes = await graphActivities.getSubgraphPropertyTypes({
-      subgraph: response.subgraph,
-    });
+    propertyTypes = response.propertyTypes;
   }
 
   for (const propertyType of propertyTypes) {
@@ -265,28 +240,14 @@ export const updateEntityTypeEmbeddings = async (
   if ("entityTypes" in params) {
     entityTypes = params.entityTypes;
   } else {
-    const response = await graphActivities.queryEntitySubgraph({
+    const response = await graphActivities.queryEntityTypes({
       authentication: params.authentication,
       request: {
         filter: params.filter,
-        graphResolveDepths: {
-          inheritsFrom: { outgoing: 0 },
-          constrainsValuesOn: { outgoing: 0 },
-          constrainsPropertiesOn: { outgoing: 0 },
-          constrainsLinksOn: { outgoing: 0 },
-          constrainsLinkDestinationsOn: { outgoing: 0 },
-          isOfType: { outgoing: 0 },
-          hasLeftEntity: { incoming: 0, outgoing: 0 },
-          hasRightEntity: { incoming: 0, outgoing: 0 },
-        },
         temporalAxes,
-        includeDrafts: true,
-        includePermissions: false,
       },
     });
-    entityTypes = await graphActivities.getSubgraphEntityTypes({
-      subgraph: response.subgraph,
-    });
+    entityTypes = response.entityTypes;
   }
 
   for (const entityType of entityTypes) {
@@ -341,7 +302,7 @@ export const updateEntityEmbeddings = async (
     },
   } as const;
 
-  let entities: SerializedEntity[];
+  let entities: Entity[];
   let cursor: EntityQueryCursor | undefined | null = undefined;
 
   const usage: OpenAI.CreateEmbeddingResponse.Usage = {
@@ -352,24 +313,12 @@ export const updateEntityEmbeddings = async (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     if ("entities" in params) {
-      entities = params.entities.map((entity) =>
-        new HashEntity(entity).toJSON(),
-      );
+      entities = params.entities.map((entity) => new HashEntity(entity));
     } else {
-      const queryResponse = await graphActivities.queryEntitySubgraph({
+      const serializedResponse = await graphActivities.queryEntities({
         authentication: params.authentication,
         request: {
           filter: params.filter,
-          graphResolveDepths: {
-            inheritsFrom: { outgoing: 0 },
-            constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 0 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
-            hasLeftEntity: { incoming: 0, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 0 },
-          },
           temporalAxes,
           includeDrafts: true,
           includePermissions: false,
@@ -377,18 +326,16 @@ export const updateEntityEmbeddings = async (
           limit: 100,
         },
       });
-      cursor = queryResponse.cursor;
-      entities = await graphActivities.getSubgraphEntities({
-        subgraph: queryResponse.subgraph,
-      });
+      const response = deserializeQueryEntitiesResponse(serializedResponse);
+      cursor = response.cursor;
+      entities = response.entities;
     }
 
     if (entities.length === 0) {
       break;
     }
 
-    for (const serializedEntity of entities) {
-      const entity = new HashEntity(serializedEntity);
+    for (const entity of entities) {
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.
@@ -407,7 +354,7 @@ export const updateEntityEmbeddings = async (
       // TODO: The subgraph library does not have the required methods to do this client side so for simplicity we're
       //       just making another request here. We should add the required methods to the library and do this client
       //       side.
-      const { subgraph } = await graphActivities.queryEntityTypesSubgraph({
+      const { subgraph } = await graphActivities.queryEntityTypeSubgraph({
         authentication: params.authentication,
         request: {
           filter: {
@@ -416,15 +363,10 @@ export const updateEntityEmbeddings = async (
             })),
           },
           graphResolveDepths: {
-            inheritsFrom: { outgoing: 255 },
-            constrainsValuesOn: { outgoing: 0 },
-            constrainsPropertiesOn: { outgoing: 1 },
-            constrainsLinksOn: { outgoing: 0 },
-            constrainsLinkDestinationsOn: { outgoing: 0 },
-            isOfType: { outgoing: 0 },
-            hasLeftEntity: { incoming: 0, outgoing: 0 },
-            hasRightEntity: { incoming: 0, outgoing: 0 },
+            inheritsFrom: 255,
+            constrainsPropertiesOn: 1,
           },
+          traversalPaths: [],
           temporalAxes,
         },
       });

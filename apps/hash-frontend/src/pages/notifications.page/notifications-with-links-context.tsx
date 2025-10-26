@@ -19,7 +19,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   pageOrNotificationNotArchivedFilter,
-  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -149,13 +148,18 @@ export const useNotificationsWithLinksContextValue =
             ],
           },
           graphResolveDepths: {
-            ...zeroedGraphResolveDepths,
-            inheritsFrom: { outgoing: 255 },
-            isOfType: { outgoing: 1 },
-            // Retrieve the outgoing linked entities of the notification entity at depth 1
-            hasLeftEntity: { outgoing: 0, incoming: 1 },
-            hasRightEntity: { outgoing: 1, incoming: 0 },
+            inheritsFrom: 255,
+            isOfType: true,
           },
+          traversalPaths: [
+            // Retrieve the outgoing linked entities of the notification entity at depth 1
+            {
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: true,
           includePermissions: false,
@@ -369,7 +373,7 @@ export const useNotificationsWithLinksContextValue =
             );
 
             const linkRightEntityId =
-              occurredInEntityLink?.linkEntity[0]?.linkData?.rightEntityId;
+              occurredInEntityLink?.linkEntity[0]?.linkData.rightEntityId;
 
             if (!occurredInEntityLink || !linkRightEntityId) {
               throw new Error(

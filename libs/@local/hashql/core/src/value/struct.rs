@@ -1,7 +1,7 @@
 use core::ops::Index;
 
 use super::{Tuple, Value};
-use crate::{collection::SmallVec, heap::Heap, symbol::Symbol};
+use crate::{collections::SmallVec, heap::Heap, symbol::Symbol};
 
 /// Errors that can occur when working with [`Struct`] fields.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -22,14 +22,13 @@ impl core::error::Error for StructError<'_> {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+///     value::{Integer, Primitive, String, Struct, Value},
 ///     symbol::Symbol,
-///     value::{Struct, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+/// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
 ///
 /// // Create a struct representing a person
 /// let name_field = heap.intern_symbol("name");
@@ -82,22 +81,21 @@ impl<'heap> Struct<'heap> {
     ///
     /// # Panics
     ///
-    /// Panics if there are duplicate fields.
+    /// Panics if there are duplicate fields if debug assertions are enabled.
     ///
     /// # Examples
     ///
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Float, Integer, Primitive, String, Struct, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
-    /// # let float = |value: &'static str| Value::Primitive(LiteralKind::Float(FloatLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
+    /// # let float = |value: &'static str| Value::Primitive(Primitive::Float(Float::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let fields = [
     ///     (heap.intern_symbol("id"), integer("42")),
@@ -114,16 +112,16 @@ impl<'heap> Struct<'heap> {
     ) -> Self {
         let fields = fields.into_iter();
 
-        let (mut fields, mut values): (SmallVec<_>, SmallVec<_>) = fields.collect();
-
-        co_sort(&mut fields, &mut values);
+        let (fields, values): (SmallVec<_>, SmallVec<_>) = fields.collect();
 
         // This is an assert, as previous stages in the compilation should have ensured that there
         // are no duplicate fields.
-        assert!(
-            !fields.array_windows().any(|[left, right]| left == right),
-            "Structs cannot contain any duplicate fields"
-        );
+        if cfg!(debug_assertions) {
+            let mut seen = crate::collections::fast_hash_set(fields.len());
+            for field in &fields {
+                assert!(seen.insert(*field), "Duplicate field: {field}");
+            }
+        }
 
         let fields = heap.slice(&fields);
         let values = Tuple::from_values(values);
@@ -144,14 +142,13 @@ impl<'heap> Struct<'heap> {
     /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String, Struct, StructError, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, StructError, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let name_field = heap.intern_symbol("name");
     /// let age_field = heap.intern_symbol("age");
@@ -189,13 +186,12 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
-    ///     value::{Struct, Value},
+    ///     value::{Integer, Primitive, String, Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let empty_struct = Struct::from_fields(&heap, []);
     /// assert_eq!(empty_struct.len(), 0);
@@ -222,12 +218,11 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{Struct, Value},
+    ///     value::{Primitive, String, Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_struct = Struct::from_fields(&heap, []);
     /// assert!(empty_struct.is_empty());
@@ -252,14 +247,13 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Integer, Primitive, String, Struct, Value},
     ///     symbol::Symbol,
-    ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
-    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
+    /// # let integer = |value: &'static str| Value::Primitive(Primitive::Integer(Integer::new_unchecked(heap.intern_symbol(value))));
     ///
     /// let person = Struct::from_fields(
     ///     &heap,
@@ -289,117 +283,5 @@ impl<'heap> Index<Symbol<'heap>> for Struct<'heap> {
 
     fn index(&self, index: Symbol<'heap>) -> &Self::Output {
         self.get(index).expect("struct field not found")
-    }
-}
-
-/// Sorts two slices in tandem based on the ordering of the first slice.
-///
-/// This function performs a coordinated sort where elements in both slices are rearranged
-/// such that the first slice (`lhs`) becomes sorted, while maintaining the correspondence
-/// between elements at the same indices in both slices.
-///
-/// The algorithm is inspired by the [`co_sort`](https://docs.rs/co_sort/latest/co_sort/) crate
-/// and uses an in-place permutation approach to minimize memory allocations.
-///
-/// # Arguments
-///
-/// * `lhs` - The slice to sort by. Must implement [`Ord`] for comparison.
-/// * `rhs` - The slice to be permuted alongside `lhs`. Can be any type.
-///
-/// Both slices must have the same length.
-///
-/// # Panics
-///
-/// Panics if the slices have different lengths.
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Example usage within the module
-/// let mut keys = [3, 1, 4, 1, 5];
-/// let mut values = ['c', 'a', 'd', 'b', 'e'];
-///
-/// co_sort(&mut keys, &mut values);
-///
-/// assert_eq!(keys, [1, 1, 3, 4, 5]);
-/// assert_eq!(values, ['a', 'b', 'c', 'd', 'e']);
-/// ```
-#[expect(unsafe_code)]
-#[inline]
-fn co_sort<T: Ord, U>(lhs: &mut [T], rhs: &mut [U]) {
-    let n = lhs.len();
-    assert_eq!(n, rhs.len(), "lhs and rhs must have the same length");
-
-    // permutation[i] == original index of the i-th smallest element
-    let mut permutation: Vec<usize> = (0..n).collect();
-    permutation.sort_unstable_by_key(|&index| {
-        // SAFETY: 0 ≤ index < n by construction
-        unsafe { lhs.get_unchecked(index) }
-    });
-
-    assert_eq!(permutation.len(), n); // guides LLVM to remove bounds checks
-
-    let mut position;
-    for index in 0..n {
-        position = permutation[index];
-
-        while position < index {
-            // SAFETY: 0 ≤ position < n by construction
-            position = unsafe { *permutation.get_unchecked(position) };
-        }
-
-        // SAFETY: both indices < n
-        unsafe {
-            lhs.swap_unchecked(index, position);
-            rhs.swap_unchecked(index, position);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use proptest::{collection::size_range, prop_assert, prop_assert_eq, test_runner::Config};
-    use test_strategy::proptest;
-
-    use crate::value::r#struct::co_sort;
-
-    #[proptest(
-        if cfg!(miri) {
-            Config { failure_persistence: None, cases: 40, ..Config::default() }
-        } else {
-            Config::default()
-        }
-    )]
-    fn co_sort_sorted_and_permuted(#[any(size_range(0..64).lift())] mut input: Vec<(u16, i32)>) {
-        let mut lhs: Vec<_> = input.iter().map(|&(lhs, _)| lhs).collect();
-        let mut rhs: Vec<_> = input.iter().map(|&(_, rhs)| rhs).collect();
-
-        co_sort(&mut lhs, &mut rhs);
-
-        // lhs is non-decreasing
-        prop_assert!(lhs.array_windows().all(|[left, right]| left <= right));
-
-        // The lhs-rhs pairs are unchanged
-        let mut after: Vec<_> = lhs.into_iter().zip(rhs.into_iter()).collect();
-
-        input.sort_unstable();
-        after.sort_unstable();
-
-        prop_assert_eq!(input, after);
-    }
-
-    #[test]
-    #[should_panic(expected = "must have the same length")]
-    fn co_sort_length_mismatch() {
-        let mut lhs = [1, 2, 3];
-        let mut rhs = [42_i8; 2];
-        co_sort(&mut lhs, &mut rhs);
-    }
-
-    #[test]
-    fn co_sort_empty() {
-        let mut lhs: [u8; 0] = [];
-        let mut rhs: [(); 0] = [];
-        co_sort(&mut lhs, &mut rhs);
     }
 }

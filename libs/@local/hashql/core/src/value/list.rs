@@ -9,12 +9,11 @@ use super::Value;
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::{LiteralKind, StringLiteral},
-///     value::{List, Value},
+///     value::{List, Primitive, String, Value},
 /// };
 ///
 /// let heap = Heap::new();
-/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+/// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
 ///
 /// // Create a list of user IDs
 /// let user_ids = List::from_values([
@@ -47,12 +46,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let values = vec![
     ///     string("first"),
@@ -77,12 +75,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let original = List::from_values([string("a"), string("b")]);
     /// let extended = original.push(string("c"));
@@ -109,12 +106,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let original = List::from_values([string("a"), string("b")]);
     /// let popped = original.pop().unwrap();
@@ -144,12 +140,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let list = List::from_values([string("zero"), string("one"), string("two")]);
     ///
@@ -173,12 +168,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let original = List::from_values([string("old_value"), string("keep_this")]);
     ///
@@ -205,12 +199,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_list = List::from_values([]);
     /// assert_eq!(empty_list.len(), 0);
@@ -230,12 +223,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let empty_list = List::from_values([]);
     /// assert!(empty_list.is_empty());
@@ -255,12 +247,11 @@ impl<'heap> List<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     literal::{LiteralKind, StringLiteral},
-    ///     value::{List, Value},
+    ///     value::{List, Primitive, String, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let string = |value: &'static str| Value::Primitive(Primitive::String(String::new(heap.intern_symbol(value))));
     ///
     /// let list = List::from_values([string("first"), string("second"), string("third")]);
     ///

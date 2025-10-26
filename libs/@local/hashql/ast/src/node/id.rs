@@ -19,6 +19,8 @@ id::newtype!(
     pub struct NodeId(u32 is 0..=0xFFFF_FF00)
 );
 
+id::newtype_collections!(pub type NodeId* from NodeId);
+
 impl NodeId {
     /// A placeholder ID used during initial parsing.
     ///

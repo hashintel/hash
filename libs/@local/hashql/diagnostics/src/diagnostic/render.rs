@@ -222,9 +222,14 @@ impl<'sources, 'source> RenderOptions<'sources, 'source> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "this is just the type of error we currently support"
+)]
 pub(crate) enum RenderError<'this, S> {
     SourceNotFound(SourceId),
     SpanNotFound(Option<SourceId>, &'this S),
+    ConcreteSourceNotFound,
 }
 
 pub(crate) struct RenderContext<'group, 'ctx, 'sources, C> {
@@ -340,6 +345,34 @@ where
         group
     }
 
+    fn concrete_source_not_found(&self) -> Group<'_> {
+        // This error happens whenever we have a set of labels/patches (anything that has a span
+        // attached) where there are only spans that are synthetic, meaning we cannot infer the
+        // concrete source.
+        let mut group = severity_to_level(Severity::Bug)
+            .primary_title("diagnostic rendering failed due to synthetic spans")
+            .id("internal::render::concrete-source-not-found")
+            .element(Level::NOTE.message(format!(
+                "all spans are synthetic while rendering {} ({})",
+                CanonicalDiagnosticCategoryName::new(&self.category),
+                CanonicalDiagnosticCategoryId::new(&self.category)
+            )));
+
+        group =
+            group.element(Level::NOTE.message(
+                "cannot display diagnostic because no concrete source location is available",
+            ));
+
+        group = group.elements(
+            Severity::Bug
+                .messages::<!>()
+                .iter()
+                .map(Message::render_plain),
+        );
+
+        group
+    }
+
     #[expect(clippy::indexing_slicing, reason = "checked that non-empty")]
     pub(crate) fn to_annotation_groups<'group, R>(
         &'group self,
@@ -369,18 +402,25 @@ where
 
         let mut group = Group::with_title(title);
 
-        for chunk in self
-            .labels
-            .as_slice()
-            .chunk_by(|lhs, rhs| lhs.span().source() == rhs.span().source())
-        {
+        for chunk in self.labels.as_slice().chunk_by(|lhs, rhs| {
+            lhs.span().source() == rhs.span().source()
+                || lhs.span().is_synthetic()
+                || rhs.span().is_synthetic()
+        }) {
             assert!(!chunk.is_empty());
 
-            let source = chunk[0].span().source();
-            let Some(source) = options.sources.get(source) else {
+            let Some(source_id) = chunk
+                .iter()
+                .find_map(|label| (!label.span().is_synthetic()).then(|| label.span().source()))
+            else {
+                context.groups.push(self.concrete_source_not_found());
+                continue;
+            };
+
+            let Some(source) = options.sources.get(source_id) else {
                 context
                     .groups
-                    .push(self.source_not_found(source, context.resolver));
+                    .push(self.source_not_found(source_id, context.resolver));
                 continue;
             };
 
@@ -394,6 +434,9 @@ where
                         .push(self.source_not_found(source, context.resolver)),
                     Err(RenderError::SpanNotFound(_, span)) => {
                         context.groups.push(self.span_not_found(span, Some(source)));
+                    }
+                    Err(RenderError::ConcreteSourceNotFound) => {
+                        context.groups.push(self.concrete_source_not_found());
                     }
                 }
             }
@@ -411,6 +454,9 @@ where
                 Err(RenderError::SpanNotFound(source, span)) => context
                     .groups
                     .push(self.span_not_found(span, source.and_then(|id| options.sources.get(id)))),
+                Err(RenderError::ConcreteSourceNotFound) => {
+                    context.groups.push(self.concrete_source_not_found());
+                }
             }
         }
 
@@ -438,6 +484,7 @@ where
     ///     Diagnostic, Label, Severity, Sources,
     ///     diagnostic::render::{Format, RenderOptions},
     /// };
+    /// # use hashql_diagnostics::source::SourceSpan;
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "syntax_error", name: "Syntax Error"
@@ -453,15 +500,18 @@ where
     /// #        hashql_diagnostics::source::SourceId::new_unchecked(0)
     /// #    }
     /// #
-    /// #    fn span(&self, resolver: &mut R) -> Option<text_size::TextRange> {
-    /// #        Some(text_size::TextRange::new(
-    /// #            self.0.start.into(),
-    /// #            self.0.end.into(),
+    /// #    fn absolute(&self, resolver: &mut R) -> Option<SourceSpan> {
+    /// #        Some(SourceSpan::from_parts(
+    /// #            hashql_diagnostics::source::SourceId::new_unchecked(0),
+    /// #            text_size::TextRange::new(
+    /// #                self.0.start.into(),
+    /// #                self.0.end.into(),
+    /// #            )
     /// #        ))
     /// #    }
     /// #
-    /// #    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
-    /// #        []
+    /// #    fn is_synthetic(&self) -> bool {
+    /// #        false
     /// #    }
     /// # }
     /// # fn make_resolver() { }
@@ -485,6 +535,7 @@ where
     ///     Diagnostic, Label, Severity, Sources,
     ///     diagnostic::render::{Charset, ColorDepth, Format, RenderOptions},
     /// };
+    /// # use hashql_diagnostics::source::SourceSpan;
     /// # use hashql_diagnostics::category::TerminalDiagnosticCategory;
     /// # const CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     /// #     id: "warning", name: "Warning"
@@ -500,15 +551,18 @@ where
     /// #        hashql_diagnostics::source::SourceId::new_unchecked(0)
     /// #    }
     /// #
-    /// #    fn span(&self, resolver: &mut R) -> Option<text_size::TextRange> {
-    /// #        Some(text_size::TextRange::new(
-    /// #            self.0.start.into(),
-    /// #            self.0.end.into(),
+    /// #    fn absolute(&self, resolver: &mut R) -> Option<SourceSpan> {
+    /// #        Some(SourceSpan::from_parts(
+    /// #            hashql_diagnostics::source::SourceId::new_unchecked(0),
+    /// #            text_size::TextRange::new(
+    /// #                self.0.start.into(),
+    /// #                self.0.end.into(),
+    /// #            )
     /// #        ))
     /// #    }
     /// #
-    /// #    fn ancestors(&self, resolver: &mut R) -> impl IntoIterator<Item = Self> + use<R> {
-    /// #        []
+    /// #    fn is_synthetic(&self) -> bool {
+    /// #        false
     /// #    }
     /// # }
     /// # fn make_resolver() { }

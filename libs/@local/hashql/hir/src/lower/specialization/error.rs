@@ -3,7 +3,6 @@ use alloc::borrow::Cow;
 use hashql_core::{
     pretty::{PrettyOptions, PrettyPrint as _},
     span::SpanId,
-    r#type::environment::Environment,
 };
 use hashql_diagnostics::{
     Diagnostic, Label,
@@ -12,7 +11,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use crate::node::Node;
+use crate::{node::Node, pretty::PrettyPrintEnvironment};
 
 pub type SpecializationDiagnostic = Diagnostic<SpecializationDiagnosticCategory, SpanId>;
 
@@ -140,7 +139,7 @@ pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> Specializ
 /// This occurs when following a graph chain but encountering a specialized operation
 /// that is not a graph operation (e.g., a math operation that was already processed).
 pub(crate) fn invalid_graph_chain<'heap>(
-    env: &Environment<'heap>,
+    env: &PrettyPrintEnvironment<'_, 'heap>,
     span: SpanId,
     node: Node<'heap>,
 ) -> SpecializationDiagnostic {
@@ -173,7 +172,7 @@ pub(crate) fn invalid_graph_chain<'heap>(
 /// This occurs when a graph operation chain contains a function call that is not
 /// mapped to an intrinsic operation.
 pub(crate) fn non_intrinsic_graph_operation<'heap>(
-    env: &Environment<'heap>,
+    env: &PrettyPrintEnvironment<'_, 'heap>,
     span: SpanId,
     function: Node<'heap>,
 ) -> SpecializationDiagnostic {

@@ -38,7 +38,7 @@ use type_system::{
             ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
             DataTypeMetadata, Operator, Variable,
         },
-        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, VersionedUrl},
         json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
@@ -521,7 +521,7 @@ where
         conversions,
     }) = body;
 
-    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+    type_to_update.version.major += 1;
 
     let data_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
@@ -584,8 +584,7 @@ where
                  provenance,
                  conversions,
              }| {
-                type_to_update.version =
-                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+                type_to_update.version.major += 1;
 
                 Ok(UpdateDataTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)

@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::fmt::Debug;
 
 use hashql_core::{
-    span::SpanId,
+    span::{SpanId, Spanned},
     symbol::Ident,
     value::{FieldAccessError, IndexAccessError},
 };
@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     diagnostic::Message,
     severity::Severity,
 };
-use hashql_hir::node::{operation::binary::BinOp, variable::QualifiedVariable};
+use hashql_hir::node::{branch::Branch, operation::BinOp, variable::QualifiedVariable};
 
 use super::{FilterCompilerContext, convert::ConversionError};
 
@@ -82,6 +82,16 @@ const NESTED_GRAPH_READ_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagno
     name: "Nested graph read operations not supported",
 };
 
+const BRANCH_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "branch-unsupported",
+    name: "Branch construct unsupported",
+};
+
+const PATH_IN_DATA_CONSTRUCT_UNSUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "path-in-data-construct-unsupported",
+    name: "Path in data construct unsupported",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum GraphReadCompilerDiagnosticCategory {
     ValueParameterConversion,
@@ -96,6 +106,8 @@ pub enum GraphReadCompilerDiagnosticCategory {
     CallUnsupported,
     ClosureUnsupported,
     NestedGraphReadUnsupported,
+    BranchUnsupported,
+    PathInDataConstructUnsupported,
 }
 
 impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
@@ -121,6 +133,8 @@ impl DiagnosticCategory for GraphReadCompilerDiagnosticCategory {
             Self::CallUnsupported => Some(&CALL_UNSUPPORTED),
             Self::ClosureUnsupported => Some(&CLOSURE_UNSUPPORTED),
             Self::NestedGraphReadUnsupported => Some(&NESTED_GRAPH_READ_UNSUPPORTED),
+            Self::BranchUnsupported => Some(&BRANCH_UNSUPPORTED),
+            Self::PathInDataConstructUnsupported => Some(&PATH_IN_DATA_CONSTRUCT_UNSUPPORTED),
         }
     }
 }
@@ -200,13 +214,14 @@ pub(super) fn path_conversion_error(
 pub(super) fn qualified_variable_unsupported(
     context: FilterCompilerContext,
     variable: &QualifiedVariable,
+    span: SpanId,
 ) -> GraphReadCompilerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::QualifiedVariableUnsupported,
         Severity::Error,
     )
     .primary(Label::new(
-        variable.span,
+        span,
         format!(
             "Qualified variable `{}` not supported here",
             variable.name()
@@ -268,7 +283,7 @@ pub(super) fn type_constructor_unsupported(
 
 pub(super) fn binary_operation_unsupported(
     context: FilterCompilerContext,
-    op: BinOp,
+    op: Spanned<BinOp>,
 ) -> GraphReadCompilerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GraphReadCompilerDiagnosticCategory::BinaryOperationUnsupported,
@@ -276,7 +291,7 @@ pub(super) fn binary_operation_unsupported(
     )
     .primary(Label::new(
         op.span,
-        format!("Operation `{}` not supported here", op.kind.as_str()),
+        format!("Operation `{}` not supported here", op.value.as_str()),
     ));
 
     diagnostic.labels.push(Label::new(
@@ -288,7 +303,7 @@ pub(super) fn binary_operation_unsupported(
         "The `{0}` operation can only be used at the top level of filter conditions, not as an \
          operand in other operations. For example, `(a {0} b) == c` is not allowed, but `(a {0} \
          b) && (c == d)` is valid.",
-        op.kind.as_str(),
+        op.value.as_str(),
     )));
 
     diagnostic.add_message(Message::note(
@@ -523,7 +538,7 @@ pub(super) fn nested_graph_read_unsupported(
     )
     .primary(Label::new(
         graph_span,
-        "Nested graph operation not supported here",
+        "Nested graph read operations not supported here",
     ));
 
     diagnostic.labels.push(Label::new(
@@ -532,15 +547,119 @@ pub(super) fn nested_graph_read_unsupported(
     ));
 
     diagnostic.add_message(Message::help(
-        "Filter expressions do not currently support nested graph operations. Move the graph \
-         operation outside the filter expression, assign the result to a variable, and use that \
-         variable in the filter instead.",
+        "Filter expressions do not support nested graph operations. Use a separate query for the \
+         nested graph read and pass the result to this filter expression.",
     ));
 
     diagnostic.add_message(Message::note(
-        "Nested graph operations in filter expressions are not yet implemented. This is a current \
-         limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and \
-         https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.",
+        "Nested graph reads in filter expressions are not yet implemented. This is a current \
+         limitation that is being tracked in \
+         https://linear.app/hash/issue/H-4913/hashql-implement-vm.",
+    ));
+
+    diagnostic
+}
+
+/// Context type for branch unsupported diagnostics.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BranchContext {
+    /// Branch in a filter boolean expression context
+    Filter,
+    /// Branch in a filter expression context
+    FilterExpression,
+}
+
+/// Creates a diagnostic for unsupported branch constructs in filter contexts.
+///
+/// This diagnostic is emitted when conditional statements (if/else) are encountered
+/// in filter contexts where they are not supported.
+///
+/// # Arguments
+///
+/// * `context` - The filter compilation context containing the parent filter span
+/// * `branch` - The branch construct that is not supported
+/// * `branch_context` - Whether this is in a filter or filter expression context
+///
+/// # Returns
+///
+/// A diagnostic indicating that branch constructs are not supported in this context,
+/// with guidance on how to restructure the code.
+pub(super) fn branch_unsupported(
+    branch: &Branch,
+    span: SpanId,
+    branch_context: BranchContext,
+) -> GraphReadCompilerDiagnostic {
+    // Create specific primary message based on branch type
+    let primary_message = match branch {
+        Branch::If(_) => "conditional expressions are not supported in filter contexts",
+    };
+
+    let mut diagnostic = Diagnostic::new(
+        GraphReadCompilerDiagnosticCategory::BranchUnsupported,
+        Severity::Error,
+    )
+    .primary(Label::new(span, primary_message));
+
+    diagnostic.add_message(Message::help(
+        "rewrite the logic to avoid conditional statements",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "conditional statements (`if`/`else`) are not supported by the current query compiler. \
+         This is a fundamental limitation that will be addressed in the next-generation compiler",
+    ));
+
+    match branch_context {
+        BranchContext::Filter => {
+            diagnostic.add_message(Message::note(
+                "consider using boolean operators (`&&`, `||`, `!`) to combine conditions \
+                 directly instead of `if` statements",
+            ));
+        }
+        BranchContext::FilterExpression => {
+            diagnostic.add_message(Message::note(
+                "conditional logic must be handled outside the query or using other language \
+                 constructs",
+            ));
+        }
+    }
+
+    diagnostic
+}
+
+/// Creates a diagnostic for unsupported path expressions within data constructs.
+///
+/// This diagnostic is emitted when path expressions are encountered within data
+/// constructs like tuples, lists, dictionaries, or structs, where they are not
+/// supported by the current query compiler.
+///
+/// # Arguments
+///
+/// * `path_span` - The span of the path expression within the data construct
+/// * `construct_name` - The name of the data construct containing the path (e.g., "tuple", "list")
+///
+/// # Returns
+///
+/// A diagnostic indicating that path expressions are not supported within the
+/// specified data construct, with guidance on alternative approaches.
+pub(super) fn path_in_data_construct_unsupported(path_span: SpanId) -> GraphReadCompilerDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        GraphReadCompilerDiagnosticCategory::PathInDataConstructUnsupported,
+        Severity::Error,
+    )
+    .primary(Label::new(
+        path_span,
+        "path expressions are not supported in data constructs",
+    ));
+
+    diagnostic.add_message(Message::help(
+        "rewrite the logic to avoid path expressions in data constructs",
+    ));
+
+    diagnostic.add_message(Message::note(
+        "path expressions within complex data constructs (tuples, lists, dictionaries, structs) \
+         are not supported by the current query compiler. This is a fundamental limitation that \
+         will be addressed in the next-generation compiler",
     ));
 
     diagnostic

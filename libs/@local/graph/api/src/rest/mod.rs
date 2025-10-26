@@ -48,9 +48,8 @@ use hash_graph_store::{
     property_type::PropertyTypeStore,
     subgraph::{
         edges::{
-            EdgeResolveDepths, EntityTraversalEdgeDirection, GraphResolveDepths,
-            KnowledgeGraphEdgeKind, OntologyEdgeKind, OntologyTraversalEdgeDirection,
-            OutgoingEdgeResolveDepth, SharedEdgeKind, TraversalEdge, TraversalPath,
+            EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths,
+            KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind, TraversalEdge, TraversalPath,
         },
         identifier::{
             DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
@@ -457,15 +456,14 @@ async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, Statu
             KnowledgeGraphOutwardEdge,
             Edges,
             GraphResolveDepths,
-            EdgeResolveDepths,
-            OutgoingEdgeResolveDepth,
             Subgraph,
             SubgraphTemporalAxes,
 
             TraversalEdge,
             TraversalPath,
-            EntityTraversalEdgeDirection,
-            OntologyTraversalEdgeDirection,
+            EntityTraversalEdge,
+            EntityTraversalPath,
+            EdgeDirection,
 
             DecisionTime,
             TransactionTime,

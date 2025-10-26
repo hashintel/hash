@@ -1,11 +1,10 @@
 pub mod error;
 
-use core::{convert::Infallible, ops::Try};
+use core::convert::Infallible;
 
 use hashql_core::{
-    collection::{FastHashMap, SmallVec},
-    module::{Universe, universe::FastRealmsMap},
-    symbol::Symbol,
+    collections::{FastHashMap, HashMapExt as _, SmallVec},
+    span::{SpanId, Spanned},
     r#type::{TypeId, environment::Environment},
 };
 
@@ -15,54 +14,55 @@ use self::error::{
 };
 use super::error::{LoweringDiagnosticCategory, LoweringDiagnosticIssues};
 use crate::{
+    context::HirContext,
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        HirId, Node, PartialNode,
+        HirIdMap, Node, PartialNode,
         call::Call,
         graph::{
-            Graph, GraphKind,
+            Graph,
             read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         },
         kind::NodeKind,
-        r#let::Let,
-        operation::{
-            BinaryOperation, Operation, OperationKind,
-            binary::{BinOp, BinOpKind},
-        },
-        variable::{Variable, VariableKind},
+        r#let::{Binding, VarIdMap},
+        operation::{BinOp, BinaryOperation, Operation},
+        variable::Variable,
     },
+    pretty::PrettyPrintEnvironment,
 };
 
 pub struct Specialization<'env, 'heap, 'diag> {
     env: &'env Environment<'heap>,
-    interner: &'env Interner<'heap>,
+    context: &'env HirContext<'env, 'heap>,
 
-    types: &'env mut FastHashMap<HirId, TypeId>,
-    intrinsics: FastHashMap<HirId, &'static str>,
+    types: &'env mut HirIdMap<TypeId>,
+    intrinsics: HirIdMap<&'static str>,
 
-    visited: FastHashMap<HirId, Node<'heap>>,
-    locals: FastRealmsMap<Symbol<'heap>, Node<'heap>>,
+    current_span: SpanId,
+    visited: HirIdMap<Node<'heap>>,
+    locals: VarIdMap<Node<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
 impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     pub fn new(
         env: &'env Environment<'heap>,
-        interner: &'env Interner<'heap>,
-        types: &'env mut FastHashMap<HirId, TypeId>,
-        intrinsics: FastHashMap<HirId, &'static str>,
+        context: &'env HirContext<'env, 'heap>,
+        types: &'env mut HirIdMap<TypeId>,
+        intrinsics: HirIdMap<&'static str>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
         Self {
             env,
-            interner,
+            context,
 
             types,
             intrinsics,
 
+            current_span: SpanId::SYNTHETIC,
             visited: FastHashMap::default(),
-            locals: FastRealmsMap::default(),
+            locals: FastHashMap::default(),
             diagnostics,
         }
     }
@@ -88,24 +88,30 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
         let mut next = call.arguments[0].value;
         loop {
             // Follow any local variables
-            while let NodeKind::Variable(Variable {
-                kind: VariableKind::Local(local),
-                ..
-            }) = next.kind
-            {
-                next = self.locals[Universe::Value][&local.name.value];
+            while let NodeKind::Variable(Variable::Local(local)) = next.kind {
+                next = self.locals[&local.id.value];
             }
 
             let NodeKind::Call(call) = next.kind else {
-                self.push_diagnostic(invalid_graph_chain(self.env, next.span, next));
+                self.push_diagnostic(invalid_graph_chain(
+                    &PrettyPrintEnvironment {
+                        env: self.env,
+                        symbols: &self.context.symbols,
+                    },
+                    next.span,
+                    next,
+                ));
 
                 return None;
             };
 
             let Some(&intrinsic) = self.intrinsics.get(&call.function.id) else {
                 self.push_diagnostic(non_intrinsic_graph_operation(
-                    self.env,
-                    call.span,
+                    &PrettyPrintEnvironment {
+                        env: self.env,
+                        symbols: &self.context.symbols,
+                    },
+                    call.function.span,
                     call.function,
                 ));
 
@@ -130,14 +136,13 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     body.reverse();
 
                     return Some(GraphRead {
-                        span: call.span,
                         head,
-                        body: self.interner.graph_read_body.intern_slice(&body),
+                        body: self.context.interner.graph_read_body.intern_slice(&body),
                         tail,
                     });
                 }
                 _ => {
-                    self.push_diagnostic(non_graph_intrinsic(call.span, intrinsic));
+                    self.push_diagnostic(non_graph_intrinsic(call.function.span, intrinsic));
 
                     return None;
                 }
@@ -152,7 +157,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
     ) -> <Self as Fold<'heap>>::Output<Option<Node<'heap>>> {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         enum OpKind {
-            Bin(BinOpKind),
+            Bin(BinOp),
         }
 
         #[expect(clippy::match_same_arms)]
@@ -179,12 +184,12 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 return Ok(None);
             }
-            "::core::cmp::gt" => OpKind::Bin(BinOpKind::Gt),
-            "::core::cmp::lt" => OpKind::Bin(BinOpKind::Lt),
-            "::core::cmp::gte" => OpKind::Bin(BinOpKind::Gte),
-            "::core::cmp::lte" => OpKind::Bin(BinOpKind::Lte),
-            "::core::cmp::eq" => OpKind::Bin(BinOpKind::Eq),
-            "::core::cmp::ne" => OpKind::Bin(BinOpKind::Ne),
+            "::core::cmp::gt" => OpKind::Bin(BinOp::Gt),
+            "::core::cmp::lt" => OpKind::Bin(BinOp::Lt),
+            "::core::cmp::gte" => OpKind::Bin(BinOp::Gte),
+            "::core::cmp::lte" => OpKind::Bin(BinOp::Lte),
+            "::core::cmp::eq" => OpKind::Bin(BinOp::Eq),
+            "::core::cmp::ne" => OpKind::Bin(BinOp::Ne),
             "::core::bool::not" => {
                 self.push_diagnostic(unsupported_intrinsic(
                     call.function.span,
@@ -194,8 +199,8 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 return Ok(None);
             }
-            "::core::bool::and" => OpKind::Bin(BinOpKind::And),
-            "::core::bool::or" => OpKind::Bin(BinOpKind::Or),
+            "::core::bool::and" => OpKind::Bin(BinOp::And),
+            "::core::bool::or" => OpKind::Bin(BinOp::Or),
             "::graph::head::entities" | "::graph::body::filter" => {
                 // We ignore this on purpose, as `graph::tail::collect` will process these
                 return Ok(None);
@@ -211,12 +216,9 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 let read = fold::walk_graph_read(self, read)?;
 
-                return Ok(Some(self.interner.intern_node(PartialNode {
-                    span: call.span,
-                    kind: NodeKind::Graph(Graph {
-                        span: call.span,
-                        kind: GraphKind::Read(read),
-                    }),
+                return Ok(Some(self.context.interner.intern_node(PartialNode {
+                    span: self.current_span,
+                    kind: NodeKind::Graph(Graph::Read(read)),
                 })));
             }
             _ => {
@@ -226,11 +228,11 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             }
         };
 
-        let kind = match op {
-            OpKind::Bin(kind) => {
-                let op = BinOp {
+        let operation = match op {
+            OpKind::Bin(value) => {
+                let op = Spanned {
                     span: call.function.span,
-                    kind,
+                    value,
                 };
 
                 assert_eq!(
@@ -239,8 +241,7 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
                     "Expected 2 arguments for binary operation"
                 );
 
-                OperationKind::Binary(BinaryOperation {
-                    span: call.span,
+                Operation::Binary(BinaryOperation {
                     op,
                     left: call.arguments[0].value,
                     right: call.arguments[1].value,
@@ -248,15 +249,10 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             }
         };
 
-        let operation = Operation {
-            span: call.span,
-            kind,
-        };
-
         let operation = fold::walk_operation(self, operation)?;
 
-        Ok(Some(self.interner.intern_node(PartialNode {
-            span: call.span,
+        Ok(Some(self.context.interner.intern_node(PartialNode {
+            span: self.current_span,
             kind: NodeKind::Operation(operation),
         })))
     }
@@ -271,33 +267,22 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
     type Residual = Result<Infallible, !>;
 
     fn interner(&self) -> &Interner<'heap> {
-        self.interner
+        self.context.interner
     }
 
-    fn fold_let(
-        &mut self,
-        Let {
+    fn fold_binding(&mut self, binding: Binding<'heap>) -> Self::Output<Binding<'heap>> {
+        let Binding {
             span,
-            name,
+            binder,
             value,
-            body,
-        }: Let<'heap>,
-    ) -> Self::Output<Let<'heap>> {
-        let span = self.fold_span(span)?;
-        let name = self.fold_ident(name)?;
+        } = fold::walk_binding(self, binding)?;
 
-        let value = self.fold_nested_node(value)?;
+        self.locals.insert_unique(binder.id, value);
 
-        self.locals
-            .insert_unique(Universe::Value, name.value, value);
-
-        let body = self.fold_nested_node(body)?;
-
-        Try::from_output(Let {
+        Ok(Binding {
             span,
-            name,
+            binder,
             value,
-            body,
         })
     }
 
@@ -309,6 +294,9 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         if let Some(&existing) = self.visited.get(&node_id) {
             return Ok(existing);
         }
+
+        let previous = self.current_span;
+        self.current_span = node.span;
 
         // We need to check **before** folding the call, if the function is an intrinsic, otherwise
         // the underlying HirId might've been changed
@@ -347,6 +335,8 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
         }
 
         self.visited.insert(node_id, node);
+
+        self.current_span = previous;
 
         Ok(node)
     }

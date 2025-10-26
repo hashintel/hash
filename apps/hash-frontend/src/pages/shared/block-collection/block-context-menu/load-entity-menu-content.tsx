@@ -14,10 +14,7 @@ import {
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import type { EntityStoreType } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  currentTimeInstantTemporalAxes,
-  zeroedGraphResolveDepths,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   Box,
   InputAdornment,
@@ -71,10 +68,11 @@ export const LoadEntityMenuContent: FunctionComponent<
           operator: "AND",
         }),
         temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          isOfType: { outgoing: 1 },
-        },
+        traversalPaths: [
+          {
+            edges: [{ kind: "is-of-type" }],
+          },
+        ],
         includeDrafts: false,
         includePermissions: false,
       },

@@ -1,0 +1,11 @@
+error[graph-read-compiler::branch-unsupported]: Branch construct unsupported
+   ╭▸ 
+10 │ ┏         ["if", {"#literal": true},
+11 │ ┃           "vertex.id.entity_id.entity_uuid",
+12 │ ┃           "vertex.id.entity_id.entity_uuid"
+13 │ ┃         ]
+   │ ┗━━━━━━━━━┛ conditional expressions are not supported in filter contexts
+   │
+   ├ help: rewrite the logic to avoid conditional statements
+   ├ note: conditional statements (`if`/`else`) are not supported by the current query compiler. This is a fundamental limitation that will be addressed in the next-generation compiler
+   ╰ note: conditional logic must be handled outside the query or using other language constructs

@@ -37,7 +37,7 @@ use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         entity_type::{EntityType, EntityTypeMetadata, EntityTypeWithMetadata},
-        id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+        id::{BaseUrl, VersionedUrl},
         json_schema::{DomainValidator, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
@@ -684,7 +684,7 @@ where
         provenance,
     }) = body;
 
-    type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+    type_to_update.version.major += 1;
 
     let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
@@ -745,8 +745,7 @@ where
                  mut type_to_update,
                  provenance,
              }| {
-                type_to_update.version =
-                    OntologyTypeVersion::new(type_to_update.version.inner() + 1);
+                type_to_update.version.major += 1;
 
                 Ok(UpdateEntityTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)

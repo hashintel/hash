@@ -1,4 +1,3 @@
-import type { OntologyTypeVertexId } from "@blockprotocol/graph";
 import type {
   DataType,
   EntityType,
@@ -9,18 +8,18 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
-import type { ApolloError } from "apollo-server-express";
+import type { GraphQLError } from "graphql";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
 import type {
-  QueryDataTypeSubgraphQuery,
-  QueryDataTypeSubgraphQueryVariables,
-  QueryEntityTypeSubgraphQuery,
-  QueryEntityTypeSubgraphQueryVariables,
-  QueryPropertyTypeSubgraphQuery,
-  QueryPropertyTypeSubgraphQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../graphql/api-types.gen";
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
@@ -45,7 +44,7 @@ const makeGraphQlRequest = async <Data, Variables>(
   query: string,
   variables: Variables,
   cookie: string | null,
-): Promise<{ data?: Data | null; errors?: ApolloError[] | null }> => {
+): Promise<{ data?: Data | null; errors?: GraphQLError[] | null }> => {
   const { data, errors } = await fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: { "content-type": "application/json", cookie: cookie ?? "" },
@@ -95,50 +94,37 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
-    | QueryEntityTypeSubgraphQuery
-    | QueryDataTypeSubgraphQuery
-    | QueryPropertyTypeSubgraphQuery,
-    | QueryEntityTypeSubgraphQueryVariables
-    | QueryDataTypeSubgraphQueryVariables
-    | QueryPropertyTypeSubgraphQueryVariables
+    QueryEntityTypesQuery | QueryDataTypesQuery | QueryPropertyTypesQuery,
+    | QueryEntityTypesQueryVariables
+    | QueryDataTypesQueryVariables
+    | QueryPropertyTypesQueryVariables
   >(query, variables, cookie);
 
   if (errors ?? !data) {
-    const { code, message } = errors?.[0] ?? {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Unknown error",
-    };
+    const message = errors?.[0]?.message ?? "Unknown error";
+    const code = (errors?.[0]?.extensions.code ??
+      "INTERNAL_SERVER_ERROR") as string;
+
     return generateErrorResponse(
       code === "FORBIDDEN" ? 401 : code === "INTERNAL_SERVER_ERROR" ? 500 : 400,
       message,
     );
   }
 
-  const { roots, vertices } =
-    "queryDataTypeSubgraph" in data
-      ? data.queryDataTypeSubgraph.subgraph
-      : "queryEntityTypeSubgraph" in data
-        ? data.queryEntityTypeSubgraph.subgraph
-        : data.queryPropertyTypeSubgraph.subgraph;
+  const ontologyTypes =
+    "queryDataTypes" in data
+      ? data.queryDataTypes.dataTypes
+      : "queryEntityTypes" in data
+        ? data.queryEntityTypes.entityTypes
+        : data.queryPropertyTypes.propertyTypes;
 
-  const root = roots[0] as OntologyTypeVertexId | undefined;
-  if (!root) {
+  const schema = ontologyTypes[0]?.schema;
+  if (!schema) {
     return generateErrorResponse(
       404,
       `Could not find requested ${ontologyType} type at URL ${url}`,
     );
   }
 
-  const { baseId, revisionId } = root;
-
-  const type = vertices[baseId]?.[revisionId.toString()];
-
-  if (!type) {
-    return generateErrorResponse(
-      500,
-      "Internal error: root vertex not present in vertices",
-    );
-  }
-
-  return generateJsonResponse(type.inner.schema);
+  return generateJsonResponse(schema);
 };

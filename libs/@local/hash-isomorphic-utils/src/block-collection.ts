@@ -1,5 +1,5 @@
-import type { GraphResolveDepths } from "@blockprotocol/graph";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
 import { simplifyProperties } from "./simplify-properties.js";
 import type {
@@ -17,13 +17,17 @@ import type {
  *
  * @param blockDataDepth - the depth at which to resolve linked block data entities (1 by default)
  */
-export const getBlockCollectionResolveDepth = ({
+export const getBlockCollectionTraversalPath = ({
   blockDataDepth = 1,
 }: {
   blockDataDepth?: number;
-}): Pick<GraphResolveDepths, "hasLeftEntity" | "hasRightEntity"> => ({
-  hasLeftEntity: { incoming: blockDataDepth + 1, outgoing: 0 },
-  hasRightEntity: { incoming: 0, outgoing: blockDataDepth + 1 },
+}): EntityTraversalPath => ({
+  edges: Array(blockDataDepth + 1)
+    .fill([
+      { kind: "has-left-entity", direction: "incoming" },
+      { kind: "has-right-entity", direction: "outgoing" },
+    ])
+    .flat(),
 });
 
 const isSpatiallyPositionedProperties = (

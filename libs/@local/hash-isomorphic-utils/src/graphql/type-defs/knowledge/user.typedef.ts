@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const userTypedef = gql`
   scalar AggregatedUsageRecord
@@ -10,10 +10,7 @@ export const userTypedef = gql`
   }
 
   extend type Query {
-    me(
-      hasLeftEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
-      hasRightEntity: EdgeResolveDepthsInput! = { incoming: 0, outgoing: 0 }
-    ): SubgraphAndPermissions!
+    me: SubgraphAndPermissions!
     """
     Determines whether a provided shortname is already taken
     """

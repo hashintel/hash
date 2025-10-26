@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Test tuple inference
+{
+  "#tuple": [{ "#literal": 1 }, { "#literal": 2 }, { "#literal": 3 }],
+  "#type": "(_, _, _)"
+}

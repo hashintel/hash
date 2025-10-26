@@ -1,4 +1,4 @@
-use hashql_core::span::SpanId;
+use hashql_core::span::Spanned;
 
 use crate::node::Node;
 
@@ -7,7 +7,7 @@ use crate::node::Node;
 /// Represents the various operations that can be performed with two operands,
 /// including arithmetic, comparison, logical, and bitwise operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum BinOpKind {
+pub enum BinOp {
     /// The `+` operator (addition)
     Add(!),
     /// The `-` operator (subtraction)
@@ -50,7 +50,7 @@ pub enum BinOpKind {
     Gte,
 }
 
-impl BinOpKind {
+impl BinOp {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -66,17 +66,6 @@ impl BinOpKind {
     }
 }
 
-/// A binary operator in the HashQL HIR.
-///
-/// Represents a specific binary operation to be performed, such as addition,
-/// comparison, or a logical operation. Includes source span information for error reporting.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct BinOp {
-    pub span: SpanId,
-
-    pub kind: BinOpKind,
-}
-
 /// A binary operation expression in the HashQL HIR.
 ///
 /// Represents a computation that combines two operands with a binary operator
@@ -84,9 +73,8 @@ pub struct BinOp {
 /// the core of most computational expressions in HashQL.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BinaryOperation<'heap> {
-    pub span: SpanId,
+    pub op: Spanned<BinOp>,
 
-    pub op: BinOp,
     pub left: Node<'heap>,
     pub right: Node<'heap>,
 }

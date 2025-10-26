@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "graphql-tag";
 
 export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesRootMap
@@ -22,7 +22,7 @@ export const entityTypedef = gql`
   scalar PropertyObjectWithMetadata
   scalar PropertyPatchOperation
   scalar QueryOperationInput
-  scalar SerializedEntity
+  scalar Entity
   scalar TypeIdsMap
   scalar TypeTitlesMap
   scalar UserPermissions
@@ -111,6 +111,10 @@ export const entityTypedef = gql`
 
   extend type Query {
     countEntities(request: CountEntitiesParams!): Int!
+
+    queryEntities(
+      request: QueryEntitiesRequest!
+    ): QueryEntitiesResponse!
 
     queryEntitySubgraph(
       request: QueryEntitySubgraphRequest!
@@ -216,17 +220,17 @@ export const entityTypedef = gql`
       Set the permission relations on the entity
       """
       relationships: [EntityRelationAndSubject!]
-    ): SerializedEntity!
+    ): Entity!
 
     """
     Update an entity.
     """
-    updateEntity(entityUpdate: EntityUpdateDefinition!): SerializedEntity!
+    updateEntity(entityUpdate: EntityUpdateDefinition!): Entity!
 
     """
     Update multiple entities.
     """
-    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): SerializedEntity!
+    updateEntities(entityUpdates: [EntityUpdateDefinition!]!): Entity!
 
     """
     Archive an entity.
