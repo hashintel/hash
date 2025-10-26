@@ -5,7 +5,7 @@
 //! including traversals, pattern matching, and data retrieval operations.
 pub mod read;
 
-use self::read::GraphRead;
+pub use self::read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail};
 
 /// A graph operation node in the HashQL HIR.
 ///

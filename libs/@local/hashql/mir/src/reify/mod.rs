@@ -26,12 +26,14 @@ use hashql_hir::{
         call::{Call, CallArgument, PointerKind},
         closure::Closure,
         data::{Data, Dict, List, Struct, Tuple},
+        graph::{self, Graph},
         kind::NodeKind,
-        r#let::{Binding, Let, VarId, VarIdMap, VarIdVec},
+        r#let::{Binding, Let, VarId, VarIdVec},
         operation::{
             BinaryOperation, InputOperation, Operation, TypeConstructor, TypeOperation,
             UnaryOperation,
         },
+        thunk::Thunk,
         variable::Variable,
     },
     visit::Visitor as _,
@@ -47,18 +49,18 @@ use crate::{
         place::{FieldIndex, Place, Projection},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
-        terminator::{Branch, Goto, Return, Target, Terminator, TerminatorKind},
+        terminator::{self, Branch, Goto, GraphRead, Return, Target, Terminator, TerminatorKind},
     },
     def::{DefId, DefIdVec},
     intern::Interner,
 };
 
-struct ReifyContext<'mir, 'hir, 'env, 'heap> {
-    bodies: &'mir mut DefIdVec<Body<'heap>>,
-    interner: &'mir Interner<'heap>,
-    environment: &'env Environment<'heap>,
-    hir: &'hir HirContext<'hir, 'heap>,
-    heap: &'heap Heap,
+pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
+    pub bodies: &'mir mut DefIdVec<Body<'heap>>,
+    pub interner: &'mir Interner<'heap>,
+    pub environment: &'env Environment<'heap>,
+    pub hir: &'hir HirContext<'hir, 'heap>,
+    pub heap: &'heap Heap,
 }
 
 fn unwrap_union_type<'heap>(
@@ -120,6 +122,7 @@ fn unwrap_closure_type<'heap>(type_id: TypeId, env: &Environment<'heap>) -> Clos
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum RewireKind {
     Goto,
+    GraphRead,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -132,6 +135,13 @@ impl Rewire {
     const fn goto(id: BasicBlockId) -> Self {
         Self {
             kind: RewireKind::Goto,
+            id,
+        }
+    }
+
+    const fn graph_read(id: BasicBlockId) -> Self {
+        Self {
+            kind: RewireKind::GraphRead,
             id,
         }
     }
@@ -153,6 +163,11 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
             block: Self::empty_block(heap, interner),
             rewire: Vec::new(),
         }
+    }
+
+    fn replace_params(&mut self, params: &[Local]) {
+        debug_assert!(self.block.params.is_empty());
+        self.block.params = self.interner.locals.intern_slice(params);
     }
 
     fn push_statement(&mut self, statement: Statement<'heap>) {
@@ -197,6 +212,22 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
                 (RewireKind::Goto, _) => {
                     unreachable!("`RewireKind::Goto` is always paired with a goto terminator")
                 }
+                (
+                    RewireKind::GraphRead,
+                    TerminatorKind::GraphRead(GraphRead {
+                        head: _,
+                        body: _,
+                        tail: _,
+                        target,
+                    }),
+                ) => {
+                    *target = block_id;
+                }
+                (RewireKind::GraphRead, _) => {
+                    unreachable!(
+                        "`RewireKind::GraphRead` is always paired with a graph read terminator"
+                    )
+                }
             }
         }
 
@@ -227,9 +258,23 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
     }
 }
 
+pub struct Thunks {
+    // Thunks are very sparse, as we do not allow for nested thunks, therefore we can safely use a
+    // vector here without blowing up memory usage.
+    defs: VarIdVec<Option<DefId>>,
+    set: MixedBitSet<VarId>,
+}
+
+impl Thunks {
+    fn insert(&mut self, var: VarId, def: DefId) {
+        self.defs.insert(var, def);
+        self.set.insert(var);
+    }
+}
+
 struct CrossCompileState<'heap> {
-    // Variables that are pointers to thunks (and the location of their compiled code)
-    thunks: VarIdMap<DefId>,
+    thunks: Thunks,
+
     // Already created constructors
     ctor: FastHashMap<Symbol<'heap>, DefId>,
 }
@@ -260,16 +305,18 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     }
 
     fn local(&self, node: Node<'heap>) -> Local {
-        match node.kind {
-            NodeKind::Variable(Variable::Local(local)) => self.locals[local.id.value]
-                .unwrap_or_else(|| {
-                    unreachable!(
-                        "The variable should have been assigned to a local before reaching this \
-                         point."
-                    )
-                }),
-            _ => todo!("diagnostic: should never happen (ICE)"),
-        }
+        let NodeKind::Variable(Variable::Local(local)) = node.kind else {
+            panic!("ICE: only local variables are allowed to be local")
+        };
+
+        let Some(local) = self.locals[local.id.value] else {
+            panic!(
+                "ICE: The variable should have been assigned to a local before reaching this \
+                 point."
+            )
+        };
+
+        local
     }
 
     fn place(&self, node: Node<'heap>) -> Place<'heap> {
@@ -284,7 +331,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                     let mut items =
                         unwrap_union_type(type_id, self.context.environment).into_iter();
                     let first = items.next().unwrap_or_else(|| {
-                        unreachable!("union types are guaranteed to be non-empty")
+                        panic!("ICE: union types are guaranteed to be non-empty")
                     });
 
                     // Check what type the first element is, if it is a tuple we know that all types
@@ -293,7 +340,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                     match first.kind {
                         TypeKind::Tuple(_) => {
                             let Ok(index) = field.value.as_str().parse() else {
-                                todo!("diagnostic: value too big to be used as index (err)")
+                                todo!("ERR: value too big to be used as index")
                             };
 
                             projections.push(Projection::Field(FieldIndex::new(index)));
@@ -325,7 +372,15 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                     projections.push(Projection::Index(self.local(index)));
                     current = expr;
                 }
-                _ => break,
+                NodeKind::Data(_)
+                | NodeKind::Variable(_)
+                | NodeKind::Let(_)
+                | NodeKind::Operation(_)
+                | NodeKind::Call(_)
+                | NodeKind::Branch(_)
+                | NodeKind::Closure(_)
+                | NodeKind::Thunk(_)
+                | NodeKind::Graph(_) => break,
             }
         }
 
@@ -349,11 +404,25 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
                 Operand::Constant(Constant::Primitive(primitive))
             }
             NodeKind::Variable(Variable::Local(local))
-                if let Some(&ptr) = self.state.thunks.get(&local.id.value) =>
+                if let Some(&ptr) = self
+                    .state
+                    .thunks
+                    .defs
+                    .get(local.id.value)
+                    .and_then(Option::as_ref) =>
             {
                 Operand::Constant(Constant::FnPtr(ptr))
             }
-            _ => Operand::Place(self.place(node)),
+            NodeKind::Data(_)
+            | NodeKind::Variable(_)
+            | NodeKind::Let(_)
+            | NodeKind::Operation(_)
+            | NodeKind::Access(_)
+            | NodeKind::Call(_)
+            | NodeKind::Branch(_)
+            | NodeKind::Closure(_)
+            | NodeKind::Thunk(_)
+            | NodeKind::Graph(_) => Operand::Place(self.place(node)),
         }
     }
 
@@ -600,6 +669,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
     fn compile_branch_if(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
+        destination: Local,
         span: SpanId,
         branch::If { test, then, r#else }: branch::If<'heap>,
     ) {
@@ -624,36 +694,39 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             [Rewire::goto(then), Rewire::goto(r#else)],
             &mut self.blocks,
         );
+
+        // Change the new block to take a single argument, which is where to store the result
+        block.block.params = self.context.interner.locals.intern_slice(&[destination]);
     }
 
     fn transform_branch(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
+        destination: Local,
         span: SpanId,
         branch: branch::Branch<'heap>,
     ) {
         match branch {
-            branch::Branch::If(r#if) => self.compile_branch_if(block, span, r#if),
+            branch::Branch::If(r#if) => self.compile_branch_if(block, destination, span, r#if),
         }
     }
 
-    fn rvalue_closure(
+    fn transform_closure(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         span: SpanId,
         closure: Closure<'heap>,
-    ) -> RValue<'heap> {
+    ) -> (DefId, Local) {
         let mut dependencies = VariableDependencies::new(self.context.hir);
         dependencies.visit_closure(&closure);
         let mut dependencies = dependencies.finish();
 
-        let mut definitions = VariableDefinitions::new(self.context.hir);
+        let mut definitions = VariableDefinitions::from_set(self.state.thunks.set.clone());
         definitions.visit_closure(&closure);
         let definitions = definitions.finish();
 
         dependencies.subtract(&definitions);
         let captures = dependencies;
-        // TODO: also subtract any local variables that are global via pointers
 
         let compiler = ClosureCompiler::new(self.context, self.state);
         let ptr = compiler.compile_closure(span, &captures, closure);
@@ -683,19 +756,126 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             }),
         });
 
+        (ptr, env_local)
+    }
+
+    fn rvalue_closure(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        span: SpanId,
+        closure: Closure<'heap>,
+    ) -> RValue<'heap> {
+        let (ptr, env) = self.transform_closure(block, span, closure);
+
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
         let mut closure_operands = IdVec::with_capacity_in(2, self.context.heap);
         closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
-        closure_operands.push(Operand::Place(Place::local(
-            env_local,
-            self.context.interner,
-        )));
+        closure_operands.push(Operand::Place(Place::local(env, self.context.interner)));
 
         RValue::Aggregate(Aggregate {
             kind: AggregateKind::Closure,
             operands: closure_operands,
         })
+    }
+
+    fn rvalue_thunk(&mut self, span: SpanId, var: VarId, thunk: Thunk<'heap>) -> RValue<'heap> {
+        // Thunks have no dependencies, and therefore no captures
+        let compiler = ClosureCompiler::new(self.context, self.state);
+        let ptr = compiler.compile_thunk(span, thunk);
+        self.state.thunks.insert(var, ptr);
+
+        RValue::Load(Operand::Constant(Constant::FnPtr(ptr)))
+    }
+
+    fn transform_graph_read_head(
+        &self,
+        head: graph::GraphReadHead<'heap>,
+    ) -> terminator::GraphReadHead<'heap> {
+        match head {
+            graph::GraphReadHead::Entity { axis } => terminator::GraphReadHead::Entity {
+                axis: self.operand(axis),
+            },
+        }
+    }
+
+    const fn transform_graph_read_tail(tail: graph::GraphReadTail) -> terminator::GraphReadTail {
+        match tail {
+            graph::GraphReadTail::Collect => terminator::GraphReadTail::Collect,
+        }
+    }
+
+    fn transform_graph_read_body(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        body: graph::GraphReadBody<'heap>,
+    ) -> terminator::GraphReadBody {
+        match body {
+            graph::GraphReadBody::Filter(filter) => {
+                let NodeKind::Closure(closure) = filter.kind else {
+                    panic!("ICE: expected closure filter")
+                };
+
+                let (ptr, env) = self.transform_closure(block, filter.span, closure);
+                terminator::GraphReadBody::Filter(ptr, env)
+            }
+        }
+    }
+
+    fn transform_graph_read_bodies(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        bodies: &[graph::GraphReadBody<'heap>],
+    ) -> heap::Vec<'heap, terminator::GraphReadBody> {
+        let mut result = heap::Vec::with_capacity_in(bodies.len(), self.context.heap);
+
+        result.extend(
+            bodies
+                .iter()
+                .map(|&body| self.transform_graph_read_body(block, body)),
+        );
+
+        result
+    }
+
+    fn transform_graph_read(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        destination: Local,
+        span: SpanId,
+        graph::GraphRead { head, body, tail }: graph::GraphRead<'heap>,
+    ) {
+        let head = self.transform_graph_read_head(head);
+        let body = self.transform_graph_read_bodies(block, &body);
+        let tail = Self::transform_graph_read_tail(tail);
+
+        let terminator = Terminator {
+            span,
+            kind: TerminatorKind::GraphRead(GraphRead {
+                head,
+                body,
+                tail,
+                target: BasicBlockId::PLACEHOLDER,
+            }),
+        };
+
+        let prev = block.terminate(terminator, [], &mut self.blocks);
+        block.rewire.push(Rewire::graph_read(prev));
+
+        // Change the new block to take a single argument, which is where to store the result
+        block.block.params = self.context.interner.locals.intern_slice(&[destination]);
+    }
+
+    fn transform_graph(
+        &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
+        destination: Local,
+        span: SpanId,
+        graph: Graph<'heap>,
+    ) {
+        match graph {
+            Graph::Read(read) => self.transform_graph_read(block, destination, span, read),
+        }
     }
 
     fn transform_binding(
@@ -717,25 +897,24 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
             NodeKind::Call(call) => self.rvalue_call(call),
             NodeKind::Branch(branch) => {
                 // This turns into a terminator, and therefore does not contribute a statement
-                let () = self.transform_branch(block, binding.value.span, branch);
+                let () = self.transform_branch(block, local, binding.value.span, branch);
                 return;
             }
-            // This turns into two statements, the first captures the environment, the second create
-            // the FnPtr aggregate
             NodeKind::Closure(closure) => self.rvalue_closure(block, binding.value.span, closure),
-            // We can easily support this, but using a very similar logic to the one in
-            // `NodeKind::Closure`
-            NodeKind::Thunk(_) => unreachable!("HIR(ANF) does not support nested thunks"),
-            NodeKind::Graph(graph) => todo!(), // this turns into a terminator
+            NodeKind::Thunk(thunk) => {
+                self.rvalue_thunk(binding.value.span, binding.binder.id, thunk)
+            }
+            NodeKind::Graph(graph) => {
+                // This turns into a terminator, and therefore does not contribute a statement
+                let () = self.transform_graph(block, local, binding.value.span, graph);
+                return;
+            }
         };
 
         block.push_statement(Statement {
             span: binding.span,
             kind: StatementKind::Assign(Assign {
-                lhs: Place {
-                    local,
-                    projections: self.context.interner.projections.intern_slice(&[]),
-                },
+                lhs: Place::local(local, self.context.interner),
                 rhs: rvalue,
             }),
         });
@@ -786,8 +965,8 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         // Closures and type constructors are fat pointers, the reason is that they are
         // constructible by users and therefore always correspond to a fat call.
         // In the future we might want to specialize `ctor` in a way that allows us to move them to
-        // `ctor` (although that would require that we move functions into a separate type from
-        // closures).
+        // be thin calls (although that would require that we move functions into a separate type
+        // from closures).
         let env = if matches!(source, Source::Closure | Source::Ctor(_)) {
             let local = self.local_counter.next();
             args += 1;
@@ -867,6 +1046,16 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         )
     }
 
+    fn compile_thunk(self, span: SpanId, thunk: Thunk<'heap>) -> DefId {
+        self.compile_impl(
+            Source::Thunk,
+            span,
+            [] as [VarId; 0],
+            None,
+            |this, block| this.compile_body(block, thunk.body),
+        )
+    }
+
     fn compile_ctor(self, hir_id: HirId, span: SpanId, ctor: TypeConstructor<'heap>) -> DefId {
         let closure_type = unwrap_closure_type(
             self.context.hir.map.type_id(hir_id),
@@ -939,7 +1128,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
 //
 // This design enables incremental compilation by processing packages independently while
 // maintaining cross-package reference resolution.
-pub fn from_hir<'heap>(node: &Node<'heap>, context: &mut ReifyContext<'_, '_, '_, 'heap>) -> DefId {
+pub fn from_hir<'heap>(node: Node<'heap>, context: &mut ReifyContext<'_, '_, '_, 'heap>) -> DefId {
     // The node is already in HIR(ANF) - each node will be a thunk.
     let NodeKind::Let(Let { bindings, body }) = node.kind else {
         // It is only a body, per thunking rules this will only be a local identifier
@@ -951,40 +1140,34 @@ pub fn from_hir<'heap>(node: &Node<'heap>, context: &mut ReifyContext<'_, '_, '_
 
     // The body will be a (local) variable
     let NodeKind::Variable(variable) = body.kind else {
-        unreachable!(
-            "Hir(ANF) after thunking guarantees that the outer return type is an identifier"
+        panic!(
+            "ICE: HIR(ANF) after thunking guarantees that the outer return type is an identifier"
         );
     };
 
     let Variable::Local(local) = variable else {
-        todo!("error that cross module references aren't supported yet");
+        panic!("ICE: error that cross module references aren't supported yet");
     };
 
-    // TODO: with_capacity
-    let mut references = VarIdVec::new();
+    let thunks = Thunks {
+        defs: VarIdVec::new(),
+        set: MixedBitSet::new_empty(context.hir.counter.var.size()),
+    };
+    let mut state = CrossCompileState {
+        thunks,
+        ctor: FastHashMap::default(),
+    };
 
-    // The bindings here are purposefully empty, we use them as references, and then insert them
-    // later.
     for binding in bindings {
-        references.insert(
-            binding.binder.id,
-            context.bodies.push(Body {
-                span: binding.span,
-                source: Source::Thunk,
-                basic_blocks: BasicBlockVec::new_in(context.heap),
-                args: 0,
-            }),
-        );
+        let NodeKind::Thunk(thunk) = binding.value.kind else {
+            panic!("ICE: diagnostic: top level must be thunks");
+        };
+
+        let compiler = ClosureCompiler::new(context, &mut state);
+        let def_id = compiler.compile_thunk(binding.value.span, thunk);
+        state.thunks.insert(binding.binder.id, def_id);
     }
 
-    // For each binding, create the basic-block body
-    // for binding in bindings {
-    //     let def = references[binding.binder.id]
-    //         .unwrap_or_else(|| unreachable!("This has just been created"));
-
-    //     let body = compile_body(def, &binding.value, context);
-    //     context.bodies[def] = body;
-    // }
-
-    todo!()
+    state.thunks.defs[local.id.value]
+        .unwrap_or_else(|| panic!("ICE: diagnostic: local must be a thunk"))
 }
