@@ -1,16 +1,23 @@
 #![expect(clippy::todo)]
+use core::{iter, mem};
+
 use hashql_core::{
     heap::{self, Heap},
     id::{IdCounter, IdVec},
     span::SpanId,
     symbol::Symbol,
-    r#type::environment::Environment,
+    r#type::{
+        Type, TypeId,
+        environment::Environment,
+        kind::{self, ClosureType, TypeKind},
+    },
 };
 use hashql_hir::{
     context::HirContext,
     node::{
-        Node,
+        HirId, Node,
         access::{Access, FieldAccess, IndexAccess},
+        call::{Call, CallArgument, PointerKind},
         data::{Data, Dict, List, Struct, Tuple},
         kind::NodeKind,
         r#let::{Binding, Let, VarIdVec},
@@ -29,8 +36,8 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{Place, Projection},
-        rvalue::{Aggregate, AggregateKind, Binary, Input, RValue, Unary},
+        place::{FieldIndex, Place, Projection},
+        rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{Return, Terminator, TerminatorKind},
     },
@@ -52,10 +59,63 @@ struct BodyContext<'mir, 'heap> {
     counter: IdCounter<Local>,
 }
 
+fn unwrap_union_type<'heap>(
+    type_id: TypeId,
+    env: &Environment<'heap>,
+) -> impl IntoIterator<Item = Type<'heap>> {
+    let mut stack = vec![type_id];
+    iter::from_fn(move || {
+        while let Some(current) = stack.pop() {
+            let r#type = env.r#type(current);
+
+            match r#type.kind {
+                // ignore apply / generic wrappers
+                TypeKind::Apply(kind::Apply {
+                    base,
+                    substitutions: _,
+                })
+                | TypeKind::Generic(kind::Generic { base, arguments: _ }) => stack.push(*base),
+                // Unions are automatically flattened, order of unions does not matter, so are added
+                // to the back
+                TypeKind::Union(kind::UnionType { variants }) => stack.extend_from_slice(variants),
+                TypeKind::Opaque(_)
+                | TypeKind::Primitive(_)
+                | TypeKind::Intrinsic(_)
+                | TypeKind::Struct(_)
+                | TypeKind::Tuple(_)
+                | TypeKind::Intersection(_)
+                | TypeKind::Closure(_)
+                | TypeKind::Param(_)
+                | TypeKind::Infer(_)
+                | TypeKind::Never
+                | TypeKind::Unknown => {
+                    return Some(r#type);
+                }
+            }
+        }
+
+        None
+    })
+}
+
+fn unwrap_closure_type<'heap>(type_id: TypeId, env: &Environment<'heap>) -> ClosureType<'heap> {
+    let closure_type = unwrap_union_type(type_id, env)
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| unreachable!("There must be a least one item present"));
+
+    #[expect(clippy::wildcard_enum_match_arm, reason = "readability")]
+    match closure_type.kind {
+        TypeKind::Closure(closure) => *closure,
+        _ => unreachable!("type must be a closure"),
+    }
+}
+
 struct BlockCompiler<'mir, 'hir, 'env, 'heap> {
     context: &'mir mut ReifyContext<'mir, 'hir, 'env, 'heap>,
     blocks: &'mir mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     locals: VarIdVec<Option<Local>>,
+    local_counter: IdCounter<Local>,
 
     current_block: BasicBlock<'heap>,
     current_block_id: Option<BasicBlockId>,
@@ -193,14 +253,16 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
         }
     }
 
-    fn compile_type_ctor(&mut self, span: SpanId, name: Symbol<'heap>) -> DefId {
+    fn compile_type_ctor(&mut self, hir_id: HirId, span: SpanId, name: Symbol<'heap>) -> DefId {
         // TODO: only recompile if we really need to
         let input = Local::new(0);
         let output = Local::new(1);
 
-        // TODO: actually, we can check if by the arity of the function, we need type information
-        // for that
-        let has_input = true;
+        let closure_type = unwrap_closure_type(
+            self.context.hir.map.type_id(hir_id),
+            self.context.environment,
+        );
+        let has_input = !closure_type.params.is_empty();
 
         let mut operands = IdVec::with_capacity_in(1, self.context.heap);
         if has_input {
@@ -261,6 +323,7 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
 
     fn compile_rvalue_type_operation(
         &mut self,
+        hir_id: HirId,
         span: SpanId,
         operation: TypeOperation<'heap>,
     ) -> RValue<'heap> {
@@ -269,7 +332,7 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
                 todo!("diagnostic: assertions no longer exist in HIR(ANF)")
             }
             TypeOperation::Constructor(TypeConstructor { name }) => {
-                let def = self.compile_type_ctor(span, name);
+                let def = self.compile_type_ctor(hir_id, span, name);
                 RValue::Load(Operand::Constant(Constant::FnPtr(def)))
             }
         }
@@ -301,8 +364,7 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
         })
     }
 
-    fn compile_rvalue_input_operation(
-        &self,
+    const fn compile_rvalue_input_operation(
         InputOperation { op, name }: InputOperation<'heap>,
     ) -> RValue<'heap> {
         RValue::Input(Input {
@@ -313,12 +375,13 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
 
     fn compile_rvalue_operation(
         &mut self,
+        hir_id: HirId,
         span: SpanId,
         operation: Operation<'heap>,
     ) -> RValue<'heap> {
         match operation {
             Operation::Type(type_operation) => {
-                self.compile_rvalue_type_operation(span, type_operation)
+                self.compile_rvalue_type_operation(hir_id, span, type_operation)
             }
             Operation::Binary(binary_operation) => {
                 self.compile_rvalue_binary_operation(binary_operation)
@@ -327,26 +390,136 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
                 self.compile_rvalue_unary_operation(unary_operation)
             }
             Operation::Input(input_operation) => {
-                self.compile_rvalue_input_operation(input_operation)
+                Self::compile_rvalue_input_operation(input_operation)
             }
         }
     }
 
+    fn compile_rvalue_variable(&self, node: Node<'heap>) -> RValue<'heap> {
+        RValue::Load(self.compile_operand(node))
+    }
+
+    fn compile_rvalue_access(&self, node: Node<'heap>) -> RValue<'heap> {
+        RValue::Load(self.compile_operand(node))
+    }
+
+    fn compile_rvalue_call_thin(
+        &self,
+        function: Node<'heap>,
+        call_arguments: &[CallArgument<'heap>],
+    ) -> RValue<'heap> {
+        let mut arguments = IdVec::with_capacity_in(call_arguments.len(), self.context.heap);
+
+        for CallArgument { span: _, value } in call_arguments {
+            arguments.push(self.compile_operand(*value));
+        }
+
+        // A thin call is very simple, as the calling convention means that we do not need to worry
+        // about the environment (which would be the first argument).
+        RValue::Apply(Apply {
+            function: self.compile_operand(function),
+            arguments,
+        })
+    }
+
+    fn compile_rvalue_call_fat(
+        &self,
+        function: Node<'heap>,
+        call_arguments: &[CallArgument<'heap>],
+    ) -> RValue<'heap> {
+        // The argument to a fat call *must* be a place, it cannot be a constant, because a constant
+        // cannot represent a fat-pointer, which is only constructed using an aggregate.
+        let function = match self.compile_operand(function) {
+            Operand::Place(place) => place,
+            Operand::Constant(_) => todo!("diagnostic: fat calls on constants are not supported"),
+        };
+
+        // To the function we add two projections, one for the function pointer, and one for the
+        // captured environment
+        let function_pointer =
+            function.project(self.context.interner, Projection::Field(FieldIndex::new(0)));
+        let environment =
+            function.project(self.context.interner, Projection::Field(FieldIndex::new(1)));
+
+        let mut arguments = IdVec::with_capacity_in(call_arguments.len() + 1, self.context.heap);
+
+        arguments.push(Operand::Place(environment));
+
+        for CallArgument { span: _, value } in call_arguments {
+            arguments.push(self.compile_operand(*value));
+        }
+
+        RValue::Apply(Apply {
+            function: Operand::Place(function_pointer),
+            arguments,
+        })
+    }
+
+    fn compile_rvalue_call(
+        &self,
+        Call {
+            kind,
+            function,
+            arguments,
+        }: Call<'heap>,
+    ) -> RValue<'heap> {
+        match kind {
+            PointerKind::Fat => self.compile_rvalue_call_fat(function, &arguments),
+            PointerKind::Thin => self.compile_rvalue_call_thin(function, &arguments),
+        }
+    }
+
+    fn finish_block(&mut self, terminator: Terminator<'heap>, params: &[Local]) -> BasicBlockId {
+        self.current_block.terminator = terminator;
+        let block = mem::replace(
+            &mut self.current_block,
+            BasicBlock {
+                params: self.context.interner.locals.intern_slice(params),
+                statements: Vec::new_in(self.context.heap),
+                terminator: Terminator {
+                    span: SpanId::SYNTHETIC,
+                    kind: TerminatorKind::Unreachable,
+                },
+            },
+        );
+        let id = self.blocks.push(block);
+
+        *self.current_block_id.get_or_insert(id)
+    }
+
     fn compile_binding(&mut self, binding: &Binding<'heap>) {
+        let local = self.local_counter.next();
+        self.locals.insert(binding.binder.id, local);
+
         let rvalue = match binding.value.kind {
             NodeKind::Data(data) => self.compile_rvalue_data(data),
-            NodeKind::Variable(variable) => todo!(),
+            NodeKind::Variable(_) => self.compile_rvalue_variable(binding.value),
             NodeKind::Let(_) => unreachable!("HIR(ANF) does not have nested let bindings"),
             NodeKind::Operation(operation) => {
-                self.compile_rvalue_operation(binding.value.span, operation)
+                self.compile_rvalue_operation(binding.value.id, binding.value.span, operation)
             }
-            NodeKind::Access(access) => todo!(),
-            NodeKind::Call(call) => todo!(),
-            NodeKind::Branch(branch) => todo!(),
+            NodeKind::Access(_) => self.compile_rvalue_access(binding.value),
+            NodeKind::Call(call) => self.compile_rvalue_call(call),
+            NodeKind::Branch(branch) => todo!(), // this turns into a terminator
+            // This turns into two statements, the first captures the environment, the second create
+            // the FnPtr aggregate
             NodeKind::Closure(closure) => todo!(),
-            NodeKind::Thunk(thunk) => todo!(),
-            NodeKind::Graph(graph) => todo!(),
+            // We can easily support this, but using a very similar logic to the one in
+            // `NodeKind::Closure`
+            NodeKind::Thunk(_) => unreachable!("HIR(ANF) does not support nested thunks"),
+            NodeKind::Graph(graph) => todo!(), // this turns into a terminator
         };
+
+        self.current_block.statements.push(Statement {
+            span: binding.span,
+            kind: StatementKind::Assign(Assign {
+                lhs: Place {
+                    local,
+                    projections: self.context.interner.projections.intern_slice(&[]),
+                },
+                rhs: rvalue,
+            }),
+        });
     }
 }
 
@@ -373,7 +546,7 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
 //
 // This design enables incremental compilation by processing packages independently while
 // maintaining cross-package reference resolution.
-pub fn from_hir<'heap>(node: &Node<'heap>, context: &mut ReifyContext<'_, 'heap>) -> DefId {
+pub fn from_hir<'heap>(node: &Node<'heap>, context: &mut ReifyContext<'_, '_, '_, 'heap>) -> DefId {
     // The node is already in HIR(ANF) - each node will be a thunk.
     let NodeKind::Let(Let { bindings, body }) = node.kind else {
         // It is only a body, per thunking rules this will only be a local identifier
