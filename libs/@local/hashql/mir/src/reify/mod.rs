@@ -1,11 +1,12 @@
 #![expect(clippy::todo)]
-use core::{iter, mem};
+use core::{fmt::Pointer, iter, mem};
 
 use hashql_core::{
+    collections::FastHashMap,
     heap::{self, Heap},
-    id::{Id, IdCounter, IdVec},
+    id::{Id, IdCounter, IdVec, bit_vec::MixedBitSet},
     span::{SpanId, Spanned},
-    symbol::Symbol,
+    symbol::{Symbol, SymbolTable},
     r#type::{
         Type, TypeId,
         environment::Environment,
@@ -22,7 +23,7 @@ use hashql_hir::{
         closure::Closure,
         data::{Data, Dict, List, Struct, Tuple},
         kind::NodeKind,
-        r#let::{Binding, Let, VarIdVec},
+        r#let::{Binding, Let, VarId, VarIdMap, VarIdVec},
         operation::{
             BinaryOperation, InputOperation, Operation, TypeConstructor, TypeOperation,
             UnaryOperation,
@@ -53,12 +54,6 @@ struct ReifyContext<'mir, 'hir, 'env, 'heap> {
     environment: &'env Environment<'heap>,
     hir: &'hir HirContext<'hir, 'heap>,
     heap: &'heap Heap,
-}
-
-struct BodyContext<'mir, 'heap> {
-    blocks: &'mir mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
-    locals: VarIdVec<Local>,
-    counter: IdCounter<Local>,
 }
 
 fn unwrap_union_type<'heap>(
@@ -227,18 +222,38 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
     }
 }
 
-struct ClosureCompiler<'mir, 'hir, 'env, 'heap> {
-    context: &'mir mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+struct CrossCompileState<'heap> {
+    // Variables that are pointers to thunks (and the location of their compiled code)
+    thunks: VarIdMap<DefId>,
+    // Already created constructors
+    ctor: FastHashMap<Symbol<'heap>, DefId>,
+}
+
+struct ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'heap> {
+    context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+    state: &'ctx mut CrossCompileState<'heap>,
+
     blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     locals: VarIdVec<Option<Local>>,
     local_counter: IdCounter<Local>,
-    // current_block: BasicBlock<'heap>,
-    // current_block_id: Option<BasicBlockId>,
-
-    // result_into: Option<Local>, // if none it's a `Return` call
 }
 
-impl<'mir, 'hir, 'env, 'heap> ClosureCompiler<'mir, 'hir, 'env, 'heap> {
+impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'heap> {
+    pub fn new(
+        context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+        state: &'ctx mut CrossCompileState<'heap>,
+    ) -> Self {
+        let blocks = BasicBlockVec::new_in(context.heap);
+
+        Self {
+            context,
+            state,
+            blocks,
+            locals: VarIdVec::new(),
+            local_counter: IdCounter::new(),
+        }
+    }
+
     fn compile_local(&self, node: Node<'heap>) -> Local {
         match node.kind {
             NodeKind::Variable(Variable::Local(local)) => self.locals[local.id.value]
@@ -390,68 +405,6 @@ impl<'mir, 'hir, 'env, 'heap> ClosureCompiler<'mir, 'hir, 'env, 'heap> {
         }
     }
 
-    fn compile_type_ctor(&mut self, hir_id: HirId, span: SpanId, name: Symbol<'heap>) -> DefId {
-        // TODO: only recompile if we really need to
-        let input = Local::new(0);
-        let output = Local::new(1);
-
-        let closure_type = unwrap_closure_type(
-            self.context.hir.map.type_id(hir_id),
-            self.context.environment,
-        );
-        let has_input = !closure_type.params.is_empty();
-
-        let mut operands = IdVec::with_capacity_in(1, self.context.heap);
-        if has_input {
-            operands.push(Operand::Place(Place {
-                local: input,
-                projections: self.context.interner.projections.intern_slice(&[]),
-            }));
-        } else {
-            operands.push(Operand::Constant(Constant::Unit));
-        }
-
-        let statement = Statement {
-            span,
-            kind: StatementKind::Assign(Assign {
-                lhs: Place {
-                    local: output,
-                    projections: self.context.interner.projections.intern_slice(&[]),
-                },
-                rhs: RValue::Aggregate(Aggregate {
-                    kind: AggregateKind::Opaque(name),
-                    operands,
-                }),
-            }),
-        };
-
-        let mut statements = heap::Vec::with_capacity_in(1, self.context.heap);
-        statements.push(statement);
-
-        let bb = BasicBlock {
-            params: self.context.interner.locals.intern_slice(&[]),
-            statements,
-            terminator: Terminator {
-                span,
-                kind: TerminatorKind::Return(Return {
-                    value: Operand::Place(Place::local(output, self.context.interner)),
-                }),
-            },
-        };
-
-        let mut basic_blocks = IdVec::with_capacity_in(1, self.context.heap);
-        basic_blocks.push(bb);
-
-        let body = Body {
-            span,
-            source: Source::Ctor(name),
-            basic_blocks,
-            args: usize::from(has_input),
-        };
-
-        self.context.bodies.push(body)
-    }
-
     fn compile_rvalue_type_operation(
         &mut self,
         hir_id: HirId,
@@ -462,9 +415,16 @@ impl<'mir, 'hir, 'env, 'heap> ClosureCompiler<'mir, 'hir, 'env, 'heap> {
             TypeOperation::Assertion(_) => {
                 todo!("diagnostic: assertions no longer exist in HIR(ANF)")
             }
-            TypeOperation::Constructor(TypeConstructor { name }) => {
-                let def = self.compile_type_ctor(hir_id, span, name);
-                RValue::Load(Operand::Constant(Constant::FnPtr(def)))
+            TypeOperation::Constructor(ctor @ TypeConstructor { name }) => {
+                if let Some(&ptr) = self.state.ctor.get(&name) {
+                    return RValue::Load(Operand::Constant(Constant::FnPtr(ptr)));
+                }
+
+                let compiler = ClosureCompiler::new(self.context, self.state);
+                let ptr = compiler.compile_ctor(hir_id, span, ctor);
+                self.state.ctor.insert(name, ptr);
+
+                RValue::Load(Operand::Constant(Constant::FnPtr(ptr)))
             }
         }
     }
@@ -714,31 +674,167 @@ impl<'mir, 'hir, 'env, 'heap> ClosureCompiler<'mir, 'hir, 'env, 'heap> {
         });
     }
 
-    fn compile_node(
+    fn compile_body(
         &mut self,
+        block: &mut CurrentBlock<'mir, 'heap>,
         node: Node<'heap>,
-    ) -> (CurrentBlock<'mir, 'heap>, Spanned<Operand<'heap>>) {
+    ) -> Spanned<Operand<'heap>> {
         // The code is in ANF, so either the body is an atom *or* a set of let bindings
         let (bindings, body) = match node.kind {
             NodeKind::Let(Let { bindings, body }) => (bindings.0, body),
             _ => (&[] as &[_], node),
         };
 
-        let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
-
         for binding in bindings {
-            self.compile_binding(&mut block, binding);
+            self.compile_binding(block, binding);
         }
 
         // body is always an anf atom, therefore compile to operand
-        let body = Spanned {
+        Spanned {
             value: self.compile_operand(body),
             span: body.span,
+        }
+    }
+
+    fn compile_node(
+        &mut self,
+        node: Node<'heap>,
+    ) -> (CurrentBlock<'mir, 'heap>, Spanned<Operand<'heap>>) {
+        let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
+        let body = self.compile_body(&mut block, node);
+
+        (block, body)
+    }
+
+    fn compile_impl(
+        mut self,
+        source: Source<'heap>,
+        span: SpanId,
+        params: &[VarId],
+        captures: Option<&MixedBitSet<VarId>>,
+        on_block: impl FnOnce(&mut Self, &mut CurrentBlock<'mir, 'heap>) -> Spanned<Operand<'heap>>,
+    ) -> DefId {
+        let mut args = 0;
+
+        // Create the parameters for the function, if thin we have a first (%0) that is the
+        // environment
+        let env = if source == Source::Closure {
+            let local = self.local_counter.next();
+            args += 1;
+
+            local
+        } else {
+            debug_assert!(captures.is_none());
+
+            // ends up never being used
+            Local::MAX
         };
 
-        // The final terminator is still set to `Unreachable`, the caller must set the goto if
-        // required
-        (block, body)
+        for &param in params {
+            let local = self.local_counter.next();
+            args += 1;
+
+            self.locals.insert(param, local);
+        }
+
+        let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
+
+        // For each of the variables mentioned, create a local variable statement, which is a
+        // projection inside of a tuple.
+        for (index, capture) in captures.into_iter().flatten().enumerate() {
+            let local = self.local_counter.next();
+            self.locals.insert(capture, local);
+
+            block.push_statement(Statement {
+                span,
+                kind: StatementKind::Assign(Assign {
+                    lhs: Place::local(local, self.context.interner),
+                    rhs: RValue::Load(Operand::Place(Place {
+                        local: env,
+                        projections: self
+                            .context
+                            .interner
+                            .projections
+                            .intern_slice(&[Projection::Field(FieldIndex::new(index))]),
+                    })),
+                }),
+            });
+        }
+
+        let body = on_block(&mut self, &mut block);
+        // let body = self.compile_body(&mut block, node);
+
+        block.finish(
+            Terminator {
+                span: body.span,
+                kind: TerminatorKind::Return(Return { value: body.value }),
+            },
+            &mut self.blocks,
+        );
+
+        let block = Body {
+            span,
+            source,
+            basic_blocks: self.blocks,
+            args,
+        };
+
+        self.context.bodies.push(block)
+    }
+
+    fn compile_ctor(self, hir_id: HirId, span: SpanId, ctor: TypeConstructor<'heap>) -> DefId {
+        // TODO: only recompile if we really need to
+        let closure_type = unwrap_closure_type(
+            self.context.hir.map.type_id(hir_id),
+            self.context.environment,
+        );
+
+        let param = if closure_type.params.is_empty() {
+            None
+        } else {
+            // Because the function is pure, we invent a 0 parameter as the local, meaning that we
+            // compile it in isolation
+            Some(VarId::new(0))
+        };
+
+        self.compile_impl(
+            Source::Ctor(ctor.name),
+            span,
+            param.as_slice(),
+            None,
+            |this, block| {
+                let output = this.local_counter.next();
+                let lhs = Place::local(output, this.context.interner);
+
+                let operand = if let Some(param) = param {
+                    Operand::Place(Place::local(
+                        this.locals[param]
+                            .unwrap_or_else(|| unreachable!("We just verified this local exists")),
+                        this.context.interner,
+                    ))
+                } else {
+                    Operand::Constant(Constant::Unit)
+                };
+
+                let mut operands = IdVec::with_capacity_in(1, this.context.heap);
+                operands.push(operand);
+
+                let rhs = RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Opaque(ctor.name),
+                    operands,
+                });
+
+                block.push_statement(Statement {
+                    span,
+                    kind: StatementKind::Assign(Assign { lhs, rhs }),
+                });
+
+                Spanned {
+                    value: Operand::Place(lhs),
+                    span,
+                }
+            },
+        )
     }
 }
 
