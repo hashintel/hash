@@ -5,12 +5,14 @@
 //! Unlike places, r-values represent computations rather than storage locations.
 
 mod aggregate;
+mod apply;
 mod binary;
 mod input;
 mod unary;
 
 pub use self::{
     aggregate::{Aggregate, AggregateKind},
+    apply::{Apply, ArgIndex},
     binary::Binary,
     input::Input,
     unary::Unary,
@@ -57,4 +59,6 @@ pub enum RValue<'heap> {
     /// values from the calling context, such as user-provided parameters
     /// or configuration values.
     Input(Input<'heap>),
+
+    Apply(Apply<'heap>),
 }
