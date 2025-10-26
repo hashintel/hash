@@ -1,4 +1,4 @@
-#![feature(macro_metavar_expr_concat, allocator_api)]
+#![feature(macro_metavar_expr_concat, allocator_api, if_let_guard)]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
 
