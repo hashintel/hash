@@ -696,7 +696,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         );
 
         // Change the new block to take a single argument, which is where to store the result
-        block.block.params = self.context.interner.locals.intern_slice(&[destination]);
+        block.replace_params(&[destination]);
     }
 
     fn transform_branch(
@@ -863,7 +863,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         block.rewire.push(Rewire::graph_read(prev));
 
         // Change the new block to take a single argument, which is where to store the result
-        block.block.params = self.context.interner.locals.intern_slice(&[destination]);
+        block.replace_params(&[destination]);
     }
 
     fn transform_graph(
@@ -926,9 +926,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> ClosureCompiler<'ctx, 'mir, 'hir, 'env, 'hea
         node: Node<'heap>,
     ) -> Spanned<Operand<'heap>> {
         // The code is in ANF, so either the body is an atom *or* a set of let bindings
-        let (bindings, body) = match node.kind {
-            NodeKind::Let(Let { bindings, body }) => (bindings.0, body),
-            _ => (&[] as &[_], node),
+        let (bindings, body) = if let NodeKind::Let(Let { bindings, body }) = node.kind {
+            (bindings.0, body)
+        } else {
+            (&[] as &[_], node)
         };
 
         for binding in bindings {
