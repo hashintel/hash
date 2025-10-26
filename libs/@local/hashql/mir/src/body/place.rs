@@ -46,6 +46,7 @@ pub struct Place<'heap> {
 }
 
 impl<'heap> Place<'heap> {
+    #[must_use]
     pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
         let mut projections = self.projections.to_vec();
         projections.push(projection);

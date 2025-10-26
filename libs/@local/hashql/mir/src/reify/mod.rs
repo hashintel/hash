@@ -69,17 +69,21 @@ fn unwrap_union_type<'heap>(
             let r#type = env.r#type(current);
 
             match r#type.kind {
-                // ignore apply / generic wrappers
+                // ignore apply / generic / opaque wrappers
                 TypeKind::Apply(kind::Apply {
                     base,
                     substitutions: _,
                 })
-                | TypeKind::Generic(kind::Generic { base, arguments: _ }) => stack.push(*base),
+                | TypeKind::Generic(kind::Generic { base, arguments: _ })
+                | TypeKind::Opaque(kind::OpaqueType {
+                    name: _,
+                    repr: base,
+                }) => stack.push(*base),
                 // Unions are automatically flattened, order of unions does not matter, so are added
                 // to the back
                 TypeKind::Union(kind::UnionType { variants }) => stack.extend_from_slice(variants),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
+
+                TypeKind::Primitive(_)
                 | TypeKind::Intrinsic(_)
                 | TypeKind::Struct(_)
                 | TypeKind::Tuple(_)
@@ -145,23 +149,45 @@ impl<'mir, 'hir, 'env, 'heap> BlockCompiler<'mir, 'hir, 'env, 'heap> {
             match current.kind {
                 NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
                     let type_id = self.context.hir.map.type_id(current.id);
-                    let r#type = self.context.environment.r#type(type_id);
 
-                    // TODO: what about union types? I mean intersection types don't survive this
-                    // stage / aren't accounted for, but selection over tuples/structs is possible.
-                    // Although one cannot access either/or, so a union of structs, or a union of
-                    // tuples, because numbers aren't valid field names.
-                    // So we would need to go through the type (which is simplified - so unions are
-                    // simplified into a single type as well) and check what it
-                    // is.
+                    let mut items =
+                        unwrap_union_type(type_id, self.context.environment).into_iter();
+                    let first = items.next().unwrap_or_else(|| {
+                        unreachable!("union types are guaranteed to be non-empty")
+                    });
 
-                    // TODO: this isn't correct, we need type information here to know *what* we're
-                    // targetting, is it a (closed) struct, is it a tuple?
+                    // Check what type the first element is, if it is a tuple we know that all types
+                    // will be tuples, as indices do not constitute valid identifiers and can
+                    // therefore not be used as field names in structs.
+                    match first.kind {
+                        TypeKind::Tuple(_) => {
+                            let Ok(index) = field.value.as_str().parse() else {
+                                todo!("diagnostic: value too big to be used as index (err)")
+                            };
 
-                    // todo: in case of closed structs specialize into a `Projection::Field`, as the
-                    // order is complete
-                    // (requires type information)
-                    projections.push(Projection::FieldByName(field.value));
+                            projections.push(Projection::Field(FieldIndex::new(index)));
+                        }
+                        TypeKind::Struct(_) => {
+                            // TODO: in the future we must check if this is the only (closed) struct
+                            // type, if that is the case, we can use `Projection::Field` instead,
+                            // otherwise we must fall back to using the slower `FieldByName`.
+
+                            projections.push(Projection::FieldByName(field.value));
+                        }
+                        TypeKind::Opaque(_)
+                        | TypeKind::Primitive(_)
+                        | TypeKind::Intrinsic(_)
+                        | TypeKind::Union(_)
+                        | TypeKind::Intersection(_)
+                        | TypeKind::Closure(_)
+                        | TypeKind::Apply(_)
+                        | TypeKind::Generic(_)
+                        | TypeKind::Param(_)
+                        | TypeKind::Infer(_)
+                        | TypeKind::Never
+                        | TypeKind::Unknown => unreachable!("other types cannot be indexed"),
+                    }
+
                     current = expr;
                 }
                 NodeKind::Access(Access::Index(IndexAccess { expr, index })) => {
