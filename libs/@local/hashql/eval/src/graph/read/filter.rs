@@ -28,16 +28,15 @@ use super::{
 ///
 /// ```ignore
 /// // Returns true if the node represents `true`
-/// assert!(is_bool(true_node, true));
+/// assert!(is_bool_literal(true_node, true));
 /// // Returns false if the node represents `false` when checking for `true`
-/// assert!(!is_bool(false_node, true));
+/// assert!(!is_bool_literal(false_node, true));
 /// ```
-#[expect(clippy::wildcard_enum_match_arm)]
-fn is_bool(node: Node<'_>, value: bool) -> bool {
-    match node.kind {
-        NodeKind::Data(Data::Primitive(Primitive::Boolean(constant))) => constant == value,
-        _ => false,
-    }
+fn is_bool_literal(node: Node<'_>, value: bool) -> bool {
+    matches!(
+        node.kind,
+        NodeKind::Data(Data::Primitive(Primitive::Boolean(constant))) if constant == value
+    )
 }
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
@@ -186,7 +185,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             // - When A is true: `(true && B) || (false && C)` = `B || false` = `B`
             // - When A is false: `(false && B) || (true && C)` = `false || C` = `C`
             NodeKind::Branch(Branch::If(If { test, then, r#else })) => {
-                if is_bool(then, true) {
+                if is_bool_literal(then, true) {
                     // Optimization: `if A then true else C` → `A || C`
                     // When A is true, result is true; when A is false, result is C
                     let mut sink = sink.or();
@@ -197,7 +196,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     // Delayed to ensure that we get all diagnostics possible
                     test?;
                     r#else?;
-                } else if is_bool(r#else, false) {
+                } else if is_bool_literal(r#else, false) {
                     // Optimization: `if A then B else false` → `A && B`
                     // When A is true, result is B; when A is false, result is false
                     let mut sink = sink.and();
