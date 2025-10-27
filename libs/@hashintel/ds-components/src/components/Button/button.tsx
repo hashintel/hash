@@ -82,32 +82,32 @@ export const Button: React.FC<ButtonProps> = ({
           // Size variants
           "&[data-size='xs']": {
             height: "[24px]",
-            paddingX: "spacing.2",
-            paddingY: "spacing.1",
+            paddingX: "spacing.5",
+            paddingY: "spacing.4",
             fontSize: "size.textsm",
             gap: "spacing.1",
             borderRadius: "component.button.xs",
           },
           "&[data-size='sm']": {
             height: "[28px]",
-            paddingX: "spacing.2",
-            paddingY: "spacing.1",
+            paddingX: "spacing.5",
+            paddingY: "spacing.4",
             fontSize: "size.textsm",
             gap: "spacing.2",
             borderRadius: "component.button.sm",
           },
           "&[data-size='md']": {
             height: "[32px]",
-            paddingX: "spacing.3",
-            paddingY: "spacing.2",
+            paddingX: "spacing.6",
+            paddingY: "spacing.5",
             fontSize: "size.textsm",
             gap: "spacing.2",
             borderRadius: "component.button.md",
           },
           "&[data-size='lg']": {
             height: "[40px]",
-            paddingX: "spacing.4",
-            paddingY: "spacing.3",
+            paddingX: "spacing.8",
+            paddingY: "spacing.6",
             fontSize: "size.textbase",
             gap: "spacing.2",
             borderRadius: "component.button.lg",
@@ -282,7 +282,7 @@ export const Button: React.FC<ButtonProps> = ({
             pointerEvents: "none",
           },
         }),
-        className,
+        className
       )}
       data-variant={variant}
       data-color-scheme={colorScheme}
