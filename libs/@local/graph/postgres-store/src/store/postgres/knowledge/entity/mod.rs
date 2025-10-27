@@ -286,8 +286,8 @@ where
     /// Traverses entities along a specified path, optionally continuing into ontology types.
     ///
     /// This method performs a two-phase traversal:
-    /// 1. **Entity phase**: Follows the provided entity edges sequentially, starting from entities
-    ///    already in the subgraph
+    /// 1. **Entity phase**: Follows the provided entity edges, starting from entities already in
+    ///    the subgraph
     /// 2. **Ontology phase** (optional): If an ontology traversal path is provided, resolves the
     ///    types of the leaf entities and continues traversing through the type system
     ///
@@ -338,7 +338,7 @@ where
 
     /// Traverses entities using depth-based resolution parameters.
     ///
-    /// This method traverses entity edges sequentially, then optionally resolves entity types if
+    /// This method traverses entity edges, then optionally resolves entity types if
     /// [`GraphResolveDepths::is_of_type`] is enabled. Unlike
     /// [`traverse_entities_with_path`](Self::traverse_entities_with_path), this method collects
     /// ALL entities encountered during traversal (not just leaf entities) before resolving their

@@ -104,7 +104,7 @@ pub struct EdgeHopMetadata {
     pub edges: Vec<KnowledgeEdgeTraversal>,
 }
 
-/// Result of traversing entity edges, either via CTE or sequential queries.
+/// Result of traversing entity edges via recursive CTE.
 #[derive(Debug, Default)]
 pub struct EntityTraversalResult {
     /// All entity edition IDs encountered during traversal (for permission filtering)
@@ -294,12 +294,15 @@ where
         Ok(permitted_entity_edition_ids)
     }
 
-    /// Traverses multiple entity edges using a recursive CTE query.
+    /// Reads knowledge graph edges by traversing entity relationships.
+    ///
+    /// Executes a recursive CTE query that traverses all edges at once, replacing the N+1 query
+    /// pattern where each edge would require a separate database call.
     ///
     /// The implementation uses the unified `entity_edge` table which stores both edge kinds
     /// (`has_left_entity`, `has_right_entity`) and directions (`outgoing`, `incoming`) as
-    /// explicit columns. Each edge is stored twice (once for each direction), eliminating the
-    /// need for UNION ALL operations and enabling efficient index usage during traversal.
+    /// explicit columns. Each edge is stored bidirectionally, enabling efficient traversal in
+    /// both directions without UNION ALL operations.
     ///
     /// The CTE uses array-based edge configuration to specify which edge kind and direction to
     /// follow at each depth level, allowing arbitrary traversal patterns through the entity
