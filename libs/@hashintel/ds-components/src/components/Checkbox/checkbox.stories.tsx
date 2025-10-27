@@ -33,17 +33,41 @@ No refraction effects - just clean, accessible checkboxes.
     },
   },
   argTypes: {
+    checked: {
+      control: "radio",
+      options: [false, true, "indeterminate"],
+      description: "The checked state of the checkbox",
+    },
     disabled: {
       control: "boolean",
       description: "Whether the checkbox is disabled",
+    },
+    invalid: {
+      control: "boolean",
+      description: "Whether the checkbox is in an invalid state",
+    },
+    readOnly: {
+      control: "boolean",
+      description: "Whether the checkbox is read-only",
+    },
+    required: {
+      control: "boolean",
+      description: "Whether the checkbox is required",
     },
     label: {
       control: "text",
       description: "Label text for the checkbox",
     },
+    onCheckedChange: {
+      action: "checked changed",
+      description: "Callback when the checked state changes",
+    },
   },
   args: {
     disabled: false,
+    invalid: false,
+    readOnly: false,
+    required: false,
     label: "Label",
   },
 };
@@ -83,15 +107,26 @@ export const Indeterminate: Story = {
  * Disabled checkbox states
  */
 export const Disabled: Story = {
+  argTypes: {},
+  parameters: {
+    actions: { disable: true },
+    interactions: { disable: true },
+    controls: { disable: true },
+  },
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <Checkbox label="Unchecked Disabled" disabled defaultChecked={false} />
-      <Checkbox label="Checked Disabled" disabled defaultChecked />
-      <Checkbox
-        label="Indeterminate Disabled"
-        disabled
-        defaultChecked="indeterminate"
-      />
+      {/* Enabled Row */}
+      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+        <Checkbox label="Unchecked" checked={false} />
+        <Checkbox label="Checked" checked />
+        <Checkbox label="Indeterminate" checked="indeterminate" />
+      </div>
+      {/* Disabled Row */}
+      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+        <Checkbox label="Unchecked" disabled checked={false} />
+        <Checkbox label="Checked" disabled checked />
+        <Checkbox label="Indeterminate" disabled checked="indeterminate" />
+      </div>
     </div>
   ),
 };
@@ -100,6 +135,12 @@ export const Disabled: Story = {
  * Interactive checkbox with controlled state
  */
 export const Interactive: Story = {
+  argTypes: {},
+  parameters: {
+    actions: { disable: true },
+    interactions: { disable: true },
+    controls: { disable: true },
+  },
   render: () => {
     const [checked, setChecked] = useState<boolean | "indeterminate">(false);
 
@@ -110,16 +151,7 @@ export const Interactive: Story = {
           checked={checked}
           onCheckedChange={setChecked}
         />
-        <div style={{ fontSize: "14px", color: "#666" }}>
-          Current state:{" "}
-          <strong>
-            {checked === "indeterminate"
-              ? "Indeterminate"
-              : checked
-                ? "Checked"
-                : "Unchecked"}
-          </strong>
-        </div>
+
         <div style={{ display: "flex", gap: "8px" }}>
           <button
             type="button"
