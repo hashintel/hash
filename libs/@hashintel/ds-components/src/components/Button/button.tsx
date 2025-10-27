@@ -14,17 +14,17 @@ export const Button: React.FC<ButtonProps> = ({
         css({
           position: "relative",
           fontWeight: "medium",
-          borderRadius: "lg",
+          borderRadius: "radius.6",
           cursor: "pointer",
           overflow: "hidden",
-          paddingX: "3",
-          paddingY: "1.5",
-          fontSize: "sm",
+          paddingX: "spacing.5",
+          paddingY: "spacing.4",
+          fontSize: "size.textsm",
           _disabled: {
             cursor: "not-allowed",
           },
         }),
-        className,
+        className
       )}
       {...props}
     >
