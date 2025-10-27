@@ -21,14 +21,14 @@ const CHECK_ICON = (
 
 const INDETERMINATE_ICON = (
   <svg
-    width="14"
-    height="14"
-    viewBox="0 0 14 14"
+    width="12"
+    height="12"
+    viewBox="0 0 12 12"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
     <path
-      d="M4 7H10"
+      d="M3 6H9"
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
@@ -140,6 +140,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         {/* Checked indicator */}
         <BaseCheckbox.Indicator
           className={css({
+            position: "absolute",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -154,6 +155,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         <BaseCheckbox.Indicator
           indeterminate
           className={css({
+            position: "absolute",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -170,7 +172,6 @@ export const Checkbox: React.FC<CheckboxProps> = ({
           className={css({
             fontSize: "[14px]",
             fontWeight: "medium",
-            lineHeight: "[14px]",
             color: "text.primary",
             cursor: disabled ? "not-allowed" : "pointer",
             userSelect: "none",
