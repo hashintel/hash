@@ -16,5 +16,5 @@ figma.connect(
   {
     props: {},
     example: () => <Slider />,
-  }
+  },
 );
