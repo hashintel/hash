@@ -15,6 +15,6 @@ figma.connect(
   "https://www.figma.com/design/WmnosvOvi4Blw0HK0jh1mG/Design-System?node-id=17477%3A1968",
   {
     props: {},
-    example: (props) => <Slider />,
-  },
+    example: () => <Slider />,
+  }
 );
