@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::borrow::Borrow;
 
 #[cfg(feature = "render")]
 use annotate_snippets::Group;

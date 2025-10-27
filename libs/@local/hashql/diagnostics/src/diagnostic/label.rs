@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{borrow::Borrow, slice};
+use core::slice;
 
 #[cfg(feature = "render")]
 use annotate_snippets::{Annotation, AnnotationKind};
