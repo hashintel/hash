@@ -122,10 +122,7 @@ impl<S> Message<S> {
     /// assert_eq!(help.message(), "This is a help message");
     /// ```
     #[must_use]
-    pub const fn message(&self) -> &str
-    where
-        String: [const] Borrow<str>,
-    {
+    pub fn message(&self) -> &str {
         &self.contents
     }
 

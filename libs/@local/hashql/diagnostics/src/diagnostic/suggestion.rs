@@ -80,10 +80,7 @@ impl<S> Patch<S> {
     /// let patch = Patch::new(10..15, "fixed_code");
     /// assert_eq!(patch.replacement(), "fixed_code");
     /// ```
-    pub const fn replacement(&self) -> &str
-    where
-        String: [const] Borrow<str>,
-    {
+    pub fn replacement(&self) -> &str {
         &self.replacement
     }
 

@@ -143,10 +143,7 @@ impl<S> Label<S> {
     /// let label = Label::new(42..47, "undefined variable 'x'");
     /// assert_eq!(label.message(), "undefined variable 'x'");
     /// ```
-    pub const fn message(&self) -> &str
-    where
-        String: [const] Borrow<str>,
-    {
+    pub fn message(&self) -> &str {
         &self.message
     }
 
