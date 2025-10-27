@@ -31,5 +31,5 @@ figma.connect(
         value="option1"
       />
     ),
-  }
+  },
 );
