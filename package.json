@@ -96,7 +96,8 @@
     "prosemirror-view@npm:^1.1.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "prosemirror-view@npm:^1.27.0": "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.5#~/.yarn/patches/http-proxy-middleware-npm-3.0.5-5c57f2e983.patch"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.5.1",
