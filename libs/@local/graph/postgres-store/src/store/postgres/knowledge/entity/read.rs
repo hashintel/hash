@@ -10,17 +10,13 @@ use hash_graph_store::{
     error::QueryError,
     filter::Filter,
     subgraph::{
-        edges::EdgeDirection,
+        edges::{EdgeDirection, EntityTraversalEdge, KnowledgeGraphEdgeKind},
         identifier::{EntityTypeVertexId, EntityVertexId},
-        temporal_axes::{
-            PinnedAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
-            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxisUnresolved,
-        },
+        temporal_axes::{PinnedAxis, QueryTemporalAxes, VariableAxis},
     },
 };
 use hash_graph_temporal_versioning::{
-    LeftClosedTemporalInterval, RightBoundedTemporalInterval, TemporalTagged as _, TimeAxis,
-    Timestamp,
+    LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
 use postgres_types::ToSql;
 use tokio_postgres::GenericClient as _;
@@ -48,17 +44,17 @@ pub struct EntityEdgeTraversalData {
     entity_uuids: Vec<EntityUuid>,
     entity_revision_ids: Vec<Timestamp<VariableAxis>>,
     intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
-    pinned_timestamp: Timestamp<PinnedAxis>,
-    variable_axis: TimeAxis,
+    pub pinned_timestamp: Timestamp<PinnedAxis>,
+    pub variable_axis: TimeAxis,
 }
 
 impl EntityEdgeTraversalData {
-    pub fn new(temporal_axes: &QueryTemporalAxes) -> Self {
+    pub fn with_capacity(temporal_axes: &QueryTemporalAxes, capacity: usize) -> Self {
         Self {
-            web_ids: Vec::new(),
-            entity_uuids: Vec::new(),
-            entity_revision_ids: Vec::new(),
-            intervals: Vec::new(),
+            web_ids: Vec::with_capacity(capacity),
+            entity_uuids: Vec::with_capacity(capacity),
+            entity_revision_ids: Vec::with_capacity(capacity),
+            intervals: Vec::with_capacity(capacity),
             pinned_timestamp: temporal_axes.pinned_timestamp(),
             variable_axis: temporal_axes.variable_time_axis(),
         }
@@ -98,6 +94,21 @@ pub struct KnowledgeEdgeTraversal {
     pub right_endpoint_edition_id: EntityEditionId,
     pub edge_interval: LeftClosedTemporalInterval<VariableAxis>,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
+}
+
+/// Metadata for edges traversed in a single hop during entity traversal.
+pub struct EdgeHopMetadata {
+    pub edge_kind: KnowledgeGraphEdgeKind,
+    pub edge_direction: EdgeDirection,
+    pub edges: Vec<KnowledgeEdgeTraversal>,
+}
+
+/// Result of traversing entity edges, either via CTE or sequential queries.
+pub struct EntityTraversalResult {
+    /// All entity edition IDs encountered during traversal (for permission filtering)
+    pub entity_edition_ids: Vec<EntityEditionId>,
+    /// Edges grouped by hop in traversal order
+    pub edge_hops: Vec<EdgeHopMetadata>,
 }
 
 impl<C> PostgresStore<C>
@@ -201,15 +212,23 @@ where
             }))
     }
 
-    #[tracing::instrument(level = "info", skip(self, provider))]
+    /// Reads knowledge graph edges for a set of entities.
+    ///
+    /// Queries the specified reference table to find edges (either incoming or outgoing) for the
+    /// given entities within their temporal intervals. Returns both the entity edition IDs
+    /// encountered during traversal and the edges themselves.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails.
+    #[tracing::instrument(level = "info", skip(self, traversal_data))]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges<'t>(
+    pub(crate) async fn read_knowledge_edges(
         &self,
-        traversal_data: &'t EntityEdgeTraversalData,
+        traversal_data: &EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
-        provider: &StoreProvider<'_, Self>,
-    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, Report<QueryError>> {
+    ) -> Result<(Vec<EntityEditionId>, Vec<KnowledgeEdgeTraversal>), Report<QueryError>> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -240,8 +259,7 @@ where
             swap(&mut source_2, &mut target_2);
         }
 
-        let (entity_edition_ids, edges) = self
-            .client
+        self.client
             .as_client()
             .query_raw(
                 &format!(
@@ -330,28 +348,41 @@ where
             .try_collect::<(Vec<_>, Vec<_>)>()
             .instrument(tracing::trace_span!("collect_edges"))
             .await
-            .change_context(QueryError)?;
+            .change_context(QueryError)
+    }
 
+    /// Filters entity edition IDs by permission policies.
+    ///
+    /// Queries the database to determine which of the provided entity edition IDs are permitted
+    /// for the current actor based on their policies. This allows efficient batch permission
+    /// checking for multiple entities at once.
+    ///
+    /// Returns a [`HashSet`] of permitted entity edition IDs. If no policy components are
+    /// provided (i.e., no permission checks required), returns `None` which should be
+    /// interpreted as "all entities permitted".
+    ///
+    /// # Arguments
+    ///
+    /// * `entity_edition_ids` - All entity edition IDs to check permissions for
+    /// * `pinned_timestamp` - Timestamp for the pinned temporal axis
+    /// * `variable_axis` - Which temporal axis is variable (decision time or transaction time)
+    /// * `provider` - Store provider containing policy components for permission checks
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the permission query fails.
+    #[tracing::instrument(level = "info", skip_all)]
+    pub(crate) async fn filter_knowledge_edges(
+        &self,
+        entity_edition_ids: &[EntityEditionId],
+        temporal_bounds: &QueryTemporalAxes,
+        provider: &StoreProvider<'_, Self>,
+    ) -> Result<Option<HashSet<EntityEditionId>>, Report<QueryError>> {
         let permitted_entity_edition_ids =
             if let Some(policy_components) = provider.policy_components {
-                let temporal_bounds = match traversal_data.variable_axis {
-                    TimeAxis::DecisionTime => QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(Some(
-                            traversal_data.pinned_timestamp.cast(),
-                        )),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    TimeAxis::TransactionTime => QueryTemporalAxesUnresolved::TransactionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(Some(
-                            traversal_data.pinned_timestamp.cast(),
-                        )),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                }
-                .resolve();
-                let mut compiler = SelectCompiler::new(Some(&temporal_bounds), true);
+                let mut compiler = SelectCompiler::new(Some(temporal_bounds), true);
 
-                let entity_editions_filter = Filter::for_entity_edition_ids(&entity_edition_ids);
+                let entity_editions_filter = Filter::for_entity_edition_ids(entity_edition_ids);
                 compiler
                     .add_filter(&entity_editions_filter)
                     .change_context(QueryError)?;
@@ -397,11 +428,40 @@ where
                 None
             };
 
-        Ok(edges.into_iter().filter(move |edge| {
-            let Some(permitted_entity_edition_ids) = &permitted_entity_edition_ids else {
-                return true;
-            };
-            permitted_entity_edition_ids.contains(&edge.right_endpoint_edition_id)
-        }))
+        Ok(permitted_entity_edition_ids)
+    }
+
+    /// Attempts to traverse multiple entity edges using a recursive CTE query.
+    ///
+    /// This function is designed to replace the N+1 query pattern where
+    /// [`Self::read_knowledge_edges`] is called sequentially for each edge. When implemented, it
+    /// will execute a single PostgreSQL recursive CTE that traverses all edges at once, performing
+    /// automatic interval merging and deduplication using PostgreSQL's multirange types.
+    ///
+    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
+    /// this edge configuration. Currently returns `None` for all inputs as the CTE implementation
+    /// is not yet complete.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QueryError`] if the database query fails during traversal.
+    #[tracing::instrument(level = "info", skip_all)]
+    pub(crate) async fn read_knowledge_edges_recursive(
+        &self,
+        _traversal_data: &EntityEdgeTraversalData,
+        _edges: &[EntityTraversalEdge],
+    ) -> Result<Option<EntityTraversalResult>, Report<QueryError>> {
+        // TODO: Implement recursive CTE query
+        //
+        // The query will:
+        // 1. Build edge configuration arrays (edge_types, edge_directions)
+        // 2. Execute recursive CTE with:
+        //    - Base case: Starting entities from traversal_data
+        //    - Recursive case: UNION ALL over 4 edge combinations (left/right, incoming/outgoing)
+        //    - Deduplication: GROUP BY (entity, depth) with range_agg() for interval merging
+        // 3. Return all depths, group edges by hop
+
+        // For now, return None to use sequential fallback
+        Ok(None)
     }
 }
