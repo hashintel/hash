@@ -191,16 +191,11 @@ where
         Ok(entity_type_queue)
     }
 
-    /// Attempts to traverse entity edges using a recursive CTE query.
+    /// Traverses entity edges using a recursive CTE query.
     ///
-    /// When implemented, this method will perform the graph traversal by executing one recursive
-    /// PostgreSQL query that traverses all edges at once, with automatic interval merging and
-    /// deduplication using PostgreSQL's multirange types.
-    ///
-    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
-    /// this edge configuration. Currently returns `None` for all inputs as the CTE implementation
-    /// is not yet complete. When `None` is returned, the caller falls back to
-    /// [`Self::traverse_edges_sequential`].
+    /// This method performs the graph traversal by executing a single PostgreSQL recursive CTE
+    /// that traverses all edges at once, significantly reducing database round-trips compared to
+    /// the N+1 sequential pattern.
     ///
     /// # Errors
     ///
@@ -210,13 +205,13 @@ where
         entities: Cow<'_, [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)]>,
         edges: &[EntityTraversalEdge],
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<Option<EntityTraversalResult>, Report<QueryError>> {
+    ) -> Result<EntityTraversalResult, Report<QueryError>> {
         // Fast path: No edges to traverse
         if edges.is_empty() {
-            return Ok(Some(EntityTraversalResult {
+            return Ok(EntityTraversalResult {
                 entity_edition_ids: Vec::new(),
                 edge_hops: Vec::new(),
-            }));
+            });
         }
 
         // Build traversal data from starting entities

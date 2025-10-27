@@ -437,7 +437,7 @@ where
         Ok(permitted_entity_edition_ids)
     }
 
-    /// Attempts to traverse multiple entity edges using a recursive CTE query.
+    /// Traverses multiple entity edges using a recursive CTE query.
     ///
     /// This function replaces the N+1 query pattern where [`Self::read_knowledge_edges`] is
     /// called sequentially for each edge. It executes a single PostgreSQL recursive CTE that
@@ -452,9 +452,6 @@ where
     /// follow at each depth level, allowing arbitrary traversal patterns through the entity
     /// graph.
     ///
-    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
-    /// this edge configuration.
-    ///
     /// # Errors
     ///
     /// Returns [`QueryError`] if the database query fails during traversal.
@@ -464,19 +461,14 @@ where
         &self,
         traversal_data: &EntityEdgeTraversalData,
         edges: &[EntityTraversalEdge],
-    ) -> Result<Option<EntityTraversalResult>, Report<QueryError>> {
-        // Fast path: empty edges already handled by caller
+    ) -> Result<EntityTraversalResult, Report<QueryError>> {
+        // Fast path: empty edges
         if edges.is_empty() {
-            return Ok(Some(EntityTraversalResult {
-                entity_edition_ids: Vec::new(),
-                edge_hops: Vec::new(),
-            }));
+            return Ok(EntityTraversalResult::default());
         }
 
         // Build edge configuration: encode each edge as (kind, direction) tuple
         // This tells the CTE which edges to follow at each depth level
-        //
-        // TODO: Use INTEGER enums instead of TEXT for better performance (follow-up)
         let (edge_kinds, edge_directions) = edges
             .iter()
             .map(|edge| match edge {
@@ -503,11 +495,10 @@ where
         // Execute recursive CTE
         //
         // The CTE structure:
-        // 1. edge_view: Simple UNION ALL over edge tables (no temporal joins)
-        // 2. Base case: Start with input entities from traversal_data
-        // 3. Recursive case: Join edge_view, then add temporal metadata joins
-        // 4. Filter edges by configuration array at each depth
-        // 5. Track source entity for each edge (needed to reconstruct edge topology)
+        // 1. Base case: Start with input entities from traversal_data
+        // 2. Recursive case: Join entity_edge table, then add temporal metadata joins
+        // 3. Filter edges by configuration array at each depth
+        // 4. Track source entity for each edge (needed to reconstruct edge topology)
         self.client
             .as_client()
             .query_raw(
@@ -560,7 +551,7 @@ where
                             edge.direction
                         FROM traversal AS trav
 
-                        -- Join with unified edge view (pre-computed UNION ALL)
+                        -- Join with unified edge table
                         JOIN entity_edge AS edge
                           ON edge.source_web_id = trav.current_web_id
                          AND edge.source_entity_uuid = trav.current_entity_uuid
@@ -639,7 +630,7 @@ where
                     // Ensure edge_hops has entry for this depth level
                     while traversal_result.edge_hops.len() <= depth {
                         traversal_result.edge_hops.push(EdgeHopMetadata {
-                            edge_kind: match row.get(10),
+                            edge_kind: row.get(10),
                             edge_direction: row.get(11),
                             edges: Vec::new(),
                         });
@@ -683,7 +674,6 @@ where
             )
             .instrument(tracing::trace_span!("parse_cte_results"))
             .await
-            .map(Some)
             .change_context(QueryError)
     }
 }
