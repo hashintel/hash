@@ -118,12 +118,23 @@ export const GhostCritical: Story = {
 
 // Sizes
 export const Sizes: Story = {
-  render: () => (
+  parameters: {
+    controls: { exclude: ["size"] },
+  },
+  render: (args) => (
     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-      <Button size="xs">Extra Small</Button>
-      <Button size="sm">Small</Button>
-      <Button size="md">Medium</Button>
-      <Button size="lg">Large</Button>
+      <Button {...args} size="xs">
+        Extra Small
+      </Button>
+      <Button {...args} size="sm">
+        Small
+      </Button>
+      <Button {...args} size="md">
+        Medium
+      </Button>
+      <Button {...args} size="lg">
+        Large
+      </Button>
     </div>
   ),
 };
@@ -155,7 +166,7 @@ export const WithIconLeft: Story = {
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M8 2L12 6L8 10"
+          d="M8 12L4 8L8 4"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
@@ -178,7 +189,7 @@ export const WithIconRight: Story = {
         xmlns="http://www.w3.org/2000/svg"
       >
         <path
-          d="M8 2L12 6L8 10"
+          d="M8 4L12 8L8 12"
           stroke="currentColor"
           strokeWidth="1.5"
           strokeLinecap="round"
@@ -192,6 +203,9 @@ export const WithIconRight: Story = {
 
 // All Variants Showcase
 export const AllVariants: Story = {
+  parameters: {
+    controls: { disable: true },
+  },
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div>
