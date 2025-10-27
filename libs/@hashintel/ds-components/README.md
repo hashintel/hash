@@ -7,6 +7,7 @@ Components for HASH refractive design system, built using React, TypeScript, Ark
 For detailed instructions on adding or updating components, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 This guide includes:
+
 - Step-by-step workflow for new components
 - Design token mapping
 - Common patterns and examples

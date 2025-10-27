@@ -283,6 +283,7 @@ export const ComponentName: React.FC<ComponentNameProps> = ({
    ```
 
 4. **Conditional styling:**
+
    ```tsx
    className={css(
      variant === "default" ? {
@@ -788,6 +789,7 @@ className={css({
 1. Check `figma-to-panda-mapping.json` for the mapping
 2. Search for similar usage in existing components
 3. Use `grep_search` to find token patterns:
+
    ```typescript
    grep_search({
      query: "spacing.4|spacing.5|spacing.6",
@@ -814,10 +816,13 @@ className={css({
 **Solution:**
 
 1. Ensure you're using the ternary for controlled vs uncontrolled:
+
    ```tsx
    {...(value !== undefined ? { value } : { defaultValue })}
    ```
+
 2. Check that `onValueChange` is calling the user's `onChange`:
+
    ```tsx
    onValueChange={(details) => {
      if (details.value) {
@@ -825,6 +830,7 @@ className={css({
      }
    }}
    ```
+
 3. Verify the story properly manages state with `useState`
 
 ## Additional Resources
