@@ -8,7 +8,7 @@ mod types;
 use hashql_core::{
     collections::{
         FastHashMap,
-        pool::{MixedBitSetPool, MixedBitSetRecycler, Pool},
+        pool::{MixedBitSetPool, MixedBitSetRecycler},
     },
     heap::Heap,
     id::{Id as _, IdCounter, IdVec, bit_vec::MixedBitSet},
