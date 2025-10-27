@@ -603,7 +603,7 @@ pub type VecPool<T> = Pool<Vec<T>, VecRecycler>;
 /// pool.release(bitset1);
 /// pool.release(bitset2);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MixedBitSetRecycler {
     /// The fixed domain size for all bit sets managed by this recycler.
     pub domain_size: usize,
