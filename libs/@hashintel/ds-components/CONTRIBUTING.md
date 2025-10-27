@@ -66,27 +66,29 @@ This guide provides instructions for adding or updating components in the HASH D
 Open the Figma design file and select the component you want to implement.
 
 **Using Figma MCP:**
+
 ```typescript
 // Get the design context for the selected component
 mcp_figma_get_design_context({
   clientFrameworks: "react",
-  clientLanguages: "typescript"
-})
+  clientLanguages: "typescript",
+});
 
 // Get a screenshot for visual reference
 mcp_figma_get_screenshot({
   clientFrameworks: "react",
-  clientLanguages: "typescript"
-})
+  clientLanguages: "typescript",
+});
 
 // Get variable definitions (design tokens)
 mcp_figma_get_variable_defs({
   clientFrameworks: "react",
-  clientLanguages: "typescript"
-})
+  clientLanguages: "typescript",
+});
 ```
 
 **What to extract from Figma:**
+
 - Component variants (e.g., default, card, sizes)
 - Spacing values (padding, gap, margin)
 - Border radius values
@@ -98,28 +100,33 @@ mcp_figma_get_variable_defs({
 ### Step 2: Get Ark UI Pattern
 
 **Using ArkUI MCP:**
+
 ```typescript
 // List available examples for the component
-mcp_ark-ui_list_examples({
-  component: "radio-group", // Change to your component
-  framework: "react"
-})
+mcp_ark -
+  ui_list_examples({
+    component: "radio-group", // Change to your component
+    framework: "react",
+  });
 
 // Get the basic example
-mcp_ark-ui_get_example({
-  component: "radio-group",
-  exampleId: "basic",
-  framework: "react"
-})
+mcp_ark -
+  ui_get_example({
+    component: "radio-group",
+    exampleId: "basic",
+    framework: "react",
+  });
 
 // Get component props documentation
-mcp_ark-ui_get_component_props({
-  component: "radio-group",
-  framework: "react"
-})
+mcp_ark -
+  ui_get_component_props({
+    component: "radio-group",
+    framework: "react",
+  });
 ```
 
 **Key elements to identify:**
+
 - Base component import path (e.g., `@ark-ui/react/radio-group`)
 - Component structure (Root, Item, Control, Label, etc.)
 - Required props and types
@@ -131,6 +138,7 @@ mcp_ark-ui_get_component_props({
 Review the design token mapping to translate Figma variables to PandaCSS tokens:
 
 **Read the mapping file:**
+
 ```bash
 # Location of token definitions
 libs/@hashintel/ds-theme/src/index.ts
@@ -141,19 +149,20 @@ libs/@hashintel/ds-theme/src/figma-to-panda-mapping.json
 
 **Common token mappings:**
 
-| Figma Variable | PandaCSS Token | Value Example |
-|----------------|----------------|---------------|
-| `--spacing/default/4` | `spacing.4` | 6px |
-| `--spacing/default/5` | `spacing.5` | 8px |
-| `--spacing/default/6` | `spacing.6` | 12px |
-| `--border-radius/rounded-lg` | `radius.4` | 8px |
-| `--border/neutral/default` | `border.neutral.default` | #e5e5e5 |
-| `--bg/neutral/subtle/default` | `bg.neutral.subtle.default` | white |
-| `--text/primary` | `text.primary` | #171717 |
-| `size.textsm` | `size.textsm` | 14px |
-| `size.textxs` | `size.textxs` | 12px |
+| Figma Variable                | PandaCSS Token              | Value Example |
+| ----------------------------- | --------------------------- | ------------- |
+| `--spacing/default/4`         | `spacing.4`                 | 6px           |
+| `--spacing/default/5`         | `spacing.5`                 | 8px           |
+| `--spacing/default/6`         | `spacing.6`                 | 12px          |
+| `--border-radius/rounded-lg`  | `radius.4`                  | 8px           |
+| `--border/neutral/default`    | `border.neutral.default`    | #e5e5e5       |
+| `--bg/neutral/subtle/default` | `bg.neutral.subtle.default` | white         |
+| `--text/primary`              | `text.primary`              | #171717       |
+| `size.textsm`                 | `size.textsm`               | 14px          |
+| `size.textxs`                 | `size.textxs`               | 12px          |
 
 **Token categories:**
+
 - **Spacing**: `spacing.0` through `spacing.12`
 - **Radius**: `radius.2` (4px), `radius.3` (6px), `radius.4` (8px), `radius.full` (100px)
 - **Colors**: `border.*`, `bg.*`, `text.*`, `core.*`
@@ -188,16 +197,16 @@ export interface ComponentNameProps {
   // Controlled state
   value?: string;
   defaultValue?: string;
-  
+
   // Common props
   disabled?: boolean;
   name?: string;
   form?: string;
   id?: string;
-  
+
   // Event handlers
   onChange?: (value: string) => void;
-  
+
   // Variant props
   variant?: "default" | "alternative";
   size?: "sm" | "md" | "lg";
@@ -241,11 +250,13 @@ export const ComponentName: React.FC<ComponentNameProps> = ({
 **Key patterns:**
 
 1. **Controlled vs Uncontrolled:**
+
    ```tsx
    {...(value !== undefined ? { value } : { defaultValue })}
    ```
 
 2. **Styling with data attributes:**
+
    ```tsx
    "&[data-state='checked']": {
      backgroundColor: "bg.neutral.bold.default",
@@ -260,6 +271,7 @@ export const ComponentName: React.FC<ComponentNameProps> = ({
    ```
 
 3. **Using design tokens:**
+
    ```tsx
    className={css({
      padding: "spacing.4",          // Use tokens
@@ -344,7 +356,7 @@ export const Disabled: Story = {
 export const Controlled: Story = {
   render: (args) => {
     const [value, setValue] = useState("");
-    
+
     return (
       <ComponentName
         {...args}
@@ -357,6 +369,7 @@ export const Controlled: Story = {
 ```
 
 **Required stories:**
+
 - `Default` - Basic usage
 - `Disabled` - Disabled state
 - `Controlled` - Controlled state example
@@ -385,22 +398,20 @@ figma.connect(
       }),
     },
     example: (props) => (
-      <ComponentName
-        variant={props.variant}
-        disabled={props.disabled}
-      />
+      <ComponentName variant={props.variant} disabled={props.disabled} />
     ),
-  },
+  }
 );
 ```
 
 **To get the node-id:**
+
 ```typescript
 // Get metadata to find the node ID
 mcp_figma_get_metadata({
   clientFrameworks: "react",
-  clientLanguages: "typescript"
-})
+  clientLanguages: "typescript",
+});
 ```
 
 The node-id will be in the format `18731-77299`. Convert `:` to `-` for the URL.
@@ -410,11 +421,13 @@ The node-id will be in the format `18731-77299`. Convert `:` to `-` for the URL.
 ### Step 1: Review Current Implementation
 
 1. **Read existing component files:**
+
    ```bash
    libs/@hashintel/ds-components/src/components/ComponentName/
    ```
 
 2. **Check current design tokens used:**
+
    - Look for `spacing.*`, `radius.*`, `border.*`, `bg.*`, `text.*` references
    - Note any bracket notation values `[10px]`
 
@@ -431,23 +444,26 @@ Select the component in Figma and retrieve the latest design:
 ```typescript
 mcp_figma_get_design_context({
   clientFrameworks: "react",
-  clientLanguages: "typescript"
-})
+  clientLanguages: "typescript",
+});
 ```
 
 ### Step 3: Compare and Update
 
 1. **Map new design tokens:**
+
    - Check if new Figma variables need to be mapped
    - Verify existing tokens are still correct
    - Update to newer token versions if available
 
 2. **Update component implementation:**
+
    - Use `replace_string_in_file` for precise edits
    - Include 3-5 lines of context before/after changes
    - Preserve existing functionality
 
 3. **Update stories:**
+
    - Add stories for new variants
    - Update existing stories if props changed
 
@@ -458,11 +474,13 @@ mcp_figma_get_design_context({
 ### Step 4: Validate Changes
 
 1. **Check for TypeScript errors:**
+
    ```typescript
-   get_errors({ filePaths: ["path/to/component.tsx"] })
+   get_errors({ filePaths: ["path/to/component.tsx"] });
    ```
 
 2. **Run Storybook:**
+
    ```bash
    yarn storybook
    ```
@@ -489,25 +507,27 @@ mcp_figma_get_design_context({
 ### How to Use Tokens
 
 **✅ DO:**
+
 ```tsx
 // Use semantic tokens
-padding: "spacing.4"
-backgroundColor: "bg.neutral.subtle.default"
-borderColor: "border.neutral.default"
+padding: "spacing.4";
+backgroundColor: "bg.neutral.subtle.default";
+borderColor: "border.neutral.default";
 
 // Use bracket notation for custom values
-width: "[316px]"
-gap: "[10px]"
-color: "[#ffffff]"
+width: "[316px]";
+gap: "[10px]";
+color: "[#ffffff]";
 ```
 
 **❌ DON'T:**
+
 ```tsx
 // Don't use raw values without brackets
-padding: "6px"  // ❌ Type error
+padding: "6px"; // ❌ Type error
 
 // Don't use undefined tokens
-backgroundColor: "bg.neutral.default"  // ❌ Doesn't exist
+backgroundColor: "bg.neutral.default"; // ❌ Doesn't exist
 ```
 
 ### Finding the Right Token
@@ -557,9 +577,7 @@ export interface ComponentProps {
 }
 
 // 3. Constants (if needed)
-const ICON_SVG = (
-  <svg>...</svg>
-);
+const ICON_SVG = <svg>...</svg>;
 
 // 4. Component
 export const Component: React.FC<ComponentProps> = (props) => {
@@ -609,15 +627,18 @@ yarn build
 ### Common Linting Errors
 
 **1. `index.js files are not allowed`**
+
 - Don't create `index.ts` files in component directories
 - Components are exported directly via `package.json` exports
 
 **2. `'@figma/code-connect' should be in dependencies`**
+
 - This is a known warning in `*.figma.tsx` files
 - It's already in `devDependencies` - this is intentional
 - Safe to ignore
 
 **3. Type errors with PandaCSS tokens**
+
 - Use bracket notation for custom values: `[10px]`
 - Verify token exists in theme
 - Check spelling (e.g., `bg.neutral.subtle.default` not `bg.neutral.default`)
@@ -629,8 +650,8 @@ yarn build
 ```tsx
 // Props
 interface ComponentProps {
-  value?: string;           // Controlled
-  defaultValue?: string;    // Uncontrolled
+  value?: string; // Controlled
+  defaultValue?: string; // Uncontrolled
   onChange?: (value: string) => void;
 }
 
@@ -642,7 +663,7 @@ interface ComponentProps {
       onChange?.(details.value);
     }
   }}
-/>
+/>;
 ```
 
 ### Pattern 2: Variant Styling
@@ -669,23 +690,23 @@ className={css(
 className={css({
   // Base styles
   color: "text.primary",
-  
+
   // State: checked/selected
   "&[data-state='checked']": {
     backgroundColor: "bg.neutral.bold.default",
   },
-  
+
   // State: disabled
   "&[data-disabled]": {
     opacity: "[0.5]",
     cursor: "not-allowed",
   },
-  
+
   // State: hover (excluding disabled)
   "&:hover:not([data-disabled])": {
     backgroundColor: "bg.neutral.subtle.hover",
   },
-  
+
   // State: focus visible
   "&[data-focus-visible]": {
     outline: "2px solid",
@@ -708,17 +729,21 @@ className={css({
 ### Pattern 5: Optional Icon/Description
 
 ```tsx
-{variant === "card" && option.icon && (
-  <div className={css({
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "[32px]",
-    height: "[32px]",
-  })}>
-    {option.icon}
-  </div>
-)}
+{
+  variant === "card" && option.icon && (
+    <div
+      className={css({
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "[32px]",
+        height: "[32px]",
+      })}
+    >
+      {option.icon}
+    </div>
+  );
+}
 ```
 
 ## Troubleshooting
@@ -728,6 +753,7 @@ className={css({
 **Problem:** `Type '"value"' is not assignable to type 'Token | undefined'`
 
 **Solution:**
+
 1. Use bracket notation for custom values: `[10px]`
 2. Verify the token exists in `@hashintel/ds-theme/src/index.ts`
 3. Check for typos (e.g., `bg.neutral.default` doesn't exist, use `bg.neutral.subtle.default`)
@@ -737,6 +763,7 @@ className={css({
 **Problem:** Component doesn't show up in Storybook sidebar
 
 **Solution:**
+
 1. Check `title` in story meta matches pattern: `"Components/ComponentName"`
 2. Ensure story file ends with `.stories.tsx`
 3. Restart Storybook: `yarn storybook`
@@ -746,6 +773,7 @@ className={css({
 **Problem:** `mcp_figma_get_design_context` returns empty or error
 
 **Solution:**
+
 1. Ensure Figma Desktop app is running
 2. Select the component/frame in Figma
 3. Verify Figma MCP server is set up in Figma app
@@ -756,6 +784,7 @@ className={css({
 **Problem:** Don't know which PandaCSS token to use for a Figma variable
 
 **Solution:**
+
 1. Check `figma-to-panda-mapping.json` for the mapping
 2. Search for similar usage in existing components
 3. Use `grep_search` to find token patterns:
@@ -763,8 +792,8 @@ className={css({
    grep_search({
      query: "spacing.4|spacing.5|spacing.6",
      isRegexp: true,
-     includePattern: "src/components/**/*.tsx"
-   })
+     includePattern: "src/components/**/*.tsx",
+   });
    ```
 
 ### Issue: Ark UI component structure unclear
@@ -772,6 +801,7 @@ className={css({
 **Problem:** Don't know which Ark UI subcomponents to use
 
 **Solution:**
+
 1. Use `mcp_ark-ui_list_examples` to see available examples
 2. Get the basic example with `mcp_ark-ui_get_example`
 3. Check existing similar components (e.g., Checkbox for RadioGroup)
@@ -782,6 +812,7 @@ className={css({
 **Problem:** Component doesn't update when value prop changes
 
 **Solution:**
+
 1. Ensure you're using the ternary for controlled vs uncontrolled:
    ```tsx
    {...(value !== undefined ? { value } : { defaultValue })}
@@ -799,11 +830,14 @@ className={css({
 ## Additional Resources
 
 ### Internal Documentation
+
 - [Design System README](./README.md)
 - [Theme Package](../ds-theme/README.md)
-- [Root CLAUDE.md](../../CLAUDE.md)
+- [Root `CLAUDE.md`](../../CLAUDE.md)
+- [Root `CONTRIBUTING.md`](../../.github/CONTRIBUTING.md)
 
 ### External Documentation
+
 - [Ark UI Documentation](https://ark-ui.com)
 - [Ark UI MCP Server](https://ark-ui.com/docs/ai/mcp-server)
 - [Figma MCP Server](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)
@@ -811,15 +845,18 @@ className={css({
 - [Storybook Documentation](https://storybook.js.org)
 
 ### Example Components
+
 Reference these well-implemented components:
-- **Checkbox** - Complete example with all patterns
-- **RadioGroup** - Multiple variants, card layout
-- **Badge** - Simple component with size/color variants
-- **Button** - Complex interactions and states
+
+- **Checkbox**: Complete example with all patterns
+- **RadioGroup**: Multiple variants, card layout
+- **Badge**: Simple component with size/color variants
+- **Button**: Complex interactions and states
 
 ## Questions?
 
 If you're an LLM assistant and encounter issues:
+
 1. Read this guide completely before starting
 2. Check existing components for patterns
 3. Use the MCP tools to gather context before implementing
@@ -827,6 +864,8 @@ If you're an LLM assistant and encounter issues:
 5. Always validate token availability before using them
 
 If you're a human developer:
-- Refer to the root `CLAUDE.md` for general repository guidance
+
+- Follow the instructions in the root `CONTRIBUTING.md` file for overarching guidelines on committing work to this repository
+- Refer to the root `CLAUDE.md` for general repository working guidance
 - Check the #design-system channel for discussions
 - Review PRs tagged with `design-system` label for examples
