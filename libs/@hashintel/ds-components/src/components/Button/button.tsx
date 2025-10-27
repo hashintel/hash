@@ -24,7 +24,7 @@ export const Button: React.FC<ButtonProps> = ({
             cursor: "not-allowed",
           },
         }),
-        className
+        className,
       )}
       {...props}
     >
