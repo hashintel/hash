@@ -22,19 +22,15 @@ Design Tokens are sourced from the `@hashintel/ds-theme` package.
 
 When updating or adding new components, ensure that the design tokens in `@hashintel/ds-theme` are up to date by following the instructions in its README.
 
-To help LLMs find the correct mapping between Figma variables and PandaCSS tokens, a mapping file is available at `libs/@hashintel/ds-components/figma-to-panda-mapping.json`.
+To help LLMs find the correct mapping between Figma variables and PandaCSS tokens, a mapping file is available at `libs/@hashintel/ds-theme/figma-to-panda-mapping.json`.
 
-> **Note:**
+> **Notes:**
 >
-> Figma MCP server requires the Figma app to be running.
+> - Figma MCP server requires the Figma app to be running.
 >
-> The Figma component to add/update should be open and selected in the app.
-
-> **Note:**
+> - Component to add/update should be open and selected inside Figma.
 >
-> Figma MCP needs to be set up in the Figma app.
->
-> ArkUI MCP config should not be committed to the repository. Instead, configure it in your User MCP config.
+> - ArkUI MCP config should not be committed to the repository. Instead, configure it in your User MCP config.
 
 ## Links
 

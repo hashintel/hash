@@ -41,7 +41,7 @@ This guide provides instructions for adding or updating components in the HASH D
 
 ### High-Level Process
 
-```
+```markdown
 1. Select component in Figma
    ↓
 2. Retrieve design context via Figma MCP
@@ -492,7 +492,7 @@ mcp_figma_get_design_context({
 
 ### Token Hierarchy
 
-```
+```bash
 @hashintel/ds-theme
 ├── colors
 │   ├── core.*        # Raw color values
@@ -550,7 +550,7 @@ grep -r "bg.neutral" src/components/
 
 ### File Organization
 
-```
+```bash
 src/components/ComponentName/
 ├── component-name.tsx          # 150-300 lines typically
 │   ├── Imports
