@@ -1,39 +1,50 @@
 # @hashintel/ds-components
 
-Components for HASH refractive design system, built using React, TypeScript, ArkUI, and PandaCSS.
+React components for HASH's refractive design system, built with TypeScript, Ark UI, and PandaCSS.
 
-## Contributing
+## LLM-Driven Development
 
-For detailed instructions on adding or updating components, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+**Component development is primarily handled by LLM coding assistants** (GitHub Copilot, Claude, etc.) using the [CONTRIBUTING.md](./CONTRIBUTING.md) as instructions.
 
-This guide includes:
+### For LLM Assistants
 
-- Step-by-step workflow for new components
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for complete implementation instructions including:
+
+- Figma design context retrieval via MCP
+- Ark UI pattern integration
 - Design token mapping
-- Common patterns and examples
-- Troubleshooting tips
-- LLM-optimized instructions
+- Component structure and patterns
+- Storybook stories creation
 
-## Synchronization with Figma
+### For Human Developers
 
-These components rely on variables and styles defined in Figma, which are synchronized using the Figma and ArkUI MCP servers.
+Use LLM assistants to add or update components. Direct manual implementation is only needed for:
 
-Design Tokens are sourced from the `@hashintel/ds-theme` package.
+- Complex edge cases beyond current LLM capabilities
+- Bug fixes requiring deep debugging
+- Architectural changes
 
-When updating or adding new components, ensure that the design tokens in `@hashintel/ds-theme` are up to date by following the instructions in its README.
+**Quick setup:**
 
-To help LLMs find the correct mapping between Figma variables and PandaCSS tokens, a mapping file is available at `libs/@hashintel/ds-theme/figma-to-panda-mapping.json`.
+1. Ensure Figma Desktop app is running with the design file open
+2. Have Figma MCP Server configured in Figma app
+3. Have Ark UI MCP Server configured in your User MCP config (not committed to repo)
+4. Select the component in Figma you want to implement
+5. Ask your LLM assistant to implement the component
+6. **Review the component** in Storybook to verify rendering and behavior match the design
+7. Make manual adjustments if needed for edge cases or visual refinements
 
-> **Notes:**
->
-> - Figma MCP server requires the Figma app to be running.
->
-> - Component to add/update should be open and selected inside Figma.
->
-> - ArkUI MCP config should not be committed to the repository. Instead, configure it in your User MCP config.
+## Design System Architecture
 
-## Links
+**Design Tokens:** Defined in [`@hashintel/ds-theme`](../ds-theme) package, synchronized from Figma variables
 
-- [ArkUI MCP Server Documentation](https://ark-ui.com/docs/ai/mcp-server)
+**Token Mapping:** [`figma-to-panda-mapping.json`](../ds-theme/figma-to-panda-mapping.json) (automatically generated) translates Figma variables to PandaCSS tokens
 
+**Styling System:** [PandaCSS](https://panda-css.com) provides type-safe styling with design tokens fully type-checked at compile time. Invalid tokens or outdated token names (from Figma updates or mapper changes) will produce TypeScript errors, ensuring design system consistency.
+
+**Component Base:** Built on [Ark UI](https://ark-ui.com) for accessibility and behavior patterns
+
+## External Resources
+
+- [Ark UI MCP Server Documentation](https://ark-ui.com/docs/ai/mcp-server)
 - [Figma MCP Server Documentation](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)
