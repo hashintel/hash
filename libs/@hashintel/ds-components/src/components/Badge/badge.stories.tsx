@@ -79,7 +79,10 @@ export const Default: Story = {
 };
 
 export const ColorSchemes: Story = {
-  render: () => (
+  parameters: {
+    controls: { exclude: ["children", "colorScheme"] },
+  },
+  render: (args) => (
     <div
       className={css({
         display: "flex",
@@ -87,19 +90,38 @@ export const ColorSchemes: Story = {
         flexWrap: "wrap",
       })}
     >
-      <Badge colorScheme="gray">Gray</Badge>
-      <Badge colorScheme="brand">Brand</Badge>
-      <Badge colorScheme="green">Green</Badge>
-      <Badge colorScheme="orange">Orange</Badge>
-      <Badge colorScheme="red">Red</Badge>
-      <Badge colorScheme="purple">Purple</Badge>
-      <Badge colorScheme="pink">Pink</Badge>
-      <Badge colorScheme="yellow">Yellow</Badge>
+      <Badge {...args} colorScheme="gray">
+        Gray
+      </Badge>
+      <Badge {...args} colorScheme="brand">
+        Brand
+      </Badge>
+      <Badge {...args} colorScheme="green">
+        Green
+      </Badge>
+      <Badge {...args} colorScheme="orange">
+        Orange
+      </Badge>
+      <Badge {...args} colorScheme="red">
+        Red
+      </Badge>
+      <Badge {...args} colorScheme="purple">
+        Purple
+      </Badge>
+      <Badge {...args} colorScheme="pink">
+        Pink
+      </Badge>
+      <Badge {...args} colorScheme="yellow">
+        Yellow
+      </Badge>
     </div>
   ),
 };
 
 export const Sizes: Story = {
+  parameters: {
+    controls: { exclude: ["children", "size", "isSquare"] },
+  },
   render: () => (
     <div
       className={css({
@@ -118,7 +140,10 @@ export const Sizes: Story = {
 };
 
 export const SquareBadges: Story = {
-  render: () => (
+  parameters: {
+    controls: { exclude: ["children", "size", "isSquare"] },
+  },
+  render: (args) => (
     <div
       className={css({
         display: "flex",
@@ -127,16 +152,16 @@ export const SquareBadges: Story = {
         flexWrap: "wrap",
       })}
     >
-      <Badge isSquare size="xs">
+      <Badge {...args} isSquare size="xs">
         2
       </Badge>
-      <Badge isSquare size="sm">
+      <Badge {...args} isSquare size="sm">
         5
       </Badge>
-      <Badge isSquare size="md">
+      <Badge {...args} isSquare size="md">
         9
       </Badge>
-      <Badge isSquare size="lg">
+      <Badge {...args} isSquare size="lg">
         12
       </Badge>
     </div>
@@ -144,7 +169,10 @@ export const SquareBadges: Story = {
 };
 
 export const WithIcons: Story = {
-  render: () => (
+  parameters: {
+    controls: { exclude: ["children"] },
+  },
+  render: (args) => (
     <div
       className={css({
         display: "flex",
@@ -160,7 +188,7 @@ export const WithIcons: Story = {
         })}
       >
         <Badge
-          size="sm"
+          {...args}
           iconLeft={
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <circle cx="6" cy="6" r="4" />
@@ -170,7 +198,7 @@ export const WithIcons: Story = {
           With Left Icon
         </Badge>
         <Badge
-          size="sm"
+          {...args}
           iconRight={
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <circle cx="6" cy="6" r="4" />
@@ -180,7 +208,7 @@ export const WithIcons: Story = {
           With Right Icon
         </Badge>
         <Badge
-          size="md"
+          {...args}
           colorScheme="green"
           iconLeft={
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
@@ -196,6 +224,9 @@ export const WithIcons: Story = {
 };
 
 export const AllCombinations: Story = {
+  parameters: {
+    controls: { disabled: true },
+  },
   render: () => {
     const colors: Array<BadgeProps["colorScheme"]> = [
       "gray",
@@ -233,7 +264,7 @@ export const AllCombinations: Story = {
                 textTransform: "capitalize",
               })}
             >
-              {color}:
+              {color}
             </div>
             {sizes.map((size) => (
               <Badge key={size} colorScheme={color} size={size}>
