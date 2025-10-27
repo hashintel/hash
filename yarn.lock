@@ -14885,23 +14885,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@smithy/core@npm:^3.7.2":
-  version: 3.7.2
-  resolution: "@smithy/core@npm:3.7.2"
-  dependencies:
-    "@smithy/middleware-serde": "npm:^4.0.8"
-    "@smithy/protocol-http": "npm:^5.1.2"
-    "@smithy/types": "npm:^4.3.1"
-    "@smithy/util-base64": "npm:^4.0.0"
-    "@smithy/util-body-length-browser": "npm:^4.0.0"
-    "@smithy/util-middleware": "npm:^4.0.4"
-    "@smithy/util-stream": "npm:^4.2.3"
-    "@smithy/util-utf8": "npm:^4.0.0"
-    tslib: "npm:^2.6.2"
-  checksum: 10c0/469e15f0438a6b24485610f088570729045fbe8888586e4d060fed41a5fb6e180c28124b85f2aa6119fa82cdd09cc4ea05df0674a01ac279c70162a9a9a847fe
-  languageName: node
-  linkType: hard
-
 "@smithy/credential-provider-imds@npm:^3.2.6, @smithy/credential-provider-imds@npm:^3.2.8":
   version: 3.2.8
   resolution: "@smithy/credential-provider-imds@npm:3.2.8"
