@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::mem::swap;
 use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
@@ -34,10 +33,7 @@ use type_system::{
 
 use crate::store::{
     StoreProvider,
-    postgres::{
-        AsClient, PostgresStore,
-        query::{ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile as _},
-    },
+    postgres::{AsClient, PostgresStore, query::SelectCompiler},
 };
 
 #[derive(Debug)]
@@ -218,145 +214,6 @@ where
             }))
     }
 
-    /// Reads knowledge graph edges for a set of entities.
-    ///
-    /// Queries the specified reference table to find edges (either incoming or outgoing) for the
-    /// given entities within their temporal intervals. Returns both the entity edition IDs
-    /// encountered during traversal and the edges themselves.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`QueryError`] if the database query fails.
-    #[tracing::instrument(level = "info", skip(self, traversal_data))]
-    #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges(
-        &self,
-        traversal_data: &EntityEdgeTraversalData,
-        reference_table: ReferenceTable,
-        edge_direction: EdgeDirection,
-    ) -> Result<(Vec<EntityEditionId>, Vec<KnowledgeEdgeTraversal>), Report<QueryError>> {
-        let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
-            TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
-            TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
-        };
-
-        let table = Table::Reference(reference_table).transpile_to_string();
-        let [mut source_1, mut source_2] =
-            if let ForeignKeyReference::Double { join, .. } = reference_table.source_relation() {
-                [
-                    join[0].to_expression(None).transpile_to_string(),
-                    join[1].to_expression(None).transpile_to_string(),
-                ]
-            } else {
-                unreachable!("entity reference tables don't have single conditions")
-            };
-        let [mut target_1, mut target_2] =
-            if let ForeignKeyReference::Double { on, .. } = reference_table.target_relation() {
-                [
-                    on[0].to_expression(None).transpile_to_string(),
-                    on[1].to_expression(None).transpile_to_string(),
-                ]
-            } else {
-                unreachable!("entity reference tables don't have single conditions")
-            };
-
-        if edge_direction == EdgeDirection::Incoming {
-            swap(&mut source_1, &mut target_1);
-            swap(&mut source_2, &mut target_2);
-        }
-
-        self.client
-            .as_client()
-            .query_raw(
-                &format!(
-                    "
-                        SELECT
-                             filter.idx,
-                             target.web_id,
-                             target.entity_uuid,
-                             lower(target.{variable_axis}),
-                             target.entity_edition_id,
-                             source.{variable_axis} * target.{variable_axis},
-                             source.{variable_axis} * target.{variable_axis} * filter.interval
-                        FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
-                             WITH ORDINALITY
-                             AS filter(web_id, entity_uuid, entity_version, interval, idx)
-
-                        JOIN entity_temporal_metadata AS source
-                          ON source.{pinned_axis} @> $5::timestamptz
-                         AND lower(source.{variable_axis}) = filter.entity_version
-                         AND source.web_id = filter.web_id
-                         AND source.entity_uuid = filter.entity_uuid
-
-                        JOIN {table}
-                          ON {source_1} = source.web_id
-                         AND {source_2} = source.entity_uuid
-
-                        JOIN entity_temporal_metadata AS target
-                          ON target.{pinned_axis} @> $5::timestamptz
-                         AND target.{variable_axis} && source.{variable_axis}
-                         AND target.{variable_axis} && filter.interval
-                         AND NOT isempty(
-                            source.{variable_axis} * target.{variable_axis} * filter.interval
-                         )
-                         AND target.web_id = {target_1}
-                         AND target.entity_uuid = {target_2}
-                    "
-                ),
-                [
-                    &traversal_data.web_ids as &(dyn ToSql + Sync),
-                    &traversal_data.entity_uuids,
-                    &traversal_data.entity_revision_ids,
-                    &traversal_data.intervals,
-                    &traversal_data.pinned_timestamp,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "SELECT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(QueryError)?
-            .map_ok(|row| {
-                let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
-                let right_endpoint_edition_id = row.get(4);
-                (
-                    right_endpoint_edition_id,
-                    #[expect(
-                        clippy::indexing_slicing,
-                        reason = "index is guaranteed to be in bounds"
-                    )]
-                    KnowledgeEdgeTraversal {
-                        left_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                web_id: traversal_data.web_ids[index],
-                                entity_uuid: traversal_data.entity_uuids[index],
-                                draft_id: None,
-                            },
-                            revision_id: traversal_data.entity_revision_ids[index],
-                        },
-                        right_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                web_id: row.get(1),
-                                entity_uuid: row.get(2),
-                                draft_id: None,
-                            },
-                            revision_id: row.get(3),
-                        },
-                        right_endpoint_edition_id,
-                        edge_interval: row.get(5),
-                        traversal_interval: row.get(6),
-                    },
-                )
-            })
-            .try_collect::<(Vec<_>, Vec<_>)>()
-            .instrument(tracing::trace_span!("collect_edges"))
-            .await
-            .change_context(QueryError)
-    }
-
     /// Filters entity edition IDs by permission policies.
     ///
     /// Queries the database to determine which of the provided entity edition IDs are permitted
@@ -439,10 +296,6 @@ where
 
     /// Traverses multiple entity edges using a recursive CTE query.
     ///
-    /// This function replaces the N+1 query pattern where [`Self::read_knowledge_edges`] is
-    /// called sequentially for each edge. It executes a single PostgreSQL recursive CTE that
-    /// traverses all edges at once.
-    ///
     /// The implementation uses the unified `entity_edge` table which stores both edge kinds
     /// (`has_left_entity`, `has_right_entity`) and directions (`outgoing`, `incoming`) as
     /// explicit columns. Each edge is stored twice (once for each direction), eliminating the
@@ -457,14 +310,29 @@ where
     /// Returns [`QueryError`] if the database query fails during traversal.
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges_recursive(
+    pub(crate) async fn read_knowledge_edges(
         &self,
-        traversal_data: &EntityEdgeTraversalData,
+        entities: impl IntoIterator<
+            Item = &(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>),
+        >,
         edges: &[EntityTraversalEdge],
+        temporal_axes: &QueryTemporalAxes,
     ) -> Result<EntityTraversalResult, Report<QueryError>> {
-        // Fast path: empty edges
+        // Fast path: No edges to traverse
         if edges.is_empty() {
-            return Ok(EntityTraversalResult::default());
+            return Ok(EntityTraversalResult {
+                entity_edition_ids: Vec::new(),
+                edge_hops: Vec::new(),
+            });
+        }
+
+        let entities = entities.into_iter();
+        // Build traversal data from starting entities
+        let mut traversal_data =
+            EntityEdgeTraversalData::with_capacity(temporal_axes, entities.size_hint().0);
+
+        for (entity_vertex_id, traversal_interval) in entities {
+            traversal_data.push(*entity_vertex_id, *traversal_interval);
         }
 
         // Build edge configuration: encode each edge as (kind, direction) tuple

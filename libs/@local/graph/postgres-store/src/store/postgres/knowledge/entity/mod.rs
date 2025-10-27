@@ -30,8 +30,7 @@ use hash_graph_store::{
         Subgraph, SubgraphRecord as _,
         edges::{
             BorrowedTraversalParams, EdgeDirection, EntityTraversalEdge, EntityTraversalEdgeKind,
-            GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind, SubgraphTraversalParams,
-            TraversalEdge,
+            GraphResolveDepths, SharedEdgeKind, SubgraphTraversalParams, TraversalEdge,
         },
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -83,7 +82,6 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use self::read::{EdgeHopMetadata, EntityTraversalResult};
 use crate::store::{
     AsClient, PostgresStore,
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
@@ -93,7 +91,7 @@ use crate::store::{
         knowledge::entity::read::EntityEdgeTraversalData,
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord as _, PostgresSorting as _,
-            ReferenceTable, SelectCompiler, Table,
+            SelectCompiler, Table,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
                 EntityTemporalMetadataRow,
@@ -191,129 +189,10 @@ where
         Ok(entity_type_queue)
     }
 
-    /// Traverses entity edges using a recursive CTE query.
-    ///
-    /// This method performs the graph traversal by executing a single PostgreSQL recursive CTE
-    /// that traverses all edges at once, significantly reducing database round-trips compared to
-    /// the N+1 sequential pattern.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`QueryError`] if the database query fails during traversal.
-    async fn traverse_edges_cte(
-        &self,
-        entities: Cow<'_, [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)]>,
-        edges: &[EntityTraversalEdge],
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<EntityTraversalResult, Report<QueryError>> {
-        // Fast path: No edges to traverse
-        if edges.is_empty() {
-            return Ok(EntityTraversalResult {
-                entity_edition_ids: Vec::new(),
-                edge_hops: Vec::new(),
-            });
-        }
-
-        // Build traversal data from starting entities
-        let mut traversal_data =
-            EntityEdgeTraversalData::with_capacity(temporal_axes, entities.len());
-
-        for (entity_vertex_id, traversal_interval) in entities.iter() {
-            traversal_data.push(*entity_vertex_id, *traversal_interval);
-        }
-
-        // Delegate to SQL layer for CTE execution
-        self.read_knowledge_edges_recursive(&traversal_data, edges)
-            .await
-    }
-
-    /// Traverses entity edges using sequential N+1 queries.
-    ///
-    /// This method performs the graph traversal by executing one query per edge hop. For each
-    /// edge in the sequence, it queries the database for connected entities and collects all
-    /// results without filtering by permissions.
-    ///
-    /// Returns an [`EntityTraversalResult`] containing all traversed entities and edges.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`QueryError`] if any database query fails during traversal.
-    async fn traverse_edges_sequential(
-        &self,
-        mut starting_entities: Cow<
-            '_,
-            [(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)],
-        >,
-        edges: &[EntityTraversalEdge],
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Result<EntityTraversalResult, Report<QueryError>> {
-        let mut all_edition_ids = Vec::new();
-        let mut all_edges_with_metadata = Vec::new();
-
-        for edge in edges {
-            if starting_entities.is_empty() {
-                break;
-            }
-
-            let mut traversal_data =
-                EntityEdgeTraversalData::with_capacity(temporal_axes, starting_entities.len());
-
-            for (entity_vertex_id, traversal_interval) in starting_entities.iter() {
-                traversal_data.push(*entity_vertex_id, *traversal_interval);
-            }
-
-            let (edge_kind, edge_direction, reference_table) = match edge {
-                EntityTraversalEdge::HasLeftEntity { direction } => (
-                    KnowledgeGraphEdgeKind::HasLeftEntity,
-                    *direction,
-                    ReferenceTable::EntityHasLeftEntity,
-                ),
-                EntityTraversalEdge::HasRightEntity { direction } => (
-                    KnowledgeGraphEdgeKind::HasRightEntity,
-                    *direction,
-                    ReferenceTable::EntityHasRightEntity,
-                ),
-            };
-
-            let (traversed_editions, traversed_edges) = self
-                .read_knowledge_edges(&traversal_data, reference_table, edge_direction)
-                .await?;
-
-            // Collect edition IDs for batch filtering
-            all_edition_ids.extend(traversed_editions);
-
-            // Prepare entities for next hop (will be filtered later)
-            starting_entities = Cow::Owned(
-                traversed_edges
-                    .iter()
-                    .map(|edge| (edge.right_endpoint, edge.traversal_interval))
-                    .collect(),
-            );
-
-            // Store edges with their metadata for later processing
-            all_edges_with_metadata.push(EdgeHopMetadata {
-                edge_kind,
-                edge_direction,
-                edges: traversed_edges,
-            });
-        }
-
-        Ok(EntityTraversalResult {
-            entity_edition_ids: all_edition_ids,
-            edge_hops: all_edges_with_metadata,
-        })
-    }
-
     /// Resolves a chain of entity edges, starting from the given entities.
     ///
-    /// This method traverses through each edge in the path, using the output entities from one
-    /// edge as the input for the next. The traversal stops early if no entities remain after
-    /// any edge.
-    ///
-    /// Currently attempts to use a recursive CTE via [`Self::traverse_edges_cte`], but falls back
-    /// to [`Self::traverse_edges_sequential`] when the CTE is unavailable. The sequential path
-    /// performs N queries (one per edge) and will be replaced with CTE-based traversal for better
-    /// performance.
+    /// This method traverses through each edge in the path using a recursive CTE query, which
+    /// executes a single PostgreSQL query that traverses all edges at once.
     ///
     /// Returns the entities reached after traversing all edges. If the entity set becomes empty
     /// at any point during traversal, an empty vector is returned.
@@ -335,25 +214,10 @@ where
             return Ok(entities);
         }
 
-        // Phase 1: Traverse all edges and collect results
-        // Try CTE first, fall back to sequential if not supported
-        let traversal_result = if let Some(result) = self
-            .traverse_edges_cte(
-                Cow::Borrowed(&entities),
-                edges,
-                &subgraph.temporal_axes.resolved,
-            )
-            .await?
-        {
-            result
-        } else {
-            self.traverse_edges_sequential(
-                Cow::Borrowed(&entities),
-                edges,
-                &subgraph.temporal_axes.resolved,
-            )
-            .await?
-        };
+        // Phase 1: Traverse all edges and collect results using CTE
+        let traversal_result = self
+            .read_knowledge_edges(&entities, edges, &subgraph.temporal_axes.resolved)
+            .await?;
 
         // Phase 2: Single permission filter call for all collected edges
         let permitted_editions = self
@@ -417,30 +281,6 @@ where
         }
 
         Ok(final_entities)
-
-        // TODO: Future CTE implementation (single query):
-        //
-        // let mut traversal_data = EntityEdgeTraversalData::new(&subgraph.temporal_axes.resolved);
-        // for (entity_vertex_id, traversal_interval) in entities {
-        //     traversal_data.push(entity_vertex_id, traversal_interval);
-        // }
-        //
-        // if traversal_data.is_empty() {
-        //     return Ok(Vec::new());
-        // }
-        //
-        // let traversed_edges = self
-        //     .read_knowledge_edges_recursive(&traversal_data, edges, provider)
-        //     .await?;
-        //
-        // let mut entity_queue = Vec::new();
-        // for edge in traversed_edges {
-        //     // TODO: Populate subgraph with edges from all depths
-        //     // TODO: Add entities to traversal_context with merged intervals
-        //     entity_queue.push((edge.right_endpoint, edge.traversal_interval));
-        // }
-        //
-        // Ok(entity_queue)
     }
 
     /// Traverses entities along a specified path, optionally continuing into ontology types.
