@@ -1,6 +1,8 @@
 # Contributing to @hashintel/ds-components
 
-This guide provides instructions for adding or updating components in the HASH Design System. It's optimized for both human developers and LLM coding assistants (GitHub Copilot, Claude, etc.).
+**⚙️ This guide is optimized for LLM coding assistants (GitHub Copilot, Claude, etc.)**
+
+This document provides technical instructions for adding or updating components in the HASH Design System. All guidance is structured for automated code generation and modification by AI assistants.
 
 ## Table of Contents
 
@@ -294,7 +296,57 @@ export const ComponentName: React.FC<ComponentNameProps> = ({
    )}
    ```
 
-### Step 6: Create Storybook Stories
+### Step 6: Register Component in Vite Config
+
+**CRITICAL:** Add an entry point for the new component in `vite.config.ts` to make it exportable from the package.
+
+**Location:** `libs/@hashintel/ds-components/vite.config.ts`
+
+Add a new entry in the `build.lib.entry` object in alphabetical order:
+
+```typescript
+build: {
+  lib: {
+    entry: {
+      // ... existing entries ...
+      "component-name": path.resolve(
+        __dirname,
+        "src/components/ComponentName/component-name.tsx",
+      ),
+      // ... more entries ...
+    },
+  },
+},
+```
+
+**Example:**
+
+```typescript
+// If adding a "radio-group" component
+entry: {
+  button: path.resolve(__dirname, "src/components/Button/button.tsx"),
+  "radio-group": path.resolve(
+    __dirname,
+    "src/components/RadioGroup/radio-group.tsx",
+  ),
+  "refractive-pane": path.resolve(
+    __dirname,
+    "src/components/RefractivePane/refractive-pane.tsx",
+  ),
+  // ... rest of entries
+}
+```
+
+**Key points:**
+
+- Entry key should be in kebab-case: `"radio-group"`, `"component-name"`
+- Path should point to the main component file (`.tsx`)
+- Maintain alphabetical order for consistency
+- Use `path.resolve(__dirname, "src/components/...")` pattern
+
+Without this entry, the component will not be accessible when importing from `@hashintel/ds-components`.
+
+### Step 7: Create Storybook Stories
 
 Create comprehensive examples in `component-name.stories.tsx`:
 
@@ -376,7 +428,7 @@ export const Controlled: Story = {
 - `Controlled` - Controlled state example
 - One story per variant
 
-### Step 7: Add Figma Code Connect
+### Step 8: Add Figma Code Connect
 
 Create `component-name.figma.tsx` to link the component to Figma:
 
@@ -595,8 +647,9 @@ export const Component: React.FC<ComponentProps> = (props) => {
 
 ## Testing and Quality
 
-### Pre-Commit Checklist
+### Automated Validation Checklist
 
+- [ ] Component entry added to `vite.config.ts` (for new components)
 - [ ] No TypeScript errors (`get_errors`)
 - [ ] Component has all required stories
 - [ ] All variants are tested in Storybook
@@ -632,13 +685,7 @@ yarn build
 - Don't create `index.ts` files in component directories
 - Components are exported directly via `package.json` exports
 
-**2. `'@figma/code-connect' should be in dependencies`**
-
-- This is a known warning in `*.figma.tsx` files
-- It's already in `devDependencies` - this is intentional
-- Safe to ignore
-
-**3. Type errors with PandaCSS tokens**
+**2. Type errors with PandaCSS tokens**
 
 - Use bracket notation for custom values: `[10px]`
 - Verify token exists in theme
@@ -840,7 +887,6 @@ className={css({
 - [Design System README](./README.md)
 - [Theme Package](../ds-theme/README.md)
 - [Root `CLAUDE.md`](../../CLAUDE.md)
-- [Root `CONTRIBUTING.md`](../../.github/CONTRIBUTING.md)
 
 ### External Documentation
 
@@ -859,19 +905,13 @@ Reference these well-implemented components:
 - **Badge**: Simple component with size/color variants
 - **Button**: Complex interactions and states
 
-## Questions?
+## LLM Assistant Guidelines
 
-If you're an LLM assistant and encounter issues:
+When working with this codebase as an LLM assistant:
 
-1. Read this guide completely before starting
-2. Check existing components for patterns
-3. Use the MCP tools to gather context before implementing
-4. Ask the user for clarification if design requirements are unclear
-5. Always validate token availability before using them
-
-If you're a human developer:
-
-- Follow the instructions in the root `CONTRIBUTING.md` file for overarching guidelines on committing work to this repository
-- Refer to the root `CLAUDE.md` for general repository working guidance
-- Check the #design-system channel for discussions
-- Review PRs tagged with `design-system` label for examples
+1. **Context gathering is critical**: Read this guide completely before starting any implementation
+2. **Use MCP tools first**: Always gather design context from Figma and Ark UI examples before writing code
+3. **Follow existing patterns**: Check existing components for established patterns before creating new approaches
+4. **Validate token availability**: Always verify that design tokens exist in the theme before using them
+5. **Test incrementally**: Use `get_errors` after each significant change to catch issues early
+6. **Ask for clarification**: If design requirements or token mappings are unclear, request clarification from the user
