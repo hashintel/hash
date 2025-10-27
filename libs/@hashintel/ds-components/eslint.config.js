@@ -46,4 +46,10 @@ export default [
       "import/no-default-export": "off",
     },
   },
+  {
+    files: ["src/**/*.figma.ts{x,}"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
 ];
