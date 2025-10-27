@@ -2,7 +2,7 @@ import type {
   TokenDataTypes as Panda_TokenDataType,
   Preset,
 } from "@pandacss/types";
-import setWith from "lodash.setwith";
+import { setWith } from "es-toolkit/compat";
 import {
   FigmaVariablesExport,
   Variable,

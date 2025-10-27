@@ -1873,5 +1873,10 @@
     "id": "VariableID:39342:23770",
     "tokenName": "color.accentgray.95",
     "tokenPath": "colors.color.accentgray.95"
+  },
+  "border/neutral/emphasis": {
+    "id": "VariableID:39343:20677",
+    "tokenName": "border.neutral.emphasis",
+    "tokenPath": "colors.border.neutral.emphasis"
   }
 }

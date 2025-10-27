@@ -21,6 +21,9 @@ export default definePreset({
             active: {
               value: "{colors.core.gray.90}",
             },
+            emphasis: {
+              value: "{colors.core.gray.30}",
+            },
           },
           status: {
             info: {
@@ -814,7 +817,7 @@ export default definePreset({
         component: {
           button: {
             sm: {
-              value: "{radii.radius.3}",
+              value: "{radii.radius.4}",
             },
             md: {
               value: "{radii.radius.4}",
