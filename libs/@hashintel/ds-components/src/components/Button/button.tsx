@@ -282,7 +282,7 @@ export const Button: React.FC<ButtonProps> = ({
             pointerEvents: "none",
           },
         }),
-        className
+        className,
       )}
       data-variant={variant}
       data-color-scheme={colorScheme}
