@@ -35,25 +35,29 @@ const Playground = () => {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "2",
+      padding: "spacing.2",
       border: "none",
       cursor: "pointer",
       transition: "all",
       transitionDuration: "200ms",
-      backgroundColor: isSelected ? "blue.60" : undefined,
+      backgroundColor: isSelected ? "core.blue.60" : undefined,
       _hover: {
         transform: "scale(1.05)",
-        backgroundColor: isSelected ? "blue.70" : "whiteAlpha.20",
+        backgroundColor: isSelected
+          ? "core.blue.70"
+          : "[rgba(255,255,255,0.2)]",
       },
       _active: {
         transform: "scale(0.95)",
-        backgroundColor: isSelected ? "blue.80" : "whiteAlpha.30",
+        backgroundColor: isSelected
+          ? "core.blue.80"
+          : "[rgba(255,255,255,0.3)]",
       },
     });
 
   const getIconStyle = (isSelected: boolean) =>
     css({
-      color: isSelected ? "neutral.white" : "neutral.black",
+      color: isSelected ? "text.inverted" : "text.primary",
       textShadow: isSelected
         ? undefined
         : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",
@@ -132,9 +136,9 @@ const Playground = () => {
                     shadow: "xl",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "1",
+                    gap: "spacing.1",
                     alignItems: "center",
-                    backgroundColor: "gray.20/60",
+                    backgroundColor: "core.gray.20/40",
                     pointerEvents: "auto",
                   })}
                   style={{
@@ -143,14 +147,14 @@ const Playground = () => {
                 >
                   <div
                     className={css({
-                      padding: "6",
+                      padding: "spacing.6",
                       flexDirection: "column",
                       display: "flex",
                       alignItems: "center",
                       width: "[100%]",
-                      backgroundColor: "whiteAlpha.90",
+                      backgroundColor: "[rgba(255,255,255,0.9)]",
                       borderWidth: "thin",
-                      borderColor: "neutral.black/10",
+                      borderColor: "[rgba(0,0,0,0.1)]",
                       shadow: "md",
                       overflow: "hidden",
                     })}
@@ -160,10 +164,10 @@ const Playground = () => {
                   >
                     <h2
                       className={css({
-                        fontSize: "2xl",
+                        fontSize: "size.text2xl",
                         fontWeight: "medium",
                         textAlign: "center",
-                        marginBottom: "5",
+                        marginBottom: "spacing.5",
                       })}
                     >
                       Interactive Playground
@@ -182,9 +186,9 @@ const Playground = () => {
                       value={currentPage}
                       onValueChange={setCurrentPage}
                       className={css({
-                        color: "neutral.black/80",
-                        backgroundColor: "gray.30",
-                        marginBottom: "5",
+                        color: "[rgba(0,0,0,0.8)]",
+                        backgroundColor: "core.gray.30",
+                        marginBottom: "spacing.5",
                       })}
                     />
 
@@ -224,7 +228,7 @@ const Playground = () => {
                             >
                               <span
                                 className={css({
-                                  fontSize: "sm",
+                                  fontSize: "size.textsm",
                                 })}
                               >
                                 Enable
@@ -313,7 +317,9 @@ const Playground = () => {
                                 width: "100%",
                               }}
                             >
-                              <span className={css({ fontSize: "sm" })}>
+                              <span
+                                className={css({ fontSize: "size.textsm" })}
+                              >
                                 Enable Feature A
                               </span>
                               <Switch
@@ -328,7 +334,9 @@ const Playground = () => {
                                 width: "100%",
                               }}
                             >
-                              <span className={css({ fontSize: "sm" })}>
+                              <span
+                                className={css({ fontSize: "size.textsm" })}
+                              >
                                 Enable Feature B
                               </span>
                               <Switch />
@@ -340,7 +348,9 @@ const Playground = () => {
                                 width: "100%",
                               }}
                             >
-                              <span className={css({ fontSize: "sm" })}>
+                              <span
+                                className={css({ fontSize: "size.textsm" })}
+                              >
                                 Enable Feature C
                               </span>
                               <Switch />
@@ -349,8 +359,8 @@ const Playground = () => {
                             <motion.div
                               style={{ width: 450 }}
                               className={css({
-                                rounded: "md",
-                                backgroundColor: "gray.10/50",
+                                borderRadius: "[8px]",
+                                backgroundColor: "[rgba(242,242,242,0.5)]",
                               })}
                               animate={{
                                 height: switchChecked2 ? "auto" : 0,
@@ -377,9 +387,9 @@ const Playground = () => {
                   </div>
                   <div
                     className={css({
-                      padding: "2",
+                      padding: "spacing.2",
                       display: "flex",
-                      gap: "1",
+                      gap: "spacing.1",
                       justifyContent: "end",
                       width: "[100%]",
                     })}
@@ -387,8 +397,8 @@ const Playground = () => {
                     <Button>Cancel</Button>
                     <Button
                       className={css({
-                        backgroundColor: "neutral.black/80",
-                        color: "neutral.white",
+                        backgroundColor: "[rgba(0,0,0,0.8)]",
+                        color: "text.inverted",
                       })}
                       onClick={() => setSelectedButton("select")}
                     >
@@ -405,14 +415,14 @@ const Playground = () => {
           className={css({
             display: "flex",
             alignItems: "center",
-            gap: "1",
+            gap: "spacing.1",
             shadow: "md",
-            backgroundColor: "whiteAlpha.30",
+            backgroundColor: "[rgba(255,255,255,0.3)]",
             transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
             _hover: {
               transform: "scale(1.03)",
               shadow: "lg",
-              backgroundColor: "whiteAlpha.50",
+              backgroundColor: "[rgba(255,255,255,0.5)]",
             },
             pointerEvents: "auto",
           })}

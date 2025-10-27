@@ -68,7 +68,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     position: "relative",
     display: "flex",
     alignItems: "center",
-    gap: "1",
+    gap: "spacing.1",
     userSelect: "none",
   });
 
@@ -76,11 +76,11 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     position: "absolute",
     display: "flex",
     alignItems: "center",
-    backgroundColor: "gray.10/20",
-    left: "0",
-    top: "0",
-    right: "0",
-    bottom: "0",
+    backgroundColor: "core.gray.10/20",
+    left: "spacing.0",
+    top: "spacing.0",
+    right: "spacing.0",
+    bottom: "spacing.0",
     shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
   });
 
@@ -90,9 +90,9 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     left: "var(--left)",
     top: "var(--top)",
     boxShadow: "sm",
-    backgroundColor: "whiteAlpha.20",
+    backgroundColor: "core.whitealpha.20",
     "[data-part='root']:active &": {
-      backgroundColor: "whiteAlpha.10",
+      backgroundColor: "core.whitealpha.10",
     },
   });
 
@@ -101,8 +101,8 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    paddingX: "4",
-    paddingY: "2",
+    paddingX: "spacing.4",
+    paddingY: "spacing.2",
     width: "auto",
     textAlign: "center",
     cursor: "pointer",
@@ -116,12 +116,12 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
       shadow: "lg",
     },
     _hover: {
-      backgroundColor: "grayAlpha.40",
+      backgroundColor: "core.grayalpha.40",
     },
   });
 
   const itemTextStyles = css({
-    fontSize: "sm",
+    fontSize: "size.textsm",
     fontWeight: "medium",
     _disabled: {
       opacity: "0.4",
