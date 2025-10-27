@@ -24,12 +24,9 @@ CREATE TABLE entity_edge (
     provenance JSONB,
     confidence DOUBLE PRECISION,
 
-    -- Foreign key constraints
     FOREIGN KEY (source_web_id, source_entity_uuid) REFERENCES entity_ids,
     FOREIGN KEY (target_web_id, target_entity_uuid) REFERENCES entity_ids,
-
-    -- Primary key ensures uniqueness
-    PRIMARY KEY (source_web_id, source_entity_uuid, kind, direction, target_web_id, target_entity_uuid)
+    UNIQUE (source_web_id, source_entity_uuid, kind, direction, target_web_id, target_entity_uuid)
 );
 
 -- Create indexes for efficient traversal

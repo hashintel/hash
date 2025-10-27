@@ -83,7 +83,7 @@ CREATE TABLE entity_edge (
     confidence DOUBLE PRECISION,
     FOREIGN KEY (source_web_id, source_entity_uuid) REFERENCES entity_ids,
     FOREIGN KEY (target_web_id, target_entity_uuid) REFERENCES entity_ids,
-    PRIMARY KEY (source_web_id, source_entity_uuid, kind, direction, target_web_id, target_entity_uuid)
+    UNIQUE (source_web_id, source_entity_uuid, kind, direction, target_web_id, target_entity_uuid)
 );
 
 CREATE INDEX entity_edge_forward_idx
