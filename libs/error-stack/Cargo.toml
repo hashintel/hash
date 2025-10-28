@@ -25,7 +25,7 @@ extra-dependencies = [
 anyhow       = { version = ">=1.0.73", public = true, optional = true, default-features = false }
 eyre         = { version = ">=0.6", public = true, optional = true, default-features = false }
 futures-core = { version = ">=0.3", public = true, optional = true, default-features = false }
-serde        = { version = ">=1", public = true, optional = true, default-features = false }
+serde_core   = { version = ">=1", public = true, optional = true, default-features = false }
 
 # Private workspace dependencies
 pin-project-lite = { workspace = true, optional = true }
@@ -62,7 +62,7 @@ backtrace = ["std"]         # Enables automatic capturing of `Backtrace`s (requi
 
 tracing   = ["dep:tracing"]                         # Uses the `tracing` library if messages would be printed to the terminal
 spantrace = ["dep:tracing-error", "tracing", "std"] # Enables automatic capturing of `SpanTrace`s
-serde     = ["dep:serde"]                           # Enables serialization support
+serde     = ["dep:serde_core"]                      # Enables serialization support
 hooks     = ['dep:spin']                            # Enables hooks on `no-std` platforms using spin locks
 
 anyhow = ["dep:anyhow"]      # Provides `into_report` to convert `anyhow::Error` to `Report`
