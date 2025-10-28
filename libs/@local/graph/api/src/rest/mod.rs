@@ -25,7 +25,6 @@ use std::{
     time::Instant,
 };
 
-use async_trait::async_trait;
 use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
@@ -111,8 +110,7 @@ use self::{
 
 pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
 
-#[async_trait]
-impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
+impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
     type Rejection = (StatusCode, Cow<'static, str>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
@@ -134,8 +132,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 
 pub struct InteractiveHeader(pub bool);
 
-#[async_trait]
-impl<S> FromRequestParts<S> for InteractiveHeader {
+impl<S: Sync> FromRequestParts<S> for InteractiveHeader {
     type Rejection = (StatusCode, Cow<'static, str>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {

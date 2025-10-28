@@ -4,7 +4,6 @@
 
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use axum::{
     body::{Body, Bytes},
     extract::FromRequest,
@@ -23,7 +22,6 @@ use crate::rest::status::status_to_response;
 #[must_use]
 pub(crate) struct Json<T>(pub T);
 
-#[async_trait]
 impl<T, S> FromRequest<S> for Json<T>
 where
     T: DeserializeOwned,
