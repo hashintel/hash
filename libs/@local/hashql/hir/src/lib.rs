@@ -15,6 +15,7 @@
     allocator_api,
     iter_intersperse,
     try_trait_v2,
+    unwrap_infallible,
 )]
 
 extern crate alloc;
