@@ -25,7 +25,7 @@ uuid       = { version = ">=1", public = true, default-features = false }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde = { version = ">=1", default-features = false, public = true, features = ["derive"], optional = true }
+serde = { version = ">=1", default-features = false, features = ["derive"], optional = true }
 
 [features]
 serde = ["dep:serde", "dep:serde_core", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde"]

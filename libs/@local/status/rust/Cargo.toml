@@ -19,7 +19,7 @@ serde_core = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde          = { workspace = true, public = true, features = ["alloc", "derive"] }
+serde          = { workspace = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
 
 [lints]
