@@ -77,8 +77,8 @@ CREATE TABLE entity_edge (
     source_entity_uuid UUID NOT NULL,
     target_web_id UUID NOT NULL,
     target_entity_uuid UUID NOT NULL,
-    kind entity_edge_kind NOT NULL,
-    direction edge_direction NOT NULL,
+    kind ENTITY_EDGE_KIND NOT NULL,
+    direction EDGE_DIRECTION NOT NULL,
     provenance JSONB,
     confidence DOUBLE PRECISION,
     FOREIGN KEY (source_web_id, source_entity_uuid) REFERENCES entity_ids,
@@ -87,31 +87,31 @@ CREATE TABLE entity_edge (
 );
 
 CREATE INDEX entity_edge_forward_idx
-    ON entity_edge (source_web_id, source_entity_uuid, kind, direction);
+ON entity_edge (source_web_id, source_entity_uuid, kind, direction);
 CREATE INDEX entity_edge_backward_idx
-    ON entity_edge (target_web_id, target_entity_uuid, kind, direction);
+ON entity_edge (target_web_id, target_entity_uuid, kind, direction);
 
 CREATE VIEW entity_has_left_entity AS
-  SELECT
-    source_web_id AS web_id,
-    source_entity_uuid AS entity_uuid,
-    target_web_id AS left_web_id,
-    target_entity_uuid AS left_entity_uuid,
-    provenance,
-    confidence
-  FROM entity_edge
-  WHERE kind = 'has-left-entity' AND direction = 'outgoing';
+SELECT
+    entity_edge.source_web_id AS web_id,
+    entity_edge.source_entity_uuid AS entity_uuid,
+    entity_edge.target_web_id AS left_web_id,
+    entity_edge.target_entity_uuid AS left_entity_uuid,
+    entity_edge.provenance,
+    entity_edge.confidence
+FROM entity_edge
+WHERE entity_edge.kind = 'has-left-entity' AND entity_edge.direction = 'outgoing';
 
 CREATE VIEW entity_has_right_entity AS
-  SELECT
-    source_web_id AS web_id,
-    source_entity_uuid AS entity_uuid,
-    target_web_id AS right_web_id,
-    target_entity_uuid AS right_entity_uuid,
-    provenance,
-    confidence
-  FROM entity_edge
-  WHERE kind = 'has-right-entity' AND direction = 'outgoing';
+SELECT
+    entity_edge.source_web_id AS web_id,
+    entity_edge.source_entity_uuid AS entity_uuid,
+    entity_edge.target_web_id AS right_web_id,
+    entity_edge.target_entity_uuid AS right_entity_uuid,
+    entity_edge.provenance,
+    entity_edge.confidence
+FROM entity_edge
+WHERE entity_edge.kind = 'has-right-entity' AND entity_edge.direction = 'outgoing';
 
 CREATE TABLE entity_embeddings (
     web_id UUID NOT NULL,
