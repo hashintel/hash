@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 //! Implementation of formatting, to enable colors and the use of box-drawing characters use the
 //! `pretty-print` feature.
 //!
@@ -15,13 +13,13 @@
 //! Hooks can be attached through the central hooking mechanism which `error-stack`
 //! provides via [`Report::install_debug_hook`].
 //!
-//! Hooks are called for contexts which provide additional values through [`Context::provide`] and
+//! Hooks are called for contexts which provide additional values through [`Error::provide`] and
 //! attachments which are added via [`Report::attach`] or [`Report::attach_opaque`]. The order of
 //! [`Report::install_debug_hook`] calls determines the order of the rendered output. Note, that
-//! Hooks get called on all values provided by [`Context::provide`], but not on the [`Context`]
-//! object itself. Therefore if you want to call a hook on a [`Context`] to print in addition to its
-//! [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
-//! [`Context::provide`].
+//! Hooks get called on all values provided by [`Error::provide`], but not on the [`Error`]
+//! object itself. Therefore if you want to call a hook on a [`Error`] context to print in addition
+//! to its [`Display`] implementation, you may want to call [`request.provide_ref(self)`] inside of
+//! [`Error::provide`].
 //!
 //! [`request.provide_ref(self)`]: core::error::Request::provide_ref
 //!
@@ -189,7 +187,7 @@
 //!
 //! While formatting we view the [`Report`]s as a tree of [`Frame`]s, therefore the following
 //! explanation will use terminology associated with trees, every [`Frame`] is a node and can have
-//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Context`].
+//! `0..n` children, a node that has no children (a leaf) is guaranteed to be a [`Error`] context.
 //!
 //! A list is a list of nodes where each node in the list is the parent of the next node in the list
 //! and only has a single child. The last node in the list is exempt of that rule of that rule and
@@ -202,9 +200,10 @@
 //! (`1`), but `1` is not the immediate context parent of `3` and `4` (`2`) is. In the more detailed
 //! example `(Dᶜ, Hᶜ, Iᶜ)` is considered a group because they share the same *immediate* context
 //! parent `Aᶜ`, important to note is that we only refer to immediate context parents, `Fᵃ` is the
-//! immediate parent of `Iᶜ`, but is not a [`Context`], therefore to find the immediate context
-//! parent, we travel up the tree until we encounter our first [`Context`] node. Groups always
-//! contain lists, for the sake of clarity this explanation only shows the first element.
+//! immediate parent of `Iᶜ`, but is not a [`Error`] context, therefore to find the immediate
+//! context parent, we travel up the tree until we encounter our first [`Error`] context node.
+//! Groups always contain lists, for the sake of clarity this explanation only shows the first
+//! element.
 //!
 //! The rules stated above also implies some additional rules:
 //! * lists are never empty
@@ -310,6 +309,7 @@ use alloc::{
     vec::Vec,
 };
 use core::{
+    error::Error,
     fmt::{self, Debug, Display, Formatter},
     iter::once,
     mem,
@@ -325,7 +325,7 @@ pub(crate) use hook::{Format, Hooks, install_builtin_hooks};
 use location::LocationAttachment;
 
 use crate::{
-    AttachmentKind, Context, Frame, FrameKind, Report,
+    AttachmentKind, Frame, FrameKind, Report,
     fmt::{
         color::{Color, DisplayStyle, Style},
         config::Config,
@@ -777,7 +777,7 @@ fn partition<'a>(stack: &'a [&'a Frame]) -> (Vec<(&'a Frame, Vec<&'a Frame>)>, V
     (result, queue)
 }
 
-fn debug_context(context: &dyn Context, mode: ColorMode) -> Lines {
+fn debug_context(context: &(dyn Error + Send + Sync + 'static), mode: ColorMode) -> Lines {
     context
         .to_string()
         .lines()

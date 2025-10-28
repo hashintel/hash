@@ -1,5 +1,3 @@
-#![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
-
 //! Implementation of general [`Report`] serialization.
 //!
 //! The value can be of any type, currently only printable attachments and context are supported, in
@@ -16,10 +14,11 @@
 //! ```
 
 use alloc::{format, vec, vec::Vec};
+use core::error::Error;
 
 use serde_core::{Serialize, Serializer, ser::SerializeMap as _};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
+use crate::{AttachmentKind, Frame, FrameKind, Report};
 
 struct SerializeAttachment<'a>(&'a Frame);
 
@@ -73,7 +72,7 @@ impl Serialize for SerializeAttachmentList<'_, '_> {
 
 struct SerializeContext<'a> {
     attachments: Vec<&'a Frame>,
-    context: &'a dyn Context,
+    context: &'a (dyn Error + Send + Sync + 'static),
     sources: &'a [Frame],
 }
 
@@ -151,7 +150,7 @@ fn find_next<'a>(head: &[&'a Frame], mut current: &'a Frame) -> Vec<SerializeCon
     }
 }
 
-impl<C: Context> Serialize for Report<C> {
+impl<C: Error + Send + Sync + 'static> Serialize for Report<C> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -160,7 +159,7 @@ impl<C: Context> Serialize for Report<C> {
     }
 }
 
-impl<C: Context> Serialize for Report<[C]> {
+impl<C: Error + Send + Sync + 'static> Serialize for Report<[C]> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

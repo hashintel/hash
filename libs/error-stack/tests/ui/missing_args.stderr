@@ -1,19 +1,7 @@
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:19:13
+  --> tests/ui/missing_args.rs:17:5
    |
-19 |     let _ = report!();
-   |             ^^^^^^^^^ missing tokens in macro arguments
-   |
-note: while trying to match meta-variable `$err:expr`
-  --> src/macros.rs
-   |
-   |     ($err:expr $(,)?) => {{ $crate::IntoReport::into_report($err) }};
-   |      ^^^^^^^^^
-
-error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:25:5
-   |
-25 |     bail!()
+17 |     bail!()
    |     ^^^^^^^ missing tokens in macro arguments
    |
 note: while trying to match meta-variable `$err:expr`
@@ -23,9 +11,9 @@ note: while trying to match meta-variable `$err:expr`
    |      ^^^^^^^^^
 
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:29:13
+  --> tests/ui/missing_args.rs:21:13
    |
-29 |     let _ = ensure!();
+21 |     let _ = ensure!();
    |             ^^^^^^^^^ missing tokens in macro arguments
    |
 note: while trying to match meta-variable `$cond:expr`
@@ -35,9 +23,9 @@ note: while trying to match meta-variable `$cond:expr`
    |      ^^^^^^^^^^
 
 error: unexpected end of macro invocation
-  --> tests/ui/missing_args.rs:35:25
+  --> tests/ui/missing_args.rs:27:25
    |
-35 |     let _ = ensure!(true);
+27 |     let _ = ensure!(true);
    |                         ^ missing tokens in macro arguments
    |
 note: while trying to match `,`
