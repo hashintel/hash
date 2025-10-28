@@ -7,7 +7,7 @@
              %6
          )
      %2 = thunk(() ->
-         #let %7 = #input(user, type: (id: EntityUuid[Uuid[String]]))
+         #let %7 = input(#load!, user)
              in
              %7
          )

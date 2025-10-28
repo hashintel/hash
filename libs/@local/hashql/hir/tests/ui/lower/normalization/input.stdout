@@ -1,10 +1,15 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#input(foo, type: Boolean, default: ::core::cmp::lte(2, 3))
+if input(#exists, foo) input(#load?, foo) #as(::core::cmp::lte(2, 3),
+type: Boolean)
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-#let %0 = (2 <= 3)
-     %1 = #input(foo, type: Boolean, default: %0)
+#let %2 = input(#exists, foo)
+     %3 = if %2 #let %0 = input(#load?, foo)
+         in
+         %0 #let %1 = (2 <= 3)
+         in
+         %1
 in
-%1
+%3

@@ -72,7 +72,6 @@ use crate::{
         closure::Closure,
         data::{Data, DictField, List, StructField, Tuple},
         graph::read::GraphReadHead,
-        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
@@ -96,7 +95,6 @@ pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
         NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
         | NodeKind::Let(_)
-        | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
@@ -176,7 +174,6 @@ const fn is_projection(node: &NodeData<'_>) -> bool {
         NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
         | NodeKind::Let(_)
-        | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
@@ -724,24 +721,6 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
         Ok(UnaryOperation {
             op,
             expr: self.ensure_atom(expr),
-        })
-    }
-
-    /// Folds input declarations, ensuring default values are atomic.
-    ///
-    /// Input default values, when present, must be atoms to maintain ANF invariants.
-    fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
-        let Ok(Input {
-            name,
-            r#type,
-            default,
-        }) = fold::walk_input(self, input);
-
-        // Ensure that the default is an atom
-        Ok(Input {
-            name,
-            r#type,
-            default: default.map(|default| self.ensure_atom(default)),
         })
     }
 

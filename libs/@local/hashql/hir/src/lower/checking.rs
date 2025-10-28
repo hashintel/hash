@@ -39,9 +39,11 @@ use crate::{
         closure::{Closure, extract_signature},
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
-        input::Input,
         r#let::{Let, VarIdMap},
-        operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        operation::{
+            BinaryOperation, InputOp, InputOperation, TypeAssertion, TypeConstructor,
+            UnaryOperation,
+        },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -321,33 +323,6 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
         self.context.map.insert_type_id(self.current.id, body_id);
     }
 
-    fn visit_input(&mut self, input: &'heap Input<'heap>) {
-        visit::walk_input(self, input);
-
-        let inferred = self.inferred_type(self.current.id);
-        self.context.map.insert_type_id(self.current.id, inferred);
-
-        if let Some(default) = &input.default {
-            self.verify_subtype(self.context.map.type_id(default.id), inferred);
-        }
-
-        // Register the input type
-        match self.inputs.entry(input.name.value) {
-            Entry::Occupied(mut occupied) => {
-                // In case that the input already exists, we need to find the greatest lower bound
-                // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
-                // acceptable input for `a` is logically `Integer`, as it is both a `Number` and a
-                // `Integer`.
-                let existing_id = *occupied.get();
-                let new_id = self.lattice.meet(existing_id, inferred);
-                occupied.insert(new_id);
-            }
-            Entry::Vacant(vacant) => {
-                vacant.insert(inferred);
-            }
-        }
-    }
-
     fn visit_type_assertion(&mut self, assertion: &'heap TypeAssertion<'heap>) {
         visit::walk_type_assertion(self, assertion);
 
@@ -380,6 +355,32 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
 
     fn visit_unary_operation(&mut self, _: &'heap UnaryOperation<'heap>) {
         unreachable!("access operations shouldn't be present yet");
+    }
+
+    fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
+        self.transfer_type(self.current.id); // We just need to transfer the (simplified) type of the current input
+
+        // Additionally we need to register the input (if it's a load instruction)
+        if operation.op.value == InputOp::Exists {
+            return; // nothing more that needs to be done
+        }
+
+        let inferred = self.context.map.type_id(self.current.id);
+
+        match self.inputs.entry(operation.name.value) {
+            Entry::Occupied(mut occupied) => {
+                // In case that the input already exists, we need to find the greatest lower bound
+                // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
+                // acceptable input for `a` is logically `Integer`, as it is both a `Number` and a
+                // `Integer`.
+                let existing_id = *occupied.get();
+                let new_id = self.lattice.meet(existing_id, inferred);
+                occupied.insert(new_id);
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert(inferred);
+            }
+        }
     }
 
     fn visit_field_access(&mut self, access: &'heap FieldAccess<'heap>) {
