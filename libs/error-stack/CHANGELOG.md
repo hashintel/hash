@@ -4,8 +4,9 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Planned
 
-- Support for [`defmt`](https://defmt.ferrous-systems.com)
-- Better support for serialization and deserialization of `Report`
+- Add `OptionExt` to support `Option::ok_or_report`. ([#667](https://github.com/hashintel/hash/issues/667))
+- Support for [`defmt`](https://defmt.ferrous-systems.com).
+- Better support for serialization and deserialization of `Report`.
 
 ## Unreleased
 
