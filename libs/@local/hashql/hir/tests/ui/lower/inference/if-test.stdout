@@ -8,6 +8,12 @@ if ::core::bool::and(true, false) 2 3
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ if ::core::bool::and(true, false) 2 3
+└→ (Integer | Integer)
+
+┌─ ::core::bool::and(true, false)
+└→ _0«Boolean»
+
 ┌─ ::core::bool::and
 └→ fn(Boolean, Boolean) -> Boolean
 
@@ -17,15 +23,9 @@ if ::core::bool::and(true, false) 2 3
 ┌─ false
 └→ Boolean
 
-┌─ ::core::bool::and(true, false)
-└→ _0«Boolean»
-
 ┌─ 2
 └→ Integer
 
 ┌─ 3
 └→ Integer
-
-┌─ if ::core::bool::and(true, false) 2 3
-└→ (Integer | Integer)
 

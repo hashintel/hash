@@ -1,19 +1,19 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
 #let %1 = thunk(() ->
-         #let %5 = ::graph::tmp::decision_time_now()
-                  %6 = %5()
+         #let %4 = ::graph::tmp::decision_time_now()
+                  %5 = %4()
+             in
+             %5
+         )
+     %2 = thunk(() ->
+         #let %6 = if true true false
              in
              %6
          )
-     %2 = thunk(() ->
-         #let %7 = #input(user_id, type: EntityUuid[Uuid[String]])
-             in
-             %7
-         )
-     %4 = thunk(() ->
-         #let %8 = %1()
-                  %10 = ::graph::head::entities(%8)
+     %3 = thunk(() ->
+         #let %7 = %1()
+                  %9 = ::graph::head::entities(%7)
                       |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
                        EntityRecordId[(edition_id:
                         EntityEditionId[Uuid[String]], entity_id:
@@ -31,28 +31,48 @@
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
                        properties: ?)]): Boolean ->
-                          #let %9 = %2()
-                               %3 = (vertex:0.id.entity_id.entity_uuid == %9)
+                          #let %8 = %2()
                           in
-                          %3) |> ::graph::tail::collect
+                          %8) |> ::graph::tail::collect
              in
-             %10
+             %9
          )
 in
-%4
+%3
 
 ════ Entity Filter ═════════════════════════════════════════════════════════════
 
 [
-    Equal(
-        Path {
-            path: Uuid,
-        },
-        Parameter {
-            parameter: Text(
-                "e2851dbb-7376-4959-9bca-f72cafc4448f",
+    Any(
+        [
+            Equal(
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
             ),
-            convert: None,
-        },
+            Equal(
+                Parameter {
+                    parameter: Boolean(
+                        false,
+                    ),
+                    convert: None,
+                },
+                Parameter {
+                    parameter: Boolean(
+                        true,
+                    ),
+                    convert: None,
+                },
+            ),
+        ],
     ),
 ]

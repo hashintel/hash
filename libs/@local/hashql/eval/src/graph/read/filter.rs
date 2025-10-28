@@ -1,9 +1,12 @@
 use core::fmt::Debug;
 
 use hash_graph_store::filter::{Filter, FilterExpression, Parameter, QueryRecord};
+use hashql_core::value::Primitive;
 use hashql_hir::node::{
     Node,
+    branch::{Branch, If},
     call::{Call, PointerKind},
+    data::Data,
     kind::NodeKind,
     r#let::{Binding, Let},
     operation::{BinOp, BinaryOperation, Operation, TypeAssertion, TypeOperation},
@@ -13,21 +16,39 @@ use hashql_hir::node::{
 
 use super::{
     CompilationError, FilterCompilerContext, GraphReadCompiler,
-    error::{BranchContext, branch_unsupported, qualified_variable_unsupported},
-    path::CompleteQueryPath,
-    sink::FilterSink,
+    error::qualified_variable_unsupported, path::CompleteQueryPath, sink::FilterSink,
 };
+
+/// Checks if a [`Node`] represents a boolean literal with the specified value.
+///
+/// This helper function is used to optimize conditional expressions when one
+/// branch is a literal boolean value.
+///
+/// # Examples
+///
+/// ```ignore
+/// // Returns true if the node represents `true`
+/// assert!(is_bool_literal(true_node, true));
+/// // Returns false if the node represents `false` when checking for `true`
+/// assert!(!is_bool_literal(false_node, true));
+/// ```
+fn is_bool_literal(node: Node<'_>, value: bool) -> bool {
+    matches!(
+        node.kind,
+        NodeKind::Data(Data::Primitive(Primitive::Boolean(constant))) if constant == value
+    )
+}
 
 impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
     #[expect(clippy::too_many_lines, reason = "match statement")]
     pub(super) fn compile_filter<R>(
         &mut self,
         context: FilterCompilerContext,
-        node: &'heap Node<'heap>,
+        node: Node<'heap>,
         sink: &mut FilterSink<'_, 'heap, R>,
     ) -> Result<(), CompilationError>
     where
-        R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath: Debug>>,
+        R: QueryRecord<QueryPath<'heap>: CompleteQueryPath<'heap, PartialQueryPath: Debug> + Clone>,
     {
         match node.kind {
             NodeKind::Variable(Variable::Local(LocalVariable { id, arguments: _ })) => {
@@ -41,7 +62,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
             }
             NodeKind::Variable(Variable::Qualified(qualified)) => {
                 self.diagnostics.push(qualified_variable_unsupported(
-                    context, qualified, node.span,
+                    context, &qualified, node.span,
                 ));
 
                 Err(CompilationError)
@@ -53,7 +74,7 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     value,
                 } in bindings
                 {
-                    self.locals.insert(binder.id, value);
+                    self.locals.insert(binder.id, *value);
                 }
 
                 let filter = self.compile_filter(context, body, sink);
@@ -153,11 +174,80 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
 
                 Ok(())
             }
-            NodeKind::Branch(branch) => {
-                self.diagnostics
-                    .push(branch_unsupported(branch, node.span, BranchContext::Filter));
+            // Conditional expressions (`if A then B else C`) are transformed into equivalent
+            // boolean logic expressions. We apply optimizations for common literal patterns:
+            //
+            // 1. `if A then true else C` → `A || C`
+            // 2. `if A then B else false` → `A && B`
+            // 3. General case: `if A then B else C` → `(A && B) || (!A && C)`
+            //
+            // The general transformation preserves semantics:
+            // - When A is true: `(true && B) || (false && C)` = `B || false` = `B`
+            // - When A is false: `(false && B) || (true && C)` = `false || C` = `C`
+            NodeKind::Branch(Branch::If(If { test, then, r#else })) => {
+                if is_bool_literal(then, true) {
+                    // Optimization: `if A then true else C` → `A || C`
+                    // When A is true, result is true; when A is false, result is C
+                    let mut sink = sink.or();
 
-                Err(CompilationError)
+                    let test = self.compile_filter(context, test, &mut sink);
+                    let r#else = self.compile_filter(context, r#else, &mut sink);
+
+                    // Delayed to ensure that we get all diagnostics possible
+                    test?;
+                    r#else?;
+                } else if is_bool_literal(r#else, false) {
+                    // Optimization: `if A then B else false` → `A && B`
+                    // When A is true, result is B; when A is false, result is false
+                    let mut sink = sink.and();
+
+                    let test = self.compile_filter(context, test, &mut sink);
+                    let then = self.compile_filter(context, then, &mut sink);
+
+                    // Delayed to ensure that we get all diagnostics possible
+                    test?;
+                    then?;
+                } else {
+                    // General case: `if A then B else C` → `(A && B) || (!A && C)`
+
+                    // Compile each branch into separate filter vectors to enable reuse
+                    // of the test condition in both the positive and negative forms
+                    let mut test_filter = Vec::new();
+                    let mut test_sink = FilterSink::<R>::And(&mut test_filter);
+                    let test_result = self.compile_filter(context, test, &mut test_sink);
+
+                    let mut then_filter = Vec::new();
+                    let mut then_sink = FilterSink::<R>::And(&mut then_filter);
+                    let then_result = self.compile_filter(context, then, &mut then_sink);
+
+                    let mut else_filter = Vec::new();
+                    let mut else_sink = FilterSink::<R>::And(&mut else_filter);
+                    let else_result = self.compile_filter(context, r#else, &mut else_sink);
+
+                    // Build left side: `A && B`
+                    let mut left = Vec::with_capacity(test_filter.len() + then_filter.len());
+                    left.extend_from_slice(&test_filter);
+                    left.extend(then_filter);
+                    let left = Filter::All(left);
+
+                    // Build right side: `!A && C`
+                    let mut right = Vec::with_capacity(1 + else_filter.len());
+                    right.push(Filter::Not(Box::new(Filter::All(test_filter))));
+                    right.extend(else_filter);
+                    let right = Filter::All(right);
+
+                    // Combine with OR: `(A && B) || (!A && C)`
+                    let mut sink = sink.or();
+                    sink.push(left);
+                    sink.push(right);
+
+                    // Defer error handling to collect all diagnostics before failing
+                    test_result?;
+                    then_result?;
+                    else_result?;
+                }
+
+                Ok(())
             }
         }
     }

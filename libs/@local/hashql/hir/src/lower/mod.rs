@@ -35,10 +35,10 @@ pub mod thunking;
 /// Returns a vector of `LoweringDiagnostic` if any errors occurred during lowering.
 ///
 /// The vector is guaranteed to be non-empty.
-pub fn lower<'heap>(
+pub fn lower<'env, 'heap>(
     node: Node<'heap>,
-    types: &ExtractedTypes<'heap>,
-    env: &mut Environment<'heap>,
+    types: &'env ExtractedTypes<'heap>,
+    env: &'env mut Environment<'heap>,
     context: &mut HirContext<'_, 'heap>,
 ) -> LoweringDiagnosticStatus<Node<'heap>> {
     let mut diagnostics = DiagnosticIssues::new();
@@ -47,6 +47,7 @@ pub fn lower<'heap>(
 
     let mut converter = ConvertTypeConstructor::new(context, &types.locals, env, &mut diagnostics);
     let Ok(node) = converter.fold_node(node);
+    drop(converter);
 
     let Success {
         value: node,
@@ -58,7 +59,7 @@ pub fn lower<'heap>(
     let mut diagnostics = advisories.generalize();
 
     let mut inference = TypeInference::new(env, context);
-    inference.visit_node(&node);
+    inference.visit_node(node);
 
     let (solver, inference_residual, mut inference_diagnostics) = inference.finish();
 
@@ -78,41 +79,36 @@ pub fn lower<'heap>(
     env.substitution = substitution;
 
     let mut checking = TypeChecking::new(env, context, inference_residual);
-    checking.visit_node(&node);
+    checking.visit_node(node);
 
     let mut result = checking.finish();
     result.append_diagnostics(&mut diagnostics);
 
     let Success {
-        value: mut residual,
+        value: residual,
         advisories,
     } = result?;
 
     // Post type-checking diagnostic boundary
     let mut diagnostics = advisories.generalize();
 
-    let mut specialization = Specialization::new(
-        env,
-        context,
-        &mut residual.types,
-        residual.intrinsics,
-        &mut diagnostics,
-    );
+    let mut specialization =
+        Specialization::new(env, context, residual.intrinsics, &mut diagnostics);
     let Ok(node) = specialization.fold_node(node);
 
     let mut norm_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut norm_state);
+    let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
     // Graph hoisting does *not* break HIR(ANF)
     let graph_hoisting = GraphHoisting::new(context, GraphHoistingConfig::default());
     let node = graph_hoisting.run(node);
 
-    let thunking = Thunking::new(context);
+    let thunking = Thunking::new(context, env);
     let node = thunking.run(node);
 
     // Thunking breaks normalization, so re-normalize
-    let normalization = Normalization::new(context, &mut norm_state);
+    let normalization = Normalization::new(context, env, &mut norm_state);
     let node = normalization.run(node);
 
     diagnostics.into_status(node)

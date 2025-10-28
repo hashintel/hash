@@ -15,15 +15,15 @@ in
 #let a:0 = true
      b:0 = true
      %4 = ::graph::tmp::decision_time_now()
-     c:0 = #fn(): _2«Boolean» ->
+     c:0 = #fn(): Boolean ->
              #let %5 = (a:0 == b:0)
              in
              %5
      %6 = c:0()
      %7 = ::graph::head::entities(%4) |> ::graph::body::filter(#fn(vertex:0:
-         _0«Entity[(id: EntityRecordId[(edition_id:
-           EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-            (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
+         Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+           entity_id: EntityId[(draft_id: (None[Null]
+             | Some[DraftId[Uuid[String]]]), entity_uuid:
             EntityUuid[Uuid[String]], web_id:
             WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
           (None[Null]
@@ -33,8 +33,8 @@ in
              WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
             EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
              entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
-         _1«Boolean» ->
+             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]):
+         Boolean ->
              #let 
              in
              %6) |> ::graph::tail::collect

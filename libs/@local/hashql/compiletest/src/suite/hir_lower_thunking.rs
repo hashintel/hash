@@ -33,11 +33,11 @@ pub(crate) fn hir_lower_thunking<'heap>(
 ) -> Result<Node<'heap>, SuiteDiagnostic> {
     let node = hir_lower_graph_hoisting(heap, expr, environment, context, options)?;
 
-    let thunking = Thunking::new(context);
+    let thunking = Thunking::new(context, environment);
     let node = thunking.run(node);
 
     let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
+    let normalization = Normalization::new(context, environment, &mut normalization_state);
     let node = normalization.run(node);
 
     Ok(node)
@@ -83,6 +83,7 @@ impl Suite for HirLowerThunkingSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map
                 },
                 PrettyOptions::default().without_color()
             )

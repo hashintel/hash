@@ -195,8 +195,8 @@ oxc                                = { version = "=0.95.0", default-features = f
 pdfium-render                      = { version = "=0.8.26" }
 pin-project                        = { version = "=1.1.10", default-features = false }
 pin-project-lite                   = { version = "=0.2.16", default-features = false }
-postgres-protocol                  = { version = "=0.6.8", default-features = false }
-postgres-types                     = { version = "=0.2.9", default-features = false }
+postgres-protocol                  = { version = "=0.6.9", default-features = false }
+postgres-types                     = { version = "=0.2.11", default-features = false }
 pretty                             = { version = "=0.12.4", default-features = false }
 pretty_assertions                  = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2                  = { version = "=2.0.1", default-features = false }
@@ -246,7 +246,7 @@ text-size                          = { version = "=1.1.1", default-features = fa
 thiserror                          = { version = "=2.0.16", default-features = false }
 time                               = { version = "=0.3.41", default-features = false }
 tokio                              = { version = "=1.47.1", default-features = false }
-tokio-postgres                     = { version = "=0.7.13", default-features = false }
+tokio-postgres                     = { version = "=0.7.15", default-features = false }
 tokio-stream                       = { version = "=0.1.17", default-features = false }
 tokio-test                         = { version = "=0.4.4", default-features = false }
 tokio-util                         = { version = "=0.7.16", default-features = false }

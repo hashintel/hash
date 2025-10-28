@@ -361,6 +361,14 @@ impl<I> IdCounter<I> {
         self.next.as_usize()
     }
 
+    #[must_use]
+    pub const fn bound(&self) -> I
+    where
+        I: Id,
+    {
+        self.next
+    }
+
     #[inline]
     #[expect(
         clippy::should_implement_trait,

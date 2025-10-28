@@ -14,8 +14,9 @@ use super::{
     common::{Annotated, Header},
 };
 use crate::suite::{
-    common::process_status, hir_lower_alias_replacement::TestOptions,
-    hir_lower_inference::hir_lower_inference,
+    common::process_status,
+    hir_lower_alias_replacement::TestOptions,
+    hir_lower_inference::{collect_hir_nodes, hir_lower_inference},
 };
 
 pub(crate) struct HirLowerTypeInferenceIntrinsicsSuite;
@@ -70,6 +71,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )
@@ -77,15 +79,23 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
 
         let _ = writeln!(output, "\n{}\n", Header::new("Intrinsics"));
 
+        let nodes = collect_hir_nodes(node);
+
         for (hir_id, intrinsic) in inference_intrinsics {
+            // binary search is okay here because the nodes are sorted by id
+            let node = nodes[nodes
+                .binary_search_by_key(&hir_id, |node| node.id)
+                .expect("should exist")];
+
             let _ = writeln!(
                 output,
                 "{}\n",
                 Annotated {
-                    content: interner.node.index(hir_id).pretty_print(
+                    content: node.pretty_print(
                         &PrettyPrintEnvironment {
                             env: &environment,
                             symbols: &context.symbols,
+                            map: &context.map,
                         },
                         PrettyOptions::default().without_color()
                     ),

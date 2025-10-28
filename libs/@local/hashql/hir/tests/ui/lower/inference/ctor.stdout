@@ -8,12 +8,12 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 2
-└→ Integer
+┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
+└→ _0«Some[Integer]»
 
 ┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
 └→ fn<T?25>(?25«Integer») -> Some[?25«Integer»]
 
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
-└→ _0«Some[Integer]»
+┌─ 2
+└→ Integer
 

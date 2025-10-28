@@ -31,7 +31,7 @@ pub(crate) fn hir_lower_normalization<'heap>(
     let node = hir_lower_specialization(heap, expr, environment, context, options)?;
 
     let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
+    let normalization = Normalization::new(context, environment, &mut normalization_state);
     let node = normalization.run(node);
 
     Ok(node)
@@ -77,6 +77,7 @@ impl Suite for HirLowerNormalizationSuite {
                 &PrettyPrintEnvironment {
                     env: &environment,
                     symbols: &context.symbols,
+                    map: &context.map,
                 },
                 PrettyOptions::default().without_color()
             )
