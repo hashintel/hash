@@ -27,8 +27,7 @@ const encoder = (options: Options) =>
 
           const array = textEncoder.encode(text);
 
-          // assertion is necessary because `TextEncoder` doesn't support `Uint8Array<T>` yet.
-          return array.buffer as ArrayBuffer;
+          return array.buffer;
         }),
       ),
     );
