@@ -22,7 +22,7 @@ anstream          = { workspace = true }
 anstyle-lossy     = { workspace = true, optional = true }
 anstyle-svg       = { workspace = true }
 derive_more       = { workspace = true, features = ["display"] }
-serde             = { workspace = true, public = true, optional = true, features = ["derive", "alloc"] }
+serde             = { workspace = true, optional = true, features = ["derive", "alloc"] }
 simple-mermaid    = { workspace = true }
 
 [dev-dependencies]

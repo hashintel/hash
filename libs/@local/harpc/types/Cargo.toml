@@ -16,13 +16,13 @@ serde_core = { workspace = true, public = true, optional = true }
 
 # Private third-party dependencies
 proptest       = { workspace = true, optional = true }
-serde          = { workspace = true, public = true, optional = true, features = ["derive"] }
+serde          = { workspace = true, optional = true, features = ["derive"] }
 simple-mermaid = { workspace = true }
 test-strategy  = { workspace = true, optional = true }
 
 [features]
 proptest = ["dep:proptest", "dep:test-strategy"]
-serde    = ["dep:serde"]
+serde    = ["dep:serde_core", "dep:serde"]
 
 [lints]
 workspace = true
