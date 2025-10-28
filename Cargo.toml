@@ -225,6 +225,7 @@ sentry                             = { version = "=0.42.0", default-features = f
 sentry-core                        = { version = "=0.42.0", default-features = false }
 sentry-types                       = { version = "=0.42.0", default-features = false }
 serde                              = { version = "=1.0.228", default-features = false }
+serde_core                         = { version = "=1.0.228", default-features = false }
 serde_json                         = { version = "=1.0.145" }
 serde_plain                        = { version = "=1.0.2", default-features = false }
 sha2                               = { version = "=0.10.9", default-features = false }
