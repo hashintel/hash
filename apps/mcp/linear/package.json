@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.18.11",
+    "@types/node": "22.18.12",
     "chokidar-cli": "3.0.0",
     "eslint": "9.38.0",
     "rimraf": "6.0.1",

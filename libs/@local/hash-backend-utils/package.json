@@ -65,7 +65,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.18.11",
+    "@types/node": "22.18.12",
     "@types/wait-on": "5.3.4",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.38.0",
