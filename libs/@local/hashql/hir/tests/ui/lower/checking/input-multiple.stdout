@@ -21,6 +21,12 @@ foo:0
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ #let foo:0 = #input(x, type: Number)
+│       bar:0 = #input(x, type: Integer)
+│  in
+│  foo:0
+└→ Number
+
 ┌─ #input(x, type: Number)
 └→ Number
 
@@ -28,11 +34,5 @@ foo:0
 └→ Integer
 
 ┌─ foo:0
-└→ Number
-
-┌─ #let foo:0 = #input(x, type: Number)
-│       bar:0 = #input(x, type: Integer)
-│  in
-│  foo:0
 └→ Number
 

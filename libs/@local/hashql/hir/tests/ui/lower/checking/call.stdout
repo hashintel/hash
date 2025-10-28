@@ -8,6 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ ::core::math::add(42.12, 42)
+└→ Number
+
 ┌─ ::core::math::add
 └→ fn(Number, Integer) -> Number
 
@@ -16,7 +19,4 @@
 
 ┌─ 42
 └→ Integer
-
-┌─ ::core::math::add(42.12, 42)
-└→ Number
 

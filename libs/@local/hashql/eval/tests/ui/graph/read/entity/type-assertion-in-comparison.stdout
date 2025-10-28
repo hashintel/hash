@@ -33,7 +33,7 @@
      %7 = thunk(() ->
          #let %17 = %1()
                   %19 = ::graph::head::entities(%17)
-                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+                      |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
                        EntityRecordId[(edition_id:
                         EntityEditionId[Uuid[String]], entity_id:
                         EntityId[(draft_id: (None[Null]
@@ -49,7 +49,7 @@
                            | Some[DraftId[Uuid[String]]]), entity_uuid:
                           EntityUuid[Uuid[String]], web_id:
                           WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]»): _1«Boolean» ->
+                       properties: ?)]): Boolean ->
                           #let %18 = %5()
                                %6 = (vertex:0.id.entity_id.entity_uuid == %18)
                           in

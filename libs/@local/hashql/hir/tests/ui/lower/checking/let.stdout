@@ -12,14 +12,14 @@ x:0
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ #let x:0 = true
+│  in
+│  x:0
+└→ Boolean
+
 ┌─ true
 └→ Boolean
 
 ┌─ x:0
-└→ Boolean
-
-┌─ #let x:0 = true
-│  in
-│  x:0
 └→ Boolean
 

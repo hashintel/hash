@@ -8,9 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ {}
+┌─ #as({}, type: Dict<String, Number>)
 └→ Dict<String, Number>
 
-┌─ #as({}, type: Dict<String, Number>)
+┌─ {}
 └→ Dict<String, Number>
 

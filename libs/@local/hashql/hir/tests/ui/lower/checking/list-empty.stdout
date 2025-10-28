@@ -8,9 +8,9 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ []
+┌─ #as([], type: List<Integer>)
 └→ List<Integer>
 
-┌─ #as([], type: List<Integer>)
+┌─ []
 └→ List<Integer>
 
