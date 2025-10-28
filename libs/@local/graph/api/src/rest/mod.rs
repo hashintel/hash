@@ -340,7 +340,7 @@ pub fn openapi_only_router() -> Router {
         "/api-doc",
         Router::new()
             .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-            .route("/models/*path", get(serve_static_schema)),
+            .route("/models/{*path}", get(serve_static_schema)),
     )
 }
 
