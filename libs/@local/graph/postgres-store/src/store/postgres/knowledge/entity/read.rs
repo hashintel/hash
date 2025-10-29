@@ -1,5 +1,4 @@
 use alloc::borrow::Cow;
-use core::mem::swap;
 use std::collections::HashSet;
 
 use error_stack::{Report, ResultExt as _};
@@ -10,7 +9,9 @@ use hash_graph_store::{
     error::QueryError,
     filter::Filter,
     subgraph::{
-        edges::{EdgeDirection, EntityTraversalEdge, KnowledgeGraphEdgeKind},
+        edges::{
+            EdgeDirection, EntityTraversalEdge, EntityTraversalEdgeKind, KnowledgeGraphEdgeKind,
+        },
         identifier::{EntityTypeVertexId, EntityVertexId},
         temporal_axes::{PinnedAxis, QueryTemporalAxes, VariableAxis},
     },
@@ -32,10 +33,7 @@ use type_system::{
 
 use crate::store::{
     StoreProvider,
-    postgres::{
-        AsClient, PostgresStore,
-        query::{ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile as _},
-    },
+    postgres::{AsClient, PostgresStore, query::SelectCompiler},
 };
 
 #[derive(Debug)]
@@ -106,7 +104,7 @@ pub struct EdgeHopMetadata {
     pub edges: Vec<KnowledgeEdgeTraversal>,
 }
 
-/// Result of traversing entity edges, either via CTE or sequential queries.
+/// Result of traversing entity edges via recursive CTE.
 #[derive(Debug, Default)]
 pub struct EntityTraversalResult {
     /// All entity edition IDs encountered during traversal (for permission filtering)
@@ -216,145 +214,6 @@ where
             }))
     }
 
-    /// Reads knowledge graph edges for a set of entities.
-    ///
-    /// Queries the specified reference table to find edges (either incoming or outgoing) for the
-    /// given entities within their temporal intervals. Returns both the entity edition IDs
-    /// encountered during traversal and the edges themselves.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`QueryError`] if the database query fails.
-    #[tracing::instrument(level = "info", skip(self, traversal_data))]
-    #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges(
-        &self,
-        traversal_data: &EntityEdgeTraversalData,
-        reference_table: ReferenceTable,
-        edge_direction: EdgeDirection,
-    ) -> Result<(Vec<EntityEditionId>, Vec<KnowledgeEdgeTraversal>), Report<QueryError>> {
-        let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
-            TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
-            TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
-        };
-
-        let table = Table::Reference(reference_table).transpile_to_string();
-        let [mut source_1, mut source_2] =
-            if let ForeignKeyReference::Double { join, .. } = reference_table.source_relation() {
-                [
-                    join[0].to_expression(None).transpile_to_string(),
-                    join[1].to_expression(None).transpile_to_string(),
-                ]
-            } else {
-                unreachable!("entity reference tables don't have single conditions")
-            };
-        let [mut target_1, mut target_2] =
-            if let ForeignKeyReference::Double { on, .. } = reference_table.target_relation() {
-                [
-                    on[0].to_expression(None).transpile_to_string(),
-                    on[1].to_expression(None).transpile_to_string(),
-                ]
-            } else {
-                unreachable!("entity reference tables don't have single conditions")
-            };
-
-        if edge_direction == EdgeDirection::Incoming {
-            swap(&mut source_1, &mut target_1);
-            swap(&mut source_2, &mut target_2);
-        }
-
-        self.client
-            .as_client()
-            .query_raw(
-                &format!(
-                    "
-                        SELECT
-                             filter.idx,
-                             target.web_id,
-                             target.entity_uuid,
-                             lower(target.{variable_axis}),
-                             target.entity_edition_id,
-                             source.{variable_axis} * target.{variable_axis},
-                             source.{variable_axis} * target.{variable_axis} * filter.interval
-                        FROM unnest($1::uuid[], $2::uuid[], $3::timestamptz[], $4::tstzrange[])
-                             WITH ORDINALITY
-                             AS filter(web_id, entity_uuid, entity_version, interval, idx)
-
-                        JOIN entity_temporal_metadata AS source
-                          ON source.{pinned_axis} @> $5::timestamptz
-                         AND lower(source.{variable_axis}) = filter.entity_version
-                         AND source.web_id = filter.web_id
-                         AND source.entity_uuid = filter.entity_uuid
-
-                        JOIN {table}
-                          ON {source_1} = source.web_id
-                         AND {source_2} = source.entity_uuid
-
-                        JOIN entity_temporal_metadata AS target
-                          ON target.{pinned_axis} @> $5::timestamptz
-                         AND target.{variable_axis} && source.{variable_axis}
-                         AND target.{variable_axis} && filter.interval
-                         AND NOT isempty(
-                            source.{variable_axis} * target.{variable_axis} * filter.interval
-                         )
-                         AND target.web_id = {target_1}
-                         AND target.entity_uuid = {target_2}
-                    "
-                ),
-                [
-                    &traversal_data.web_ids as &(dyn ToSql + Sync),
-                    &traversal_data.entity_uuids,
-                    &traversal_data.entity_revision_ids,
-                    &traversal_data.intervals,
-                    &traversal_data.pinned_timestamp,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "SELECT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(QueryError)?
-            .map_ok(|row| {
-                let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
-                let right_endpoint_edition_id = row.get(4);
-                (
-                    right_endpoint_edition_id,
-                    #[expect(
-                        clippy::indexing_slicing,
-                        reason = "index is guaranteed to be in bounds"
-                    )]
-                    KnowledgeEdgeTraversal {
-                        left_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                web_id: traversal_data.web_ids[index],
-                                entity_uuid: traversal_data.entity_uuids[index],
-                                draft_id: None,
-                            },
-                            revision_id: traversal_data.entity_revision_ids[index],
-                        },
-                        right_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                web_id: row.get(1),
-                                entity_uuid: row.get(2),
-                                draft_id: None,
-                            },
-                            revision_id: row.get(3),
-                        },
-                        right_endpoint_edition_id,
-                        edge_interval: row.get(5),
-                        traversal_interval: row.get(6),
-                    },
-                )
-            })
-            .try_collect::<(Vec<_>, Vec<_>)>()
-            .instrument(tracing::trace_span!("collect_edges"))
-            .await
-            .change_context(QueryError)
-    }
-
     /// Filters entity edition IDs by permission policies.
     ///
     /// Queries the database to determine which of the provided entity edition IDs are permitted
@@ -435,70 +294,61 @@ where
         Ok(permitted_entity_edition_ids)
     }
 
-    /// Attempts to traverse multiple entity edges using a recursive CTE query.
+    /// Reads knowledge graph edges by traversing entity relationships.
     ///
-    /// This function replaces the N+1 query pattern where [`Self::read_knowledge_edges`] is
-    /// called sequentially for each edge. It executes a single PostgreSQL recursive CTE that
-    /// traverses all edges at once.
+    /// Executes a recursive CTE query that traverses all edges at once, to avoid an N+1 query
+    /// pattern where each edge would require a separate database call.
     ///
-    /// The implementation creates a unified `edge_view` via UNION ALL over the edge tables
-    /// (`entity_has_left_entity` and `entity_has_right_entity`, each with incoming/outgoing
-    /// directions as separate rows). The temporal metadata joins happen outside this view,
-    /// keeping the UNION ALL simple and focused on edge topology.
+    /// The implementation uses the unified `entity_edge` table which stores both edge kinds
+    /// (`has_left_entity`, `has_right_entity`) and directions (`outgoing`, `incoming`) as
+    /// explicit columns. Each edge is stored bidirectionally, enabling efficient traversal in
+    /// both directions without UNION ALL operations.
     ///
-    /// While functional, this approach has performance limitations because:
-    /// - Postgres must scan all four edge table branches in the UNION ALL
-    /// - Query planning overhead is significant due to complex join patterns
-    /// - Index usage is suboptimal across the unified view
-    ///
-    /// The optimal solution would be a denormalized `entity_edges` table with explicit
-    /// direction columns, eliminating the UNION ALL entirely.
-    ///
-    /// Returns [`EntityTraversalResult`] on success, or `None` if the CTE cannot be used for
-    /// this edge configuration.
+    /// The CTE uses array-based edge configuration to specify which edge kind and direction to
+    /// follow at each depth level, allowing arbitrary traversal patterns through the entity
+    /// graph.
     ///
     /// # Errors
     ///
     /// Returns [`QueryError`] if the database query fails during traversal.
     #[tracing::instrument(level = "info", skip_all)]
     #[expect(clippy::too_many_lines)]
-    pub(crate) async fn read_knowledge_edges_recursive(
+    pub(crate) async fn read_knowledge_edges(
         &self,
-        traversal_data: &EntityEdgeTraversalData,
+        entities: impl IntoIterator<
+            Item = &(EntityVertexId, RightBoundedTemporalInterval<VariableAxis>),
+        >,
         edges: &[EntityTraversalEdge],
-    ) -> Result<Option<EntityTraversalResult>, Report<QueryError>> {
-        // Fast path: empty edges already handled by caller
+        temporal_axes: &QueryTemporalAxes,
+    ) -> Result<EntityTraversalResult, Report<QueryError>> {
+        // Fast path: No edges to traverse
         if edges.is_empty() {
-            return Ok(Some(EntityTraversalResult {
+            return Ok(EntityTraversalResult {
                 entity_edition_ids: Vec::new(),
                 edge_hops: Vec::new(),
-            }));
+            });
         }
 
-        // TEMPORARY: Only use CTE for shallow traversals (1 hop = 2 edges)
-        // Deep traversals (2+ hops) show 2x-3x performance regression with CTE due to
-        // UNION ALL overhead being evaluated multiple times in recursion.
-        // TODO: Implement Option 6 (single edge table) to eliminate UNION ALL
-        if edges.len() > 2 {
-            return Ok(None); // Fall back to sequential
+        let entities = entities.into_iter();
+        // Build traversal data from starting entities
+        let mut traversal_data =
+            EntityEdgeTraversalData::with_capacity(temporal_axes, entities.size_hint().0);
+
+        for (entity_vertex_id, traversal_interval) in entities {
+            traversal_data.push(*entity_vertex_id, *traversal_interval);
         }
 
         // Build edge configuration: encode each edge as (kind, direction) tuple
         // This tells the CTE which edges to follow at each depth level
-        //
-        // TODO: Use INTEGER enums instead of TEXT for better performance (follow-up)
         let (edge_kinds, edge_directions) = edges
             .iter()
-            .map(|edge| {
-                let (kind, direction) = match edge {
-                    EntityTraversalEdge::HasLeftEntity { direction } => ("has_left", direction),
-                    EntityTraversalEdge::HasRightEntity { direction } => ("has_right", direction),
-                };
-                let direction_str = match direction {
-                    EdgeDirection::Outgoing => "outgoing",
-                    EdgeDirection::Incoming => "incoming",
-                };
-                (kind, direction_str)
+            .map(|edge| match edge {
+                EntityTraversalEdge::HasLeftEntity { direction } => {
+                    (EntityTraversalEdgeKind::HasLeftEntity, *direction)
+                }
+                EntityTraversalEdge::HasRightEntity { direction } => {
+                    (EntityTraversalEdgeKind::HasRightEntity, *direction)
+                }
             })
             .collect::<(Vec<_>, Vec<_>)>();
 
@@ -516,67 +366,16 @@ where
         // Execute recursive CTE
         //
         // The CTE structure:
-        // 1. edge_view: Simple UNION ALL over edge tables (no temporal joins)
-        // 2. Base case: Start with input entities from traversal_data
-        // 3. Recursive case: Join edge_view, then add temporal metadata joins
-        // 4. Filter edges by configuration array at each depth
-        // 5. Track source entity for each edge (needed to reconstruct edge topology)
+        // 1. Base case: Start with input entities from traversal_data
+        // 2. Recursive case: Join entity_edge table, then add temporal metadata joins
+        // 3. Filter edges by configuration array at each depth
+        // 4. Track source entity for each edge (needed to reconstruct edge topology)
         self.client
             .as_client()
             .query_raw(
                 &format!(
                     "
-                    WITH RECURSIVE edge_view AS (
-                        -- UNION ALL over edge tables to create unified view
-                        -- This is pure edge metadata, no temporal joins yet
-
-                        -- has_left_entity, outgoing direction
-                        SELECT
-                            edge.web_id,
-                            edge.entity_uuid,
-                            edge.left_web_id AS target_web_id,
-                            edge.left_entity_uuid AS target_entity_uuid,
-                            'has_left'::text AS edge_kind,
-                            'outgoing'::text AS edge_direction
-                        FROM entity_has_left_entity edge
-
-                        UNION ALL
-
-                        -- has_left_entity, incoming direction (reversed)
-                        SELECT
-                            edge.left_web_id AS web_id,
-                            edge.left_entity_uuid AS entity_uuid,
-                            edge.web_id AS target_web_id,
-                            edge.entity_uuid AS target_entity_uuid,
-                            'has_left'::text AS edge_kind,
-                            'incoming'::text AS edge_direction
-                        FROM entity_has_left_entity edge
-
-                        UNION ALL
-
-                        -- has_right_entity, outgoing direction
-                        SELECT
-                            edge.web_id,
-                            edge.entity_uuid,
-                            edge.right_web_id AS target_web_id,
-                            edge.right_entity_uuid AS target_entity_uuid,
-                            'has_right'::text AS edge_kind,
-                            'outgoing'::text AS edge_direction
-                        FROM entity_has_right_entity edge
-
-                        UNION ALL
-
-                        -- has_right_entity, incoming direction (reversed)
-                        SELECT
-                            edge.right_web_id AS web_id,
-                            edge.right_entity_uuid AS entity_uuid,
-                            edge.web_id AS target_web_id,
-                            edge.entity_uuid AS target_entity_uuid,
-                            'has_right'::text AS edge_kind,
-                            'incoming'::text AS edge_direction
-                        FROM entity_has_right_entity edge
-                    ),
-                    traversal AS (
+                    WITH RECURSIVE traversal AS (
                         -- Base case: starting entities
                         SELECT
                             filter.web_id AS source_web_id,
@@ -590,8 +389,8 @@ where
                             source.{variable_axis} AS current_variable_interval,
                             filter.interval AS traversal_interval,
                             0::int AS depth,
-                            ''::text AS edge_kind,
-                            ''::text AS edge_direction
+                            NULL::entity_edge_kind AS edge_kind,
+                            NULL::edge_direction AS edge_direction
                         FROM unnest(
                             $1::uuid[],
                             $2::uuid[],
@@ -619,26 +418,24 @@ where
                             target.{variable_axis},
                             trav.traversal_interval * target.{variable_axis},
                             trav.depth + 1,
-                            edge.edge_kind,
-                            edge.edge_direction
+                            edge.kind,
+                            edge.direction
                         FROM traversal AS trav
 
-                        -- Join with unified edge view (pre-computed UNION ALL)
-                        -- TODO: Replace view with denormalized table to eliminate UNION ALL \
-                     overhead
-                        JOIN edge_view AS edge
-                          ON edge.web_id = trav.current_web_id
-                         AND edge.entity_uuid = trav.current_entity_uuid
+                        -- Join with unified edge table
+                        JOIN entity_edge AS edge
+                          ON edge.source_web_id = trav.current_web_id
+                         AND edge.source_entity_uuid = trav.current_entity_uuid
                          -- Filter by edge configuration for this depth level
                          -- Array indexing returns NULL if depth+1 exceeds array bounds,
                          -- but this is prevented by WHERE trav.depth < $8 below
-                         AND edge.edge_kind = ($6::text[])[trav.depth + 1]
-                         AND edge.edge_direction = ($7::text[])[trav.depth + 1]
+                         AND edge.kind = ($6::entity_edge_kind[])[trav.depth + 1]
+                         AND edge.direction = ($7::edge_direction[])[trav.depth + 1]
 
                         -- Join source entity temporal metadata
                         JOIN entity_temporal_metadata AS source
-                          ON source.web_id = edge.web_id
-                         AND source.entity_uuid = edge.entity_uuid
+                          ON source.web_id = edge.source_web_id
+                         AND source.entity_uuid = edge.source_entity_uuid
                          AND source.{pinned_axis} @> $5::timestamptz
 
                         -- Join target entity temporal metadata
@@ -703,25 +500,9 @@ where
 
                     // Ensure edge_hops has entry for this depth level
                     while traversal_result.edge_hops.len() <= depth {
-                        let edge_kind = match row.get(10) {
-                            "has_left" => KnowledgeGraphEdgeKind::HasLeftEntity,
-                            "has_right" => KnowledgeGraphEdgeKind::HasRightEntity,
-                            _ => unreachable!(
-                                "edge_kind guaranteed by query to be has_left or has_right"
-                            ),
-                        };
-
-                        let edge_direction = match row.get(11) {
-                            "outgoing" => EdgeDirection::Outgoing,
-                            "incoming" => EdgeDirection::Incoming,
-                            _ => unreachable!(
-                                "edge_direction guaranteed by query to be outgoing or incoming"
-                            ),
-                        };
-
                         traversal_result.edge_hops.push(EdgeHopMetadata {
-                            edge_kind,
-                            edge_direction,
+                            edge_kind: row.get(10),
+                            edge_direction: row.get(11),
                             edges: Vec::new(),
                         });
                     }
@@ -764,7 +545,6 @@ where
             )
             .instrument(tracing::trace_span!("parse_cte_results"))
             .await
-            .map(Some)
             .change_context(QueryError)
     }
 }
