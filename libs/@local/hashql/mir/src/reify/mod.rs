@@ -1,5 +1,6 @@
 mod atom;
 mod current;
+mod error;
 mod rvalue;
 mod terminator;
 mod transform;
@@ -16,6 +17,7 @@ use hashql_core::{
     symbol::Symbol,
     r#type::environment::Environment,
 };
+use hashql_diagnostics::{Failure, Status};
 use hashql_hir::{
     context::HirContext,
     node::{
@@ -29,7 +31,14 @@ use hashql_hir::{
     },
 };
 
-use self::{current::CurrentBlock, types::unwrap_closure_type};
+use self::{
+    current::CurrentBlock,
+    error::{
+        ReifyDiagnosticCategory, ReifyDiagnosticIssues, expected_anf_thunk, expected_anf_variable,
+        external_modules_unsupported, local_not_thunk,
+    },
+    types::unwrap_closure_type,
+};
 use crate::{
     body::{
         Body, Source,
@@ -70,6 +79,7 @@ impl Thunks {
 
 struct CrossCompileState<'heap> {
     thunks: Thunks,
+    diagnostics: ReifyDiagnosticIssues,
 
     // Already created constructors
     ctor: FastHashMap<Symbol<'heap>, DefId>,
@@ -277,25 +287,26 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
 //
 // This design enables incremental compilation by processing packages independently while
 // maintaining cross-package reference resolution.
-pub fn from_hir<'heap>(node: Node<'heap>, context: &mut ReifyContext<'_, '_, '_, 'heap>) -> DefId {
+pub fn from_hir<'heap>(
+    node: Node<'heap>,
+    context: &mut ReifyContext<'_, '_, '_, 'heap>,
+) -> Status<DefId, ReifyDiagnosticCategory, SpanId> {
     // The node is already in HIR(ANF) - each node will be a thunk.
     let NodeKind::Let(Let { bindings, body }) = node.kind else {
-        // It is only a body, per thunking rules this will only be a local identifier
-        unreachable!(
-            "external modules are currently unsupported upstream, and anything else will result \
-             in at least a single thunk"
-        );
+        // Per HIR(ANF) rules, the body must be an atom, additionally the top level body must be a
+        // simple identifier. As there is no `let`, we can assume that it is a reference to a
+        // variable, as we haven't defined any variables yet, the body must be a qualified variable,
+        // which means module system, which isn't supported yet.
+        return Status::Err(Failure::new(external_modules_unsupported(node.span)));
     };
 
     // The body will be a (local) variable
     let NodeKind::Variable(variable) = body.kind else {
-        panic!(
-            "ICE: HIR(ANF) after thunking guarantees that the outer return type is an identifier"
-        );
+        return Status::Err(Failure::new(expected_anf_variable(body.span)));
     };
 
     let Variable::Local(local) = variable else {
-        panic!("ICE: error that cross module references aren't supported yet");
+        return Status::Err(Failure::new(external_modules_unsupported(node.span)));
     };
 
     let thunks = Thunks {
@@ -305,6 +316,7 @@ pub fn from_hir<'heap>(node: Node<'heap>, context: &mut ReifyContext<'_, '_, '_,
     let mut state = CrossCompileState {
         thunks,
         ctor: FastHashMap::default(),
+        diagnostics: ReifyDiagnosticIssues::new(),
         var_pool: MixedBitSetPool::with_recycler(
             8,
             MixedBitSetRecycler {
@@ -315,7 +327,9 @@ pub fn from_hir<'heap>(node: Node<'heap>, context: &mut ReifyContext<'_, '_, '_,
 
     for binding in bindings {
         let NodeKind::Thunk(thunk) = binding.value.kind else {
-            panic!("ICE: diagnostic: top level must be thunks");
+            state.diagnostics.push(expected_anf_thunk(binding.span));
+
+            continue;
         };
 
         let compiler = Reifier::new(context, &mut state);
@@ -323,6 +337,12 @@ pub fn from_hir<'heap>(node: Node<'heap>, context: &mut ReifyContext<'_, '_, '_,
         state.thunks.insert(binding.binder.id, def_id);
     }
 
-    state.thunks.defs[local.id.value]
-        .unwrap_or_else(|| panic!("ICE: diagnostic: local must be a thunk"))
+    let Some(def_id) = state.thunks.defs[local.id.value] else {
+        let mut failure = Failure::new(local_not_thunk(local.id.span));
+        failure.secondary = state.diagnostics;
+
+        return Status::Err(failure);
+    };
+
+    state.diagnostics.into_status(def_id)
 }

@@ -1,4 +1,4 @@
-use hashql_core::r#type::kind::TypeKind;
+use hashql_core::{id::Id as _, r#type::kind::TypeKind};
 use hashql_hir::node::{
     Node,
     access::{Access, FieldAccess, IndexAccess},
@@ -7,7 +7,10 @@ use hashql_hir::node::{
     variable::Variable,
 };
 
-use super::Reifier;
+use super::{
+    Reifier,
+    error::{expected_local_variable, external_modules_unsupported, type_cannot_be_indexed},
+};
 use crate::{
     body::{
         constant::Constant,
@@ -15,26 +18,36 @@ use crate::{
         operand::Operand,
         place::{FieldIndex, Place, Projection},
     },
-    reify::types::unwrap_union_type,
+    reify::{
+        error::{field_index_too_large, local_variable_unmapped},
+        types::unwrap_union_type,
+    },
 };
 
 impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
-    fn local(&self, node: Node<'heap>) -> Local {
+    fn local(&mut self, node: Node<'heap>) -> Local {
         let NodeKind::Variable(Variable::Local(local)) = node.kind else {
-            panic!("ICE: only local variables are allowed to be local")
+            self.state
+                .diagnostics
+                .push(expected_local_variable(node.span));
+
+            // Return a bogus value, so that lowering can continue
+            return Local::MAX;
         };
 
         let Some(local) = self.locals[local.id.value] else {
-            panic!(
-                "ICE: The variable should have been assigned to a local before reaching this \
-                 point."
-            )
+            self.state
+                .diagnostics
+                .push(local_variable_unmapped(node.span));
+
+            // Return a bogus value, so that lowering can continue
+            return Local::MAX;
         };
 
         local
     }
 
-    fn place(&self, node: Node<'heap>) -> Place<'heap> {
+    fn place(&mut self, node: Node<'heap>) -> Place<'heap> {
         let mut projections = Vec::new();
 
         let mut current = node;
@@ -54,8 +67,14 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                     // therefore not be used as field names in structs.
                     match first.kind {
                         TypeKind::Tuple(_) => {
-                            let Ok(index) = field.value.as_str().parse() else {
-                                panic!("ERR: value too big to be used as index")
+                            let index = if let Ok(index) = field.value.as_str().parse() {
+                                index
+                            } else {
+                                self.state
+                                    .diagnostics
+                                    .push(field_index_too_large(field.span, field.value));
+
+                                0
                             };
 
                             projections.push(Projection::Field(FieldIndex::new(index)));
@@ -64,6 +83,7 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                             // TODO: in the future we must check if this is the only (closed) struct
                             // type, if that is the case, we can use `Projection::Field` instead,
                             // otherwise we must fall back to using the slower `FieldByName`.
+                            // see: https://linear.app/hash/issue/BE-42/hashql-differentiate-between-open-and-closed-structs
 
                             projections.push(Projection::FieldByName(field.value));
                         }
@@ -78,7 +98,11 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                         | TypeKind::Param(_)
                         | TypeKind::Infer(_)
                         | TypeKind::Never
-                        | TypeKind::Unknown => unreachable!("other types cannot be indexed"),
+                        | TypeKind::Unknown => {
+                            self.state
+                                .diagnostics
+                                .push(type_cannot_be_indexed(first.span));
+                        }
                     }
 
                     current = expr;
@@ -110,10 +134,16 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
         }
     }
 
-    pub(super) fn operand(&self, node: Node<'heap>) -> Operand<'heap> {
+    pub(super) fn operand(&mut self, node: Node<'heap>) -> Operand<'heap> {
         match node.kind {
             NodeKind::Variable(Variable::Qualified(_)) => {
-                panic!("ERR: not supported (yet)") // <- would be an FnPtr
+                self.state
+                    .diagnostics
+                    .push(external_modules_unsupported(node.span).generalize());
+
+                // Return a bogus value so that lowering can continue
+                // In the future this would be a simple FnPtr
+                Operand::Constant(Constant::Unit)
             }
             NodeKind::Data(Data::Primitive(primitive)) => {
                 Operand::Constant(Constant::Primitive(primitive))
