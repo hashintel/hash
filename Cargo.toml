@@ -155,7 +155,7 @@ image                              = { version = "=0.25.6", default-features = f
 include_dir                        = { version = "=0.7.4", default-features = false }
 include_dir_macros                 = { version = "=0.7.4", default-features = false }
 indexmap                           = { version = "=2.11.0", default-features = false }
-indicatif                          = { version = "=0.18.0", default-features = false }
+indicatif                          = { version = "=0.18.2", default-features = false }
 indoc                              = { version = "=2.0.6", default-features = false }
 inferno                            = { version = "=0.12.3", default-features = false }
 insta                              = { version = "=1.43.1", default-features = false }
