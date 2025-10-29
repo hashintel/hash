@@ -60,5 +60,11 @@ pub enum RValue<'heap> {
     /// or configuration values.
     Input(Input<'heap>),
 
+    /// Apply a function to a list of arguments.
+    ///
+    /// This r-value represents a function call operation, where a callable
+    /// function is invoked with a list of argument operands. This covers
+    /// all forms of function application including user-defined functions,
+    /// built-in operations, method calls, and constructor invocations.
     Apply(Apply<'heap>),
 }
