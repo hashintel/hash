@@ -1,4 +1,9 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["src", "codegen.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "codegen.config.ts",
+    "vitest.config.ts",
+    "src/dom-shim.d.ts"
+  ]
 }
