@@ -1,8 +1,11 @@
 #![feature(
-    macro_metavar_expr_concat,
-    allocator_api,
+    // Language Features
+    coverage_attribute,
     if_let_guard,
-    coverage_attribute
+    macro_metavar_expr_concat,
+
+    // Library Features
+    allocator_api,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
