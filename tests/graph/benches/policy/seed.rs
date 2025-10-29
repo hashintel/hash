@@ -163,6 +163,7 @@ pub async fn seed_benchmark_data(
     let users_time = users_time_start.elapsed();
 
     // Use existing roles created by create_web/create_team and assign users
+    let web_role_time_start = std::time::Instant::now();
     let roles_time_start = std::time::Instant::now();
     for (web_idx, &web_id) in data.webs.iter().enumerate() {
         // Get the existing web roles (Administrator, Member)
@@ -195,8 +196,10 @@ pub async fn seed_benchmark_data(
             }
         }
     }
+    let web_roles_time = web_role_time_start.elapsed();
 
     // Create team roles (insert_team doesn't create them automatically unlike create_web)
+    let team_roles_time_start = std::time::Instant::now();
     for (team_idx, &team_id) in data.teams.iter().enumerate() {
         // Create team roles manually since insert_team doesn't create them automatically
         let team_admin_role = transaction
@@ -225,6 +228,7 @@ pub async fn seed_benchmark_data(
         }
     }
     let roles_time = roles_time_start.elapsed();
+    let team_roles_time = team_roles_time_start.elapsed();
 
     // Create realistic policy distribution with explicit principal constraints
     let action_combinations = [
@@ -242,6 +246,7 @@ pub async fn seed_benchmark_data(
 
     // 1. Global policies (accessible to all users)
     let policies_time_start = std::time::Instant::now();
+    let global_policies_time_start = std::time::Instant::now();
     for policy_idx in 0..config.global_policies {
         let actions = &action_combinations[policy_idx % action_combinations.len()];
         all_policies.push(PolicyCreationParams {
@@ -252,8 +257,10 @@ pub async fn seed_benchmark_data(
             resource: None,
         });
     }
+    let global_policies_time_start = global_policies_time_start.elapsed();
 
     // 2. Team-specific policies (only accessible to team members)
+    let team_policies_time_start = std::time::Instant::now();
     for (team_idx, &team_id) in data.teams.iter().enumerate() {
         for policy_idx in 0..config.policies_per_team {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -269,8 +276,10 @@ pub async fn seed_benchmark_data(
             });
         }
     }
+    let team_policies_time = team_policies_time_start.elapsed();
 
     // 3. Role-specific policies (only accessible to specific role holders)
+    let roles_policies_time_start = std::time::Instant::now();
     for (role_idx, &role_id) in data.roles.iter().enumerate() {
         for policy_idx in 0..config.policies_per_role {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -286,8 +295,10 @@ pub async fn seed_benchmark_data(
             });
         }
     }
+    let roles_policies_time = roles_policies_time_start.elapsed();
 
     // 4. User-specific policies (only accessible to specific users)
+    let user_policies_time_start = std::time::Instant::now();
     for (user_idx, &user_id) in data.users.iter().enumerate() {
         for policy_idx in 0..config.policies_per_user {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -302,27 +313,39 @@ pub async fn seed_benchmark_data(
             });
         }
     }
+    let user_policies_time = user_policies_time_start.elapsed();
     let policies_time = policies_time_start.elapsed();
 
     data.policies = transaction
         .insert_policies_into_database(all_policies.iter())
         .await?;
 
+    let commit_start = std::time::Instant::now();
     transaction.commit().await?;
+    let commit_time = commit_start.elapsed();
 
+    eprintln!("Seeding completed! Summary:");
+    eprintln!("  - {} webs", data.webs.len());
+    eprintln!("  - {} teams", data.teams.len());
+    eprintln!("  - {} users", data.users.len());
+    eprintln!("  - {} roles", data.roles.len());
+    eprintln!("  - {} policies", data.policies.len());
     eprintln!(
-        "Seeding completed after {}s! Summary:",
+        "  - Timings: {}s seeding total",
         seeding_start.elapsed().as_secs()
     );
-    eprintln!("  - {} webs ({}s)", data.webs.len(), webs_time.as_secs());
-    eprintln!("  - {} teams ({}s)", data.teams.len(), teams_time.as_secs());
-    eprintln!("  - {} users ({}s)", data.users.len(), users_time.as_secs());
-    eprintln!("  - {} roles ({}s)", data.roles.len(), roles_time.as_secs());
-    eprintln!(
-        "  - {} policies ({}s)",
-        data.policies.len(),
-        policies_time.as_secs()
-    );
+    eprintln!("    - Webs: {}s", webs_time.as_secs());
+    eprintln!("    - Teams: {}s", teams_time.as_secs());
+    eprintln!("    - Users: {}s", users_time.as_secs());
+    eprintln!("    - Roles: {}s", roles_time.as_secs());
+    eprintln!("      - Webs: {}s", web_roles_time.as_secs());
+    eprintln!("      - Teams: {}s", team_roles_time.as_secs());
+    eprintln!("    - Policies: {}s", policies_time.as_secs());
+    eprintln!("      - Global: {}s", global_policies_time_start.as_secs());
+    eprintln!("      - Teams: {}s", team_policies_time.as_secs());
+    eprintln!("      - Roles: {}s", roles_policies_time.as_secs());
+    eprintln!("      - Users: {}s", user_policies_time.as_secs());
+    eprintln!("    - Commit: {}s", commit_time.as_secs());
 
     Ok(data)
 }
