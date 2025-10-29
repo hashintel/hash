@@ -6,6 +6,33 @@ use hashql_core::r#type::{
     kind::{self, ClosureType, TypeKind},
 };
 
+/// Recursively unwraps union types to yield their constituent concrete types.
+///
+/// This function flattens nested union types and unwraps type wrappers (Apply, Generic, Opaque)
+/// to reveal the underlying concrete types. It handles the complex type hierarchy by maintaining
+/// a stack of types to process and yielding concrete types as they are discovered.
+///
+/// # Type Unwrapping Process
+///
+/// 1. **Wrapper removal**: Apply, Generic, and Opaque types are unwrapped to their base types
+/// 2. **Union flattening**: Union types are expanded into their constituent variants
+/// 3. **Concrete yielding**: Primitive, Struct, Tuple, Closure, and other concrete types are
+///    returned
+///
+/// # Parameters
+///
+/// - `type_id`: The type to unwrap and analyze
+/// - `env`: Type environment containing type definitions
+///
+/// # Returns
+///
+/// An iterator over the concrete types found within the union structure.
+/// For non-union types, yields a single concrete type.
+///
+/// # Invariants
+///
+/// The returned iterator is guaranteed to yield at least one type, as empty unions
+/// are not valid in the type system after simplification.
 pub(super) fn unwrap_union_type<'heap>(
     type_id: TypeId,
     env: &Environment<'heap>,
@@ -49,6 +76,29 @@ pub(super) fn unwrap_union_type<'heap>(
     })
 }
 
+/// Extracts closure type information from a potentially wrapped type.
+///
+/// This function unwraps union types and type wrappers to find the underlying closure type.
+/// It assumes the type system has already validated that the given type is indeed a closure,
+/// making this extraction safe.
+///
+/// # Parameters
+///
+/// - `type_id`: The type that should resolve to a closure
+/// - `env`: Type environment for type lookup
+///
+/// # Returns
+///
+/// The closure type information including parameters and return type.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The union type is empty (which should never happen when a union has been simplified)
+/// - The unwrapped type is not a closure (indicates a type system bug)
+///
+/// Both panic conditions represent internal compiler errors that should be caught earlier in the
+/// compilation pipeline.
 pub(super) fn unwrap_closure_type<'heap>(
     type_id: TypeId,
     env: &Environment<'heap>,
