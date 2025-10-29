@@ -59,7 +59,9 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                     let mut items =
                         unwrap_union_type(type_id, self.context.environment).into_iter();
                     let first = items.next().unwrap_or_else(|| {
-                        panic!("ICE: union types are guaranteed to be non-empty")
+                        unreachable!(
+                            "simplified unions are guaranteed to have at least one variant"
+                        );
                     });
 
                     // Check what type the first element is, if it is a tuple we know that all types
