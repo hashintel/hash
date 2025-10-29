@@ -372,7 +372,6 @@ If the service should report metrics to a StatsD server, the following variables
 - `FRONTEND_URL`: URL of the frontend website for links (default: `http://localhost:3000`)
 - `NOTIFICATION_POLL_INTERVAL`: the interval in milliseconds at which the frontend will poll for new notifications, or 0 for no polling. (default: `10_000`)
 - `HASH_INTEGRATION_QUEUE_NAME` The name of the Redis queue which updates to entities are published to
-- `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)

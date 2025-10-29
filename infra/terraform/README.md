@@ -422,5 +422,4 @@ This list of modules are to be considered obsolete/out of date, and are kept her
 
 - [`citus`](./modules/citus/) - Module for deploying a Citus cluster on AWS using EC2. - Along with [playbooks/citus.md](./playbooks/citus.md) - Instructions for administering the Citus cluster.
 - [`opensearch`](./modules/opensearch/) - Module for deploying an OpenSearch domain (wrapping `aws_elasticsearch_domain`).
-- [`realtime`](./modules/realtime/) - Module for deploying the `realtime` service cluster AWS ECS. This service is used to listen to the PG WAL in HASH.
 - [`search-loader`](./modules/search-loader/) - Module for deploying the `search-loader` service cluster on AWS ECS. This service is used to load data into the search cluster.

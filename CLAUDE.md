@@ -277,7 +277,6 @@ The template helps reviewers understand the context and ensures all important as
 - Main development: `yarn dev` (starts API and frontend)
 - Backend only: `yarn dev:backend` or `yarn dev:backend:api`
 - Frontend only: `yarn dev:frontend`
-- Realtime server: `yarn dev:backend:realtime`
 - Search loader: `yarn dev:backend:search-loader`
 
 ### Starting Services

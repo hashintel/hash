@@ -18,13 +18,7 @@ If you wish to build the Docker images for deployment, these are the steps to ta
    docker build -t hash-api-prod . -f ./infra/docker/api/prod/Dockerfile
    ```
 
-3. For `realtime` Docker image run
-
-   ```shell
-   docker build -t hash-realtime-prod . -f ./infra/docker/realtime/prod/Dockerfile
-   ```
-
-4. For `search-loader` Docker image run
+3. For `search-loader` Docker image run
 
    ```shell
    docker build -t hash-search-loader-prod . -f ./infra/docker/search-loader/prod/Dockerfile
