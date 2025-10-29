@@ -28,7 +28,7 @@ export const reauthenticate = async (
     },
     { headers },
   );
-  if (!fullLogin.session_token) {
+  if (!fullLogin.session_token || !fullLogin.session.identity) {
     throw new Error("Login failed");
   }
 
