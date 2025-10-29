@@ -1,4 +1,7 @@
-use hashql_core::{id::IdVec, span::SpanId};
+use hashql_core::{
+    id::{Id as _, IdVec},
+    span::SpanId,
+};
 use hashql_hir::node::{
     HirId, Node,
     call::{Call, CallArgument, PointerKind},
@@ -12,7 +15,10 @@ use hashql_hir::node::{
     thunk::Thunk,
 };
 
-use super::{CurrentBlock, Reifier};
+use super::{
+    CurrentBlock, Reifier,
+    error::{fat_call_on_constant, nested_let_bindings_in_anf, unexpected_assertion},
+};
 use crate::body::{
     constant::Constant,
     local::Local,
@@ -22,7 +28,7 @@ use crate::body::{
 };
 
 impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
-    fn rvalue_data(&self, data: Data<'heap>) -> RValue<'heap> {
+    fn rvalue_data(&mut self, data: Data<'heap>) -> RValue<'heap> {
         match data {
             Data::Primitive(primitive) => {
                 RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
@@ -88,7 +94,10 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     ) -> RValue<'heap> {
         match operation {
             TypeOperation::Assertion(_) => {
-                panic!("ICE: assertions no longer exist in HIR(ANF)")
+                self.state.diagnostics.push(unexpected_assertion(span));
+
+                // Return a bogus value, so that lowering can continue
+                RValue::Load(Operand::Constant(Constant::Unit))
             }
             TypeOperation::Constructor(ctor @ TypeConstructor { name }) => {
                 if let Some(&ptr) = self.state.ctor.get(&name) {
@@ -114,7 +123,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     }
 
     fn rvalue_binary_operation(
-        &self,
+        &mut self,
         BinaryOperation { op, left, right }: BinaryOperation<'heap>,
     ) -> RValue<'heap> {
         let left = self.operand(left);
@@ -128,7 +137,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     }
 
     fn rvalue_unary_operation(
-        &self,
+        &mut self,
         UnaryOperation { op, expr }: UnaryOperation<'heap>,
     ) -> RValue<'heap> {
         let operand = self.operand(expr);
@@ -164,16 +173,16 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         }
     }
 
-    fn rvalue_variable(&self, node: Node<'heap>) -> RValue<'heap> {
+    fn rvalue_variable(&mut self, node: Node<'heap>) -> RValue<'heap> {
         RValue::Load(self.operand(node))
     }
 
-    fn rvalue_access(&self, node: Node<'heap>) -> RValue<'heap> {
+    fn rvalue_access(&mut self, node: Node<'heap>) -> RValue<'heap> {
         RValue::Load(self.operand(node))
     }
 
     fn rvalue_call_thin(
-        &self,
+        &mut self,
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
@@ -192,7 +201,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     }
 
     fn rvalue_call_fat(
-        &self,
+        &mut self,
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
@@ -200,10 +209,14 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         // cannot represent a fat-pointer, which is only constructed using an aggregate.
         let function = match self.operand(function) {
             Operand::Place(place) => place,
-            Operand::Constant(_) => panic!(
-                "ICE: fat calls on constants are not supported - should not even happen in the \
-                 first place"
-            ),
+            Operand::Constant(_) => {
+                self.state
+                    .diagnostics
+                    .push(fat_call_on_constant(function.span));
+
+                // Return a bogus value / place that can be used to continue lowering
+                Place::local(Local::MAX, self.context.interner)
+            }
         };
 
         // To the function we add two projections, one for the function pointer, and one for the
@@ -228,7 +241,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     }
 
     fn rvalue_call(
-        &self,
+        &mut self,
         Call {
             kind,
             function,
@@ -280,7 +293,12 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let rvalue = match node.kind {
             NodeKind::Data(data) => self.rvalue_data(data),
             NodeKind::Variable(_) => self.rvalue_variable(node),
-            NodeKind::Let(_) => unreachable!("HIR(ANF) does not have nested let bindings"),
+            NodeKind::Let(_) => {
+                self.state
+                    .diagnostics
+                    .push(nested_let_bindings_in_anf(node.span));
+                return None;
+            }
             NodeKind::Operation(operation) => self.rvalue_operation(node.id, node.span, operation),
             NodeKind::Access(_) => self.rvalue_access(node),
             NodeKind::Call(call) => self.rvalue_call(call),

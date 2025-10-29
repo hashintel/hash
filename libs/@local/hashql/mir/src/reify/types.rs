@@ -56,10 +56,12 @@ pub(super) fn unwrap_closure_type<'heap>(
     let closure_type = unwrap_union_type(type_id, env)
         .into_iter()
         .next()
-        .unwrap_or_else(|| unreachable!("There must be a least one item present"));
+        .unwrap_or_else(|| {
+            unreachable!("simplified unions are guaranteed to have at least one variant")
+        });
 
     let TypeKind::Closure(closure) = closure_type.kind else {
-        unreachable!("type must be a closure");
+        unreachable!("the unwrapped type must be a closure");
     };
 
     *closure

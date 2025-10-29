@@ -1,4 +1,4 @@
-use hashql_core::{heap, span::SpanId};
+use hashql_core::{heap, id::Id as _, span::SpanId};
 use hashql_hir::node::{
     branch,
     graph::{self, Graph},
@@ -8,19 +8,23 @@ use hashql_hir::node::{
 use super::{
     Reifier,
     current::{CurrentBlock, Rewire},
+    error::expected_closure_filter,
 };
-use crate::body::{
-    basic_block::BasicBlockId,
-    local::Local,
-    terminator::{
-        Branch, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target, Terminator,
-        TerminatorKind,
+use crate::{
+    body::{
+        basic_block::BasicBlockId,
+        local::Local,
+        terminator::{
+            Branch, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target, Terminator,
+            TerminatorKind,
+        },
     },
+    def::DefId,
 };
 
 impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     fn terminator_graph_read_head(
-        &self,
+        &mut self,
         head: graph::GraphReadHead<'heap>,
     ) -> GraphReadHead<'heap> {
         match head {
@@ -44,7 +48,12 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         match body {
             graph::GraphReadBody::Filter(filter) => {
                 let NodeKind::Closure(closure) = filter.kind else {
-                    panic!("ICE: expected closure filter")
+                    self.state
+                        .diagnostics
+                        .push(expected_closure_filter(filter.span));
+
+                    // Return a bogus value, so that lowering can continue
+                    return GraphReadBody::Filter(DefId::MAX, Local::MAX);
                 };
 
                 let (ptr, env) = self.transform_closure(block, filter.span, closure);

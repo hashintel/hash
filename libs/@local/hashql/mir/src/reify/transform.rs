@@ -13,7 +13,7 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Reifier, current::CurrentBlock};
+use super::{Reifier, current::CurrentBlock, error::local_variable_unmapped};
 use crate::{
     body::{
         local::Local,
@@ -54,9 +54,12 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let env_local = self.local_counter.next();
         let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.heap);
         for var in &captures {
-            let capture_local = self.locals[var].unwrap_or_else(|| {
-                unreachable!("diagnostic: ICE - must have had a local assigned")
-            });
+            let Some(capture_local) = self.locals[var] else {
+                self.state.diagnostics.push(local_variable_unmapped(span));
+
+                continue;
+            };
+
             tuple_elements.push(Operand::Place(Place::local(
                 capture_local,
                 self.context.interner,
