@@ -246,7 +246,6 @@ pub async fn seed_benchmark_data(
 
     // 1. Global policies (accessible to all users)
     let policies_time_start = std::time::Instant::now();
-    let global_policies_time_start = std::time::Instant::now();
     for policy_idx in 0..config.global_policies {
         let actions = &action_combinations[policy_idx % action_combinations.len()];
         all_policies.push(PolicyCreationParams {
@@ -257,10 +256,8 @@ pub async fn seed_benchmark_data(
             resource: None,
         });
     }
-    let global_policies_time = global_policies_time_start.elapsed();
 
     // 2. Team-specific policies (only accessible to team members)
-    let team_policies_time_start = std::time::Instant::now();
     for (team_idx, &team_id) in data.teams.iter().enumerate() {
         for policy_idx in 0..config.policies_per_team {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -276,10 +273,8 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    let team_policies_time = team_policies_time_start.elapsed();
 
     // 3. Role-specific policies (only accessible to specific role holders)
-    let roles_policies_time_start = std::time::Instant::now();
     for (role_idx, &role_id) in data.roles.iter().enumerate() {
         for policy_idx in 0..config.policies_per_role {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -295,10 +290,8 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    let roles_policies_time = roles_policies_time_start.elapsed();
 
     // 4. User-specific policies (only accessible to specific users)
-    let user_policies_time_start = std::time::Instant::now();
     for (user_idx, &user_id) in data.users.iter().enumerate() {
         for policy_idx in 0..config.policies_per_user {
             let actions = &action_combinations[policy_idx % action_combinations.len()];
@@ -313,12 +306,11 @@ pub async fn seed_benchmark_data(
             });
         }
     }
-    let user_policies_time = user_policies_time_start.elapsed();
-    let policies_time = policies_time_start.elapsed();
 
     data.policies = transaction
         .insert_policies_into_database(all_policies.iter())
         .await?;
+    let policies_time = policies_time_start.elapsed();
 
     let commit_start = std::time::Instant::now();
     transaction.commit().await?;
