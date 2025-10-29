@@ -296,7 +296,7 @@ where
 
     /// Reads knowledge graph edges by traversing entity relationships.
     ///
-    /// Executes a recursive CTE query that traverses all edges at once, replacing the N+1 query
+    /// Executes a recursive CTE query that traverses all edges at once, to avoid an N+1 query
     /// pattern where each edge would require a separate database call.
     ///
     /// The implementation uses the unified `entity_edge` table which stores both edge kinds
