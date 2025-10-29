@@ -78,10 +78,6 @@ area/libs > antsi:
   - changed-files:
       - any-glob-to-any-file: libs/antsi/**
 
-area/libs > chonky:
-  - changed-files:
-      - any-glob-to-any-file: libs/chonky/**
-
 area/libs > error-stack:
   - changed-files:
       - any-glob-to-any-file: libs/error-stack/**

@@ -37,7 +37,6 @@ members = [
     "libs/@local/telemetry",
     "libs/@local/temporal-client",
     "libs/antsi",
-    "libs/chonky",
     "libs/error-stack",
     "libs/error-stack/macros",
     "libs/sarif",
