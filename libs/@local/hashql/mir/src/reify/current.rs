@@ -44,6 +44,10 @@ impl Rewire {
     }
 }
 
+/// Builder for constructing MIR basic blocks during reification.
+///
+/// `CurrentBlock` manages the construction of a single basic block, accumulating
+/// statements and handling control flow.
 pub(crate) struct CurrentBlock<'mir, 'heap> {
     heap: &'heap Heap,
     interner: &'mir Interner<'heap>,

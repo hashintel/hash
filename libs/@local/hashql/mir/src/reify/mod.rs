@@ -55,17 +55,37 @@ use crate::{
     intern::Interner,
 };
 
+/// Context for the reification process, providing access to all necessary compiler state.
+///
+/// This structure contains the essential components needed to transform HIR(ANF) into MIR,
+/// including symbol tables, type information, and memory management.
 pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
+    /// Mutable reference to the collection of MIR bodies being generated.
     pub bodies: &'mir mut DefIdVec<Body<'heap>>,
+
+    /// Symbol and projection interner for efficient string and data structure reuse.
     pub interner: &'mir Interner<'heap>,
+
+    /// Type environment containing all type definitions and constraints.
     pub environment: &'env Environment<'heap>,
+
+    /// HIR context containing the source nodes and variable mappings.
     pub hir: &'hir HirContext<'hir, 'heap>,
+
+    /// Memory allocator for heap-allocated MIR structures.
     pub heap: &'heap Heap,
 }
 
+/// Tracks the mapping between variable IDs and their corresponding thunk definition IDs.
+///
+/// Thunks represent top-level bindings that have been converted to callable functions.
+/// This structure maintains both a sparse vector mapping and a bit set for membership testing.
+///
+/// # Memory Usage
+///
+/// Thunks are sparse and limited to the first few IDs since nested thunks are not allowed.
+/// Using a vector here is memory-efficient given this constraint.
 pub struct Thunks {
-    // Thunks are very sparse, and are always only the first few ids, as we do not allow for nested
-    // thunks, therefore we can safely use a vector here without blowing up memory usage.
     defs: VarIdVec<Option<DefId>>,
     set: MixedBitSet<VarId>,
 }
@@ -77,22 +97,42 @@ impl Thunks {
     }
 }
 
+/// State shared across the entire reification process for a single module.
+///
+/// This structure maintains global state needed throughout reification, including
+/// thunk mappings, constructor definitions, and memory pools for efficient allocation.
 struct CrossCompileState<'heap> {
+    /// Mapping of variable IDs to their thunk definitions.
     thunks: Thunks,
+
+    /// Collection of diagnostics encountered during reification.
     diagnostics: ReifyDiagnosticIssues,
 
-    // Already created constructors
+    /// Cache of already-created type constructors to avoid duplication.
     ctor: FastHashMap<Symbol<'heap>, DefId>,
 
     var_pool: MixedBitSetPool<VarId>,
 }
 
+/// The core reification engine that converts individual HIR nodes to MIR bodies.
+///
+/// Each `Reifier` instance is responsible for converting a single function/thunk/closure
+/// from HIR to MIR. It maintains its own local state for basic blocks, variable mappings,
+/// and local allocation while sharing global state through the context and cross-compile state.
 struct Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
+    /// Reference to the global reification context.
     context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
+
+    /// Reference to the shared cross-compilation state.
     state: &'ctx mut CrossCompileState<'heap>,
 
+    /// Basic blocks being constructed for the current function body.
     blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+
+    /// Mapping from HIR variable IDs to MIR local IDs for the current function.
     locals: VarIdVec<Option<Local>>,
+
+    /// Counter for generating fresh local IDs.
     local_counter: IdCounter<Local>,
 }
 
@@ -112,6 +152,23 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         }
     }
 
+    /// Core implementation for lowering HIR constructs to MIR bodies.
+    ///
+    /// This method handles the common logic for converting thunks, closures, and type
+    /// constructors into MIR function bodies. It manages parameter binding, capture
+    /// handling, and basic block construction.
+    ///
+    /// # Parameters
+    ///
+    /// - `source`: The type of construct being lowered (thunk, closure, constructor)
+    /// - `span`: Source location for error reporting
+    /// - `params`: Function parameters to bind to locals
+    /// - `captures`: Variables captured from outer scopes (closures only)
+    /// - `on_block`: Callback to generate the function body
+    ///
+    /// # Returns
+    ///
+    /// The definition ID of the newly created MIR body.
     fn lower_impl(
         mut self,
         source: Source<'heap>,
@@ -190,6 +247,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         self.context.bodies.push(block)
     }
 
+    /// Lowers a closure to a MIR body with proper capture handling.
+    ///
+    /// Closures require special handling for captured variables, which are passed
+    /// as environment parameters and unpacked into local variables.
     fn lower_closure(
         self,
         span: SpanId,
@@ -205,6 +266,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         )
     }
 
+    /// Lowers a thunk (lazy computation) to a MIR body.
+    ///
+    /// Thunks have no parameters or captures, making them the simplest
+    /// construct to lower.
     fn lower_thunk(self, span: SpanId, thunk: Thunk<'heap>) -> DefId {
         self.lower_impl(
             Source::Thunk,
@@ -215,6 +280,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         )
     }
 
+    /// Lowers a type constructor to a MIR body.
+    ///
+    /// Type constructors create instances of opaque types. They may take
+    /// parameters depending on their signature.
     fn lower_ctor(self, hir_id: HirId, span: SpanId, ctor: TypeConstructor<'heap>) -> DefId {
         let closure_type = unwrap_closure_type(
             self.context.hir.map.type_id(hir_id),
@@ -265,6 +334,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
 }
 
 // TODO: Extend to multiple packages and modules
+// see: https://linear.app/hash/issue/BE-67/hashql-implement-modules
 //
 // Architecture for multi-package support:
 //
@@ -287,6 +357,47 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
 //
 // This design enables incremental compilation by processing packages independently while
 // maintaining cross-package reference resolution.
+/// Converts HIR(ANF) nodes to MIR by reifying thunks and closures into executable bodies.
+///
+/// This function is the main entry point for the reification process, which transforms
+/// High-level Intermediate Representation (HIR) in A-Normal Form (ANF) into
+/// Mid-level Intermediate Representation (MIR). The process converts functional constructs
+/// like thunks and closures into imperative basic blocks with explicit control flow.
+///
+/// # Input Requirements
+///
+/// The input `node` must satisfy several invariants maintained by earlier compiler passes:
+///
+/// - **HIR(ANF) structure**: The node must be in A-Normal Form after the normalization pass.
+/// - **Top-level bindings**: All bindings at the module level must be thunks.
+/// - **Variable resolution**: All variables must be properly resolved (no dangling references).
+/// - **Type checking**: All type constraints and indexing operations must be validated.
+///
+/// # Process Overview
+///
+/// 1. **Structure validation**: Ensures the root node is a `Let` with thunk bindings
+/// 2. **Thunk processing**: Each top-level binding (thunk) is lowered to a MIR body
+/// 3. **Closure handling**: Nested closures are analyzed for captures and lowered separately
+/// 4. **Body generation**: Creates basic blocks with statements and terminators
+/// 5. **Definition mapping**: Maps variable IDs to their corresponding definition IDs
+///
+/// # Errors
+///
+/// This function can fail with various diagnostic categories:
+///
+/// - **Unsupported features**: External modules, qualified variables
+/// - **HIR invariant violations**: Missing thunks, invalid ANF structure
+/// - **Variable mapping errors**: Unresolved locals, missing assignments
+/// - **Type invariant violations**: Non-indexable types, invalid closures
+///
+/// # Current Limitations
+///
+/// - **Single module only**: Multi-module support is not yet implemented
+/// - **No external references**: Cross-module dependencies are unsupported
+/// - **Flat thunk structure**: No nested thunks are allowed
+///
+/// See [BE-67](https://linear.app/hash/issue/BE-67/hashql-implement-modules) for
+/// planned multi-module architecture.
 pub fn from_hir<'heap>(
     node: Node<'heap>,
     context: &mut ReifyContext<'_, '_, '_, 'heap>,

@@ -46,10 +46,9 @@ const CALL_CONVENTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ReifyDiagnosticCategory {
-    // User-facing errors
     UnsupportedFeature,
     FieldIndexError,
-    // ICE categories - broader groupings
+
     VariableMapping,
     HirInvariant,
     TypeInvariant,
@@ -83,14 +82,15 @@ impl DiagnosticCategory for ReifyDiagnosticCategory {
 pub(crate) fn external_modules_unsupported(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic =
         Diagnostic::new(ReifyDiagnosticCategory::UnsupportedFeature, Critical::ERROR)
-            .primary(Label::new(span, "external modules are not supported yet"));
+            .primary(Label::new(span, "external modules are not supported"));
 
     diagnostic.add_message(Message::help(
-        "ensure all code is within a single module for now",
+        "keep all code within a single module for now",
     ));
 
     diagnostic.add_message(Message::note(
-        "see https://linear.app/hash/issue/PLACEHOLDER for tracking multi-module support",
+        "see https://linear.app/hash/issue/BE-67/hashql-implement-modules for tracking \
+         multi-module support",
     ));
 
     diagnostic
@@ -104,7 +104,7 @@ pub(crate) fn field_index_too_large(span: SpanId, field_name: Symbol) -> ReifyDi
         );
 
     diagnostic.add_message(Message::help(format!(
-        "a field index must be between {} and {} for valid access patterns",
+        "field indices must be between {} and {} for valid access patterns",
         usize::MIN,
         usize::MAX
     )));
@@ -118,11 +118,10 @@ pub(crate) fn field_index_too_large(span: SpanId, field_name: Symbol) -> ReifyDi
 #[coverage(off)]
 pub(crate) fn expected_local_variable(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::VariableMapping, Severity::Bug)
-        .primary(Label::new(span, "expected local variable here"));
+        .primary(Label::new(span, "expected local variable"));
 
     diagnostic.add_message(Message::help(
-        "the HIR(ANF) normalization pass should have hoisted any qualified variables to their own \
-         bindings before this point",
+        "HIR(ANF) normalization should hoist qualified variables to their own bindings",
     ));
 
     diagnostic
@@ -132,10 +131,10 @@ pub(crate) fn expected_local_variable(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn local_variable_unmapped(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::VariableMapping, Severity::Bug)
-        .primary(Label::new(span, "has no local assigned to it"));
+        .primary(Label::new(span, "variable has no local assigned"));
 
     diagnostic.add_message(Message::help(
-        "type checking should have ensured that all variables have been assigned before use",
+        "type checking should have ensured that all variables are assigned to locals before use",
     ));
 
     diagnostic
@@ -147,10 +146,10 @@ pub(crate) fn local_variable_unmapped(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn expected_anf_variable(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Critical::BUG)
-        .primary(Label::new(span, "should be a variable"));
+        .primary(Label::new(span, "expected variable"));
 
     diagnostic.add_message(Message::help(
-        "the HIR(ANF) normalization pass should have ensured that the body is a variable",
+        "HIR(ANF) normalization should ensure the body is a variable after thunking",
     ));
 
     diagnostic
@@ -160,13 +159,10 @@ pub(crate) fn expected_anf_variable(span: SpanId) -> ReifyDiagnostic<Critical> {
 #[coverage(off)]
 pub(crate) fn nested_let_bindings_in_anf(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
-        .primary(Label::new(
-            span,
-            "HIR in ANF should not have nested let bindings",
-        ));
+        .primary(Label::new(span, "nested let bindings in ANF"));
 
     diagnostic.add_message(Message::help(
-        "the HIR(ANF) normalization pass should have removed any nested let bindings",
+        "HIR(ANF) normalization should flatten all nested let bindings",
     ));
 
     diagnostic
@@ -176,13 +172,10 @@ pub(crate) fn nested_let_bindings_in_anf(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn unexpected_assertion(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
-        .primary(Label::new(
-            span,
-            "assertions should not exist in HIR after ANF conversion",
-        ));
+        .primary(Label::new(span, "assertion should not exist after ANF"));
 
     diagnostic.add_message(Message::help(
-        "type assertions should have been removed during the HIR(ANF) normalization pass",
+        "HIR(ANF) normalization should remove type assertions during processing",
     ));
 
     diagnostic
@@ -192,10 +185,10 @@ pub(crate) fn unexpected_assertion(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn expected_anf_thunk(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
-        .primary(Label::new(span, "expected to be a thunk"));
+        .primary(Label::new(span, "expected thunk"));
 
     diagnostic.add_message(Message::help(
-        "HIR(ANF) normalization pass should have converted all top-level bindings to thunks",
+        "HIR(ANF) normalization should convert all top-level bindings to thunks",
     ));
 
     diagnostic
@@ -205,10 +198,10 @@ pub(crate) fn expected_anf_thunk(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn local_not_thunk(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Critical::BUG)
-        .primary(Label::new(span, "local variable must be mapped to a thunk"));
+        .primary(Label::new(span, "local variable not mapped to thunk"));
 
     diagnostic.add_message(Message::help(
-        "HIR(ANF) should have made sure that the local variable only points to a top-level thunk",
+        "HIR(ANF) should ensure local variables only reference top-level thunks",
     ));
 
     diagnostic
@@ -218,10 +211,10 @@ pub(crate) fn local_not_thunk(span: SpanId) -> ReifyDiagnostic<Critical> {
 #[coverage(off)]
 pub(crate) fn type_cannot_be_indexed(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Severity::Bug)
-        .primary(Label::new(span, "indexing non-indexable type"));
+        .primary(Label::new(span, "cannot index this type"));
 
     diagnostic.add_message(Message::help(
-        "type checking should have ensured that the type of the item is indexable",
+        "type checking should have ensured that only indexable types can be indexed",
     ));
 
     diagnostic
@@ -231,14 +224,10 @@ pub(crate) fn type_cannot_be_indexed(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn expected_closure_filter(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Severity::Bug)
-        .primary(Label::new(
-            span,
-            "expected closure filter in graph operation",
-        ));
+        .primary(Label::new(span, "expected closure filter"));
 
     diagnostic.add_message(Message::help(
-        "the HIR specialization pass should have ensured that item of the closure is a closure \
-         literal",
+        "HIR specialization should ensure graph filters are closure literals",
     ));
 
     diagnostic
@@ -250,10 +239,10 @@ pub(crate) fn expected_closure_filter(span: SpanId) -> ReifyDiagnostic {
 #[coverage(off)]
 pub(crate) fn fat_call_on_constant(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::CallConvention, Severity::Bug)
-        .primary(Label::new(span, "fat calls on constants are not supported"));
+        .primary(Label::new(span, "cannot perform fat call on constant"));
 
     diagnostic.add_message(Message::help(
-        "verify that call convention analysis distinguishes between closure places and constants",
+        "call convention analysis should distinguish closure places from constants",
     ));
 
     diagnostic
