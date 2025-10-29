@@ -1,7 +1,8 @@
 use core::{fmt, fmt::Write as _};
 
+use super::TableReference;
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Condition, Expression, SelectStatement, Transpile,
+    Alias, Condition, Expression, SelectStatement, Transpile,
     table::{Column, ForeignKeyReference},
 };
 
@@ -53,7 +54,7 @@ pub enum JoinExpression {
     Old {
         join: JoinType,
         statement: Option<SelectStatement>,
-        table: AliasedTable,
+        table: TableReference<'static>,
         on_alias: Alias,
         on: Vec<JoinOn>,
         additional_conditions: Vec<Condition>,
@@ -123,7 +124,7 @@ impl Transpile for JoinExpression {
                     select.transpile(fmt)?;
                     fmt.write_char(')')?;
                 } else {
-                    table.table.transpile(fmt)?;
+                    table.name.transpile(fmt)?;
                 }
                 fmt.write_str(" AS ")?;
                 table.transpile(fmt)?;
@@ -134,7 +135,7 @@ impl Transpile for JoinExpression {
                     }
                     Expression::AliasedColumn {
                         column: condition.join,
-                        table_alias: Some(table.alias),
+                        table_alias: table.alias,
                     }
                     .transpile(fmt)?;
                     fmt.write_str(" = ")?;

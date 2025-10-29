@@ -47,7 +47,7 @@ impl Transpile for ColumnReference<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::expression::table_reference::SchemaReference;
+    use crate::store::postgres::query::expression::table_reference::{SchemaReference, TableName};
 
     #[test]
     fn simple_column_reference() {
@@ -63,7 +63,8 @@ mod tests {
         let col_ref = ColumnReference {
             correlation: Some(TableReference {
                 schema: None,
-                table: Identifier::from("users"),
+                name: TableName::from("users"),
+                alias: None,
             }),
             name: ColumnName::Named(Identifier::from("username")),
         };
@@ -76,9 +77,10 @@ mod tests {
             correlation: Some(TableReference {
                 schema: Some(SchemaReference {
                     database: Some(Identifier::from("mydb")),
-                    schema: Identifier::from("public"),
+                    name: Identifier::from("public"),
                 }),
-                table: Identifier::from("users"),
+                name: TableName::from("users"),
+                alias: None,
             }),
             name: ColumnName::Named(Identifier::from("username")),
         };
@@ -93,7 +95,8 @@ mod tests {
         let col_ref = ColumnReference {
             correlation: Some(TableReference {
                 schema: None,
-                table: Identifier::from("user-table"),
+                name: TableName::from("user-table"),
+                alias: None,
             }),
             name: ColumnName::Named(Identifier::from("user name")),
         };
@@ -105,7 +108,8 @@ mod tests {
         let col_ref = ColumnReference {
             correlation: Some(TableReference {
                 schema: None,
-                table: Identifier::from(r#"my"table"#),
+                name: TableName::from(r#"my"table"#),
+                alias: None,
             }),
             name: ColumnName::Named(Identifier::from(r#"my"column"#)),
         };
@@ -126,7 +130,8 @@ mod tests {
         let col_ref = ColumnReference {
             correlation: Some(TableReference {
                 schema: None,
-                table: Identifier::from("users"),
+                name: TableName::from("users"),
+                alias: None,
             }),
             name: ColumnName::Asterisk,
         };

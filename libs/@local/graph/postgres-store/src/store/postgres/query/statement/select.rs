@@ -1,7 +1,7 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
+    Alias, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
     WhereExpression, WithExpression,
     expression::{GroupByExpression, OrderByExpression},
 };
@@ -19,11 +19,7 @@ impl Transpile for FromItem {
                 table.transpile(fmt)?;
                 if let Some(alias) = *alias {
                     fmt.write_str(" AS ")?;
-                    AliasedTable {
-                        table: *table,
-                        alias,
-                    }
-                    .transpile(fmt)
+                    table.aliased(alias).transpile(fmt)
                 } else {
                     Ok(())
                 }
@@ -149,8 +145,8 @@ mod tests {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
         pretty_assertions::assert_eq!(
-            trim_whitespace(&compiled_statement),
             trim_whitespace(expected_statement),
+            trim_whitespace(&compiled_statement),
             "actual:\n{compiled_statement}\nexpected: {expected_statement}"
         );
 

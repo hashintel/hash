@@ -11,6 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
+use super::expression::{TableName, TableReference};
 use crate::store::postgres::query::{
     Condition, Constant, Expression, Transpile, expression::JoinType,
 };
@@ -320,8 +321,12 @@ impl ReferenceTable {
 
 impl Table {
     #[must_use]
-    pub const fn aliased(self, alias: Alias) -> AliasedTable {
-        AliasedTable { table: self, alias }
+    pub fn aliased(self, alias: Alias) -> TableReference<'static> {
+        TableReference {
+            schema: None,
+            name: TableName::from(self),
+            alias: Some(alias),
+        }
     }
 
     #[must_use]
@@ -1813,7 +1818,7 @@ impl Transpile for QualifiedColumn {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let table = self.column.table();
         if let Some(alias) = self.alias {
-            AliasedTable { table, alias }.transpile(fmt)?;
+            table.aliased(alias).transpile(fmt)?;
         } else {
             table.transpile(fmt)?;
         }
@@ -1849,31 +1854,11 @@ impl Transpile for QualifiedColumn {
 ///
 /// [`DataType`]: type_system::ontology::data_type::DataType
 /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Alias {
     pub condition_index: usize,
     pub chain_depth: usize,
     pub number: usize,
-}
-
-/// A table available in a compiled query.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AliasedTable {
-    pub table: Table,
-    pub alias: Alias,
-}
-
-impl Transpile for AliasedTable {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            fmt,
-            r#""{}_{}_{}_{}""#,
-            self.table.as_str(),
-            self.alias.condition_index,
-            self.alias.chain_depth,
-            self.alias.number
-        )
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -2144,12 +2129,13 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, aliased_table: AliasedTable) -> Vec<Condition> {
-        match (self, aliased_table.table) {
-            (Self::Reference { table, .. }, Table::Reference(reference_table))
-                if table == reference_table =>
-            {
-                table
+    pub fn additional_conditions(self, table: &TableReference) -> Vec<Condition> {
+        match self {
+            Self::Reference {
+                table: reference_table,
+                ..
+            } if table.name == TableName::from(Table::Reference(reference_table)) => {
+                reference_table
                     .inheritance_depth_column()
                     .map(|column| {
                         column
@@ -2158,7 +2144,7 @@ impl Relation {
                                 vec![Condition::LessOrEqual(
                                     Expression::AliasedColumn {
                                         column,
-                                        table_alias: Some(aliased_table.alias),
+                                        table_alias: Some(table.alias.unwrap_or_default()),
                                     },
                                     Expression::Constant(Constant::UnsignedInteger(
                                         inheritance_depth,
@@ -2168,7 +2154,28 @@ impl Relation {
                     })
                     .unwrap_or_default()
             }
-            _ => Vec::new(),
+            Self::OntologyIds
+            | Self::OntologyOwnedMetadata
+            | Self::OntologyExternalMetadata
+            | Self::OntologyAdditionalMetadata
+            | Self::DataTypeIds
+            | Self::DataTypeConversions
+            | Self::DataTypeEmbeddings
+            | Self::PropertyTypeIds
+            | Self::EntityTypeIds
+            | Self::EntityIsOfTypes
+            | Self::EntityIds
+            | Self::EntityEditions
+            | Self::FirstTitleForEntity
+            | Self::LastTitleForEntity
+            | Self::FirstLabelForEntity
+            | Self::LastLabelForEntity
+            | Self::PropertyTypeEmbeddings
+            | Self::EntityTypeEmbeddings
+            | Self::EntityEmbeddings
+            | Self::LeftEntity
+            | Self::RightEntity
+            | Self::Reference { .. } => Vec::new(),
         }
     }
 }
