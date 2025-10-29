@@ -18,9 +18,12 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
+    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
+    "test": "vitest"
   },
   "dependencies": {
+    "@babel/core": "7.26.0",
+    "@babel/plugin-transform-typescript": "7.25.9",
     "@emotion/react": "11.14.0",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/block-design-system": "0.0.5",
@@ -47,6 +50,7 @@
     "storybook": "9.1.13",
     "typescript": "5.9.3",
     "vite": "7.1.11",
+    "vitest": "4.0.4",
     "web-worker": "1.4.1"
   },
   "peerDependencies": {
