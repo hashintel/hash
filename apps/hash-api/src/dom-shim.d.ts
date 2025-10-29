@@ -9,6 +9,7 @@ declare const window: {
     pathname: string;
     search: string;
     hash: string;
+    reload: () => void;
   };
   [key: string]: unknown;
 };
