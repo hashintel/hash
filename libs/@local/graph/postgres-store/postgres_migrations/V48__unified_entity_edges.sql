@@ -67,9 +67,7 @@ INSERT INTO entity_edge (
     target_web_id,
     target_entity_uuid,
     kind,
-    direction,
-    provenance,
-    confidence
+    direction
 )
 SELECT
     left_web_id,
@@ -77,9 +75,7 @@ SELECT
     web_id,
     entity_uuid,
     'has-left-entity'::entity_edge_kind,
-    'incoming'::edge_direction,
-    provenance,
-    confidence
+    'incoming'::edge_direction
 FROM entity_has_left_entity;
 
 -- Populate from entity_has_right_entity (outgoing)
@@ -111,9 +107,7 @@ INSERT INTO entity_edge (
     target_web_id,
     target_entity_uuid,
     kind,
-    direction,
-    provenance,
-    confidence
+    direction
 )
 SELECT
     right_web_id,
@@ -121,9 +115,7 @@ SELECT
     web_id,
     entity_uuid,
     'has-right-entity'::entity_edge_kind,
-    'incoming'::edge_direction,
-    provenance,
-    confidence
+    'incoming'::edge_direction
 FROM entity_has_right_entity;
 
 DROP TABLE entity_has_left_entity;
