@@ -82,10 +82,6 @@ area/libs > error-stack:
   - changed-files:
       - any-glob-to-any-file: libs/error-stack/**
 
-area/libs > sarif:
-  - changed-files:
-      - any-glob-to-any-file: libs/sarif/**
-
 area/tests:
   - changed-files:
       - any-glob-to-any-file: tests/**
