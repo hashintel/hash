@@ -8,8 +8,7 @@ use hashql_core::id::bit_vec::MixedBitSet;
 use crate::{
     context::HirContext,
     node::{
-        closure::ClosureParam,
-        r#let::{Binding, VarId},
+        r#let::{Binder, VarId},
         variable::LocalVariable,
     },
     visit::{self, Visitor},
@@ -69,12 +68,19 @@ impl<'heap> Visitor<'heap> for VariableDependencies {
     }
 }
 
+/// Tracks variable definitions during HIR expression analysis.
+///
+/// This visitor accumulates all local variables that are defined (bound) within
+/// an expression, including let bindings and closure parameters. This is useful
+/// for optimization passes that need to understand variable scoping and lifetime.
 #[derive(Debug)]
 pub struct VariableDefinitions {
+    /// Set of variable IDs that are defined within the analyzed expression.
     set: MixedBitSet<VarId>,
 }
 
 impl VariableDefinitions {
+    /// Creates a new definition analyzer for the given HIR context.
     #[must_use]
     pub fn new(context: &HirContext) -> Self {
         let set = MixedBitSet::new_empty(context.counter.var.size());
@@ -82,11 +88,23 @@ impl VariableDefinitions {
         Self { set }
     }
 
+    /// Creates a definition analyzer from an existing variable set.
+    ///
+    /// Useful when reusing bitsets from memory pools or starting with
+    /// a pre-existing set of known definitions.
     #[must_use]
     pub const fn from_set(set: MixedBitSet<VarId>) -> Self {
         Self { set }
     }
 
+    /// Extracts the final definition set from the analyzer.
+    ///
+    /// Returns the accumulated variable definitions for further analysis.
+    ///
+    /// # Performance Note
+    ///
+    /// The returned bitset should typically be returned to a memory pool
+    /// to avoid repeated allocations.
     #[must_use]
     pub fn finish(self) -> MixedBitSet<VarId> {
         self.set
@@ -94,15 +112,12 @@ impl VariableDefinitions {
 }
 
 impl<'heap> Visitor<'heap> for VariableDefinitions {
-    fn visit_binding(&mut self, binding: &'heap Binding<'heap>) {
-        visit::walk_binding(self, binding);
+    /// Records a variable definition from a binder.
+    ///
+    /// Adds the binder's variable ID to the definition set after walking the binder.
+    fn visit_binder(&mut self, binding: &'heap Binder<'heap>) {
+        visit::walk_binder(self, binding);
 
-        self.set.insert(binding.binder.id);
-    }
-
-    fn visit_closure_param(&mut self, param: &'heap ClosureParam<'heap>) {
-        visit::walk_closure_param(self, param);
-
-        self.set.insert(param.name.id);
+        self.set.insert(binding.id);
     }
 }
