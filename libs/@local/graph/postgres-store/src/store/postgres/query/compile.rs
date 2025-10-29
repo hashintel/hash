@@ -203,7 +203,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 QueryTemporalAxes::DecisionTime { .. } => {
                     self.add_condition(
                         Condition::TimeIntervalContainsTimestamp(
-                            Expression::ColumnReference {
+                            Expression::AliasedColumn {
                                 column: Column::OntologyTemporalMetadata(
                                     OntologyTemporalMetadata::TransactionTime,
                                 ),
@@ -217,7 +217,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 QueryTemporalAxes::TransactionTime { .. } => {
                     self.add_condition(
                         Condition::Overlap(
-                            Expression::ColumnReference {
+                            Expression::AliasedColumn {
                                 column: Column::OntologyTemporalMetadata(
                                     OntologyTemporalMetadata::TransactionTime,
                                 ),
@@ -237,7 +237,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if self.artifacts.table_info.tables.insert(table) {
             if !self.include_drafts {
                 self.add_condition(
-                    Condition::Exists(Expression::ColumnReference {
+                    Condition::Exists(Expression::AliasedColumn {
                         column: Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
                         table_alias: Some(alias),
                     }),
@@ -255,7 +255,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 // the transaction time and vice versa.
                 self.add_condition(
                     Condition::TimeIntervalContainsTimestamp(
-                        Expression::ColumnReference {
+                        Expression::AliasedColumn {
                             column: Column::EntityTemporalMetadata(
                                 EntityTemporalMetadata::from_time_axis(pinned_axis),
                             ),
@@ -267,7 +267,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 );
                 self.add_condition(
                     Condition::Overlap(
-                        Expression::ColumnReference {
+                        Expression::AliasedColumn {
                             column: Column::EntityTemporalMetadata(
                                 EntityTemporalMetadata::from_time_axis(variable_axis),
                             ),
@@ -520,7 +520,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         chain_depth: 0,
                         number: 0,
                     };
-                    let distance_expression = Expression::ColumnReference {
+                    let distance_expression = Expression::AliasedColumn {
                         column: match embeddings_table {
                             Table::DataTypeEmbeddings => {
                                 Column::DataTypeEmbeddings(DataTypeEmbeddings::Distance)
@@ -623,7 +623,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 .iter()
                                 .map(|&column| {
                                     SelectExpression::new(
-                                        Expression::ColumnReference {
+                                        Expression::AliasedColumn {
                                             column,
                                             table_alias: Some(embeddings_alias),
                                         },
@@ -633,7 +633,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 .chain(once(SelectExpression::new(
                                     Expression::Function(Function::Min(Box::new(
                                         Expression::CosineDistance(
-                                            Box::new(Expression::ColumnReference {
+                                            Box::new(Expression::AliasedColumn {
                                                 column: embeddings_column,
                                                 table_alias: Some(embeddings_alias),
                                             }),
@@ -653,7 +653,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             group_by_expression: GroupByExpression {
                                 expressions: select_columns
                                     .iter()
-                                    .map(|&column| Expression::ColumnReference {
+                                    .map(|&column| Expression::AliasedColumn {
                                         column,
                                         table_alias: Some(embeddings_alias),
                                     })
@@ -770,12 +770,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     SelectExpression::new(
                         Expression::Window(
                             Box::new(Expression::Function(Function::Max(Box::new(
-                                Expression::ColumnReference {
+                                Expression::AliasedColumn {
                                     column: version_column,
                                     table_alias: Some(alias),
                                 },
                             )))),
-                            WindowStatement::partition_by(Expression::ColumnReference {
+                            WindowStatement::partition_by(Expression::AliasedColumn {
                                 column: Column::OntologyIds(OntologyIds::BaseUrl),
                                 table_alias: Some(alias),
                             }),
@@ -797,11 +797,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
-        let latest_version_expression = Expression::ColumnReference {
+        let latest_version_expression = Expression::AliasedColumn {
             column: Column::OntologyIds(OntologyIds::LatestVersion),
             table_alias: Some(alias),
         };
-        let version_expression = Expression::ColumnReference {
+        let version_expression = Expression::AliasedColumn {
             column: version_column,
             table_alias: Some(alias),
         };
@@ -895,7 +895,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             hook(self, alias);
         }
 
-        let column_expression = Expression::ColumnReference {
+        let column_expression = Expression::AliasedColumn {
             column,
             table_alias: Some(alias),
         };
@@ -930,7 +930,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     Expression::Function(Function::JsonExtractPath(vec![
                         column_expression,
                         Expression::Function(Function::JsonExtractAsText(
-                            Box::new(Expression::ColumnReference {
+                            Box::new(Expression::AliasedColumn {
                                 column: Column::EntityTypes(EntityTypes::Schema),
                                 table_alias: Some(self.add_join_statements(&label_path)),
                             }),

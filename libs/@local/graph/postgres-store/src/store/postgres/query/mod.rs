@@ -76,7 +76,7 @@ pub trait PostgresQueryPath: Sized {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Transpile: 'static {
+pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     ///
     /// # Errors
@@ -203,7 +203,7 @@ mod test_helper {
     pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::ColumnReference {
+                Expression::AliasedColumn {
                     column: DataTypeQueryPath::Version.terminating_column().0,
                     table_alias: Some(Alias {
                         condition_index: 0,
@@ -212,7 +212,7 @@ mod test_helper {
                     }),
                 },
             )))),
-            WindowStatement::partition_by(Expression::ColumnReference {
+            WindowStatement::partition_by(Expression::AliasedColumn {
                 column: DataTypeQueryPath::BaseUrl.terminating_column().0,
                 table_alias: Some(Alias {
                     condition_index: 0,

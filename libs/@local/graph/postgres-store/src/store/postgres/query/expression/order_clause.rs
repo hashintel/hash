@@ -75,7 +75,7 @@ mod tests {
     fn order_one() {
         let mut order_by_expression = OrderByExpression::default();
         order_by_expression.push(
-            Expression::ColumnReference {
+            Expression::AliasedColumn {
                 column: DataTypeQueryPath::Version.terminating_column().0,
                 table_alias: Some(Alias {
                     condition_index: 1,
@@ -96,7 +96,7 @@ mod tests {
     fn order_multiple() {
         let mut order_by_expression = OrderByExpression::default();
         order_by_expression.push(
-            Expression::ColumnReference {
+            Expression::AliasedColumn {
                 column: DataTypeQueryPath::BaseUrl.terminating_column().0,
                 table_alias: Some(Alias {
                     condition_index: 1,
@@ -108,7 +108,7 @@ mod tests {
             Some(NullOrdering::First),
         );
         order_by_expression.push(
-            Expression::ColumnReference {
+            Expression::AliasedColumn {
                 column: DataTypeQueryPath::Version.terminating_column().0,
                 table_alias: Some(Alias {
                     condition_index: 4,

@@ -1682,7 +1682,7 @@ impl Column {
 
     #[must_use]
     pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
-        Expression::ColumnReference {
+        Expression::AliasedColumn {
             column: self,
             table_alias,
         }
@@ -2156,7 +2156,7 @@ impl Relation {
                             .inheritance_depth()
                             .map_or_else(Vec::new, |inheritance_depth| {
                                 vec![Condition::LessOrEqual(
-                                    Expression::ColumnReference {
+                                    Expression::AliasedColumn {
                                         column,
                                         table_alias: Some(aliased_table.alias),
                                     },

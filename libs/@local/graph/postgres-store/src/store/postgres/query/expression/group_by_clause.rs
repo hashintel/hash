@@ -36,7 +36,7 @@ mod tests {
     fn order_one() {
         let order_by_expression = GroupByExpression {
             expressions: vec![
-                Expression::ColumnReference {
+                Expression::AliasedColumn {
                     column: EntityQueryPath::WebId.terminating_column().0,
                     table_alias: Some(Alias {
                         condition_index: 1,
@@ -44,7 +44,7 @@ mod tests {
                         number: 3,
                     }),
                 },
-                Expression::ColumnReference {
+                Expression::AliasedColumn {
                     column: EntityQueryPath::Uuid.terminating_column().0,
                     table_alias: Some(Alias {
                         condition_index: 4,
