@@ -333,10 +333,6 @@ pub async fn seed_benchmark_data(
     eprintln!("      - Webs: {}s", web_roles_time.as_secs());
     eprintln!("      - Teams: {}s", team_roles_time.as_secs());
     eprintln!("    - Policies: {}s", policies_time.as_secs());
-    eprintln!("      - Global: {}s", global_policies_time.as_secs());
-    eprintln!("      - Teams: {}s", team_policies_time.as_secs());
-    eprintln!("      - Roles: {}s", roles_policies_time.as_secs());
-    eprintln!("      - Users: {}s", user_policies_time.as_secs());
     eprintln!("    - Commit: {}s", commit_time.as_secs());
 
     Ok(data)
