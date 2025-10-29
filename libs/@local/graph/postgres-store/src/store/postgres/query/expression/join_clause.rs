@@ -49,13 +49,15 @@ pub struct JoinOn {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct JoinExpression {
-    pub join: JoinType,
-    pub statement: Option<SelectStatement>,
-    pub table: AliasedTable,
-    pub on_alias: Alias,
-    pub on: Vec<JoinOn>,
-    pub additional_conditions: Vec<Condition>,
+pub enum JoinExpression {
+    Old {
+        join: JoinType,
+        statement: Option<SelectStatement>,
+        table: AliasedTable,
+        on_alias: Alias,
+        on: Vec<JoinOn>,
+        additional_conditions: Vec<Condition>,
+    },
 }
 
 impl JoinExpression {
@@ -70,7 +72,7 @@ impl JoinExpression {
                 join,
                 on,
                 join_type,
-            } => Self {
+            } => Self::Old {
                 join: join_type,
                 table: join.table().aliased(join_alias),
                 statement: None,
@@ -82,7 +84,7 @@ impl JoinExpression {
                 join: [join1, join2],
                 on: [on1, on2],
                 join_type,
-            } => Self {
+            } => Self::Old {
                 join: join_type,
                 table: join1.table().aliased(join_alias),
                 statement: None,
@@ -105,37 +107,48 @@ impl JoinExpression {
 
 impl Transpile for JoinExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.join.transpile(fmt)?;
-        fmt.write_char(' ')?;
-        if let Some(select) = &self.statement {
-            fmt.write_char('(')?;
-            select.transpile(fmt)?;
-            fmt.write_char(')')?;
-        } else {
-            self.table.table.transpile(fmt)?;
-        }
-        fmt.write_str(" AS ")?;
-        self.table.transpile(fmt)?;
-        fmt.write_str(" ON ")?;
-        for (i, condition) in self.on.iter().enumerate() {
-            if i > 0 {
-                fmt.write_str(" AND ")?;
+        match self {
+            Self::Old {
+                join,
+                statement,
+                table,
+                on_alias,
+                on,
+                additional_conditions,
+            } => {
+                join.transpile(fmt)?;
+                fmt.write_char(' ')?;
+                if let Some(select) = statement {
+                    fmt.write_char('(')?;
+                    select.transpile(fmt)?;
+                    fmt.write_char(')')?;
+                } else {
+                    table.table.transpile(fmt)?;
+                }
+                fmt.write_str(" AS ")?;
+                table.transpile(fmt)?;
+                fmt.write_str(" ON ")?;
+                for (i, condition) in on.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(" AND ")?;
+                    }
+                    Expression::AliasedColumn {
+                        column: condition.join,
+                        table_alias: Some(table.alias),
+                    }
+                    .transpile(fmt)?;
+                    fmt.write_str(" = ")?;
+                    Expression::AliasedColumn {
+                        column: condition.on,
+                        table_alias: Some(*on_alias),
+                    }
+                    .transpile(fmt)?;
+                }
+                for condition in additional_conditions {
+                    fmt.write_str(" AND ")?;
+                    condition.transpile(fmt)?;
+                }
             }
-            Expression::AliasedColumn {
-                column: condition.join,
-                table_alias: Some(self.table.alias),
-            }
-            .transpile(fmt)?;
-            fmt.write_str(" = ")?;
-            Expression::AliasedColumn {
-                column: condition.on,
-                table_alias: Some(self.on_alias),
-            }
-            .transpile(fmt)?;
-        }
-        for condition in &self.additional_conditions {
-            fmt.write_str(" AND ")?;
-            condition.transpile(fmt)?;
         }
         Ok(())
     }

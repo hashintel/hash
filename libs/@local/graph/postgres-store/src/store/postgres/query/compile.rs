@@ -353,18 +353,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     fn add_condition(&mut self, condition: Condition, table: Option<AliasedTable>) {
-        // If a table is provided and we have a join on that table, we add the condition to the
-        // join.
-        if let Some(join) = table.and_then(|table| {
-            self.statement
-                .joins
-                .iter_mut()
-                .find(|join| join.table == table)
-        }) {
-            join.additional_conditions.push(condition);
-        } else {
-            self.statement.where_expression.add_condition(condition);
-        }
+        let conditions = table
+            .and_then(|table| {
+                self.statement.joins.iter_mut().find_map(|join| match join {
+                    // If a table is provided and we have a join on that table, we add the condition
+                    // to the
+                    JoinExpression::Old {
+                        table: join_table,
+                        additional_conditions,
+                        ..
+                    } if *join_table == table => Some(additional_conditions),
+                    _ => None,
+                })
+            })
+            .unwrap_or(&mut self.statement.where_expression.conditions);
+
+        conditions.push(condition);
     }
 
     /// Adds a new path to the selection which can be used as cursor.
@@ -565,14 +569,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     };
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
+                        let JoinExpression::Old {
+                            statement: last_join_statement,
+                            table: last_join_table,
+                            ..
+                        } = last_join;
                         ensure!(
                             matches!(
-                                last_join.table.table,
+                                last_join_table.table,
                                 Table::DataTypeEmbeddings
                                     | Table::PropertyTypeEmbeddings
                                     | Table::EntityTypeEmbeddings
                                     | Table::EntityEmbeddings
-                            ) || last_join.statement.is_some(),
+                            ) || last_join_statement.is_some(),
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -616,7 +625,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        last_join.statement = Some(SelectStatement {
+                        *last_join_statement = Some(SelectStatement {
                             with: WithExpression::default(),
                             distinct: vec![],
                             selects: select_columns
@@ -1097,9 +1106,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     },
                 );
 
+                let JoinExpression::Old {
+                    join: join_expression_type,
+                    table: join_expression_table,
+                    on: join_expression_on,
+                    on_alias: join_expression_on_alias,
+                    ..
+                } = &mut join_expression;
+
                 if is_outer_join_chain {
-                    join_expression.join = JoinType::LeftOuter;
-                } else if join_expression.join != JoinType::Inner {
+                    *join_expression_type = JoinType::LeftOuter;
+                } else if *join_expression_type != JoinType::Inner {
                     is_outer_join_chain = true;
                 } else {
                     // Join is Inner type, keep as-is
@@ -1130,30 +1147,37 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 let mut found = false;
                 for existing in &self.statement.joins {
-                    if existing.table == join_expression.table {
+                    let JoinExpression::Old {
+                        table: existing_table,
+                        on: existing_on,
+                        on_alias: existing_on_alias,
+                        ..
+                    } = existing;
+
+                    if existing_table == join_expression_table {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing.on == join_expression.on
-                            && existing.on_alias == join_expression.on_alias
+                        if existing_on == join_expression_on
+                            && existing_on_alias == join_expression_on_alias
                         {
                             // We already have a join statement for this column, so we can reuse it.
-                            current_table = existing.table;
+                            current_table = *existing_table;
                             found = true;
                             break;
                         }
                         // We already have a join statement for this table, but it's on a different
                         // column. We need to create a new join statement later on with a new,
                         // unique alias.
-                        join_expression.table.alias.number += 1;
+                        join_expression_table.alias.number += 1;
                     } else if let (Table::Reference(lhs), Table::Reference(rhs)) =
-                        (&existing.table.table, &join_expression.table.table)
+                        (&existing_table.table, &join_expression_table.table)
                         && mem::discriminant(lhs) == mem::discriminant(rhs)
-                        && existing.table.alias == join_expression.table.alias
+                        && existing_table.alias == join_expression_table.alias
                     {
                         // We have a join statement for the same table but with different
                         // conditions.
-                        join_expression.table.alias.number += 1;
+                        join_expression_table.alias.number += 1;
                     } else {
                         // No alias conflict, continue with existing alias
                     }
@@ -1161,7 +1185,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 if !found {
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = join_expression.table;
+                    current_table = *join_expression_table;
                     self.statement.joins.push(join_expression);
 
                     for condition in relation.additional_conditions(current_table) {

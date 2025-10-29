@@ -8,8 +8,8 @@ use crate::store::postgres::query::{
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct WhereExpression {
-    conditions: Vec<Condition>,
-    cursor: Vec<(
+    pub conditions: Vec<Condition>,
+    pub cursor: Vec<(
         Expression,
         Option<Expression>,
         Ordering,
