@@ -31,7 +31,7 @@
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub). The current version of HASH is based upon an adapted version of the [Block Protocol Graph Module](https://blockprotocol.org/spec/graph) which will be formalized at a later date.
 
-Planned features such as [pages](https://hash.ai/guide/pages) and [apps](https://hash.ai/guide/apps) more directly utilize the [blocks](https://hash.ai/guide/pages/blocks) found in this directory, which contains the source code for all public HASH-developed [Block Protocol](https://blockprotocol.org/) blocks.
+Features such as [pages](https://hash.ai/guide/pages) and [apps](https://hash.ai/guide/apps) which directly utilize these [blocks](https://hash.ai/guide/pages/blocks) are not currently generally publicly available.
 
 ## HASH Blocks
 
