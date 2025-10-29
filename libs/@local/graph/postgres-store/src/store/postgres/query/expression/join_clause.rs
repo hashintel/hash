@@ -121,13 +121,13 @@ impl Transpile for JoinExpression {
             if i > 0 {
                 fmt.write_str(" AND ")?;
             }
-            Expression::ColumnReference {
+            Expression::AliasedColumn {
                 column: condition.join,
                 table_alias: Some(self.table.alias),
             }
             .transpile(fmt)?;
             fmt.write_str(" = ")?;
-            Expression::ColumnReference {
+            Expression::AliasedColumn {
                 column: condition.on,
                 table_alias: Some(self.on_alias),
             }

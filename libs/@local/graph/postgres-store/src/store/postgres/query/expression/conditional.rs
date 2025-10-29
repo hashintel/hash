@@ -4,6 +4,7 @@ use core::fmt::{
 
 use hash_graph_store::filter::PathToken;
 
+use super::ColumnReference;
 use crate::store::postgres::query::{
     Alias, AliasedTable, Column, SelectStatement, Table, Transpile, WindowStatement,
     table::DatabaseColumn as _,
@@ -160,8 +161,8 @@ impl Transpile for PostgresType {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expression {
     Asterisk,
-    Column(Column),
-    ColumnReference {
+    ColumnReference(ColumnReference<'static>),
+    AliasedColumn {
         column: Column,
         table_alias: Option<Alias>,
     },
@@ -186,8 +187,8 @@ impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Asterisk => fmt.write_char('*'),
-            Self::Column(column) => column.transpile(fmt),
-            Self::ColumnReference {
+            Self::ColumnReference(column) => column.transpile(fmt),
+            Self::AliasedColumn {
                 column,
                 table_alias,
             } => {
@@ -271,7 +272,7 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Function::Min(Box::new(Expression::ColumnReference {
+            Expression::Function(Function::Min(Box::new(Expression::AliasedColumn {
                 column: DataTypeQueryPath::Version.terminating_column().0,
                 table_alias: Some(Alias {
                     condition_index: 1,
