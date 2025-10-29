@@ -9,7 +9,7 @@ import { ThemeProvider } from "@mui/material";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { defaultTokenTypes, Petrinaut } from "../src/petrinaut";
+import { Petrinaut } from "../src/petrinaut";
 import type {
   MinimalNetMetadata,
   PetriNetDefinitionObject,
@@ -113,7 +113,7 @@ export const DevWrapper = () => {
         petriNetDefinition: {
           arcs: [],
           nodes: [],
-          tokenTypes: structuredClone(defaultTokenTypes),
+          tokenTypes: [],
         },
         title: "New Process",
       });

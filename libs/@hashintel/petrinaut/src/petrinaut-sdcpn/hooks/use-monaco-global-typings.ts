@@ -1,0 +1,369 @@
+import { loader } from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
+import { useEffect, useState } from "react";
+
+import type {
+  DifferentialEquation,
+  Parameter,
+  Place,
+  SDCPNType,
+  Transition,
+} from "../core/types/sdcpn";
+import { useEditorStore } from "../state/editor-provider";
+import { useSDCPNStore } from "../state/sdcpn-provider";
+
+interface ReactTypeDefinitions {
+  react: string;
+  reactJsxRuntime: string;
+  reactDom: string;
+}
+
+/**
+ * Fetch React type definitions from unpkg CDN
+ */
+async function fetchReactTypes(): Promise<ReactTypeDefinitions> {
+  const [react, reactJsxRuntime, reactDom] = await Promise.all([
+    fetch("https://unpkg.com/@types/react@18/index.d.ts").then((response) =>
+      response.text(),
+    ),
+    fetch("https://unpkg.com/@types/react@18/jsx-runtime.d.ts").then(
+      (response) => response.text(),
+    ),
+    fetch("https://unpkg.com/@types/react-dom@18/index.d.ts").then((response) =>
+      response.text(),
+    ),
+  ]);
+
+  return { react, reactJsxRuntime, reactDom };
+}
+
+/**
+ * Convert a transition to a TypeScript definition string
+ */
+function transitionToTsDefinitionString(
+  transition: Transition,
+  placeIdToNameMap: Map<string, string>,
+): string {
+  const input =
+    transition.inputArcs.length === 0
+      ? "never"
+      : `
+    {${transition.inputArcs
+      .map((arc) => {
+        const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+      })
+      .join(", ")}
+    }`;
+
+  const output =
+    transition.outputArcs.length === 0
+      ? "never"
+      : `{
+    ${transition.outputArcs
+      .map((arc) => {
+        const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+      })
+      .join(", ")}
+    }`;
+
+  console.log("Transition TS Definition:", transition.name, input, output);
+
+  return `{
+    name: "${transition.name}";
+    lambdaType: "${transition.lambdaType}";
+    lambdaInputFn: (input: ${input}, parameters: SDCPNParametersValues) => ${transition.lambdaType === "predicate" ? "boolean" : "number"};
+    transitionKernelFn: (input: ${input}, parameters: SDCPNParametersValues) => ${output};
+  }`;
+}
+
+/**
+ * Generate TypeScript type definitions for SDCPN types
+ */
+function generateTypesDefinition(types: SDCPNType[]): string {
+  return `declare interface SDCPNTypes {
+    ${types
+      .map(
+        (type) => `"${type.id}": {
+        tuple: [${type.elements.map((el) => `${el.name}: ${el.type === "boolean" ? "boolean" : "number"}`).join(", ")}];
+        object: {
+          ${type.elements
+            .map(
+              (el) =>
+                `${el.name}: ${el.type === "boolean" ? "boolean" : "number"};`,
+            )
+            .join("\n")}
+        };
+        dynamicsFn: (input: SDCPNTypes["${type.id}"]["object"][], parameters: SDCPNParametersValues) => SDCPNTypes["${type.id}"]["object"][];
+      }`,
+      )
+      .join("\n")}
+  }`;
+}
+
+/**
+ * Generate TypeScript type definitions for SDCPN places
+ */
+function generatePlacesDefinition(places: Place[]): string {
+  return `declare interface SDCPNPlaces {
+    ${places
+      .map(
+        (place) => `"${place.id}": {
+        name: ${JSON.stringify(place.name)};
+        type: ${place.type ? `SDCPNTypes["${place.type}"]` : "null"};
+        dynamicsEnabled: ${place.dynamicsEnabled ? "true" : "false"};
+      };`,
+      )
+      .join("\n")}}`;
+}
+
+/**
+ * Generate TypeScript type definitions for SDCPN transitions
+ */
+function generateTransitionsDefinition(
+  transitions: Transition[],
+  placeIdToNameMap: Map<string, string>,
+): string {
+  return `declare interface SDCPNTransitions {
+      ${transitions
+        .map(
+          (transition) =>
+            `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap)}`,
+        )
+        .join("\n")}`;
+}
+
+/**
+ * Generate TypeScript type definitions for SDCPN differential equations
+ */
+function generateDifferentialEquationsDefinition(
+  differentialEquations: DifferentialEquation[],
+): string {
+  return `declare interface SDCPNDifferentialEquations {
+    ${differentialEquations
+      .map(
+        (diffEq) => `"${diffEq.id}": {
+        name: ${JSON.stringify(diffEq.name)};
+        typeId: "${diffEq.typeId}";
+        type: SDCPNTypes["${diffEq.typeId}"];
+      };`,
+      )
+      .join("\n")}
+  }`;
+}
+
+function generateParametersDefinition(parameters: Parameter[]): string {
+  return `{${parameters
+    .map(
+      (param) =>
+        `"${param.variableName}": ${param.type === "boolean" ? "boolean" : "number"}`,
+    )
+    .join(", ")}}`;
+}
+
+/**
+ * Generate complete SDCPN type definitions
+ */
+function generateSDCPNTypings(
+  types: SDCPNType[],
+  places: Place[],
+  transitions: Transition[],
+  differentialEquations: DifferentialEquation[],
+  parameters: Parameter[],
+  currentlySelectedItemId?: string,
+): string {
+  // Generate a map from place IDs to names for easier reference
+  const placeIdToNameMap = new Map<string, string>();
+  places.forEach((place) => {
+    placeIdToNameMap.set(place.id, place.name);
+  });
+
+  const parametersDefinition = generateParametersDefinition(parameters);
+  const globalTypesDefinition = generateTypesDefinition(types);
+  const placesDefinition = generatePlacesDefinition(places);
+  const transitionsDefinition = generateTransitionsDefinition(
+    transitions,
+    placeIdToNameMap,
+  );
+  const differentialEquationsDefinition =
+    generateDifferentialEquationsDefinition(differentialEquations);
+
+  return `
+declare type SDCPNParametersValues = ${parametersDefinition};
+
+${globalTypesDefinition}
+
+${placesDefinition}
+
+${transitionsDefinition}
+
+${differentialEquationsDefinition}
+
+// Define Lambda and TransitionKernel functions
+
+declare type SDCPNTransitionID = keyof SDCPNTransitions;
+
+${
+  currentlySelectedItemId
+    ? `type __SelectedTransitionID = "${currentlySelectedItemId}"`
+    : `type __SelectedTransitionID = SDCPNTransitionID`
+};
+
+declare function Lambda<TransitionId extends SDCPNTransitionID = __SelectedTransitionID>(fn: SDCPNTransitions[TransitionId]['lambdaInputFn']): void;
+
+declare function TransitionKernel<TransitionId extends SDCPNTransitionID = __SelectedTransitionID>(fn: SDCPNTransitions[TransitionId]['transitionKernelFn']): void;
+
+
+// Define Dynamics function
+
+type SDCPNDiffEqID = keyof SDCPNDifferentialEquations;
+
+${
+  currentlySelectedItemId
+    ? `type __SelectedDiffEqID = "${currentlySelectedItemId}"`
+    : `type __SelectedDiffEqID = SDCPNDiffEqID`
+};
+
+declare function Dynamics<DiffEqId extends SDCPNDiffEqID = __SelectedDiffEqID>(fn: SDCPNDifferentialEquations[DiffEqId]['type']['dynamicsFn']): void;
+
+
+// Define Visualizer function
+
+type SDCPNPlaceID = keyof SDCPNPlaces;
+
+${
+  currentlySelectedItemId
+    ? `type __SelectedPlaceID = "${currentlySelectedItemId}"`
+    : `type __SelectedPlaceID = SDCPNPlaceID`
+};
+
+declare function Visualization<PlaceId extends SDCPNPlaceID = __SelectedPlaceID>(fn: (props: { tokens: SDCPNPlaces[PlaceId]['type']['object'][], parameters: SDCPNParametersValues }) => React.JSX.Element): void;
+
+  `.trim();
+}
+
+/**
+ * Configure Monaco TypeScript compiler options
+ */
+function configureMonacoCompilerOptions(monaco: typeof Monaco): void {
+  monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+    target: monaco.languages.typescript.ScriptTarget.ES2020,
+    allowNonTsExtensions: true,
+    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+    module: monaco.languages.typescript.ModuleKind.ESNext,
+    noEmit: true,
+    esModuleInterop: true,
+    jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+    allowJs: false,
+    checkJs: false,
+    typeRoots: ["node_modules/@types"],
+  });
+
+  monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+    target: monaco.languages.typescript.ScriptTarget.ES2020,
+    allowNonTsExtensions: true,
+    noEmit: true,
+    allowJs: true,
+    checkJs: false,
+  });
+
+  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    noSemanticValidation: false,
+    noSyntaxValidation: false,
+  });
+}
+
+/**
+ * Global hook to update Monaco's TypeScript context with SDCPN-derived typings.
+ * Should be called once at the app level to avoid race conditions.
+ */
+export function useMonacoGlobalTypings() {
+  const types = useSDCPNStore((state) => state.sdcpn.types);
+  const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
+  const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
+  const places = useSDCPNStore((state) => state.sdcpn.places);
+  const differentialEquations = useSDCPNStore(
+    (state) => state.sdcpn.differentialEquations,
+  );
+
+  const currentlySelectedItemId = useEditorStore((state) => {
+    const selectedIds = state.selectedItemIds;
+    return selectedIds.values().next().value;
+  });
+
+  const [reactTypes, setReactTypes] = useState<ReactTypeDefinitions | null>(
+    null,
+  );
+
+  // Configure Monaco and load React types once at startup
+  useEffect(() => {
+    void loader.init().then((monaco) => {
+      // Configure compiler options
+      configureMonacoCompilerOptions(monaco);
+
+      // Fetch and set React types once
+      void fetchReactTypes().then((types) => {
+        setReactTypes(types);
+
+        // Set React types as base extra libs - this is done only once
+        monaco.languages.typescript.typescriptDefaults.setExtraLibs([
+          {
+            content: types.react,
+            filePath: "inmemory://sdcpn/node_modules/@types/react/index.d.ts",
+          },
+          {
+            content: types.reactJsxRuntime,
+            filePath:
+              "inmemory://sdcpn/node_modules/@types/react/jsx-runtime.d.ts",
+          },
+          {
+            content: types.reactDom,
+            filePath:
+              "inmemory://sdcpn/node_modules/@types/react-dom/index.d.ts",
+          },
+        ]);
+      });
+    });
+  }, []); // Empty deps - run only once at startup
+
+  // Update SDCPN typings whenever the model changes
+  useEffect(() => {
+    if (!reactTypes) {
+      return; // Wait for React types to load first
+    }
+
+    void loader.init().then((monaco) => {
+      const sdcpnTypings = generateSDCPNTypings(
+        types,
+        places,
+        transitions,
+        differentialEquations,
+        parameters,
+        currentlySelectedItemId,
+      );
+
+      console.log("Updating Monaco SDCPN type definitions");
+
+      // Create or update SDCPN typings model
+      const sdcpnTypingsUri = monaco.Uri.parse(
+        "inmemory://sdcpn/sdcpn-globals.d.ts",
+      );
+      const existingModel = monaco.editor.getModel(sdcpnTypingsUri);
+
+      if (existingModel) {
+        existingModel.setValue(sdcpnTypings);
+      } else {
+        monaco.editor.createModel(sdcpnTypings, "typescript", sdcpnTypingsUri);
+      }
+    });
+  }, [
+    reactTypes,
+    types,
+    parameters,
+    places,
+    transitions,
+    differentialEquations,
+    currentlySelectedItemId,
+  ]);
+}
