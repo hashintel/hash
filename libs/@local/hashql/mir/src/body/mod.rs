@@ -29,6 +29,12 @@ pub mod terminator;
 /// information is useful for optimization, analysis, and debugging.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Source<'heap> {
+    /// A constructor function body.
+    ///
+    /// This variant represents MIR generated from a type constructor function that
+    /// creates and initializes data structures. The [`Symbol`] identifies the constructor name, and
+    /// the body contains the logic for initializing the constructed value with provided
+    /// arguments.
     Ctor(Symbol<'heap>),
 
     /// A closure body with captured environment.
@@ -97,6 +103,12 @@ pub struct Body<'heap> {
     /// or constant that generated this MIR body.
     pub span: SpanId,
 
+    /// The source context that generated this MIR body.
+    ///
+    /// This [`Source`] indicates what kind of HashQL construct this body represents
+    /// (constructor, closure, thunk, or intrinsic). This information is used for
+    /// optimization passes, analysis tools, and debugging to understand the origin
+    /// and expected behavior of the MIR code.
     pub source: Source<'heap>,
 
     /// The collection of basic blocks that make up this body's control-flow graph.
