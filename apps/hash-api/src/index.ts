@@ -13,7 +13,6 @@ import {
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
 import { createRedisClient } from "@local/hash-backend-utils/redis";
-import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
@@ -444,27 +443,8 @@ const main = async () => {
 
   const emailTransporter = createEmailTransporter();
 
-  let search: OpenSearch | undefined;
-  if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
-    const searchAuth =
-      process.env.HASH_OPENSEARCH_USERNAME === undefined
-        ? undefined
-        : {
-            username: process.env.HASH_OPENSEARCH_USERNAME,
-            password: process.env.HASH_OPENSEARCH_PASSWORD || "",
-          };
-    search = await OpenSearch.connect(logger, {
-      host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
-      port: Number.parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
-      auth: searchAuth,
-      httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
-    });
-    shutdown.addCleanup("OpenSearch", async () => search!.close());
-  }
-
   const [apolloServer, apolloMiddleware] = await createApolloServer({
     graphApi,
-    search,
     uploadProvider,
     temporalClient,
     vaultClient,

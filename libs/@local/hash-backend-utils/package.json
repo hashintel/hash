@@ -37,7 +37,6 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@opensearch-project/opensearch": "2.13.0",
     "@opentelemetry/api": "1.9.0",
     "@opentelemetry/api-logs": "0.57.2",
     "@sentry/node": "9.46.0",

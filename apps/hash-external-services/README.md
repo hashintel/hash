@@ -19,10 +19,6 @@ This directory contains external services used throughout HASH, including authen
 - **Ory Hydra** - OAuth2 and OpenID Connect server
 - **MailSlurper** - Development email testing server
 
-### Search & Analytics
-
-- **OpenSearch** - Full-text search and analytics (alternative configuration available)
-
 ### Workflow Execution
 
 - **Temporal** - Reliable workflow execution and task orchestration
@@ -81,10 +77,9 @@ Each service includes health checks and proper dependency management. Services w
 Services may be migrated into semantic folders:
 
 1. `hash-external-services/kratos` → `hash-authentication`
-2. `hash-external-services/opensearch` → `hash-search`
-3. `hash-external-services/postgres` → `hash-database`
-4. `hash-external-services/temporal` → `hash-executor`
-5. `hash-external-services/grafana` → `hash-observability`
+2. `hash-external-services/postgres` → `hash-database`
+3. `hash-external-services/temporal` → `hash-executor`
+4. `hash-external-services/grafana` → `hash-observability`
 
 ## Database Backups
 

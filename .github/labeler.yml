@@ -22,10 +22,6 @@ area/apps > hash-graph:
   - changed-files:
       - any-glob-to-any-file: apps/hash-graph/**
 
-area/apps > hash-search-loader:
-  - changed-files:
-      - any-glob-to-any-file: apps/hash-search-loader/**
-
 area/blocks:
   - changed-files:
       - any-glob-to-any-file: blocks/**

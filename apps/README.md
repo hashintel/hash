@@ -32,7 +32,6 @@ The application depends on a suite of constituent services, which are briefly de
 | [`hash-frontend`](hash-frontend)                     | The main entrypoint for the Next.js frontend (graphical user interface) of the HASH workspace application.                                                                   |
 | [`hash-graph`](hash-graph)                           | The query layer over the main datastore of HASH, its strongly-typed graph.                                                                                                   |
 | [`hash-integration-worker`](hash-integration-worker) | The integration worker manages the two-way synchronization of external data with HASH.                                                                                       |
-| [`hash-search-loader`](hash-search-loader)           | Loads the change-stream published by the realtime service into a search index.                                                                                               |
 
 ### Plugins
 

@@ -14,7 +14,6 @@ import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
@@ -82,7 +81,7 @@ const statsPlugin = ({
       didEncounterErrors: async (ctx) => {
         for (const err of ctx.errors) {
           // Don't send ForbiddenErrors to Sentry – we can add more here as needed
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
+
           if (err.extensions?.code === "FORBIDDEN") {
             continue;
           }
@@ -147,7 +146,6 @@ export interface CreateApolloServerParams {
   uploadProvider: UploadableStorageProvider;
   temporalClient: TemporalClient;
   vaultClient?: VaultClient;
-  search?: SearchAdapter;
   emailTransporter: EmailTransporter;
   logger: Logger;
   statsd?: StatsD;
@@ -157,7 +155,6 @@ export interface CreateApolloServerParams {
 export const createApolloServer = async ({
   graphApi,
   cache,
-  search,
   emailTransporter,
   uploadProvider,
   temporalClient,
@@ -176,7 +173,6 @@ export const createApolloServer = async ({
   const dataSources: GraphQLContext["dataSources"] = {
     graphApi,
     uploadProvider,
-    search,
   };
 
   const server = new ApolloServer<GraphQLContext>({

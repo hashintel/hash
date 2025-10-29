@@ -131,7 +131,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
 
-7. Launch external services (Postgres, the graph query layer, Kratos, Redis, and OpenSearch) as Docker containers:
+7. Launch external services (Postgres, the graph query layer, Kratos, and Redis) as Docker containers:
 
    ```sh
    yarn external-services up -d
@@ -304,18 +304,6 @@ During development, the dummy email transporter writes emails to a local folder.
 - `SMTP_SERVER_PORT`: the port for a SMTP server (required if transporter is `smtp`)
 - `SMTP_SERVER_USERNAME`: auth username for SMTP server (optional if API is automatically authenticated)
 - `SMTP_SERVER_PASSWORD`: password for SMTP server (optional if API is automatically authenticated)
-
-#### OpenSearch
-
-**NOTE: OpenSearch is currently disabled by default, and is presently unmaintained.**
-
-- `HASH_OPENSEARCH_ENABLED`: whether OpenSearch is used or not. `true` or `false`. (default: `false`).
-- `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
-- `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection. (default: `admin`)
-- `HASH_OPENSEARCH_PORT`: the port number that the cluster accepts (default: `9200`)
-- `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as. (default: `admin`)
-- `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
-  over an HTTPS connection.
 
 #### Postgres
 
