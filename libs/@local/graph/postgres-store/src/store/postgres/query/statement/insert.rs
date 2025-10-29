@@ -3,8 +3,8 @@ use core::{fmt, fmt::Formatter};
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Column, Expression, Function, OrderByExpression, SelectExpression,
-    SelectStatement, Table, Transpile, WhereExpression, WithExpression,
+    Alias, Column, Expression, Function, OrderByExpression, SelectExpression, SelectStatement,
+    Table, Transpile, WhereExpression, WithExpression,
     expression::{GroupByExpression, PostgresType},
     rows::PostgresRow,
     statement::FromItem,
@@ -55,11 +55,7 @@ impl Transpile for InsertStatement {
 
         if let Some(alias) = self.alias {
             fmt.write_str(" AS ")?;
-            AliasedTable {
-                table: self.table,
-                alias,
-            }
-            .transpile(fmt)?;
+            self.table.aliased(alias).transpile(fmt)?;
         }
 
         if !self.columns.is_empty() {

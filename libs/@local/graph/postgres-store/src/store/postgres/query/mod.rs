@@ -39,10 +39,7 @@ pub use self::{
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
     },
-    table::{
-        Alias, AliasedTable, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation,
-        Table,
-    },
+    table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
 use crate::store::postgres::crud::QueryRecordDecode;
 

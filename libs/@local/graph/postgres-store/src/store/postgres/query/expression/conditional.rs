@@ -6,8 +6,7 @@ use hash_graph_store::filter::PathToken;
 
 use super::ColumnReference;
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Column, SelectStatement, Table, Transpile, WindowStatement,
-    table::DatabaseColumn as _,
+    Alias, Column, SelectStatement, Table, Transpile, WindowStatement, table::DatabaseColumn as _,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -194,7 +193,7 @@ impl Transpile for Expression {
             } => {
                 let table = column.table();
                 if let Some(alias) = *table_alias {
-                    AliasedTable { table, alias }.transpile(fmt)?;
+                    table.aliased(alias).transpile(fmt)?;
                 } else {
                     table.transpile(fmt)?;
                 }
@@ -202,11 +201,7 @@ impl Transpile for Expression {
             }
             Self::TableReference { table, alias } => {
                 if let Some(alias) = *alias {
-                    AliasedTable {
-                        table: *table,
-                        alias,
-                    }
-                    .transpile(fmt)
+                    table.aliased(alias).transpile(fmt)
                 } else {
                     table.transpile(fmt)
                 }

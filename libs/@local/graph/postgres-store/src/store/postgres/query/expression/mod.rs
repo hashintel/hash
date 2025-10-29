@@ -16,6 +16,7 @@ pub use self::{
     join_clause::{JoinExpression, JoinType},
     order_clause::OrderByExpression,
     select_clause::SelectExpression,
+    table_reference::{TableName, TableReference},
     where_clause::WhereExpression,
     with_clause::WithExpression,
 };
