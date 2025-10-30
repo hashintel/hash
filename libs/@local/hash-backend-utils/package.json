@@ -19,8 +19,7 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest --run"
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@aws-crypto/sha256-js": "5.2.0",
