@@ -262,7 +262,6 @@ const PetrinautInner = ({
           ...(nodeType === "place"
             ? {
                 type: "place",
-                tokenCounts: {},
               }
             : { type: "transition" }),
         },
