@@ -16,7 +16,7 @@ Technical deep dive into how the UserPromptSubmit and PreToolUse hooks work.
 
 ### Execution Sequence
 
-```
+```text
 User submits prompt
     ↓
 .claude/settings.json registers hook
@@ -63,7 +63,7 @@ Claude sees: [skill suggestion] + user's prompt
 
 ### Output Format (to stdout)
 
-```
+```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 SKILL ACTIVATION CHECK
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -83,7 +83,7 @@ Claude sees this output as additional context before processing the user's promp
 
 ### Execution Sequence
 
-```
+```text
 Claude calls Edit/Write tool
     ↓
 .claude/settings.json registers hook (matcher: Edit|Write)
@@ -148,7 +148,7 @@ IF ALLOWED:
 
 ### Output Format (to stderr when blocked)
 
-```
+```text
 ⚠️ BLOCKED - Database Operation Detected
 
 📋 REQUIRED ACTION:
@@ -190,7 +190,7 @@ This is THE critical mechanism for enforcement:
 
 ### Example Conversation Flow
 
-```
+```text
 User: "Add a new user service with Prisma"
 
 Claude: "I'll create the user service..."
