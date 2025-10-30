@@ -73,13 +73,6 @@ runs:
         shopt -s extglob
         cp -R .[!.!(.git)]* .git?* out/
 
-        # Remove .claude/hooks from workspaces in pruned package.json if it wasn't included by turbo prune
-        if [[ ! -d "out/full/.claude/hooks" ]]; then
-          echo "Removing .claude/hooks from workspaces array in pruned package.json"
-          jq 'del(.workspaces.packages[] | select(. == ".claude/hooks"))' out/package.json > out/package.json.tmp
-          mv out/package.json.tmp out/package.json
-        fi
-
     - name: Remove old repository files
       shell: bash
       run: |
