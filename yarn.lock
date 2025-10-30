@@ -13557,14 +13557,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/chonky@workspace:libs/chonky":
-  version: 0.0.0-use.local
-  resolution: "@rust/chonky@workspace:libs/chonky"
-  dependencies:
-    "@rust/error-stack": "npm:0.6.0"
-  languageName: unknown
-  linkType: soft
-
 "@rust/error-stack-macros@npm:0.0.0-reserved-private, @rust/error-stack-macros@workspace:libs/error-stack/macros":
   version: 0.0.0-use.local
   resolution: "@rust/error-stack-macros@workspace:libs/error-stack/macros"
