@@ -17,6 +17,7 @@ hashql-hir         = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+simple-mermaid = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }
