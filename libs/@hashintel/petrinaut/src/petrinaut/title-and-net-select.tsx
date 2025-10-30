@@ -3,8 +3,8 @@ import { EditableField } from "@hashintel/block-design-system";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Stack, Typography } from "@mui/material";
 
-import { useEditorContext } from "./editor-context";
-import { NetSelector } from "./net-selector";
+import { useEditorContext } from "./editor-context.js";
+import { NetSelector } from "./net-selector.js";
 
 export const TitleAndNetSelect = () => {
   const { existingNets, loadPetriNet, parentNet, petriNetId, setTitle, title } =

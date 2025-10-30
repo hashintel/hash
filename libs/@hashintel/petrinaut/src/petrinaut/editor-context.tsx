@@ -11,7 +11,7 @@ import type {
   MinimalNetMetadata,
   ParentNet,
   PetriNetDefinitionObject,
-} from "./types";
+} from "./types.js";
 
 export type MutatePetriNetDefinition = (
   mutationFn: (petriNetDefinition: PetriNetDefinitionObject) => undefined,

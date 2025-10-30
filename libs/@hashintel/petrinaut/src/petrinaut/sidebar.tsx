@@ -2,9 +2,9 @@ import { Box, Button, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
-import { useEditorContext } from "./editor-context";
-import { placeStyling, transitionStyling } from "./styling";
-import { useLayoutGraph } from "./use-layout-graph";
+import { useEditorContext } from "./editor-context.js";
+import { placeStyling, transitionStyling } from "./styling.js";
+import { useLayoutGraph } from "./use-layout-graph.js";
 
 export const Sidebar = () => {
   const onDragStart = useCallback(

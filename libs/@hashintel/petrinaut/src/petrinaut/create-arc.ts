@@ -1,14 +1,8 @@
-import type { ArcType } from "./types";
+import type { ArcType } from "./types.js";
 
 const connectionExists = (arc: ArcType, arcs: ArcType[]) => {
   return arcs.some(
-    (el) =>
-      el.source === arc.source &&
-      el.target === arc.target &&
-      (el.sourceHandle === arc.sourceHandle ||
-        (!el.sourceHandle && !arc.sourceHandle)) &&
-      (el.targetHandle === arc.targetHandle ||
-        (!el.targetHandle && !arc.targetHandle)),
+    (el) => el.source === arc.source && el.target === arc.target,
   );
 };
 

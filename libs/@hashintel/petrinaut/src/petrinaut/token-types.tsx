@@ -1,10 +1,10 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { useEditorContext } from "./editor-context";
-import { TokenTypeEditor } from "./token-types/token-type-editor";
+import { useEditorContext } from "./editor-context.js";
+import { TokenTypeEditor } from "./token-types/token-type-editor.js";
 
-export { defaultTokenTypes } from "./token-types/default-token-types";
+export { defaultTokenTypes } from "./token-types/default-token-types.js";
 
 export const TokenTypes = () => {
   const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
-import { generateUuid } from "./generate-uuid";
-import { useSimulationContext } from "./simulation-context";
-import type { TokenType } from "./types";
+import { useEditorContext } from "./editor-context.js";
+import { generateUuid } from "./generate-uuid.js";
+import { useSimulationContext } from "./simulation-context.js";
+import type { TokenType } from "./types.js";
 
 type AnimatingToken = {
   id: string;

@@ -3,7 +3,7 @@ import { Box, Card, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useReactFlow } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
+import { useEditorContext } from "./editor-context.js";
 
 interface ArcMenuProps {
   arcId: string;

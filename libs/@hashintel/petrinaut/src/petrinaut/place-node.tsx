@@ -2,10 +2,10 @@ import { IconDiagramRegular } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
-import { useSimulationContext } from "./simulation-context";
-import { handleStyling, nodeDimensions, placeStyling } from "./styling";
-import type { PlaceNodeData } from "./types";
+import { useEditorContext } from "./editor-context.js";
+import { useSimulationContext } from "./simulation-context.js";
+import { handleStyling, nodeDimensions, placeStyling } from "./styling.js";
+import type { PlaceNodeData } from "./types.js";
 
 const tokenSize = 22;
 const halfTokenSize = tokenSize / 2;

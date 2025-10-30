@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { useSimulationContext } from "./simulation-context";
+import { useSimulationContext } from "./simulation-context.js";
 
 const SimulationControlButton = ({
   background,

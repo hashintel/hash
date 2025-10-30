@@ -1,5 +1,5 @@
-import { nodeDimensions } from "./styling";
-import type { ArcType, NodeType, TokenType } from "./types";
+import { nodeDimensions } from "./styling.js";
+import type { ArcType, NodeType, TokenType } from "./types.js";
 
 export const exampleCPN = {
   title: "Drug Production",

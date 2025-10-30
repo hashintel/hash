@@ -22,16 +22,16 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { useEditorContext } from "./editor-context";
-import { generateUuid } from "./generate-uuid";
-import { NetSelector } from "./net-selector";
+import { useEditorContext } from "./editor-context.js";
+import { generateUuid } from "./generate-uuid.js";
+import { NetSelector } from "./net-selector.js";
 import type {
   ArcType,
   PlaceNodeType,
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
-} from "./types";
+} from "./types.js";
 
 const normalizeProbabilities = (
   conditions: TransitionCondition[],

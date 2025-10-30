@@ -1,7 +1,7 @@
 import { TextField } from "@hashintel/design-system";
 import { Box, Button, Card, Stack, Typography } from "@mui/material";
 
-import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
+import type { PlaceNodeType, TokenCounts, TokenType } from "./types.js";
 
 export type PlaceEditorProps = {
   selectedPlace: PlaceNodeType;

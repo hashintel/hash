@@ -16,29 +16,29 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
-import { applyNodeChanges } from "./petrinaut/apply-node-changes";
-import { Arc } from "./petrinaut/arc";
-import { ArcEditor } from "./petrinaut/arc-editor";
-import { createArc } from "./petrinaut/create-arc";
+import { applyNodeChanges } from "./petrinaut/apply-node-changes.js";
+import { Arc } from "./petrinaut/arc.js";
+import { ArcEditor } from "./petrinaut/arc-editor.js";
+import { createArc } from "./petrinaut/create-arc.js";
 import {
   EditorContextProvider,
   type MutatePetriNetDefinition,
   useEditorContext,
-} from "./petrinaut/editor-context";
-import { exampleCPN } from "./petrinaut/examples";
-import { generateUuid } from "./petrinaut/generate-uuid";
-import { LogPane } from "./petrinaut/log-pane";
-import { PlaceEditor } from "./petrinaut/place-editor";
-import { PlaceNode } from "./petrinaut/place-node";
-import { Sidebar } from "./petrinaut/sidebar";
-import { SimulationContextProvider } from "./petrinaut/simulation-context";
-import { SimulationControls } from "./petrinaut/simulation-controls";
-import { nodeDimensions } from "./petrinaut/styling";
-import { TitleAndNetSelect } from "./petrinaut/title-and-net-select";
-import { TokenTypes } from "./petrinaut/token-types";
-import { defaultTokenTypes } from "./petrinaut/token-types/default-token-types";
-import { TransitionEditor } from "./petrinaut/transition-editor";
-import { TransitionNode } from "./petrinaut/transition-node";
+} from "./petrinaut/editor-context.js";
+import { exampleCPN } from "./petrinaut/examples.js";
+import { generateUuid } from "./petrinaut/generate-uuid.js";
+import { LogPane } from "./petrinaut/log-pane.js";
+import { PlaceEditor } from "./petrinaut/place-editor.js";
+import { PlaceNode } from "./petrinaut/place-node.js";
+import { Sidebar } from "./petrinaut/sidebar.js";
+import { SimulationContextProvider } from "./petrinaut/simulation-context.js";
+import { SimulationControls } from "./petrinaut/simulation-controls.js";
+import { nodeDimensions } from "./petrinaut/styling.js";
+import { TitleAndNetSelect } from "./petrinaut/title-and-net-select.js";
+import { TokenTypes } from "./petrinaut/token-types.js";
+import { defaultTokenTypes } from "./petrinaut/token-types/default-token-types.js";
+import { TransitionEditor } from "./petrinaut/transition-editor.js";
+import { TransitionNode } from "./petrinaut/transition-node.js";
 import type {
   ArcData,
   ArcType,
@@ -55,9 +55,9 @@ import type {
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
-} from "./petrinaut/types";
-import { useConvertToPnml } from "./petrinaut/use-convert-to-pnml";
-import { useLoadFromPnml } from "./petrinaut/use-load-from-pnml";
+} from "./petrinaut/types.js";
+import { useConvertToPnml } from "./petrinaut/use-convert-to-pnml.js";
+import { useLoadFromPnml } from "./petrinaut/use-load-from-pnml.js";
 
 export type {
   ArcData,
@@ -80,7 +80,7 @@ export { nodeDimensions };
 
 export { defaultTokenTypes };
 
-export { NetSelector } from "./petrinaut/net-selector";
+export { NetSelector } from "./petrinaut/net-selector.js";
 
 type DraggingStateByNodeId = Record<
   string,

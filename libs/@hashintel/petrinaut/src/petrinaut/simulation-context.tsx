@@ -7,13 +7,13 @@ import {
   useState,
 } from "react";
 
-import { useEditorContext } from "./editor-context";
+import { useEditorContext } from "./editor-context.js";
 import type {
   ArcType,
   PlaceMarkingsById,
   SimulationState,
   TransitionNodeType,
-} from "./types";
+} from "./types.js";
 
 /**
  * Check if a transition is enabled, i.e. that the tokens required by each incoming arc are available in the source place.

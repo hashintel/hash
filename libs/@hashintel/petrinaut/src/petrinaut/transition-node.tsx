@@ -2,9 +2,9 @@ import { IconButton, IconDiagramRegular } from "@hashintel/design-system";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
-import { handleStyling, transitionStyling } from "./styling";
-import type { TransitionNodeData } from "./types";
+import { useEditorContext } from "./editor-context.js";
+import { handleStyling, transitionStyling } from "./styling.js";
+import type { TransitionNodeData } from "./types.js";
 
 export const TransitionNode = ({
   data,

@@ -11,7 +11,7 @@ import type {
   TokenType,
   TransitionCondition,
   TransitionNodeData,
-} from "./types";
+} from "./types.js";
 
 const elementToText = (el: Element | null): string =>
   el?.textContent.trim() ?? "";

@@ -10,8 +10,8 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { useEditorContext } from "../editor-context";
-import type { TokenType } from "../types";
+import { useEditorContext } from "../editor-context.js";
+import type { TokenType } from "../types.js";
 
 type TokenTypeEditorProps = {
   open: boolean;

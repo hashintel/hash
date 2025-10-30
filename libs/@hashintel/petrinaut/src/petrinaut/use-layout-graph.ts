@@ -3,9 +3,9 @@ import ELK from "elkjs";
 import { useCallback } from "react";
 import { useReactFlow } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
-import { nodeDimensions } from "./styling";
-import type { ArcType, NodeType } from "./types";
+import { useEditorContext } from "./editor-context.js";
+import { nodeDimensions } from "./styling.js";
+import type { ArcType, NodeType } from "./types.js";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { NodeAddChange, NodeChange } from "reactflow";
 
-import type { MutatePetriNetDefinition } from "./editor-context";
+import type { MutatePetriNetDefinition } from "./editor-context.js";
 
 export type DraggingStateByNodeId = Record<
   string,
