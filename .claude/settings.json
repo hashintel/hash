@@ -21,6 +21,10 @@
           {
             "type": "command",
             "command": "jq -r '.tool_input.file_path | select(endswith(\".md\"))' | xargs -r mise exec --env dev markdownlint-cli2 -- markdownlint-cli2 --fix"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path | select(endswith(\".toml\"))' | xargs -r mise exec --env dev taplo -- taplo fmt"
           }
         ]
       }

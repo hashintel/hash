@@ -37,6 +37,40 @@
           "Error for"
         ]
       }
+    },
+    "cargo-dependencies": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Cargo.toml dependency management patterns for HASH workspace",
+      "promptTriggers": {
+        "keywords": [
+          "cargo",
+          "dependency",
+          "dependencies",
+          "Cargo.toml",
+          "crate",
+          "workspace dependency",
+          "add dependency",
+          "add crate",
+          "public dependency",
+          "dev-dependencies"
+        ],
+        "intentPatterns": [
+          "add.*?(dependency|dependencies|crate)",
+          "(cargo|Cargo\\.toml).*?(dependency|dependencies)",
+          "workspace.*?dependency"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/Cargo.toml"],
+        "contentPatterns": [
+          "\\[dependencies\\]",
+          "\\[dev-dependencies\\]",
+          "workspace = true",
+          "public = true"
+        ]
+      }
     }
   },
   "notes": {
