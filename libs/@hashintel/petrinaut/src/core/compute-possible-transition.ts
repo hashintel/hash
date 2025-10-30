@@ -1,17 +1,17 @@
 /* eslint-disable curly */
 
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
-import type { SimulationFrame } from "./types";
+import type { ID, SimulationFrame } from "./types";
 
 /**
  * Takes a SimulationFrame, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
- * Returns an array of token indices that would be consumed by the transition.
+ * Returns a map from PlaceID to array of token values to create.
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
   transitionId: string
-): null | number[][][] {
+): null | Record<ID, number[][]> {
   const { simulation } = frame;
 
   // Get the transition from the simulation instance
@@ -100,7 +100,16 @@ export function computePossibleTransition(
     if (Math.exp(-lambdaValue) <= U1) {
       // Transition fires!
       // Return result of the transition kernel as is (no stochasticity for now, only one result)
-      return transitionKernelFn(tokenCombinationValues);
+      const transitionKernelOutput = transitionKernelFn(tokenCombinationValues);
+
+      // Return a Record of PlaceID -> Token values to create
+      // to make it easier to process after.
+      return Object.fromEntries(
+        transitionKernelOutput.map((outputTokens, outputIndex) => {
+          const outputArc = transition.instance.outputArcs[outputIndex]!;
+          return [outputArc.placeId, outputTokens];
+        })
+      );
     }
   }
 
