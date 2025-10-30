@@ -14661,6 +14661,7 @@ __metadata:
   resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
   dependencies:
     "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
     "@rust/hashql-hir": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
