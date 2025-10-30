@@ -71,6 +71,81 @@
           "public = true"
         ]
       }
+    },
+    "writing-skills": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Meta-skill for creating and managing Claude Code skills in HASH repository",
+      "promptTriggers": {
+        "keywords": [
+          "skill system",
+          "create skill",
+          "add skill",
+          "new skill",
+          "skill triggers",
+          "skill rules",
+          "skill-rules.json",
+          "hook system",
+          "skill development",
+          "skill activation",
+          "skill configuration",
+          "SKILL.md",
+          "skill best practices"
+        ],
+        "intentPatterns": [
+          "(how do|how does|explain).*?skill",
+          "(create|add|modify|build).*?skill",
+          "skill.*?(work|trigger|activate|system|structure|template|pattern|configuration)",
+          "(configure|setup|define).*?skill.*?(trigger|activation|rule)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [
+          ".claude/skills/**/SKILL.md",
+          ".claude/skills/skill-rules.json"
+        ]
+      }
+    },
+    "rust-documentation": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Rust documentation practices for HASH codebase following rustdoc conventions",
+      "promptTriggers": {
+        "keywords": [
+          "rust documentation",
+          "doc comment",
+          "doc comments",
+          "rustdoc",
+          "document rust",
+          "documenting rust",
+          "intra-doc link",
+          "intra-doc links",
+          "# Errors",
+          "# Examples",
+          "# Panics",
+          "function documentation",
+          "type documentation",
+          "trait documentation",
+          "module documentation"
+        ],
+        "intentPatterns": [
+          "(write|add|create|update).*?(doc|documentation).*?(rust|function|type|trait|module)",
+          "(document|documenting).*?(function|type|struct|enum|trait|module|error)",
+          "how.*?(document|write docs).*?rust"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/*.rs"],
+        "contentPatterns": [
+          "^\\s*///",
+          "^\\s*//!",
+          "# Errors",
+          "# Examples",
+          "# Panics"
+        ]
+      }
     }
   },
   "notes": {
