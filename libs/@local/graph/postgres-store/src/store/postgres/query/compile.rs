@@ -19,7 +19,7 @@ use crate::store::postgres::query::{
     Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function, JoinExpression,
     OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table,
     Transpile as _, WhereExpression, WindowStatement, WithExpression,
-    expression::{GroupByExpression, PostgresType},
+    expression::{GroupByExpression, JoinFrom, PostgresType},
     statement::FromItem,
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
@@ -362,10 +362,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // If a table is provided and we have a join on that table, we add the condition
                     // to the
                     JoinExpression::Old {
-                        table: join_table,
+                        from,
                         additional_conditions,
                         ..
-                    } if *join_table == *table => Some(additional_conditions),
+                    } if *from.reference_table() == *table => Some(additional_conditions),
                     JoinExpression::Old { .. } => None,
                 })
             })
@@ -573,18 +573,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
                         let JoinExpression::Old {
-                            statement: last_join_statement,
-                            table: last_join_table,
+                            from: last_join_from,
                             ..
                         } = last_join;
+                        let last_reference_table = last_join_from.reference_table();
                         ensure!(
-                            last_join_table.name == TableName::from(Table::DataTypeEmbeddings)
-                                || last_join_table.name
+                            last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
+                                || last_reference_table.name
                                     == TableName::from(Table::PropertyTypeEmbeddings)
-                                || last_join_table.name
+                                || last_reference_table.name
                                     == TableName::from(Table::EntityTypeEmbeddings)
-                                || last_join_table.name == TableName::from(Table::EntityEmbeddings)
-                                || last_join_statement.is_some(),
+                                || last_reference_table.name
+                                    == TableName::from(Table::EntityEmbeddings), /* || matches!(last_join_from, JoinFrom::SelectStatement { .. }), */
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -628,51 +628,54 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        *last_join_statement = Some(SelectStatement {
-                            with: WithExpression::default(),
-                            distinct: vec![],
-                            selects: select_columns
-                                .iter()
-                                .map(|&column| {
-                                    SelectExpression::new(
-                                        Expression::AliasedColumn {
+                        *last_join_from = JoinFrom::SelectStatement {
+                            statement: Box::new(SelectStatement {
+                                with: WithExpression::default(),
+                                distinct: vec![],
+                                selects: select_columns
+                                    .iter()
+                                    .map(|&column| {
+                                        SelectExpression::new(
+                                            Expression::AliasedColumn {
+                                                column,
+                                                table_alias: Some(embeddings_alias),
+                                            },
+                                            None,
+                                        )
+                                    })
+                                    .chain(once(SelectExpression::new(
+                                        Expression::Function(Function::Min(Box::new(
+                                            Expression::CosineDistance(
+                                                Box::new(Expression::AliasedColumn {
+                                                    column: embeddings_column,
+                                                    table_alias: Some(embeddings_alias),
+                                                }),
+                                                Box::new(parameter_expression),
+                                            ),
+                                        ))),
+                                        Some("distance"),
+                                    )))
+                                    .collect(),
+                                from: FromItem::Table {
+                                    table: embeddings_table,
+                                    alias: Some(embeddings_alias),
+                                },
+                                joins: vec![],
+                                where_expression: WhereExpression::default(),
+                                order_by_expression: OrderByExpression::default(),
+                                group_by_expression: GroupByExpression {
+                                    expressions: select_columns
+                                        .iter()
+                                        .map(|&column| Expression::AliasedColumn {
                                             column,
                                             table_alias: Some(embeddings_alias),
-                                        },
-                                        None,
-                                    )
-                                })
-                                .chain(once(SelectExpression::new(
-                                    Expression::Function(Function::Min(Box::new(
-                                        Expression::CosineDistance(
-                                            Box::new(Expression::AliasedColumn {
-                                                column: embeddings_column,
-                                                table_alias: Some(embeddings_alias),
-                                            }),
-                                            Box::new(parameter_expression),
-                                        ),
-                                    ))),
-                                    Some("distance"),
-                                )))
-                                .collect(),
-                            from: FromItem::Table {
-                                table: embeddings_table,
-                                alias: Some(embeddings_alias),
-                            },
-                            joins: vec![],
-                            where_expression: WhereExpression::default(),
-                            order_by_expression: OrderByExpression::default(),
-                            group_by_expression: GroupByExpression {
-                                expressions: select_columns
-                                    .iter()
-                                    .map(|&column| Expression::AliasedColumn {
-                                        column,
-                                        table_alias: Some(embeddings_alias),
-                                    })
-                                    .collect(),
-                            },
-                            limit: None,
-                        });
+                                        })
+                                        .collect(),
+                                },
+                                limit: None,
+                            }),
+                            alias: last_reference_table.clone(),
+                        };
                     }
 
                     self.statement.order_by_expression.insert_front(
@@ -1108,11 +1111,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 let JoinExpression::Old {
                     join: join_expression_type,
-                    table: join_expression_table,
+                    from: join_expression_from,
                     on: join_expression_on,
                     on_alias: join_expression_on_alias,
                     ..
                 } = &mut join_expression;
+                let join_expression_table = join_expression_from.reference_table_mut();
 
                 if is_outer_join_chain {
                     *join_expression_type = JoinType::LeftOuter;
@@ -1122,37 +1126,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // Join is Inner type, keep as-is
                 }
 
-                // TODO: If we join on the same column as the previous join, we can reuse the that
-                //       join. For example, if we join on
-                //       `entities.entity_type_ontology_id = entity_type.ontology_id` and then on
-                //       `entity_type.ontology_id = ontology_ids.ontology_id`, we can merge the two
-                //       joins into `entities. entity_type_ontology_id = ontology_ids.ontology_id`.
-                //       We, however, need to make sure, that we only alter a join statement with a
-                //       table we don't require anymore.
-                //       The following code is a first attempt at this, but it is not working yet.
-                //   see https://linear.app/hash/issue/H-3015
-                // if let Some(last_join) = self.statement.joins.pop() {
-                //     // Check if we are joining on the same column as the previous join
-                //     if last_join.join == current_column
-                //         && !self
-                //             .artifacts
-                //             .required_tables
-                //             .contains(&last_join.join.table())
-                //     {
-                //         current_column = last_join.on;
-                //     } else {
-                //         self.statement.joins.push(last_join);
-                //     }
-                // }
-
                 let mut found = false;
                 for existing in &self.statement.joins {
                     let JoinExpression::Old {
-                        table: existing_table,
+                        from: existing_from,
                         on: existing_on,
                         on_alias: existing_on_alias,
                         ..
                     } = existing;
+                    let existing_table = existing_from.reference_table();
 
                     if existing_table == join_expression_table {
                         // We only need to check the join conditions, not the join type or
