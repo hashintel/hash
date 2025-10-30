@@ -21,6 +21,7 @@ const script = async () => {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
+    dot: true,
     ignore: [
       "**/dist/**",
       "**/node_modules/**",
