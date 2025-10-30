@@ -1,6 +1,6 @@
 /* eslint-disable id-length */
 type PlaceSpec = {
-  tokenCount: number; // number of tokens in this place
+  count: number; // number of tokens in this place
   weight: number; // how many tokens to pick
 };
 
@@ -52,11 +52,11 @@ function indexCombinations(n: number, k: number): number[][] {
  *   ]
  */
 export function enumerateWeightedMarkingIndices(
-  places: PlaceSpec[],
+  places: PlaceSpec[]
 ): number[][] {
   // 1. combinations per place (of indices)
   const perPlaceCombos = places.map((p) =>
-    indexCombinations(p.tokenCount, p.weight),
+    indexCombinations(p.count, p.weight)
   );
 
   // 2. check for invalid places
@@ -77,4 +77,38 @@ export function enumerateWeightedMarkingIndices(
   }
 
   return acc;
+}
+
+export function* enumerateWeightedMarkingIndicesGenerator(
+  places: PlaceSpec[]
+): Generator<number[][], void, undefined> {
+  const perPlaceCombos = places.map((p) =>
+    indexCombinations(p.count, p.weight)
+  );
+
+  if (perPlaceCombos.some((set) => set.length === 0)) {
+    return;
+  }
+
+  if (perPlaceCombos.length === 0) {
+    yield [];
+    return;
+  }
+
+  const current: number[][] = [];
+
+  function* backtrack(index: number): Generator<number[][], void, undefined> {
+    if (index === perPlaceCombos.length) {
+      yield current.map((combo) => combo.slice());
+      return;
+    }
+
+    for (const combo of perPlaceCombos[index]!) {
+      current.push(combo);
+      yield* backtrack(index + 1);
+      current.pop();
+    }
+  }
+
+  yield* backtrack(0);
 }

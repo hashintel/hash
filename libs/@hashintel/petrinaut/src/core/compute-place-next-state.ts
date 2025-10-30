@@ -3,7 +3,7 @@ export type ODEType = "euler" | "midpoint" | "rk4";
 export type PlaceDifferentialEquation = (
   currentState: Float64Array,
   dimensions: number,
-  numberOfTokens: number,
+  numberOfTokens: number
 ) => Float64Array;
 
 /**
@@ -13,24 +13,24 @@ export type PlaceDifferentialEquation = (
  *
  * Currently, only the Euler method is implemented.
  */
-export function getPlaceNextState(
+export function computePlaceNextState(
   placeState: Float64Array,
   dimensions: number,
   numberOfTokens: number,
   differentialEquation: PlaceDifferentialEquation,
   odeType: ODEType,
-  dt: number,
+  dt: number
 ): Float64Array {
   if (odeType !== "euler") {
     throw new Error(
-      `ODE type ${odeType} not implemented yet. Use Euler method.`,
+      `ODE type ${odeType} not implemented yet. Use Euler method.`
     );
   }
 
   const derivatives = differentialEquation(
     placeState,
     dimensions,
-    numberOfTokens,
+    numberOfTokens
   );
 
   return (
