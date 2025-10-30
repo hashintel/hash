@@ -9,10 +9,10 @@
   },
   "workspaces": {
     "packages": [
+      ".claude/hooks",
       "apps/**",
       "libs/**",
-      "tests/**",
-      ".claude/hooks"
+      "tests/**"
     ]
   },
   "scripts": {
