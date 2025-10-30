@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
+  "skills": {
+    "rust-error-stack": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Error handling patterns using error-stack crate for HASH Rust code",
+      "promptTriggers": {
+        "keywords": [
+          "error handling",
+          "error",
+          "Result",
+          "Report",
+          "attach",
+          "change_context",
+          "error type",
+          "define error",
+          "propagate error",
+          "error documentation"
+        ],
+        "intentPatterns": [
+          "(handle|create|define|propagate).*?error",
+          "(error|errors).*?(handling|propagation|definition|documentation)",
+          "Result.*?Report"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/*.rs"],
+        "contentPatterns": [
+          "Result<",
+          "Report<",
+          "\\.attach",
+          "\\.change_context",
+          "error_stack::",
+          "Error for"
+        ]
+      }
+    },
+    "cargo-dependencies": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Cargo.toml dependency management patterns for HASH workspace",
+      "promptTriggers": {
+        "keywords": [
+          "cargo",
+          "dependency",
+          "dependencies",
+          "Cargo.toml",
+          "crate",
+          "workspace dependency",
+          "add dependency",
+          "add crate",
+          "public dependency",
+          "dev-dependencies"
+        ],
+        "intentPatterns": [
+          "add.*?(dependency|dependencies|crate)",
+          "(cargo|Cargo\\.toml).*?(dependency|dependencies)",
+          "workspace.*?dependency"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/Cargo.toml"],
+        "contentPatterns": [
+          "\\[dependencies\\]",
+          "\\[dev-dependencies\\]",
+          "workspace = true",
+          "public = true"
+        ]
+      }
+    }
+  },
+  "notes": {
+    "enforcement_types": {
+      "suggest": "Skill suggestion appears but doesn't block execution",
+      "block": "Requires skill to be used before proceeding (guardrail)",
+      "warn": "Shows warning but allows proceeding"
+    },
+    "priority_levels": {
+      "critical": "Highest - Always trigger when matched",
+      "high": "Important - Trigger for most matches",
+      "medium": "Moderate - Trigger for clear matches",
+      "low": "Optional - Trigger only for explicit matches"
+    },
+    "customization": {
+      "pathPatterns": "Adjust to match HASH project structure (libs/@local, apps/hash-*, etc.)",
+      "keywords": "Add domain-specific terms relevant to HASH",
+      "intentPatterns": "Use regex for flexible user intent matching"
+    }
+  }
+}

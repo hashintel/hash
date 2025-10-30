@@ -9415,6 +9415,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/claude-hooks@npm:0.0.0-private, @local/claude-hooks@workspace:.claude/hooks":
+  version: 0.0.0-use.local
+  resolution: "@local/claude-hooks@workspace:.claude/hooks"
+  dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
+    "@types/node": "npm:22.18.11"
+    eslint: "npm:9.38.0"
+    typescript: "npm:5.9.3"
+  languageName: unknown
+  linkType: soft
+
 "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory":
   version: 0.0.0-use.local
   resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory"
@@ -29339,6 +29351,7 @@ __metadata:
   dependencies:
     "@changesets/changelog-github": "npm:0.5.1"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
+    "@local/claude-hooks": "npm:0.0.0-private"
     "@yarnpkg/types": "npm:^4.0.1"
     lefthook: "npm:2.0.0"
     npm-run-all2: "npm:8.0.4"
