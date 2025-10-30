@@ -18,23 +18,17 @@
           "error type",
           "define error",
           "propagate error",
-          "error documentation"
+          "error documentation",
+          "fehler",
+          "fehlerbehandlung",
+          "fehler behandeln",
+          "fehler definieren",
+          "fehler propagieren"
         ],
         "intentPatterns": [
-          "(handle|create|define|propagate).*?error",
-          "(error|errors).*?(handling|propagation|definition|documentation)",
+          "\\b(handle|create|define|propagate)\\b.*?\\berror\\b",
+          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation)\\b",
           "Result.*?Report"
-        ]
-      },
-      "fileTriggers": {
-        "pathPatterns": ["**/*.rs"],
-        "contentPatterns": [
-          "Result<",
-          "Report<",
-          "\\.attach",
-          "\\.change_context",
-          "error_stack::",
-          "Error for"
         ]
       }
     },
@@ -54,21 +48,14 @@
           "add dependency",
           "add crate",
           "public dependency",
-          "dev-dependencies"
+          "dev-dependencies",
+          "crate hinzufügen",
+          "dependency hinzufügen"
         ],
         "intentPatterns": [
-          "add.*?(dependency|dependencies|crate)",
-          "(cargo|Cargo\\.toml).*?(dependency|dependencies)",
-          "workspace.*?dependency"
-        ]
-      },
-      "fileTriggers": {
-        "pathPatterns": ["**/Cargo.toml"],
-        "contentPatterns": [
-          "\\[dependencies\\]",
-          "\\[dev-dependencies\\]",
-          "workspace = true",
-          "public = true"
+          "\\badd\\b.*?\\b(dependency|dependencies|crate)\\b",
+          "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
+          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
         ]
       }
     },
@@ -94,16 +81,10 @@
           "skill best practices"
         ],
         "intentPatterns": [
-          "(how do|how does|explain).*?skill",
-          "(create|add|modify|build).*?skill",
-          "skill.*?(work|trigger|activate|system|structure|template|pattern|configuration)",
-          "(configure|setup|define).*?skill.*?(trigger|activation|rule)"
-        ]
-      },
-      "fileTriggers": {
-        "pathPatterns": [
-          ".claude/skills/**/SKILL.md",
-          ".claude/skills/skill-rules.json"
+          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
+          "\\b(create|add|modify|build)\\b.*?\\bskill\\b",
+          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration)\\b",
+          "\\b(configure|setup|define)\\b.*?\\bskill\\b.*?\\b(trigger|activation|rule)\\b"
         ]
       }
     },
@@ -131,19 +112,9 @@
           "module documentation"
         ],
         "intentPatterns": [
-          "(write|add|create|update).*?(doc|documentation).*?(rust|function|type|trait|module)",
-          "(document|documenting).*?(function|type|struct|enum|trait|module|error)",
-          "how.*?(document|write docs).*?rust"
-        ]
-      },
-      "fileTriggers": {
-        "pathPatterns": ["**/*.rs"],
-        "contentPatterns": [
-          "^\\s*///",
-          "^\\s*//!",
-          "# Errors",
-          "# Examples",
-          "# Panics"
+          "\\b(write|add|create|update)\\b.*?\\b(doc|documentation)\\b.*?\\b(rust|function|type|trait|module)\\b",
+          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error)\\b",
+          "\\bhow\\b.*?\\b(document|write docs)\\b.*?\\brust\\b"
         ]
       }
     }

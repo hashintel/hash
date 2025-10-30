@@ -1,6 +1,6 @@
 ---
 name: writing-skills
-description: Create and manage Claude Code skills in HASH repository following Anthropic best practices. Use when creating new skills, modifying skill-rules.json, understanding trigger patterns, working with hooks, debugging skill activation, or implementing progressive disclosure. Covers skill structure, YAML frontmatter, trigger types (keywords, intent patterns, file paths, content patterns), enforcement levels (block, suggest, warn), hook mechanisms (UserPromptSubmit, PostToolUse), session tracking, and the 500-line rule. Examples include rust-error-stack and cargo-dependencies skills.
+description: Create and manage Claude Code skills in HASH repository following Anthropic best practices. Use when creating new skills, modifying skill-rules.json, understanding trigger patterns, working with hooks, debugging skill activation, or implementing progressive disclosure. Covers skill structure, YAML frontmatter, trigger types (keywords, intent patterns), UserPromptSubmit hook, and the 500-line rule. Includes validation and debugging with SKILL_DEBUG. Examples include rust-error-stack, cargo-dependencies, and rust-documentation skills.
 ---
 
 # Writing Claude Code Skills for HASH
@@ -28,25 +28,17 @@ Automatically activates when you mention:
 
 ## System Overview
 
-### Two-Hook Architecture
+### Current Implementation
 
-**1. UserPromptSubmit Hook** (Proactive Suggestions)
+**UserPromptSubmit Hook** (Proactive Suggestions)
 
 - **File**: `.claude/hooks/skill-activation-prompt.ts`
 - **Trigger**: BEFORE Claude sees user's prompt
 - **Purpose**: Suggest relevant skills based on keywords + intent patterns
 - **Method**: Injects formatted reminder as context (stdout → Claude's input)
 - **Use Cases**: Topic-based skills, implicit work detection
-
-**2. Stop Hook - Error Handling Reminder** (Gentle Reminders)
-
-- **File**: `.claude/hooks/error-handling-reminder.ts`
-- **Trigger**: AFTER Claude finishes responding
-- **Purpose**: Gentle reminder to self-assess error handling in code written
-- **Method**: Analyzes edited files for risky patterns, displays reminder if needed
-- **Use Cases**: Error handling awareness without blocking friction
-
-**Philosophy Change (2025-10-27):** We moved away from blocking PreToolUse for Sentry/error handling. Instead, use gentle post-response reminders that don't block workflow but maintain code quality awareness.
+- **Debug**: Run with `SKILL_DEBUG=true` to see matching logic
+- **Validation**: Run with `--validate` flag to check configuration
 
 ### Configuration File
 
@@ -55,57 +47,32 @@ Automatically activates when you mention:
 Defines:
 
 - All skills and their trigger conditions
-- Enforcement levels (block, suggest, warn)
-- File path patterns (glob)
-- Content detection patterns (regex)
-- Skip conditions (session tracking, file markers, env vars)
+- Enforcement levels (currently only `"suggest"` is implemented)
+- Keyword triggers (exact substring matching)
+- Intent pattern triggers (regex matching)
 
 ---
 
 ## Skill Types
 
-### 1. Guardrail Skills
-
-**Purpose:** Enforce critical best practices that prevent errors
-
-**Characteristics:**
-
-- Type: `"guardrail"`
-- Enforcement: `"block"`
-- Priority: `"critical"` or `"high"`
-- Block file edits until skill used
-- Prevent common mistakes (column names, critical errors)
-- Session-aware (don't repeat nag in same session)
-
-**Examples:**
-
-- (Not yet implemented in HASH - potential future use)
-- Would be used for critical patterns like database verification
-- Or enforcing workspace dependency patterns
-
-**When to Use:**
-
-- Mistakes that cause runtime errors
-- Data integrity concerns
-- Critical compatibility issues
-
-### 2. Domain Skills
+### Domain Skills (Currently Implemented)
 
 **Purpose:** Provide comprehensive guidance for specific areas
 
 **Characteristics:**
 
 - Type: `"domain"`
-- Enforcement: `"suggest"`
+- Enforcement: `"suggest"` (advisory, non-blocking)
 - Priority: `"high"` or `"medium"`
-- Advisory, not mandatory
+- Activated by keyword or intent pattern matching
 - Topic or domain-specific
-- Comprehensive documentation
+- Comprehensive documentation with progressive disclosure
 
 **Examples in HASH:**
 
 - `rust-error-stack` - Error handling with error-stack crate
 - `cargo-dependencies` - Cargo.toml dependency management patterns
+- `rust-documentation` - Rust doc comment best practices
 - `writing-skills` - This skill! Meta-guidance for creating skills
 
 **When to Use:**
@@ -114,6 +81,10 @@ Defines:
 - Best practices documentation
 - Architectural patterns
 - How-to guides
+
+### Future: Guardrail Skills (Not Yet Implemented)
+
+Guardrail skills with blocking enforcement (`"block"`) are designed but not yet implemented. These would enforce critical patterns and prevent common mistakes.
 
 ---
 
@@ -171,31 +142,39 @@ See [SKILL_RULES_REFERENCE.md](SKILL_RULES_REFERENCE.md) for complete schema.
 }
 ```
 
-### Step 3: Test Triggers
+### Step 3: Test and Validate
 
-**Test UserPromptSubmit:**
+**Test with specific prompt:**
 
 ```bash
-echo '{"session_id":"test","prompt":"your test prompt"}' | \
-  npx tsx .claude/hooks/skill-activation-prompt.ts
+cd .claude/hooks
+echo '{"session_id":"test","prompt":"your test prompt","cwd":".","permission_mode":"auto","transcript_path":""}' | \
+  npx tsx skill-activation-prompt.ts
 ```
 
-**Test PreToolUse:**
+**Validate configuration:**
 
 ```bash
-cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts
-{"session_id":"test","tool_name":"Edit","tool_input":{"file_path":"test.ts"}}
-EOF
+cd .claude/hooks
+npx tsx skill-activation-prompt.ts --validate
+```
+
+**Debug matching logic:**
+
+```bash
+cd .claude/hooks
+export SKILL_DEBUG=true
+echo '{"session_id":"test","prompt":"your test prompt","cwd":".","permission_mode":"auto","transcript_path":""}' | \
+  npx tsx skill-activation-prompt.ts
 ```
 
 ### Step 4: Refine Patterns
 
 Based on testing:
 
-- Add missing keywords
+- Add missing keywords that should trigger the skill
 - Refine intent patterns to reduce false positives
-- Adjust file path patterns
-- Test content patterns against actual files
+- Use word boundaries in regex: `\\b(keyword)\\b` instead of just `keyword`
 
 ### Step 5: Follow Anthropic Best Practices
 
@@ -208,82 +187,38 @@ Based on testing:
 
 ---
 
-## Enforcement Levels
+## Current Implementation Details
 
-### BLOCK (Critical Guardrails)
+### Enforcement
 
-- Physically prevents Edit/Write tool execution
-- Exit code 2 from hook, stderr → Claude
-- Claude sees message and must use skill to proceed
-- **Use For**: Critical mistakes, data integrity, security issues
+Currently only **SUGGEST** enforcement is implemented:
 
-**Example:** Database column name verification
+- Suggestion injected before Claude sees prompt via UserPromptSubmit hook
+- Claude becomes aware of relevant skills
+- Not enforced or blocking - purely advisory
+- All existing skills use this pattern
 
-### SUGGEST (Recommended)
+**Future:** Blocking enforcement (`"block"`) and warning enforcement (`"warn"`) are designed in the schema but not yet implemented.
 
-- Reminder injected before Claude sees prompt
-- Claude is aware of relevant skills
-- Not enforced, just advisory
-- **Use For**: Domain guidance, best practices, how-to guides
+### Debugging and Validation
 
-**Example:** Frontend development guidelines
+**Environment Variables:**
 
-### WARN (Optional)
+- `SKILL_DEBUG=true` - Show detailed matching logic to stderr
+- `CLAUDE_PROJECT_DIR` - Override project directory (auto-detected if not set)
 
-- Low priority suggestions
-- Advisory only, minimal enforcement
-- **Use For**: Nice-to-have suggestions, informational reminders
-
-**Rarely used** - most skills are either BLOCK or SUGGEST.
-
----
-
-## Skip Conditions & User Control
-
-### 1. Session Tracking
-
-**Purpose:** Don't nag repeatedly in same session
-
-**How it works:**
-
-- First edit → Hook blocks, updates session state
-- Second edit (same session) → Hook allows
-- Different session → Blocks again
-
-**State File:** `.claude/hooks/state/skills-used-{session_id}.json`
-
-### 2. File Markers
-
-**Purpose:** Permanent skip for verified files
-
-**Marker:** `// @skip-validation`
-
-**Usage:**
-
-```typescript
-// @skip-validation
-import { PrismaService } from './prisma';
-// This file has been manually verified
-```
-
-**NOTE:** Use sparingly - defeats the purpose if overused
-
-### 3. Environment Variables
-
-**Purpose:** Emergency disable, temporary override
-
-**Global disable:**
+**Validation Command:**
 
 ```bash
-export SKIP_SKILL_GUARDRAILS=true  # Disables ALL PreToolUse blocks
+npx tsx .claude/hooks/skill-activation-prompt.ts --validate
 ```
 
-**Skill-specific:**
+Shows:
 
-```bash
-export SKIP_DB_VERIFICATION=true
-export SKIP_ERROR_REMINDER=true
-```
+- Project directory
+- Rules file location
+- Configured skills with trigger counts
+- Verification that SKILL.md files exist
 
 ---
 
@@ -296,15 +231,11 @@ When creating a new skill, verify:
 - [ ] Entry added to `skill-rules.json`
 - [ ] Keywords tested with real prompts
 - [ ] Intent patterns tested with variations
-- [ ] File path patterns tested with actual files
-- [ ] Content patterns tested against file contents
-- [ ] Block message is clear and actionable (if guardrail)
-- [ ] Skip conditions configured appropriately
 - [ ] Priority level matches importance
-- [ ] No false positives in testing
+- [ ] No false positives in testing (use `SKILL_DEBUG=true`)
 - [ ] No false negatives in testing
-- [ ] Performance is acceptable (<100ms or <200ms)
 - [ ] JSON syntax validated: `jq . skill-rules.json`
+- [ ] Validation passes: `npx tsx .claude/hooks/skill-activation-prompt.ts --validate`
 - [ ] **SKILL.md under 500 lines** ⭐
 - [ ] Reference files created if needed
 - [ ] Table of contents added to files > 100 lines
@@ -317,14 +248,14 @@ For detailed information on specific topics, see:
 
 ### [trigger-types.md](resources/trigger-types.md)
 
-Complete guide to all trigger types:
+Complete guide to trigger types (currently implemented):
 
 - Keyword triggers (explicit topic matching)
 - Intent patterns (implicit action detection)
-- File path triggers (glob patterns)
-- Content patterns (regex in files)
 - Best practices and examples for each
 - Common pitfalls and testing strategies
+
+**Note:** File path and content pattern triggers are documented but not yet used by the hook.
 
 ### [skill-rules-reference.md](resources/skill-rules-reference.md)
 
@@ -341,19 +272,20 @@ Complete skill-rules.json schema:
 Deep dive into hook internals:
 
 - UserPromptSubmit flow (detailed)
-- PreToolUse flow (detailed)
-- Exit code behavior table (CRITICAL)
-- Session state management
+- Hook architecture and implementation
+- Exit code behavior
 - Performance considerations
+
+**Note:** PreToolUse hooks and session state management are documented but not yet implemented.
 
 ### [troubleshooting.md](resources/troubleshooting.md)
 
 Comprehensive debugging guide:
 
-- Skill not triggering (UserPromptSubmit)
-- PreToolUse not blocking
+- Skill not triggering (use `SKILL_DEBUG=true`)
 - False positives (too many triggers)
 - Hook not executing at all
+- Configuration validation
 - Performance issues
 
 ### [patterns-library.md](resources/patterns-library.md)
@@ -361,8 +293,7 @@ Comprehensive debugging guide:
 Ready-to-use pattern collection:
 
 - Intent pattern library (regex)
-- File path pattern library (glob)
-- Content pattern library (regex)
+- Keyword pattern examples
 - Organized by use case
 - Copy-paste ready
 
@@ -378,26 +309,23 @@ Ready-to-use pattern collection:
 4. Refine patterns based on testing
 5. Keep SKILL.md under 500 lines
 
-### Trigger Types
+### Trigger Types (Currently Implemented)
 
-- **Keywords**: Explicit topic mentions
-- **Intent**: Implicit action detection
-- **File Paths**: Location-based activation
-- **Content**: Technology-specific detection
+- **Keywords**: Explicit topic mentions (substring matching)
+- **Intent**: Implicit action detection (regex patterns)
 
 See [trigger-types.md](resources/trigger-types.md) for complete details.
 
-### Enforcement
+### Enforcement (Current)
 
-- **BLOCK**: Exit code 2, critical only
-- **SUGGEST**: Inject context, most common
-- **WARN**: Advisory, rarely used
+- **SUGGEST**: Inject context before prompt - only implemented enforcement level
+- **BLOCK/WARN**: Designed but not yet implemented
 
-### Skip Conditions
+### Debugging
 
-- **Session tracking**: Automatic (prevents repeated nags)
-- **File markers**: `// @skip-validation` (permanent skip)
-- **Env vars**: `SKIP_SKILL_GUARDRAILS` (emergency disable)
+- `SKILL_DEBUG=true` - Show detailed matching logic
+- `--validate` flag - Validate configuration
+- Check `.claude/hooks/skill-activation-prompt.ts` for implementation
 
 ### Anthropic Best Practices
 
@@ -414,13 +342,17 @@ See [trigger-types.md](resources/trigger-types.md) for complete details.
 Test hooks manually:
 
 ```bash
-# UserPromptSubmit
-echo '{"prompt":"test"}' | npx tsx .claude/hooks/skill-activation-prompt.ts
+# Test with prompt
+cd .claude/hooks
+echo '{"session_id":"test","prompt":"test","cwd":".","permission_mode":"auto","transcript_path":""}' | \
+  npx tsx skill-activation-prompt.ts
 
-# PreToolUse
-cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts
-{"tool_name":"Edit","tool_input":{"file_path":"test.ts"}}
-EOF
+# Validate configuration
+npx tsx skill-activation-prompt.ts --validate
+
+# Debug matching
+SKILL_DEBUG=true echo '{"session_id":"test","prompt":"test","cwd":".","permission_mode":"auto","transcript_path":""}' | \
+  npx tsx skill-activation-prompt.ts
 ```
 
 See [troubleshooting.md](resources/troubleshooting.md) for complete debugging guide.
