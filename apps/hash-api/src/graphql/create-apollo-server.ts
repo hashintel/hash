@@ -81,7 +81,7 @@ const statsPlugin = ({
       didEncounterErrors: async (ctx) => {
         for (const err of ctx.errors) {
           // Don't send ForbiddenErrors to Sentry – we can add more here as needed
-
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- this may be undefined
           if (err.extensions?.code === "FORBIDDEN") {
             continue;
           }
