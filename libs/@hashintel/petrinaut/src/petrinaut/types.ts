@@ -6,7 +6,10 @@ export type ArcData = {
   };
 };
 
-export type ArcType = Omit<Edge<ArcData>, "style">;
+export type ArcType = Omit<
+  Edge<ArcData>,
+  "style" | "sourceHandle" | "targetHandle"
+>;
 
 export type PlaceNodeData = {
   label: string;
@@ -24,6 +27,12 @@ export type PlaceNodeData = {
 };
 
 export type PlaceMarkingsById = Record<string, TokenCounts>;
+
+export type PlaceMarkingsByIdByStep = PlaceMarkingsById[];
+
+export type SimulationState = Array<{
+  [placeId: string]: { marking: TokenCounts; placeLabel: string };
+}>;
 
 export type PlaceNodeType = Omit<
   Node<PlaceNodeData, "place">,

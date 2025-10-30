@@ -8,7 +8,12 @@ import {
 } from "react";
 
 import { useEditorContext } from "./editor-context";
-import type { ArcType, PlaceMarkingsById, TransitionNodeType } from "./types";
+import type {
+  ArcType,
+  PlaceMarkingsById,
+  SimulationState,
+  TransitionNodeType,
+} from "./types";
 
 /**
  * Check if a transition is enabled, i.e. that the tokens required by each incoming arc are available in the source place.
@@ -20,12 +25,12 @@ const checkTransitionEnabled = ({
 }: {
   transitionId: string;
   arcs: ArcType[];
-  placeMarkingsById: PlaceMarkingsById;
+  placeMarkingsById: SimulationState[number];
 }): boolean => {
   const incomingArcs = arcs.filter((arc) => arc.target === transitionId);
 
   return incomingArcs.every((arc) => {
-    const tokenCounts = placeMarkingsById[arc.source];
+    const tokenCounts = placeMarkingsById[arc.source]?.marking;
 
     if (!tokenCounts) {
       throw new Error(`Could not find token counts for place ${arc.source}`);
@@ -58,10 +63,12 @@ const SimulationContext = createContext<SimulationContextValue | undefined>(
 
 interface SimulationProviderProps {
   children: React.ReactNode;
+  reportSimulationState?: (simulationState: SimulationState) => void;
 }
 
 export const SimulationContextProvider = ({
   children,
+  reportSimulationState,
 }: SimulationProviderProps) => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationSpeed, setSimulationSpeed] = useState(1000); // ms delay between each step occuring when simulating
@@ -69,22 +76,28 @@ export const SimulationContextProvider = ({
   const [simulationLogs, setSimulationLogs] = useState<
     Array<{ id: string; text: string }>
   >([]);
-  const [placeMarkingsById, setPlaceMarkingsById] = useState<PlaceMarkingsById>(
-    {},
-  );
+
+  const [simulationState, setSimulationState] = useState<SimulationState>([]);
 
   const { petriNetDefinition } = useEditorContext();
 
   const resetMarkings = useCallback(() => {
-    setPlaceMarkingsById(
-      petriNetDefinition.nodes.reduce((acc, node) => {
-        if (node.data.type === "place") {
-          acc[node.id] = node.data.initialTokenCounts ?? {};
-        }
-        return acc;
-      }, {} as PlaceMarkingsById),
-    );
-  }, [petriNetDefinition.nodes]);
+    const stepZeroState: SimulationState[number] = {};
+
+    for (const node of petriNetDefinition.nodes) {
+      if (node.data.type === "place") {
+        stepZeroState[node.id] = {
+          marking: node.data.initialTokenCounts ?? {},
+          placeLabel: node.data.label,
+        };
+      }
+    }
+
+    const initialSimulationState = [stepZeroState];
+
+    setSimulationState(initialSimulationState);
+    reportSimulationState?.(initialSimulationState);
+  }, [petriNetDefinition.nodes, reportSimulationState]);
 
   const resetSimulation = useCallback(() => {
     setIsSimulating(false);
@@ -120,7 +133,7 @@ export const SimulationContextProvider = ({
         checkTransitionEnabled({
           transitionId: node.id,
           arcs: petriNetDefinition.arcs,
-          placeMarkingsById,
+          placeMarkingsById: simulationState.at(-1) ?? {},
         }),
       );
 
@@ -129,9 +142,9 @@ export const SimulationContextProvider = ({
       return;
     }
 
-    const updatedMarkings = JSON.parse(
-      JSON.stringify(placeMarkingsById),
-    ) as PlaceMarkingsById;
+    const stateForStep: SimulationState[number] = JSON.parse(
+      JSON.stringify(simulationState.at(-1) ?? {}),
+    ) as SimulationState[number];
 
     /**
      * @todo this logic is wrong, because a transition may be no longer enabled,
@@ -217,7 +230,7 @@ export const SimulationContextProvider = ({
             continue;
           }
 
-          const sourceMarkings = updatedMarkings[incomingArc.source];
+          const sourceMarkings = stateForStep[incomingArc.source]?.marking;
 
           if (!sourceMarkings) {
             throw new Error(
@@ -251,7 +264,7 @@ export const SimulationContextProvider = ({
           continue;
         }
 
-        const targetMarkings = updatedMarkings[outgoingArc.target];
+        const targetMarkings = stateForStep[outgoingArc.target]?.marking;
 
         if (!targetMarkings) {
           throw new Error(
@@ -283,13 +296,16 @@ export const SimulationContextProvider = ({
       }
     }
 
-    setPlaceMarkingsById(updatedMarkings);
+    setSimulationState((prev) => [...prev, stateForStep]);
+
+    reportSimulationState?.([...simulationState, stateForStep]);
   }, [
-    petriNetDefinition.arcs,
-    petriNetDefinition.nodes,
     addLogEntry,
+    petriNetDefinition.nodes,
+    petriNetDefinition.arcs,
+    reportSimulationState,
     simulationSpeed,
-    placeMarkingsById,
+    simulationState,
   ]);
 
   useEffect(() => {
@@ -307,7 +323,12 @@ export const SimulationContextProvider = ({
       currentStep,
       fireNextStep,
       isSimulating,
-      placeMarkingsById,
+      placeMarkingsById: Object.fromEntries(
+        Object.entries(simulationState.at(-1) ?? {}).map(([placeId, place]) => [
+          placeId,
+          place.marking,
+        ]),
+      ),
       resetSimulation,
       setIsSimulating,
       setSimulationSpeed,
@@ -318,7 +339,7 @@ export const SimulationContextProvider = ({
       currentStep,
       fireNextStep,
       isSimulating,
-      placeMarkingsById,
+      simulationState,
       resetSimulation,
       simulationLogs,
       simulationSpeed,

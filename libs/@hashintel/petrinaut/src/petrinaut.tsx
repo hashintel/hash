@@ -49,6 +49,7 @@ import type {
   PetriNetDefinitionObject,
   PlaceNodeData,
   PlaceNodeType,
+  SimulationState,
   TokenCounts,
   TokenType,
   TransitionCondition,
@@ -88,7 +89,7 @@ type DraggingStateByNodeId = Record<
 
 const PetrinautInner = ({
   hideNetManagementControls,
-}: { hideNetManagementControls: boolean }) => {
+}: { hideNetManagementControls: boolean | "includeLoadExampleOnly" }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
@@ -191,7 +192,6 @@ const PetrinautInner = ({
     (connection: Connection) => {
       if (isValidConnection(connection)) {
         const newArc: ArcType = {
-          ...connection,
           id: `arc__${connection.source}-${connection.target}`,
           source: connection.source ?? "",
           target: connection.target ?? "",
@@ -498,7 +498,7 @@ const PetrinautInner = ({
 
   return (
     <Stack sx={{ height: "100%" }}>
-      {!hideNetManagementControls && <TitleAndNetSelect />}
+      {hideNetManagementControls === false && <TitleAndNetSelect />}
 
       <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
         <Sidebar />
@@ -597,7 +597,7 @@ const PetrinautInner = ({
 
           <LogPane />
 
-          {!hideNetManagementControls && (
+          {hideNetManagementControls !== true && (
             <Stack
               direction="row"
               spacing={1}
@@ -606,35 +606,43 @@ const PetrinautInner = ({
               <Button onClick={handleLoadExample} size="xs" variant="tertiary">
                 Load Example
               </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleLoadFromPnml}
-                accept=".pnml,.xml"
-                style={{ display: "none" }}
-              />
-              <Button onClick={handleImportClick} size="xs" variant="tertiary">
-                Import
-              </Button>
-              <Button onClick={handleExport} size="xs" variant="tertiary">
-                Export
-              </Button>
-              <Button
-                onClick={() =>
-                  createNewNet({
-                    petriNetDefinition: {
-                      arcs: [],
-                      nodes: [],
-                      tokenTypes: defaultTokenTypes,
-                    },
-                    title: "Process",
-                  })
-                }
-                size="xs"
-                variant="danger"
-              >
-                New
-              </Button>
+              {hideNetManagementControls !== "includeLoadExampleOnly" && (
+                <>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLoadFromPnml}
+                    accept=".pnml,.xml"
+                    style={{ display: "none" }}
+                  />
+                  <Button
+                    onClick={handleImportClick}
+                    size="xs"
+                    variant="tertiary"
+                  >
+                    Import
+                  </Button>
+                  <Button onClick={handleExport} size="xs" variant="tertiary">
+                    Export
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      createNewNet({
+                        petriNetDefinition: {
+                          arcs: [],
+                          nodes: [],
+                          tokenTypes: defaultTokenTypes,
+                        },
+                        title: "Process",
+                      })
+                    }
+                    size="xs"
+                    variant="danger"
+                  >
+                    New
+                  </Button>
+                </>
+              )}
             </Stack>
           )}
         </Box>
@@ -658,7 +666,7 @@ export type PetrinautProps = {
   /**
    * Whether to hide controls relating to net loading, creation and title setting.
    */
-  hideNetManagementControls: boolean;
+  hideNetManagementControls: boolean | "includeLoadExampleOnly";
   /**
    * Minimal metadata on the net which this net is a child of, if any.
    */
@@ -695,6 +703,10 @@ export type PetrinautProps = {
    */
   loadPetriNet: (petriNetId: string) => void;
   /**
+   * Callback to report the latest state (marking) of the net by id.
+   */
+  reportSimulationState?: (simulationState: SimulationState) => void;
+  /**
    * Set the title of the net which is currently loaded.
    */
   setTitle: (title: string) => void;
@@ -713,6 +725,7 @@ export const Petrinaut = ({
   petriNetDefinition,
   mutatePetriNetDefinition,
   loadPetriNet,
+  reportSimulationState,
   setTitle,
   title,
 }: PetrinautProps) => {
@@ -731,7 +744,9 @@ export const Petrinaut = ({
         setTitle={setTitle}
         title={title}
       >
-        <SimulationContextProvider>
+        <SimulationContextProvider
+          reportSimulationState={reportSimulationState}
+        >
           <PetrinautInner
             hideNetManagementControls={hideNetManagementControls}
           />

@@ -150,7 +150,7 @@ export const DevWrapper = () => {
           <Petrinaut
             createNewNet={createNewNet}
             existingNets={existingNets}
-            hideNetManagementControls={false}
+            hideNetManagementControls="includeLoadExampleOnly"
             parentNet={null}
             petriNetId={currentNetId}
             petriNetDefinition={currentNet.petriNetDefinition}
