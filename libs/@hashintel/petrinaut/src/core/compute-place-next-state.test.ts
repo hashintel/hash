@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import { expect, it } from "vitest";
 
-import type { PlaceDifferentialEquation } from "./place-next-state";
-import { getPlaceNextState } from "./place-next-state";
+import type { PlaceDifferentialEquation } from "./compute-place-next-state";
+import { computePlaceNextState } from "./compute-place-next-state";
 
 it("executes without errors", () => {
   // GIVEN
@@ -17,7 +17,7 @@ it("executes without errors", () => {
   const differentialEquation: PlaceDifferentialEquation = (
     _state,
     dimensions,
-    numberOfTokens,
+    numberOfTokens
   ) => {
     return new Float64Array(dimensions * numberOfTokens).fill(1);
   };
@@ -25,13 +25,13 @@ it("executes without errors", () => {
   const dt = 0.1;
 
   // WHEN
-  const nextState = getPlaceNextState(
+  const nextState = computePlaceNextState(
     initialState,
     dimensions,
     numberOfTokens,
     differentialEquation,
     "euler",
-    dt,
+    dt
   );
 
   // THEN
@@ -51,7 +51,7 @@ it("adds derivative to current state value", () => {
   const differentialEquation: PlaceDifferentialEquation = (
     _state,
     dimensions,
-    numberOfTokens,
+    numberOfTokens
   ) => {
     return new Float64Array(dimensions * numberOfTokens).fill(1);
   };
@@ -59,13 +59,13 @@ it("adds derivative to current state value", () => {
   const dt = 0.5;
 
   // WHEN
-  const nextState = getPlaceNextState(
+  const nextState = computePlaceNextState(
     initialState,
     dimensions,
     numberOfTokens,
     differentialEquation,
     "euler",
-    dt,
+    dt
   );
 
   // THEN
@@ -73,6 +73,6 @@ it("adds derivative to current state value", () => {
     Float64Array.from([
       [1.5, 2.5],
       [3.5, 4.5],
-    ]),
+    ])
   );
 });
