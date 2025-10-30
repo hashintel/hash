@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.5-state-reporting-variant",
+  "version": "0.0.5-state-reporting-variant.1",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
@@ -21,15 +21,13 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@emotion/react": "11.14.0",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/block-design-system": "0.0.5",
     "@hashintel/design-system": "0.0.9-canary.2",
-    "@mui/material": "5.18.0",
-    "@mui/system": "5.18.0",
     "elkjs": "0.11.0",
     "reactflow": "11.11.4",
-    "uuid": "13.0.0"
+    "uuid": "13.0.0",
+    "web-worker": "1.4.1"
   },
   "devDependencies": {
     "@emotion/react": "11.14.0",
@@ -46,10 +44,12 @@
     "react-dom": "19.2.0",
     "storybook": "9.1.13",
     "typescript": "5.9.3",
-    "vite": "7.1.11",
-    "web-worker": "1.4.1"
+    "vite": "7.1.11"
   },
   "peerDependencies": {
+    "@emotion/react": "11.14.0",
+    "@mui/material": "5.18.0",
+    "@mui/system": "5.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

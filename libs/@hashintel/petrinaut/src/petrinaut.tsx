@@ -69,6 +69,7 @@ export type {
   PetriNetDefinitionObject,
   PlaceNodeData,
   PlaceNodeType,
+  SimulationState,
   TokenCounts,
   TokenType,
   TransitionCondition,

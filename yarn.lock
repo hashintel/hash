@@ -7671,7 +7671,27 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut@npm:0.0.5, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
+"@hashintel/petrinaut@npm:0.0.5":
+  version: 0.0.5
+  resolution: "@hashintel/petrinaut@npm:0.0.5"
+  dependencies:
+    "@emotion/react": "npm:11.14.0"
+    "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
+    "@hashintel/block-design-system": "npm:0.0.5"
+    "@hashintel/design-system": "npm:0.0.9-canary.2"
+    "@mui/material": "npm:5.18.0"
+    "@mui/system": "npm:5.18.0"
+    elkjs: "npm:0.10.0"
+    reactflow: "npm:11.11.4"
+    uuid: "npm:11.1.0"
+  peerDependencies:
+    react: ^19.0.0
+    react-dom: ^19.0.0
+  checksum: 10c0/b369c719627183942b6cd95ee75124e75fafcc6ecb4143f68db04b68214892ca531ca0693882bb6c02aceab605787bac63d7788e919a6103628e52cc92a187ef
+  languageName: node
+  linkType: hard
+
+"@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:
@@ -7698,6 +7718,9 @@ __metadata:
     vite: "npm:7.1.11"
     web-worker: "npm:1.4.1"
   peerDependencies:
+    "@emotion/react": 11.14.0
+    "@mui/material": 5.18.0
+    "@mui/system": 5.18.0
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown
@@ -25263,6 +25286,13 @@ __metadata:
   version: 1.5.237
   resolution: "electron-to-chromium@npm:1.5.237"
   checksum: 10c0/b9a9ba6ba3db5cc7e402fcc78f2ddf8bfc4b142dfcfa83e37a6ba99337d186025c4311db345d95ecf2b404e9d3fcd5ec7b1be56e6b998ff6b8fe348569eaf4b7
+  languageName: node
+  linkType: hard
+
+"elkjs@npm:0.10.0":
+  version: 0.10.0
+  resolution: "elkjs@npm:0.10.0"
+  checksum: 10c0/f04662fe5a972ab1fb62f698cd53ba8d5806a27ec07fd056e79a2dc89c158e63210636ce7e5dac7913967670b5f2b7c2db091f23746fea11a5ca751327ee3abc
   languageName: node
   linkType: hard
 
