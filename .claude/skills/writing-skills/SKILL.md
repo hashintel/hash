@@ -297,6 +297,16 @@ Ready-to-use pattern collection:
 - Organized by use case
 - Copy-paste ready
 
+### [future-enhancements.md](resources/future-enhancements.md)
+
+Ideas for expanding the skill system:
+
+- File-based triggers and guardrail enforcement
+- Session tracking and analytics
+- Advanced matching (fuzzy, multi-language)
+- Developer experience improvements
+- Priority recommendations
+
 ---
 
 ## Quick Reference Summary
