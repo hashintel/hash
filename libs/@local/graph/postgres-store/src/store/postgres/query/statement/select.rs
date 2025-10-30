@@ -6,7 +6,7 @@ use crate::store::postgres::query::{
     expression::{GroupByExpression, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FromItem {
     Table { table: Table, alias: Option<Alias> },
     Function(Function),
@@ -29,7 +29,7 @@ impl Transpile for FromItem {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectStatement {
     pub with: WithExpression,
     pub distinct: Vec<Expression>,

@@ -356,22 +356,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     fn add_condition(&mut self, condition: Condition, table: Option<&TableReference>) {
-        let conditions = table
+        table
             .and_then(|table| {
-                self.statement.joins.iter_mut().find_map(|join| match join {
-                    // If a table is provided and we have a join on that table, we add the condition
-                    // to the
-                    JoinExpression::Old {
-                        from,
-                        additional_conditions,
-                        ..
-                    } if *from.reference_table() == *table => Some(additional_conditions),
-                    JoinExpression::Old { .. } => None,
+                // If a table is provided and we have a join on that table, we add the condition
+                self.statement.joins.iter_mut().find_map(|join| {
+                    (*table == *join.from.reference_table()).then_some(&mut join.conditions)
                 })
             })
-            .unwrap_or(&mut self.statement.where_expression.conditions);
-
-        conditions.push(condition);
+            .unwrap_or(&mut self.statement.where_expression.conditions)
+            .push(condition);
     }
 
     /// Adds a new path to the selection which can be used as cursor.
@@ -572,11 +565,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     };
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
-                        let JoinExpression::Old {
-                            from: last_join_from,
-                            ..
-                        } = last_join;
-                        let last_reference_table = last_join_from.reference_table();
+                        let last_reference_table = last_join.from.reference_table();
                         ensure!(
                             last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
                                 || last_reference_table.name
@@ -628,7 +617,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        *last_join_from = JoinFrom::SelectStatement {
+                        last_join.from = JoinFrom::SelectStatement {
                             statement: Box::new(SelectStatement {
                                 with: WithExpression::default(),
                                 distinct: vec![],
@@ -1097,76 +1086,85 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let mut is_outer_join_chain = false;
         for relation in path.relations() {
-            let foreign_key_join = relation.joins();
-            for foreign_key_reference in foreign_key_join {
-                let mut join_expression = JoinExpression::from_foreign_key(
-                    foreign_key_reference,
-                    current_table.alias.unwrap_or_default(),
-                    Alias {
-                        condition_index: self.artifacts.condition_index,
-                        chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
-                        number: 0,
-                    },
-                );
-
-                let JoinExpression::Old {
-                    join: join_expression_type,
-                    from: join_expression_from,
-                    on: join_expression_on,
-                    on_alias: join_expression_on_alias,
-                    ..
-                } = &mut join_expression;
-                let join_expression_table = join_expression_from.reference_table_mut();
-
-                if is_outer_join_chain {
-                    *join_expression_type = JoinType::LeftOuter;
-                } else if *join_expression_type != JoinType::Inner {
-                    is_outer_join_chain = true;
+            for foreign_key_reference in relation.joins() {
+                let join_type = if is_outer_join_chain {
+                    JoinType::LeftOuter
                 } else {
-                    // Join is Inner type, keep as-is
-                }
+                    let join_type = foreign_key_reference.join_type();
+                    if join_type != JoinType::Inner {
+                        is_outer_join_chain = true;
+                    }
+                    join_type
+                };
+
+                let mut join_table = foreign_key_reference.table().aliased(Alias {
+                    condition_index: self.artifacts.condition_index,
+                    chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
+                    number: 0,
+                });
+                let mut conditions =
+                    foreign_key_reference.conditions(current_table.alias, join_table.alias);
 
                 let mut found = false;
-                for existing in &self.statement.joins {
-                    let JoinExpression::Old {
-                        from: existing_from,
-                        on: existing_on,
-                        on_alias: existing_on_alias,
-                        ..
-                    } = existing;
-                    let existing_table = existing_from.reference_table();
+                let mut max_number = 0;
 
-                    if existing_table == join_expression_table {
+                for existing in &self.statement.joins {
+                    let existing_table = existing.from.reference_table();
+
+                    // Check for exact match to reuse existing join
+                    if *existing_table == join_table {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing_on == join_expression_on
-                            && existing_on_alias == join_expression_on_alias
-                        {
-                            // We already have a join statement for this column, so we can reuse it.
+                        if existing.conditions.starts_with(&conditions) {
+                            // We already have a join statement for this column, so we can reuse
+                            // it.
                             current_table = Cow::Borrowed(existing_table);
                             found = true;
                             break;
                         }
-                        // We already have a join statement for this table, but it's on a different
-                        // column. We need to create a new join statement later on with a new,
-                        // unique alias.
-                        join_expression_table.alias.get_or_insert_default().number += 1;
+                    }
+
+                    // Track maximum number for joins with same table name and alias prefix
+                    if let Some(existing_alias) = existing_table.alias
+                        && join_table.name == existing_table.name
+                        && join_table
+                            .alias
+                            .map(|alias| (alias.condition_index, alias.chain_depth))
+                            == existing_table
+                                .alias
+                                .map(|alias| (alias.condition_index, alias.chain_depth))
+                    {
+                        max_number = max_number.max(existing_alias.number + 1);
                     }
                 }
 
+                // If we didn't find an exact match but found alias conflicts, update the alias
                 if !found {
-                    // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = Cow::Owned(join_expression_table.clone());
-                    let current_alias = current_table.alias.unwrap_or_default();
-                    self.statement.joins.push(join_expression);
-
-                    for condition in relation.additional_conditions(&current_table) {
-                        self.add_condition(condition, Some(&current_table));
+                    if max_number > 0 {
+                        join_table.alias.get_or_insert_default().number = max_number;
+                        // Recalculate conditions with the updated alias
+                        conditions =
+                            foreign_key_reference.conditions(current_table.alias, join_table.alias);
                     }
 
+                    // We don't have a join statement for this column yet, so we need to create one.
+                    current_table = Cow::Owned(join_table.clone());
+                    conditions.extend(relation.additional_conditions(&join_table));
+                    self.statement.joins.push(JoinExpression {
+                        join: join_type,
+                        from: JoinFrom::Table {
+                            table: TableReference {
+                                alias: None,
+                                ..join_table.clone()
+                            },
+                            alias: Some(join_table),
+                        },
+                        conditions,
+                    });
+
                     if let Some(hook) = self.table_hooks.get(&current_table.name) {
-                        hook(self, current_alias);
+                        hook(self, current_table.alias.unwrap_or_default());
                     }
                 }
             }

@@ -9,7 +9,7 @@ use crate::store::postgres::query::{
     Alias, Column, SelectStatement, Table, Transpile, WindowStatement, table::DatabaseColumn as _,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
@@ -157,7 +157,7 @@ impl Transpile for PostgresType {
 }
 
 /// A compiled expression in Postgres.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
     Asterisk,
     ColumnReference(ColumnReference<'static>),

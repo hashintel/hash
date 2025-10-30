@@ -1905,6 +1905,19 @@ pub enum ForeignKeyReference {
 }
 
 impl ForeignKeyReference {
+    pub const fn join_type(self) -> JoinType {
+        match self {
+            Self::Single { join_type, .. } | Self::Double { join_type, .. } => join_type,
+        }
+    }
+
+    pub const fn table(self) -> Table {
+        match self {
+            Self::Single { join, .. } => join.table(),
+            Self::Double { join, .. } => join[0].table(),
+        }
+    }
+
     #[must_use]
     pub const fn reverse(self) -> Self {
         match self {
@@ -1926,6 +1939,51 @@ impl ForeignKeyReference {
                 join: on,
                 join_type: join_type.reverse(),
             },
+        }
+    }
+
+    pub fn conditions(self, on_alias: Option<Alias>, join_alias: Option<Alias>) -> Vec<Condition> {
+        match self {
+            Self::Single {
+                join,
+                on,
+                join_type: _,
+            } => vec![Condition::Equal(
+                Expression::AliasedColumn {
+                    column: join,
+                    table_alias: join_alias,
+                },
+                Expression::AliasedColumn {
+                    column: on,
+                    table_alias: on_alias,
+                },
+            )],
+            Self::Double {
+                join: [join1, join2],
+                on: [on1, on2],
+                join_type: _,
+            } => vec![
+                Condition::Equal(
+                    Expression::AliasedColumn {
+                        column: join1,
+                        table_alias: join_alias,
+                    },
+                    Expression::AliasedColumn {
+                        column: on1,
+                        table_alias: on_alias,
+                    },
+                ),
+                Condition::Equal(
+                    Expression::AliasedColumn {
+                        column: join2,
+                        table_alias: join_alias,
+                    },
+                    Expression::AliasedColumn {
+                        column: on2,
+                        table_alias: on_alias,
+                    },
+                ),
+            ],
         }
     }
 }
@@ -2129,7 +2187,7 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, table: &TableReference) -> Vec<Condition> {
+    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Condition> {
         match self {
             Self::Reference {
                 table: reference_table,

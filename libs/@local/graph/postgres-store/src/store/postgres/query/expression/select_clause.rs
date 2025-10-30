@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectExpression {
     pub expression: Expression,
     pub alias: Option<&'static str>,

@@ -10,7 +10,7 @@ use crate::store::postgres::query::{
     statement::FromItem,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum InsertValueItem {
     Default,
     Values(Vec<Expression>),
@@ -40,7 +40,7 @@ impl Transpile for InsertValueItem {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct InsertStatement {
     pub table: Table,
     pub alias: Option<Alias>,
