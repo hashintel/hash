@@ -9415,6 +9415,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@local/claude-hooks@workspace:.claude/hooks":
+  version: 0.0.0-use.local
+  resolution: "@local/claude-hooks@workspace:.claude/hooks"
+  dependencies:
+    "@local/eslint": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
+    "@types/node": "npm:22.18.11"
+    eslint: "npm:9.38.0"
+    typescript: "npm:5.9.3"
+  languageName: unknown
+  linkType: soft
+
 "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory":
   version: 0.0.0-use.local
   resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory"

@@ -11,7 +11,8 @@
     "packages": [
       "apps/**",
       "libs/**",
-      "tests/**"
+      "tests/**",
+      ".claude/hooks"
     ]
   },
   "scripts": {

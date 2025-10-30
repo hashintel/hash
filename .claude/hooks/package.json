@@ -1,0 +1,19 @@
+{
+  "name": "@local/claude-hooks",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Claude Code hooks for HASH repository",
+  "type": "module",
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/node": "22.18.11",
+    "eslint": "9.38.0",
+    "typescript": "5.9.3"
+  }
+}
