@@ -50,11 +50,46 @@ pub struct JoinOn {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum JoinFrom {
+    Table {
+        table: TableReference<'static>,
+        alias: Option<TableReference<'static>>,
+    },
+    SelectStatement {
+        statement: Box<SelectStatement>,
+        alias: TableReference<'static>,
+    },
+}
+
+impl JoinFrom {
+    #[must_use]
+    pub const fn reference_table(&self) -> &TableReference<'static> {
+        match self {
+            Self::Table {
+                alias: Some(table), ..
+            }
+            | Self::Table { table, .. }
+            | Self::SelectStatement { alias: table, .. } => table,
+        }
+    }
+
+    #[must_use]
+    pub const fn reference_table_mut(&mut self) -> &mut TableReference<'static> {
+        match self {
+            Self::Table {
+                alias: Some(table), ..
+            }
+            | Self::Table { table, .. }
+            | Self::SelectStatement { alias: table, .. } => table,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum JoinExpression {
     Old {
         join: JoinType,
-        statement: Option<SelectStatement>,
-        table: TableReference<'static>,
+        from: JoinFrom,
         on_alias: Alias,
         on: Vec<JoinOn>,
         additional_conditions: Vec<Condition>,
@@ -75,8 +110,10 @@ impl JoinExpression {
                 join_type,
             } => Self::Old {
                 join: join_type,
-                table: join.table().aliased(join_alias),
-                statement: None,
+                from: JoinFrom::Table {
+                    table: join.table().into(),
+                    alias: Some(join.table().aliased(join_alias)),
+                },
                 on_alias,
                 on: vec![JoinOn { join, on }],
                 additional_conditions: Vec::new(),
@@ -87,8 +124,10 @@ impl JoinExpression {
                 join_type,
             } => Self::Old {
                 join: join_type,
-                table: join1.table().aliased(join_alias),
-                statement: None,
+                from: JoinFrom::Table {
+                    table: join1.table().into(),
+                    alias: Some(join1.table().aliased(join_alias)),
+                },
                 on_alias,
                 on: vec![
                     JoinOn {
@@ -111,23 +150,28 @@ impl Transpile for JoinExpression {
         match self {
             Self::Old {
                 join,
-                statement,
-                table,
+                from,
                 on_alias,
                 on,
                 additional_conditions,
             } => {
                 join.transpile(fmt)?;
                 fmt.write_char(' ')?;
-                if let Some(select) = statement {
-                    fmt.write_char('(')?;
-                    select.transpile(fmt)?;
-                    fmt.write_char(')')?;
-                } else {
-                    table.name.transpile(fmt)?;
+                match from {
+                    JoinFrom::Table { table, alias } => {
+                        table.name.transpile(fmt)?;
+                        if let Some(alias) = alias {
+                            fmt.write_str(" AS ")?;
+                            alias.transpile(fmt)?;
+                        }
+                    }
+                    JoinFrom::SelectStatement { statement, alias } => {
+                        fmt.write_char('(')?;
+                        statement.transpile(fmt)?;
+                        fmt.write_str(") AS ")?;
+                        alias.transpile(fmt)?;
+                    }
                 }
-                fmt.write_str(" AS ")?;
-                table.transpile(fmt)?;
                 fmt.write_str(" ON ")?;
                 for (i, condition) in on.iter().enumerate() {
                     if i > 0 {
@@ -135,7 +179,7 @@ impl Transpile for JoinExpression {
                     }
                     Expression::AliasedColumn {
                         column: condition.join,
-                        table_alias: table.alias,
+                        table_alias: from.reference_table().alias,
                     }
                     .transpile(fmt)?;
                     fmt.write_str(" = ")?;
