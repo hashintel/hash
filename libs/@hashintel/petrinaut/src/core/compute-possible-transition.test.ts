@@ -124,7 +124,7 @@ describe("computePossibleTransition", () => {
               id: "t1",
               name: "Transition 1",
               inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
-              outputArcs: [],
+              outputArcs: [{ placeId: "p2", weight: 1 }],
               lambdaCode: "return 10.0;",
               transitionKernelCode: "return [[[2.0]]];",
             },
@@ -140,6 +140,6 @@ describe("computePossibleTransition", () => {
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();
-    expect(result).toEqual([[[2.0]]]);
+    expect(result).toEqual({ p2: [[2.0]] });
   });
 });
