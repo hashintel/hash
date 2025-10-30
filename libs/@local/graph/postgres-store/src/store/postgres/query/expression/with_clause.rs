@@ -2,13 +2,13 @@ use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommonTableExpression {
     table: Table,
     statement: Statement,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct WithExpression {
     common_table_expressions: Vec<CommonTableExpression>,
 }
