@@ -140,6 +140,9 @@ describe("computePossibleTransition", () => {
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();
-    expect(result).toEqual({ p2: [[2.0]] });
+    expect(result).toEqual({
+      remove: { p1: new Set([0]) },
+      add: { p2: [[2.0]] },
+    });
   });
 });

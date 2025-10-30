@@ -3,15 +3,22 @@
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import type { ID, SimulationFrame } from "./types";
 
+type PlaceID = ID;
+
 /**
  * Takes a SimulationFrame, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
- * Returns a map from PlaceID to array of token values to create.
+ * Returns a record with:
+ * - removed: Map from PlaceID to Set of token indices to remove.
+ * - added: Map from PlaceID to array of token values to create.
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
   transitionId: string
-): null | Record<ID, number[][]> {
+): null | {
+  remove: Record<PlaceID, Set<number>>;
+  add: Record<PlaceID, number[][]>;
+} {
   const { simulation } = frame;
 
   // Get the transition from the simulation instance
@@ -102,14 +109,23 @@ export function computePossibleTransition(
       // Return result of the transition kernel as is (no stochasticity for now, only one result)
       const transitionKernelOutput = transitionKernelFn(tokenCombinationValues);
 
-      // Return a Record of PlaceID -> Token values to create
-      // to make it easier to process after.
-      return Object.fromEntries(
-        transitionKernelOutput.map((outputTokens, outputIndex) => {
-          const outputArc = transition.instance.outputArcs[outputIndex]!;
-          return [outputArc.placeId, outputTokens];
-        })
-      );
+      return {
+        // Map from place ID to set of token indices to remove
+        remove: Object.fromEntries(
+          tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
+            const inputArc = transition.instance.inputArcs[placeIndex]!;
+            return [inputArc.placeId, new Set(placeTokenIndices)];
+          })
+        ),
+        // Map from place ID to array of token values to
+        // create as per transition kernel output
+        add: Object.fromEntries(
+          transitionKernelOutput.map((outputTokens, outputIndex) => {
+            const outputArc = transition.instance.outputArcs[outputIndex]!;
+            return [outputArc.placeId, outputTokens];
+          })
+        ),
+      };
     }
   }
 
