@@ -361,7 +361,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .and_then(|table| {
                 // If a table is provided and we have a join on that table, we add the condition
                 self.statement.joins.iter_mut().find_map(|join| {
-                    if let JoinClause::Conditioned {
+                    if let JoinClause::On {
                         join: _,
                         from,
                         conditions,
@@ -1109,7 +1109,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut max_number = 0;
 
                 for existing in &self.statement.joins {
-                    let JoinClause::Conditioned {
+                    let JoinClause::On {
                         join: _,
                         from: existing_from,
                         conditions: existing_conditions,
@@ -1162,7 +1162,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = Cow::Owned(join_table.clone());
                     conditions.extend(relation.additional_conditions(&join_table));
-                    self.statement.joins.push(JoinClause::Conditioned {
+                    self.statement.joins.push(JoinClause::On {
                         join: join_type,
                         from: JoinFrom::Table {
                             table: TableReference {
