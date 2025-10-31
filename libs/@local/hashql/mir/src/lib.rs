@@ -19,7 +19,7 @@ extern crate alloc;
 pub mod body;
 pub mod def;
 pub mod intern;
-mod pretty;
+pub mod pretty;
 pub mod reify;
 
 #[cfg(test)]

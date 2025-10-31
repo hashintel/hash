@@ -1,15 +1,19 @@
-use std::io;
-
-use crate::body::Body;
+use crate::{
+    body::{Body, Source},
+    def::{DefId, DefIdSlice},
+};
 
 mod text;
+mod write;
 
-pub trait PrettyPrinter<W>
-where
-    W: io::Write,
-{
-    fn from_writer(writer: W) -> Self;
-    fn into_writer(self) -> W;
+pub use text::TextFormat;
 
-    fn pretty_body(&mut self, body: &Body) -> io::Result<()>;
+pub trait SourceLookup<'heap> {
+    fn source(&self, def: DefId) -> Option<Source<'heap>>;
+}
+
+impl<'heap> SourceLookup<'heap> for &DefIdSlice<Body<'heap>> {
+    fn source(&self, def: DefId) -> Option<Source<'heap>> {
+        self.get(def).map(|body| body.source)
+    }
 }

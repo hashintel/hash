@@ -2,18 +2,18 @@
 
 use std::io;
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::{id::Id, symbol::Symbol};
 use hashql_hir::node::{r#let::Binder, operation::InputOp};
 
-use super::PrettyPrinter;
+use super::{SourceLookup, write::WriteValue};
 use crate::{
     body::{
         Body, Source,
-        basic_block::BasicBlock,
+        basic_block::{BasicBlock, BasicBlockId},
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{FieldIndex, Place, Projection},
+        place::{Place, Projection},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -21,37 +21,110 @@ use crate::{
             Terminator, TerminatorKind,
         },
     },
-    def::DefId,
+    def::{DefId, DefIdSlice},
 };
 
-trait SourceLookup<'heap> {
-    fn source(&self, def: DefId) -> Option<Source<'heap>>;
+const fn source_keyword(source: Source<'_>) -> &'static str {
+    match source {
+        Source::Thunk(..) => "thunk",
+        Source::Ctor(_) | Source::Closure(..) | Source::Intrinsic(_) => "fn",
+    }
 }
 
-struct PrettyText<W, S> {
-    writer: W,
-    indent: usize,
-    sources: S,
+struct Signature<'body, 'heap>(&'body Body<'heap>);
+struct KeyValuePair<K, V>(K, V);
+
+pub struct TextFormat<W, S> {
+    pub writer: W,
+    pub indent: usize,
+    pub sources: S,
 }
 
-impl<'heap, W, S> PrettyText<W, S>
+impl<W, S> TextFormat<W, S>
+where
+    W: io::Write,
+{
+    pub fn format<'heap>(&mut self, bodies: &DefIdSlice<Body<'heap>>) -> io::Result<()>
+    where
+        S: SourceLookup<'heap>,
+    {
+        self.write_value(bodies)
+    }
+
+    fn separated_list<V>(
+        &mut self,
+        sep: &[u8],
+        values: impl IntoIterator<Item = V>,
+    ) -> io::Result<()>
+    where
+        Self: WriteValue<V>,
+    {
+        let mut values = values.into_iter();
+        let Some(first) = values.next() else {
+            return Ok(());
+        };
+
+        self.write_value(first)?;
+
+        for value in values {
+            self.writer.write_all(sep)?;
+            self.write_value(value)?;
+        }
+
+        Ok(())
+    }
+
+    fn csv<V>(&mut self, values: impl IntoIterator<Item = V>) -> io::Result<()>
+    where
+        Self: WriteValue<V>,
+    {
+        self.separated_list(b", ", values)
+    }
+
+    fn indent(&mut self, level: usize) -> io::Result<()> {
+        write!(self.writer, "{:width$}", "", width = level * self.indent)
+    }
+}
+
+impl<'heap, W, S> WriteValue<DefId> for TextFormat<W, S>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
 {
-    const fn source_kw(source: Source<'_>) -> &'static str {
-        match source {
-            Source::Thunk(..) => "thunk",
-            Source::Ctor(_) | Source::Closure(..) | Source::Intrinsic(_) => "fn",
+    fn write_value(&mut self, value: DefId) -> io::Result<()> {
+        let source = self.sources.source(value);
+        if let Some(source) = source {
+            self.write_value(source)
+        } else {
+            write!(self.writer, "{{def@{value}}}")
         }
     }
+}
 
-    fn local(&mut self, local: Local) -> io::Result<()> {
-        write!(self.writer, "%{local}")
+impl<'heap, W, S> WriteValue<Symbol<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, value: Symbol<'heap>) -> io::Result<()> {
+        write!(self.writer, "{value}")
     }
+}
 
-    fn place(&mut self, Place { local, projections }: Place) -> io::Result<()> {
-        self.local(local)?;
+impl<W, S> WriteValue<Local> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, value: Local) -> io::Result<()> {
+        write!(self.writer, "%{value}")
+    }
+}
+
+impl<'heap, W, S> WriteValue<Place<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, Place { local, projections }: Place<'heap>) -> io::Result<()> {
+        self.write_value(local)?;
 
         for projection in projections {
             match projection {
@@ -59,7 +132,7 @@ where
                 Projection::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
                 &Projection::Index(local) => {
                     write!(self.writer, "[")?;
-                    self.local(local)?;
+                    self.write_value(local)?;
                     write!(self.writer, "]")?;
                 }
             }
@@ -67,35 +140,43 @@ where
 
         Ok(())
     }
+}
 
-    fn def(&mut self, def: DefId) -> io::Result<()> {
-        let source = self.sources.source(def);
-        if let Some(source) = source {
-            self.source(source)
-        } else {
-            write!(self.writer, "{{def@{def}}}")
-        }
-    }
-
-    fn constant(&mut self, constant: Constant) -> io::Result<()> {
-        match constant {
+impl<'heap, W, S> WriteValue<Constant<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: Constant<'heap>) -> io::Result<()> {
+        match value {
             Constant::Primitive(primitive) => write!(self.writer, "{primitive}"),
             Constant::Unit => self.writer.write_all(b"()"),
             Constant::FnPtr(def) => {
-                self.def(def)?;
+                self.write_value(def)?;
                 self.writer.write_all(b" as FnPtr")
             }
         }
     }
+}
 
-    fn operand(&mut self, operand: Operand) -> io::Result<()> {
-        match operand {
-            Operand::Place(place) => self.place(place),
-            Operand::Constant(constant) => self.constant(constant),
+impl<'heap, W, S> WriteValue<Operand<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: Operand<'heap>) -> io::Result<()> {
+        match value {
+            Operand::Place(place) => self.write_value(place),
+            Operand::Constant(constant) => self.write_value(constant),
         }
     }
+}
 
-    fn source(&mut self, source: Source<'_>) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<Source<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, value: Source<'heap>) -> io::Result<()> {
         let mut named_symbol = |name, id, binder: Option<Binder<'_>>| {
             if let Some(binder) = binder {
                 if let Some(name) = binder.name {
@@ -108,7 +189,7 @@ where
             write!(self.writer, "{{{name}@{id}}}")
         };
 
-        match source {
+        match value {
             Source::Ctor(symbol) => {
                 write!(self.writer, "{{ctor#{symbol}}}")
             }
@@ -119,195 +200,242 @@ where
             }
         }
     }
+}
 
-    fn body_signature(&mut self, body: &Body) -> io::Result<()> {
-        write!(self.writer, "{} ", Self::source_kw(body.source))?;
-        self.source(body.source)?;
-
-        for i in 0..body.args {
-            if i > 0 {
-                self.writer.write_all(b", ")?;
-            }
-
-            self.local(Local::new(i))?;
-        }
-
-        Ok(())
-    }
-
-    fn indent(&mut self, level: usize) -> io::Result<()> {
-        write!(self.writer, "{:width$}", "", width = level * self.indent)
-    }
-
-    fn basic_block(&mut self, index: usize, block: &BasicBlock) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<(BasicBlockId, &BasicBlock<'heap>)> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
-        write!(self.writer, "bb{index}: {{")?;
+        write!(self.writer, "bb{id}: {{")?;
 
         for statement in &block.statements {
-            self.statement(statement)?;
+            self.write_value(statement)?;
             self.writer.write_all(b"\n")?;
         }
 
         self.writer.write_all(b"\n")?;
-        self.terminator(&block.terminator)?;
+        self.write_value(&block.terminator)?;
 
         self.indent(1)?;
         write!(self.writer, "}}")?;
 
         Ok(())
     }
+}
 
-    fn target(&mut self, target: Target) -> io::Result<()> {
-        write!(self.writer, "bb{}(", target.block)?;
-
-        self.csv(target.args.iter(), |this, &operand| this.operand(operand))?;
-
+impl<'heap, W, S> WriteValue<Target<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Target { block, args }: Target<'heap>) -> io::Result<()> {
+        write!(self.writer, "bb{block}(")?;
+        self.csv(args.iter().copied())?;
         write!(self.writer, ")")
     }
+}
 
-    fn graph_read_head(&mut self, head: GraphReadHead) -> io::Result<()> {
-        match head {
+impl<'body, 'heap, W, S> WriteValue<Signature<'body, 'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, Signature(body): Signature<'body, 'heap>) -> io::Result<()> {
+        write!(self.writer, "{} ", source_keyword(body.source))?;
+        self.write_value(body.source)?;
+
+        self.writer.write_all(b"(")?;
+        self.csv((0..body.args).map(Local::new))?;
+        self.writer.write_all(b")")?;
+
+        Ok(())
+    }
+}
+
+impl<'heap, W, S> WriteValue<GraphReadHead<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: GraphReadHead<'heap>) -> io::Result<()> {
+        match value {
             GraphReadHead::Entity { axis } => {
                 self.writer.write_all(b"entities(")?;
-                self.operand(axis)?;
+                self.write_value(axis)?;
                 self.writer.write_all(b")")
             }
         }
     }
+}
 
-    fn graph_read_body(&mut self, body: GraphReadBody) -> io::Result<()> {
-        match body {
+impl<'heap, W, S> WriteValue<GraphReadBody> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: GraphReadBody) -> io::Result<()> {
+        match value {
             GraphReadBody::Filter(def_id, local) => {
                 self.writer.write_all(b"filter(")?;
-                self.def(def_id)?;
+                self.write_value(def_id)?;
                 self.writer.write_all(b", ")?;
-                self.local(local)?;
+                self.write_value(local)?;
                 self.writer.write_all(b")")
             }
         }
     }
+}
 
-    fn graph_read_tail(&mut self, tail: GraphReadTail) -> io::Result<()> {
-        match tail {
+impl<W, S> WriteValue<GraphReadTail> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, value: GraphReadTail) -> io::Result<()> {
+        match value {
             GraphReadTail::Collect => self.writer.write_all(b"collect"),
         }
     }
+}
 
-    fn graph_read(
+impl<'heap, W, S> WriteValue<&GraphRead<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(
         &mut self,
         GraphRead {
             head,
             body,
             tail,
             target,
-        }: &GraphRead,
+        }: &GraphRead<'heap>,
     ) -> io::Result<()> {
         self.writer.write_all(b"graph read ")?;
-        self.graph_read_head(*head)?;
+        self.write_value(*head)?;
 
         for &body in body {
             self.writer.write_all(b"\n")?;
             self.indent(2)?;
             self.writer.write_all(b"|> ")?;
-            self.graph_read_body(body)?;
+            self.write_value(body)?;
         }
 
         self.writer.write_all(b"\n")?;
         self.indent(2)?;
         self.writer.write_all(b"|> ")?;
-        self.graph_read_tail(*tail)?;
+        self.write_value(*tail)?;
 
         write!(self.writer, " -> bb{target}(_)")
     }
+}
 
-    fn terminator(&mut self, terminator: &Terminator) -> io::Result<()> {
-        match &terminator.kind {
+impl<'heap, W, S> WriteValue<&Terminator<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Terminator { span: _, kind }: &Terminator<'heap>) -> io::Result<()> {
+        match kind {
             &TerminatorKind::Goto(Goto { target }) => {
                 write!(self.writer, "goto -> ")?;
-                self.target(target)
+                self.write_value(target)
             }
             &TerminatorKind::Branch(Branch { test, then, r#else }) => {
                 write!(self.writer, "if(")?;
-                self.operand(test)?;
+                self.write_value(test)?;
                 write!(self.writer, ") -> [0: ")?;
-                self.target(r#else)?;
+                self.write_value(r#else)?;
                 write!(self.writer, ", 1: ")?;
-                self.target(then)?;
+                self.write_value(then)?;
                 write!(self.writer, "]")
             }
             &TerminatorKind::Return(Return { value }) => {
                 write!(self.writer, "return ")?;
-                self.operand(value)
+                self.write_value(value)
             }
-            TerminatorKind::GraphRead(graph_read) => self.graph_read(graph_read),
+            TerminatorKind::GraphRead(graph_read) => self.write_value(graph_read),
             TerminatorKind::Unreachable => write!(self.writer, "-> !"),
         }
     }
+}
 
-    fn binary(&mut self, Binary { op, left, right }: Binary) -> io::Result<()> {
-        self.operand(left)?;
+impl<'heap, W, S> WriteValue<Binary<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Binary { op, left, right }: Binary<'heap>) -> io::Result<()> {
+        self.write_value(left)?;
         write!(self.writer, " {} ", op.as_str())?;
-        self.operand(right)
+        self.write_value(right)
     }
+}
 
-    fn unary(&mut self, Unary { op, operand }: Unary) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<Unary<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Unary { op, operand }: Unary<'heap>) -> io::Result<()> {
         write!(self.writer, "{}", op.as_str())?;
-        self.operand(operand)
+        self.write_value(operand)
     }
+}
 
-    fn csv<I>(
-        &mut self,
-        items: impl IntoIterator<Item = I>,
-        mut on_item: impl FnMut(&mut Self, I) -> io::Result<()>,
-    ) -> io::Result<()> {
-        let mut first = true;
-        for item in items {
-            if !first {
-                self.writer.write_all(b", ")?;
-            }
-
-            on_item(self, item)?;
-            first = false;
-        }
-        Ok(())
+impl<'heap, K, V, W, S> WriteValue<KeyValuePair<K, V>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+    Self: WriteValue<K> + WriteValue<V>,
+{
+    fn write_value(&mut self, KeyValuePair(key, value): KeyValuePair<K, V>) -> io::Result<()> {
+        self.write_value(key)?;
+        self.writer.write_all(b": ")?;
+        self.write_value(value)
     }
+}
 
-    fn aggregate(&mut self, Aggregate { kind, operands }: &Aggregate) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<&Aggregate<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Aggregate { kind, operands }: &Aggregate<'heap>) -> io::Result<()> {
         match kind {
             AggregateKind::Tuple => {
                 self.writer.write_all(b"(")?;
-                self.csv(operands.iter(), |this, operand| this.operand(*operand))?;
+                self.csv(operands.iter().copied())?;
                 self.writer.write_all(b")")
             }
             AggregateKind::Struct { fields } => {
                 self.writer.write_all(b"(")?;
 
                 self.csv(
-                    fields.iter().zip(operands.iter()),
-                    |this, (field, operand)| {
-                        this.writer.write_all(field.as_bytes())?;
-                        this.writer.write_all(b": ")?;
-                        this.operand(*operand)
-                    },
+                    fields
+                        .iter()
+                        .zip(operands.iter())
+                        .map(|(&key, &value)| KeyValuePair(key, value)),
                 )?;
 
                 self.writer.write_all(b")")
             }
             AggregateKind::List => {
                 self.writer.write_all(b"list(")?;
-                self.csv(operands.iter(), |this, operand| this.operand(*operand))?;
+                self.csv(operands.iter().copied())?;
                 self.writer.write_all(b")")
             }
             AggregateKind::Dict => {
                 self.writer.write_all(b"dict(")?;
 
                 self.csv(
-                    operands.iter().copied().array_chunks(),
-                    |this, [key, value]| {
-                        this.operand(key)?;
-                        this.writer.write_all(b": ")?;
-                        this.operand(value)
-                    },
+                    operands
+                        .iter()
+                        .copied()
+                        .array_chunks()
+                        .map(|[key, value]| KeyValuePair(key, value)),
                 )?;
 
                 self.writer.write_all(b")")
@@ -316,18 +444,23 @@ where
                 self.writer.write_all(b"opaque(")?;
                 self.writer.write_all(symbol.as_bytes())?;
                 self.writer.write_all(b", ")?;
-
+                self.csv(operands.iter().copied())?;
                 self.writer.write_all(b")")
             }
             AggregateKind::Closure => {
                 self.writer.write_all(b"closure(")?;
-                self.csv(operands.iter(), |this, operand| this.operand(*operand))?;
+                self.csv(operands.iter().copied())?;
                 self.writer.write_all(b")")
             }
         }
     }
+}
 
-    fn input(&mut self, Input { op, name }: &Input) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<Input<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn write_value(&mut self, Input { op, name }: Input<'heap>) -> io::Result<()> {
         self.writer.write_all(b"input ")?;
 
         match op {
@@ -339,76 +472,106 @@ where
             }
         }
 
-        self.writer.write_all(name.as_bytes())?;
-        self.writer.write_all(b")")
+        self.writer.write_all(name.as_bytes())
     }
+}
 
-    fn apply(
+impl<'heap, W, S> WriteValue<&Apply<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(
         &mut self,
         Apply {
             function,
             arguments,
-        }: &Apply,
+        }: &Apply<'heap>,
     ) -> io::Result<()> {
         self.writer.write_all(b"apply ")?;
-        self.operand(*function)?;
+        self.write_value(*function)?;
 
-        for (i, argument) in arguments.iter().enumerate() {
-            if i > 0 {
-                self.writer.write_all(b" ")?;
-            }
-
-            self.operand(*argument)?;
+        for argument in arguments.iter() {
+            self.writer.write_all(b" ")?;
+            self.write_value(*argument)?;
         }
 
         self.writer.write_all(b")")
     }
+}
 
-    fn rvalue(&mut self, rvalue: &RValue) -> io::Result<()> {
-        match rvalue {
-            &RValue::Load(operand) => self.operand(operand),
-            &RValue::Binary(binary) => self.binary(binary),
-            &RValue::Unary(unary) => self.unary(unary),
-            RValue::Aggregate(aggregate) => self.aggregate(aggregate),
-            RValue::Input(input) => self.input(input),
-            RValue::Apply(apply) => self.apply(apply),
+impl<'heap, W, S> WriteValue<&RValue<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: &RValue<'heap>) -> io::Result<()> {
+        match value {
+            &RValue::Load(operand) => self.write_value(operand),
+            &RValue::Binary(binary) => self.write_value(binary),
+            &RValue::Unary(unary) => self.write_value(unary),
+            RValue::Aggregate(aggregate) => self.write_value(aggregate),
+            &RValue::Input(input) => self.write_value(input),
+            RValue::Apply(apply) => self.write_value(apply),
         }
     }
+}
 
-    fn statement(&mut self, statement: &Statement) -> io::Result<()> {
+impl<'heap, W, S> WriteValue<&Statement<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, Statement { span: _, kind }: &Statement<'heap>) -> io::Result<()> {
         self.indent(2)?;
 
-        match &statement.kind {
+        match kind {
             StatementKind::Assign(Assign { lhs, rhs }) => {
-                self.place(*lhs)?;
+                self.write_value(*lhs)?;
                 self.writer.write_all(b" = ")?;
-                self.rvalue(rhs)
+                self.write_value(rhs)
             }
             StatementKind::Nop => self.writer.write_all(b"nop"),
             &StatementKind::StorageLive(local) => {
                 self.writer.write_all(b"let ")?;
-                self.local(local)
+                self.write_value(local)
             }
             &StatementKind::StorageDead(local) => {
                 self.writer.write_all(b"drop ")?;
-                self.local(local)
+                self.write_value(local)
             }
         }
     }
+}
 
-    fn body(&mut self, body: &Body) -> io::Result<()> {
-        self.body_signature(body)?;
+impl<'heap, W, S> WriteValue<&Body<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: &Body<'heap>) -> io::Result<()> {
+        self.write_value(Signature(value))?;
         self.writer.write_all(b" {\n")?;
 
-        for (index, block) in body.basic_blocks.iter().enumerate() {
-            if index > 0 {
+        for (index, block) in value.basic_blocks.iter_enumerated() {
+            if index.as_usize() > 0 {
                 self.writer.write_all(b"\n\n")?;
             }
 
-            self.basic_block(index, block)?;
+            self.write_value((index, block))?;
         }
 
         self.writer.write_all(b"}")?;
         Ok(())
+    }
+}
+
+impl<'heap, W, S> WriteValue<&DefIdSlice<Body<'heap>>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn write_value(&mut self, value: &DefIdSlice<Body<'heap>>) -> io::Result<()> {
+        self.separated_list(b"\n\n", value.iter())
     }
 }
