@@ -24,7 +24,7 @@ use hashql_hir::{
         HirId, Node,
         closure::Closure,
         kind::NodeKind,
-        r#let::{Let, VarId, VarIdVec},
+        r#let::{Binder, Let, VarId, VarIdVec},
         operation::TypeConstructor,
         thunk::Thunk,
         variable::Variable,
@@ -184,7 +184,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         // In the future we might want to specialize `ctor` in a way that allows us to move them to
         // be thin calls (although that would require that we move functions into a separate type
         // from closures).
-        let env = if matches!(source, Source::Closure | Source::Ctor(_)) {
+        let env = if matches!(source, Source::Closure(_) | Source::Ctor(_)) {
             let local = self.local_counter.next();
             args += 1;
 
@@ -255,10 +255,11 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         self,
         span: SpanId,
         captures: &MixedBitSet<VarId>,
+        binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
     ) -> DefId {
         self.lower_impl(
-            Source::Closure,
+            Source::Closure(binder),
             span,
             closure.signature.params.iter().map(|param| param.name.id),
             Some(captures),
@@ -270,9 +271,9 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     ///
     /// Thunks have no parameters or captures, making them the simplest
     /// construct to lower.
-    fn lower_thunk(self, span: SpanId, thunk: Thunk<'heap>) -> DefId {
+    fn lower_thunk(self, span: SpanId, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
         self.lower_impl(
-            Source::Thunk,
+            Source::Thunk(Some(binder)),
             span,
             [] as [VarId; 0],
             None,
@@ -444,7 +445,7 @@ pub fn from_hir<'heap>(
         };
 
         let compiler = Reifier::new(context, &mut state);
-        let def_id = compiler.lower_thunk(binding.value.span, thunk);
+        let def_id = compiler.lower_thunk(binding.value.span, binding.binder, thunk);
         state.thunks.insert(binding.binder.id, def_id);
     }
 

@@ -8,7 +8,7 @@ use hashql_hir::node::{
     closure::Closure,
     data::{Data, Dict, List, Struct, Tuple},
     kind::NodeKind,
-    r#let::VarId,
+    r#let::Binder,
     operation::{
         BinaryOperation, InputOperation, Operation, TypeConstructor, TypeOperation, UnaryOperation,
     },
@@ -258,9 +258,10 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         span: SpanId,
+        binder: Binder<'heap>,
         closure: Closure<'heap>,
     ) -> RValue<'heap> {
-        let (ptr, env) = self.transform_closure(block, span, closure);
+        let (ptr, env) = self.transform_closure(block, span, Some(binder), closure);
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
@@ -274,11 +275,16 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         })
     }
 
-    fn rvalue_thunk(&mut self, span: SpanId, var: VarId, thunk: Thunk<'heap>) -> RValue<'heap> {
+    fn rvalue_thunk(
+        &mut self,
+        span: SpanId,
+        binder: Binder<'heap>,
+        thunk: Thunk<'heap>,
+    ) -> RValue<'heap> {
         // Thunks have no dependencies, and therefore no captures
         let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_thunk(span, thunk);
-        self.state.thunks.insert(var, ptr);
+        let ptr = compiler.lower_thunk(span, binder, thunk);
+        self.state.thunks.insert(binder.id, ptr);
 
         RValue::Load(Operand::Constant(Constant::FnPtr(ptr)))
     }
@@ -286,7 +292,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     pub(super) fn rvalue(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
-        var: VarId,
+        binder: Binder<'heap>,
         local: Local,
         node: Node<'heap>,
     ) -> Option<RValue<'heap>> {
@@ -307,8 +313,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let () = self.terminator_branch(block, local, node.span, branch);
                 return None;
             }
-            NodeKind::Closure(closure) => self.rvalue_closure(block, node.span, closure),
-            NodeKind::Thunk(thunk) => self.rvalue_thunk(node.span, var, thunk),
+            NodeKind::Closure(closure) => self.rvalue_closure(block, node.span, binder, closure),
+            NodeKind::Thunk(thunk) => self.rvalue_thunk(node.span, binder, thunk),
             NodeKind::Graph(graph) => {
                 // This turns into a terminator, and therefore does not contribute a statement
                 let () = self.terminator_graph(block, local, node.span, graph);

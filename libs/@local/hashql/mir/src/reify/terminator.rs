@@ -56,7 +56,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     return GraphReadBody::Filter(DefId::MAX, Local::MAX);
                 };
 
-                let (ptr, env) = self.transform_closure(block, filter.span, closure);
+                let (ptr, env) = self.transform_closure(block, filter.span, None, closure);
                 GraphReadBody::Filter(ptr, env)
             }
         }

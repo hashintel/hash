@@ -9,6 +9,7 @@
 //! that form the control-flow graph of the function.
 
 use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol};
+use hashql_hir::node::r#let::Binder;
 
 use self::basic_block::{BasicBlock, BasicBlockVec};
 use crate::def::DefId;
@@ -46,7 +47,7 @@ pub enum Source<'heap> {
     ///
     /// Closure bodies typically have arguments that include both the closure's
     /// parameters and any captured variables that need to be passed in.
-    Closure, // TODO: locator through `(PackageId, LocalId)`
+    Closure(Option<Binder<'heap>>), // TODO: locator through `(PackageId, LocalId)`
 
     /// A constant evaluation thunk.
     ///
@@ -58,7 +59,7 @@ pub enum Source<'heap> {
     /// and they typically end with a [`Return`] statement providing the constant value.
     ///
     /// [`Return`]: crate::body::terminator::Return
-    Thunk, // TODO: locator through `(PackageId, LocalId)`
+    Thunk(Option<Binder<'heap>>), // TODO: locator through `(PackageId, LocalId)`
 
     /// A compiler intrinsic function.
     ///

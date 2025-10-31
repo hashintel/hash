@@ -8,7 +8,7 @@ use hashql_hir::{
         Node,
         closure::Closure,
         kind::NodeKind,
-        r#let::{Binding, Let},
+        r#let::{Binder, Binding, Let},
     },
     visit::Visitor as _,
 };
@@ -30,6 +30,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
         span: SpanId,
+        binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
     ) -> (DefId, Local) {
         let mut dependencies = VariableDependencies::from_set(self.state.var_pool.acquire());
@@ -47,7 +48,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let captures = dependencies;
 
         let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_closure(span, &captures, closure);
+        let ptr = compiler.lower_closure(span, &captures, binder, closure);
 
         // Now we need to do environment capture, for that create a tuple aggregate of all the
         // captured variables in a new local
@@ -90,7 +91,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let local = self.local_counter.next();
         self.locals.insert(binding.binder.id, local);
 
-        if let Some(rvalue) = self.rvalue(block, binding.binder.id, local, binding.value) {
+        if let Some(rvalue) = self.rvalue(block, binding.binder, local, binding.value) {
             block.push_statement(Statement {
                 span: binding.span,
                 kind: StatementKind::Assign(Assign {

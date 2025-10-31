@@ -10,6 +10,7 @@
 
     // Library Features
     allocator_api,
+    formatting_options,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
@@ -17,6 +18,7 @@ extern crate alloc;
 pub mod body;
 pub mod def;
 pub mod intern;
+mod pretty;
 pub mod reify;
 
 #[cfg(test)]
