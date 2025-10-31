@@ -1,4 +1,5 @@
-import type { ID, SimulationFrame } from "../types";
+import type { ID } from "../types/sdcpn";
+import type { SimulationFrame } from "../types/simulation";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
 
@@ -20,7 +21,7 @@ type PlaceID = ID;
  */
 function addTokensToSimulationFrame(
   frame: SimulationFrame,
-  tokensToAdd: Map<PlaceID, number[][]>
+  tokensToAdd: Map<PlaceID, number[][]>,
 ): SimulationFrame {
   // If no tokens to add, return frame as-is
   if (tokensToAdd.size === 0) {
@@ -32,7 +33,7 @@ function addTokensToSimulationFrame(
     const placeState = frame.places.get(placeId);
     if (!placeState) {
       throw new Error(
-        `Place with ID ${placeId} not found in simulation frame.`
+        `Place with ID ${placeId} not found in simulation frame.`,
       );
     }
 
@@ -41,7 +42,7 @@ function addTokensToSimulationFrame(
     for (const token of tokens) {
       if (token.length !== expectedDimensions) {
         throw new Error(
-          `Token dimension mismatch for place ${placeId}. Expected ${expectedDimensions}, got ${token.length}.`
+          `Token dimension mismatch for place ${placeId}. Expected ${expectedDimensions}, got ${token.length}.`,
         );
       }
     }
@@ -60,7 +61,7 @@ function addTokensToSimulationFrame(
 
   // Process places in order of their offsets to build the new buffer
   const placesByOffset = Array.from(frame.places.entries()).sort(
-    (a, b) => a[1].offset - b[1].offset
+    (a, b) => a[1].offset - b[1].offset,
   );
 
   const newPlaces = new Map(frame.places);
@@ -151,11 +152,11 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
       const tokensToRemove = new Map<PlaceID, Set<number>>(
-        Object.entries(result.remove)
+        Object.entries(result.remove),
       );
       currentFrame = removeTokensFromSimulationFrame(
         currentFrame,
-        tokensToRemove
+        tokensToRemove,
       );
 
       // Accumulate tokens to add
