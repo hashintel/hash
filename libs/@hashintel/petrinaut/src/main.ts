@@ -1,1 +1,1 @@
-export * from "./petrinaut";
+export * from "./petrinaut-sdcpn";
