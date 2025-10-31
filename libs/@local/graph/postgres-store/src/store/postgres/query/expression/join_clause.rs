@@ -67,6 +67,16 @@ pub enum JoinFrom {
         ///
         /// Required for subqueries, as they must be named to be referenced in conditions.
         alias: TableReference<'static>,
+        /// Whether this is a LATERAL subquery.
+        ///
+        /// When `true`, the subquery can reference columns from preceding FROM items.
+        /// Transpiles to: `LATERAL (SELECT ...) AS alias`
+        ///
+        /// LATERAL is particularly useful for:
+        /// - Correlated subqueries that depend on values from earlier tables
+        /// - Set-returning functions that need to reference preceding columns
+        /// - Per-row computations that require context from other tables
+        lateral: bool,
     },
 }
 
@@ -110,7 +120,14 @@ impl JoinFrom {
                 }
                 Ok(())
             }
-            Self::Subquery { statement, alias } => {
+            Self::Subquery {
+                statement,
+                alias,
+                lateral,
+            } => {
+                if *lateral {
+                    fmt.write_str("LATERAL ")?;
+                }
                 fmt.write_char('(')?;
                 statement.transpile(fmt)?;
                 fmt.write_str(") AS ")?;
@@ -131,7 +148,9 @@ impl JoinFrom {
 pub enum JoinClause {
     /// A join with explicit ON conditions.
     ///
-    /// Transpiles to: `<JOIN TYPE> "table" ON condition1 AND condition2`
+    /// Transpiles to:
+    /// - Non-empty: `<JOIN TYPE> "table" ON condition1 AND condition2`
+    /// - Empty: `<JOIN TYPE> "table" ON TRUE` (cartesian product)
     On {
         /// The type of join (INNER, LEFT OUTER, etc.).
         join: JoinType,
@@ -142,16 +161,26 @@ pub enum JoinClause {
         /// Multiple conditions are supported for composite joins (e.g., multi-column
         /// foreign keys). All conditions are combined with `AND` in the `ON` clause.
         ///
-        /// Must contain at least one condition (validated during transpilation).
+        /// When empty, transpiles to `ON TRUE`, producing a cartesian product.
         conditions: Vec<Condition>,
     },
     /// A join using a USING clause with specified column names.
     ///
-    /// Transpiles to: `<JOIN TYPE> "table" USING ("col1", "col2")`
+    /// Transpiles to:
+    /// - Empty columns: `<JOIN TYPE> "table" ON TRUE` (cartesian product)
+    /// - Without alias: `<JOIN TYPE> "table" USING ("col1", "col2")`
+    /// - With alias: `<JOIN TYPE> "table" USING ("col1", "col2") AS "join_alias"`
     ///
     /// The USING clause specifies column names that must exist in both tables.
     /// PostgreSQL will join rows where these columns have equal values.
     /// The specified columns appear only once in the result set.
+    ///
+    /// When `columns` is empty, transpiles to `ON TRUE` for consistency with PostgreSQL's
+    /// NATURAL JOIN behavior (which produces a cartesian product when no common columns exist).
+    ///
+    /// The optional `join_using_alias` provides a table alias that can reference the joined
+    /// columns. Unlike a regular table alias, this only makes the USING columns addressable,
+    /// not other columns from the joined tables.
     Using {
         /// The type of join (INNER, LEFT OUTER, etc.).
         join: JoinType,
@@ -162,8 +191,18 @@ pub enum JoinClause {
         /// These columns must exist in both the left and right tables.
         /// Multiple columns are supported for composite joins.
         ///
-        /// Must contain at least one column (validated during transpilation).
+        /// When empty, transpiles to `ON TRUE`, producing a cartesian product.
+        /// This is consistent with PostgreSQL's NATURAL JOIN behavior when no common
+        /// column names exist.
         columns: Vec<ColumnName<'static>>,
+        /// Optional alias for referencing the join columns.
+        ///
+        /// When present, provides a table alias that can only reference columns listed in
+        /// the USING clause. This does not hide the names of the joined tables from the rest
+        /// of the query, and you cannot use this alias to reference other columns.
+        ///
+        /// Transpiles to: `AS "join_alias"`
+        join_using_alias: Option<TableReference<'static>>,
     },
     /// A CROSS JOIN producing the cartesian product of both tables.
     ///
@@ -187,7 +226,7 @@ pub enum JoinClause {
 
 impl JoinClause {
     #[must_use]
-    #[expect(clippy::wrong_self_convention)]
+    #[expect(clippy::wrong_self_convention, reason = "from_item is a field")]
     pub const fn from_item(&self) -> &JoinFrom {
         match self {
             Self::On { from, .. }
@@ -198,7 +237,7 @@ impl JoinClause {
     }
 
     #[must_use]
-    #[expect(clippy::wrong_self_convention)]
+    #[expect(clippy::wrong_self_convention, reason = "from_item is a field")]
     pub const fn from_item_mut(&mut self) -> &mut JoinFrom {
         match self {
             Self::On { from, .. }
@@ -210,7 +249,6 @@ impl JoinClause {
 }
 
 impl Transpile for JoinClause {
-    #[expect(clippy::panic_in_result_fn)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::On {
@@ -218,44 +256,54 @@ impl Transpile for JoinClause {
                 from,
                 conditions,
             } => {
-                assert!(
-                    !conditions.is_empty(),
-                    "ON JOIN expressions require at least one condition"
-                );
-
                 join.transpile(fmt)?;
                 fmt.write_char(' ')?;
                 from.transpile(fmt)?;
                 fmt.write_str(" ON ")?;
-                for (i, condition) in conditions.iter().enumerate() {
-                    if i > 0 {
-                        fmt.write_str(" AND ")?;
+
+                if conditions.is_empty() {
+                    fmt.write_str("TRUE")
+                } else {
+                    for (i, condition) in conditions.iter().enumerate() {
+                        if i > 0 {
+                            fmt.write_str(" AND ")?;
+                        }
+                        condition.transpile(fmt)?;
                     }
-                    condition.transpile(fmt)?;
+                    Ok(())
                 }
-                Ok(())
             }
             Self::Using {
                 join,
                 from,
                 columns,
+                join_using_alias,
             } => {
-                assert!(
-                    !columns.is_empty(),
-                    "USING JOIN expressions require at least one column"
-                );
-
                 join.transpile(fmt)?;
                 fmt.write_char(' ')?;
                 from.transpile(fmt)?;
-                fmt.write_str(" USING (")?;
-                for (i, column) in columns.iter().enumerate() {
-                    if i > 0 {
-                        fmt.write_str(", ")?;
+
+                if columns.is_empty() {
+                    // Empty USING list produces ON TRUE (cartesian product),
+                    // consistent with NATURAL JOIN behavior when no common columns exist
+                    fmt.write_str(" ON TRUE")
+                } else {
+                    fmt.write_str(" USING (")?;
+                    for (i, column) in columns.iter().enumerate() {
+                        if i > 0 {
+                            fmt.write_str(", ")?;
+                        }
+                        column.transpile(fmt)?;
                     }
-                    column.transpile(fmt)?;
+                    fmt.write_char(')')?;
+
+                    if let Some(alias) = join_using_alias {
+                        fmt.write_str(" AS ")?;
+                        alias.transpile(fmt)?;
+                    }
+
+                    Ok(())
                 }
-                fmt.write_char(')')
             }
             Self::Cross { from } => {
                 fmt.write_str("CROSS JOIN ")?;
@@ -273,9 +321,13 @@ impl Transpile for JoinClause {
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
+
     use super::*;
     use crate::store::postgres::query::{
-        Alias, ForeignKeyReference, Table,
+        Alias, Expression, ForeignKeyReference, OrderByExpression, Table,
+        expression::{GroupByExpression, SelectExpression, WhereExpression, WithExpression},
+        statement::FromItem,
         table::{Column, DataTypes, OntologyIds},
     };
 
@@ -312,17 +364,33 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "ON JOIN expressions require at least one condition")]
     fn transpile_on_join_empty_conditions() {
-        _ = JoinClause::On {
-            join: JoinType::Inner,
-            from: JoinFrom::Table {
-                table: Table::OntologyIds.into(),
-                alias: None,
-            },
-            conditions: vec![],
-        }
-        .transpile_to_string();
+        assert_eq!(
+            JoinClause::On {
+                join: JoinType::Inner,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                conditions: vec![],
+            }
+            .transpile_to_string(),
+            r#"INNER JOIN "ontology_ids" ON TRUE"#
+        );
+
+        // Also test with LEFT OUTER JOIN to show it works with all join types
+        assert_eq!(
+            JoinClause::On {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                conditions: vec![],
+            }
+            .transpile_to_string(),
+            r#"LEFT OUTER JOIN "ontology_ids" ON TRUE"#
+        );
     }
 
     #[test]
@@ -337,6 +405,7 @@ mod tests {
                 columns: vec![ColumnName::from(Column::OntologyIds(
                     OntologyIds::OntologyId
                 ))],
+                join_using_alias: None,
             }
             .transpile_to_string(),
             r#"INNER JOIN "ontology_ids" USING ("ontology_id")"#
@@ -354,6 +423,7 @@ mod tests {
                     ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
                     ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
                 ],
+                join_using_alias: None,
             }
             .transpile_to_string(),
             r#"LEFT OUTER JOIN "ontology_ids" USING ("base_url", "version")"#
@@ -361,17 +431,84 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "USING JOIN expressions require at least one column")]
+    fn transpile_using_join_with_alias() {
+        use super::super::table_reference::TableName;
+
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::Inner,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![ColumnName::from(Column::OntologyIds(
+                    OntologyIds::OntologyId
+                ))],
+                join_using_alias: Some(TableReference {
+                    schema: None,
+                    name: TableName::from("joined_ids"),
+                    alias: None,
+                }),
+            }
+            .transpile_to_string(),
+            r#"INNER JOIN "ontology_ids" USING ("ontology_id") AS "joined_ids""#
+        );
+
+        // Multiple columns with alias
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![
+                    ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
+                    ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
+                ],
+                join_using_alias: Some(TableReference {
+                    schema: None,
+                    name: TableName::from("versioned_ids"),
+                    alias: None,
+                }),
+            }
+            .transpile_to_string(),
+            r#"LEFT OUTER JOIN "ontology_ids" USING ("base_url", "version") AS "versioned_ids""#
+        );
+    }
+
+    #[test]
     fn transpile_using_join_empty_columns() {
-        _ = JoinClause::Using {
-            join: JoinType::Inner,
-            from: JoinFrom::Table {
-                table: Table::OntologyIds.into(),
-                alias: None,
-            },
-            columns: vec![],
-        }
-        .transpile_to_string();
+        // Empty USING list transpiles to ON TRUE (cartesian product),
+        // consistent with NATURAL JOIN when no common columns exist
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::Inner,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![],
+                join_using_alias: None,
+            }
+            .transpile_to_string(),
+            r#"INNER JOIN "ontology_ids" ON TRUE"#
+        );
+
+        // Also test with LEFT OUTER JOIN
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![],
+                join_using_alias: None,
+            }
+            .transpile_to_string(),
+            r#"LEFT OUTER JOIN "ontology_ids" ON TRUE"#
+        );
     }
 
     #[test]
@@ -385,6 +522,78 @@ mod tests {
             }
             .transpile_to_string(),
             r#"CROSS JOIN "ontology_ids""#
+        );
+    }
+
+    #[test]
+    fn transpile_lateral_subquery() {
+        let subquery = SelectStatement {
+            with: WithExpression::default(),
+            distinct: vec![],
+            selects: vec![SelectExpression::Asterisk(None)],
+            from: FromItem::Table {
+                table: Table::OntologyIds,
+                alias: None,
+            },
+            joins: vec![],
+            where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
+            group_by_expression: GroupByExpression::default(),
+            limit: None,
+        };
+
+        // Without LATERAL
+        assert_eq!(
+            JoinClause::On {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Subquery {
+                    statement: Box::new(subquery.clone()),
+                    alias: Table::OntologyIds.aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 1,
+                        number: 2,
+                    }),
+                    lateral: false,
+                },
+                conditions: vec![Condition::Equal(
+                    Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+                    Expression::ColumnReference(
+                        Column::OntologyIds(OntologyIds::OntologyId).into()
+                    ),
+                )],
+            }
+            .transpile_to_string(),
+            indoc! {r#"
+                LEFT OUTER JOIN (SELECT *
+                FROM "ontology_ids") AS "ontology_ids_0_1_2" ON "data_types"."ontology_id" = "ontology_ids"."ontology_id"
+            "#}.trim()
+        );
+
+        // With LATERAL
+        assert_eq!(
+            JoinClause::On {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Subquery {
+                    statement: Box::new(subquery),
+                    alias: Table::OntologyIds.aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 1,
+                        number: 2,
+                    }),
+                    lateral: true,
+                },
+                conditions: vec![Condition::Equal(
+                    Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+                    Expression::ColumnReference(
+                        Column::OntologyIds(OntologyIds::OntologyId).into()
+                    ),
+                )],
+            }
+            .transpile_to_string(),
+            indoc! {r#"
+                LEFT OUTER JOIN LATERAL (SELECT *
+                FROM "ontology_ids") AS "ontology_ids_0_1_2" ON "data_types"."ontology_id" = "ontology_ids"."ontology_id"
+            "#}.trim()
         );
     }
 

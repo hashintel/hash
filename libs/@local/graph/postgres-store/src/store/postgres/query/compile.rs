@@ -672,6 +672,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 limit: None,
                             }),
                             alias: last_reference_table.clone(),
+                            lateral: false,
                         };
                     }
 
