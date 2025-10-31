@@ -103,7 +103,7 @@
     "nanoid": "3.3.11",
     "nodemailer": "6.10.1",
     "oembed-providers": "1.0.20250926",
-    "openai": "4.104.0",
+    "openai": "6.6.0",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",

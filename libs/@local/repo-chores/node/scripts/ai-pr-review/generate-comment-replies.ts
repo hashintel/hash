@@ -11,7 +11,6 @@
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
-import { sleep } from "@anthropic-ai/sdk/core";
 import type { HydratedLinearIssue } from "@local/hash-backend-utils/linear";
 import chalk from "chalk";
 import { z } from "zod";
@@ -19,6 +18,7 @@ import zodToJsonSchema, {
   type JsonSchema7ObjectType,
 } from "zod-to-json-schema";
 
+import { sleep } from "../shared/time";
 import type { ExistingCommentThread } from "./get-pr-comments";
 
 export const CommentReplySchema = z.object({
