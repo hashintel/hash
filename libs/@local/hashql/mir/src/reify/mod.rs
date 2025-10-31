@@ -21,7 +21,7 @@ use hashql_diagnostics::{Failure, Status};
 use hashql_hir::{
     context::HirContext,
     node::{
-        HirId, Node,
+        HirPtr, Node,
         closure::Closure,
         kind::NodeKind,
         r#let::{Binder, Let, VarId, VarIdVec},
@@ -184,7 +184,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         // In the future we might want to specialize `ctor` in a way that allows us to move them to
         // be thin calls (although that would require that we move functions into a separate type
         // from closures).
-        let env = if matches!(source, Source::Closure(_) | Source::Ctor(_)) {
+        let env = if matches!(source, Source::Closure(_, _) | Source::Ctor(_)) {
             let local = self.local_counter.next();
             args += 1;
 
@@ -253,14 +253,14 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     /// as environment parameters and unpacked into local variables.
     fn lower_closure(
         self,
-        span: SpanId,
+        hir: HirPtr,
         captures: &MixedBitSet<VarId>,
         binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
     ) -> DefId {
         self.lower_impl(
-            Source::Closure(binder),
-            span,
+            Source::Closure(hir.id, binder),
+            hir.span,
             closure.signature.params.iter().map(|param| param.name.id),
             Some(captures),
             |this, block| this.transform_body(block, closure.body),
@@ -271,10 +271,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     ///
     /// Thunks have no parameters or captures, making them the simplest
     /// construct to lower.
-    fn lower_thunk(self, span: SpanId, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
+    fn lower_thunk(self, hir: HirPtr, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
         self.lower_impl(
-            Source::Thunk(Some(binder)),
-            span,
+            Source::Thunk(hir.id, Some(binder)),
+            hir.span,
             [] as [VarId; 0],
             None,
             |this, block| this.transform_body(block, thunk.body),
@@ -285,9 +285,9 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     ///
     /// Type constructors create instances of opaque types. They may take
     /// parameters depending on their signature.
-    fn lower_ctor(self, hir_id: HirId, span: SpanId, ctor: TypeConstructor<'heap>) -> DefId {
+    fn lower_ctor(self, hir: HirPtr, ctor: TypeConstructor<'heap>) -> DefId {
         let closure_type = unwrap_closure_type(
-            self.context.hir.map.type_id(hir_id),
+            self.context.hir.map.type_id(hir.id),
             self.context.environment,
         );
 
@@ -299,38 +299,44 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             Some(VarId::new(0))
         };
 
-        self.lower_impl(Source::Ctor(ctor.name), span, param, None, |this, block| {
-            let output = this.local_counter.next();
-            let lhs = Place::local(output, this.context.interner);
+        self.lower_impl(
+            Source::Ctor(ctor.name),
+            hir.span,
+            param,
+            None,
+            |this, block| {
+                let output = this.local_counter.next();
+                let lhs = Place::local(output, this.context.interner);
 
-            let operand = if let Some(param) = param {
-                Operand::Place(Place::local(
-                    this.locals[param]
-                        .unwrap_or_else(|| unreachable!("We just verified this local exists")),
-                    this.context.interner,
-                ))
-            } else {
-                Operand::Constant(Constant::Unit)
-            };
+                let operand = if let Some(param) = param {
+                    Operand::Place(Place::local(
+                        this.locals[param]
+                            .unwrap_or_else(|| unreachable!("We just verified this local exists")),
+                        this.context.interner,
+                    ))
+                } else {
+                    Operand::Constant(Constant::Unit)
+                };
 
-            let mut operands = IdVec::with_capacity_in(1, this.context.heap);
-            operands.push(operand);
+                let mut operands = IdVec::with_capacity_in(1, this.context.heap);
+                operands.push(operand);
 
-            let rhs = RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Opaque(ctor.name),
-                operands,
-            });
+                let rhs = RValue::Aggregate(Aggregate {
+                    kind: AggregateKind::Opaque(ctor.name),
+                    operands,
+                });
 
-            block.push_statement(Statement {
-                span,
-                kind: StatementKind::Assign(Assign { lhs, rhs }),
-            });
+                block.push_statement(Statement {
+                    span: hir.span,
+                    kind: StatementKind::Assign(Assign { lhs, rhs }),
+                });
 
-            Spanned {
-                value: Operand::Place(lhs),
-                span,
-            }
-        })
+                Spanned {
+                    value: Operand::Place(lhs),
+                    span: hir.span,
+                }
+            },
+        )
     }
 }
 
@@ -445,7 +451,7 @@ pub fn from_hir<'heap>(
         };
 
         let compiler = Reifier::new(context, &mut state);
-        let def_id = compiler.lower_thunk(binding.value.span, binding.binder, thunk);
+        let def_id = compiler.lower_thunk(binding.value.ptr(), binding.binder, thunk);
         state.thunks.insert(binding.binder.id, def_id);
     }
 

@@ -1,9 +1,6 @@
-use hashql_core::{
-    id::{Id as _, IdVec},
-    span::SpanId,
-};
+use hashql_core::id::{Id as _, IdVec};
 use hashql_hir::node::{
-    HirId, Node,
+    HirPtr, Node,
     call::{Call, CallArgument, PointerKind},
     closure::Closure,
     data::{Data, Dict, List, Struct, Tuple},
@@ -88,13 +85,12 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
     fn rvalue_type_operation(
         &mut self,
-        hir_id: HirId,
-        span: SpanId,
+        hir: HirPtr,
         operation: TypeOperation<'heap>,
     ) -> RValue<'heap> {
         match operation {
             TypeOperation::Assertion(_) => {
-                self.state.diagnostics.push(unexpected_assertion(span));
+                self.state.diagnostics.push(unexpected_assertion(hir.span));
 
                 // Return a bogus value, so that lowering can continue
                 RValue::Load(Operand::Constant(Constant::Unit))
@@ -105,7 +101,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 }
 
                 let compiler = Reifier::new(self.context, self.state);
-                let ptr = compiler.lower_ctor(hir_id, span, ctor);
+                let ptr = compiler.lower_ctor(hir, ctor);
                 self.state.ctor.insert(name, ptr);
 
                 let ptr = Operand::Constant(Constant::FnPtr(ptr));
@@ -157,16 +153,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         })
     }
 
-    fn rvalue_operation(
-        &mut self,
-        hir_id: HirId,
-        span: SpanId,
-        operation: Operation<'heap>,
-    ) -> RValue<'heap> {
+    fn rvalue_operation(&mut self, hir: HirPtr, operation: Operation<'heap>) -> RValue<'heap> {
         match operation {
-            Operation::Type(type_operation) => {
-                self.rvalue_type_operation(hir_id, span, type_operation)
-            }
+            Operation::Type(type_operation) => self.rvalue_type_operation(hir, type_operation),
             Operation::Binary(binary_operation) => self.rvalue_binary_operation(binary_operation),
             Operation::Unary(unary_operation, _) => self.rvalue_unary_operation(unary_operation),
             Operation::Input(input_operation) => Self::rvalue_input_operation(input_operation),
@@ -257,11 +246,11 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     fn rvalue_closure(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
-        span: SpanId,
+        hir: HirPtr,
         binder: Binder<'heap>,
         closure: Closure<'heap>,
     ) -> RValue<'heap> {
-        let (ptr, env) = self.transform_closure(block, span, Some(binder), closure);
+        let (ptr, env) = self.transform_closure(block, hir, Some(binder), closure);
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
@@ -277,13 +266,13 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
     fn rvalue_thunk(
         &mut self,
-        span: SpanId,
+        hir: HirPtr,
         binder: Binder<'heap>,
         thunk: Thunk<'heap>,
     ) -> RValue<'heap> {
         // Thunks have no dependencies, and therefore no captures
         let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_thunk(span, binder, thunk);
+        let ptr = compiler.lower_thunk(hir, binder, thunk);
         self.state.thunks.insert(binder.id, ptr);
 
         RValue::Load(Operand::Constant(Constant::FnPtr(ptr)))
@@ -305,7 +294,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     .push(nested_let_bindings_in_anf(node.span));
                 return None;
             }
-            NodeKind::Operation(operation) => self.rvalue_operation(node.id, node.span, operation),
+            NodeKind::Operation(operation) => self.rvalue_operation(node.ptr(), operation),
             NodeKind::Access(_) => self.rvalue_access(node),
             NodeKind::Call(call) => self.rvalue_call(call),
             NodeKind::Branch(branch) => {
@@ -313,8 +302,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let () = self.terminator_branch(block, local, node.span, branch);
                 return None;
             }
-            NodeKind::Closure(closure) => self.rvalue_closure(block, node.span, binder, closure),
-            NodeKind::Thunk(thunk) => self.rvalue_thunk(node.span, binder, thunk),
+            NodeKind::Closure(closure) => self.rvalue_closure(block, node.ptr(), binder, closure),
+            NodeKind::Thunk(thunk) => self.rvalue_thunk(node.ptr(), binder, thunk),
             NodeKind::Graph(graph) => {
                 // This turns into a terminator, and therefore does not contribute a statement
                 let () = self.terminator_graph(block, local, node.span, graph);

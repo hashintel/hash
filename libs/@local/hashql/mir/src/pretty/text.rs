@@ -19,8 +19,8 @@ impl PrettyText<'_> {
             Source::Ctor(symbol) => {
                 let _ = write!(self.buffer, "{{ctor#{symbol}}}");
             }
-            Source::Closure(binder) => todo!(),
-            Source::Thunk(binder) => todo!(),
+            Source::Closure(id, binder) => todo!(),
+            Source::Thunk(id, binder) => todo!(),
             Source::Intrinsic(def_id) => {
                 let _ = write!(self.buffer, "{{intrinsic#{def_id}}}");
             }
