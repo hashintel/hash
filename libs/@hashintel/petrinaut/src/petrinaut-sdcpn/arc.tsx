@@ -1,14 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
-import { generateUuid } from "./lib/generate-uuid";
 import type { TokenType } from "./types";
-
-type AnimatingToken = {
-  id: string;
-  tokenTypeId: string;
-};
 
 export const Arc = ({
   id,
@@ -35,7 +28,6 @@ export const Arc = ({
 }) => {
   const { petriNetDefinition } = useEditorContext();
 
-  const [animatingTokens, setAnimatingTokens] = useState<AnimatingToken[]>([]);
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -44,44 +36,6 @@ export const Arc = ({
     targetY,
     targetPosition,
   });
-
-  const addAnimatingToken = useCallback((tokenTypeId: string) => {
-    const newToken: AnimatingToken = {
-      id: generateUuid(),
-      tokenTypeId,
-    };
-
-    setAnimatingTokens((current) => [...current, newToken]);
-  }, []);
-
-  /**
-   * Handle the event fired from SimulationContext to animate a token along the arcs of enabled transitions.
-   */
-  useEffect(() => {
-    const handleTransitionFired = (
-      event: CustomEvent<{
-        arcId: string;
-        tokenTypeId: string;
-      }>,
-    ) => {
-      const { arcId, tokenTypeId } = event.detail;
-      if (arcId === id) {
-        addAnimatingToken(tokenTypeId);
-      }
-    };
-
-    window.addEventListener(
-      "animateTokenAlongArc",
-      handleTransitionFired as EventListener,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "animateTokenAlongArc",
-        handleTransitionFired as EventListener,
-      );
-    };
-  }, [id, addAnimatingToken]);
 
   return (
     <>
@@ -106,24 +60,6 @@ export const Arc = ({
         stroke="#555"
         style={{ pointerEvents: "none" }}
       />
-      {animatingTokens.map((token) => {
-        const tokenType = petriNetDefinition.tokenTypes.find(
-          (tt: TokenType) => tt.id === token.tokenTypeId,
-        );
-        return (
-          <g key={token.id}>
-            <circle
-              r="6"
-              fill={tokenType?.color ?? "#3498db"}
-              className="animating-token"
-              style={{
-                offsetPath: `path("${arcPath}")`,
-                offsetDistance: "0%",
-              }}
-            />
-          </g>
-        );
-      })}
 
       <g transform={`translate(${labelX}, ${labelY})`}>
         {/* Show tokens required or produced */}

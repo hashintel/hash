@@ -2,9 +2,17 @@
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "ESNext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ESNext"
+    ],
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "skipLibCheck": true
   },
-  "include": ["theme-override.d.ts", "./src/"]
+  "include": [
+    "theme-override.d.ts",
+    "./src/"
+  ]
 }
