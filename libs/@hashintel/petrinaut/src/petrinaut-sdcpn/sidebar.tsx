@@ -1,4 +1,4 @@
-import { Box, Button, Stack } from "@mui/material";
+import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
@@ -22,58 +22,69 @@ export const Sidebar = () => {
   const layoutGraph = useLayoutGraph();
 
   return (
-    <Stack
-      alignItems="center"
-      component="aside"
-      gap={2}
-      sx={{
-        background: ({ palette }) => palette.gray[5],
-        p: 2,
-        borderRight: ({ palette }) => `1px solid ${palette.gray[30]}`,
-      }}
+    <aside
+      className={css({
+        background: "core.gray.10",
+        padding: "spacing.6",
+        borderRight: "1px solid",
+        borderRightColor: "core.gray.30",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "spacing.6",
+      })}
     >
-      <Stack alignItems="center" gap={2}>
-        <Box
-          sx={[
-            placeStyling,
-            {
-              cursor: "grab",
-              width: 80,
-              height: 80,
-              fontSize: 14,
-            },
-          ]}
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "spacing.6",
+        })}
+      >
+        <div
+          className={`${placeStyling} ${css({
+            cursor: "grab",
+            width: "[80px]",
+            height: "[80px]",
+            fontSize: "[14px]",
+          })}`}
           draggable
           onDragStart={(event) => onDragStart(event, "place")}
         >
           Place
-        </Box>
-        <Box
-          sx={[
-            transitionStyling,
-            {
-              cursor: "grab",
-              width: 100,
-              height: 50,
-              fontSize: 14,
-            },
-          ]}
+        </div>
+        <div
+          className={`${transitionStyling} ${css({
+            cursor: "grab",
+            width: "[100px]",
+            height: "[50px]",
+            fontSize: "[14px]",
+          })}`}
           draggable
           onDragStart={(event) => onDragStart(event, "transition")}
         >
           Transition
-        </Box>
-      </Stack>
-      <Box
-        sx={{
-          background: ({ palette }) => palette.gray[30],
-          height: "1px",
-          width: "100%",
-          my: 2,
-        }}
+        </div>
+      </div>
+      <div
+        className={css({
+          background: "core.gray.30",
+          height: "[1px]",
+          width: "[100%]",
+          my: "spacing.6",
+        })}
       />
-      <Stack alignItems="center" gap={2}>
-        <Button
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "spacing.6",
+        })}
+      >
+        <button
+          type="button"
           onClick={() =>
             layoutGraph({
               nodes: petriNetDefinition.nodes,
@@ -81,13 +92,25 @@ export const Sidebar = () => {
               animationDuration: 200,
             })
           }
-          size="xs"
-          variant="tertiary"
-          sx={{ display: "block", fontWeight: 400 }}
+          className={css({
+            display: "block",
+            fontWeight: "400",
+            padding: "spacing.2",
+            paddingX: "spacing.3",
+            fontSize: "size.textxs",
+            backgroundColor: "[transparent]",
+            border: "1px solid",
+            borderColor: "core.gray.30",
+            borderRadius: "radius.4",
+            cursor: "pointer",
+            _hover: {
+              backgroundColor: "core.gray.10",
+            },
+          })}
         >
           Layout
-        </Button>
-      </Stack>
-    </Stack>
+        </button>
+      </div>
+    </aside>
   );
 };

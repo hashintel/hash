@@ -1,6 +1,7 @@
-import { TextField } from "@hashintel/design-system";
-import { Box, Button, Card, Stack, Typography } from "@mui/material";
+import { css } from "@hashintel/ds-helpers/css";
 
+import { Button } from "./components/button";
+import { TextField } from "./components/text-field";
 import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
 
 export type PlaceEditorProps = {
@@ -47,82 +48,133 @@ export const PlaceEditor = ({
   };
 
   return (
-    <Card
-      sx={{
+    <div
+      className={css({
         position: "fixed",
-        left: position.x,
-        top: position.y,
-        zIndex: 1000,
-        px: 2,
-        pt: 1,
-        pb: 1.5,
-        boxShadow: 3,
-      }}
+        left: `[${position.x}px]`,
+        top: `[${position.y}px]`,
+        zIndex: "[1000]",
+        paddingX: "spacing.6",
+        paddingTop: "spacing.3",
+        paddingBottom: "spacing.5",
+        backgroundColor: "[white]",
+        borderRadius: "radius.8",
+        border: "1px solid",
+        borderColor: "core.gray.20",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+      })}
     >
-      <Stack spacing={2}>
-        <Box component="label">
-          <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
-            Name
-          </Typography>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "spacing.6",
+        })}
+      >
+        <div>
+          <label htmlFor="node-name-input">
+            <div
+              className={css({
+                fontSize: "size.textxs",
+                fontWeight: "semibold",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "core.gray.80",
+                marginBottom: "spacing.2",
+              })}
+            >
+              Name
+            </div>
+          </label>
           <TextField
+            id="node-name-input"
             value={nodeName}
             onChange={handleNodeNameChange}
             onKeyDown={handleKeyDown}
             fullWidth
-            size="small"
             placeholder="Enter node name"
           />
-        </Box>
+        </div>
 
         {tokenTypes.length > 0 && (
-          <Box>
-            <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
+          <div>
+            <div
+              className={css({
+                fontSize: "size.textxs",
+                fontWeight: "semibold",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "core.gray.80",
+                marginBottom: "spacing.2",
+              })}
+            >
               Initial Token Counts
-            </Typography>
-            <Stack spacing={1}>
+            </div>
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "spacing.3",
+              })}
+            >
               {tokenTypes.map((tokenType) => (
-                <Box
+                <div
                   key={tokenType.id}
-                  sx={{
+                  className={css({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                  }}
+                  })}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box
-                      sx={{
+                  <div
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "spacing.3",
+                    })}
+                  >
+                    <div
+                      style={{
                         width: 14,
                         height: 14,
                         borderRadius: "50%",
                         backgroundColor: tokenType.color,
                       }}
                     />
-                    <Typography variant="smallTextLabels">
+                    <span
+                      className={css({
+                        fontSize: "size.textxs",
+                        color: "core.gray.70",
+                      })}
+                    >
                       {tokenType.name}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                   <TextField
                     type="number"
                     value={initialTokenCounts?.[tokenType.id] ?? 0}
                     onChange={(event) =>
                       handleTokenCountChange(tokenType.id, event.target.value)
                     }
-                    size="small"
-                    sx={{ width: 80 }}
+                    style={{ width: 80 }}
                   />
-                </Box>
+                </div>
               ))}
-            </Stack>
-          </Box>
+            </div>
+          </div>
         )}
 
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <div
+          className={css({
+            display: "flex",
+            justifyContent: "flex-end",
+          })}
+        >
           <Button onClick={onClose} size="small">
             Close
           </Button>
-        </Box>
-      </Stack>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 };

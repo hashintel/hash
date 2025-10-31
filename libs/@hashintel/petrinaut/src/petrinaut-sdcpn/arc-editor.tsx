@@ -1,8 +1,8 @@
-import { TextField } from "@hashintel/design-system";
-import { Box, Card, Stack, Typography } from "@mui/material";
+import { css } from "@hashintel/ds-helpers/css";
 import { useEffect, useMemo, useState } from "react";
 import { useReactFlow } from "reactflow";
 
+import { TextField } from "./components/text-field";
 import { useEditorContext } from "./editor-context";
 
 interface ArcMenuProps {
@@ -62,57 +62,92 @@ export const ArcEditor = ({
   };
 
   return (
-    <Card
-      sx={{
+    <div
+      className={css({
         position: "fixed",
-        left: position.x,
-        top: position.y,
-        zIndex: 1000,
-        p: 2,
-        minWidth: 200,
-      }}
+        left: `[${position.x}px]`,
+        top: `[${position.y}px]`,
+        zIndex: "[1000]",
+        padding: "spacing.6",
+        minWidth: "[200px]",
+        backgroundColor: "[white]",
+        borderRadius: "radius.8",
+        border: "1px solid",
+        borderColor: "core.gray.20",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+      })}
     >
-      <Stack spacing={1}>
-        <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "spacing.3",
+        })}
+      >
+        <div
+          className={css({
+            fontSize: "size.textxs",
+            fontWeight: "semibold",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "core.gray.80",
+          })}
+        >
           {direction === "in" ? "Tokens Required" : "Tokens Produced"}
-        </Typography>
-        <Stack spacing={1}>
+        </div>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "spacing.3",
+          })}
+        >
           {petriNetDefinition.tokenTypes.map((tokenType) => (
-            <Box
+            <div
               key={tokenType.id}
-              sx={{
+              className={css({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 2,
-              }}
+                gap: "spacing.6",
+              })}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Box
-                  sx={{
+              <div
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "spacing.3",
+                })}
+              >
+                <div
+                  style={{
                     width: 16,
                     height: 16,
                     borderRadius: "50%",
                     backgroundColor: tokenType.color,
                   }}
                 />
-                <Typography variant="smallTextLabels">
+                <span
+                  className={css({
+                    fontSize: "size.textxs",
+                    color: "core.gray.70",
+                  })}
+                >
                   {tokenType.name}
-                </Typography>
-              </Box>
+                </span>
+              </div>
               <TextField
                 type="number"
                 value={localWeights[tokenType.id] ?? 0}
                 onChange={(event) =>
                   handleWeightChange(tokenType.id, event.target.value)
                 }
-                size="small"
-                sx={{ width: 80 }}
+                style={{ width: 80 }}
               />
-            </Box>
+            </div>
           ))}
-        </Stack>
-      </Stack>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 };
