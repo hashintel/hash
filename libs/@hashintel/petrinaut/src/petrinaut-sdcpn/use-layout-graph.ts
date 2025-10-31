@@ -40,14 +40,8 @@ export const useLayoutGraph = () => {
             if (!node) {
               continue;
             }
-
-            if (node.position.x !== x) {
-              node.position.x = x;
-            }
-
-            if (node.position.y !== y) {
-              node.position.y = y;
-            }
+            node.position.x = x;
+            node.position.y = y;
           }
         });
 

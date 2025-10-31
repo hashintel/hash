@@ -3,7 +3,7 @@ import "./petrinaut-sdcpn/index.css";
 
 import { Box, Button, Stack } from "@mui/material";
 import type { DragEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   Connection,
   Node,
@@ -31,6 +31,11 @@ import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
 import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import { Sidebar } from "./petrinaut-sdcpn/sidebar";
+import {
+  useEditorState,
+  useNodesWithDraggingState,
+  useSelectedPlace,
+} from "./petrinaut-sdcpn/state/mod";
 import { nodeDimensions } from "./petrinaut-sdcpn/styling";
 import { TitleAndNetSelect } from "./petrinaut-sdcpn/title-and-net-select";
 import { TransitionEditor } from "./petrinaut-sdcpn/transition-editor";
@@ -73,49 +78,25 @@ export { nodeDimensions };
 
 export { NetSelector } from "./petrinaut-sdcpn/net-selector";
 
-type DraggingStateByNodeId = Record<
-  string,
-  { dragging: boolean; position: { x: number; y: number } }
->;
-
 const PetrinautInner = ({
   hideNetManagementControls,
 }: { hideNetManagementControls: boolean }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
-    NodeData,
-    ArcData
-  > | null>(null);
-
-  const { createNewNet, petriNetDefinition, mutatePetriNetDefinition, title } =
+  const { createNewNet, petriNetDefinition, mutatePetriNetDefinition } =
     useEditorContext();
 
-  const [selectedPlacePosition, setSelectedPlacePosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const editorState = useEditorState(petriNetDefinition.nodes);
 
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [selectedTransition, setSelectedTransition] = useState<string | null>(
-    null,
+  const selectedPlace = useSelectedPlace(
+    petriNetDefinition.nodes,
+    editorState.selectedPlaceId,
   );
 
-  const [selectedArc, setSelectedArc] = useState<
-    (ArcType & { position: { x: number; y: number } }) | null
-  >(null);
-
-  /**
-   * While a node is being dragged, we don't want to keep reporting position changes to the consumer,
-   * but we need to track the fact it's being dragged and where it is currently for reactflow to use.
-   * This state tracks that information.
-   */
-  const [draggingStateByNodeId, setDraggingStateByNodeId] =
-    useState<DraggingStateByNodeId>({});
-
-  useEffect(() => {
-    setDraggingStateByNodeId({});
-  }, [petriNetDefinition.nodes]);
+  const nodesForReactFlow = useNodesWithDraggingState(
+    petriNetDefinition.nodes,
+    editorState.draggingStateByNodeId,
+  );
 
   const nodeTypes = useMemo(
     () => ({
@@ -142,12 +123,12 @@ const PetrinautInner = ({
     (changes: NodeChange[]) => {
       applyNodeChanges({
         changes,
-        draggingStateByNodeId,
+        draggingStateByNodeId: editorState.draggingStateByNodeId,
         mutatePetriNetDefinition,
-        setDraggingStateByNodeId,
+        setDraggingStateByNodeId: editorState.setDraggingStateByNodeId,
       });
     },
-    [draggingStateByNodeId, mutatePetriNetDefinition],
+    [editorState.draggingStateByNodeId, editorState.setDraggingStateByNodeId, mutatePetriNetDefinition],
   );
 
   const onEdgesChange = useCallback(() => {
@@ -214,8 +195,8 @@ const PetrinautInner = ({
   );
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
-    setReactFlowInstance(instance);
-  }, []);
+    editorState.setReactFlowInstance(instance);
+  }, [editorState]);
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -227,7 +208,7 @@ const PetrinautInner = ({
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
 
-      if (!reactFlowInstance || !canvasContainer.current) {
+      if (!editorState.reactFlowInstance || !canvasContainer.current) {
         return;
       }
 
@@ -238,7 +219,7 @@ const PetrinautInner = ({
 
       const { width, height } = nodeDimensions[nodeType];
 
-      const position = reactFlowInstance.project({
+      const position = editorState.reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left - width / 2,
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
@@ -263,28 +244,25 @@ const PetrinautInner = ({
         existingNet.nodes.push(newNode);
       });
     },
-    [reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
+    [editorState.reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
   );
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      if (selectedPlaceId && selectedPlaceId === node.id) {
+      if (editorState.selectedPlaceId && editorState.selectedPlaceId === node.id) {
         return;
       }
 
-      setSelectedPlaceId(null);
-      setSelectedPlacePosition(null);
-      setSelectedArc(null);
-      setSelectedTransition(null);
+      editorState.clearSelection();
 
       if (node.type === "place") {
-        setSelectedPlaceId(node.id);
-        setSelectedPlacePosition({ x: event.clientX, y: event.clientY });
+        editorState.setSelectedPlaceId(node.id);
+        editorState.setSelectedPlacePosition({ x: event.clientX, y: event.clientY });
       } else if (node.type === "transition") {
-        setSelectedTransition(node.id);
+        editorState.setSelectedTransition(node.id);
       }
     },
-    [selectedPlaceId],
+    [editorState],
   );
 
   const handleUpdateInitialTokens = useCallback(
@@ -319,11 +297,11 @@ const PetrinautInner = ({
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
     event.stopPropagation();
 
-    setSelectedArc({
+    editorState.setSelectedArc({
       ...edge,
       position: { x: event.clientX, y: event.clientY },
     });
-  }, []);
+  }, [editorState]);
 
   const handleUpdateEdgeWeight = useCallback(
     (
@@ -345,10 +323,8 @@ const PetrinautInner = ({
   );
 
   const handlePaneClick = useCallback(() => {
-    setSelectedPlaceId(null);
-    setSelectedTransition(null);
-    setSelectedArc(null);
-  }, []);
+    editorState.clearSelection();
+  }, [editorState]);
 
   const handleUpdateTransition = useCallback(
     (
@@ -402,38 +378,6 @@ const PetrinautInner = ({
     });
   }, [createNewNet]);
 
-  const selectedPlace = useMemo(() => {
-    if (!selectedPlaceId) {
-      return null;
-    }
-
-    const place = petriNetDefinition.nodes.find(
-      (node): node is PlaceNodeType =>
-        node.id === selectedPlaceId && node.data.type === "place",
-    );
-
-    if (!place) {
-      throw new Error(`Cannot find place with id ${selectedPlaceId}`);
-    }
-
-    return place;
-  }, [petriNetDefinition.nodes, selectedPlaceId]);
-
-  const nodesForReactFlow = useMemo(() => {
-    return petriNetDefinition.nodes.map((node) => {
-      const draggingState = draggingStateByNodeId[node.id];
-
-      return {
-        ...node,
-        // Fold in dragging state (the consumer isn't aware of it, as it's a transient property)
-        dragging: draggingState?.dragging ?? false,
-        position: draggingState?.dragging
-          ? draggingState.position
-          : node.position,
-      };
-    });
-  }, [petriNetDefinition.nodes, draggingStateByNodeId]);
-
   return (
     <Stack sx={{ height: "100%" }}>
       {!hideNetManagementControls && <TitleAndNetSelect />}
@@ -449,13 +393,13 @@ const PetrinautInner = ({
           }}
           ref={canvasContainer}
         >
-          {selectedTransition && (
+          {editorState.selectedTransition && (
             <TransitionEditor
               open
-              onClose={() => setSelectedTransition(null)}
-              transitionId={selectedTransition}
+              onClose={() => editorState.setSelectedTransition(null)}
+              transitionId={editorState.selectedTransition}
               outgoingEdges={petriNetDefinition.arcs
-                .filter((edge) => edge.source === selectedTransition)
+                .filter((edge) => edge.source === editorState.selectedTransition)
                 .map((edge) => {
                   const targetNode = petriNetDefinition.nodes.find(
                     (node) => node.id === edge.target,
@@ -474,21 +418,21 @@ const PetrinautInner = ({
 
           {selectedPlace && (
             <PlaceEditor
-              position={selectedPlacePosition ?? { x: 0, y: 0 }}
+              position={editorState.selectedPlacePosition ?? { x: 0, y: 0 }}
               selectedPlace={selectedPlace}
               tokenTypes={petriNetDefinition.tokenTypes}
-              onClose={() => setSelectedPlaceId(null)}
+              onClose={() => editorState.setSelectedPlaceId(null)}
               onUpdateInitialTokens={handleUpdateInitialTokens}
               onUpdateNodeLabel={handleUpdateNodeLabel}
             />
           )}
 
-          {selectedArc && (
+          {editorState.selectedArc && (
             <ArcEditor
-              arcId={selectedArc.id}
-              tokenWeights={selectedArc.data?.tokenWeights ?? {}}
-              position={selectedArc.position}
-              onClose={() => setSelectedArc(null)}
+              arcId={editorState.selectedArc.id}
+              tokenWeights={editorState.selectedArc.data?.tokenWeights ?? {}}
+              position={editorState.selectedArc.position}
+              onClose={() => editorState.setSelectedArc(null)}
               onUpdateWeights={handleUpdateEdgeWeight}
             />
           )}
