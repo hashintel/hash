@@ -209,7 +209,7 @@ function main() {
         continue;
       }
 
-      let matched = false;
+      let matchType: "keyword" | "intent" | null = null;
 
       // Keyword matching (cache lowercase keywords)
       if (triggers.keywords) {
@@ -222,14 +222,14 @@ function main() {
 
         if (matchedKeyword) {
           debug(`Skill '${skillName}': MATCHED via keyword`, matchedKeyword);
-          matched = true;
+          matchType = "keyword";
         } else {
           debug(`Skill '${skillName}': no keyword match`);
         }
       }
 
       // Intent pattern matching (compile once per skill)
-      if (triggers.intentPatterns) {
+      if (triggers.intentPatterns && matchType === null) {
         try {
           const compiledPatterns = compileRegexPatterns(
             triggers.intentPatterns,
@@ -245,7 +245,7 @@ function main() {
               `Skill '${skillName}': MATCHED via intent pattern`,
               matchedPattern.pattern,
             );
-            matched = true;
+            matchType = "intent";
           } else {
             debug(`Skill '${skillName}': no intent pattern match`);
           }
@@ -259,8 +259,8 @@ function main() {
       }
 
       // Add to matched skills if any trigger matched
-      if (matched) {
-        matchedSkills.push({ name: skillName, matchType: "keyword", config });
+      if (matchType !== null) {
+        matchedSkills.push({ name: skillName, matchType, config });
       }
     }
 
