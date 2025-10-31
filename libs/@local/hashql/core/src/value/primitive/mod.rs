@@ -43,6 +43,9 @@
 //! - [`Integer`]: Representation of integer literals
 //! - [`Float`]: Representation of floating-point literals
 //! - [`String`]: Representation of string literals
+use core::fmt::Display;
+use std::fmt;
+
 pub use self::{float::Float, integer::Integer, string::String};
 
 mod float;
@@ -160,4 +163,17 @@ pub enum Primitive<'heap> {
     /// "world"
     /// ```
     String(String<'heap>),
+}
+
+impl Display for Primitive<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Primitive::Null => fmt.write_str("null"),
+            Primitive::Boolean(true) => fmt.write_str("true"),
+            Primitive::Boolean(false) => fmt.write_str("false"),
+            Primitive::Float(float) => Display::fmt(&float.as_symbol(), fmt),
+            Primitive::Integer(integer) => Display::fmt(&integer.as_symbol(), fmt),
+            Primitive::String(string) => Display::fmt(&string.as_symbol(), fmt),
+        }
+    }
 }

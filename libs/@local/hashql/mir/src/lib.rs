@@ -11,6 +11,7 @@
     // Library Features
     allocator_api,
     formatting_options,
+    iter_array_chunks
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
