@@ -23,7 +23,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 
 import { useEditorContext } from "./editor-context";
-import { generateUuid } from "./generate-uuid";
+import { generateUuid } from "./lib/generate-uuid";
 import { NetSelector } from "./net-selector";
 import type {
   ArcType,

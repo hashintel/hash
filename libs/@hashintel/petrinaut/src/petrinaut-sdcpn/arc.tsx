@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
-import { generateUuid } from "./generate-uuid";
+import { generateUuid } from "./lib/generate-uuid";
 import type { TokenType } from "./types";
 
 type AnimatingToken = {

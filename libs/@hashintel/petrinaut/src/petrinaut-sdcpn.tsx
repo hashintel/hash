@@ -27,7 +27,7 @@ import {
   useEditorContext,
 } from "./petrinaut-sdcpn/editor-context";
 import { exampleCPN } from "./petrinaut-sdcpn/examples";
-import { generateUuid } from "./petrinaut-sdcpn/generate-uuid";
+import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
 import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import { Sidebar } from "./petrinaut-sdcpn/sidebar";
