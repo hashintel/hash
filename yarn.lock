@@ -7891,6 +7891,7 @@ __metadata:
     vite: "npm:7.1.11"
     vitest: "npm:4.0.4"
     web-worker: "npm:1.4.1"
+    zustand: "npm:5.0.8"
   peerDependencies:
     react: ^19.0.0
     react-dom: ^19.0.0
@@ -46541,6 +46542,27 @@ __metadata:
   dependencies:
     tslib: "npm:2.3.0"
   checksum: 10c0/dc1cc570054640cbd8fbb7b92e6252f225319522bfe3e8dc8bf02cc02d414e00a4c8d0a6f89bfc9d96e5e9511fdca94dd3d06bf53690df2b2f12b0fc560ac307
+  languageName: node
+  linkType: hard
+
+"zustand@npm:5.0.8":
+  version: 5.0.8
+  resolution: "zustand@npm:5.0.8"
+  peerDependencies:
+    "@types/react": ">=18.0.0"
+    immer: ">=9.0.6"
+    react: ">=18.0.0"
+    use-sync-external-store: ">=1.2.0"
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    immer:
+      optional: true
+    react:
+      optional: true
+    use-sync-external-store:
+      optional: true
+  checksum: 10c0/e865a6f7f1c0e03571701db5904151aaa7acefd6f85541a117085e129bf16e8f60b11f8cc82f277472de5c7ad5dcb201e1b0a89035ea0b40c9d9aab3cd24c8ad
   languageName: node
   linkType: hard
 
