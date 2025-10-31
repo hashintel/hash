@@ -2,9 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
-import { useEditorContext } from "./editor-context";
-import { placeStyling, transitionStyling } from "./styling";
-import { useLayoutGraph } from "./use-layout-graph";
+import { placeStyling, transitionStyling } from "../styling";
 
 export const BottomBar = () => {
   const onDragStart = useCallback(
@@ -16,10 +14,6 @@ export const BottomBar = () => {
     },
     [],
   );
-
-  const { petriNetDefinition } = useEditorContext();
-
-  const layoutGraph = useLayoutGraph();
 
   return (
     <div
@@ -48,17 +42,6 @@ export const BottomBar = () => {
           gap: "spacing.4",
         })}
       >
-        <span
-          className={css({
-            fontSize: "size.textxs",
-            fontWeight: "semibold",
-            color: "core.gray.60",
-            textTransform: "uppercase",
-            letterSpacing: "[0.05em]",
-          })}
-        >
-          New Process
-        </span>
         <div
           className={`${placeStyling} ${css({
             cursor: "grab",
@@ -91,43 +74,6 @@ export const BottomBar = () => {
           height: "[40px]",
         })}
       />
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "spacing.3",
-        })}
-      >
-        <button
-          type="button"
-          onClick={() =>
-            layoutGraph({
-              nodes: petriNetDefinition.nodes,
-              arcs: petriNetDefinition.arcs,
-              animationDuration: 200,
-            })
-          }
-          className={css({
-            display: "block",
-            fontWeight: "500",
-            padding: "spacing.2",
-            paddingX: "spacing.4",
-            fontSize: "size.textxs",
-            backgroundColor: "[transparent]",
-            border: "1px solid",
-            borderColor: "core.gray.30",
-            borderRadius: "radius.4",
-            cursor: "pointer",
-            textTransform: "uppercase",
-            letterSpacing: "[0.05em]",
-            _hover: {
-              backgroundColor: "core.gray.10",
-            },
-          })}
-        >
-          Layout
-        </button>
-      </div>
     </div>
   );
 };
