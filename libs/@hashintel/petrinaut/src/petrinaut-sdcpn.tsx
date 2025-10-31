@@ -3,7 +3,7 @@ import "./petrinaut-sdcpn/index.css";
 
 import { Box, Button, Stack } from "@mui/material";
 import type { DragEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Connection,
   Node,
@@ -20,7 +20,10 @@ import ReactFlow, {
 import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
 import { Arc } from "./petrinaut-sdcpn/arc";
 import { ArcEditor } from "./petrinaut-sdcpn/arc-editor";
-import { BottomBar } from "./petrinaut-sdcpn/bottom-bar";
+import { BottomBar } from "./petrinaut-sdcpn/components/bottom-bar";
+import { FloatingTitle } from "./petrinaut-sdcpn/components/floating-title";
+import { HamburgerMenu } from "./petrinaut-sdcpn/components/hamburger-menu";
+import { ModeSelector } from "./petrinaut-sdcpn/components/mode-selector";
 import { createArc } from "./petrinaut-sdcpn/create-arc";
 import {
   EditorContextProvider,
@@ -37,7 +40,6 @@ import {
   useSelectedPlace,
 } from "./petrinaut-sdcpn/state/mod";
 import { nodeDimensions } from "./petrinaut-sdcpn/styling";
-import { TitleAndNetSelect } from "./petrinaut-sdcpn/title-and-net-select";
 import { TransitionEditor } from "./petrinaut-sdcpn/transition-editor";
 import { TransitionNode } from "./petrinaut-sdcpn/transition-node";
 import type {
@@ -56,6 +58,7 @@ import type {
   TransitionNodeData,
   TransitionNodeType,
 } from "./petrinaut-sdcpn/types";
+import { useLayoutGraph } from "./petrinaut-sdcpn/use-layout-graph";
 
 export type {
   ArcData,
@@ -83,8 +86,16 @@ const PetrinautInner = ({
 }: { hideNetManagementControls: boolean }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
-  const { createNewNet, petriNetDefinition, mutatePetriNetDefinition } =
-    useEditorContext();
+  const {
+    createNewNet,
+    petriNetDefinition,
+    mutatePetriNetDefinition,
+    setTitle,
+    title,
+  } = useEditorContext();
+
+  const [mode, setMode] = useState<"edit" | "simulate">("edit");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Zustand store selectors
   const reactFlowInstance = useEditorStore((state) => state.reactFlowInstance);
@@ -372,6 +383,8 @@ const PetrinautInner = ({
     [mutatePetriNetDefinition],
   );
 
+  const layoutGraph = useLayoutGraph();
+
   const handlePaneClick = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
@@ -430,8 +443,6 @@ const PetrinautInner = ({
 
   return (
     <Stack sx={{ height: "100%" }}>
-      {!hideNetManagementControls && <TitleAndNetSelect />}
-
       <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
         <Box
           sx={{
@@ -441,6 +452,97 @@ const PetrinautInner = ({
           }}
           ref={canvasContainer}
         >
+          {/* Floating Hamburger Menu - Top Left */}
+          {!hideNetManagementControls && (
+            <div
+              style={{
+                position: "absolute",
+                top: "24px",
+                left: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <HamburgerMenu
+                menuItems={[
+                  {
+                    id: "new",
+                    label: "New",
+                    onClick: () => {},
+                  },
+                  {
+                    id: "open",
+                    label: "Open",
+                    onClick: () => {},
+                  },
+                  {
+                    id: "layout",
+                    label: "Layout",
+                    onClick: () => {
+                      layoutGraph({
+                        nodes: petriNetDefinition.nodes,
+                        arcs: petriNetDefinition.arcs,
+                        animationDuration: 200,
+                      });
+                    },
+                  },
+                  {
+                    id: "save",
+                    label: "Save",
+                    onClick: () => {},
+                  },
+                  {
+                    id: "export",
+                    label: "Export",
+                    onClick: () => {},
+                  },
+                  {
+                    id: "import",
+                    label: "Import",
+                    onClick: () => {},
+                  },
+                  {
+                    id: "load-example",
+                    label: "Load Example",
+                    onClick: () => {
+                      handleLoadExample();
+                    },
+                  },
+                ]}
+              />
+            </div>
+          )}
+
+          {/* Floating Title - Top Left (after hamburger) */}
+          {!hideNetManagementControls && (
+            <div
+              style={{
+                position: "absolute",
+                top: "24px",
+                left: "80px",
+                zIndex: 1000,
+              }}
+            >
+              <FloatingTitle
+                value={title}
+                onChange={setTitle}
+                placeholder="Process"
+              />
+            </div>
+          )}
+
+          {/* Floating Mode Selector - Top Center */}
+          <div
+            style={{
+              position: "absolute",
+              top: "24px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+            }}
+          >
+            <ModeSelector mode={mode} onChange={setMode} />
+          </div>
+
           {selectedTransition && (
             <TransitionEditor
               open
