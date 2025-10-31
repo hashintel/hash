@@ -1,6 +1,6 @@
 use core::{fmt, fmt::Write as _};
 
-use super::TableReference;
+use super::{ColumnName, TableReference};
 use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
 
 /// SQL JOIN types supported in PostgreSQL queries.
@@ -123,7 +123,8 @@ impl JoinFrom {
 /// A JOIN expression in a PostgreSQL query.
 ///
 /// PostgreSQL supports several join types with different condition requirements:
-/// - **Conditioned joins** (INNER, LEFT/RIGHT/FULL OUTER) require explicit `ON` conditions
+/// - **ON joins** (INNER, LEFT/RIGHT/FULL OUTER) require explicit `ON` conditions
+/// - **USING joins** specify column names that must match between tables
 /// - **CROSS JOIN** produces a cartesian product with no conditions
 /// - **NATURAL JOIN** implicitly joins on columns with matching names
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,6 +144,26 @@ pub enum JoinClause {
         ///
         /// Must contain at least one condition (validated during transpilation).
         conditions: Vec<Condition>,
+    },
+    /// A join using a USING clause with specified column names.
+    ///
+    /// Transpiles to: `<JOIN TYPE> "table" USING ("col1", "col2")`
+    ///
+    /// The USING clause specifies column names that must exist in both tables.
+    /// PostgreSQL will join rows where these columns have equal values.
+    /// The specified columns appear only once in the result set.
+    Using {
+        /// The type of join (INNER, LEFT OUTER, etc.).
+        join: JoinType,
+        /// The source being joined (table or subquery).
+        from: JoinFrom,
+        /// Column names to join on.
+        ///
+        /// These columns must exist in both the left and right tables.
+        /// Multiple columns are supported for composite joins.
+        ///
+        /// Must contain at least one column (validated during transpilation).
+        columns: Vec<ColumnName<'static>>,
     },
     /// A CROSS JOIN producing the cartesian product of both tables.
     ///
@@ -169,7 +190,10 @@ impl JoinClause {
     #[expect(clippy::wrong_self_convention)]
     pub const fn from_item(&self) -> &JoinFrom {
         match self {
-            Self::On { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => from,
+            Self::On { from, .. }
+            | Self::Using { from, .. }
+            | Self::Cross { from }
+            | Self::Natural { from, .. } => from,
         }
     }
 
@@ -177,7 +201,10 @@ impl JoinClause {
     #[expect(clippy::wrong_self_convention)]
     pub const fn from_item_mut(&mut self) -> &mut JoinFrom {
         match self {
-            Self::On { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => from,
+            Self::On { from, .. }
+            | Self::Using { from, .. }
+            | Self::Cross { from }
+            | Self::Natural { from, .. } => from,
         }
     }
 }
@@ -193,7 +220,7 @@ impl Transpile for JoinClause {
             } => {
                 assert!(
                     !conditions.is_empty(),
-                    "Conditioned JOIN expressions require at least one condition"
+                    "ON JOIN expressions require at least one condition"
                 );
 
                 join.transpile(fmt)?;
@@ -207,6 +234,28 @@ impl Transpile for JoinClause {
                     condition.transpile(fmt)?;
                 }
                 Ok(())
+            }
+            Self::Using {
+                join,
+                from,
+                columns,
+            } => {
+                assert!(
+                    !columns.is_empty(),
+                    "USING JOIN expressions require at least one column"
+                );
+
+                join.transpile(fmt)?;
+                fmt.write_char(' ')?;
+                from.transpile(fmt)?;
+                fmt.write_str(" USING (")?;
+                for (i, column) in columns.iter().enumerate() {
+                    if i > 0 {
+                        fmt.write_str(", ")?;
+                    }
+                    column.transpile(fmt)?;
+                }
+                fmt.write_char(')')
             }
             Self::Cross { from } => {
                 fmt.write_str("CROSS JOIN ")?;
@@ -263,8 +312,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Conditioned JOIN expressions require at least one condition")]
-    fn transpile_conditioned_join_empty_conditions() {
+    #[should_panic(expected = "ON JOIN expressions require at least one condition")]
+    fn transpile_on_join_empty_conditions() {
         _ = JoinClause::On {
             join: JoinType::Inner,
             from: JoinFrom::Table {
@@ -272,6 +321,55 @@ mod tests {
                 alias: None,
             },
             conditions: vec![],
+        }
+        .transpile_to_string();
+    }
+
+    #[test]
+    fn transpile_using_join() {
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::Inner,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![ColumnName::from(Column::OntologyIds(
+                    OntologyIds::OntologyId
+                ))],
+            }
+            .transpile_to_string(),
+            r#"INNER JOIN "ontology_ids" USING ("ontology_id")"#
+        );
+
+        // Multiple columns
+        assert_eq!(
+            JoinClause::Using {
+                join: JoinType::LeftOuter,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: None,
+                },
+                columns: vec![
+                    ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
+                    ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
+                ],
+            }
+            .transpile_to_string(),
+            r#"LEFT OUTER JOIN "ontology_ids" USING ("base_url", "version")"#
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "USING JOIN expressions require at least one column")]
+    fn transpile_using_join_empty_columns() {
+        _ = JoinClause::Using {
+            join: JoinType::Inner,
+            from: JoinFrom::Table {
+                table: Table::OntologyIds.into(),
+                alias: None,
+            },
+            columns: vec![],
         }
         .transpile_to_string();
     }
