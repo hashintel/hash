@@ -6,7 +6,7 @@ import type {
   SimulationInput,
   SimulationInstance,
   TransitionKernelFn,
-} from "./types";
+} from "./types/simulation";
 
 /**
  * Builds a simulation instance and its initial frame from simulation input.
@@ -161,7 +161,8 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
 
   // Create the simulation instance (without frames initially)
   const simulationInstance: SimulationInstance = {
-    sdcpn,
+    id: sdcpn.id,
+    title: sdcpn.title,
     places: placesMap,
     transitions: transitionsMap,
     differentialEquationFns,
