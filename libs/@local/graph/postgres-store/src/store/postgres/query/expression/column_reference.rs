@@ -5,8 +5,8 @@ use crate::store::postgres::query::{Column, Transpile};
 
 /// A column name in a PostgreSQL query.
 ///
-/// Represents different types of column references used in SQL queries,
-/// from runtime-determined names to schema-defined columns and wildcards.
+/// Represents column names in SQL expressions. For wildcard selections (`*`),
+/// use [`SelectExpression::Asterisk`](super::SelectExpression::Asterisk) instead.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ColumnName<'name> {
     /// A dynamically-named column, quoted when transpiled.
@@ -19,10 +19,6 @@ pub enum ColumnName<'name> {
     /// Represents columns defined in the [`Column`] enum, providing compile-time guarantees
     /// about column existence and type-safety for schema operations.
     Static(Column),
-    /// The asterisk wildcard (`*`) for selecting all columns.
-    ///
-    /// Transpiles to `*` or `<table>.*` when qualified with a table reference.
-    Asterisk,
 }
 
 /// A reference to a column, optionally qualified with a table reference.
@@ -72,7 +68,6 @@ impl Transpile for ColumnReference<'_> {
         match &self.name {
             ColumnName::Named(name) => name.transpile(fmt),
             ColumnName::Static(column) => column.transpile(fmt),
-            ColumnName::Asterisk => fmt.write_char('*'),
         }
     }
 }
@@ -147,27 +142,5 @@ mod tests {
             name: ColumnName::Named(Identifier::from(r#"my"column"#)),
         };
         assert_eq!(col_ref.transpile_to_string(), r#""my""table"."my""column""#);
-    }
-
-    #[test]
-    fn asterisk_column_reference() {
-        let col_ref = ColumnReference {
-            correlation: None,
-            name: ColumnName::Asterisk,
-        };
-        assert_eq!(col_ref.transpile_to_string(), "*");
-    }
-
-    #[test]
-    fn qualified_asterisk_column_reference() {
-        let col_ref = ColumnReference {
-            correlation: Some(TableReference {
-                schema: None,
-                name: TableName::from("users"),
-                alias: None,
-            }),
-            name: ColumnName::Asterisk,
-        };
-        assert_eq!(col_ref.transpile_to_string(), r#""users".*"#);
     }
 }
