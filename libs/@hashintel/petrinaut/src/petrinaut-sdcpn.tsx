@@ -17,29 +17,24 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 
-import { applyNodeChanges } from "./petrinaut/apply-node-changes";
-import { Arc } from "./petrinaut/arc";
-import { ArcEditor } from "./petrinaut/arc-editor";
-import { createArc } from "./petrinaut/create-arc";
+import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
+import { Arc } from "./petrinaut-sdcpn/arc";
+import { ArcEditor } from "./petrinaut-sdcpn/arc-editor";
+import { createArc } from "./petrinaut-sdcpn/create-arc";
 import {
   EditorContextProvider,
   type MutatePetriNetDefinition,
   useEditorContext,
-} from "./petrinaut/editor-context";
-import { exampleCPN } from "./petrinaut/examples";
-import { generateUuid } from "./petrinaut/generate-uuid";
-import { LogPane } from "./petrinaut/log-pane";
-import { PlaceEditor } from "./petrinaut/place-editor";
-import { PlaceNode } from "./petrinaut/place-node";
-import { Sidebar } from "./petrinaut/sidebar";
-import { SimulationContextProvider } from "./petrinaut/simulation-context";
-import { SimulationControls } from "./petrinaut/simulation-controls";
-import { nodeDimensions } from "./petrinaut/styling";
-import { TitleAndNetSelect } from "./petrinaut/title-and-net-select";
-import { TokenTypes } from "./petrinaut/token-types";
-import { defaultTokenTypes } from "./petrinaut/token-types/default-token-types";
-import { TransitionEditor } from "./petrinaut/transition-editor";
-import { TransitionNode } from "./petrinaut/transition-node";
+} from "./petrinaut-sdcpn/editor-context";
+import { exampleCPN } from "./petrinaut-sdcpn/examples";
+import { generateUuid } from "./petrinaut-sdcpn/generate-uuid";
+import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
+import { PlaceNode } from "./petrinaut-sdcpn/place-node";
+import { Sidebar } from "./petrinaut-sdcpn/sidebar";
+import { nodeDimensions } from "./petrinaut-sdcpn/styling";
+import { TitleAndNetSelect } from "./petrinaut-sdcpn/title-and-net-select";
+import { TransitionEditor } from "./petrinaut-sdcpn/transition-editor";
+import { TransitionNode } from "./petrinaut-sdcpn/transition-node";
 import type {
   ArcData,
   ArcType,
@@ -55,9 +50,7 @@ import type {
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
-} from "./petrinaut/types";
-import { useConvertToPnml } from "./petrinaut/use-convert-to-pnml";
-import { useLoadFromPnml } from "./petrinaut/use-load-from-pnml";
+} from "./petrinaut-sdcpn/types";
 
 export type {
   ArcData,
@@ -78,9 +71,7 @@ export type {
 
 export { nodeDimensions };
 
-export { defaultTokenTypes };
-
-export { NetSelector } from "./petrinaut/net-selector";
+export { NetSelector } from "./petrinaut-sdcpn/net-selector";
 
 type DraggingStateByNodeId = Record<
   string,
@@ -411,60 +402,6 @@ const PetrinautInner = ({
     });
   }, [createNewNet]);
 
-  const convertToPnml = useConvertToPnml({
-    petriNet: petriNetDefinition,
-    title,
-  });
-
-  const handleExport = () => {
-    const pnml = convertToPnml();
-
-    const blob = new Blob([pnml], { type: "application/xml" });
-
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "process.pnml";
-
-    document.body.appendChild(a);
-    a.click();
-
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 0);
-  };
-
-  const loadFromPnml = useLoadFromPnml({
-    createNewNet,
-  });
-
-  const handleLoadFromPnml = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) {
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (readerEvent) => {
-        const contents = readerEvent.target?.result;
-        if (typeof contents === "string") {
-          loadFromPnml(contents);
-        }
-      };
-      reader.readAsText(file);
-    },
-    [loadFromPnml],
-  );
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const selectedPlace = useMemo(() => {
     if (!selectedPlaceId) {
       return null;
@@ -512,23 +449,6 @@ const PetrinautInner = ({
           }}
           ref={canvasContainer}
         >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            sx={{
-              alignItems: "flex-start",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              p: 2,
-              zIndex: 100,
-              width: "100%",
-            }}
-          >
-            <TokenTypes />
-            <SimulationControls />
-          </Stack>
-
           {selectedTransition && (
             <TransitionEditor
               open
@@ -596,8 +516,6 @@ const PetrinautInner = ({
             <Background gap={15} size={1} />
           </ReactFlow>
 
-          <LogPane />
-
           {!hideNetManagementControls && (
             <Stack
               direction="row"
@@ -607,26 +525,13 @@ const PetrinautInner = ({
               <Button onClick={handleLoadExample} size="xs" variant="tertiary">
                 Load Example
               </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleLoadFromPnml}
-                accept=".pnml,.xml"
-                style={{ display: "none" }}
-              />
-              <Button onClick={handleImportClick} size="xs" variant="tertiary">
-                Import
-              </Button>
-              <Button onClick={handleExport} size="xs" variant="tertiary">
-                Export
-              </Button>
               <Button
                 onClick={() =>
                   createNewNet({
                     petriNetDefinition: {
                       arcs: [],
                       nodes: [],
-                      tokenTypes: defaultTokenTypes,
+                      tokenTypes: [],
                     },
                     title: "Process",
                   })
@@ -732,11 +637,7 @@ export const Petrinaut = ({
         setTitle={setTitle}
         title={title}
       >
-        <SimulationContextProvider>
-          <PetrinautInner
-            hideNetManagementControls={hideNetManagementControls}
-          />
-        </SimulationContextProvider>
+        <PetrinautInner hideNetManagementControls={hideNetManagementControls} />
       </EditorContextProvider>
     </ReactFlowProvider>
   );
