@@ -95,8 +95,7 @@ describe("buildSimulation", () => {
             name: "Transition 1",
             inputArcs: [{ placeId: "p1", weight: 1 }],
             outputArcs: [{ placeId: "p2", weight: 1 }],
-            lambdaCode:
-              "export default Lambda((tokens) => { return 1.0; });",
+            lambdaCode: "export default Lambda((tokens) => { return 1.0; });",
             transitionKernelCode:
               "export default TransitionKernel((tokens) => { return [[[1.0, 2.0]]]; });",
           },
@@ -105,8 +104,7 @@ describe("buildSimulation", () => {
             name: "Transition 2",
             inputArcs: [{ placeId: "p2", weight: 1 }],
             outputArcs: [{ placeId: "p3", weight: 1 }],
-            lambdaCode:
-              "export default Lambda((tokens) => { return 2.0; });",
+            lambdaCode: "export default Lambda((tokens) => { return 2.0; });",
             transitionKernelCode:
               "export default TransitionKernel((tokens) => { return [[[5.0]]]; });",
           },
