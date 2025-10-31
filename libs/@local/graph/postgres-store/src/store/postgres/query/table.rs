@@ -1443,7 +1443,7 @@ impl Column {
     pub fn aliased(self, alias: Alias) -> ColumnReference<'static> {
         ColumnReference {
             correlation: Some(self.table().aliased(alias)),
-            name: ColumnName::Static(self),
+            name: ColumnName::from(self),
         }
     }
 }
