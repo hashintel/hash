@@ -128,7 +128,11 @@ const PetrinautInner = ({
         setDraggingStateByNodeId: editorState.setDraggingStateByNodeId,
       });
     },
-    [editorState.draggingStateByNodeId, editorState.setDraggingStateByNodeId, mutatePetriNetDefinition],
+    [
+      editorState.draggingStateByNodeId,
+      editorState.setDraggingStateByNodeId,
+      mutatePetriNetDefinition,
+    ],
   );
 
   const onEdgesChange = useCallback(() => {
@@ -194,9 +198,12 @@ const PetrinautInner = ({
     ],
   );
 
-  const onInit = useCallback((instance: ReactFlowInstance) => {
-    editorState.setReactFlowInstance(instance);
-  }, [editorState]);
+  const onInit = useCallback(
+    (instance: ReactFlowInstance) => {
+      editorState.setReactFlowInstance(instance);
+    },
+    [editorState],
+  );
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -244,12 +251,19 @@ const PetrinautInner = ({
         existingNet.nodes.push(newNode);
       });
     },
-    [editorState.reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
+    [
+      editorState.reactFlowInstance,
+      petriNetDefinition.nodes,
+      mutatePetriNetDefinition,
+    ],
   );
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      if (editorState.selectedPlaceId && editorState.selectedPlaceId === node.id) {
+      if (
+        editorState.selectedPlaceId &&
+        editorState.selectedPlaceId === node.id
+      ) {
         return;
       }
 
@@ -257,7 +271,10 @@ const PetrinautInner = ({
 
       if (node.type === "place") {
         editorState.setSelectedPlaceId(node.id);
-        editorState.setSelectedPlacePosition({ x: event.clientX, y: event.clientY });
+        editorState.setSelectedPlacePosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
       } else if (node.type === "transition") {
         editorState.setSelectedTransition(node.id);
       }
@@ -294,14 +311,17 @@ const PetrinautInner = ({
     [mutatePetriNetDefinition],
   );
 
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
-    event.stopPropagation();
+  const onEdgeClick = useCallback(
+    (event: React.MouseEvent, edge: ArcType) => {
+      event.stopPropagation();
 
-    editorState.setSelectedArc({
-      ...edge,
-      position: { x: event.clientX, y: event.clientY },
-    });
-  }, [editorState]);
+      editorState.setSelectedArc({
+        ...edge,
+        position: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [editorState],
+  );
 
   const handleUpdateEdgeWeight = useCallback(
     (
@@ -399,7 +419,9 @@ const PetrinautInner = ({
               onClose={() => editorState.setSelectedTransition(null)}
               transitionId={editorState.selectedTransition}
               outgoingEdges={petriNetDefinition.arcs
-                .filter((edge) => edge.source === editorState.selectedTransition)
+                .filter(
+                  (edge) => edge.source === editorState.selectedTransition,
+                )
                 .map((edge) => {
                   const targetNode = petriNetDefinition.nodes.find(
                     (node) => node.id === edge.target,

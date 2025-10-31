@@ -38,7 +38,8 @@
     "monaco-editor": "0.54.0",
     "react-icons": "5.5.0",
     "reactflow": "11.11.4",
-    "uuid": "13.0.0"
+    "uuid": "13.0.0",
+    "zustand": "5.0.8"
   },
   "devDependencies": {
     "@emotion/react": "11.14.0",
