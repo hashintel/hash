@@ -4,26 +4,50 @@ use super::{identifier::Identifier, table_reference::TableReference};
 use crate::store::postgres::query::{Column, Transpile};
 
 /// A column name in a PostgreSQL query.
+///
+/// Represents different types of column references used in SQL queries,
+/// from runtime-determined names to schema-defined columns and wildcards.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ColumnName<'name> {
-    /// A dynamically-named column, quoted when transpiled
+    /// A dynamically-named column, quoted when transpiled.
+    ///
+    /// Used for user-provided or computed column names that aren't known at compile time.
+    /// The [`Identifier`] handles proper quoting and escaping for PostgreSQL.
     Named(Identifier<'name>),
-    /// A statically-defined column from the database schema
+    /// A statically-defined column from the database schema.
+    ///
+    /// Represents columns defined in the [`Column`] enum, providing compile-time guarantees
+    /// about column existence and type-safety for schema operations.
     Static(Column),
-    /// The asterisk wildcard (`*`)
+    /// The asterisk wildcard (`*`) for selecting all columns.
+    ///
+    /// Transpiles to `*` or `<table>.*` when qualified with a table reference.
     Asterisk,
 }
 
 /// A reference to a column, optionally qualified with a table reference.
 ///
-/// Transpiles to `<table>.<column>` or just `<column>` if no table qualification is present.
+/// Transpiles to `<table>.<column>` when qualified, or just `<column>` when unqualified.
+/// For example:
+/// - Unqualified: `"username"`
+/// - Qualified: `"users"."username"`
+/// - Fully qualified: `"mydb"."public"."users"."username"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ColumnReference<'name> {
+    /// Optional table reference that qualifies this column.
+    ///
+    /// When `Some`, the column is prefixed with the table reference during transpilation
+    /// (e.g., `table.column`). When `None`, only the column name is emitted.
     pub correlation: Option<TableReference<'name>>,
+    /// The column name, which can be dynamically named, schema-defined, or a wildcard.
     pub name: ColumnName<'name>,
 }
 
 impl From<Column> for ColumnReference<'_> {
+    /// Creates a fully-qualified column reference from a schema-defined [`Column`].
+    ///
+    /// The resulting reference includes the column's table as the correlation,
+    /// producing a reference like `table.column` when transpiled.
     fn from(column: Column) -> Self {
         ColumnReference {
             correlation: Some(column.table().into()),
