@@ -17,7 +17,8 @@ export type SimulationInput = {
 };
 
 export type SimulationInstance = {
-  sdcpn: SDCPN;
+  id: ID;
+  title: string;
   places: Map<string, Place>;
   transitions: Map<string, Transition>;
   differentialEquationFns: Map<string, DifferentialEquationFn>;

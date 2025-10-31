@@ -1,18 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types";
+import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { computePossibleTransition } from "./compute-possible-transition";
 
 describe("computePossibleTransition", () => {
   it("returns null when transition is not enabled due to insufficient tokens", () => {
     // GIVEN a frame with a place that doesn't have enough tokens
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -71,12 +67,8 @@ describe("computePossibleTransition", () => {
   it("returns token combinations when transition is enabled and fires", () => {
     // GIVEN a frame with sufficient tokens and favorable random conditions
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
