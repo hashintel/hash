@@ -5,7 +5,7 @@ use postgres_types::ToSql;
 use crate::store::postgres::query::{
     Alias, Column, Expression, Function, OrderByExpression, SelectExpression, SelectStatement,
     Table, Transpile, WhereExpression, WithExpression,
-    expression::{ColumnName, ColumnReference, GroupByExpression, PostgresType},
+    expression::{GroupByExpression, PostgresType},
     rows::PostgresRow,
     statement::FromItem,
 };
@@ -146,16 +146,10 @@ impl<'p> InsertStatementBuilder<'p> {
         let InsertValueItem::Values(values) = &mut self.statement.values else {
             unreachable!()
         };
-        values.push(Expression::FieldAccess(
-            Box::new(Expression::Cast(
-                Box::new(Expression::Parameter(self.parameters.len())),
-                PostgresType::Row(self.statement.table),
-            )),
-            Box::new(Expression::ColumnReference(ColumnReference {
-                correlation: None,
-                name: ColumnName::Asterisk,
-            })),
-        ));
+        values.push(Expression::RowExpansion(Box::new(Expression::Cast(
+            Box::new(Expression::Parameter(self.parameters.len())),
+            PostgresType::Row(self.statement.table),
+        ))));
         self
     }
 
@@ -172,13 +166,7 @@ impl<'p> InsertStatementBuilder<'p> {
                 values: InsertValueItem::Query(Box::new(SelectStatement {
                     with: WithExpression::default(),
                     distinct: vec![],
-                    selects: vec![SelectExpression {
-                        expression: Expression::ColumnReference(ColumnReference {
-                            correlation: None,
-                            name: ColumnName::Asterisk,
-                        }),
-                        alias: None,
-                    }],
+                    selects: vec![SelectExpression::Asterisk(None)],
                     from: FromItem::Function(Function::Unnest(Box::new(Expression::Cast(
                         Box::new(Expression::Parameter(1)),
                         PostgresType::Array(Box::new(PostgresType::Row(table))),

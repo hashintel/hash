@@ -127,7 +127,7 @@ impl JoinFrom {
 /// - **CROSS JOIN** produces a cartesian product with no conditions
 /// - **NATURAL JOIN** implicitly joins on columns with matching names
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum JoinExpression {
+pub enum JoinClause {
     /// A join with explicit ON conditions.
     ///
     /// Transpiles to: `<JOIN TYPE> "table" ON condition1 AND condition2`
@@ -164,7 +164,7 @@ pub enum JoinExpression {
     },
 }
 
-impl JoinExpression {
+impl JoinClause {
     #[must_use]
     #[expect(clippy::wrong_self_convention)]
     pub const fn from_item(&self) -> &JoinFrom {
@@ -186,7 +186,7 @@ impl JoinExpression {
     }
 }
 
-impl Transpile for JoinExpression {
+impl Transpile for JoinClause {
     #[expect(clippy::panic_in_result_fn)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -248,7 +248,7 @@ mod tests {
         };
 
         assert_eq!(
-            JoinExpression::Conditioned {
+            JoinClause::Conditioned {
                 join: JoinType::Inner,
                 from: JoinFrom::Table {
                     table: Table::OntologyIds.into(),
@@ -269,7 +269,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Conditioned JOIN expressions require at least one condition")]
     fn transpile_conditioned_join_empty_conditions() {
-        _ = JoinExpression::Conditioned {
+        _ = JoinClause::Conditioned {
             join: JoinType::Inner,
             from: JoinFrom::Table {
                 table: Table::OntologyIds.into(),
@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn transpile_cross_join() {
         assert_eq!(
-            JoinExpression::Cross {
+            JoinClause::Cross {
                 from: JoinFrom::Table {
                     table: Table::OntologyIds.into(),
                     alias: None,
@@ -297,7 +297,7 @@ mod tests {
     #[test]
     fn transpile_natural_join() {
         assert_eq!(
-            JoinExpression::Natural {
+            JoinClause::Natural {
                 join: JoinType::Inner,
                 from: JoinFrom::Table {
                     table: Table::OntologyIds.into(),
@@ -309,7 +309,7 @@ mod tests {
         );
 
         assert_eq!(
-            JoinExpression::Natural {
+            JoinClause::Natural {
                 join: JoinType::LeftOuter,
                 from: JoinFrom::Table {
                     table: Table::OntologyIds.into(),

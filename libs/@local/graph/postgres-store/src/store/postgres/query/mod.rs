@@ -33,7 +33,7 @@ pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     condition::{Condition, EqualityOperator},
     expression::{
-        Constant, Expression, Function, JoinExpression, OrderByExpression, SelectExpression,
+        Constant, Expression, Function, JoinClause, OrderByExpression, SelectExpression,
         WhereExpression, WithExpression,
     },
     statement::{
