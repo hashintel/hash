@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 import "./petrinaut-sdcpn/index.css";
 
-import { Box, Button, Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -611,34 +611,6 @@ const PetrinautInner = ({
           </ReactFlow>
 
           <BottomBar />
-
-          {!hideNetManagementControls && (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-            >
-              <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-                Load Example
-              </Button>
-              <Button
-                onClick={() =>
-                  createNewNet({
-                    petriNetDefinition: {
-                      arcs: [],
-                      nodes: [],
-                      tokenTypes: [],
-                    },
-                    title: "Process",
-                  })
-                }
-                size="xs"
-                variant="danger"
-              >
-                New
-              </Button>
-            </Stack>
-          )}
         </Box>
       </Stack>
     </Stack>
