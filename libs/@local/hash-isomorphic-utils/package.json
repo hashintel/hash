@@ -65,7 +65,7 @@
     "@types/big.js": "6.2.2",
     "@types/express": "5.0.3",
     "@types/lodash-es": "4.17.12",
-    "@types/node": "22.18.12",
+    "@types/node": "22.18.13",
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.38.0",
