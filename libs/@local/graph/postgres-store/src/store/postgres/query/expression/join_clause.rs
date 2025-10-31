@@ -131,7 +131,7 @@ pub enum JoinClause {
     /// A join with explicit ON conditions.
     ///
     /// Transpiles to: `<JOIN TYPE> "table" ON condition1 AND condition2`
-    Conditioned {
+    On {
         /// The type of join (INNER, LEFT OUTER, etc.).
         join: JoinType,
         /// The source being joined (table or subquery).
@@ -169,9 +169,7 @@ impl JoinClause {
     #[expect(clippy::wrong_self_convention)]
     pub const fn from_item(&self) -> &JoinFrom {
         match self {
-            Self::Conditioned { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => {
-                from
-            }
+            Self::On { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => from,
         }
     }
 
@@ -179,9 +177,7 @@ impl JoinClause {
     #[expect(clippy::wrong_self_convention)]
     pub const fn from_item_mut(&mut self) -> &mut JoinFrom {
         match self {
-            Self::Conditioned { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => {
-                from
-            }
+            Self::On { from, .. } | Self::Cross { from } | Self::Natural { from, .. } => from,
         }
     }
 }
@@ -190,7 +186,7 @@ impl Transpile for JoinClause {
     #[expect(clippy::panic_in_result_fn)]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Conditioned {
+            Self::On {
                 join,
                 from,
                 conditions,
@@ -248,7 +244,7 @@ mod tests {
         };
 
         assert_eq!(
-            JoinClause::Conditioned {
+            JoinClause::On {
                 join: JoinType::Inner,
                 from: JoinFrom::Table {
                     table: Table::OntologyIds.into(),
@@ -269,7 +265,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Conditioned JOIN expressions require at least one condition")]
     fn transpile_conditioned_join_empty_conditions() {
-        _ = JoinClause::Conditioned {
+        _ = JoinClause::On {
             join: JoinType::Inner,
             from: JoinFrom::Table {
                 table: Table::OntologyIds.into(),
