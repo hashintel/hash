@@ -39,7 +39,6 @@ members = [
     "libs/antsi",
     "libs/error-stack",
     "libs/error-stack/macros",
-    "libs/sarif",
     "tests/graph/benches",
     "tests/graph/integration",
     "tests/graph/test-data/rust",
@@ -161,7 +160,6 @@ iso8601-duration                   = { version = "=0.2.0", default-features = fa
 itertools                          = { version = "=0.14.0", default-features = false }
 json-number                        = { version = "=0.4.9", default-features = false }
 jsonptr                            = { version = "=0.7.1", default-features = false }
-jsonschema                         = { version = "=0.33.0", default-features = false }
 lexical                            = { version = "=7.0.5", default-features = false }
 libp2p                             = { version = "=0.56.0", default-features = false }
 libp2p-core                        = { version = "=0.43.1", default-features = false }

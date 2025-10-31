@@ -14091,12 +14091,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/sarif@workspace:libs/sarif":
-  version: 0.0.0-use.local
-  resolution: "@rust/sarif@workspace:libs/sarif"
-  languageName: unknown
-  linkType: soft
-
 "@sapphire/async-queue@npm:^1.5.3":
   version: 1.5.5
   resolution: "@sapphire/async-queue@npm:1.5.5"
