@@ -13,7 +13,7 @@ pub use self::{
     column_reference::{ColumnName, ColumnReference},
     conditional::{Constant, Expression, Function, PostgresType},
     group_by_clause::GroupByExpression,
-    join_clause::{JoinExpression, JoinFrom, JoinType},
+    join_clause::{JoinClause, JoinFrom, JoinType},
     order_clause::OrderByExpression,
     select_clause::SelectExpression,
     table_reference::{TableName, TableReference},

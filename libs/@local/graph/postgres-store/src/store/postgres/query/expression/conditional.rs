@@ -167,7 +167,17 @@ pub enum Expression {
     CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
-    FieldAccess(Box<Self>, Box<Self>),
+    /// Row expansion - expands a composite type into its constituent columns.
+    ///
+    /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
+    /// composite/row types into individual columns. Commonly used in INSERT
+    /// statements to expand a row parameter into column values.
+    ///
+    /// # Example SQL
+    /// ```sql
+    /// INSERT INTO users VALUES (($1::users).*)
+    /// ```
+    RowExpansion(Box<Self>),
     Select(Box<SelectStatement>),
 }
 
@@ -196,10 +206,9 @@ impl Transpile for Expression {
                 cast_type.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::FieldAccess(expression, subscript) => {
+            Self::RowExpansion(expression) => {
                 expression.transpile(fmt)?;
-                fmt.write_str(".")?;
-                subscript.transpile(fmt)
+                fmt.write_str(".*")
             }
             Self::Select(select) => select.transpile(fmt),
         }

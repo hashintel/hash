@@ -14,12 +14,12 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 
-use super::expression::{ColumnReference, JoinType, TableName, TableReference};
+use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function, JoinExpression,
+    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function, JoinClause,
     OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table,
     Transpile as _, WhereExpression, WindowStatement, WithExpression,
-    expression::{ColumnName, GroupByExpression, JoinFrom, PostgresType},
+    expression::{GroupByExpression, JoinFrom, PostgresType},
     statement::FromItem,
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
@@ -146,13 +146,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         include_drafts: bool,
     ) -> Self {
         let mut default = Self::new(temporal_axes, include_drafts);
-        default.statement.selects.push(SelectExpression {
-            expression: Expression::ColumnReference(ColumnReference {
-                correlation: None,
-                name: ColumnName::Asterisk,
-            }),
-            alias: None,
-        });
+        default
+            .statement
+            .selects
+            .push(SelectExpression::Asterisk(None));
         default
     }
 
@@ -331,7 +328,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             stored.index
         } else {
             let expression = self.compile_path_column(path);
-            self.statement.selects.push(SelectExpression {
+            self.statement.selects.push(SelectExpression::Expression {
                 expression: expression.clone(),
                 alias: None,
             });
@@ -364,7 +361,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .and_then(|table| {
                 // If a table is provided and we have a join on that table, we add the condition
                 self.statement.joins.iter_mut().find_map(|join| {
-                    if let JoinExpression::Conditioned {
+                    if let JoinClause::Conditioned {
                         join: _,
                         from,
                         conditions,
@@ -637,13 +634,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 distinct: vec![],
                                 selects: select_columns
                                     .iter()
-                                    .map(|&column| SelectExpression {
+                                    .map(|&column| SelectExpression::Expression {
                                         expression: Expression::ColumnReference(
                                             column.aliased(embeddings_alias),
                                         ),
                                         alias: None,
                                     })
-                                    .chain(once(SelectExpression {
+                                    .chain(once(SelectExpression::Expression {
                                         expression: Expression::Function(Function::Min(Box::new(
                                             Expression::CosineDistance(
                                                 Box::new(Expression::ColumnReference(
@@ -683,7 +680,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         Ordering::Ascending,
                         None,
                     );
-                    self.statement.selects.push(SelectExpression {
+                    self.statement.selects.push(SelectExpression::Expression {
                         expression: distance_expression.clone(),
                         alias: None,
                     });
@@ -782,14 +779,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
-                    SelectExpression {
-                        expression: Expression::ColumnReference(ColumnReference {
-                            correlation: None,
-                            name: ColumnName::Asterisk,
-                        }),
-                        alias: None,
-                    },
-                    SelectExpression {
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
                         expression: Expression::Window(
                             Box::new(Expression::Function(Function::Max(Box::new(
                                 Expression::ColumnReference(version_column.aliased(alias)),
@@ -1118,7 +1109,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut max_number = 0;
 
                 for existing in &self.statement.joins {
-                    let JoinExpression::Conditioned {
+                    let JoinClause::Conditioned {
                         join: _,
                         from: existing_from,
                         conditions: existing_conditions,
@@ -1171,7 +1162,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = Cow::Owned(join_table.clone());
                     conditions.extend(relation.additional_conditions(&join_table));
-                    self.statement.joins.push(JoinExpression::Conditioned {
+                    self.statement.joins.push(JoinClause::Conditioned {
                         join: join_type,
                         from: JoinFrom::Table {
                             table: TableReference {
