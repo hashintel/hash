@@ -66,6 +66,7 @@
     "start:test:graph": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter @apps/hash-graph --filter @rust/hash-graph-type-fetcher --filter @rust/hash-graph-test-server --env-mode=loose",
     "start:test:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
     "start:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
+    "lint:skill": "yarn workspace @local/claude-hooks lint:skill",
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --",
     "test:playwright": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:integration --env-mode=loose --filter @tests/hash-playwright --",
