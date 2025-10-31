@@ -228,8 +228,8 @@ function main() {
         }
       }
 
-      // Intent pattern matching (compile once per skill)
-      if (triggers.intentPatterns && matchType === null) {
+      // Intent pattern matching (always check, even if keyword matched)
+      if (triggers.intentPatterns) {
         try {
           const compiledPatterns = compileRegexPatterns(
             triggers.intentPatterns,
@@ -245,7 +245,9 @@ function main() {
               `Skill '${skillName}': MATCHED via intent pattern`,
               matchedPattern.pattern,
             );
-            matchType = "intent";
+            // Only set matchType to intent if keyword didn't already match
+            // (keywords are more specific and take priority)
+            matchType ??= "intent";
           } else {
             debug(`Skill '${skillName}': no intent pattern match`);
           }
@@ -261,6 +263,7 @@ function main() {
       // Add to matched skills if any trigger matched
       if (matchType !== null) {
         matchedSkills.push({ name: skillName, matchType, config });
+        debug(`Skill '${skillName}': ADDED with matchType='${matchType}'`);
       }
     }
 

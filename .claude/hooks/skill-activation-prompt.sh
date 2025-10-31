@@ -12,4 +12,11 @@ fi
 
 export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 cd "$PROJECT_DIR/.claude/hooks"
-cat | npx tsx skill-activation-prompt.ts
+
+# Pass all arguments to the TypeScript script
+# If --validate is passed, don't try to read from stdin
+if [[ "$*" == *"--validate"* ]]; then
+  npx tsx skill-activation-prompt.ts "$@"
+else
+  cat | npx tsx skill-activation-prompt.ts "$@"
+fi
