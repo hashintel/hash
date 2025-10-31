@@ -11,7 +11,7 @@ import {
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
-import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
+import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
