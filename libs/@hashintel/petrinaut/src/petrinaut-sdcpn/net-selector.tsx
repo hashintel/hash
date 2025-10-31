@@ -43,9 +43,7 @@ export const NetSelector = ({
       }}
       getOptionLabel={(option) => option.title}
       getOptionKey={(option) => option.netId}
-      isOptionDisabled={(option) =>
-        !!disabledOptions?.includes(option.netId)
-      }
+      isOptionDisabled={(option) => !!disabledOptions?.includes(option.netId)}
       placeholder={placeholder ?? "Select a net to load"}
       endAdornment={<CaretDownIcon />}
       maxWidth={300}

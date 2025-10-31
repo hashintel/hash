@@ -25,7 +25,7 @@ export const PlaceEditor = ({
   const { label: nodeName, initialTokenCounts } = data;
 
   const handleTokenCountChange = (tokenTypeId: string, value: string) => {
-    const numValue = parseInt(value, 10);
+    const numValue = Number.parseInt(value, 10);
     const newCount = Number.isNaN(numValue) ? 0 : Math.max(0, numValue);
 
     const newTokenCounts = {

@@ -1,4 +1,7 @@
-import { Combobox as ArkCombobox, useListCollection } from "@ark-ui/react/combobox";
+import {
+  Combobox as ArkCombobox,
+  useListCollection,
+} from "@ark-ui/react/combobox";
 import { useFilter } from "@ark-ui/react/locale";
 import { Portal } from "@ark-ui/react/portal";
 import { css } from "@hashintel/ds-helpers/css";
@@ -31,7 +34,8 @@ export const Combobox = <T,>({
 
   const { collection, filter: applyFilter } = useListCollection({
     initialItems: options,
-    filter: (itemText: string, filterText: string) => filterUtil.contains(itemText, filterText),
+    filter: (itemText: string, filterText: string) =>
+      filterUtil.contains(itemText, filterText),
     isItemDisabled: (item) => isOptionDisabled?.(item) ?? false,
     itemToString: getOptionLabel,
     itemToValue: (item) => getOptionKey(item),
@@ -44,7 +48,9 @@ export const Combobox = <T,>({
       onValueChange={(details) => {
         const selectedValue = details.value[0];
         if (selectedValue) {
-          const selectedItem = options.find((opt) => getOptionKey(opt) === selectedValue);
+          const selectedItem = options.find(
+            (opt) => getOptionKey(opt) === selectedValue,
+          );
           if (selectedItem) {
             onChange(selectedItem);
           }
@@ -117,7 +123,9 @@ export const Combobox = <T,>({
                 item={item}
                 className={css({
                   padding: "spacing.3",
-                  cursor: collection.getItemDisabled(item) ? "not-allowed" : "pointer",
+                  cursor: collection.getItemDisabled(item)
+                    ? "not-allowed"
+                    : "pointer",
                   fontSize: "size.textsm",
                   opacity: collection.getItemDisabled(item) ? 0.5 : 1,
                   _hover: {
@@ -130,7 +138,9 @@ export const Combobox = <T,>({
                   },
                 })}
               >
-                <ArkCombobox.ItemText>{getOptionLabel(item)}</ArkCombobox.ItemText>
+                <ArkCombobox.ItemText>
+                  {getOptionLabel(item)}
+                </ArkCombobox.ItemText>
               </ArkCombobox.Item>
             ))}
           </ArkCombobox.Content>

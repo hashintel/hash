@@ -369,9 +369,29 @@ export const TransitionEditor = ({
         </>
       }
     >
-      <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.6" })}>
-        <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
-          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          gap: "spacing.6",
+        })}
+      >
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "spacing.2",
+          })}
+        >
+          <span
+            className={css({
+              fontSize: "size.textsm",
+              fontWeight: "medium",
+              color: "core.gray.80",
+              textTransform: "uppercase",
+              letterSpacing: "[0.5px]",
+            })}
+          >
             Name
           </span>
           <TextField
@@ -386,8 +406,22 @@ export const TransitionEditor = ({
           />
         </div>
 
-        <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
-          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            gap: "spacing.2",
+          })}
+        >
+          <span
+            className={css({
+              fontSize: "size.textsm",
+              fontWeight: "medium",
+              color: "core.gray.80",
+              textTransform: "uppercase",
+              letterSpacing: "[0.5px]",
+            })}
+          >
             Description
           </span>
           <TextField
@@ -414,8 +448,22 @@ export const TransitionEditor = ({
               gap: "spacing.3",
             })}
           >
-            <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
-              <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "spacing.2",
+              })}
+            >
+              <span
+                className={css({
+                  fontSize: "size.textsm",
+                  fontWeight: "medium",
+                  color: "core.gray.80",
+                  textTransform: "uppercase",
+                  letterSpacing: "[0.5px]",
+                })}
+              >
                 Child net
               </span>
               <NetSelector
@@ -450,7 +498,13 @@ export const TransitionEditor = ({
                   >
                     input places
                   </span>
-                  <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.3" })}>
+                  <div
+                    className={css({
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "spacing.3",
+                    })}
+                  >
                     {allInputPlaces.map((place) => {
                       const isInputPlaceChecked =
                         !!localData.childNet?.inputPlaceIds.includes(place.id);
@@ -470,7 +524,9 @@ export const TransitionEditor = ({
                             display: "flex",
                             alignItems: "center",
                             gap: "spacing.2",
-                            cursor: onlyInputPlaceChecked ? "not-allowed" : "pointer",
+                            cursor: onlyInputPlaceChecked
+                              ? "not-allowed"
+                              : "pointer",
                             opacity: onlyInputPlaceChecked ? 0.5 : 1,
                           })}
                         >
@@ -497,7 +553,12 @@ export const TransitionEditor = ({
                               });
                             }}
                           />
-                          <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+                          <span
+                            className={css({
+                              fontSize: "size.textsm",
+                              color: "core.gray.90",
+                            })}
+                          >
                             {place.data.label}
                           </span>
                         </div>
@@ -520,7 +581,13 @@ export const TransitionEditor = ({
                   >
                     output places
                   </span>
-                  <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.3" })}>
+                  <div
+                    className={css({
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "spacing.3",
+                    })}
+                  >
                     {allOutputPlaces.map((place) => {
                       const isOutputPlaceChecked =
                         !!localData.childNet?.outputPlaceIds.includes(place.id);
@@ -540,7 +607,9 @@ export const TransitionEditor = ({
                             display: "flex",
                             alignItems: "center",
                             gap: "spacing.2",
-                            cursor: onlyOutputPlaceChecked ? "not-allowed" : "pointer",
+                            cursor: onlyOutputPlaceChecked
+                              ? "not-allowed"
+                              : "pointer",
                             opacity: onlyOutputPlaceChecked ? 0.5 : 1,
                           })}
                         >
@@ -567,7 +636,12 @@ export const TransitionEditor = ({
                               });
                             }}
                           />
-                          <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+                          <span
+                            className={css({
+                              fontSize: "size.textsm",
+                              color: "core.gray.90",
+                            })}
+                          >
                             {place.data.label}
                           </span>
                         </div>
@@ -581,11 +655,22 @@ export const TransitionEditor = ({
         )}
 
         {!existingNetsAvailable && (
-          <div className={css({ height: "[1px]", backgroundColor: "core.gray.20" })} />
+          <div
+            className={css({
+              height: "[1px]",
+              backgroundColor: "core.gray.20",
+            })}
+          />
         )}
 
         <div>
-          <div className={css({ display: "flex", alignItems: "center", gap: "spacing.3" })}>
+          <div
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              gap: "spacing.3",
+            })}
+          >
             <Switch
               checked={hasConditions}
               onChange={(checked) => {
@@ -604,7 +689,12 @@ export const TransitionEditor = ({
                 }));
               }}
             />
-            <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+            <span
+              className={css({
+                fontSize: "size.textsm",
+                color: "core.gray.90",
+              })}
+            >
               This transition has multiple possible outcomes
             </span>
           </div>
@@ -623,7 +713,10 @@ export const TransitionEditor = ({
                   className={css({
                     fontSize: "size.textsm",
                     fontWeight: "medium",
-                    color: totalProbability === 100 ? "core.green.70" : "core.red.80",
+                    color:
+                      totalProbability === 100
+                        ? "core.green.70"
+                        : "core.red.80",
                   })}
                 >
                   Total Probability: {totalProbability}%
@@ -639,7 +732,13 @@ export const TransitionEditor = ({
                 </Button>
               </div>
 
-              <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.4" })}>
+              <div
+                className={css({
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "spacing.4",
+                })}
+              >
                 {(localData.conditions ?? []).map((condition) => (
                   <div
                     key={condition.id}
@@ -653,7 +752,13 @@ export const TransitionEditor = ({
                       borderRadius: "radius.8",
                     })}
                   >
-                    <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.4" })}>
+                    <div
+                      className={css({
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "spacing.4",
+                      })}
+                    >
                       <div
                         className={css({
                           display: "flex",
@@ -661,8 +766,23 @@ export const TransitionEditor = ({
                           alignItems: "flex-start",
                         })}
                       >
-                        <div className={css({ flex: "1", display: "flex", flexDirection: "column", gap: "spacing.2" })}>
-                          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+                        <div
+                          className={css({
+                            flex: "1",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "spacing.2",
+                          })}
+                        >
+                          <span
+                            className={css({
+                              fontSize: "size.textsm",
+                              fontWeight: "medium",
+                              color: "core.gray.80",
+                              textTransform: "uppercase",
+                              letterSpacing: "[0.5px]",
+                            })}
+                          >
                             Condition Name
                           </span>
                           <TextField
@@ -679,9 +799,7 @@ export const TransitionEditor = ({
                         {(localData.conditions?.length ?? 0) > 1 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              handleRemoveCondition(condition.id)
-                            }
+                            onClick={() => handleRemoveCondition(condition.id)}
                             className={css({
                               padding: "spacing.2",
                               border: "none",
@@ -702,10 +820,7 @@ export const TransitionEditor = ({
                         label={`Probability: ${condition.probability}%`}
                         value={condition.probability}
                         onChange={(value) =>
-                          handleConditionProbabilityChange(
-                            condition.id,
-                            value,
-                          )
+                          handleConditionProbabilityChange(condition.id, value)
                         }
                         min={1}
                         max={100}
@@ -727,7 +842,12 @@ export const TransitionEditor = ({
                           Output to
                         </span>
                         {outgoingEdges.length === 0 ? (
-                          <span className={css({ fontSize: "size.textsm", color: "core.gray.60" })}>
+                          <span
+                            className={css({
+                              fontSize: "size.textsm",
+                              color: "core.gray.60",
+                            })}
+                          >
                             No output paths available. Add arcs from this
                             transition first.
                           </span>
@@ -735,10 +855,7 @@ export const TransitionEditor = ({
                           <Select
                             value={condition.outputEdgeId}
                             onChange={(value) =>
-                              handleToggleEdgeForCondition(
-                                condition.id,
-                                value,
-                              )
+                              handleToggleEdgeForCondition(condition.id, value)
                             }
                             options={outgoingEdges.map((outEdge) => ({
                               value: outEdge.id,
