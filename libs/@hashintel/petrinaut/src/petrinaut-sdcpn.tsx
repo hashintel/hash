@@ -20,6 +20,7 @@ import ReactFlow, {
 import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
 import { Arc } from "./petrinaut-sdcpn/arc";
 import { ArcEditor } from "./petrinaut-sdcpn/arc-editor";
+import { BottomBar } from "./petrinaut-sdcpn/bottom-bar";
 import { createArc } from "./petrinaut-sdcpn/create-arc";
 import {
   EditorContextProvider,
@@ -30,7 +31,6 @@ import { exampleCPN } from "./petrinaut-sdcpn/examples";
 import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
 import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
-import { Sidebar } from "./petrinaut-sdcpn/sidebar";
 import {
   useEditorStore,
   useNodesWithDraggingState,
@@ -433,8 +433,6 @@ const PetrinautInner = ({
       {!hideNetManagementControls && <TitleAndNetSelect />}
 
       <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
-        <Sidebar />
-
         <Box
           sx={{
             width: "100%",
@@ -509,6 +507,8 @@ const PetrinautInner = ({
           >
             <Background gap={15} size={1} />
           </ReactFlow>
+
+          <BottomBar />
 
           {!hideNetManagementControls && (
             <Stack

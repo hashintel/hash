@@ -6,7 +6,7 @@ import { useEditorContext } from "./editor-context";
 import { placeStyling, transitionStyling } from "./styling";
 import { useLayoutGraph } from "./use-layout-graph";
 
-export const Sidebar = () => {
+export const BottomBar = () => {
   const onDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, nodeType: "place" | "transition") => {
       event.dataTransfer.setData("application/reactflow", nodeType);
@@ -22,32 +22,49 @@ export const Sidebar = () => {
   const layoutGraph = useLayoutGraph();
 
   return (
-    <aside
+    <div
       className={css({
-        background: "core.gray.10",
-        padding: "spacing.6",
-        borderRight: "1px solid",
-        borderRightColor: "core.gray.30",
+        position: "fixed",
+        bottom: "spacing.6",
+        left: "[50%]",
+        transform: "translateX(-50%)",
+        background: "[white]",
+        padding: "spacing.4",
+        paddingX: "spacing.6",
+        borderRadius: "radius.8",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+        border: "1px solid",
+        borderColor: "core.gray.20",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         gap: "spacing.6",
+        zIndex: "[1000]",
       })}
     >
       <div
         className={css({
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          gap: "spacing.6",
+          gap: "spacing.4",
         })}
       >
+        <span
+          className={css({
+            fontSize: "size.textxs",
+            fontWeight: "semibold",
+            color: "core.gray.60",
+            textTransform: "uppercase",
+            letterSpacing: "[0.05em]",
+          })}
+        >
+          New Process
+        </span>
         <div
           className={`${placeStyling} ${css({
             cursor: "grab",
-            width: "[80px]",
-            height: "[80px]",
-            fontSize: "[14px]",
+            width: "[60px]",
+            height: "[60px]",
+            fontSize: "[12px]",
           })}`}
           draggable
           onDragStart={(event) => onDragStart(event, "place")}
@@ -57,9 +74,9 @@ export const Sidebar = () => {
         <div
           className={`${transitionStyling} ${css({
             cursor: "grab",
-            width: "[100px]",
-            height: "[50px]",
-            fontSize: "[14px]",
+            width: "[80px]",
+            height: "[40px]",
+            fontSize: "[12px]",
           })}`}
           draggable
           onDragStart={(event) => onDragStart(event, "transition")}
@@ -69,18 +86,16 @@ export const Sidebar = () => {
       </div>
       <div
         className={css({
-          background: "core.gray.30",
-          height: "[1px]",
-          width: "[100%]",
-          my: "spacing.6",
+          background: "core.gray.20",
+          width: "[1px]",
+          height: "[40px]",
         })}
       />
       <div
         className={css({
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          gap: "spacing.6",
+          gap: "spacing.3",
         })}
       >
         <button
@@ -94,15 +109,17 @@ export const Sidebar = () => {
           }
           className={css({
             display: "block",
-            fontWeight: "400",
+            fontWeight: "500",
             padding: "spacing.2",
-            paddingX: "spacing.3",
+            paddingX: "spacing.4",
             fontSize: "size.textxs",
             backgroundColor: "[transparent]",
             border: "1px solid",
             borderColor: "core.gray.30",
             borderRadius: "radius.4",
             cursor: "pointer",
+            textTransform: "uppercase",
+            letterSpacing: "[0.05em]",
             _hover: {
               backgroundColor: "core.gray.10",
             },
@@ -111,6 +128,6 @@ export const Sidebar = () => {
           Layout
         </button>
       </div>
-    </aside>
+    </div>
   );
 };

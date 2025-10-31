@@ -1,6 +1,6 @@
 import {
-  Select as ArkSelect,
   createListCollection,
+  Select as ArkSelect,
 } from "@ark-ui/react/select";
 import { css } from "@hashintel/ds-helpers/css";
 
