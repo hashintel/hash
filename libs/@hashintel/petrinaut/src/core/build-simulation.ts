@@ -34,14 +34,14 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
   const transitionsMap = new Map(
-    sdcpn.transitions.map((transition) => [transition.id, transition])
+    sdcpn.transitions.map((transition) => [transition.id, transition]),
   );
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of initialMarking.keys()) {
     if (!placesMap.has(placeId)) {
       throw new Error(
-        `Place with ID ${placeId} in initialMarking does not exist in SDCPN`
+        `Place with ID ${placeId} in initialMarking does not exist in SDCPN`,
       );
     }
   }
@@ -52,7 +52,7 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
     const expectedSize = place.dimensions * marking.count;
     if (marking.values.length !== expectedSize) {
       throw new Error(
-        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${place.dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`
+        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${place.dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`,
       );
     }
   }
@@ -63,14 +63,14 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
     try {
       const fn = compileUserCode<[Float64Array, number]>(
         place.differentialEquationCode,
-        "Dynamics"
+        "Dynamics",
       );
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
       throw new Error(
         `Failed to compile differential equation for place ${place.id}: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
   }
@@ -81,14 +81,14 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
     try {
       const fn = compileUserCode<[number[][][]]>(
         transition.lambdaCode,
-        "Lambda"
+        "Lambda",
       );
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
       throw new Error(
         `Failed to compile lambda function for transition ${transition.id}: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
   }
@@ -99,14 +99,14 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
     try {
       const fn = compileUserCode<[number[][][]]>(
         transition.transitionKernelCode,
-        "TransitionKernel"
+        "TransitionKernel",
       );
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
       throw new Error(
         `Failed to compile transition kernel for transition ${transition.id}: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
   }
@@ -156,7 +156,7 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
         instance: transition,
         timeSinceLastFiring: 0,
       },
-    ])
+    ]),
   );
 
   // Create the simulation instance (without frames initially)
