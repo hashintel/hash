@@ -1,8 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
-
-import { placeStyling, transitionStyling } from "../styling";
+import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
 export const BottomBar = () => {
   const onDragStart = useCallback(
@@ -14,6 +13,20 @@ export const BottomBar = () => {
     },
     [],
   );
+
+  const iconContainerStyle = css({
+    cursor: "grab",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "[50px]",
+    height: "[50px]",
+    fontSize: "[24px]",
+    color: "core.gray.70",
+    "&:hover": {
+      color: "core.gray.90",
+    },
+  });
 
   return (
     <div
@@ -31,41 +44,29 @@ export const BottomBar = () => {
         borderColor: "core.gray.20",
         display: "flex",
         alignItems: "center",
-        gap: "spacing.6",
+        gap: "spacing.4",
         zIndex: "[1000]",
       })}
     >
+      <div className={iconContainerStyle}>
+        <FaArrowPointer />
+      </div>
+      <div className={iconContainerStyle}>
+        <FaHand />
+      </div>
       <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "spacing.4",
-        })}
+        className={iconContainerStyle}
+        draggable
+        onDragStart={(event) => onDragStart(event, "place")}
       >
-        <div
-          className={`${placeStyling} ${css({
-            cursor: "grab",
-            width: "[60px]",
-            height: "[60px]",
-            fontSize: "[12px]",
-          })}`}
-          draggable
-          onDragStart={(event) => onDragStart(event, "place")}
-        >
-          Place
-        </div>
-        <div
-          className={`${transitionStyling} ${css({
-            cursor: "grab",
-            width: "[80px]",
-            height: "[40px]",
-            fontSize: "[12px]",
-          })}`}
-          draggable
-          onDragStart={(event) => onDragStart(event, "transition")}
-        >
-          Transition
-        </div>
+        <FaCircle />
+      </div>
+      <div
+        className={iconContainerStyle}
+        draggable
+        onDragStart={(event) => onDragStart(event, "transition")}
+      >
+        <FaSquare />
       </div>
       <div
         className={css({
