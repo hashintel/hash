@@ -364,7 +364,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .and_then(|table| {
                 // If a table is provided and we have a join on that table, we add the condition
                 self.statement.joins.iter_mut().find_map(|join| {
-                    (*table == *join.from.reference_table()).then_some(&mut join.conditions)
+                    if let JoinExpression::Conditioned {
+                        join: _,
+                        from,
+                        conditions,
+                    } = join
+                        && *table == *from.reference_table()
+                    {
+                        Some(conditions)
+                    } else {
+                        None
+                    }
                 })
             })
             .unwrap_or(&mut self.statement.where_expression.conditions)
@@ -569,7 +579,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     );
 
                     if let Some(last_join) = self.statement.joins.last_mut() {
-                        let last_reference_table = last_join.from.reference_table();
+                        let last_reference_table = last_join.from_item().reference_table();
                         ensure!(
                             last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
                                 || last_reference_table.name
@@ -621,7 +631,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        last_join.from = JoinFrom::SelectStatement {
+                        *last_join.from_item_mut() = JoinFrom::Subquery {
                             statement: Box::new(SelectStatement {
                                 with: WithExpression::default(),
                                 distinct: vec![],
@@ -1108,14 +1118,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut max_number = 0;
 
                 for existing in &self.statement.joins {
-                    let existing_table = existing.from.reference_table();
+                    let JoinExpression::Conditioned {
+                        join: _,
+                        from: existing_from,
+                        conditions: existing_conditions,
+                    } = existing
+                    else {
+                        continue;
+                    };
+
+                    let existing_table = existing_from.reference_table();
 
                     // Check for exact match to reuse existing join
                     if *existing_table == join_table {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing.conditions.starts_with(&conditions) {
+                        if existing_conditions.starts_with(&conditions) {
                             // We already have a join statement for this column, so we can reuse
                             // it.
                             current_table = Cow::Borrowed(existing_table);
@@ -1152,7 +1171,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = Cow::Owned(join_table.clone());
                     conditions.extend(relation.additional_conditions(&join_table));
-                    self.statement.joins.push(JoinExpression {
+                    self.statement.joins.push(JoinExpression::Conditioned {
                         join: join_type,
                         from: JoinFrom::Table {
                             table: TableReference {
