@@ -43,8 +43,7 @@
 //! - [`Integer`]: Representation of integer literals
 //! - [`Float`]: Representation of floating-point literals
 //! - [`String`]: Representation of string literals
-use core::fmt::Display;
-use std::fmt;
+use core::{fmt, fmt::Display};
 
 pub use self::{float::Float, integer::Integer, string::String};
 
