@@ -1,8 +1,14 @@
-import { Autocomplete, CaretDownSolidIcon } from "@hashintel/design-system";
-import { MenuItem, outlinedInputClasses } from "@mui/material";
 import { useMemo, useRef } from "react";
 
+import { Combobox } from "./components/combobox";
 import type { MinimalNetMetadata } from "./types";
+
+// Simple caret down icon
+const CaretDownIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M4 6l4 4 4-4z" />
+  </svg>
+);
 
 export const NetSelector = ({
   disabledOptions,
@@ -28,64 +34,21 @@ export const NetSelector = ({
   }
 
   return (
-    <Autocomplete<MinimalNetMetadata | null, false, false, false>
-      autoFocus={false}
-      componentsProps={{
-        paper: {
-          sx: {
-            p: 0,
-            maxWidth: "90vw",
-            minWidth: "100%",
-            width: "fit-content",
-          },
-        },
-      }}
-      disableCloseOnSelect={false}
-      disabled={options.length === 0}
-      getOptionDisabled={(option) =>
-        !!option && !!disabledOptions?.includes(option.netId)
-      }
-      getOptionLabel={(option) => option?.title ?? ""}
-      inputHeight={40}
-      inputProps={{
-        endAdornment: <CaretDownSolidIcon sx={{ fontSize: 14 }} />,
-        placeholder: placeholder ?? "Select a net to load",
-        sx: () => ({
-          [`&.${outlinedInputClasses.root}`]: {
-            py: 0.3,
-            px: "8px !important",
-
-            input: {
-              fontSize: 14,
-            },
-          },
-        }),
-      }}
-      inputRef={inputRef}
-      isOptionEqualToValue={(option, selectedValue) =>
-        option?.netId === selectedValue?.netId
-      }
-      renderOption={(props, data) => (
-        <MenuItem {...props} key={data?.netId}>
-          {data?.title ?? ""}
-        </MenuItem>
-      )}
-      ListboxProps={{
-        sx: {
-          maxHeight: 240,
-        },
-      }}
-      onChange={(_event, option) => {
-        if (!option) {
-          return;
-        }
-
+    <Combobox
+      value={selectedOption ?? null}
+      options={options}
+      onChange={(option) => {
         onSelect(option);
         inputRef.current?.blur();
       }}
-      options={options}
-      sx={{ maxWidth: 300 }}
-      value={selectedOption}
+      getOptionLabel={(option) => option.title}
+      getOptionKey={(option) => option.netId}
+      isOptionDisabled={(option) =>
+        !!disabledOptions?.includes(option.netId)
+      }
+      placeholder={placeholder ?? "Select a net to load"}
+      endAdornment={<CaretDownIcon />}
+      maxWidth={300}
     />
   );
 };
