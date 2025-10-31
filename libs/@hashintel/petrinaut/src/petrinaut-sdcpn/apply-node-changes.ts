@@ -2,11 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { NodeAddChange, NodeChange } from "reactflow";
 
 import type { MutatePetriNetDefinition } from "./editor-context";
-
-export type DraggingStateByNodeId = Record<
-  string,
-  { dragging: boolean; position: { x: number; y: number } }
->;
+import type { DraggingStateByNodeId } from "./state/mod";
 
 /**
  * A variant of reactflow's applyChange which mutates the petri net definition instead of creating a new node or edge array.
