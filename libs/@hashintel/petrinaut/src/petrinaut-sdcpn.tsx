@@ -4,12 +4,7 @@ import "./petrinaut-sdcpn/index.css";
 import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  Connection,
-  Node,
-  NodeChange,
-  ReactFlowInstance,
-} from "reactflow";
+import type { Connection, NodeChange, ReactFlowInstance } from "reactflow";
 import ReactFlow, {
   Background,
   ConnectionLineType,
@@ -19,7 +14,6 @@ import ReactFlow, {
 
 import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
 import { Arc } from "./petrinaut-sdcpn/arc";
-import { ArcEditor } from "./petrinaut-sdcpn/arc-editor";
 import { BottomBar } from "./petrinaut-sdcpn/components/bottom-bar";
 import { FloatingTitle } from "./petrinaut-sdcpn/components/floating-title";
 import { HamburgerMenu } from "./petrinaut-sdcpn/components/hamburger-menu";
@@ -32,15 +26,12 @@ import {
 } from "./petrinaut-sdcpn/editor-context";
 import { exampleCPN } from "./petrinaut-sdcpn/examples";
 import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
-import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import {
   useEditorStore,
   useNodesWithDraggingState,
-  useSelectedPlace,
 } from "./petrinaut-sdcpn/state/mod";
 import { nodeDimensions } from "./petrinaut-sdcpn/styling";
-import { TransitionEditor } from "./petrinaut-sdcpn/transition-editor";
 import { TransitionNode } from "./petrinaut-sdcpn/transition-node";
 import type {
   ArcData,
@@ -79,8 +70,6 @@ export type {
 
 export { nodeDimensions };
 
-export { NetSelector } from "./petrinaut-sdcpn/net-selector";
-
 const PetrinautInner = ({
   hideNetManagementControls,
 }: { hideNetManagementControls: boolean }) => {
@@ -95,31 +84,12 @@ const PetrinautInner = ({
   } = useEditorContext();
 
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
-  const [menuOpen, setMenuOpen] = useState(false);
 
   // Zustand store selectors
   const reactFlowInstance = useEditorStore((state) => state.reactFlowInstance);
   const setReactFlowInstance = useEditorStore(
     (state) => state.setReactFlowInstance,
   );
-  const selectedPlaceId = useEditorStore((state) => state.selectedPlaceId);
-  const setSelectedPlaceId = useEditorStore(
-    (state) => state.setSelectedPlaceId,
-  );
-  const selectedPlacePosition = useEditorStore(
-    (state) => state.selectedPlacePosition,
-  );
-  const setSelectedPlacePosition = useEditorStore(
-    (state) => state.setSelectedPlacePosition,
-  );
-  const selectedTransition = useEditorStore(
-    (state) => state.selectedTransition,
-  );
-  const setSelectedTransition = useEditorStore(
-    (state) => state.setSelectedTransition,
-  );
-  const selectedArc = useEditorStore((state) => state.selectedArc);
-  const setSelectedArc = useEditorStore((state) => state.setSelectedArc);
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
@@ -130,8 +100,6 @@ const PetrinautInner = ({
     (state) => state.resetDraggingState,
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
-
-  const selectedPlace = useSelectedPlace(petriNetDefinition.nodes);
 
   const nodesForReactFlow = useNodesWithDraggingState(petriNetDefinition.nodes);
 
@@ -296,139 +264,11 @@ const PetrinautInner = ({
     [reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
   );
 
-  const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
-      if (selectedPlaceId && selectedPlaceId === node.id) {
-        return;
-      }
-
-      clearSelection();
-
-      if (node.type === "place") {
-        setSelectedPlaceId(node.id);
-        setSelectedPlacePosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
-      } else if (node.type === "transition") {
-        setSelectedTransition(node.id);
-      }
-    },
-    [
-      selectedPlaceId,
-      clearSelection,
-      setSelectedPlaceId,
-      setSelectedPlacePosition,
-      setSelectedTransition,
-    ],
-  );
-
-  const handleUpdateInitialTokens = useCallback(
-    (nodeId: string, initialTokenCounts: TokenCounts) => {
-      mutatePetriNetDefinition((existingNet) => {
-        for (const node of existingNet.nodes) {
-          if (node.id === nodeId && node.data.type === "place") {
-            // @todo don't overwrite the whole object, update what has changed only
-            node.data.initialTokenCounts = initialTokenCounts;
-            return;
-          }
-        }
-      });
-    },
-    [mutatePetriNetDefinition],
-  );
-
-  const handleUpdateNodeLabel = useCallback(
-    (nodeId: string, label: string) => {
-      mutatePetriNetDefinition((existingNet) => {
-        for (const node of existingNet.nodes) {
-          if (node.id === nodeId) {
-            node.data.label = label;
-            return;
-          }
-        }
-      });
-    },
-    [mutatePetriNetDefinition],
-  );
-
-  const onEdgeClick = useCallback(
-    (event: React.MouseEvent, edge: ArcType) => {
-      event.stopPropagation();
-
-      setSelectedArc({
-        ...edge,
-        position: { x: event.clientX, y: event.clientY },
-      });
-    },
-    [setSelectedArc],
-  );
-
-  const handleUpdateEdgeWeight = useCallback(
-    (
-      edgeId: string,
-      tokenWeights: { [tokenTypeId: string]: number | undefined },
-    ) => {
-      mutatePetriNetDefinition((existingNet) => {
-        for (const arc of existingNet.arcs) {
-          if (arc.id === edgeId) {
-            // @todo don't overwrite the whole object, update what has changed only
-            arc.data ??= { tokenWeights: {} };
-            arc.data.tokenWeights = tokenWeights;
-            return;
-          }
-        }
-      });
-    },
-    [mutatePetriNetDefinition],
-  );
-
   const layoutGraph = useLayoutGraph();
 
   const handlePaneClick = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
-
-  const handleUpdateTransition = useCallback(
-    (
-      transitionId: string,
-      transitionData: Omit<TransitionNodeData, "type">,
-    ) => {
-      mutatePetriNetDefinition((existingNet) => {
-        const transitionNode = existingNet.nodes.find(
-          (node): node is TransitionNodeType =>
-            node.id === transitionId && node.type === "transition",
-        );
-
-        if (!transitionNode) {
-          throw new Error(`Transition node with id ${transitionId} not found`);
-        }
-
-        if (transitionData.label !== transitionNode.data.label) {
-          transitionNode.data.label = transitionData.label;
-        }
-
-        if (transitionData.description !== transitionNode.data.description) {
-          transitionNode.data.description = transitionData.description;
-        }
-
-        if (transitionData.delay !== transitionNode.data.delay) {
-          transitionNode.data.delay = transitionData.delay;
-        }
-
-        if (transitionData.childNet !== transitionNode.data.childNet) {
-          // @todo check equality of nested fields
-          transitionNode.data.childNet = transitionData.childNet;
-        }
-
-        if (transitionData.conditions !== transitionNode.data.conditions) {
-          // @todo check equality of nested fields
-          transitionNode.data.conditions = transitionData.conditions;
-        }
-      });
-    },
-    [mutatePetriNetDefinition],
-  );
 
   const handleLoadExample = useCallback(() => {
     createNewNet({
@@ -543,50 +383,6 @@ const PetrinautInner = ({
             <ModeSelector mode={mode} onChange={setMode} />
           </div>
 
-          {selectedTransition && (
-            <TransitionEditor
-              open
-              onClose={() => setSelectedTransition(null)}
-              transitionId={selectedTransition}
-              outgoingEdges={petriNetDefinition.arcs
-                .filter((edge) => edge.source === selectedTransition)
-                .map((edge) => {
-                  const targetNode = petriNetDefinition.nodes.find(
-                    (node) => node.id === edge.target,
-                  );
-                  return {
-                    id: edge.id,
-                    source: edge.source,
-                    target: edge.target,
-                    targetLabel: targetNode?.data.label ?? "Unknown",
-                    tokenWeights: edge.data?.tokenWeights ?? {},
-                  };
-                })}
-              onUpdateTransition={handleUpdateTransition}
-            />
-          )}
-
-          {selectedPlace && (
-            <PlaceEditor
-              position={selectedPlacePosition ?? { x: 0, y: 0 }}
-              selectedPlace={selectedPlace}
-              tokenTypes={petriNetDefinition.tokenTypes}
-              onClose={() => setSelectedPlaceId(null)}
-              onUpdateInitialTokens={handleUpdateInitialTokens}
-              onUpdateNodeLabel={handleUpdateNodeLabel}
-            />
-          )}
-
-          {selectedArc && (
-            <ArcEditor
-              arcId={selectedArc.id}
-              tokenWeights={selectedArc.data?.tokenWeights ?? {}}
-              position={selectedArc.position}
-              onClose={() => setSelectedArc(null)}
-              onUpdateWeights={handleUpdateEdgeWeight}
-            />
-          )}
-
           <ReactFlow
             nodes={nodesForReactFlow}
             edges={petriNetDefinition.arcs}
@@ -598,8 +394,6 @@ const PetrinautInner = ({
             onInit={onInit}
             onDrop={onDrop}
             onDragOver={onDragOver}
-            onNodeClick={onNodeClick}
-            onEdgeClick={onEdgeClick}
             onPaneClick={handlePaneClick}
             defaultViewport={{ x: 0, y: 0, zoom: 1 }}
             snapToGrid
@@ -633,10 +427,6 @@ export type PetrinautProps = {
    * Whether to hide controls relating to net loading, creation and title setting.
    */
   hideNetManagementControls: boolean;
-  /**
-   * Minimal metadata on the net which this net is a child of, if any.
-   */
-  parentNet: ParentNet | null;
   /**
    * The ID of the net which is currently loaded.
    */
@@ -682,7 +472,6 @@ export const Petrinaut = ({
   createNewNet,
   existingNets,
   hideNetManagementControls,
-  parentNet,
   petriNetId,
   petriNetDefinition,
   mutatePetriNetDefinition,
@@ -695,7 +484,6 @@ export const Petrinaut = ({
       <EditorContextProvider
         createNewNet={createNewNet}
         existingNets={existingNets}
-        parentNet={parentNet}
         petriNetId={petriNetId}
         petriNetDefinition={petriNetDefinition}
         mutatePetriNetDefinition={mutatePetriNetDefinition}

@@ -1,17 +1,6 @@
-import {
-  createContext,
-  type Dispatch,
-  type SetStateAction,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo } from "react";
 
-import type {
-  MinimalNetMetadata,
-  ParentNet,
-  PetriNetDefinitionObject,
-} from "./types";
+import type { MinimalNetMetadata, PetriNetDefinitionObject } from "./types";
 
 export type MutatePetriNetDefinition = (
   mutationFn: (petriNetDefinition: PetriNetDefinitionObject) => undefined,
@@ -24,11 +13,9 @@ type EditorContextValue = {
   }) => void;
   existingNets: MinimalNetMetadata[];
   loadPetriNet: (petriNetId: string) => void;
-  parentNet: ParentNet | null;
   petriNetId: string | null;
   petriNetDefinition: PetriNetDefinitionObject;
   readonly: boolean;
-  setParentNet: Dispatch<SetStateAction<ParentNet | null>>;
   mutatePetriNetDefinition: MutatePetriNetDefinition;
   setTitle: (title: string) => void;
   title: string;
@@ -43,7 +30,6 @@ type EditorContextProviderProps = {
     title: string;
   }) => void;
   existingNets: MinimalNetMetadata[];
-  parentNet: ParentNet | null;
   petriNetId: string | null;
   petriNetDefinition: PetriNetDefinitionObject;
   mutatePetriNetDefinition: MutatePetriNetDefinition;
@@ -57,7 +43,6 @@ export const EditorContextProvider = ({
   children,
   createNewNet,
   existingNets,
-  parentNet: parentNetFromProps,
   petriNetId,
   petriNetDefinition,
   readonly,
@@ -66,20 +51,14 @@ export const EditorContextProvider = ({
   setTitle,
   title,
 }: EditorContextProviderProps) => {
-  const [parentNet, setParentNet] = useState<ParentNet | null>(
-    parentNetFromProps,
-  );
-
   const value: EditorContextValue = useMemo(
     () => ({
       createNewNet,
       existingNets,
       loadPetriNet,
-      parentNet,
       petriNetId,
       petriNetDefinition,
       readonly,
-      setParentNet,
       mutatePetriNetDefinition,
       setTitle,
       title,
@@ -89,11 +68,9 @@ export const EditorContextProvider = ({
       existingNets,
       loadPetriNet,
       mutatePetriNetDefinition,
-      parentNet,
       petriNetId,
       petriNetDefinition,
       readonly,
-      setParentNet,
       setTitle,
       title,
     ],

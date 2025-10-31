@@ -151,7 +151,6 @@ export const DevWrapper = () => {
             createNewNet={createNewNet}
             existingNets={existingNets}
             hideNetManagementControls={false}
-            parentNet={null}
             petriNetId={currentNetId}
             petriNetDefinition={currentNet.petriNetDefinition}
             mutatePetriNetDefinition={mutatePetriNetDefinition}
