@@ -1,36 +1,13 @@
-export type ID = string;
+import type { ID, Place, SDCPN, Transition } from "./sdcpn";
 
 export type DifferentialEquationFn = (
   placeValues: Float64Array,
-  t: number
+  t: number,
 ) => Float64Array;
 
 export type LambdaFn = (tokenValues: number[][][]) => number;
 
 export type TransitionKernelFn = (tokenValues: number[][][]) => number[][][];
-
-export type Transition = {
-  id: string;
-  name: string;
-  inputArcs: { placeId: string; weight: number }[];
-  outputArcs: { placeId: string; weight: number }[];
-  lambdaCode: string;
-  transitionKernelCode: string;
-};
-
-export type Place = {
-  id: string;
-  name: string;
-  dimensions: number;
-  differentialEquationCode: string;
-};
-
-export type SDCPN = {
-  id: string;
-  title: string;
-  places: Place[];
-  transitions: Transition[];
-};
 
 export type SimulationInput = {
   sdcpn: SDCPN;

@@ -1,6 +1,7 @@
 /* eslint-disable curly */
 
-import type { ID, SimulationFrame } from "../types";
+import type { ID } from "../types/sdcpn";
+import type { SimulationFrame } from "../types/simulation";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 
 type PlaceID = ID;
@@ -14,7 +15,7 @@ type PlaceID = ID;
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
-  transitionId: string
+  transitionId: string,
 ): null | {
   remove: Record<PlaceID, Set<number>>;
   add: Record<PlaceID, number[][]>;
@@ -31,7 +32,7 @@ export function computePossibleTransition(
     const placeState = frame.places.get(arc.placeId);
     if (!placeState)
       throw new Error(
-        `Place with ID ${arc.placeId} not found in current marking.`
+        `Place with ID ${arc.placeId} not found in current marking.`,
       );
 
     return { ...placeState, weight: arc.weight };
@@ -39,7 +40,7 @@ export function computePossibleTransition(
 
   // Transition is enabled if all input places have more tokens than the arc weight.
   const isTransitionEnabled = inputPlaces.every(
-    (inputPlace) => inputPlace.count >= inputPlace.weight
+    (inputPlace) => inputPlace.count >= inputPlace.weight,
   );
 
   // Return null if not enabled
@@ -49,14 +50,14 @@ export function computePossibleTransition(
   const lambdaFn = simulation.lambdaFns.get(transitionId);
   if (!lambdaFn)
     throw new Error(
-      `Lambda function for transition ${transitionId} not found.`
+      `Lambda function for transition ${transitionId} not found.`,
     );
 
   // Get transition kernel function
   const transitionKernelFn = simulation.transitionKernelFns.get(transitionId);
   if (!transitionKernelFn)
     throw new Error(
-      `Transition kernel fn for transition ${transitionId} not found.`
+      `Transition kernel fn for transition ${transitionId} not found.`,
     );
 
   //
@@ -90,10 +91,10 @@ export function computePossibleTransition(
           // Recreate a tuple from buffer to give to lambda function
           // This could be optimized by passing the buffer and offset directly to the lambda function
           return Array.from({ length: dimensions }).map(
-            (_, i) => frame.buffer[globalIndex + i]!
+            (_, i) => frame.buffer[globalIndex + i]!,
           );
         });
-      }
+      },
     );
 
     // Approximate by just multiplying by elapsed time since last transition,
@@ -115,7 +116,7 @@ export function computePossibleTransition(
           tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
             const inputArc = transition.instance.inputArcs[placeIndex]!;
             return [inputArc.placeId, new Set(placeTokenIndices)];
-          })
+          }),
         ),
         // Map from place ID to array of token values to
         // create as per transition kernel output
@@ -123,7 +124,7 @@ export function computePossibleTransition(
           transitionKernelOutput.map((outputTokens, outputIndex) => {
             const outputArc = transition.instance.outputArcs[outputIndex]!;
             return [outputArc.placeId, outputTokens];
-          })
+          }),
         ),
       };
     }
