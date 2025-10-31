@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react";
 import type { NodeAddChange, NodeChange } from "reactflow";
 
 import type { MutatePetriNetDefinition } from "./editor-context";
@@ -13,12 +12,14 @@ export const applyNodeChanges = ({
   changes,
   draggingStateByNodeId,
   mutatePetriNetDefinition,
-  setDraggingStateByNodeId,
+  updateDraggingStateByNodeId,
 }: {
   changes: NodeChange[];
   draggingStateByNodeId: DraggingStateByNodeId;
   mutatePetriNetDefinition: MutatePetriNetDefinition;
-  setDraggingStateByNodeId: Dispatch<SetStateAction<DraggingStateByNodeId>>;
+  updateDraggingStateByNodeId: (
+    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
+  ) => void;
 }) => {
   const changesByNodeId: Record<string, NodeChange[]> = {};
   const addChanges: NodeAddChange[] = [];
@@ -39,7 +40,7 @@ export const applyNodeChanges = ({
 
     if (change.type === "position") {
       if (change.dragging) {
-        setDraggingStateByNodeId((existing) => ({
+        updateDraggingStateByNodeId((existing) => ({
           ...existing,
           [change.id]: {
             dragging: true,
@@ -65,7 +66,7 @@ export const applyNodeChanges = ({
           position: lastPosition,
         });
 
-        setDraggingStateByNodeId((existing) => ({
+        updateDraggingStateByNodeId((existing) => ({
           ...existing,
           [change.id]: {
             dragging: false,

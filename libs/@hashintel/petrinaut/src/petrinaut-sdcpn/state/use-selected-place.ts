@@ -1,19 +1,18 @@
 import { useMemo } from "react";
 
 import type { NodeType, PlaceNodeType } from "../types";
+import { useEditorStore } from "./editor-store";
 
 /**
- * Finds the selected place node from the list of nodes.
+ * Finds the selected place node from the list of nodes using the Zustand store.
  *
  * @param nodes - All nodes in the Petri Net
- * @param selectedPlaceId - The ID of the selected place
  * @returns The selected place node, or null if no place is selected
  * @throws Error if the place ID doesn't exist in the nodes
  */
-export const useSelectedPlace = (
-  nodes: NodeType[],
-  selectedPlaceId: string | null,
-): PlaceNodeType | null => {
+export const useSelectedPlace = (nodes: NodeType[]): PlaceNodeType | null => {
+  const selectedPlaceId = useEditorStore((state) => state.selectedPlaceId);
+
   return useMemo(() => {
     if (!selectedPlaceId) {
       return null;
