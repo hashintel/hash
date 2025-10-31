@@ -1,17 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types";
+import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -34,19 +30,15 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(() => {
       removeTokensFromSimulationFrame(
         frame,
-        new Map([["nonexistent", new Set([0])]])
+        new Map([["nonexistent", new Set([0])]]),
       );
     }).toThrow("Place with ID nonexistent not found");
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -87,12 +79,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("throws error when token index is out of bounds", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -133,12 +121,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("returns frame unchanged when place has empty set of indices", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -174,7 +158,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set()]])
+      new Map([["p1", new Set()]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
@@ -183,12 +167,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes a single token from a place with 1D tokens", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -224,7 +204,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([1])]])
+      new Map([["p1", new Set([1])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
@@ -234,12 +214,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes multiple tokens from a place with 1D tokens", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -275,7 +251,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0, 2])]])
+      new Map([["p1", new Set([0, 2])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
@@ -285,12 +261,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -328,11 +300,11 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove token at index 1 (middle token: [4,5,6])
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([1])]])
+      new Map([["p1", new Set([1])]]),
     );
 
     expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0])
+      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
     );
     expect(result.places.get("p1")?.count).toBe(2);
     expect(result.places.get("p1")?.offset).toBe(0);
@@ -340,12 +312,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("adjusts offsets for subsequent places after removal", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -396,7 +364,7 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove one token from p1
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0])]])
+      new Map([["p1", new Set([0])]]),
     );
 
     // Expected: p1: [3,4]  |  p2: [5], [6], [7]
@@ -410,12 +378,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes all tokens from a place", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -464,7 +428,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0, 1])]])
+      new Map([["p1", new Set([0, 1])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
@@ -476,12 +440,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("handles removal from middle place with three places", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -545,12 +505,12 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove one token from p2 (middle place)
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p2", new Set([1])]])
+      new Map([["p2", new Set([1])]]),
     );
 
     // Expected: p1: [1, 2] | p2: [3, 5] | p3: [6, 7]
     expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0])
+      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
     );
     expect(result.places.get("p1")?.offset).toBe(0);
     expect(result.places.get("p1")?.count).toBe(2);
@@ -563,12 +523,8 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes tokens from multiple places simultaneously", () => {
     const simulation: SimulationInstance = {
-      sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
-        places: [],
-        transitions: [],
-      },
+      id: "test-sdcpn",
+      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -636,7 +592,7 @@ describe("removeTokensFromSimulationFrame", () => {
         ["p1", new Set([1])],
         ["p2", new Set([0])],
         ["p3", new Set([1])],
-      ])
+      ]),
     );
 
     // Expected: p1: [1], [3] | p2: [6,7] | p3: [8]
