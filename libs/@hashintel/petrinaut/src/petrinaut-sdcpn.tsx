@@ -92,7 +92,9 @@ const PetrinautInner = ({
     (state) => state.setReactFlowInstance,
   );
   const selectedPlaceId = useEditorStore((state) => state.selectedPlaceId);
-  const setSelectedPlaceId = useEditorStore((state) => state.setSelectedPlaceId);
+  const setSelectedPlaceId = useEditorStore(
+    (state) => state.setSelectedPlaceId,
+  );
   const selectedPlacePosition = useEditorStore(
     (state) => state.selectedPlacePosition,
   );
@@ -113,7 +115,9 @@ const PetrinautInner = ({
   const updateDraggingStateByNodeId = useEditorStore(
     (state) => state.updateDraggingStateByNodeId,
   );
-  const resetDraggingState = useEditorStore((state) => state.resetDraggingState);
+  const resetDraggingState = useEditorStore(
+    (state) => state.resetDraggingState,
+  );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
   const selectedPlace = useSelectedPlace(petriNetDefinition.nodes);
@@ -155,7 +159,11 @@ const PetrinautInner = ({
         updateDraggingStateByNodeId,
       });
     },
-    [draggingStateByNodeId, updateDraggingStateByNodeId, mutatePetriNetDefinition],
+    [
+      draggingStateByNodeId,
+      updateDraggingStateByNodeId,
+      mutatePetriNetDefinition,
+    ],
   );
 
   const onEdgesChange = useCallback(() => {

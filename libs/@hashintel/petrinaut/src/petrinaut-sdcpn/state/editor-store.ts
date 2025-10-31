@@ -71,7 +71,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   draggingStateByNodeId: {},
   setDraggingStateByNodeId: (state) => set({ draggingStateByNodeId: state }),
   updateDraggingStateByNodeId: (updater) =>
-    set((state) => ({ draggingStateByNodeId: updater(state.draggingStateByNodeId) })),
+    set((state) => ({
+      draggingStateByNodeId: updater(state.draggingStateByNodeId),
+    })),
   resetDraggingState: () => set({ draggingStateByNodeId: {} }),
 
   // Utility actions
