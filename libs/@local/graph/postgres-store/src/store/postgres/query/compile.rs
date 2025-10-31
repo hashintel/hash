@@ -1064,7 +1064,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
-    /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
+    /// Joining the tables attempts to deduplicate [`JoinClause`]s. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
