@@ -31,7 +31,9 @@ function addTokensToSimulationFrame(
   for (const [placeId, tokens] of tokensToAdd) {
     const placeState = frame.places.get(placeId);
     if (!placeState) {
-      throw new Error(`Place with ID ${placeId} not found in simulation frame.`);
+      throw new Error(
+        `Place with ID ${placeId} not found in simulation frame.`
+      );
     }
 
     // Validate that all tokens have the correct dimensions
