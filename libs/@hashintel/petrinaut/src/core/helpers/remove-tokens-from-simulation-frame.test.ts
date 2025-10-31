@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types";
+import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
 
 describe("removeTokensFromSimulationFrame", () => {
@@ -34,7 +34,7 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(() => {
       removeTokensFromSimulationFrame(
         frame,
-        new Map([["nonexistent", new Set([0])]])
+        new Map([["nonexistent", new Set([0])]]),
       );
     }).toThrow("Place with ID nonexistent not found");
   });
@@ -174,7 +174,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set()]])
+      new Map([["p1", new Set()]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
@@ -224,7 +224,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([1])]])
+      new Map([["p1", new Set([1])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
@@ -275,7 +275,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0, 2])]])
+      new Map([["p1", new Set([0, 2])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
@@ -328,11 +328,11 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove token at index 1 (middle token: [4,5,6])
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([1])]])
+      new Map([["p1", new Set([1])]]),
     );
 
     expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0])
+      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
     );
     expect(result.places.get("p1")?.count).toBe(2);
     expect(result.places.get("p1")?.offset).toBe(0);
@@ -396,7 +396,7 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove one token from p1
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0])]])
+      new Map([["p1", new Set([0])]]),
     );
 
     // Expected: p1: [3,4]  |  p2: [5], [6], [7]
@@ -464,7 +464,7 @@ describe("removeTokensFromSimulationFrame", () => {
 
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p1", new Set([0, 1])]])
+      new Map([["p1", new Set([0, 1])]]),
     );
 
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
@@ -545,12 +545,12 @@ describe("removeTokensFromSimulationFrame", () => {
     // Remove one token from p2 (middle place)
     const result = removeTokensFromSimulationFrame(
       frame,
-      new Map([["p2", new Set([1])]])
+      new Map([["p2", new Set([1])]]),
     );
 
     // Expected: p1: [1, 2] | p2: [3, 5] | p3: [6, 7]
     expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0])
+      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
     );
     expect(result.places.get("p1")?.offset).toBe(0);
     expect(result.places.get("p1")?.count).toBe(2);
@@ -636,7 +636,7 @@ describe("removeTokensFromSimulationFrame", () => {
         ["p1", new Set([1])],
         ["p2", new Set([0])],
         ["p3", new Set([1])],
-      ])
+      ]),
     );
 
     // Expected: p1: [1], [3] | p2: [6,7] | p3: [8]
