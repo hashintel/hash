@@ -1,7 +1,7 @@
 /* eslint-disable curly */
 
+import type { ID, SimulationFrame } from "../types";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
-import type { ID, SimulationFrame } from "./types";
 
 type PlaceID = ID;
 

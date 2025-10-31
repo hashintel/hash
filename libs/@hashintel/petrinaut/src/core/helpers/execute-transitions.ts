@@ -1,6 +1,6 @@
+import type { ID, SimulationFrame } from "../types";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { ID, SimulationFrame } from "./types";
 
 type PlaceID = ID;
 
