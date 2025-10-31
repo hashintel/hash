@@ -3,7 +3,6 @@ import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
 import { generateUuid } from "./generate-uuid";
-import { useSimulationContext } from "./simulation-context";
 import type { TokenType } from "./types";
 
 type AnimatingToken = {
@@ -35,8 +34,6 @@ export const Arc = ({
   };
 }) => {
   const { petriNetDefinition } = useEditorContext();
-
-  const { simulationSpeed } = useSimulationContext();
 
   const [animatingTokens, setAnimatingTokens] = useState<AnimatingToken[]>([]);
   const [arcPath, labelX, labelY] = getBezierPath({
@@ -127,26 +124,7 @@ export const Arc = ({
           </g>
         );
       })}
-      <style>
-        {`
-            .animating-token {
-              animation: moveToken ${simulationSpeed / 2}ms linear forwards;
-            }
-            @keyframes moveToken {
-              0% {
-                offset-distance: 0%;
-                opacity: 1;
-              }
-              90% {
-                opacity: 1;
-              }
-              100% {
-                offset-distance: 100%;
-                opacity: 0;
-              }
-            }
-          `}
-      </style>
+
       <g transform={`translate(${labelX}, ${labelY})`}>
         {/* Show tokens required or produced */}
         {Object.entries(data?.tokenWeights ?? {})
