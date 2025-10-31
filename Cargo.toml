@@ -162,7 +162,7 @@ itertools                          = { version = "=0.14.0", default-features = f
 json-number                        = { version = "=0.4.9", default-features = false }
 jsonptr                            = { version = "=0.7.1", default-features = false }
 jsonschema                         = { version = "=0.33.0", default-features = false }
-lexical                            = { version = "=7.0.4", default-features = false }
+lexical                            = { version = "=7.0.5", default-features = false }
 libp2p                             = { version = "=0.56.0", default-features = false }
 libp2p-core                        = { version = "=0.43.1", default-features = false }
 libp2p-identity                    = { version = "=0.2.12", default-features = false }
