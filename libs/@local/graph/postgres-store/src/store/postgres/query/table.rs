@@ -11,7 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
-use super::expression::{TableName, TableReference};
+use super::expression::{ColumnName, ColumnReference, TableName, TableReference};
 use crate::store::postgres::query::{
     Condition, Constant, Expression, Transpile, expression::JoinType,
 };
@@ -1438,6 +1438,16 @@ pub enum Column {
     EntityHasRightEntity(EntityHasRightEntity),
 }
 
+impl Column {
+    #[must_use]
+    pub fn aliased(self, alias: Alias) -> ColumnReference<'static> {
+        ColumnReference {
+            correlation: Some(self.table().aliased(alias)),
+            name: ColumnName::Static(self),
+        }
+    }
+}
+
 impl From<OntologyIds> for Column {
     fn from(column: OntologyIds) -> Self {
         Self::OntologyIds(column)
@@ -1684,14 +1694,6 @@ impl Column {
             | Self::EntityHasRightEntity(_) => None,
         }
     }
-
-    #[must_use]
-    pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
-        Expression::AliasedColumn {
-            column: self,
-            table_alias,
-        }
-    }
 }
 
 impl DatabaseColumn for Column {
@@ -1806,23 +1808,6 @@ impl DatabaseColumn for Column {
             Self::EntityHasLeftEntity(column) => column.as_str(),
             Self::EntityHasRightEntity(column) => column.as_str(),
         }
-    }
-}
-
-pub struct QualifiedColumn {
-    pub column: Column,
-    pub alias: Option<Alias>,
-}
-
-impl Transpile for QualifiedColumn {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let table = self.column.table();
-        if let Some(alias) = self.alias {
-            table.aliased(alias).transpile(fmt)?;
-        } else {
-            table.transpile(fmt)?;
-        }
-        write!(fmt, r#"."{}""#, self.column.as_str())
     }
 }
 
@@ -1942,21 +1927,15 @@ impl ForeignKeyReference {
         }
     }
 
-    pub fn conditions(self, on_alias: Option<Alias>, join_alias: Option<Alias>) -> Vec<Condition> {
+    pub fn conditions(self, on_alias: Alias, join_alias: Alias) -> Vec<Condition> {
         match self {
             Self::Single {
                 join,
                 on,
                 join_type: _,
             } => vec![Condition::Equal(
-                Expression::AliasedColumn {
-                    column: join,
-                    table_alias: join_alias,
-                },
-                Expression::AliasedColumn {
-                    column: on,
-                    table_alias: on_alias,
-                },
+                Expression::ColumnReference(join.aliased(join_alias)),
+                Expression::ColumnReference(on.aliased(on_alias)),
             )],
             Self::Double {
                 join: [join1, join2],
@@ -1964,24 +1943,12 @@ impl ForeignKeyReference {
                 join_type: _,
             } => vec![
                 Condition::Equal(
-                    Expression::AliasedColumn {
-                        column: join1,
-                        table_alias: join_alias,
-                    },
-                    Expression::AliasedColumn {
-                        column: on1,
-                        table_alias: on_alias,
-                    },
+                    Expression::ColumnReference(join1.aliased(join_alias)),
+                    Expression::ColumnReference(on1.aliased(on_alias)),
                 ),
                 Condition::Equal(
-                    Expression::AliasedColumn {
-                        column: join2,
-                        table_alias: join_alias,
-                    },
-                    Expression::AliasedColumn {
-                        column: on2,
-                        table_alias: on_alias,
-                    },
+                    Expression::ColumnReference(join2.aliased(join_alias)),
+                    Expression::ColumnReference(on2.aliased(on_alias)),
                 ),
             ],
         }
@@ -2200,10 +2167,9 @@ impl Relation {
                             .inheritance_depth()
                             .map_or_else(Vec::new, |inheritance_depth| {
                                 vec![Condition::LessOrEqual(
-                                    Expression::AliasedColumn {
-                                        column,
-                                        table_alias: Some(table.alias.unwrap_or_default()),
-                                    },
+                                    Expression::ColumnReference(
+                                        column.aliased(table.alias.unwrap_or_default()),
+                                    ),
                                     Expression::Constant(Constant::UnsignedInteger(
                                         inheritance_depth,
                                     )),

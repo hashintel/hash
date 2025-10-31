@@ -5,9 +5,7 @@ use core::fmt::{
 use hash_graph_store::filter::PathToken;
 
 use super::ColumnReference;
-use crate::store::postgres::query::{
-    Alias, Column, SelectStatement, Table, Transpile, WindowStatement, table::DatabaseColumn as _,
-};
+use crate::store::postgres::query::{SelectStatement, Table, Transpile, WindowStatement};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Function {
@@ -159,16 +157,7 @@ impl Transpile for PostgresType {
 /// A compiled expression in Postgres.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
-    Asterisk,
     ColumnReference(ColumnReference<'static>),
-    AliasedColumn {
-        column: Column,
-        table_alias: Option<Alias>,
-    },
-    TableReference {
-        table: Table,
-        alias: Option<Alias>,
-    },
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
@@ -185,27 +174,7 @@ pub enum Expression {
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Asterisk => fmt.write_char('*'),
             Self::ColumnReference(column) => column.transpile(fmt),
-            Self::AliasedColumn {
-                column,
-                table_alias,
-            } => {
-                let table = column.table();
-                if let Some(alias) = *table_alias {
-                    table.aliased(alias).transpile(fmt)?;
-                } else {
-                    table.transpile(fmt)?;
-                }
-                write!(fmt, r#"."{}""#, column.as_str())
-            }
-            Self::TableReference { table, alias } => {
-                if let Some(alias) = *alias {
-                    table.aliased(alias).transpile(fmt)
-                } else {
-                    table.transpile(fmt)
-                }
-            }
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
@@ -267,14 +236,16 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Function::Min(Box::new(Expression::AliasedColumn {
-                column: DataTypeQueryPath::Version.terminating_column().0,
-                table_alias: Some(Alias {
-                    condition_index: 1,
-                    chain_depth: 2,
-                    number: 3
-                })
-            })))
+            Expression::Function(Function::Min(Box::new(Expression::ColumnReference(
+                DataTypeQueryPath::Version
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    })
+            ),)))
             .transpile_to_string(),
             r#"MIN("ontology_ids_1_2_3"."version")"#
         );

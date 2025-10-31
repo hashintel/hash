@@ -23,6 +23,15 @@ pub struct ColumnReference<'name> {
     pub name: ColumnName<'name>,
 }
 
+impl From<Column> for ColumnReference<'_> {
+    fn from(column: Column) -> Self {
+        ColumnReference {
+            correlation: Some(column.table().into()),
+            name: ColumnName::Static(column),
+        }
+    }
+}
+
 impl fmt::Debug for ColumnReference<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.transpile(fmt)

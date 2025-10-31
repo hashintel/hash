@@ -10,7 +10,7 @@ mod where_clause;
 mod with_clause;
 
 pub use self::{
-    column_reference::ColumnReference,
+    column_reference::{ColumnName, ColumnReference},
     conditional::{Constant, Expression, Function, PostgresType},
     group_by_clause::GroupByExpression,
     join_clause::{JoinExpression, JoinFrom, JoinType},
