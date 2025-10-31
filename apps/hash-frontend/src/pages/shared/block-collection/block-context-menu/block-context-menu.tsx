@@ -12,7 +12,7 @@ import {
   faRefresh,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks";
+import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

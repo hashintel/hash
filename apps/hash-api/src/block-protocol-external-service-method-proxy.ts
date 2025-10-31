@@ -1,4 +1,4 @@
-import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-constants";
 import type { Express, Request, Response } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 

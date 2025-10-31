@@ -1,5 +1,5 @@
 import type { WebId } from "@blockprotocol/type-system";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
