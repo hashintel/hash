@@ -1,4 +1,4 @@
-import type { SimulationFrame } from "../types";
+import type { SimulationFrame } from "../types/simulation";
 
 /**
  * Removes tokens from multiple places in the simulation frame.
@@ -18,7 +18,7 @@ import type { SimulationFrame } from "../types";
  */
 export function removeTokensFromSimulationFrame(
   frame: SimulationFrame,
-  tokensToRemove: Map<string, Set<number>>
+  tokensToRemove: Map<string, Set<number>>,
 ): SimulationFrame {
   // If no tokens to remove, return frame as-is
   if (tokensToRemove.size === 0) {
@@ -30,7 +30,7 @@ export function removeTokensFromSimulationFrame(
     const placeState = frame.places.get(placeId);
     if (!placeState) {
       throw new Error(
-        `Place with ID ${placeId} not found in simulation frame.`
+        `Place with ID ${placeId} not found in simulation frame.`,
       );
     }
 
@@ -38,7 +38,7 @@ export function removeTokensFromSimulationFrame(
     for (const index of indices) {
       if (index < 0 || index >= placeState.count) {
         throw new Error(
-          `Invalid token index ${index} for place ${placeId}. Place has ${placeState.count} tokens.`
+          `Invalid token index ${index} for place ${placeId}. Place has ${placeState.count} tokens.`,
         );
       }
     }
@@ -75,7 +75,7 @@ export function removeTokensFromSimulationFrame(
   // Calculate offset adjustments for each place
   // We need to track cumulative size removed before each place's offset
   const placesByOffset = Array.from(frame.places.entries()).sort(
-    (a, b) => a[1].offset - b[1].offset
+    (a, b) => a[1].offset - b[1].offset,
   );
 
   const newPlaces = new Map(frame.places);
