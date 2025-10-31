@@ -9,11 +9,11 @@ import { ThemeProvider } from "@mui/material";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { defaultTokenTypes, Petrinaut } from "../src/petrinaut";
+import { defaultTokenTypes, Petrinaut } from "../src/petrinaut-sdcpn";
 import type {
   MinimalNetMetadata,
   PetriNetDefinitionObject,
-} from "../src/petrinaut/types";
+} from "../src/petrinaut-sdcpn/types";
 
 const emotionCache = createEmotionCache();
 
