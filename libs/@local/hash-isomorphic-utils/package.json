@@ -31,7 +31,7 @@
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
-    "@sentry/browser": "9.46.0",
+    "@sentry/browser": "10.22.0",
     "@sindresorhus/slugify": "3.0.0",
     "big.js": "7.0.1",
     "express": "5.1.0",

@@ -8,7 +8,10 @@ import {
 } from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { Resource } from "@opentelemetry/resources";
+import {
+  defaultResource,
+  resourceFromAttributes,
+} from "@opentelemetry/resources";
 import {
   LoggerProvider,
   SimpleLogRecordProcessor,
@@ -58,21 +61,21 @@ export const registerOpenTelemetry = (
   // Setup Tracing
   const traceExporter = new OTLPTraceExporter(collectorOptions);
   const traceProvider = new NodeTracerProvider({
-    resource: Resource.default().merge(
-      new Resource({ "service.name": serviceName }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({ "service.name": serviceName }),
     ),
+    spanProcessors: [new SimpleSpanProcessor(traceExporter)],
   });
-  traceProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
   traceProvider.register();
 
   // Setup Logs
   const logExporter = new OTLPLogExporter(collectorOptions);
   const logProvider = new LoggerProvider({
-    resource: Resource.default().merge(
-      new Resource({ "service.name": serviceName }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({ "service.name": serviceName }),
     ),
+    processors: [new SimpleLogRecordProcessor(logExporter)],
   });
-  logProvider.addLogRecordProcessor(new SimpleLogRecordProcessor(logExporter));
 
   logs.setGlobalLoggerProvider(logProvider);
 
