@@ -32,7 +32,7 @@ import { PlaceEditor } from "./petrinaut-sdcpn/place-editor";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import { Sidebar } from "./petrinaut-sdcpn/sidebar";
 import {
-  useEditorState,
+  useEditorStore,
   useNodesWithDraggingState,
   useSelectedPlace,
 } from "./petrinaut-sdcpn/state/mod";
@@ -86,17 +86,44 @@ const PetrinautInner = ({
   const { createNewNet, petriNetDefinition, mutatePetriNetDefinition } =
     useEditorContext();
 
-  const editorState = useEditorState(petriNetDefinition.nodes);
-
-  const selectedPlace = useSelectedPlace(
-    petriNetDefinition.nodes,
-    editorState.selectedPlaceId,
+  // Zustand store selectors
+  const reactFlowInstance = useEditorStore((state) => state.reactFlowInstance);
+  const setReactFlowInstance = useEditorStore(
+    (state) => state.setReactFlowInstance,
   );
-
-  const nodesForReactFlow = useNodesWithDraggingState(
-    petriNetDefinition.nodes,
-    editorState.draggingStateByNodeId,
+  const selectedPlaceId = useEditorStore((state) => state.selectedPlaceId);
+  const setSelectedPlaceId = useEditorStore((state) => state.setSelectedPlaceId);
+  const selectedPlacePosition = useEditorStore(
+    (state) => state.selectedPlacePosition,
   );
+  const setSelectedPlacePosition = useEditorStore(
+    (state) => state.setSelectedPlacePosition,
+  );
+  const selectedTransition = useEditorStore(
+    (state) => state.selectedTransition,
+  );
+  const setSelectedTransition = useEditorStore(
+    (state) => state.setSelectedTransition,
+  );
+  const selectedArc = useEditorStore((state) => state.selectedArc);
+  const setSelectedArc = useEditorStore((state) => state.setSelectedArc);
+  const draggingStateByNodeId = useEditorStore(
+    (state) => state.draggingStateByNodeId,
+  );
+  const updateDraggingStateByNodeId = useEditorStore(
+    (state) => state.updateDraggingStateByNodeId,
+  );
+  const resetDraggingState = useEditorStore((state) => state.resetDraggingState);
+  const clearSelection = useEditorStore((state) => state.clearSelection);
+
+  const selectedPlace = useSelectedPlace(petriNetDefinition.nodes);
+
+  const nodesForReactFlow = useNodesWithDraggingState(petriNetDefinition.nodes);
+
+  // Reset dragging state when nodes change
+  useEffect(() => {
+    resetDraggingState();
+  }, [petriNetDefinition.nodes, resetDraggingState]);
 
   const nodeTypes = useMemo(
     () => ({
@@ -123,16 +150,12 @@ const PetrinautInner = ({
     (changes: NodeChange[]) => {
       applyNodeChanges({
         changes,
-        draggingStateByNodeId: editorState.draggingStateByNodeId,
+        draggingStateByNodeId,
         mutatePetriNetDefinition,
-        setDraggingStateByNodeId: editorState.setDraggingStateByNodeId,
+        updateDraggingStateByNodeId,
       });
     },
-    [
-      editorState.draggingStateByNodeId,
-      editorState.setDraggingStateByNodeId,
-      mutatePetriNetDefinition,
-    ],
+    [draggingStateByNodeId, updateDraggingStateByNodeId, mutatePetriNetDefinition],
   );
 
   const onEdgesChange = useCallback(() => {
@@ -200,9 +223,9 @@ const PetrinautInner = ({
 
   const onInit = useCallback(
     (instance: ReactFlowInstance) => {
-      editorState.setReactFlowInstance(instance);
+      setReactFlowInstance(instance);
     },
-    [editorState],
+    [setReactFlowInstance],
   );
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
@@ -215,7 +238,7 @@ const PetrinautInner = ({
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
 
-      if (!editorState.reactFlowInstance || !canvasContainer.current) {
+      if (!reactFlowInstance || !canvasContainer.current) {
         return;
       }
 
@@ -226,7 +249,7 @@ const PetrinautInner = ({
 
       const { width, height } = nodeDimensions[nodeType];
 
-      const position = editorState.reactFlowInstance.project({
+      const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left - width / 2,
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
@@ -251,35 +274,34 @@ const PetrinautInner = ({
         existingNet.nodes.push(newNode);
       });
     },
-    [
-      editorState.reactFlowInstance,
-      petriNetDefinition.nodes,
-      mutatePetriNetDefinition,
-    ],
+    [reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
   );
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      if (
-        editorState.selectedPlaceId &&
-        editorState.selectedPlaceId === node.id
-      ) {
+      if (selectedPlaceId && selectedPlaceId === node.id) {
         return;
       }
 
-      editorState.clearSelection();
+      clearSelection();
 
       if (node.type === "place") {
-        editorState.setSelectedPlaceId(node.id);
-        editorState.setSelectedPlacePosition({
+        setSelectedPlaceId(node.id);
+        setSelectedPlacePosition({
           x: event.clientX,
           y: event.clientY,
         });
       } else if (node.type === "transition") {
-        editorState.setSelectedTransition(node.id);
+        setSelectedTransition(node.id);
       }
     },
-    [editorState],
+    [
+      selectedPlaceId,
+      clearSelection,
+      setSelectedPlaceId,
+      setSelectedPlacePosition,
+      setSelectedTransition,
+    ],
   );
 
   const handleUpdateInitialTokens = useCallback(
@@ -315,12 +337,12 @@ const PetrinautInner = ({
     (event: React.MouseEvent, edge: ArcType) => {
       event.stopPropagation();
 
-      editorState.setSelectedArc({
+      setSelectedArc({
         ...edge,
         position: { x: event.clientX, y: event.clientY },
       });
     },
-    [editorState],
+    [setSelectedArc],
   );
 
   const handleUpdateEdgeWeight = useCallback(
@@ -343,8 +365,8 @@ const PetrinautInner = ({
   );
 
   const handlePaneClick = useCallback(() => {
-    editorState.clearSelection();
-  }, [editorState]);
+    clearSelection();
+  }, [clearSelection]);
 
   const handleUpdateTransition = useCallback(
     (
@@ -413,15 +435,13 @@ const PetrinautInner = ({
           }}
           ref={canvasContainer}
         >
-          {editorState.selectedTransition && (
+          {selectedTransition && (
             <TransitionEditor
               open
-              onClose={() => editorState.setSelectedTransition(null)}
-              transitionId={editorState.selectedTransition}
+              onClose={() => setSelectedTransition(null)}
+              transitionId={selectedTransition}
               outgoingEdges={petriNetDefinition.arcs
-                .filter(
-                  (edge) => edge.source === editorState.selectedTransition,
-                )
+                .filter((edge) => edge.source === selectedTransition)
                 .map((edge) => {
                   const targetNode = petriNetDefinition.nodes.find(
                     (node) => node.id === edge.target,
@@ -440,21 +460,21 @@ const PetrinautInner = ({
 
           {selectedPlace && (
             <PlaceEditor
-              position={editorState.selectedPlacePosition ?? { x: 0, y: 0 }}
+              position={selectedPlacePosition ?? { x: 0, y: 0 }}
               selectedPlace={selectedPlace}
               tokenTypes={petriNetDefinition.tokenTypes}
-              onClose={() => editorState.setSelectedPlaceId(null)}
+              onClose={() => setSelectedPlaceId(null)}
               onUpdateInitialTokens={handleUpdateInitialTokens}
               onUpdateNodeLabel={handleUpdateNodeLabel}
             />
           )}
 
-          {editorState.selectedArc && (
+          {selectedArc && (
             <ArcEditor
-              arcId={editorState.selectedArc.id}
-              tokenWeights={editorState.selectedArc.data?.tokenWeights ?? {}}
-              position={editorState.selectedArc.position}
-              onClose={() => editorState.setSelectedArc(null)}
+              arcId={selectedArc.id}
+              tokenWeights={selectedArc.data?.tokenWeights ?? {}}
+              position={selectedArc.position}
+              onClose={() => setSelectedArc(null)}
               onUpdateWeights={handleUpdateEdgeWeight}
             />
           )}

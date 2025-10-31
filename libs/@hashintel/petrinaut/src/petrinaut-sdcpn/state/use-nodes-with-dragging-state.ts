@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { NodeType } from "../types";
-import type { DraggingStateByNodeId } from "./use-editor-state";
+import { useEditorStore } from "./editor-store";
 
 /**
  * Combines the nodes from the Petri Net definition with the transient dragging state.
@@ -9,13 +9,13 @@ import type { DraggingStateByNodeId } from "./use-editor-state";
  * but we don't want to report position changes to the consumer while dragging is in progress.
  *
  * @param nodes - The nodes from the Petri Net definition
- * @param draggingStateByNodeId - The transient dragging state
  * @returns Nodes with dragging state folded in
  */
-export const useNodesWithDraggingState = (
-  nodes: NodeType[],
-  draggingStateByNodeId: DraggingStateByNodeId,
-) => {
+export const useNodesWithDraggingState = (nodes: NodeType[]) => {
+  const draggingStateByNodeId = useEditorStore(
+    (state) => state.draggingStateByNodeId,
+  );
+
   return useMemo(() => {
     return nodes.map((node) => {
       const draggingState = draggingStateByNodeId[node.id];
