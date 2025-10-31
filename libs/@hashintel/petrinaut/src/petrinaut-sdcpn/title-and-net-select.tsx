@@ -1,67 +1,108 @@
-import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { EditableField } from "@hashintel/block-design-system";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Stack, Typography } from "@mui/material";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { useEditorContext } from "./editor-context";
 import { NetSelector } from "./net-selector";
+
+// Inline editable field component
+const EditableField = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder: string;
+}) => (
+  <input
+    type="text"
+    value={value}
+    onChange={onChange}
+    placeholder={placeholder}
+    className={css({
+      background: "[transparent]",
+      border: "none",
+      fontSize: "size.textsm",
+      fontWeight: "medium",
+      color: "core.gray.90",
+      padding: "spacing.2",
+      _focus: {
+        outline: "1px solid",
+        outlineColor: "core.blue.70",
+        borderRadius: "radius.4",
+      },
+    })}
+  />
+);
+
+// Simple angle right icon
+const AngleRightIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+    <path d="M6 4l4 4-4 4V4z" />
+  </svg>
+);
 
 export const TitleAndNetSelect = () => {
   const { existingNets, loadPetriNet, parentNet, petriNetId, setTitle, title } =
     useEditorContext();
 
   return (
-    <Stack
-      direction="row"
-      justifyContent="space-between"
-      sx={({ palette }) => ({
-        background: palette.gray[5],
-        borderBottom: `1px solid ${palette.gray[20]}`,
-        py: 1,
-        px: 2,
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        background: "core.gray.10",
+        borderBottom: "1px solid",
+        borderBottomColor: "core.gray.20",
+        paddingY: "spacing.3",
+        paddingX: "spacing.6",
       })}
     >
-      <Stack direction="row" alignItems="center" gap={1}>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: "spacing.3",
+        })}
+      >
         {parentNet && (
           <>
-            <Typography
-              component="button"
+            <button
+              type="button"
               onClick={() => {
                 loadPetriNet(parentNet.parentNetId);
               }}
-              sx={({ palette, transitions }) => ({
-                background: "none",
+              className={css({
+                background: "[transparent]",
                 border: "none",
-                color: palette.gray[80],
+                color: "core.gray.80",
                 cursor: "pointer",
-                transition: transitions.create(["color"], {
-                  duration: 150,
-                }),
+                transition: "[color 150ms]",
                 whiteSpace: "nowrap",
-                "&:hover": {
-                  color: palette.common.black,
+                _hover: {
+                  color: "core.gray.90",
                 },
               })}
             >
               {parentNet.title}
-            </Typography>
-            <FontAwesomeIcon
-              icon={faAngleRight}
-              sx={({ palette }) => ({
-                fontSize: 14,
-                color: palette.gray[50],
-                mx: 0,
+            </button>
+            <span
+              className={css({
+                fontSize: "[14px]",
+                color: "core.gray.50",
               })}
-            />
+            >
+              <AngleRightIcon />
+            </span>
           </>
         )}
         <EditableField
-          editIconFontSize={14}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Process"
         />
-      </Stack>
+      </div>
 
       <NetSelector
         disabledOptions={petriNetId ? [petriNetId] : undefined}
@@ -75,6 +116,6 @@ export const TitleAndNetSelect = () => {
         }))}
         value={petriNetId}
       />
-    </Stack>
+    </div>
   );
 };

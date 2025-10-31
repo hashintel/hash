@@ -1,27 +1,13 @@
-import {
-  IconButton,
-  Select,
-  TextField,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  Divider,
-  FormControlLabel,
-  MenuItem,
-  Slider,
-  Stack,
-  Switch,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useMemo, useState } from "react";
 
+import { Button } from "./components/button";
+import { Checkbox } from "./components/checkbox";
+import { Dialog } from "./components/dialog";
+import { Select } from "./components/select";
+import { Slider } from "./components/slider";
+import { Switch } from "./components/switch";
+import { TextField } from "./components/text-field";
 import { useEditorContext } from "./editor-context";
 import { generateUuid } from "./lib/generate-uuid";
 import { NetSelector } from "./net-selector";
@@ -229,25 +215,6 @@ export const TransitionEditor = ({
     [],
   );
 
-  const handleHasConditionsChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setEditedData((prev) => ({
-        ...prev,
-        conditions: event.target.checked
-          ? [
-              {
-                id: `condition-${Date.now()}`,
-                name: "Default",
-                probability: 100,
-                outputEdgeId: outgoingEdges[0]!.id,
-              },
-            ]
-          : [],
-      }));
-    },
-    [outgoingEdges],
-  );
-
   const handleAddCondition = useCallback(() => {
     setEditedData((prev) => {
       const existingConditions = prev.conditions ?? [];
@@ -381,115 +348,109 @@ export const TransitionEditor = ({
   const existingNetsAvailable = existingNets.length > 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogContent>
-        <Stack spacing={3}>
-          <Box component="label">
-            <Typography variant="smallCaps" sx={{ mb: 1 }}>
-              Name
-            </Typography>
-            <TextField
-              value={localData.label}
-              onChange={(event) =>
-                setEditedData((prev) => ({
-                  ...prev,
-                  label: event.target.value,
-                }))
-              }
-              fullWidth
-              size="small"
-            />
-          </Box>
-
-          <Box component="label">
-            <Typography variant="smallCaps" sx={{ mb: 1 }}>
-              Description
-            </Typography>
-            <TextField
-              value={localData.description}
-              onChange={(event) =>
-                setEditedData((prev) => ({
-                  ...prev,
-                  description: event.target.value,
-                }))
-              }
-              fullWidth
-              size="small"
-            />
-          </Box>
-
-          {/* <Box component="label">
-            <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
-              Delay (hours)
-            </Typography>
-
-            <TextField
-              type="number"
-              value={localData.delay ?? 0}
-              onChange={(event) =>
-                setEditedData((prev) => ({
-                  ...prev,
-                  delay: Number.isNaN(event.target.value)
-                    ? undefined
-                    : parseFloat(event.target.value),
-                }))
-              }
-              inputProps={{ min: 0, step: 0.5 }}
-              sx={{ width: 80 }}
-            />
-          </Box> */}
-
-          <Stack
-            gap={1}
-            sx={{
-              border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              borderRadius: 2,
-              p: 2,
-              display: existingNetsAvailable ? "block" : "none",
-            }}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      title="Edit Transition"
+      footer={
+        <>
+          <Button onClick={onClose} variant="tertiary" size="small">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            variant="primary"
+            disabled={hasConditions && totalProbability !== 100}
+            size="small"
           >
-            {existingNetsAvailable && (
-              <Box component="label">
-                <Typography
-                  component="div"
-                  variant="smallCaps"
-                  sx={{ mb: 0.5 }}
-                >
-                  Child net
-                </Typography>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.6" })}>
+        <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
+          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+            Name
+          </span>
+          <TextField
+            value={localData.label}
+            onChange={(event) =>
+              setEditedData((prev) => ({
+                ...prev,
+                label: event.target.value,
+              }))
+            }
+            fullWidth
+          />
+        </div>
 
-                <NetSelector
-                  options={existingNets}
-                  placeholder="Select child net to link"
-                  value={localData.childNet?.childNetId ?? null}
-                  onSelect={(value) =>
-                    updateChildNet({
-                      inputPlaceIds: allInputPlaces.map((place) => place.id),
-                      outputPlaceIds: allOutputPlaces.map((place) => place.id),
-                      ...localData.childNet,
-                      childNetId: value.netId,
-                      childNetTitle: value.title,
-                    })
-                  }
-                />
-              </Box>
-            )}
+        <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
+          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+            Description
+          </span>
+          <TextField
+            value={localData.description}
+            onChange={(event) =>
+              setEditedData((prev) => ({
+                ...prev,
+                description: event.target.value,
+              }))
+            }
+            fullWidth
+          />
+        </div>
+
+        {existingNetsAvailable && (
+          <div
+            className={css({
+              border: "1px solid",
+              borderColor: "core.gray.20",
+              borderRadius: "radius.8",
+              padding: "spacing.4",
+              display: "flex",
+              flexDirection: "column",
+              gap: "spacing.3",
+            })}
+          >
+            <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.2" })}>
+              <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+                Child net
+              </span>
+              <NetSelector
+                options={existingNets}
+                placeholder="Select child net to link"
+                value={localData.childNet?.childNetId ?? null}
+                onSelect={(value) =>
+                  updateChildNet({
+                    inputPlaceIds: allInputPlaces.map((place) => place.id),
+                    outputPlaceIds: allOutputPlaces.map((place) => place.id),
+                    ...localData.childNet,
+                    childNetId: value.netId,
+                    childNetTitle: value.title,
+                  })
+                }
+              />
+            </div>
 
             {localData.childNet && (
               <>
-                <Box sx={{ mt: 2.5 }}>
-                  <Typography
-                    component="div"
-                    variant="smallCaps"
-                    sx={{
-                      mb: 1,
-                      fontWeight: 400,
-                      color: ({ palette }) => palette.common.black,
-                    }}
+                <div className={css({ marginTop: "spacing.5" })}>
+                  <span
+                    className={css({
+                      fontSize: "size.textsm",
+                      fontWeight: "medium",
+                      color: "core.gray.90",
+                      textTransform: "uppercase",
+                      letterSpacing: "[0.5px]",
+                      display: "block",
+                      marginBottom: "spacing.3",
+                    })}
                   >
                     input places
-                  </Typography>
-                  <Stack gap={1}>
+                  </span>
+                  <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.3" })}>
                     {allInputPlaces.map((place) => {
                       const isInputPlaceChecked =
                         !!localData.childNet?.inputPlaceIds.includes(place.id);
@@ -498,67 +459,68 @@ export const TransitionEditor = ({
                         isInputPlaceChecked;
 
                       return (
-                        <Tooltip
-                          placement="top"
+                        <div
                           key={place.id}
                           title={
                             onlyInputPlaceChecked
                               ? "At least one input place must be represented in the child net."
                               : ""
                           }
+                          className={css({
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "spacing.2",
+                            cursor: onlyInputPlaceChecked ? "not-allowed" : "pointer",
+                            opacity: onlyInputPlaceChecked ? 0.5 : 1,
+                          })}
                         >
-                          <FormControlLabel
-                            key={place.id}
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={isInputPlaceChecked}
-                                disabled={onlyInputPlaceChecked}
-                                onChange={(event) => {
-                                  const isChecked = event.target.checked;
-                                  const currentInputPlaceIds =
-                                    localData.childNet?.inputPlaceIds ?? [];
-                                  const newInputPlaceIds = isChecked
-                                    ? [...currentInputPlaceIds, place.id]
-                                    : currentInputPlaceIds.filter(
-                                        (id) => id !== place.id,
-                                      );
+                          <Checkbox
+                            checked={isInputPlaceChecked}
+                            disabled={onlyInputPlaceChecked}
+                            onChange={(checked) => {
+                              const currentInputPlaceIds =
+                                localData.childNet?.inputPlaceIds ?? [];
+                              const newInputPlaceIds = checked
+                                ? [...currentInputPlaceIds, place.id]
+                                : currentInputPlaceIds.filter(
+                                    (id) => id !== place.id,
+                                  );
 
-                                  updateChildNet({
-                                    ...localData.childNet!,
-                                    inputPlaceIds: newInputPlaceIds,
-                                    outputPlaceIds:
-                                      localData.childNet?.outputPlaceIds ?? [],
-                                    childNetId: localData.childNet!.childNetId,
-                                    childNetTitle:
-                                      localData.childNet!.childNetTitle,
-                                  });
-                                }}
-                                sx={{ mr: 0.8 }}
-                              />
-                            }
-                            label={place.data.label}
-                            sx={{ m: 0 }}
+                              updateChildNet({
+                                ...localData.childNet!,
+                                inputPlaceIds: newInputPlaceIds,
+                                outputPlaceIds:
+                                  localData.childNet?.outputPlaceIds ?? [],
+                                childNetId: localData.childNet!.childNetId,
+                                childNetTitle:
+                                  localData.childNet!.childNetTitle,
+                              });
+                            }}
                           />
-                        </Tooltip>
+                          <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+                            {place.data.label}
+                          </span>
+                        </div>
                       );
                     })}
-                  </Stack>
-                </Box>
+                  </div>
+                </div>
 
-                <Box sx={{ mt: 2.5 }}>
-                  <Typography
-                    component="div"
-                    variant="smallCaps"
-                    sx={{
-                      mb: 1,
-                      fontWeight: 400,
-                      color: ({ palette }) => palette.common.black,
-                    }}
+                <div className={css({ marginTop: "spacing.5" })}>
+                  <span
+                    className={css({
+                      fontSize: "size.textsm",
+                      fontWeight: "medium",
+                      color: "core.gray.90",
+                      textTransform: "uppercase",
+                      letterSpacing: "[0.5px]",
+                      display: "block",
+                      marginBottom: "spacing.3",
+                    })}
                   >
                     output places
-                  </Typography>
-                  <Stack gap={1}>
+                  </span>
+                  <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.3" })}>
                     {allOutputPlaces.map((place) => {
                       const isOutputPlaceChecked =
                         !!localData.childNet?.outputPlaceIds.includes(place.id);
@@ -567,229 +529,232 @@ export const TransitionEditor = ({
                         isOutputPlaceChecked;
 
                       return (
-                        <Tooltip
-                          placement="top"
+                        <div
                           key={place.id}
                           title={
                             onlyOutputPlaceChecked
                               ? "At least one output place must be represented in the child net."
                               : ""
                           }
+                          className={css({
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "spacing.2",
+                            cursor: onlyOutputPlaceChecked ? "not-allowed" : "pointer",
+                            opacity: onlyOutputPlaceChecked ? 0.5 : 1,
+                          })}
                         >
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={isOutputPlaceChecked}
-                                disabled={onlyOutputPlaceChecked}
-                                onChange={(event) => {
-                                  const isChecked = event.target.checked;
-                                  const currentOutputPlaceIds =
-                                    localData.childNet?.outputPlaceIds ?? [];
-                                  const newOutputPlaceIds = isChecked
-                                    ? [...currentOutputPlaceIds, place.id]
-                                    : currentOutputPlaceIds.filter(
-                                        (id) => id !== place.id,
-                                      );
+                          <Checkbox
+                            checked={isOutputPlaceChecked}
+                            disabled={onlyOutputPlaceChecked}
+                            onChange={(checked) => {
+                              const currentOutputPlaceIds =
+                                localData.childNet?.outputPlaceIds ?? [];
+                              const newOutputPlaceIds = checked
+                                ? [...currentOutputPlaceIds, place.id]
+                                : currentOutputPlaceIds.filter(
+                                    (id) => id !== place.id,
+                                  );
 
-                                  updateChildNet({
-                                    ...localData.childNet!,
-                                    inputPlaceIds:
-                                      localData.childNet?.inputPlaceIds ?? [],
-                                    outputPlaceIds: newOutputPlaceIds,
-                                    childNetId: localData.childNet!.childNetId,
-                                    childNetTitle:
-                                      localData.childNet!.childNetTitle,
-                                  });
-                                }}
-                                sx={{ mr: 0.8 }}
-                              />
-                            }
-                            label={place.data.label}
-                            sx={{ m: 0 }}
+                              updateChildNet({
+                                ...localData.childNet!,
+                                inputPlaceIds:
+                                  localData.childNet?.inputPlaceIds ?? [],
+                                outputPlaceIds: newOutputPlaceIds,
+                                childNetId: localData.childNet!.childNetId,
+                                childNetTitle:
+                                  localData.childNet!.childNetTitle,
+                              });
+                            }}
                           />
-                        </Tooltip>
+                          <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+                            {place.data.label}
+                          </span>
+                        </div>
                       );
                     })}
-                  </Stack>
-                </Box>
+                  </div>
+                </div>
               </>
             )}
-          </Stack>
+          </div>
+        )}
 
-          <Divider sx={{ display: existingNetsAvailable ? "none" : "block" }} />
+        {!existingNetsAvailable && (
+          <div className={css({ height: "[1px]", backgroundColor: "core.gray.20" })} />
+        )}
 
-          <Box>
-            <Box component="label">
-              <Switch
-                checked={hasConditions}
-                onChange={handleHasConditionsChange}
-                size="small"
-                sx={{ mr: 1 }}
-              />
-              <Typography
-                variant="smallTextLabels"
-                sx={{ mb: 1, fontSize: 14 }}
+        <div>
+          <div className={css({ display: "flex", alignItems: "center", gap: "spacing.3" })}>
+            <Switch
+              checked={hasConditions}
+              onChange={(checked) => {
+                setEditedData((prev) => ({
+                  ...prev,
+                  conditions: checked
+                    ? [
+                        {
+                          id: `condition-${Date.now()}`,
+                          name: "Default",
+                          probability: 100,
+                          outputEdgeId: outgoingEdges[0]!.id,
+                        },
+                      ]
+                    : [],
+                }));
+              }}
+            />
+            <span className={css({ fontSize: "size.textsm", color: "core.gray.90" })}>
+              This transition has multiple possible outcomes
+            </span>
+          </div>
+
+          {hasConditions && (
+            <div className={css({ marginTop: "spacing.4" })}>
+              <div
+                className={css({
+                  marginBottom: "spacing.4",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                })}
               >
-                This transition has multiple possible outcomes
-              </Typography>
-            </Box>
-
-            {hasConditions && (
-              <Box sx={{ mt: 2 }}>
-                <Box
-                  sx={{
-                    mb: 2,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
+                <span
+                  className={css({
+                    fontSize: "size.textsm",
+                    fontWeight: "medium",
+                    color: totalProbability === 100 ? "core.green.70" : "core.red.80",
+                  })}
                 >
-                  <Typography
-                    variant="smallTextLabels"
-                    sx={{
-                      fontWeight: 500,
-                      color: ({ palette }) =>
-                        totalProbability === 100
-                          ? palette.green[70]
-                          : palette.red[80],
-                    }}
-                  >
-                    Total Probability: {totalProbability}%
-                  </Typography>
-                  <Button
-                    size="xs"
-                    onClick={handleAddCondition}
-                    disabled={
-                      localData.conditions?.length === outgoingEdges.length
-                    }
-                  >
-                    Add Condition
-                  </Button>
-                </Box>
+                  Total Probability: {totalProbability}%
+                </span>
+                <Button
+                  size="xs"
+                  onClick={handleAddCondition}
+                  disabled={
+                    localData.conditions?.length === outgoingEdges.length
+                  }
+                >
+                  Add Condition
+                </Button>
+              </div>
 
-                <Stack spacing={2} sx={{ mt: 2 }}>
-                  {(localData.conditions ?? []).map((condition) => (
-                    <Box
-                      key={condition.id}
-                      sx={{
-                        py: 1,
-                        px: 2,
-                        border: ({ palette }) =>
-                          `1px solid ${palette.gray[20]}`,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Stack spacing={2}>
-                        <Stack
-                          direction="row"
-                          justifyContent="space-between"
-                          alignItems="flex-start"
-                        >
-                          <Box component="label">
-                            <Typography variant="smallCaps" sx={{ mb: 1 }}>
-                              Condition Name
-                            </Typography>
-                            <TextField
-                              value={condition.name}
-                              onChange={(event) =>
-                                handleConditionNameChange(
-                                  condition.id,
-                                  event.target.value,
-                                )
-                              }
-                              fullWidth
-                              size="small"
-                            />
-                          </Box>
-                          {(localData.conditions?.length ?? 0) > 1 && (
-                            <IconButton
-                              onClick={() =>
-                                handleRemoveCondition(condition.id)
-                              }
-                            >
-                              <XMarkRegularIcon />
-                            </IconButton>
-                          )}
-                        </Stack>
-
-                        <Box>
-                          <Typography variant="smallCaps">
-                            Probability: {condition.probability}%
-                          </Typography>
-                          <Slider
-                            value={condition.probability}
-                            onChange={(_event, value) =>
-                              handleConditionProbabilityChange(
+              <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.4" })}>
+                {(localData.conditions ?? []).map((condition) => (
+                  <div
+                    key={condition.id}
+                    className={css({
+                      paddingTop: "spacing.3",
+                      paddingBottom: "spacing.3",
+                      paddingLeft: "spacing.4",
+                      paddingRight: "spacing.4",
+                      border: "1px solid",
+                      borderColor: "core.gray.20",
+                      borderRadius: "radius.8",
+                    })}
+                  >
+                    <div className={css({ display: "flex", flexDirection: "column", gap: "spacing.4" })}>
+                      <div
+                        className={css({
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                        })}
+                      >
+                        <div className={css({ flex: "1", display: "flex", flexDirection: "column", gap: "spacing.2" })}>
+                          <span className={css({ fontSize: "size.textsm", fontWeight: "medium", color: "core.gray.80", textTransform: "uppercase", letterSpacing: "[0.5px]" })}>
+                            Condition Name
+                          </span>
+                          <TextField
+                            value={condition.name}
+                            onChange={(event) =>
+                              handleConditionNameChange(
                                 condition.id,
-                                typeof value === "number" ? value : value[0]!,
+                                event.target.value,
                               )
                             }
-                            valueLabelDisplay="auto"
-                            step={1}
-                            min={1}
-                            max={100}
+                            fullWidth
                           />
-                        </Box>
-                      </Stack>
+                        </div>
+                        {(localData.conditions?.length ?? 0) > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveCondition(condition.id)
+                            }
+                            className={css({
+                              padding: "spacing.2",
+                              border: "none",
+                              background: "[transparent]",
+                              cursor: "pointer",
+                              color: "core.gray.60",
+                              _hover: {
+                                color: "core.gray.80",
+                              },
+                            })}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
 
-                      <Box>
-                        <Typography
-                          variant="smallCaps"
-                          sx={{ fontWeight: 600 }}
+                      <Slider
+                        label={`Probability: ${condition.probability}%`}
+                        value={condition.probability}
+                        onChange={(value) =>
+                          handleConditionProbabilityChange(
+                            condition.id,
+                            value,
+                          )
+                        }
+                        min={1}
+                        max={100}
+                        step={1}
+                      />
+
+                      <div>
+                        <span
+                          className={css({
+                            fontSize: "size.textsm",
+                            fontWeight: "semibold",
+                            color: "core.gray.80",
+                            textTransform: "uppercase",
+                            letterSpacing: "[0.5px]",
+                            display: "block",
+                            marginBottom: "spacing.2",
+                          })}
                         >
                           Output to
-                        </Typography>
-                        <Stack spacing={1} mt={0.5}>
-                          {outgoingEdges.length === 0 ? (
-                            <Typography color="text.secondary">
-                              No output paths available. Add arcs from this
-                              transition first.
-                            </Typography>
-                          ) : (
-                            <Box component="label">
-                              <Select
-                                value={condition.outputEdgeId}
-                                onChange={(event) =>
-                                  handleToggleEdgeForCondition(
-                                    condition.id,
-                                    event.target.value,
-                                  )
-                                }
-                                size="small"
-                                fullWidth
-                              >
-                                {outgoingEdges.map((outEdge) => (
-                                  <MenuItem key={outEdge.id} value={outEdge.id}>
-                                    {outEdge.targetLabel}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </Box>
-                          )}
-                        </Stack>
-                      </Box>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-          </Box>
-        </Stack>
-      </DialogContent>
-      <DialogActions sx={{ mt: 1 }}>
-        <Button onClick={onClose} variant="tertiary" size="small">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="primary"
-          disabled={hasConditions && totalProbability !== 100}
-          size="small"
-        >
-          Save
-        </Button>
-      </DialogActions>
+                        </span>
+                        {outgoingEdges.length === 0 ? (
+                          <span className={css({ fontSize: "size.textsm", color: "core.gray.60" })}>
+                            No output paths available. Add arcs from this
+                            transition first.
+                          </span>
+                        ) : (
+                          <Select
+                            value={condition.outputEdgeId}
+                            onChange={(value) =>
+                              handleToggleEdgeForCondition(
+                                condition.id,
+                                value,
+                              )
+                            }
+                            options={outgoingEdges.map((outEdge) => ({
+                              value: outEdge.id,
+                              label: outEdge.targetLabel,
+                            }))}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </Dialog>
   );
 };
