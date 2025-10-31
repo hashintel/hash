@@ -5,7 +5,7 @@ use postgres_types::ToSql;
 use crate::store::postgres::query::{
     Alias, Column, Expression, Function, OrderByExpression, SelectExpression, SelectStatement,
     Table, Transpile, WhereExpression, WithExpression,
-    expression::{GroupByExpression, PostgresType},
+    expression::{ColumnName, ColumnReference, GroupByExpression, PostgresType},
     rows::PostgresRow,
     statement::FromItem,
 };
@@ -151,7 +151,10 @@ impl<'p> InsertStatementBuilder<'p> {
                 Box::new(Expression::Parameter(self.parameters.len())),
                 PostgresType::Row(self.statement.table),
             )),
-            Box::new(Expression::Asterisk),
+            Box::new(Expression::ColumnReference(ColumnReference {
+                correlation: None,
+                name: ColumnName::Asterisk,
+            })),
         ));
         self
     }
@@ -170,7 +173,10 @@ impl<'p> InsertStatementBuilder<'p> {
                     with: WithExpression::default(),
                     distinct: vec![],
                     selects: vec![SelectExpression {
-                        expression: Expression::Asterisk,
+                        expression: Expression::ColumnReference(ColumnReference {
+                            correlation: None,
+                            name: ColumnName::Asterisk,
+                        }),
                         alias: None,
                     }],
                     from: FromItem::Function(Function::Unnest(Box::new(Expression::Cast(

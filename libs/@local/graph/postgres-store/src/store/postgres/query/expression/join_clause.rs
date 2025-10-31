@@ -152,7 +152,7 @@ mod tests {
                     join: Column::OntologyIds(OntologyIds::OntologyId),
                     join_type: JoinType::Inner,
                 }
-                .conditions(Some(on_alias), Some(join_alias)),
+                .conditions(on_alias, join_alias),
             }
             .transpile_to_string(),
             r#"INNER JOIN "ontology_ids" AS "ontology_ids_0_1_2" ON "ontology_ids_0_1_2"."ontology_id" = "data_types_1_2_3"."ontology_id""#

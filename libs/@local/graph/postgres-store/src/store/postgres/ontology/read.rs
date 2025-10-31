@@ -150,13 +150,13 @@ impl<C: AsClient> PostgresStore<C> {
         let table = Table::Reference(reference_table).transpile_to_string();
         let source =
             if let ForeignKeyReference::Single { join, .. } = reference_table.source_relation() {
-                join.to_expression(None).transpile_to_string()
+                join.transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
         let target =
             if let ForeignKeyReference::Single { on, .. } = reference_table.target_relation() {
-                on.to_expression(None).transpile_to_string()
+                on.transpile_to_string()
             } else {
                 unreachable!("Ontology reference tables don't have multiple conditions")
             };
