@@ -3353,6 +3353,7 @@ dependencies = [
  "hash-status",
  "hash-telemetry",
  "hash-temporal-client",
+ "indoc",
  "postgres-types",
  "pretty_assertions",
  "refinery",
