@@ -27,8 +27,6 @@ services:
       HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
       HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
       HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
-      HASH_GRAPH_REALTIME_PG_USER: "${HASH_GRAPH_REALTIME_PG_USER}"
-      HASH_GRAPH_REALTIME_PG_PASSWORD: "${HASH_GRAPH_REALTIME_PG_PASSWORD}"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro

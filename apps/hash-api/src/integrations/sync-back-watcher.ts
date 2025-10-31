@@ -1,11 +1,9 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import type { RedisClient } from "@local/hash-backend-utils/redis";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
-import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
@@ -56,10 +54,11 @@ export const createIntegrationSyncBackWatcher = async ({
 
   const processQueueMessage = () => {
     queue
-      .pop(queueName, null, async (item: string) => {
-        const message = JSON.parse(item) as Wal2JsonMsg;
-
-        const entityEdition = entityEditionRecordFromRealtimeMessage(message);
+      .pop(queueName, null, async (_message: string) => {
+        /**
+         * @todo H-124: implement a new 'entity change' publisher service so that this works.
+         */
+        const entityEdition = null;
 
         const linearBotAccountId = await getMachineIdByIdentifier(
           { graphApi },
@@ -81,6 +80,7 @@ export const createIntegrationSyncBackWatcher = async ({
             filter: {
               equal: [
                 { path: ["editionId"] },
+                /* @ts-expect-error: @todo H-124: implement a new 'entity change' publisher service so that this works. */
                 { parameter: entityEdition.entityEditionId },
               ],
             },

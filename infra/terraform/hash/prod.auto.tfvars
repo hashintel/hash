@@ -75,8 +75,6 @@ hash_api_env_vars = [
 
   { name = "FILE_UPLOAD_PROVIDER", secret = false, value = "AWS_S3" },
 
-  { name = "HASH_OPENSEARCH_ENABLED", secret = false, value = "false" },
-
   { name = "HASH_KRATOS_PUBLIC_URL", secret = false, value = "http://localhost:4433" },
   { name = "HASH_KRATOS_ADMIN_URL", secret = false, value = "http://localhost:4434" },
   { name = "HASH_HYDRA_PUBLIC_URL", secret = false, value = "http://localhost:4444" },

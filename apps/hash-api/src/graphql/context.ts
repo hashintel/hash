@@ -1,7 +1,6 @@
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { UploadableStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { SearchAdapter } from "@local/hash-backend-utils/search/adapter";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
@@ -18,7 +17,6 @@ export interface GraphQLContext {
   dataSources: {
     graphApi: GraphApi;
     uploadProvider: UploadableStorageProvider;
-    search?: SearchAdapter;
   };
   emailTransporter: EmailTransporter;
   logger: Logger;
