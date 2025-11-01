@@ -64,7 +64,7 @@
     "@types/node": "22.18.13",
     "@types/react": "19.2.2",
     "@types/semver": "7.7.1",
-    "@vitest/coverage-istanbul": "3.2.4",
+    "@vitest/coverage-istanbul": "4.0.5",
     "eslint": "9.38.0",
     "react": "19.2.0",
     "rimraf": "6.0.1",
@@ -73,6 +73,6 @@
     "tsx": "4.20.6",
     "typescript": "5.9.3",
     "vite-plugin-wasm-pack": "0.1.12",
-    "vitest": "3.2.4"
+    "vitest": "4.0.5"
   }
 }
