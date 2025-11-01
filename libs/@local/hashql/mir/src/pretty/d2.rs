@@ -1,8 +1,10 @@
 use core::{
     fmt::{self, Display},
-    iter,
+    iter, mem,
 };
 use std::io;
+
+use bstr::ByteSlice;
 
 use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat};
 use crate::{
@@ -14,6 +16,23 @@ use crate::{
     def::{DefId, DefIdSlice},
     pretty::text::{Signature, TargetParams, TerminatorHead},
 };
+
+#[derive(Debug, Default)]
+pub struct Buffer {
+    a: Vec<u8>,
+    b: Vec<u8>,
+}
+
+impl Buffer {
+    fn clear(&mut self) {
+        self.a.clear();
+        self.b.clear();
+    }
+
+    fn swap(&mut self) {
+        mem::swap(&mut self.a, &mut self.b);
+    }
+}
 
 /// A formatter that generates D2 diagram code from MIR bodies.
 ///
@@ -40,6 +59,8 @@ pub struct D2Format<W, S, D> {
     pub sources: S,
     /// Data flow analysis lookup for auxiliary columns
     pub dataflow: D,
+    /// Buffer used for text formatting
+    pub buffer: Buffer,
 }
 
 impl<W, S, D> D2Format<W, S, D>
@@ -65,14 +86,48 @@ where
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut W, &'a S>: FormatPart<V>,
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
     {
+        const REPLACEMENTS: [(&[u8; 1], &[u8]); 5] = [
+            (b"&", b"&amp;" as &[_]),
+            (b"\"", b"&quot;"),
+            (b"<", b"&lt;"),
+            (b">", b"&gt;"),
+            (b"\n", b"<br align=\"left\"/>"),
+        ];
+        const NEEDLE: [u8; 5] = {
+            let mut output = [0; 5];
+            let mut index = 0_usize;
+
+            while index < REPLACEMENTS.len() {
+                output[index] = REPLACEMENTS[index].0[0];
+                index += 1;
+            }
+
+            output
+        };
+
+        self.buffer.clear();
+
         TextFormat {
-            writer: &mut self.writer,
+            writer: &mut self.buffer.a,
             indent: 0,
             sources: &self.sources,
         }
-        .format_part(value)
+        .format_part(value)?;
+
+        for (needle, replacement) in REPLACEMENTS {
+            self.buffer
+                .a
+                .replace_into(needle, replacement, &mut self.buffer.b);
+            self.buffer.swap();
+            self.buffer.b.clear();
+        }
+
+        self.writer.write_all(&self.buffer.a)?;
+        self.buffer.clear();
+
+        Ok(())
     }
 
     fn write_row<V>(
@@ -83,7 +138,7 @@ where
         aux: impl IntoIterator<Item: Display>,
     ) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut W, &'a S>: FormatPart<V>,
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
     {
         let valign = if valign_bottom { "bottom" } else { "top" };
         let fmt = format_args!(r#"valign="{valign}" sides="tl""#);
