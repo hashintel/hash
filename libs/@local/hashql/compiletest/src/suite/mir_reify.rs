@@ -7,7 +7,7 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     intern::Interner,
-    pretty::TextFormat,
+    pretty::{D2Buffer, D2Format, TextFormat},
 };
 
 use super::{Suite, SuiteDiagnostic, common::process_status};
@@ -78,6 +78,8 @@ impl Suite for MirReifySuite {
             writer: Vec::new(),
             indent: 4,
             sources: bodies.as_slice(),
+            // dataflow: (),
+            // buffer: D2Buffer::default(),
         };
         format
             .format(&bodies, &[root])

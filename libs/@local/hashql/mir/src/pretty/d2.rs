@@ -18,12 +18,12 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
-pub struct Buffer {
+pub struct D2Buffer {
     front: Vec<u8>,
     back: Vec<u8>,
 }
 
-impl Buffer {
+impl D2Buffer {
     fn clear(&mut self) {
         self.front.clear();
         self.back.clear();
@@ -60,7 +60,7 @@ pub struct D2Format<W, S, D> {
     /// Data flow analysis lookup for auxiliary columns
     pub dataflow: D,
     /// Buffer used for text formatting
-    pub buffer: Buffer,
+    pub buffer: D2Buffer,
 }
 
 impl<W, S, D> D2Format<W, S, D>
@@ -210,13 +210,13 @@ where
 }
 
 const HEADER_A_BB_BG_COLOR: &str = "#111D4A";
-const HEADER_A_BB_FG_COLOR: &str = "#000";
+const HEADER_A_BB_FG_COLOR: &str = "#FFF";
 const HEADER_A_AUX_BG_COLOR: &str = "#F18805";
-const HEADER_A_AUX_FG_COLOR: &str = "#FFF";
+const HEADER_A_AUX_FG_COLOR: &str = "#000";
 const HEADER_B_MIR_BG_COLOR: &str = "#C2CAE8";
-const HEADER_B_MIR_FG_COLOR: &str = "#FFF";
+const HEADER_B_MIR_FG_COLOR: &str = "#000";
 const HEADER_B_AUX_BG_COLOR: &str = "#F0A202";
-const HEADER_B_AUX_FG_COLOR: &str = "#FFF";
+const HEADER_B_AUX_FG_COLOR: &str = "#000";
 
 struct BasicBlockName(BasicBlockId);
 
@@ -301,7 +301,7 @@ where
                 write!(self.writer, ", ")?;
             }
 
-            write!(self.writer, "{param}")?;
+            write!(self.writer, "%{param}")?;
         }
         write!(self.writer, ")</td>")?;
 

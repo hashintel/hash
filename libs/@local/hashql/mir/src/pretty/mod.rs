@@ -21,7 +21,7 @@ use crate::{
 mod d2;
 mod text;
 
-pub use d2::D2Format;
+pub use d2::{D2Buffer, D2Format};
 pub use text::TextFormat;
 
 /// A trait for looking up source information associated with function definitions.
