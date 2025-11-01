@@ -239,7 +239,7 @@ test-log                           = { version = "=0.2.18", default-features = f
 test-strategy                      = { version = "=0.4.3", default-features = false }
 text-size                          = { version = "=1.1.1", default-features = false }
 thiserror                          = { version = "=2.0.16", default-features = false }
-time                               = { version = "=0.3.41", default-features = false }
+time                               = { version = "=0.3.44", default-features = false }
 tokio                              = { version = "=1.47.1", default-features = false }
 tokio-postgres                     = { version = "=0.7.15", default-features = false }
 tokio-stream                       = { version = "=0.1.17", default-features = false }
