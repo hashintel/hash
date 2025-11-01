@@ -1,9 +1,7 @@
 use core::{fmt, fmt::Write as _};
 
-use crate::store::postgres::query::{
-    Alias, AliasedTable, Condition, Expression, SelectStatement, Transpile,
-    table::{Column, ForeignKeyReference},
-};
+use super::TableReference;
+use crate::store::postgres::query::{Condition, SelectStatement, Transpile, table::Column};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JoinCondition {
@@ -48,93 +46,73 @@ pub struct JoinOn {
     pub on: Column,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct JoinExpression {
-    pub join: JoinType,
-    pub statement: Option<SelectStatement>,
-    pub table: AliasedTable,
-    pub on_alias: Alias,
-    pub on: Vec<JoinOn>,
-    pub additional_conditions: Vec<Condition>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum JoinFrom {
+    Table {
+        table: TableReference<'static>,
+        alias: Option<TableReference<'static>>,
+    },
+    SelectStatement {
+        statement: Box<SelectStatement>,
+        alias: TableReference<'static>,
+    },
 }
 
-impl JoinExpression {
+impl JoinFrom {
     #[must_use]
-    pub fn from_foreign_key(
-        foreign_key_reference: ForeignKeyReference,
-        on_alias: Alias,
-        join_alias: Alias,
-    ) -> Self {
-        match foreign_key_reference {
-            ForeignKeyReference::Single {
-                join,
-                on,
-                join_type,
-            } => Self {
-                join: join_type,
-                table: join.table().aliased(join_alias),
-                statement: None,
-                on_alias,
-                on: vec![JoinOn { join, on }],
-                additional_conditions: Vec::new(),
-            },
-            ForeignKeyReference::Double {
-                join: [join1, join2],
-                on: [on1, on2],
-                join_type,
-            } => Self {
-                join: join_type,
-                table: join1.table().aliased(join_alias),
-                statement: None,
-                on_alias,
-                on: vec![
-                    JoinOn {
-                        join: join1,
-                        on: on1,
-                    },
-                    JoinOn {
-                        join: join2,
-                        on: on2,
-                    },
-                ],
-                additional_conditions: Vec::new(),
-            },
+    pub const fn reference_table(&self) -> &TableReference<'static> {
+        match self {
+            Self::Table {
+                alias: Some(table), ..
+            }
+            | Self::Table { table, .. }
+            | Self::SelectStatement { alias: table, .. } => table,
         }
     }
+
+    #[must_use]
+    pub const fn reference_table_mut(&mut self) -> &mut TableReference<'static> {
+        match self {
+            Self::Table {
+                alias: Some(table), ..
+            }
+            | Self::Table { table, .. }
+            | Self::SelectStatement { alias: table, .. } => table,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JoinExpression {
+    pub join: JoinType,
+    pub from: JoinFrom,
+    pub conditions: Vec<Condition>,
 }
 
 impl Transpile for JoinExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         self.join.transpile(fmt)?;
         fmt.write_char(' ')?;
-        if let Some(select) = &self.statement {
-            fmt.write_char('(')?;
-            select.transpile(fmt)?;
-            fmt.write_char(')')?;
-        } else {
-            self.table.table.transpile(fmt)?;
+        match &self.from {
+            JoinFrom::Table { table, alias } => {
+                table.name.transpile(fmt)?;
+                if let Some(alias) = alias {
+                    fmt.write_str(" AS ")?;
+                    alias.transpile(fmt)?;
+                }
+            }
+            JoinFrom::SelectStatement { statement, alias } => {
+                fmt.write_char('(')?;
+                statement.transpile(fmt)?;
+                fmt.write_str(") AS ")?;
+                alias.transpile(fmt)?;
+            }
         }
-        fmt.write_str(" AS ")?;
-        self.table.transpile(fmt)?;
         fmt.write_str(" ON ")?;
-        for (i, condition) in self.on.iter().enumerate() {
+        for (i, condition) in self.conditions.iter().enumerate() {
             if i > 0 {
                 fmt.write_str(" AND ")?;
             }
-            Expression::ColumnReference {
-                column: condition.join,
-                table_alias: Some(self.table.alias),
-            }
-            .transpile(fmt)?;
-            fmt.write_str(" = ")?;
-            Expression::ColumnReference {
-                column: condition.on,
-                table_alias: Some(self.on_alias),
-            }
-            .transpile(fmt)?;
-        }
-        for condition in &self.additional_conditions {
-            fmt.write_str(" AND ")?;
             condition.transpile(fmt)?;
         }
         Ok(())
@@ -144,28 +122,38 @@ impl Transpile for JoinExpression {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::store::postgres::query::table::{DataTypes, OntologyIds};
+    use crate::store::postgres::query::{
+        Alias, ForeignKeyReference, Table,
+        table::{DataTypes, OntologyIds},
+    };
 
     #[test]
     fn transpile_join_expression() {
+        let join_alias = Alias {
+            condition_index: 0,
+            chain_depth: 1,
+            number: 2,
+        };
+        let on_alias = Alias {
+            condition_index: 1,
+            chain_depth: 2,
+            number: 3,
+        };
+
         assert_eq!(
-            JoinExpression::from_foreign_key(
-                ForeignKeyReference::Single {
+            JoinExpression {
+                join: JoinType::Inner,
+                from: JoinFrom::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: Some(Table::OntologyIds.aliased(join_alias))
+                },
+                conditions: ForeignKeyReference::Single {
                     on: Column::DataTypes(DataTypes::OntologyId),
                     join: Column::OntologyIds(OntologyIds::OntologyId),
                     join_type: JoinType::Inner,
-                },
-                Alias {
-                    condition_index: 1,
-                    chain_depth: 2,
-                    number: 3,
-                },
-                Alias {
-                    condition_index: 0,
-                    chain_depth: 1,
-                    number: 2,
                 }
-            )
+                .conditions(Some(on_alias), Some(join_alias)),
+            }
             .transpile_to_string(),
             r#"INNER JOIN "ontology_ids" AS "ontology_ids_0_1_2" ON "ontology_ids_0_1_2"."ontology_id" = "data_types_1_2_3"."ontology_id""#
         );

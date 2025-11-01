@@ -5,6 +5,8 @@ export default [
   {
     rules: {
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+      // Hooks need console for output to Claude/user
+      "no-console": "off",
     },
   },
 ];

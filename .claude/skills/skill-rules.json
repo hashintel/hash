@@ -18,23 +18,17 @@
           "error type",
           "define error",
           "propagate error",
-          "error documentation"
+          "error documentation",
+          "fehler",
+          "fehlerbehandlung",
+          "fehler behandeln",
+          "fehler definieren",
+          "fehler propagieren"
         ],
         "intentPatterns": [
-          "(handle|create|define|propagate).*?error",
-          "(error|errors).*?(handling|propagation|definition|documentation)",
+          "\\b(handle|create|define|propagate)\\b.*?\\berror\\b",
+          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation)\\b",
           "Result.*?Report"
-        ]
-      },
-      "fileTriggers": {
-        "pathPatterns": ["**/*.rs"],
-        "contentPatterns": [
-          "Result<",
-          "Report<",
-          "\\.attach",
-          "\\.change_context",
-          "error_stack::",
-          "Error for"
         ]
       }
     },
@@ -54,21 +48,73 @@
           "add dependency",
           "add crate",
           "public dependency",
-          "dev-dependencies"
+          "dev-dependencies",
+          "crate hinzufügen",
+          "dependency hinzufügen"
         ],
         "intentPatterns": [
-          "add.*?(dependency|dependencies|crate)",
-          "(cargo|Cargo\\.toml).*?(dependency|dependencies)",
-          "workspace.*?dependency"
+          "\\badd\\b.*?\\b(dependency|dependencies|crate)\\b",
+          "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
+          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
         ]
-      },
-      "fileTriggers": {
-        "pathPatterns": ["**/Cargo.toml"],
-        "contentPatterns": [
-          "\\[dependencies\\]",
-          "\\[dev-dependencies\\]",
-          "workspace = true",
-          "public = true"
+      }
+    },
+    "writing-skills": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Meta-skill for creating and managing Claude Code skills in HASH repository",
+      "promptTriggers": {
+        "keywords": [
+          "skill system",
+          "create skill",
+          "add skill",
+          "new skill",
+          "skill triggers",
+          "skill rules",
+          "skill-rules.json",
+          "hook system",
+          "skill development",
+          "skill activation",
+          "skill configuration",
+          "SKILL.md",
+          "skill best practices"
+        ],
+        "intentPatterns": [
+          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
+          "\\b(create|add|modify|build)\\b.*?\\bskill\\b",
+          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration)\\b",
+          "\\b(configure|setup|define)\\b.*?\\bskill\\b.*?\\b(trigger|activation|rule)\\b"
+        ]
+      }
+    },
+    "rust-documentation": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Rust documentation practices for HASH codebase following rustdoc conventions",
+      "promptTriggers": {
+        "keywords": [
+          "rust documentation",
+          "doc comment",
+          "doc comments",
+          "rustdoc",
+          "document rust",
+          "documenting rust",
+          "intra-doc link",
+          "intra-doc links",
+          "# Errors",
+          "# Examples",
+          "# Panics",
+          "function documentation",
+          "type documentation",
+          "trait documentation",
+          "module documentation"
+        ],
+        "intentPatterns": [
+          "\\b(write|add|create|update)\\b.*?\\b(doc|documentation)\\b.*?\\b(rust|function|type|trait|module)\\b",
+          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error)\\b",
+          "\\bhow\\b.*?\\b(document|write docs)\\b.*?\\brust\\b"
         ]
       }
     }

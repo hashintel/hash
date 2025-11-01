@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh"
+            "command": "yarn workspace @local/claude-hooks run:skill"
           }
         ]
       }

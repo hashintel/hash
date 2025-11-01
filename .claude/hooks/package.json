@@ -7,13 +7,16 @@
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit"
+    "lint:skill": "tsx skill-activation-prompt.ts --validate",
+    "lint:tsc": "tsc --noEmit",
+    "run:skill": "tsx skill-activation-prompt.ts"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node": "22.18.13",
     "eslint": "9.38.0",
+    "tsx": "4.20.6",
     "typescript": "5.9.3"
   }
 }
