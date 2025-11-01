@@ -1,4 +1,4 @@
-use core::fmt::Display;
+use core::{fmt::Display, iter};
 use std::io;
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
 mod d2;
 mod text;
 
+pub use d2::D2Format;
 pub use text::TextFormat;
 
 pub trait SourceLookup<'heap> {
@@ -21,6 +22,12 @@ where
 {
     fn source(&self, def: DefId) -> Option<Source<'heap>> {
         T::source(self, def)
+    }
+}
+
+impl<'heap> SourceLookup<'heap> for &DefIdSlice<Body<'heap>> {
+    fn source(&self, def: DefId) -> Option<Source<'heap>> {
+        self.get(def).map(|body| body.source)
     }
 }
 
@@ -47,9 +54,24 @@ pub trait DataFlowLookup<'heap> {
     ) -> impl IntoIterator<Item: Display> + use<'heap, Self>;
 }
 
-impl<'heap> SourceLookup<'heap> for &DefIdSlice<Body<'heap>> {
-    fn source(&self, def: DefId) -> Option<Source<'heap>> {
-        self.get(def).map(|body| body.source)
+impl<'heap> DataFlowLookup<'heap> for () {
+    const COLUMNS: &'static [&'static str] = &[];
+
+    fn on_enter(&self, _: DefId, _: BasicBlockId) -> impl IntoIterator<Item: Display> + use<'heap> {
+        iter::empty::<!>()
+    }
+
+    fn on_exit(&self, _: DefId, _: BasicBlockId) -> impl IntoIterator<Item: Display> + use<'heap> {
+        iter::empty::<!>()
+    }
+
+    fn on_statement(
+        &self,
+        _: DefId,
+        _: BasicBlockId,
+        _: usize,
+    ) -> impl IntoIterator<Item: Display> + use<'heap> {
+        iter::empty::<!>()
     }
 }
 

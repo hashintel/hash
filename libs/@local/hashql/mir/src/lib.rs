@@ -7,6 +7,7 @@
     coverage_attribute,
     if_let_guard,
     macro_metavar_expr_concat,
+    never_type,
 
     // Library Features
     allocator_api,

@@ -2,7 +2,7 @@
 
 use std::io;
 
-use hashql_core::{id::Id, symbol::Symbol};
+use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
 use hashql_hir::node::{r#let::Binder, operation::InputOp};
 
 use super::{FormatPart, SourceLookup};
@@ -31,7 +31,7 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
     }
 }
 
-struct Signature<'body, 'heap>(&'body Body<'heap>);
+pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>);
 struct KeyValuePair<K, V>(K, V);
 
 pub struct TextFormat<W, S> {
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&str> for TextFormat<W, S>
+impl<W, S> FormatPart<&str> for TextFormat<W, S>
 where
     W: io::Write,
 {
@@ -218,7 +218,7 @@ where
 {
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
-        write!(self.writer, "bb{id}: {{\n")?;
+        writeln!(self.writer, "bb{id}: {{")?;
 
         for statement in &block.statements {
             self.format_part(statement)?;
@@ -235,15 +235,40 @@ where
     }
 }
 
+pub(crate) struct TargetParams<'heap>(pub Interned<'heap, [Operand<'heap>]>);
+
+impl<'heap, W, S> FormatPart<TargetParams<'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn format_part(&mut self, TargetParams(args): TargetParams<'heap>) -> io::Result<()> {
+        write!(self.writer, "(")?;
+        self.csv(args.iter().copied())?;
+        write!(self.writer, ")")
+    }
+}
+
 impl<'heap, W, S> FormatPart<Target<'heap>> for TextFormat<W, S>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, Target { block, args }: Target<'heap>) -> io::Result<()> {
-        write!(self.writer, "bb{block}(")?;
-        self.csv(args.iter().copied())?;
-        write!(self.writer, ")")
+        write!(self.writer, "bb{block}")?;
+        self.format_part(TargetParams(args))
+    }
+}
+
+struct AnonymousTarget(BasicBlockId);
+
+impl<'heap, W, S> FormatPart<AnonymousTarget> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn format_part(&mut self, AnonymousTarget(id): AnonymousTarget) -> io::Result<()> {
+        write!(self.writer, "bb{id}(_)")
     }
 }
 
@@ -319,7 +344,7 @@ where
             head,
             body,
             tail,
-            target,
+            target: _,
         }: &GraphRead<'heap>,
     ) -> io::Result<()> {
         self.writer.write_all(b"graph read ")?;
@@ -335,9 +360,73 @@ where
         self.writer.write_all(b"\n")?;
         self.indent(2)?;
         self.writer.write_all(b"|> ")?;
-        self.format_part(*tail)?;
+        self.format_part(*tail)
+    }
+}
 
-        write!(self.writer, " -> bb{target}(_)")
+pub(crate) struct TerminatorHead<'term, 'heap>(pub &'term TerminatorKind<'heap>);
+pub(crate) struct TerminatorTail<'term, 'heap>(pub &'term TerminatorKind<'heap>);
+
+impl<'heap, W, S> FormatPart<TerminatorHead<'_, 'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn format_part(&mut self, TerminatorHead(kind): TerminatorHead<'_, 'heap>) -> io::Result<()> {
+        match kind {
+            &TerminatorKind::Goto(Goto { target: _ }) => write!(self.writer, "goto"),
+            &TerminatorKind::Branch(Branch {
+                test,
+                then: _,
+                r#else: _,
+            }) => {
+                write!(self.writer, "if(")?;
+                self.format_part(test)?;
+                self.writer.write_all(b")")
+            }
+            &TerminatorKind::Return(Return { value }) => {
+                write!(self.writer, "return ")?;
+                self.format_part(value)
+            }
+            TerminatorKind::GraphRead(graph_read) => self.format_part(graph_read),
+            TerminatorKind::Unreachable => write!(self.writer, "unreachable"),
+        }
+    }
+}
+
+impl<'heap, W, S> FormatPart<TerminatorTail<'_, 'heap>> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn format_part(&mut self, TerminatorTail(kind): TerminatorTail<'_, 'heap>) -> io::Result<()> {
+        match kind {
+            &TerminatorKind::Goto(Goto { target }) => {
+                write!(self.writer, " -> ")?;
+                self.format_part(target)
+            }
+            &TerminatorKind::Branch(Branch {
+                test: _,
+                then,
+                r#else,
+            }) => {
+                write!(self.writer, " -> [0: ")?;
+                self.format_part(r#else)?;
+                write!(self.writer, ", 1: ")?;
+                self.format_part(then)?;
+                write!(self.writer, "]")
+            }
+            &TerminatorKind::Return(_) | TerminatorKind::Unreachable => Ok(()),
+            TerminatorKind::GraphRead(GraphRead {
+                head: _,
+                body: _,
+                tail: _,
+                target,
+            }) => {
+                write!(self.writer, " -> ")?;
+                self.format_part(AnonymousTarget(*target))
+            }
+        }
     }
 }
 
@@ -347,27 +436,8 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, Terminator { span: _, kind }: &Terminator<'heap>) -> io::Result<()> {
-        match kind {
-            &TerminatorKind::Goto(Goto { target }) => {
-                write!(self.writer, "goto -> ")?;
-                self.format_part(target)
-            }
-            &TerminatorKind::Branch(Branch { test, then, r#else }) => {
-                write!(self.writer, "if(")?;
-                self.format_part(test)?;
-                write!(self.writer, ") -> [0: ")?;
-                self.format_part(r#else)?;
-                write!(self.writer, ", 1: ")?;
-                self.format_part(then)?;
-                write!(self.writer, "]")
-            }
-            &TerminatorKind::Return(Return { value }) => {
-                write!(self.writer, "return ")?;
-                self.format_part(value)
-            }
-            TerminatorKind::GraphRead(graph_read) => self.format_part(graph_read),
-            TerminatorKind::Unreachable => write!(self.writer, "-> !"),
-        }
+        self.format_part(TerminatorHead(kind))?;
+        self.format_part(TerminatorTail(kind))
     }
 }
 
