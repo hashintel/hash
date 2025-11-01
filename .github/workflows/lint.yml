@@ -271,6 +271,22 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Claude Code skills
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:skill; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Claude Code skill validation failed. Common issues:'
+            echo '  • Invalid JSON in .claude/skills/skill-rules.json'
+            echo '  • Missing SKILL.md files'
+            echo '  • Invalid regex patterns in intentPatterns'
+            echo 'Try running `yarn lint:skill` locally to see details.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:taplo
         if: ${{ success() || failure() }}
         run: |

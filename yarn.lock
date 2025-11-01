@@ -9484,6 +9484,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/node": "npm:22.18.13"
     eslint: "npm:9.38.0"
+    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
