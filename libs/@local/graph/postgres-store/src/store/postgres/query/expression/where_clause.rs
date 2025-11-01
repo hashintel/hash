@@ -6,7 +6,7 @@ use crate::store::postgres::query::{
     Condition, Expression, Transpile, expression::conditional::Transpiler,
 };
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct WhereExpression {
     pub conditions: Vec<Condition>,
     pub cursor: Vec<(

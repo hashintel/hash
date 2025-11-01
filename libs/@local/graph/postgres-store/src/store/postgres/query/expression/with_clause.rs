@@ -2,13 +2,13 @@ use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CommonTableExpression {
     table: Table,
     statement: Statement,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct WithExpression {
     common_table_expressions: Vec<CommonTableExpression>,
 }
@@ -58,8 +58,7 @@ mod tests {
     use super::*;
     use crate::store::postgres::query::{
         Alias, SelectExpression, SelectStatement, WhereExpression,
-        expression::{GroupByExpression, OrderByExpression},
-        statement::FromItem,
+        expression::{FromItem, GroupByExpression, OrderByExpression},
         test_helper::{max_version_expression, trim_whitespace},
     };
 
@@ -80,15 +79,15 @@ mod tests {
                         alias: Some("latest_version"),
                     },
                 ],
-                from: FromItem::Table {
-                    table: Table::OntologyIds,
-                    alias: Some(Alias {
+                from: Some(FromItem::Table {
+                    table: Table::OntologyIds.into(),
+                    alias: Some(Table::OntologyIds.aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
-                    }),
-                },
-                joins: vec![],
+                    })),
+                    tablesample: None,
+                }),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -110,15 +109,15 @@ mod tests {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![SelectExpression::Asterisk(None)],
-                from: FromItem::Table {
-                    table: Table::DataTypes,
-                    alias: Some(Alias {
+                from: Some(FromItem::Table {
+                    table: Table::DataTypes.into(),
+                    alias: Some(Table::DataTypes.aliased(Alias {
                         condition_index: 3,
                         chain_depth: 4,
                         number: 5,
-                    }),
-                },
-                joins: vec![],
+                    })),
+                    tablesample: None,
+                }),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),

@@ -33,8 +33,8 @@ pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     condition::{Condition, EqualityOperator},
     expression::{
-        Constant, Expression, Function, JoinClause, OrderByExpression, SelectExpression,
-        WhereExpression, WithExpression,
+        Constant, Expression, Function, OrderByExpression, SelectExpression, WhereExpression,
+        WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
