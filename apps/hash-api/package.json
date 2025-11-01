@@ -125,7 +125,7 @@
     "@types/mailchimp__mailchimp_marketing": "3.0.21",
     "@types/md5": "2.3.6",
     "@types/mime-types": "2.1.4",
-    "@types/nodemailer": "6.4.17",
+    "@types/nodemailer": "6.4.21",
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.38.0",
     "rimraf": "6.0.1",
