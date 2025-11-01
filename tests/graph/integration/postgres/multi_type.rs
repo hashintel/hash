@@ -25,7 +25,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
+use crate::{DatabaseApi, DatabaseTestWrapper};
 
 async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
@@ -171,7 +171,7 @@ async fn initial_person() {
         .expect("could not get entities")
         .entities;
 
-    assert_equal_entities(&entities[0], &entity);
+    assert_eq!(&entities[0], &entity);
 
     let updated_entity = api
         .patch_entity(
@@ -382,7 +382,7 @@ async fn create_multi() {
         .entities;
 
     assert_eq!(person_entities, org_entities);
-    assert_equal_entities(&person_entities[0], &entity);
+    assert_eq!(&person_entities[0], &entity);
 
     let updated_entity = api
         .patch_entity(
