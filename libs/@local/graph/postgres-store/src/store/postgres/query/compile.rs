@@ -108,15 +108,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: Vec::new(),
-                from: Some(FromItem::Table {
-                    table: R::base_table().into(),
-                    alias: Some(R::base_table().aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    })),
-                    tablesample: None,
-                }),
+                from: Some(
+                    FromItem::table(R::base_table())
+                        .alias(R::base_table().aliased(Alias {
+                            condition_index: 0,
+                            chain_depth: 0,
+                            number: 0,
+                        }))
+                        .build(),
+                ),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -495,11 +495,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         bail!(SelectCompilerError::UnsupportedEmbeddingPath);
                     };
                     let embeddings_table = embeddings_column.table();
-                    let embeddings_alias = Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    };
                     let distance_expression = Expression::ColumnReference(
                         match embeddings_table {
                             Table::DataTypeEmbeddings => {
@@ -600,52 +595,41 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        **last_from = FromItem::Subquery {
-                            statement: Box::new(SelectStatement {
-                                with: WithExpression::default(),
-                                distinct: vec![],
-                                selects: select_columns
-                                    .iter()
-                                    .map(|&column| SelectExpression::Expression {
-                                        expression: Expression::ColumnReference(
-                                            column.aliased(embeddings_alias),
+                        let subquery = SelectStatement {
+                            with: WithExpression::default(),
+                            distinct: vec![],
+                            selects: select_columns
+                                .iter()
+                                .map(|&column| SelectExpression::Expression {
+                                    expression: Expression::ColumnReference(column.into()),
+                                    alias: None,
+                                })
+                                .chain(once(SelectExpression::Expression {
+                                    expression: Expression::Function(Function::Min(Box::new(
+                                        Expression::CosineDistance(
+                                            Box::new(Expression::ColumnReference(
+                                                embeddings_column.into(),
+                                            )),
+                                            Box::new(parameter_expression),
                                         ),
-                                        alias: None,
-                                    })
-                                    .chain(once(SelectExpression::Expression {
-                                        expression: Expression::Function(Function::Min(Box::new(
-                                            Expression::CosineDistance(
-                                                Box::new(Expression::ColumnReference(
-                                                    embeddings_column.aliased(embeddings_alias),
-                                                )),
-                                                Box::new(parameter_expression),
-                                            ),
-                                        ))),
-                                        alias: Some("distance"),
-                                    }))
+                                    ))),
+                                    alias: Some("distance"),
+                                }))
+                                .collect(),
+                            from: Some(FromItem::table(embeddings_table).build()),
+                            where_expression: WhereExpression::default(),
+                            order_by_expression: OrderByExpression::default(),
+                            group_by_expression: GroupByExpression {
+                                expressions: select_columns
+                                    .iter()
+                                    .map(|&column| Expression::ColumnReference(column.into()))
                                     .collect(),
-                                from: Some(FromItem::Table {
-                                    table: embeddings_table.into(),
-                                    alias: Some(embeddings_table.aliased(embeddings_alias)),
-                                    tablesample: None,
-                                }),
-                                where_expression: WhereExpression::default(),
-                                order_by_expression: OrderByExpression::default(),
-                                group_by_expression: GroupByExpression {
-                                    expressions: select_columns
-                                        .iter()
-                                        .map(|&column| {
-                                            Expression::ColumnReference(
-                                                column.aliased(embeddings_alias),
-                                            )
-                                        })
-                                        .collect(),
-                                },
-                                limit: None,
-                            }),
-                            alias: Some(last_reference_table.clone()),
-                            lateral: false,
+                            },
+                            limit: None,
                         };
+                        **last_from = FromItem::subquery(subquery)
+                            .alias(last_reference_table.clone())
+                            .build();
                     }
 
                     self.statement.order_by_expression.insert_front(
@@ -765,11 +749,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         alias: Some("latest_version"),
                     },
                 ],
-                from: Some(FromItem::Table {
-                    table: version_column.table().into(),
-                    alias: Some(version_column.table().aliased(alias)),
-                    tablesample: None,
-                }),
+                from: Some(
+                    FromItem::table(version_column.table())
+                        .alias(version_column.table().aliased(alias))
+                        .build(),
+                ),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -1148,17 +1132,24 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     if let Some(hook) = self.table_hooks.get(&current_table.name) {
                         conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
                     }
-                    self.statement.join(
-                        join_type,
-                        FromItem::Table {
-                            table: TableReference {
-                                alias: None,
-                                ..join_table.clone()
-                            },
-                            alias: Some(join_table),
-                            tablesample: None,
-                        },
-                        conditions,
+
+                    self.statement.from = Some(
+                        self.statement
+                            .from
+                            .take()
+                            .expect(
+                                "Tried to join on a `SELECT` statement without a `FROM` statement",
+                            )
+                            .join(
+                                join_type,
+                                FromItem::table(TableReference {
+                                    alias: None,
+                                    ..join_table.clone()
+                                })
+                                .alias(join_table),
+                            )
+                            .on(conditions)
+                            .build(),
                     );
                 }
             }
