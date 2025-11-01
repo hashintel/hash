@@ -255,7 +255,7 @@ dependencies = [
  "nom",
  "num-traits",
  "rusticata-macros",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "time",
 ]
 
@@ -1164,7 +1164,7 @@ dependencies = [
  "serde",
  "serde-untagged",
  "serde-value",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "toml 0.8.23",
  "unicode-xid",
  "url",
@@ -1182,7 +1182,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1197,7 +1197,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1249,7 +1249,7 @@ dependencies = [
  "serde_with",
  "smol_str",
  "stacker",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "unicode-security",
 ]
 
@@ -2383,7 +2383,7 @@ dependencies = [
  "spin",
  "supports-color",
  "supports-unicode",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "tracing-error",
  "tracing-subscriber",
@@ -2857,7 +2857,7 @@ dependencies = [
  "serde",
  "serde-value",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio-util",
  "tower 0.5.2",
 ]
@@ -2877,7 +2877,7 @@ dependencies = [
  "serde_core",
  "serde_json",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
 ]
 
@@ -2916,7 +2916,7 @@ dependencies = [
  "simple-mermaid",
  "tachyonix",
  "test-log",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -2944,7 +2944,7 @@ dependencies = [
  "scc",
  "serde",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-util",
  "tower 0.5.2",
@@ -2981,7 +2981,7 @@ dependencies = [
  "pin-project-lite",
  "serde",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-test",
  "tokio-util",
@@ -3019,7 +3019,7 @@ dependencies = [
  "similar-asserts",
  "simple-mermaid",
  "test-strategy",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -3344,7 +3344,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "specta",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -3468,7 +3468,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "time",
  "tokio",
  "trait-variant",
@@ -3493,7 +3493,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "type-system",
  "url",
@@ -3522,7 +3522,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
  "walkdir",
@@ -3573,7 +3573,7 @@ dependencies = [
  "simple-mermaid",
  "temporal-client",
  "temporal-sdk-core-protos",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "type-system",
  "url",
  "uuid",
@@ -3802,7 +3802,7 @@ dependencies = [
  "rand 0.9.2",
  "ring",
  "socket2 0.5.10",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tinyvec",
  "tokio",
  "tracing",
@@ -3825,7 +3825,7 @@ dependencies = [
  "rand 0.9.2",
  "resolv-conf",
  "smallvec 1.15.1",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
 ]
@@ -4652,7 +4652,7 @@ dependencies = [
  "multiaddr",
  "pin-project",
  "rw-stream-sink",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4696,7 +4696,7 @@ dependencies = [
  "quick-protobuf",
  "rand 0.8.5",
  "rw-stream-sink",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "unsigned-varint 0.8.0",
  "web-time",
@@ -4735,7 +4735,7 @@ dependencies = [
  "quick-protobuf",
  "quick-protobuf-codec",
  "smallvec 1.15.1",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -4752,7 +4752,7 @@ dependencies = [
  "quick-protobuf",
  "rand 0.8.5",
  "sha2",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "zeroize",
 ]
@@ -4810,7 +4810,7 @@ dependencies = [
  "rand 0.8.5",
  "snow",
  "static_assertions",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "x25519-dalek",
  "zeroize",
@@ -4849,7 +4849,7 @@ dependencies = [
  "ring",
  "rustls",
  "socket2 0.5.10",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
 ]
@@ -4931,7 +4931,7 @@ dependencies = [
  "ring",
  "rustls",
  "rustls-webpki",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "x509-parser",
  "yasna",
 ]
@@ -4960,7 +4960,7 @@ dependencies = [
  "either",
  "futures",
  "libp2p-core",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
  "yamux 0.12.1",
  "yamux 0.13.7",
@@ -5401,7 +5401,7 @@ dependencies = [
  "log",
  "netlink-packet-core",
  "netlink-sys",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -5438,7 +5438,7 @@ dependencies = [
  "regex",
  "regex-syntax",
  "smol_str",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "winnow",
 ]
 
@@ -5645,7 +5645,7 @@ dependencies = [
  "futures-sink",
  "js-sys",
  "pin-project-lite",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -5672,7 +5672,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tonic 0.13.1",
 ]
@@ -5708,7 +5708,7 @@ dependencies = [
  "percent-encoding",
  "rand 0.9.2",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-stream",
 ]
@@ -5770,7 +5770,7 @@ dependencies = [
  "owo-colors",
  "oxc-miette-derive",
  "textwrap",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "unicode-segmentation",
  "unicode-width 0.2.2",
 ]
@@ -6651,7 +6651,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "socket2 0.5.10",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
  "web-time",
@@ -6672,7 +6672,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tinyvec",
  "tracing",
  "web-time",
@@ -7492,7 +7492,7 @@ dependencies = [
  "rand 0.9.2",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "time",
  "url",
  "uuid",
@@ -8110,7 +8110,7 @@ dependencies = [
  "serde",
  "static_assertions",
  "tarpc-plugins",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tokio-serde",
  "tokio-util",
@@ -8163,7 +8163,7 @@ dependencies = [
  "slotmap",
  "temporal-sdk-core-api",
  "temporal-sdk-core-protos",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tokio",
  "tonic 0.12.3",
  "tower 0.5.2",
@@ -8184,7 +8184,7 @@ dependencies = [
  "prost-types",
  "serde_json",
  "temporal-sdk-core-protos",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tonic 0.12.3",
  "tracing-core",
  "url",
@@ -8206,7 +8206,7 @@ dependencies = [
  "prost-wkt-types",
  "serde",
  "serde_json",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "tonic 0.12.3",
  "tonic-build",
 ]
@@ -8304,11 +8304,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3467d614147380f2e4e374161426ff399c91084acd2363eaf549172b3d5e60c0"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.16",
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -8324,9 +8324,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.16"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8994,7 +8994,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "specta",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "time",
  "tokio",
  "tsify-next",
@@ -9962,7 +9962,7 @@ dependencies = [
  "nom",
  "oid-registry",
  "rusticata-macros",
- "thiserror 2.0.16",
+ "thiserror 2.0.17",
  "time",
 ]
 
