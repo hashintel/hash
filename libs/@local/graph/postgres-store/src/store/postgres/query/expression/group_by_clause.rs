@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct GroupByExpression {
     pub expressions: Vec<Expression>,
 }

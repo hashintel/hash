@@ -7,7 +7,7 @@ use crate::store::postgres::query::{Expression, Transpile};
 ///
 /// PostgreSQL SELECT syntax allows either expressions with optional aliases,
 /// or the special `*` wildcard to select all columns from a table or all tables.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SelectExpression {
     /// A regular expression with an optional alias.
     ///
@@ -47,7 +47,9 @@ mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::{Alias, Function, PostgresQueryPath as _, WindowStatement};
+    use crate::store::postgres::query::{
+        Alias, Function, PostgresQueryPath as _, Table, WindowStatement, expression::TableName,
+    };
 
     #[test]
     fn transpile_select_expression() {
@@ -109,9 +111,6 @@ mod tests {
 
     #[test]
     fn transpile_qualified_asterisk() {
-        use super::super::table_reference::TableName;
-        use crate::store::postgres::query::Table;
-
         let table_ref = TableReference {
             schema: None,
             name: TableName::from(Table::DataTypes),
