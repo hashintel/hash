@@ -31,12 +31,29 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
     }
 }
 
+/// A wrapper for formatting function signatures from MIR bodies.
 pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>);
+
+/// A helper struct for formatting key-value pairs with consistent syntax.
 struct KeyValuePair<K, V>(K, V);
 
+/// A text-based formatter for MIR (Middle Intermediate Representation) structures.
+///
+/// This formatter converts MIR components into human-readable text representation,
+/// suitable for debugging, documentation, or textual display of program structure.
+/// It handles proper indentation, symbol resolution, and formatting of complex
+/// MIR constructs like basic blocks, statements, and terminators.
+///
+/// # Type Parameters
+///
+/// - `W`: A writer implementing [`io::Write`] for text output
+/// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
 pub struct TextFormat<W, S> {
+    /// The writer where formatted text will be written
     pub writer: W,
+    /// Amount of indention per level
     pub indent: usize,
+    /// Source lookup for resolving symbols and identifiers
     pub sources: S,
 }
 
@@ -44,6 +61,15 @@ impl<W, S> TextFormat<W, S>
 where
     W: io::Write,
 {
+    /// Formats a collection of MIR bodies as human-readable text.
+    ///
+    /// This is the main entry point for the text formatter. It processes all the provided
+    /// MIR bodies and generates formatted text representation of their structure, including
+    /// function signatures, basic blocks, statements, and control flow.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`io::Error`] if writing to the underlying writer fails.
     pub fn format<'heap>(&mut self, bodies: &DefIdSlice<Body<'heap>>) -> io::Result<()>
     where
         S: SourceLookup<'heap>,
@@ -235,6 +261,7 @@ where
     }
 }
 
+/// A wrapper for formatting target parameters in MIR terminators.
 pub(crate) struct TargetParams<'heap>(pub Interned<'heap, [Operand<'heap>]>);
 
 impl<'heap, W, S> FormatPart<TargetParams<'heap>> for TextFormat<W, S>
@@ -364,8 +391,11 @@ where
     }
 }
 
-pub(crate) struct TerminatorHead<'term, 'heap>(pub &'term TerminatorKind<'heap>);
-pub(crate) struct TerminatorTail<'term, 'heap>(pub &'term TerminatorKind<'heap>);
+/// A wrapper for formatting the head (main instruction) part of MIR terminators.
+pub(crate) struct TerminatorHead<'terminator, 'heap>(pub &'terminator TerminatorKind<'heap>);
+
+/// A wrapper for formatting the tail (target and arguments) part of MIR terminators.
+pub(crate) struct TerminatorTail<'terminator, 'heap>(pub &'terminator TerminatorKind<'heap>);
 
 impl<'heap, W, S> FormatPart<TerminatorHead<'_, 'heap>> for TextFormat<W, S>
 where

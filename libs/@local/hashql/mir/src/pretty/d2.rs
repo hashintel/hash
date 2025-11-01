@@ -15,9 +15,30 @@ use crate::{
     pretty::text::{Signature, TargetParams, TerminatorHead},
 };
 
+/// A formatter that generates D2 diagram code from MIR bodies.
+///
+/// D2 is a text-based diagramming language that can render control flow graphs
+/// and other structured diagrams. This formatter converts MIR (Middle Intermediate
+/// Representation) bodies into D2 syntax, creating visual representations of the
+/// control flow and data flow within functions.
+///
+/// The formatter generates HTML tables embedded within D2 shapes to display:
+/// - Basic block identifiers and parameters
+/// - MIR statements with line numbers
+/// - Terminator instructions
+/// - Optional data flow analysis columns
+///
+/// # Type Parameters
+///
+/// - `W`: A writer implementing [`io::Write`] for output
+/// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
+/// - `D`: A data flow lookup implementing [`DataFlowLookup`] for analysis data
 pub struct D2Format<W, S, D> {
+    /// The writer where D2 output will be written
     pub writer: W,
+    /// Source lookup for resolving symbols and identifiers
     pub sources: S,
+    /// Data flow analysis lookup for auxiliary columns
     pub dataflow: D,
 }
 
@@ -25,6 +46,15 @@ impl<W, S, D> D2Format<W, S, D>
 where
     W: io::Write,
 {
+    /// Formats a collection of MIR bodies as D2 diagram code.
+    ///
+    /// This is the main entry point for the formatter. It processes all the provided
+    /// MIR bodies and generates D2 syntax that represents their control flow graphs.
+    /// Each body becomes a separate diagram section with interconnected basic blocks.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`io::Error`] if writing to the underlying writer fails.
     pub fn format<'heap>(&mut self, bodies: &DefIdSlice<Body<'heap>>) -> io::Result<()>
     where
         S: SourceLookup<'heap>,
@@ -144,17 +174,20 @@ const HEADER_B_AUX_BG_COLOR: &str = "#F0A202";
 const HEADER_B_AUX_FG_COLOR: &str = "#FFF";
 
 struct BasicBlockName(BasicBlockId);
+
 impl fmt::Display for BasicBlockName {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "bb{}", self.0)
     }
 }
 
-/// Generate a HTML table for use inside of D2.
+/// Generates an HTML table for embedding inside D2 shapes to represent basic blocks.
 ///
-/// Depending on the amount of auxiliary columns, we differentiate between three different designs.
+/// This implementation creates structured HTML tables that D2 can render as part of
+/// diagram nodes. The table layout adapts based on the number of auxiliary columns
+/// provided by the data flow analysis:
 ///
-/// If there are no auxiliary columns:
+/// **No auxiliary columns:**
 /// ```text
 ///   ┌──────────────────────────────────────────┐
 /// A │                   bb0                    │
@@ -165,8 +198,8 @@ impl fmt::Display for BasicBlockName {
 ///   └─┴────────────────────────────────────────┘
 /// ```
 ///
-/// If there is one auxiliary column:
-/// ``` text
+/// **Single auxiliary column:**
+/// ```text
 ///   ┌──────────────────────────────────────────┐
 /// A │                   bb0                    │
 ///   ├────────────────────────────┬─────────────┤
@@ -176,7 +209,7 @@ impl fmt::Display for BasicBlockName {
 ///   └─┴──────────────────────────┴─────────────┘
 /// ```
 ///
-/// If there are multiple auxiliary columns:
+/// **Multiple auxiliary columns:**
 /// ```text
 ///   ┌────────────────────────────┬─────────────┐
 /// A │            bb0             │    STATE    │
@@ -186,6 +219,12 @@ impl fmt::Display for BasicBlockName {
 ///   │ │                          │      │      │
 ///   └─┴──────────────────────────┴──────┴──────┘
 /// ```
+///
+/// The table includes:
+/// - Basic block name and parameters in the header (row A)
+/// - Column headers for MIR and auxiliary data (row B)
+/// - Individual rows for each statement with optional data flow information
+/// - Terminator instruction at the bottom
 impl<'heap, W, S, D> FormatPart<(DefId, BasicBlockId, &BasicBlock<'heap>)> for D2Format<W, S, D>
 where
     W: io::Write,
