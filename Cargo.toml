@@ -210,7 +210,7 @@ reqwest                            = { version = "=0.12.23", default-features = 
 reqwest-middleware                 = { version = "=0.4.2", default-features = false }
 reqwest-tracing                    = { version = "=0.5.8", default-features = false }
 roaring                            = { version = "=0.11.2", default-features = false }
-rpds                               = { version = "=1.1.1", default-features = false }
+rpds                               = { version = "=1.1.2", default-features = false }
 rstest                             = { version = "=0.26.1", default-features = false }
 rustc_version                      = { version = "=0.4.1", default-features = false }
 scc                                = { version = "=2.4.0", default-features = false }
