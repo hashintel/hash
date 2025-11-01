@@ -233,7 +233,7 @@ supports-unicode                   = { version = "=3.0.0", default-features = fa
 syn                                = { version = "=2.0.106", default-features = false }
 tachyonix                          = { version = "=0.3.1", default-features = false }
 tarpc                              = { version = "=0.36.0", default-features = false, git = "https://github.com/google/tarpc", rev = "f55f36d2d876b1868cfcf52f41d0456a60cf726c" }
-temporal-client                    = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
+temporal-client                    = { git = "https://github.com/temporalio/sdk-core", rev = "43a8a7a8376df33012c650cc5dbbbdb1e55daa6d" }
 temporal-sdk-core-protos           = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
 test-log                           = { version = "=0.2.18", default-features = false }
 test-strategy                      = { version = "=0.4.3", default-features = false }
