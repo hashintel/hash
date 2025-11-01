@@ -272,7 +272,7 @@ utoipa                             = { version = "=4.2.3", default-features = fa
 uuid                               = { version = "=1.18.0", default-features = false }
 walkdir                            = { version = "=2.5.0", default-features = false }
 wasm-bindgen                       = { version = "=0.2.100", default-features = false }
-wasm-bindgen-test                  = { version = "=0.3.50", default-features = false }
+wasm-bindgen-test                  = { version = "=0.3.55", default-features = false }
 winnow                             = { version = "=0.7.13", default-features = false }
 xxhash-rust                        = { version = "=0.8.15", default-features = false }
 
