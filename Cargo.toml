@@ -192,7 +192,7 @@ pin-project                        = { version = "=1.1.10", default-features = f
 pin-project-lite                   = { version = "=0.2.16", default-features = false }
 postgres-protocol                  = { version = "=0.6.9", default-features = false }
 postgres-types                     = { version = "=0.2.11", default-features = false }
-pretty                             = { version = "=0.12.4", default-features = false }
+pretty                             = { version = "=0.12.5", default-features = false }
 pretty_assertions                  = { version = "=1.4.1", default-features = false, features = ["alloc"] }
 proc-macro-error2                  = { version = "=2.0.1", default-features = false }
 proc-macro2                        = { version = "=1.0.101", default-features = false }
