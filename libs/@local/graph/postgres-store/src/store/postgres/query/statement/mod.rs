@@ -11,7 +11,7 @@ pub use self::{
 };
 use crate::store::postgres::query::Transpile;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
     Select(SelectStatement),
 }

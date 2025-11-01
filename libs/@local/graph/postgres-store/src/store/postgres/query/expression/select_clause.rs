@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::store::postgres::query::{Expression, Transpile};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectExpression {
     pub expression: Expression,
     pub alias: Option<&'static str>,
@@ -37,7 +37,7 @@ mod tests {
     fn transpile_select_expression() {
         assert_eq!(
             SelectExpression::new(
-                Expression::ColumnReference {
+                Expression::AliasedColumn {
                     column: DataTypeQueryPath::BaseUrl.terminating_column().0,
                     table_alias: Some(Alias {
                         condition_index: 1,
@@ -55,7 +55,7 @@ mod tests {
             SelectExpression::new(
                 Expression::Window(
                     Box::new(Expression::Function(Function::Max(Box::new(
-                        Expression::ColumnReference {
+                        Expression::AliasedColumn {
                             column: DataTypeQueryPath::Version.terminating_column().0,
                             table_alias: Some(Alias {
                                 condition_index: 1,
@@ -64,7 +64,7 @@ mod tests {
                             })
                         }
                     )))),
-                    WindowStatement::partition_by(Expression::ColumnReference {
+                    WindowStatement::partition_by(Expression::AliasedColumn {
                         column: DataTypeQueryPath::BaseUrl.terminating_column().0,
                         table_alias: Some(Alias {
                             condition_index: 1,
