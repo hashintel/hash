@@ -39,7 +39,7 @@
     "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "2.13.0",
     "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/api-logs": "0.57.2",
+    "@opentelemetry/api-logs": "0.207.0",
     "@sentry/node": "9.46.0",
     "@smithy/protocol-http": "5.3.3",
     "@smithy/signature-v4": "5.3.3",
