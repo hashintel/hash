@@ -1,8 +1,23 @@
-#![feature(macro_metavar_expr_concat, allocator_api)]
+//! # HashQL MIR
+//!
+//! ## Workspace dependencies
+#![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Language Features
+    coverage_attribute,
+    if_let_guard,
+    macro_metavar_expr_concat,
+
+    // Library Features
+    allocator_api,
+)]
+#![expect(clippy::indexing_slicing)]
 extern crate alloc;
 
 pub mod body;
 pub mod def;
+pub mod intern;
+pub mod reify;
 
 #[cfg(test)]
 mod tests {

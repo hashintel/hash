@@ -1,0 +1,57 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../type_system/index.html">type-system</a>]
+    1[<a href="../hash_codec/index.html">hash-codec</a>]
+    2[<a href="../hash_codegen/index.html">hash-codegen</a>]
+    3[<a href="../hash_graph_authorization/index.html">hash-graph-authorization</a>]
+    4[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    5[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    6[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    7[<a href="../harpc_types/index.html">harpc-types</a>]
+    8[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    9[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    10[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    11[<a href="../hashql_core/index.html">hashql-core</a>]
+    12[<a href="../hashql_diagnostics/index.html">hashql-diagnostics</a>]
+    13[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    14[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    15[hashql-mir]
+    class 15 root
+    16[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    17[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    18[<a href="../error_stack/index.html">error-stack</a>]
+    19[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 5
+    0 -.-> 19
+    1 -.-> 2
+    1 --> 8
+    3 --> 0
+    4 --> 3
+    4 --> 6
+    4 --> 17
+    5 --> 1
+    6 -.-> 19
+    8 -.-> 7
+    8 --> 7
+    8 --> 18
+    9 -.-> 10
+    10 --> 13
+    10 --> 16
+    11 --> 1
+    11 --> 12
+    13 --> 4
+    13 --> 14
+    14 -.-> 10
+    15 --> 14
+    16 --> 9
+    16 --> 11
+    17 --> 0
+    19 --> 4

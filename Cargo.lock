@@ -3739,7 +3739,9 @@ version = "0.0.0"
 dependencies = [
  "hashql-compiletest",
  "hashql-core",
+ "hashql-diagnostics",
  "hashql-hir",
+ "simple-mermaid",
 ]
 
 [[package]]

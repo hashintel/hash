@@ -3,8 +3,15 @@
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
+  "scripts": {
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hashql-mir --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "mise run test:unit @rust/hashql-mir"
+  },
   "dependencies": {
     "@rust/hashql-core": "0.0.0-private",
+    "@rust/hashql-diagnostics": "0.0.0-private",
     "@rust/hashql-hir": "0.0.0-private"
   }
 }

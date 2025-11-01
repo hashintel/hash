@@ -6,10 +6,7 @@
 
 use hashql_core::{heap::Heap, id::IdVec, intern::Interned, symbol::Symbol};
 
-use crate::{
-    body::{operand::Operand, place::FieldIndex},
-    def::DefId,
-};
+use crate::body::{operand::Operand, place::FieldIndex};
 
 /// The kind of aggregate value being constructed.
 ///
@@ -51,16 +48,16 @@ pub enum AggregateKind<'heap> {
     ///
     /// Opaque types provide type abstraction by wrapping inner data with
     /// a named type boundary. The [`Symbol`] identifies the opaque type name,
-    /// and the operands (typically length 1) contain the wrapped inner data.
+    /// and the operands (`len = 1`) contain the wrapped inner data.
     Opaque(Symbol<'heap>),
 
     /// Construct a closure with captured environment.
     ///
     /// Closures are function values that capture variables from their
-    /// surrounding scope. The [`DefId`] identifies the closure's function
-    /// definition, and the operands (typically length 1) contain the
+    /// surrounding scope. The operands (`len = 2`) are used to construct a fat pointer, which is a
+    /// tuple where the first element is a pointer to the function and the second element is the
     /// captured environment data.
-    Closure(DefId),
+    Closure,
 }
 
 /// An aggregate construction operation in the HashQL MIR.
