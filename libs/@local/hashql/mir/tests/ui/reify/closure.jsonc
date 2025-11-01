@@ -1,3 +1,5 @@
+//@ run: pass
+//@ description: TODO
 [
   "let",
   "max",

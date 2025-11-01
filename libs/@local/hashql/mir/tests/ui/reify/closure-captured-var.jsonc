@@ -1,0 +1,24 @@
+//@ run: pass
+//@ description: TODO
+// The if boundary is needed here so that the optimizer doesn't thunk the answer
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "answer",
+    { "#literal": 42 },
+    [
+      "let",
+      "max42",
+      [
+        "fn",
+        { "#tuple": [] },
+        { "#struct": { "a": "Integer" } },
+        "_",
+        ["if", ["<=", "a", "answer"], "answer", "a"]
+      ],
+      ["max42", { "#literal": 2 }]
+    ]
+  ]
+]
