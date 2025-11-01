@@ -101,6 +101,15 @@ where
     }
 }
 
+impl<'heap, W, S> FormatPart<&str> for TextFormat<W, S>
+where
+    W: io::Write,
+{
+    fn format_part(&mut self, value: &str) -> io::Result<()> {
+        write!(self.writer, "{value}")
+    }
+}
+
 impl<'heap, W, S> FormatPart<Symbol<'heap>> for TextFormat<W, S>
 where
     W: io::Write,
@@ -209,7 +218,7 @@ where
 {
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
-        write!(self.writer, "bb{id}: {{")?;
+        write!(self.writer, "bb{id}: {{\n")?;
 
         for statement in &block.statements {
             self.format_part(statement)?;
