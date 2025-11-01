@@ -4,7 +4,7 @@ use core::{
 };
 use std::io;
 
-use bstr::ByteSlice;
+use bstr::ByteSlice as _;
 
 use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat};
 use crate::{
@@ -19,18 +19,18 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct Buffer {
-    a: Vec<u8>,
-    b: Vec<u8>,
+    front: Vec<u8>,
+    back: Vec<u8>,
 }
 
 impl Buffer {
     fn clear(&mut self) {
-        self.a.clear();
-        self.b.clear();
+        self.front.clear();
+        self.back.clear();
     }
 
-    fn swap(&mut self) {
-        mem::swap(&mut self.a, &mut self.b);
+    const fn swap(&mut self) {
+        mem::swap(&mut self.front, &mut self.back);
     }
 }
 
@@ -93,38 +93,29 @@ where
             (b"\"", b"&quot;"),
             (b"<", b"&lt;"),
             (b">", b"&gt;"),
-            (b"\n", b"<br align=\"left\"/>"),
+            (b"\n", br#"<br align="left"/>"#),
         ];
-        const NEEDLE: [u8; 5] = {
-            let mut output = [0; 5];
-            let mut index = 0_usize;
-
-            while index < REPLACEMENTS.len() {
-                output[index] = REPLACEMENTS[index].0[0];
-                index += 1;
-            }
-
-            output
-        };
 
         self.buffer.clear();
 
         TextFormat {
-            writer: &mut self.buffer.a,
+            writer: &mut self.buffer.front,
             indent: 0,
             sources: &self.sources,
         }
         .format_part(value)?;
 
+        self.buffer.back.reserve(self.buffer.front.len());
+
         for (needle, replacement) in REPLACEMENTS {
             self.buffer
-                .a
-                .replace_into(needle, replacement, &mut self.buffer.b);
+                .front
+                .replace_into(needle, replacement, &mut self.buffer.back);
             self.buffer.swap();
-            self.buffer.b.clear();
+            self.buffer.back.clear();
         }
 
-        self.writer.write_all(&self.buffer.a)?;
+        self.writer.write_all(&self.buffer.front)?;
         self.buffer.clear();
 
         Ok(())
