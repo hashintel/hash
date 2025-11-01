@@ -88,13 +88,37 @@ where
     where
         for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
     {
-        const REPLACEMENTS: [(&[u8; 1], &[u8]); 5] = [
-            (b"&", b"&amp;" as &[_]),
-            (b"\"", b"&quot;"),
-            (b"<", b"&lt;"),
-            (b">", b"&gt;"),
-            (b"\n", br#"<br align="left"/>"#),
+        const REPLACEMENTS: [(u8, &[u8]); 5] = [
+            (b'&', b"&amp;" as &[_]),
+            (b'"', b"&quot;"),
+            (b'<', b"&lt;"),
+            (b'>', b"&gt;"),
+            (b'\n', br#"<br align="left"/>"#),
         ];
+        const NEEDLE: [u8; 5] = {
+            let mut output = [0; 5];
+            let mut index = 0_usize;
+
+            while index < output.len() {
+                output[index] = REPLACEMENTS[index].0;
+                index += 1;
+            }
+
+            output
+        };
+        const LOOKUP: [&[u8]; 255] = {
+            let mut output = [&[] as &[u8]; 255];
+
+            let mut index = 0_usize;
+            while index < REPLACEMENTS.len() {
+                let (needle, replacement) = REPLACEMENTS[index];
+
+                output[needle as usize] = replacement;
+                index += 1;
+            }
+
+            output
+        };
 
         self.buffer.clear();
 
@@ -110,7 +134,7 @@ where
         for (needle, replacement) in REPLACEMENTS {
             self.buffer
                 .front
-                .replace_into(needle, replacement, &mut self.buffer.back);
+                .replace_into([needle], replacement, &mut self.buffer.back);
             self.buffer.swap();
             self.buffer.back.clear();
         }
