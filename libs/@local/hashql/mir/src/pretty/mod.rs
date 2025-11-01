@@ -37,16 +37,13 @@ pub trait SourceLookup<'heap> {
     fn source(&self, def: DefId) -> Option<Source<'heap>>;
 }
 
-impl<'heap, T> SourceLookup<'heap> for &T
-where
-    T: SourceLookup<'heap>,
-{
+impl<'heap, T: ?Sized + SourceLookup<'heap>> SourceLookup<'heap> for &T {
     fn source(&self, def: DefId) -> Option<Source<'heap>> {
         T::source(self, def)
     }
 }
 
-impl<'heap> SourceLookup<'heap> for &DefIdSlice<Body<'heap>> {
+impl<'heap> SourceLookup<'heap> for DefIdSlice<Body<'heap>> {
     fn source(&self, def: DefId) -> Option<Source<'heap>> {
         self.get(def).map(|body| body.source)
     }

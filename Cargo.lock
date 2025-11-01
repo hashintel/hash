@@ -3666,6 +3666,7 @@ dependencies = [
  "hashql-diagnostics",
  "hashql-eval",
  "hashql-hir",
+ "hashql-mir",
  "hashql-syntax-jexpr",
  "indicatif",
  "line-index",

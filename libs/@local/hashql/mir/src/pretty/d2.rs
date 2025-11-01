@@ -95,31 +95,6 @@ where
             (b'>', b"&gt;"),
             (b'\n', br#"<br align="left"/>"#),
         ];
-        const NEEDLE: [u8; 5] = {
-            let mut output = [0; 5];
-            let mut index = 0_usize;
-
-            while index < output.len() {
-                output[index] = REPLACEMENTS[index].0;
-                index += 1;
-            }
-
-            output
-        };
-        const LOOKUP: [&[u8]; 255] = {
-            let mut output = [&[] as &[u8]; 255];
-
-            let mut index = 0_usize;
-            while index < REPLACEMENTS.len() {
-                let (needle, replacement) = REPLACEMENTS[index];
-
-                output[needle as usize] = replacement;
-                index += 1;
-            }
-
-            output
-        };
-
         self.buffer.clear();
 
         TextFormat {

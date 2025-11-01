@@ -37,6 +37,8 @@ pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>);
 /// A helper struct for formatting key-value pairs with consistent syntax.
 struct KeyValuePair<K, V>(K, V);
 
+struct HighlightBody<'def>(&'def [DefId]);
+
 /// A text-based formatter for MIR (Middle Intermediate Representation) structures.
 ///
 /// This formatter converts MIR components into human-readable text representation,
@@ -70,11 +72,15 @@ where
     /// # Errors
     ///
     /// Returns an [`io::Error`] if writing to the underlying writer fails.
-    pub fn format<'heap>(&mut self, bodies: &DefIdSlice<Body<'heap>>) -> io::Result<()>
+    pub fn format<'heap>(
+        &mut self,
+        bodies: &DefIdSlice<Body<'heap>>,
+        highlight: &[DefId],
+    ) -> io::Result<()>
     where
         S: SourceLookup<'heap>,
     {
-        self.format_part(bodies)
+        self.format_part((bodies, HighlightBody(highlight)))
     }
 
     fn separated_list<V>(
@@ -653,16 +659,27 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&Body<'heap>> for TextFormat<W, S>
+struct BodyRenderOptions {
+    highlight: bool,
+}
+
+impl<'heap, W, S> FormatPart<(&Body<'heap>, BodyRenderOptions)> for TextFormat<W, S>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
 {
-    fn format_part(&mut self, value: &Body<'heap>) -> io::Result<()> {
-        self.format_part(Signature(value))?;
+    fn format_part(
+        &mut self,
+        (body, options): (&Body<'heap>, BodyRenderOptions),
+    ) -> io::Result<()> {
+        if options.highlight {
+            self.writer.write_all(b"*")?;
+        }
+
+        self.format_part(Signature(body))?;
         self.writer.write_all(b" {\n")?;
 
-        for (index, block) in value.basic_blocks.iter_enumerated() {
+        for (index, block) in body.basic_blocks.iter_enumerated() {
             if index.as_usize() > 0 {
                 self.writer.write_all(b"\n\n")?;
             }
@@ -675,12 +692,25 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&DefIdSlice<Body<'heap>>> for TextFormat<W, S>
+impl<'heap, W, S> FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)> for TextFormat<W, S>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
 {
-    fn format_part(&mut self, value: &DefIdSlice<Body<'heap>>) -> io::Result<()> {
-        self.separated_list(b"\n\n", value.iter())
+    fn format_part(
+        &mut self,
+        (bodies, highlight): (&DefIdSlice<Body<'heap>>, HighlightBody<'_>),
+    ) -> io::Result<()> {
+        self.separated_list(
+            b"\n\n",
+            bodies.iter_enumerated().map(|(def, body)| {
+                (
+                    body,
+                    BodyRenderOptions {
+                        highlight: highlight.0.contains(&def),
+                    },
+                )
+            }),
+        )
     }
 }
