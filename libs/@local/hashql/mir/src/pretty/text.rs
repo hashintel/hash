@@ -193,8 +193,9 @@ where
             Constant::Primitive(primitive) => write!(self.writer, "{primitive}"),
             Constant::Unit => self.writer.write_all(b"()"),
             Constant::FnPtr(def) => {
+                self.writer.write_all(b"(")?;
                 self.format_part(def)?;
-                self.writer.write_all(b" as FnPtr")
+                self.writer.write_all(b" as FnPtr)")
             }
         }
     }
@@ -250,18 +251,34 @@ where
 {
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
-        writeln!(self.writer, "bb{id}: {{")?;
+        write!(self.writer, "bb{id}(")?;
+
+        let mut first = true;
+        for &param in &block.params {
+            if !first {
+                self.writer.write_all(b", ")?;
+            }
+            self.format_part(param)?;
+            first = false;
+        }
+
+        writeln!(self.writer, "): {{")?;
 
         for statement in &block.statements {
             self.format_part(statement)?;
             self.writer.write_all(b"\n")?;
         }
 
-        self.writer.write_all(b"\n")?;
+        if !block.statements.is_empty() {
+            self.writer.write_all(b"\n")?;
+        }
+
+        self.indent(2)?;
         self.format_part(&block.terminator)?;
+        self.writer.write_all(b"\n")?;
 
         self.indent(1)?;
-        write!(self.writer, "}}")?;
+        writeln!(self.writer, "}}")?;
 
         Ok(())
     }
@@ -611,7 +628,7 @@ where
             self.format_part(*argument)?;
         }
 
-        self.writer.write_all(b")")
+        Ok(())
     }
 }
 

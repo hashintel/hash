@@ -170,7 +170,11 @@ impl Display for Primitive<'_> {
             Primitive::Null => fmt.write_str("null"),
             Primitive::Boolean(true) => fmt.write_str("true"),
             Primitive::Boolean(false) => fmt.write_str("false"),
-            Primitive::Float(float) => Display::fmt(&float.as_symbol(), fmt),
+            Primitive::Float(float) => {
+                fmt.write_str("\"")?;
+                Display::fmt(&float.as_symbol(), fmt)?;
+                fmt.write_str("\"")
+            }
             Primitive::Integer(integer) => Display::fmt(&integer.as_symbol(), fmt),
             Primitive::String(string) => Display::fmt(&string.as_symbol(), fmt),
         }

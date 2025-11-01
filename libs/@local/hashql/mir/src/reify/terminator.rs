@@ -7,7 +7,7 @@ use hashql_hir::node::{
 
 use super::{
     Reifier,
-    current::{CurrentBlock, Rewire},
+    current::{CurrentBlock, ForwardRef},
     error::expected_closure_filter,
 };
 use crate::{
@@ -102,7 +102,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block.terminate(
             terminator,
             // Once finished, the prev block should point to the next block
-            |prev| [Rewire::graph_read(prev)],
+            |prev| [ForwardRef::graph_read(prev)],
             &mut self.blocks,
         );
 
@@ -134,6 +134,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let (then, then_operand) = self.transform_node(then);
         let (r#else, else_operand) = self.transform_node(r#else);
 
+        // make sure that we reserve a slot **before** we finish the then and else blocks
+        block.reserve(&mut self.blocks);
+
         // We now need to wire *both* to be goto to the next block, we target a placeholder block,
         // which is going to get instantiated on the next rewire.
         let then = then.finish_goto(
@@ -158,7 +161,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     r#else: Target::block(r#else, self.context.interner),
                 }),
             },
-            |_| [Rewire::goto(then), Rewire::goto(r#else)],
+            |_| [ForwardRef::goto(then), ForwardRef::goto(r#else)],
             &mut self.blocks,
         );
 

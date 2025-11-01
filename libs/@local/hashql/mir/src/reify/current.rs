@@ -23,12 +23,12 @@ pub(crate) enum RewireKind {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Rewire {
+pub(crate) struct ForwardRef {
     kind: RewireKind,
     id: BasicBlockId,
 }
 
-impl Rewire {
+impl ForwardRef {
     pub(crate) const fn goto(id: BasicBlockId) -> Self {
         Self {
             kind: RewireKind::Goto,
@@ -53,16 +53,18 @@ pub(crate) struct CurrentBlock<'mir, 'heap> {
     interner: &'mir Interner<'heap>,
 
     block: BasicBlock<'heap>,
-    rewire: Vec<Rewire>,
+    slot: Option<BasicBlockId>,
+    forward_ref: Vec<ForwardRef>,
 }
 
 impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
     pub(crate) fn new(heap: &'heap Heap, interner: &'mir Interner<'heap>) -> Self {
-        CurrentBlock {
+        Self {
             heap,
             interner,
             block: Self::empty_block(heap, interner),
-            rewire: Vec::new(),
+            slot: None,
+            forward_ref: Vec::new(),
         }
     }
 
@@ -90,18 +92,24 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
     pub(crate) fn complete(
         mut block: BasicBlock<'heap>,
         terminator: Terminator<'heap>,
-        rewire: &mut Vec<Rewire>,
+        forward_ref: &mut Vec<ForwardRef>,
+        slot: &mut Option<BasicBlockId>,
         blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     ) -> BasicBlockId {
         debug_assert_eq!(block.terminator.kind, TerminatorKind::Unreachable);
         block.terminator = terminator;
 
-        let block_id = blocks.push(block);
+        let block_id = if let Some(slot) = slot.take() {
+            blocks[slot] = block;
+            slot
+        } else {
+            blocks.push(block)
+        };
 
-        for rewire in rewire.drain(..) {
-            let terminator = &mut blocks[rewire.id].terminator.kind;
+        for forward in forward_ref.drain(..) {
+            let terminator = &mut blocks[forward.id].terminator.kind;
 
-            match (rewire.kind, terminator) {
+            match (forward.kind, terminator) {
                 (
                     RewireKind::Goto,
                     TerminatorKind::Goto(Goto {
@@ -135,17 +143,27 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
         block_id
     }
 
+    pub(crate) fn reserve(&mut self, blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>) {
+        self.slot = Some(blocks.push(Self::empty_block(self.heap, self.interner)));
+    }
+
     pub(crate) fn terminate<const N: usize>(
         &mut self,
         terminator: Terminator<'heap>,
-        rewire: impl FnOnce(BasicBlockId) -> [Rewire; N],
+        forward_ref: impl FnOnce(BasicBlockId) -> [ForwardRef; N],
         blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     ) -> BasicBlockId {
         // Finishes the current block, and starts a new one
         let previous = mem::replace(&mut self.block, Self::empty_block(self.heap, self.interner));
-        let id = Self::complete(previous, terminator, &mut self.rewire, blocks);
+        let id = Self::complete(
+            previous,
+            terminator,
+            &mut self.forward_ref,
+            &mut self.slot,
+            blocks,
+        );
 
-        self.rewire.extend_from_slice(&rewire(id));
+        self.forward_ref.extend_from_slice(&forward_ref(id));
 
         id
     }
@@ -155,7 +173,13 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
         terminator: Terminator<'heap>,
         blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     ) -> BasicBlockId {
-        Self::complete(self.block, terminator, &mut self.rewire, blocks)
+        Self::complete(
+            self.block,
+            terminator,
+            &mut self.forward_ref,
+            &mut self.slot,
+            blocks,
+        )
     }
 
     pub(crate) fn finish_goto(
