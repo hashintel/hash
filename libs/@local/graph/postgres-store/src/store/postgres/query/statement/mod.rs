@@ -6,12 +6,12 @@ use core::fmt;
 
 pub use self::{
     insert::InsertStatementBuilder,
-    select::{Distinctness, FromItem, SelectStatement},
+    select::{Distinctness, SelectStatement},
     window::WindowStatement,
 };
 use crate::store::postgres::query::Transpile;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Select(SelectStatement),
 }

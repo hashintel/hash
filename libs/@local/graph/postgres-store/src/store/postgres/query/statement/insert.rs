@@ -5,12 +5,11 @@ use postgres_types::ToSql;
 use crate::store::postgres::query::{
     Alias, Column, Expression, Function, OrderByExpression, SelectExpression, SelectStatement,
     Table, Transpile, WhereExpression, WithExpression,
-    expression::{GroupByExpression, PostgresType},
+    expression::{FromItem, GroupByExpression, PostgresType},
     rows::PostgresRow,
-    statement::FromItem,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum InsertValueItem {
     Default,
     Values(Vec<Expression>),
@@ -40,7 +39,7 @@ impl Transpile for InsertValueItem {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct InsertStatement {
     pub table: Table,
     pub alias: Option<Alias>,
@@ -167,11 +166,14 @@ impl<'p> InsertStatementBuilder<'p> {
                     with: WithExpression::default(),
                     distinct: vec![],
                     selects: vec![SelectExpression::Asterisk(None)],
-                    from: FromItem::Function(Function::Unnest(Box::new(Expression::Cast(
-                        Box::new(Expression::Parameter(1)),
-                        PostgresType::Array(Box::new(PostgresType::Row(table))),
-                    )))),
-                    joins: vec![],
+                    from: Some(FromItem::Function {
+                        function: Function::Unnest(Box::new(Expression::Cast(
+                            Box::new(Expression::Parameter(1)),
+                            PostgresType::Array(Box::new(PostgresType::Row(table))),
+                        ))),
+                        alias: None,
+                        lateral: false,
+                    }),
                     where_expression: WhereExpression::default(),
                     order_by_expression: OrderByExpression::default(),
                     group_by_expression: GroupByExpression::default(),
