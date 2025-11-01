@@ -26,7 +26,6 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
-use alloc::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
@@ -76,7 +75,6 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_telemetry::logging::env_filter;
-use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
     knowledge::entity::{Entity, EntityId, id::EntityEditionId},
@@ -881,66 +879,4 @@ impl EntityStore for DatabaseApi<'_> {
 #[tokio::test]
 async fn can_connect() {
     DatabaseTestWrapper::new().await;
-}
-
-fn assert_equal_entities(lhs: &Entity, rhs: &Entity) {
-    use pretty_assertions::assert_eq;
-
-    // It's possible that the time differs by less than a millisecond. If so, we copy the time from
-    // the right-hand side to the left-hand side.
-    let mut cloned = Cow::Borrowed(lhs);
-    let lhs_metadata = &lhs.metadata.provenance.inferred;
-    let rhs_metadata = &rhs.metadata.provenance.inferred;
-
-    if (lhs_metadata.created_at_decision_time - rhs_metadata.created_at_decision_time).abs()
-        < Duration::milliseconds(1)
-    {
-        cloned
-            .to_mut()
-            .metadata
-            .provenance
-            .inferred
-            .created_at_decision_time = rhs_metadata.created_at_decision_time;
-    }
-
-    if (lhs_metadata.created_at_transaction_time - rhs_metadata.created_at_transaction_time).abs()
-        < Duration::milliseconds(1)
-    {
-        cloned
-            .to_mut()
-            .metadata
-            .provenance
-            .inferred
-            .created_at_transaction_time = rhs_metadata.created_at_transaction_time;
-    }
-
-    if let Some((lhs_time, rhs_time)) = lhs_metadata
-        .first_non_draft_created_at_decision_time
-        .zip(rhs_metadata.first_non_draft_created_at_decision_time)
-        && (lhs_time - rhs_time).abs() < Duration::milliseconds(1)
-    {
-        cloned
-            .to_mut()
-            .metadata
-            .provenance
-            .inferred
-            .first_non_draft_created_at_decision_time =
-            rhs_metadata.first_non_draft_created_at_decision_time;
-    }
-
-    if let Some((lhs_time, rhs_time)) = lhs_metadata
-        .first_non_draft_created_at_transaction_time
-        .zip(rhs_metadata.first_non_draft_created_at_transaction_time)
-        && (lhs_time - rhs_time).abs() < Duration::milliseconds(1)
-    {
-        cloned
-            .to_mut()
-            .metadata
-            .provenance
-            .inferred
-            .first_non_draft_created_at_transaction_time =
-            rhs_metadata.first_non_draft_created_at_transaction_time;
-    }
-
-    assert_eq!(*cloned, *rhs);
 }
