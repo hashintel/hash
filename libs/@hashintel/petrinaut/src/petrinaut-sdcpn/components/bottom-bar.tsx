@@ -1,3 +1,4 @@
+import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
@@ -29,19 +30,24 @@ export const BottomBar = () => {
   });
 
   return (
-    <div
+    <RefractivePane
+      radius={12}
+      blur={1.5}
+      specularOpacity={0}
+      scaleRatio={1}
+      bezelWidth={20}
+      glassThickness={120}
+      refractiveIndex={1.5}
       className={css({
         position: "fixed",
         bottom: "spacing.6",
         left: "[50%]",
         transform: "translateX(-50%)",
-        background: "[white]",
         padding: "spacing.4",
         paddingX: "spacing.6",
-        borderRadius: "radius.8",
+        borderRadius: "[12px]",
+        backgroundColor: "[rgba(255, 255, 255, 0.8)]",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-        border: "1px solid",
-        borderColor: "core.gray.20",
         display: "flex",
         alignItems: "center",
         gap: "spacing.4",
@@ -75,6 +81,6 @@ export const BottomBar = () => {
           height: "[40px]",
         })}
       />
-    </div>
+    </RefractivePane>
   );
 };
