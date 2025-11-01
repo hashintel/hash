@@ -54,7 +54,7 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
         loop {
             match current.kind {
                 NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
-                    let type_id = self.context.hir.map.type_id(current.id);
+                    let type_id = self.context.hir.map.type_id(expr.id);
 
                     let mut items =
                         unwrap_union_type(type_id, self.context.environment).into_iter();

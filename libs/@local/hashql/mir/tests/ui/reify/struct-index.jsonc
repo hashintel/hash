@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "foo",
+  {
+    "#struct": {
+      "bar": { "#literal": 0 },
+      "baz": { "#literal": 1 },
+      "buz": { "#literal": 2 }
+    }
+  },
+  "foo.bar"
+]
