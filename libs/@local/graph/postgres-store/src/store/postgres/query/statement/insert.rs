@@ -166,14 +166,13 @@ impl<'p> InsertStatementBuilder<'p> {
                     with: WithExpression::default(),
                     distinct: vec![],
                     selects: vec![SelectExpression::Asterisk(None)],
-                    from: Some(FromItem::Function {
-                        function: Function::Unnest(Box::new(Expression::Cast(
+                    from: Some(
+                        FromItem::function(Function::Unnest(Box::new(Expression::Cast(
                             Box::new(Expression::Parameter(1)),
                             PostgresType::Array(Box::new(PostgresType::Row(table))),
-                        ))),
-                        alias: None,
-                        lateral: false,
-                    }),
+                        ))))
+                        .build(),
+                    ),
                     where_expression: WhereExpression::default(),
                     order_by_expression: OrderByExpression::default(),
                     group_by_expression: GroupByExpression::default(),

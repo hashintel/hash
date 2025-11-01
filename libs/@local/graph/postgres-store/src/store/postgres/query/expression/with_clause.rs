@@ -79,15 +79,15 @@ mod tests {
                         alias: Some("latest_version"),
                     },
                 ],
-                from: Some(FromItem::Table {
-                    table: Table::OntologyIds.into(),
-                    alias: Some(Table::OntologyIds.aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    })),
-                    tablesample: None,
-                }),
+                from: Some(
+                    FromItem::table(Table::OntologyIds)
+                        .alias(Table::OntologyIds.aliased(Alias {
+                            condition_index: 0,
+                            chain_depth: 0,
+                            number: 0,
+                        }))
+                        .build(),
+                ),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -109,15 +109,15 @@ mod tests {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![SelectExpression::Asterisk(None)],
-                from: Some(FromItem::Table {
-                    table: Table::DataTypes.into(),
-                    alias: Some(Table::DataTypes.aliased(Alias {
-                        condition_index: 3,
-                        chain_depth: 4,
-                        number: 5,
-                    })),
-                    tablesample: None,
-                }),
+                from: Some(
+                    FromItem::table(Table::DataTypes)
+                        .alias(Table::DataTypes.aliased(Alias {
+                            condition_index: 3,
+                            chain_depth: 4,
+                            number: 5,
+                        }))
+                        .build(),
+                ),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
