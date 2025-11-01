@@ -214,7 +214,7 @@ rpds                               = { version = "=1.1.1", default-features = fa
 rstest                             = { version = "=0.26.1", default-features = false }
 rustc_version                      = { version = "=0.4.1", default-features = false }
 scc                                = { version = "=2.4.0", default-features = false }
-semver                             = { version = "=1.0.26", default-features = false }
+semver                             = { version = "=1.0.27", default-features = false }
 sentry                             = { version = "=0.42.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 sentry-core                        = { version = "=0.42.0", default-features = false }
 sentry-types                       = { version = "=0.42.0", default-features = false }
