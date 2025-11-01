@@ -1,0 +1,24 @@
+thunk {thunk#1}() {
+    bb0(): {
+        %0 = (0, 1, 2)
+
+        return %0
+    }
+}
+
+thunk foo:0() {
+    bb0(): {
+        %0 = apply ({thunk#1} as FnPtr)
+        %1 = (%0, 1, 2)
+
+        return %1
+    }
+}
+
+*thunk {thunk#2}() {
+    bb0(): {
+        %0 = apply (foo:0 as FnPtr)
+
+        return %0.0.0
+    }
+}
