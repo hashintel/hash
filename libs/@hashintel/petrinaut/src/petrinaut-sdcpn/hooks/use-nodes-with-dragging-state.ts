@@ -1,4 +1,4 @@
-import { useEditorStore } from "../state/editor-store";
+import { useEditorStore } from "../state/editor-provider";
 import type { NodeType } from "../state/types-for-editor-to-remove";
 
 /**

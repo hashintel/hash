@@ -1,0 +1,33 @@
+import { createContext, useContext, useRef } from "react";
+import { useStore } from "zustand";
+
+import type { SDCPNState } from "./sdcpn-store";
+import { createSDCPNStore } from "./sdcpn-store";
+
+type SDCPNStore = ReturnType<typeof createSDCPNStore>;
+
+const SDCPNContext = createContext<SDCPNStore | null>(null);
+
+export type SDCPNProviderProps = React.PropsWithChildren;
+
+export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({ children }) => {
+  const storeRef = useRef<SDCPNStore | undefined>(undefined);
+
+  storeRef.current = storeRef.current ?? createSDCPNStore();
+
+  return (
+    <SDCPNContext.Provider value={storeRef.current}>
+      {children}
+    </SDCPNContext.Provider>
+  );
+};
+
+export function useSDCPNStore<T>(selector: (state: SDCPNState) => T): T {
+  const store = useContext(SDCPNContext);
+
+  if (!store) {
+    throw new Error("useSDCPNStore must be used within SDCPNProvider");
+  }
+
+  return useStore(store, selector);
+}

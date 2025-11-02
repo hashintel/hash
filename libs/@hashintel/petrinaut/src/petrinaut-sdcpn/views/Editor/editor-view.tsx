@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { exampleSDCPN } from "../../examples/example";
-import { useSDCPNStore } from "../../state/sdcpn-store";
+import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/bottom-bar";
 import { FloatingTitle } from "./components/floating-title";
