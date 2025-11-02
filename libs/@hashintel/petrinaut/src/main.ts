@@ -1,5 +1,5 @@
 export * from "./core/types/sdcpn";
-export * from "./petrinaut-sdcpn";
+export * from "./petrinaut-sdcpn/petrinaut-sdcpn";
 export {
   useSDCPN,
   useSDCPNStore,
