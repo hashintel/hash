@@ -73,6 +73,16 @@ pub enum FromItem<'id> {
 
     /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias [ ( column_alias [, ...] ) ] ]`
     Subquery {
+        /// Whether this is a LATERAL subquery.
+        ///
+        /// When `true`, the subquery can reference columns from preceding FROM items.
+        /// Transpiles to: `LATERAL (SELECT ...) AS alias`
+        ///
+        /// LATERAL is particularly useful for:
+        /// - Correlated subqueries that depend on values from earlier tables
+        /// - Set-returning functions that need to reference preceding columns
+        /// - Per-row computations that require context from other tables
+        lateral: bool,
         /// The subquery SELECT statement.
         statement: Box<SelectStatement>,
         /// Optional alias for the subquery result.
@@ -87,36 +97,14 @@ pub enum FromItem<'id> {
         ///
         /// Transpiles to: `AS alias(column1, column2, ...)`
         column_alias: Vec<ColumnName<'id>>,
-        /// Whether this is a LATERAL subquery.
-        ///
-        /// When `true`, the subquery can reference columns from preceding FROM items.
-        /// Transpiles to: `LATERAL (SELECT ...) AS alias`
-        ///
-        /// LATERAL is particularly useful for:
-        /// - Correlated subqueries that depend on values from earlier tables
-        /// - Set-returning functions that need to reference preceding columns
-        /// - Per-row computations that require context from other tables
-        lateral: bool,
     },
 
-    /// A function call: `[ LATERAL ] function_name(...) [ AS alias [ ( column_alias [, ...] ) ] ]`
+    /// A function call: `[ LATERAL ] function_name(...) [ WITH ORDINALITY ] [ AS alias [ (
+    /// column_alias [, ...] ) ] ]`
     ///
     /// Represents set-returning functions or table functions in the FROM clause.
     /// Common use cases include `unnest()`, `generate_series()`, and `json_to_recordset()`.
     Function {
-        /// The function to call.
-        function: Function,
-        /// Optional alias for the function result.
-        ///
-        /// Required for most set-returning functions to name the result columns.
-        alias: Option<TableReference<'id>>,
-        /// Optional column aliases to rename the function's result columns.
-        ///
-        /// When non-empty, renames the columns in order: first column gets first alias, etc.
-        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
-        ///
-        /// Transpiles to: `AS alias(column1, column2, ...)`
-        column_alias: Vec<ColumnName<'id>>,
         /// Whether this is a LATERAL function call.
         ///
         /// When `true`, the function can reference columns from preceding FROM items.
@@ -127,6 +115,41 @@ pub enum FromItem<'id> {
         /// - Generating rows based on values from other tables
         /// - Per-row function evaluation with access to earlier columns
         lateral: bool,
+        /// The function to call.
+        function: Function,
+        /// Whether to add an ordinality column (row number).
+        ///
+        /// When `true`, adds an additional column containing the row number (1-indexed).
+        /// Transpiles to: `function(...) WITH ORDINALITY`
+        ///
+        /// The ordinality column is particularly useful for:
+        /// - Getting the position/index of each element in set-returning functions
+        /// - Tracking the order of results from array unnesting
+        /// - Correlating function results with their sequence number
+        ///
+        /// Example: `unnest(ARRAY[10,20,30]) WITH ORDINALITY` produces:
+        /// ```text
+        /// unnest | ordinality
+        /// --------+-----------
+        ///     10 |         1
+        ///     20 |         2
+        ///     30 |         3
+        /// ```
+        with_ordinality: bool,
+        /// Optional alias for the function result.
+        ///
+        /// Required for most set-returning functions to name the result columns.
+        alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the function's result columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        ///
+        /// When combined with `with_ordinality`, the column aliases should include both
+        /// the function result columns and the ordinality column.
+        column_alias: Vec<ColumnName<'id>>,
     },
 
     /// A JOIN with explicit ON conditions.
@@ -225,7 +248,9 @@ impl<'id> FromItem<'id> {
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
         alias: Option<TableReference<'id>>,
-        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
         #[builder(default)] only: bool,
         tablesample: Option<TableSample>,
     ) -> Self {
@@ -242,7 +267,9 @@ impl<'id> FromItem<'id> {
     pub const fn subquery(
         #[builder(start_fn, into)] statement: Box<SelectStatement>,
         alias: Option<TableReference<'id>>,
-        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Subquery {
@@ -256,12 +283,16 @@ impl<'id> FromItem<'id> {
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn function(
         #[builder(start_fn, into)] function: Function,
+        #[builder(default)] with_ordinality: bool,
         alias: Option<TableReference<'id>>,
-        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Function {
             function,
+            with_ordinality,
             alias,
             column_alias,
             lateral,
@@ -416,6 +447,7 @@ impl Transpile for FromItem<'_> {
             }
             Self::Function {
                 function,
+                with_ordinality,
                 alias,
                 column_alias,
                 lateral,
@@ -424,6 +456,11 @@ impl Transpile for FromItem<'_> {
                     fmt.write_str("LATERAL ")?;
                 }
                 function.transpile(fmt)?;
+
+                if *with_ordinality {
+                    fmt.write_str(" WITH ORDINALITY")?;
+                }
+
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
@@ -611,14 +648,14 @@ mod from_item_table_builder_impl {
         ///
         /// Requires that an alias has been set on the table - PostgreSQL syntax requires
         /// `AS table_alias(col1, col2, ...)`.
-        pub fn columns(
+        pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
         ) -> FromItemTableBuilder<'id, SetColumnAlias<S>>
         where
             S: State<Alias: IsSet, ColumnAlias: IsUnset>,
         {
-            self.column_alias(columns)
+            self.set_column_aliases(columns)
         }
     }
 }
@@ -638,14 +675,14 @@ mod from_item_subquery_builder_impl {
         ///
         /// Requires that an alias has been set - PostgreSQL syntax requires
         /// `AS alias(col1, col2, ...)`.
-        pub fn columns(
+        pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
         ) -> FromItemSubqueryBuilder<'id, SetColumnAlias<S>>
         where
             S: State<Alias: IsSet, ColumnAlias: IsUnset>,
         {
-            self.column_alias(columns)
+            self.set_column_aliases(columns)
         }
     }
 }
@@ -665,14 +702,14 @@ mod from_item_function_builder_impl {
         ///
         /// Requires that an alias has been set - PostgreSQL syntax requires
         /// `AS alias(col1, col2, ...)`.
-        pub fn columns(
+        pub fn column_aliases(
             self,
             columns: Vec<ColumnName<'id>>,
         ) -> FromItemFunctionBuilder<'id, SetColumnAlias<S>>
         where
             S: State<Alias: IsSet, ColumnAlias: IsUnset>,
         {
-            self.column_alias(columns)
+            self.set_column_aliases(columns)
         }
     }
 }
@@ -915,7 +952,7 @@ mod tests {
                 name: TableName::from("sub"),
                 alias: None,
             })
-            .columns(vec![
+            .column_aliases(vec![
                 ColumnName::from(Identifier::from("id")),
                 ColumnName::from(Identifier::from("url")),
                 ColumnName::from(Identifier::from("ver")),
@@ -1066,12 +1103,49 @@ mod tests {
             name: TableName::from("ids"),
             alias: None,
         })
-        .columns(vec![ColumnName::from(Identifier::from("id"))])
+        .column_aliases(vec![ColumnName::from(Identifier::from("id"))])
         .build();
 
         assert_eq!(
             from_item.transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id") AS "ids"("id")"#
+        );
+    }
+
+    #[test]
+    fn transpile_function_with_ordinality() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .with_ordinality(true)
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") WITH ORDINALITY"#
+        );
+    }
+
+    #[test]
+    fn transpile_function_with_ordinality_and_alias() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .with_ordinality(true)
+        .alias(TableReference {
+            schema: None,
+            name: TableName::from("t"),
+            alias: None,
+        })
+        .column_aliases(vec![
+            ColumnName::from(Identifier::from("val")),
+            ColumnName::from(Identifier::from("ord")),
+        ])
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") WITH ORDINALITY AS "t"("val", "ord")"#
         );
     }
 
@@ -1318,7 +1392,7 @@ mod tests {
                 name: TableName::from("dt"),
                 alias: None,
             })
-            .columns(vec![
+            .column_aliases(vec![
                 ColumnName::from(Identifier::from("id")),
                 ColumnName::from(Identifier::from("name")),
                 ColumnName::from(Identifier::from("url")),
