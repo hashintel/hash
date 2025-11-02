@@ -1,5 +1,5 @@
 import "reactflow/dist/style.css";
-import "./petrinaut-sdcpn/index.css";
+import "./index.css";
 
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,26 +13,23 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 
-import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
-import { Arc } from "./petrinaut-sdcpn/arc";
-import { BottomBar } from "./petrinaut-sdcpn/components/bottom-bar";
-import { FloatingTitle } from "./petrinaut-sdcpn/components/floating-title";
-import { HamburgerMenu } from "./petrinaut-sdcpn/components/hamburger-menu";
-import { ModeSelector } from "./petrinaut-sdcpn/components/mode-selector";
-import { exampleSDCPN } from "./petrinaut-sdcpn/examples";
-import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
-import {
-  petriNetToSDCPN,
-  sdcpnToPetriNet,
-} from "./petrinaut-sdcpn/lib/sdcpn-converters";
-import { PlaceNode } from "./petrinaut-sdcpn/place-node";
+import { applyNodeChanges } from "./apply-node-changes";
+import { Arc } from "./arc";
+import { BottomBar } from "./components/bottom-bar";
+import { FloatingTitle } from "./components/floating-title";
+import { HamburgerMenu } from "./components/hamburger-menu";
+import { ModeSelector } from "./components/mode-selector";
+import { exampleSDCPN } from "./examples";
+import { generateUuid } from "./lib/generate-uuid";
+import { petriNetToSDCPN, sdcpnToPetriNet } from "./lib/sdcpn-converters";
+import { PlaceNode } from "./place-node";
 import {
   useEditorStore,
   useNodesWithDraggingState,
   useSDCPNStore,
-} from "./petrinaut-sdcpn/state/mod";
-import { nodeDimensions } from "./petrinaut-sdcpn/styling";
-import { TransitionNode } from "./petrinaut-sdcpn/transition-node";
+} from "./state/mod";
+import { nodeDimensions } from "./styling";
+import { TransitionNode } from "./transition-node";
 import type {
   ArcData,
   ArcType,
@@ -48,8 +45,8 @@ import type {
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
-} from "./petrinaut-sdcpn/types";
-import { useLayoutGraph } from "./petrinaut-sdcpn/use-layout-graph";
+} from "./types";
+import { useLayoutGraph } from "./use-layout-graph";
 
 export type {
   ArcData,
