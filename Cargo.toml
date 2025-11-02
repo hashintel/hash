@@ -269,7 +269,7 @@ unicode-properties                 = { version = "=0.1.3", default-features = fa
 unicode-segmentation               = { version = "=1.12.0", default-features = false }
 url                                = { version = "=2.5.7", default-features = false }
 utoipa                             = { version = "=4.2.3", default-features = false }
-uuid                               = { version = "=1.18.0", default-features = false }
+uuid                               = { version = "=1.18.1", default-features = false }
 walkdir                            = { version = "=2.5.0", default-features = false }
 wasm-bindgen                       = { version = "=0.2.100", default-features = false }
 wasm-bindgen-test                  = { version = "=0.3.50", default-features = false }
