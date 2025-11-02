@@ -2,11 +2,12 @@ import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
 import { useRef, useState } from "react";
-import type { Connection, ReactFlowInstance } from "reactflow";
+import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import { useEditorStore } from "../../state/editor-provider";
+import type { SelectionItem } from "../../state/editor-store";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
@@ -52,6 +53,99 @@ export const SDCPNView: React.FC = () => {
 
   // Editor state
   const clearSelection = useEditorStore((state) => state.clearSelection);
+  const setSelectedItems = useEditorStore((state) => state.setSelectedItems);
+  const selectedItems = useEditorStore((state) => state.selectedItems);
+  const addSelectedItem = useEditorStore((state) => state.addSelectedItem);
+
+  function onNodeClick(event: React.MouseEvent, node: Node<NodeData>) {
+    const selectionItem: SelectionItem =
+      node.type === "place"
+        ? { type: "place", id: node.id }
+        : { type: "transition", id: node.id };
+
+    if (event.shiftKey) {
+      // Shift+click: add to selection
+      // Check if already selected
+      const isAlreadySelected = selectedItems.some((item) => {
+        if (selectionItem.type === "place" && item.type === "place") {
+          return item.id === selectionItem.id;
+        }
+        if (selectionItem.type === "transition" && item.type === "transition") {
+          return item.id === selectionItem.id;
+        }
+        return false;
+      });
+
+      if (!isAlreadySelected) {
+        addSelectedItem(selectionItem);
+      }
+    } else {
+      // Normal click: replace selection
+      setSelectedItems([selectionItem]);
+    }
+  }
+
+  function onEdgeClick(
+    event: React.MouseEvent,
+    edge: { id: string; source: string; target: string },
+  ) {
+    // Parse arc ID to determine arc type
+    // Arc ID format: "arc__<source>-<target>"
+    const sourceNode = nodes.find((node) => node.id === edge.source);
+    const targetNode = nodes.find((node) => node.id === edge.target);
+
+    if (!sourceNode || !targetNode) {
+      return;
+    }
+
+    // Determine arc type based on node types
+    let selectionItem: SelectionItem;
+    if (sourceNode.type === "place" && targetNode.type === "transition") {
+      // Input arc: place -> transition
+      selectionItem = {
+        type: "arc",
+        placeId: edge.source,
+        transitionId: edge.target,
+        arcType: "input",
+      };
+    } else if (
+      sourceNode.type === "transition" &&
+      targetNode.type === "place"
+    ) {
+      // Output arc: transition -> place
+      selectionItem = {
+        type: "arc",
+        placeId: edge.target,
+        transitionId: edge.source,
+        arcType: "output",
+      };
+    } else {
+      // Invalid arc configuration
+      return;
+    }
+
+    if (event.shiftKey) {
+      // Shift+click: add to selection
+      // Check if already selected
+      const isAlreadySelected = selectedItems.some((item) => {
+        if (item.type === "arc") {
+          return (
+            item.placeId === selectionItem.placeId &&
+            item.transitionId === selectionItem.transitionId &&
+            item.arcType === selectionItem.arcType
+          );
+        }
+        return false;
+      });
+
+      if (!isAlreadySelected) {
+        addSelectedItem(selectionItem);
+      }
+    } else {
+      // Normal click: replace selection
+      setSelectedItems([selectionItem]);
+    }
+  }
 
   function onEdgesChange() {
     /**
@@ -183,6 +277,8 @@ export const SDCPNView: React.FC = () => {
         onNodesChange={applyNodeChanges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         onInit={onInit}
         onDrop={onDrop}
         onDragOver={onDragOver}

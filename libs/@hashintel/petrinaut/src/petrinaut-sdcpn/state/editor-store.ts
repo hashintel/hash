@@ -1,29 +1,31 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-import type { ArcType } from "./types-for-editor-to-remove";
-
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-export type SelectedArc = ArcType & { position: { x: number; y: number } };
+export type SelectionItem = {
+  type: "place"
+  id: string;
+} | {
+  type: "transition"
+  id: string;
+} | {
+  type: "arc"
+  placeId: string;
+  transitionId: string;
+  arcType: "input" | "output";
+}
 
 export type EditorState = {
-  // Place selection
-  selectedPlaceId: string | null;
-  setSelectedPlaceId: (id: string | null) => void;
-  selectedPlacePosition: { x: number; y: number } | null;
-  setSelectedPlacePosition: (position: { x: number; y: number } | null) => void;
-
-  // Transition selection
-  selectedTransition: string | null;
-  setSelectedTransition: (id: string | null) => void;
-
-  // Arc selection
-  selectedArc: SelectedArc | null;
-  setSelectedArc: (arc: SelectedArc | null) => void;
+  // Selection
+  selectedItems: SelectionItem[];
+  setSelectedItems: (items: SelectionItem[]) => void;
+  addSelectedItem: (item: SelectionItem) => void;
+  removeSelectedItem: (item: SelectionItem) => void;
+  clearSelection: () => void;
 
   // Dragging state
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -32,9 +34,6 @@ export type EditorState = {
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
   resetDraggingState: () => void;
-
-  // Utility actions
-  clearSelection: () => void;
 };
 
 /**
@@ -45,27 +44,43 @@ export function createEditorStore() {
   return create<EditorState>()(
     devtools(
       (set) => ({
-        // Place selection
-        selectedPlaceId: null,
-        setSelectedPlaceId: (id) =>
-          set({ selectedPlaceId: id }, false, "setSelectedPlaceId"),
-        selectedPlacePosition: null,
-        setSelectedPlacePosition: (position) =>
+        // Selection
+        selectedItems: [],
+        setSelectedItems: (items) =>
+          set({ selectedItems: items }, false, "setSelectedItems"),
+        addSelectedItem: (item) =>
           set(
-            { selectedPlacePosition: position },
+            (state) => ({
+              selectedItems: [...state.selectedItems, item],
+            }),
             false,
-            "setSelectedPlacePosition",
+            "addSelectedItem",
           ),
-
-        // Transition selection
-        selectedTransition: null,
-        setSelectedTransition: (id) =>
-          set({ selectedTransition: id }, false, "setSelectedTransition"),
-
-        // Arc selection
-        selectedArc: null,
-        setSelectedArc: (arc) =>
-          set({ selectedArc: arc }, false, "setSelectedArc"),
+        removeSelectedItem: (item) =>
+          set(
+            (state) => ({
+              selectedItems: state.selectedItems.filter((i) => {
+                if (item.type === "place" && i.type === "place") {
+                  return i.id !== item.id;
+                }
+                if (item.type === "transition" && i.type === "transition") {
+                  return i.id !== item.id;
+                }
+                if (item.type === "arc" && i.type === "arc") {
+                  return (
+                    i.placeId !== item.placeId ||
+                    i.transitionId !== item.transitionId ||
+                    i.arcType !== item.arcType
+                  );
+                }
+                return true;
+              }),
+            }),
+            false,
+            "removeSelectedItem",
+          ),
+        clearSelection: () =>
+          set({ selectedItems: [] }, false, "clearSelection"),
 
         // Dragging state
         draggingStateByNodeId: {},
@@ -85,19 +100,6 @@ export function createEditorStore() {
           ),
         resetDraggingState: () =>
           set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
-
-        // Utility actions
-        clearSelection: () =>
-          set(
-            {
-              selectedPlaceId: null,
-              selectedPlacePosition: null,
-              selectedArc: null,
-              selectedTransition: null,
-            },
-            false,
-            "clearSelection",
-          ),
       }),
       { name: "Editor Store" },
     ),
