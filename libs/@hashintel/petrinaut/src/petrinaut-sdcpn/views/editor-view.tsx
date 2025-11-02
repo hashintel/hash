@@ -51,10 +51,14 @@ export const EditorView = () => {
           {/* Floating Hamburger Menu - Top Left */}
           <div
             style={{
+              display: "flex",
               position: "absolute",
               top: "24px",
               left: "24px",
               zIndex: 1000,
+              gap: "16px",
+              flexDirection: "row",
+              justifyItems: "center",
             }}
           >
             <HamburgerMenu
@@ -104,17 +108,8 @@ export const EditorView = () => {
                 },
               ]}
             />
-          </div>
 
-          {/* Floating Title - Top Left (after hamburger) */}
-          <div
-            style={{
-              position: "absolute",
-              top: "24px",
-              left: "80px",
-              zIndex: 1000,
-            }}
-          >
+            {/* Floating Title - Top Left (after hamburger) */}
             <FloatingTitle
               value={title}
               onChange={updateTitle}

@@ -12,6 +12,7 @@ export const HamburgerMenu = ({ menuItems }: HamburgerMenuProps) => {
       trigger={
         <button
           type="button"
+          aria-label="Menu"
           className={css({
             display: "flex",
             alignItems: "center",
@@ -27,6 +28,7 @@ export const HamburgerMenu = ({ menuItems }: HamburgerMenuProps) => {
               backgroundColor: "core.gray.10",
             },
           })}
+          style={{ padding: 3 }}
         >
           <svg
             width="20"

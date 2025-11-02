@@ -22,27 +22,26 @@ export const Menu = ({ trigger, items }: MenuProps) => {
         <ArkMenu.Content
           className={css({
             background: "[white]",
-            borderRadius: "radius.8",
+            borderRadius: "[4px]",
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
             border: "1px solid",
             borderColor: "core.gray.20",
-            padding: "spacing.2",
             minWidth: "[180px]",
             zIndex: "[1001]",
           })}
+          style={{ padding: 2 }}
         >
           {items.map((item) => (
             <ArkMenu.Item
               key={item.id}
               id={item.id}
               disabled={item.disabled}
+              value={item.id}
               onClick={item.onClick}
               className={css({
-                padding: "spacing.2",
-                paddingX: "spacing.3",
                 fontSize: "size.textsm",
                 cursor: "pointer",
-                borderRadius: "radius.4",
+                borderRadius: "[1px]",
                 color: "core.gray.90",
                 _hover: {
                   backgroundColor: "core.gray.10",
@@ -52,6 +51,7 @@ export const Menu = ({ trigger, items }: MenuProps) => {
                   cursor: "not-allowed",
                 },
               })}
+              style={{ padding: "2px 4px" }}
             >
               {item.label}
             </ArkMenu.Item>
