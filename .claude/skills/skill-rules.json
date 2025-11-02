@@ -9,28 +9,17 @@
       "description": "Error handling patterns using error-stack crate for HASH Rust code",
       "promptTriggers": {
         "keywords": [
-          "error handling",
           "error",
           "Result",
           "Report",
           "attach",
           "change_context",
-          "error type",
-          "define error",
-          "propagate error",
-          "error documentation",
-          "create error",
-          "add error",
-          "implement error",
-          "fix error",
-          "handle error",
-          "error context"
+          "error-stack"
         ],
         "intentPatterns": [
           "\\b(handle|create|define|propagate|add|implement|fix|verbessern|erweitern|hinzufügen|beheben)\\b.*?\\berror\\b",
           "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation|context|type|behandlung|behandeln)\\b",
-          "Result.*?Report",
-          "\\b(improve|fix|update|verbessern|erweitern|beheben)\\b.*?\\berror\\b.*?\\b(handling|propagation|behandlung)\\b"
+          "Result.*?Report"
         ]
       }
     },
@@ -43,24 +32,16 @@
         "keywords": [
           "cargo",
           "dependency",
-          "dependencies",
           "Cargo.toml",
           "crate",
-          "workspace dependency",
-          "add dependency",
-          "add crate",
-          "public dependency",
+          "workspace.dependencies",
           "dev-dependencies",
-          "update dependency",
-          "remove dependency",
-          "dependency version",
-          "workspace.dependencies"
+          "public dependency"
         ],
         "intentPatterns": [
           "\\b(add|update|remove|upgrade|manage|hinzufügen|aktualisieren|entfernen|verwalten)\\b.*?\\b(dependency|dependencies|crate)\\b",
           "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
-          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b",
-          "\\b(dependency|dependencies|crate)\\b.*?\\b(add|update|remove|upgrade|version|hinzufügen|aktualisieren|entfernen)\\b"
+          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
         ]
       }
     },
@@ -70,26 +51,12 @@
       "priority": "high",
       "description": "Meta-skill for creating and managing Claude Code skills in HASH repository",
       "promptTriggers": {
-        "keywords": [
-          "skill system",
-          "create skill",
-          "add skill",
-          "new skill",
-          "skill triggers",
-          "skill rules",
-          "skill-rules.json",
-          "hook system",
-          "skill development",
-          "skill activation",
-          "skill configuration",
-          "SKILL.md",
-          "skill best practices"
-        ],
+        "keywords": ["skill", "skill-rules.json", "SKILL.md", "hook system"],
         "intentPatterns": [
           "\\b(how do|how does|explain|wie funktioniert)\\b.*?\\bskill\\b",
           "\\b(create|add|modify|build|erstellen|hinzufügen|ändern)\\b.*?\\bskill\\b",
           "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration|funktioniert)\\b",
-          "\\b(configure|setup|define|konfigurieren|einrichten)\\b.*?\\bskill\\b.*?\\b(trigger|activation|rule)\\b"
+          "\\b(configure|setup|define|konfigurieren|einrichten)\\b.*?\\bskill\\b"
         ]
       }
     },
@@ -100,38 +67,20 @@
       "description": "Rust documentation practices for HASH codebase following rustdoc conventions",
       "promptTriggers": {
         "keywords": [
-          "rust documentation",
+          "documentation",
           "doc comment",
-          "doc comments",
           "rustdoc",
-          "document rust",
-          "documenting rust",
           "intra-doc link",
-          "intra-doc links",
           "# Errors",
           "# Examples",
           "# Panics",
-          "function documentation",
-          "type documentation",
-          "trait documentation",
-          "module documentation",
-          "improve documentation",
-          "improve docs",
-          "documentation improve",
-          "docs improve",
-          "fix documentation",
-          "fix docs",
-          "update documentation",
-          "update docs"
+          "dokumentation"
         ],
         "intentPatterns": [
-          "\\b(write|add|create|update|improve|fix)\\b.*?\\b(doc|documentation|docs)\\b.*?\\b(rust|function|type|trait|module)\\b",
-          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error)\\b",
-          "\\bhow\\b.*?\\b(document|write docs)\\b.*?\\brust\\b",
-          "\\b(improve|fix|update|verbessern|ändern|anpassen|erweitern)\\b.*?\\b(documentation|docs)\\b",
+          "\\b(write|add|create|update|improve|fix|verbessern|erweitern)\\b.*?\\b(doc|documentation|docs)\\b",
+          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error|rust)\\b",
           "\\b(documentation|docs)\\b.*?\\b(verbessern|ändern|anpassen|erweitern|improve|fix|update)\\b",
-          "\\.rs\\b.*?\\b(documentation|docs|doc comment)\\b",
-          "\\b(documentation|docs)\\b.*?\\.rs\\b"
+          "\\.rs\\b.*?\\b(documentation|docs|doc comment)\\b"
         ]
       }
     }
