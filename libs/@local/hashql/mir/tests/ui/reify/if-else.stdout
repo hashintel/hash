@@ -15,12 +15,12 @@ thunk {thunk#0}() {
 
 
     bb1(): {
-        goto -> bb3(foo)
+        goto -> bb3("foo")
     }
 
 
     bb2(): {
-        goto -> bb3(bar)
+        goto -> bb3("bar")
     }
 
 

@@ -25,7 +25,7 @@ thunk {thunk#2}() {
 thunk {thunk#3}() {
     bb0(): {
         %0 = apply ({thunk#2} as FnPtr)
-        %1 = apply %0.0 %0.1 e2851dbb-7376-4959-9bca-f72cafc4448f
+        %1 = apply %0.0 %0.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
 
         return %1
     }

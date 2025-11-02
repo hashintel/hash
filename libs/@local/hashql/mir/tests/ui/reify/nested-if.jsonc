@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: TODO
+[
+  "if",
+  { "#literal": true },
+  [
+    "if",
+    ["<=", { "#literal": 2 }, { "#literal": 3 }],
+    [
+      "if",
+      [">=", { "#literal": 2 }, { "#literal": 3 }],
+      { "#literal": "baz" },
+      { "#literal": "qux" }
+    ],
+    { "#literal": "bar" }
+  ]
+]
