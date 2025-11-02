@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-import type { ArcType } from "../types";
+import type { ArcType } from "./types-for-editor-to-remove";
 
 export type DraggingStateByNodeId = Record<
   string,

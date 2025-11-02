@@ -2,7 +2,7 @@ import type { ElkNode } from "elkjs";
 import ELK from "elkjs";
 
 import type { SDCPN } from "../../core/types/sdcpn";
-import { nodeDimensions } from "../styling";
+import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers

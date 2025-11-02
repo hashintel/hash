@@ -1,8 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { handleStyling, placeStyling } from "./styling";
-import type { PlaceNodeData } from "./types";
+import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
+import { handleStyling, placeStyling } from "../styles/styling";
 
 export const PlaceNode = ({
   data,

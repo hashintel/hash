@@ -1,14 +1,14 @@
 import { Box, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 
-import { BottomBar } from "../components/bottom-bar";
-import { FloatingTitle } from "../components/floating-title";
-import { HamburgerMenu } from "../components/hamburger-menu";
-import { ModeSelector } from "../components/mode-selector";
-import { PropertiesPanel } from "../components/properties-panel";
-import { exampleSDCPN } from "../examples/example";
-import { useSDCPNStore } from "../state/sdcpn-store";
-import { SDCPNView } from "./sdcpn-view";
+import { exampleSDCPN } from "../../examples/example";
+import { useSDCPNStore } from "../../state/sdcpn-store";
+import { SDCPNView } from "../SDCPN/sdcpn-view";
+import { BottomBar } from "./components/bottom-bar";
+import { FloatingTitle } from "./components/floating-title";
+import { HamburgerMenu } from "./components/hamburger-menu";
+import { ModeSelector } from "./components/mode-selector";
+import { PropertiesPanel } from "./components/properties-panel";
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import { useEditorStore } from "../state/editor-store";
-import type { NodeType } from "../types";
+import type { NodeType } from "../state/types-for-editor-to-remove";
 
 /**
  * Combines the nodes from the Petri Net definition with the transient dragging state.

@@ -10,16 +10,16 @@ import ReactFlow, {
 } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
-import { Arc } from "../arc";
-import { useApplyNodeChanges } from "../hooks/use-apply-node-changes";
-import { useNodesWithDraggingState } from "../hooks/use-nodes-with-dragging-state";
-import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
-import { PlaceNode } from "../place-node";
-import { useEditorStore } from "../state/editor-store";
-import { useSDCPNStore } from "../state/sdcpn-store";
-import { nodeDimensions } from "../styling";
-import { TransitionNode } from "../transition-node";
-import type { ArcData, NodeData } from "../types";
+import { useNodesWithDraggingState } from "../../hooks/use-nodes-with-dragging-state";
+import { sdcpnToReactFlow } from "../../lib/sdcpn-converters";
+import { useEditorStore } from "../../state/editor-store";
+import { useSDCPNStore } from "../../state/sdcpn-store";
+import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
+import { Arc } from "./components/arc";
+import { PlaceNode } from "./components/place-node";
+import { TransitionNode } from "./components/transition-node";
+import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
+import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
 

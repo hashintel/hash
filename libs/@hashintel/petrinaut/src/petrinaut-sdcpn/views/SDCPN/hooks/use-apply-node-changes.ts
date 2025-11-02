@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import type { NodeChange } from "reactflow";
 
-import { useEditorStore } from "../state/editor-store";
-import { useSDCPNStore } from "../state/sdcpn-store";
+import { useEditorStore } from "../../../state/editor-store";
+import { useSDCPNStore } from "../../../state/sdcpn-store";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
