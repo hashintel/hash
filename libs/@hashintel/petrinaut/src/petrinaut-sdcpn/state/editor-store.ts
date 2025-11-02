@@ -1,7 +1,6 @@
-import type { ReactFlowInstance } from "reactflow";
 import { create } from "zustand";
 
-import type { ArcData, ArcType, NodeData } from "../types";
+import type { ArcType } from "../types";
 
 export type DraggingStateByNodeId = Record<
   string,
@@ -11,12 +10,6 @@ export type DraggingStateByNodeId = Record<
 export type SelectedArc = ArcType & { position: { x: number; y: number } };
 
 type EditorState = {
-  // ReactFlow instance
-  reactFlowInstance: ReactFlowInstance<NodeData, ArcData> | null;
-  setReactFlowInstance: (
-    instance: ReactFlowInstance<NodeData, ArcData> | null,
-  ) => void;
-
   // Place selection
   selectedPlaceId: string | null;
   setSelectedPlaceId: (id: string | null) => void;
@@ -45,13 +38,9 @@ type EditorState = {
 
 /**
  * Zustand store for managing the UI state of the Petrinaut editor.
- * This includes selection state, dragging state, and ReactFlow instance.
+ * This includes selection state and dragging state.
  */
 export const useEditorStore = create<EditorState>((set) => ({
-  // ReactFlow instance
-  reactFlowInstance: null,
-  setReactFlowInstance: (instance) => set({ reactFlowInstance: instance }),
-
   // Place selection
   selectedPlaceId: null,
   setSelectedPlaceId: (id) => set({ selectedPlaceId: id }),

@@ -7,6 +7,11 @@ export type Transition = {
   outputArcs: { placeId: string; weight: number }[];
   lambdaCode: string;
   transitionKernelCode: string;
+  // UI positioning
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
 };
 
 export type Place = {
@@ -14,6 +19,11 @@ export type Place = {
   name: string;
   dimensions: number;
   differentialEquationCode: string;
+  // UI positioning
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
 };
 
 export type SDCPN = {

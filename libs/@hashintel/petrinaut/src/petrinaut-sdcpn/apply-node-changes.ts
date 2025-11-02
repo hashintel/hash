@@ -1,28 +1,35 @@
-import type { NodeAddChange, NodeChange } from "reactflow";
+import type { NodeChange } from "reactflow";
 
-import type { MutatePetriNetDefinition } from "./editor-context";
 import type { DraggingStateByNodeId } from "./state/mod";
 
 /**
- * A variant of reactflow's applyChange which mutates the petri net definition instead of creating a new node or edge array.
+ * A variant of reactflow's applyChange which updates node positions in the SDCPN store.
  *
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export const applyNodeChanges = ({
   changes,
   draggingStateByNodeId,
-  mutatePetriNetDefinition,
+  updatePlacePosition,
+  updateTransitionPosition,
   updateDraggingStateByNodeId,
 }: {
   changes: NodeChange[];
   draggingStateByNodeId: DraggingStateByNodeId;
-  mutatePetriNetDefinition: MutatePetriNetDefinition;
+  updatePlacePosition: (placeId: string, x: number, y: number) => void;
+  updateTransitionPosition: (
+    transitionId: string,
+    x: number,
+    y: number,
+  ) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
 }) => {
-  const changesByNodeId: Record<string, NodeChange[]> = {};
-  const addChanges: NodeAddChange[] = [];
+  const positionUpdates: Array<{
+    id: string;
+    position: { x: number; y: number };
+  }> = [];
 
   for (const change of changes) {
     if (
@@ -59,9 +66,7 @@ export const applyNodeChanges = ({
          * When dragging stops, we receive a change event with 'dragging: false' but no position.
          * We use the last position we received to report the change to the consumer.
          */
-        changesByNodeId[change.id] ??= [];
-        changesByNodeId[change.id]!.push({
-          type: "position",
+        positionUpdates.push({
           id: change.id,
           position: lastPosition,
         });
@@ -77,39 +82,13 @@ export const applyNodeChanges = ({
     }
   }
 
-  if (addChanges.length === 0 && Object.keys(changesByNodeId).length === 0) {
-    return;
-  }
-
-  mutatePetriNetDefinition((existingNet) => {
-    for (const node of existingNet.nodes) {
-      const changesForNode: NodeChange[] = changesByNodeId[node.id] ?? [];
-
-      for (const change of changesForNode) {
-        if (change.type === "position") {
-          if (change.position) {
-            if (node.position.x !== change.position.x) {
-              node.position.x = change.position.x;
-            }
-            if (node.position.y !== change.position.y) {
-              node.position.y = change.position.y;
-            }
-          }
-
-          if (change.positionAbsolute) {
-            if (node.positionAbsolute?.x !== change.positionAbsolute.x) {
-              node.positionAbsolute ??= { x: 0, y: 0 };
-              node.positionAbsolute.x = change.positionAbsolute.x;
-            }
-            if (node.positionAbsolute.y !== change.positionAbsolute.y) {
-              node.positionAbsolute ??= { x: 0, y: 0 };
-              node.positionAbsolute.y = change.positionAbsolute.y;
-            }
-          }
-        }
-      }
+  // Apply position updates to SDCPN store
+  for (const { id, position } of positionUpdates) {
+    // Determine if it's a place or transition based on node ID prefix
+    if (id.startsWith("place__")) {
+      updatePlacePosition(id, position.x, position.y);
+    } else if (id.startsWith("transition__")) {
+      updateTransitionPosition(id, position.x, position.y);
     }
-
-    existingNet.nodes.push(...addChanges.map((change) => change.item));
-  });
+  }
 };
