@@ -3,10 +3,7 @@ import "reactflow/dist/style.css";
 import type { DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Connection, ReactFlowInstance } from "reactflow";
-import ReactFlow, {
-  Background,
-  ConnectionLineType,
-} from "reactflow";
+import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import { useNodesWithDraggingState } from "../../hooks/use-nodes-with-dragging-state";
@@ -21,6 +18,15 @@ import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
+
+const REACTFLOW_NODE_TYPES = {
+  place: PlaceNode,
+  transition: TransitionNode,
+};
+
+const REACTFLOW_EDGE_TYPES = {
+  default: Arc,
+};
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
@@ -188,13 +194,8 @@ export const SDCPNView: React.FC = () => {
       <ReactFlow
         nodes={nodesForReactFlow}
         edges={arcs}
-        nodeTypes={{
-          place: PlaceNode,
-          transition: TransitionNode,
-        }}
-        edgeTypes={{
-          default: Arc,
-        }}
+        nodeTypes={REACTFLOW_NODE_TYPES}
+        edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={applyNodeChanges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
