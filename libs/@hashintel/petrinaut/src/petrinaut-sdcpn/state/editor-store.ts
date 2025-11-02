@@ -10,7 +10,7 @@ export type DraggingStateByNodeId = Record<
 
 export type SelectedArc = ArcType & { position: { x: number; y: number } };
 
-type EditorState = {
+export type EditorState = {
   // Place selection
   selectedPlaceId: string | null;
   setSelectedPlaceId: (id: string | null) => void;
@@ -38,66 +38,68 @@ type EditorState = {
 };
 
 /**
- * Zustand store for managing the UI state of the Petrinaut editor.
+ * Creates a Zustand store for managing the UI state of the Petrinaut editor.
  * This includes selection state and dragging state.
  */
-export const useEditorStore = create<EditorState>()(
-  devtools(
-    (set) => ({
-      // Place selection
-      selectedPlaceId: null,
-      setSelectedPlaceId: (id) =>
-        set({ selectedPlaceId: id }, false, "setSelectedPlaceId"),
-      selectedPlacePosition: null,
-      setSelectedPlacePosition: (position) =>
-        set(
-          { selectedPlacePosition: position },
-          false,
-          "setSelectedPlacePosition",
-        ),
+export function createEditorStore() {
+  return create<EditorState>()(
+    devtools(
+      (set) => ({
+        // Place selection
+        selectedPlaceId: null,
+        setSelectedPlaceId: (id) =>
+          set({ selectedPlaceId: id }, false, "setSelectedPlaceId"),
+        selectedPlacePosition: null,
+        setSelectedPlacePosition: (position) =>
+          set(
+            { selectedPlacePosition: position },
+            false,
+            "setSelectedPlacePosition",
+          ),
 
-      // Transition selection
-      selectedTransition: null,
-      setSelectedTransition: (id) =>
-        set({ selectedTransition: id }, false, "setSelectedTransition"),
+        // Transition selection
+        selectedTransition: null,
+        setSelectedTransition: (id) =>
+          set({ selectedTransition: id }, false, "setSelectedTransition"),
 
-      // Arc selection
-      selectedArc: null,
-      setSelectedArc: (arc) =>
-        set({ selectedArc: arc }, false, "setSelectedArc"),
+        // Arc selection
+        selectedArc: null,
+        setSelectedArc: (arc) =>
+          set({ selectedArc: arc }, false, "setSelectedArc"),
 
-      // Dragging state
-      draggingStateByNodeId: {},
-      setDraggingStateByNodeId: (state) =>
-        set(
-          { draggingStateByNodeId: state },
-          false,
-          "setDraggingStateByNodeId",
-        ),
-      updateDraggingStateByNodeId: (updater) =>
-        set(
-          (state) => ({
-            draggingStateByNodeId: updater(state.draggingStateByNodeId),
-          }),
-          false,
-          "updateDraggingStateByNodeId",
-        ),
-      resetDraggingState: () =>
-        set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
+        // Dragging state
+        draggingStateByNodeId: {},
+        setDraggingStateByNodeId: (state) =>
+          set(
+            { draggingStateByNodeId: state },
+            false,
+            "setDraggingStateByNodeId",
+          ),
+        updateDraggingStateByNodeId: (updater) =>
+          set(
+            (state) => ({
+              draggingStateByNodeId: updater(state.draggingStateByNodeId),
+            }),
+            false,
+            "updateDraggingStateByNodeId",
+          ),
+        resetDraggingState: () =>
+          set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
 
-      // Utility actions
-      clearSelection: () =>
-        set(
-          {
-            selectedPlaceId: null,
-            selectedPlacePosition: null,
-            selectedArc: null,
-            selectedTransition: null,
-          },
-          false,
-          "clearSelection",
-        ),
-    }),
-    { name: "Editor Store" },
-  ),
-);
+        // Utility actions
+        clearSelection: () =>
+          set(
+            {
+              selectedPlaceId: null,
+              selectedPlacePosition: null,
+              selectedArc: null,
+              selectedTransition: null,
+            },
+            false,
+            "clearSelection",
+          ),
+      }),
+      { name: "Editor Store" },
+    ),
+  );
+}

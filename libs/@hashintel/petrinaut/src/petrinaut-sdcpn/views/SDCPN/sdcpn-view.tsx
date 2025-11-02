@@ -8,8 +8,8 @@ import { v4 as generateUuid } from "uuid";
 
 import { useNodesWithDraggingState } from "../../hooks/use-nodes-with-dragging-state";
 import { sdcpnToReactFlow } from "../../lib/sdcpn-converters";
-import { useEditorStore } from "../../state/editor-store";
-import { useSDCPNStore } from "../../state/sdcpn-store";
+import { useEditorStore } from "../../state/editor-provider";
+import { useSDCPNStore } from "../../state/sdcpn-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
