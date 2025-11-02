@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import natural from "natural";
+
 // ES modules don't have __dirname, so we need to derive it
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +27,7 @@ interface SkillRule {
   type: "guardrail" | "domain";
   enforcement: "block" | "suggest" | "warn";
   priority: "critical" | "high" | "medium" | "low";
+  description?: string;
   promptTriggers?: PromptTriggers;
 }
 
@@ -41,10 +44,55 @@ interface MatchedSkill {
 
 const DEBUG = process.env.SKILL_DEBUG === "true";
 
+// Initialize Porter Stemmer for English fuzzy matching
+const stemmer = natural.PorterStemmer;
+
 function debug(message: string, ...args: unknown[]) {
   if (DEBUG) {
     console.error(`[DEBUG] ${message}`, ...args);
   }
+}
+
+/**
+ * Calculate Levenshtein distance between two strings.
+ * Used for cross-language fuzzy matching (e.g., "dokumentation" vs "documentation").
+ */
+function levenshteinDistance(a: string, b: string): number {
+  return natural.LevenshteinDistance(a, b);
+}
+
+/**
+ * Check if two words are similar enough to be considered a match.
+ * Uses Levenshtein distance with a threshold based on word length.
+ */
+function isFuzzyMatch(word1: string, word2: string): boolean {
+  const w1 = word1.toLowerCase();
+  const w2 = word2.toLowerCase();
+
+  // Exact match
+  if (w1 === w2) {
+    return true;
+  }
+
+  // Stemmed match (for English variations)
+  const stem1 = stemmer.stem(w1);
+  const stem2 = stemmer.stem(w2);
+  if (stem1 === stem2) {
+    return true;
+  }
+
+  // Levenshtein distance (for typos and cross-language)
+  const maxLength = Math.max(w1.length, w2.length);
+  const distance = levenshteinDistance(w1, w2);
+
+  // Allow up to 25% difference for words 4+ chars
+  // For very short words (1-3 chars), require exact or stemmed match
+  if (maxLength >= 4) {
+    const threshold = Math.floor(maxLength * 0.25);
+    return distance <= threshold;
+  }
+
+  return false;
 }
 
 function getProjectDir(): string {
@@ -211,20 +259,45 @@ function main() {
 
       let matchType: "keyword" | "intent" | null = null;
 
-      // Keyword matching (cache lowercase keywords)
+      // Keyword matching with fuzzy support
       if (triggers.keywords) {
-        const lowercaseKeywords = triggers.keywords.map((kw) =>
-          kw.toLowerCase(),
-        );
-        const matchedKeyword = lowercaseKeywords.find((kw) =>
-          prompt.includes(kw),
+        // Try exact substring match first (most specific)
+        const exactMatch = triggers.keywords.find((kw) =>
+          prompt.includes(kw.toLowerCase()),
         );
 
-        if (matchedKeyword) {
-          debug(`Skill '${skillName}': MATCHED via keyword`, matchedKeyword);
+        if (exactMatch) {
+          debug(`Skill '${skillName}': MATCHED via exact keyword`, exactMatch);
           matchType = "keyword";
         } else {
-          debug(`Skill '${skillName}': no keyword match`);
+          // Fall back to fuzzy word-by-word matching
+          const promptWords = prompt.split(/\s+/);
+          const fuzzyMatch = triggers.keywords.find((kw) => {
+            const keywordWords = kw.toLowerCase().split(/\s+/);
+
+            // For multi-word keywords, ALL words must fuzzy-match
+            // For single-word keywords, just check if it matches any prompt word
+            if (keywordWords.length === 1) {
+              return promptWords.some((pWord) =>
+                isFuzzyMatch(keywordWords[0]!, pWord),
+              );
+            }
+
+            // Multi-word: all keyword words must match
+            return keywordWords.every((kwWord) =>
+              promptWords.some((pWord) => isFuzzyMatch(kwWord, pWord)),
+            );
+          });
+
+          if (fuzzyMatch) {
+            debug(
+              `Skill '${skillName}': MATCHED via fuzzy keyword`,
+              fuzzyMatch,
+            );
+            matchType = "keyword";
+          } else {
+            debug(`Skill '${skillName}': no keyword match`);
+          }
         }
       }
 
@@ -293,6 +366,9 @@ function main() {
         output += "⚠️  CRITICAL SKILLS (REQUIRED):\n";
         for (const skill of critical) {
           output += `  → ${skill.name}\n`;
+          if (skill.config.description) {
+            output += `    ${skill.config.description}\n`;
+          }
         }
         output += "\n";
       }
@@ -301,6 +377,9 @@ function main() {
         output += "📚 RECOMMENDED SKILLS:\n";
         for (const skill of high) {
           output += `  → ${skill.name}\n`;
+          if (skill.config.description) {
+            output += `    ${skill.config.description}\n`;
+          }
         }
         output += "\n";
       }
@@ -309,6 +388,9 @@ function main() {
         output += "💡 SUGGESTED SKILLS:\n";
         for (const skill of medium) {
           output += `  → ${skill.name}\n`;
+          if (skill.config.description) {
+            output += `    ${skill.config.description}\n`;
+          }
         }
         output += "\n";
       }
@@ -317,6 +399,9 @@ function main() {
         output += "📌 OPTIONAL SKILLS:\n";
         for (const skill of low) {
           output += `  → ${skill.name}\n`;
+          if (skill.config.description) {
+            output += `    ${skill.config.description}\n`;
+          }
         }
         output += "\n";
       }

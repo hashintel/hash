@@ -147,25 +147,21 @@ See [SKILL_RULES_REFERENCE.md](SKILL_RULES_REFERENCE.md) for complete schema.
 **Test with specific prompt:**
 
 ```bash
-cd .claude/hooks
 echo '{"session_id":"test","prompt":"your test prompt","cwd":".","permission_mode":"auto","transcript_path":""}' | \
-  npx tsx skill-activation-prompt.ts
+  yarn workspace @local/claude-hooks run:skill
 ```
 
 **Validate configuration:**
 
 ```bash
-cd .claude/hooks
-npx tsx skill-activation-prompt.ts --validate
+yarn lint:skill
 ```
 
 **Debug matching logic:**
 
 ```bash
-cd .claude/hooks
-export SKILL_DEBUG=true
 echo '{"session_id":"test","prompt":"your test prompt","cwd":".","permission_mode":"auto","transcript_path":""}' | \
-  npx tsx skill-activation-prompt.ts
+  yarn workspace @local/claude-hooks dev:skill
 ```
 
 ### Step 4: Refine Patterns
@@ -202,18 +198,18 @@ Currently only **SUGGEST** enforcement is implemented:
 
 ### Debugging and Validation
 
+**Yarn Commands:**
+
+- `yarn lint:skill` - Validate configuration
+- `yarn workspace @local/claude-hooks run:skill` - Run skill activation with test prompt
+- `yarn workspace @local/claude-hooks dev:skill` - Run with debug output enabled
+
 **Environment Variables:**
 
-- `SKILL_DEBUG=true` - Show detailed matching logic to stderr
+- `SKILL_DEBUG=true` - Show detailed matching logic to stderr (automatically set by `yarn dev:skill`)
 - `CLAUDE_PROJECT_DIR` - Override project directory (auto-detected if not set)
 
-**Validation Command:**
-
-```bash
-npx tsx .claude/hooks/skill-activation-prompt.ts --validate
-```
-
-Shows:
+**Validation shows:**
 
 - Project directory
 - Rules file location
@@ -232,10 +228,10 @@ When creating a new skill, verify:
 - [ ] Keywords tested with real prompts
 - [ ] Intent patterns tested with variations
 - [ ] Priority level matches importance
-- [ ] No false positives in testing (use `SKILL_DEBUG=true`)
+- [ ] No false positives in testing (use `yarn workspace @local/claude-hooks dev:skill`)
 - [ ] No false negatives in testing
-- [ ] JSON syntax validated: `jq . skill-rules.json`
-- [ ] Validation passes: `npx tsx .claude/hooks/skill-activation-prompt.ts --validate`
+- [ ] JSON syntax validated: `jq . .claude/skills/skill-rules.json`
+- [ ] Validation passes: `yarn lint:skill`
 - [ ] **SKILL.md under 500 lines** ⭐
 - [ ] Reference files created if needed
 - [ ] Table of contents added to files > 100 lines
@@ -315,7 +311,7 @@ Ideas for expanding the skill system:
 
 1. Create `.claude/skills/{name}/SKILL.md` with frontmatter
 2. Add entry to `.claude/skills/skill-rules.json`
-3. Test with `npx tsx` commands
+3. Test with `yarn lint:skill` and `yarn workspace @local/claude-hooks dev:skill`
 4. Refine patterns based on testing
 5. Keep SKILL.md under 500 lines
 
@@ -333,8 +329,8 @@ See [trigger-types.md](resources/trigger-types.md) for complete details.
 
 ### Debugging
 
-- `SKILL_DEBUG=true` - Show detailed matching logic
-- `--validate` flag - Validate configuration
+- `yarn workspace @local/claude-hooks dev:skill` - Show detailed matching logic
+- `yarn lint:skill` - Validate configuration
 - Check `.claude/hooks/skill-activation-prompt.ts` for implementation
 
 ### Anthropic Best Practices
@@ -353,16 +349,15 @@ Test hooks manually:
 
 ```bash
 # Test with prompt
-cd .claude/hooks
 echo '{"session_id":"test","prompt":"test","cwd":".","permission_mode":"auto","transcript_path":""}' | \
-  npx tsx skill-activation-prompt.ts
+  yarn workspace @local/claude-hooks run:skill
 
 # Validate configuration
-npx tsx skill-activation-prompt.ts --validate
+yarn lint:skill
 
 # Debug matching
-SKILL_DEBUG=true echo '{"session_id":"test","prompt":"test","cwd":".","permission_mode":"auto","transcript_path":""}' | \
-  npx tsx skill-activation-prompt.ts
+echo '{"session_id":"test","prompt":"test","cwd":".","permission_mode":"auto","transcript_path":""}' | \
+  yarn workspace @local/claude-hooks dev:skill
 ```
 
 See [troubleshooting.md](resources/troubleshooting.md) for complete debugging guide.

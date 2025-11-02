@@ -1,5 +1,5 @@
 ---
-name: rust-error-stack
+name: handling-rust-errors
 description: HASH error handling patterns using error-stack crate. Use when working with Result types, Report types, defining custom errors, propagating errors with change_context, adding context with attach, implementing Error trait, or documenting error conditions in Rust code.
 ---
 
