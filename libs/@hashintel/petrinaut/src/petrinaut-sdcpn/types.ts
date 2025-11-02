@@ -33,20 +33,6 @@ export type TransitionNodeData = {
   label: string;
   delay?: number;
   description?: string;
-  childNet?: {
-    childNetId: string;
-    childNetTitle: string;
-    /**
-     * The IDs of the input places for this transition which are represented in the childNet (which should appear as starting places there).
-     * There must be at least one, but not all input places to this transition (in the parent) must appear in the childNet.
-     */
-    inputPlaceIds: string[];
-    /**
-     * The IDs of the output places for this transition which are represented in the childNet (which should appear as ending places there).
-     * There must be at least one, but not all output places to this transition (in the parent) must appear in the childNet.
-     */
-    outputPlaceIds: string[];
-  };
   /**
    * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,
    * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.

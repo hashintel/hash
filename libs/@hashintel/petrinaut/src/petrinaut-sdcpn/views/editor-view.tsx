@@ -21,16 +21,13 @@ export const EditorView = () => {
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const updateTitle = useSDCPNStore((state) => state.updateTitle);
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
-  const setTokenTypes = useSDCPNStore((state) => state.setTokenTypes);
   const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
 
   const title = sdcpn.title;
 
   const handleLoadExample = useCallback(() => {
     setSDCPN(exampleSDCPN);
-    // Assuming exampleSDCPN has tokenTypes, or use empty array as fallback
-    setTokenTypes([]);
-  }, [setSDCPN, setTokenTypes]);
+  }, [setSDCPN]);
 
   return (
     <Stack sx={{ height: "100%" }}>
