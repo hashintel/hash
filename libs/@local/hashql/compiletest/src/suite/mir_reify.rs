@@ -7,10 +7,11 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     intern::Interner,
-    pretty::TextFormat,
+    pretty::{D2Buffer, D2Format, TextFormat},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
+use crate::executor::TrialError;
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
@@ -59,6 +60,10 @@ pub(crate) fn mir_reify<'heap>(
 pub(crate) struct MirReifySuite;
 
 impl Suite for MirReifySuite {
+    fn secondary_file_extensions(&self) -> &[&str] {
+        &["svg"]
+    }
+
     fn name(&self) -> &'static str {
         "mir/reify"
     }
@@ -66,7 +71,12 @@ impl Suite for MirReifySuite {
     fn run<'heap>(
         &self,
         RunContext {
-            heap, diagnostics, ..
+            heap,
+            diagnostics,
+            suite_directives,
+            secondary_outputs,
+            reports,
+            ..
         }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
@@ -75,16 +85,48 @@ impl Suite for MirReifySuite {
 
         let (root, bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
 
-        let mut format = TextFormat {
+        let mut text_format = TextFormat {
             writer: Vec::new(),
             indent: 4,
             sources: bodies.as_slice(),
         };
-        format
+        text_format
             .format(&bodies, &[root])
             .expect("should be able to write bodies");
 
-        let output = String::from_utf8_lossy_owned(format.writer);
-        Ok(output)
+        let output = String::from_utf8_lossy_owned(text_format.writer);
+
+        let Some(d2) = suite_directives.get("d2") else {
+            return Ok(output);
+        };
+
+        let Some(d2) = d2.as_bool() else {
+            reports.capture(TrialError::Run(
+                self.name(),
+                "suite#d2 must be a valid boolean",
+            ));
+
+            return Ok(output);
+        };
+
+        if !d2 {
+            return Ok(output);
+        }
+
+        let mut d2_format = D2Format {
+            writer: Vec::new(),
+            sources: bodies.as_slice(),
+            dataflow: (),
+            buffer: D2Buffer::default(),
+        };
+        d2_format
+            .format(&bodies, &[root])
+            .expect("should be able to write bodies");
+
+        let d2_output = String::from_utf8_lossy_owned(d2_format.writer);
+        // TODO: pipe to D2
+        // secondary_outputs.insert("svg", output_yay)
+
+        return Ok(output);
     }
 }

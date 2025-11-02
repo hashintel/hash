@@ -6,7 +6,7 @@ use std::io;
 
 use bstr::ByteSlice as _;
 
-use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat};
+use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat, text::HighlightBody};
 use crate::{
     body::{
         Body,
@@ -76,12 +76,16 @@ where
     /// # Errors
     ///
     /// Returns an [`io::Error`] if writing to the underlying writer fails.
-    pub fn format<'heap>(&mut self, bodies: &DefIdSlice<Body<'heap>>) -> io::Result<()>
+    pub fn format<'heap>(
+        &mut self,
+        bodies: &DefIdSlice<Body<'heap>>,
+        highlight: &[DefId],
+    ) -> io::Result<()>
     where
         S: SourceLookup<'heap>,
         D: DataFlowLookup<'heap>,
     {
-        self.format_part(bodies)
+        self.format_part((bodies, HighlightBody(highlight)))
     }
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
@@ -360,16 +364,27 @@ where
     }
 }
 
-impl<'heap, W, S, D> FormatPart<(DefId, &Body<'heap>)> for D2Format<W, S, D>
+struct BodyRenderOptions {
+    highlight: bool,
+}
+
+impl<'heap, W, S, D> FormatPart<(DefId, &Body<'heap>, BodyRenderOptions)> for D2Format<W, S, D>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
     D: DataFlowLookup<'heap>,
 {
-    fn format_part(&mut self, (def, body): (DefId, &Body<'heap>)) -> io::Result<()> {
+    fn format_part(
+        &mut self,
+        (def, body, BodyRenderOptions { highlight }): (DefId, &Body<'heap>, BodyRenderOptions),
+    ) -> io::Result<()> {
         write!(self.writer, "def{def}: '")?;
         self.format_text(Signature(body))?;
         writeln!(self.writer, "' {{")?;
+
+        if highlight {
+            writeln!(self.writer, r##"style.fill: "#AA4465""##)?;
+        }
 
         for (id, basic_block) in body.basic_blocks.iter_enumerated() {
             self.format_part((def, id, basic_block))?;
@@ -381,21 +396,28 @@ where
     }
 }
 
-impl<'heap, W, S, D> FormatPart<&DefIdSlice<Body<'heap>>> for D2Format<W, S, D>
+impl<'heap, W, S, D> FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)> for D2Format<W, S, D>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
     D: DataFlowLookup<'heap>,
 {
-    fn format_part(&mut self, value: &DefIdSlice<Body<'heap>>) -> io::Result<()> {
+    fn format_part(
+        &mut self,
+        (bodies, highlight): (&DefIdSlice<Body<'heap>>, HighlightBody),
+    ) -> io::Result<()> {
         let mut first = true;
-        for (def_id, body) in value.iter_enumerated() {
+        for (def_id, body) in bodies.iter_enumerated() {
             if !first {
                 writeln!(self.writer, "\n\n")?;
             }
 
+            let options = BodyRenderOptions {
+                highlight: highlight.0.contains(&def_id),
+            };
+
             first = false;
-            self.format_part((def_id, body))?;
+            self.format_part((def_id, body, options))?;
         }
 
         Ok(())
