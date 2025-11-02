@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 
 import type { EditorState } from "./editor-store";
 import { createEditorStore } from "./editor-store";
+import { SDCPNContext } from "./sdcpn-provider";
 
 type EditorStore = ReturnType<typeof createEditorStore>;
 
@@ -13,7 +14,14 @@ export type EditorProviderProps = React.PropsWithChildren;
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const storeRef = useRef<EditorStore | undefined>(undefined);
 
-  storeRef.current = storeRef.current ?? createEditorStore();
+  // Get the SDCPN store to pass to the editor store
+  const sdcpnStore = useContext(SDCPNContext);
+
+  if (!sdcpnStore) {
+    throw new Error("EditorProvider must be used within SDCPNProvider");
+  }
+
+  storeRef.current ??= createEditorStore(sdcpnStore);
 
   return (
     <EditorContext.Provider value={storeRef.current}>
@@ -31,3 +39,5 @@ export function useEditorStore<T>(selector: (state: EditorState) => T): T {
 
   return useStore(store, selector);
 }
+
+

@@ -54,6 +54,9 @@ export type SDCPNState = {
 
   updateTitle: (title: string) => void;
 
+  // Delete multiple items by their IDs (supports places, transitions, and arcs)
+  deleteItemsByIds: (ids: Set<string>) => void;
+
   // Layout the graph using an automatic layout algorithm
   layoutGraph: () => Promise<void>;
 };
@@ -292,6 +295,98 @@ export function createSDCPNStore() {
             },
             false,
             "updateTitle"
+          ),
+
+        deleteItemsByIds: (ids) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              const placeIdsToDelete = new Set<string>();
+              const transitionIdsToDelete = new Set<string>();
+
+              // Categorize IDs: separate places, transitions, and arcs
+              for (const id of ids) {
+                if (id.startsWith("$A_")) {
+                  // This is an arc - parse and delete it
+                  const parts = id.split("_");
+                  const inputId = parts[1];
+                  const outputId = parts[2];
+
+                  if (!inputId || !outputId) {
+                    continue;
+                  }
+
+                  // Determine if this is an input arc or output arc
+                  const isInputPlace = state.sdcpn.places.some(
+                    (place) => place.id === inputId,
+                  );
+                  const isOutputPlace = state.sdcpn.places.some(
+                    (place) => place.id === outputId,
+                  );
+
+                  if (isInputPlace && !isOutputPlace) {
+                    // Input arc: place -> transition
+                    const transition = newSDCPN.transitions.find(
+                      (tr) => tr.id === outputId,
+                    );
+                    if (transition) {
+                      transition.inputArcs = transition.inputArcs.filter(
+                        (arc) => arc.placeId !== inputId,
+                      );
+                    }
+                  } else if (!isInputPlace && isOutputPlace) {
+                    // Output arc: transition -> place
+                    const transition = newSDCPN.transitions.find(
+                      (tr) => tr.id === inputId,
+                    );
+                    if (transition) {
+                      transition.outputArcs = transition.outputArcs.filter(
+                        (arc) => arc.placeId !== outputId,
+                      );
+                    }
+                  }
+                } else {
+                  // Check if it's a place or transition
+                  const isPlace = state.sdcpn.places.some(
+                    (place) => place.id === id,
+                  );
+                  if (isPlace) {
+                    placeIdsToDelete.add(id);
+                  } else {
+                    transitionIdsToDelete.add(id);
+                  }
+                }
+              }
+
+              // Remove places and their connected arcs
+              if (placeIdsToDelete.size > 0) {
+                newSDCPN.places = newSDCPN.places.filter(
+                  (place) => !placeIdsToDelete.has(place.id),
+                );
+
+                // Remove arcs connected to deleted places
+                newSDCPN.transitions = newSDCPN.transitions.map((transition) => ({
+                  ...transition,
+                  inputArcs: transition.inputArcs.filter(
+                    (arc) => !placeIdsToDelete.has(arc.placeId),
+                  ),
+                  outputArcs: transition.outputArcs.filter(
+                    (arc) => !placeIdsToDelete.has(arc.placeId),
+                  ),
+                }));
+              }
+
+              // Remove transitions
+              if (transitionIdsToDelete.size > 0) {
+                newSDCPN.transitions = newSDCPN.transitions.filter(
+                  (transition) => !transitionIdsToDelete.has(transition.id),
+                );
+              }
+
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "deleteItemsByIds",
           ),
 
         layoutGraph: async () => {

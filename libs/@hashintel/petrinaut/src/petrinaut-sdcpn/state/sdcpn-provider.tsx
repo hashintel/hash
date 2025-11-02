@@ -6,7 +6,7 @@ import { createSDCPNStore } from "./sdcpn-store";
 
 type SDCPNStore = ReturnType<typeof createSDCPNStore>;
 
-const SDCPNContext = createContext<SDCPNStore | null>(null);
+export const SDCPNContext = createContext<SDCPNStore | null>(null);
 
 export type SDCPNProviderProps = React.PropsWithChildren;
 

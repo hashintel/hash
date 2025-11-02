@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+import type { SDCPNState } from "./sdcpn-store";
+
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
@@ -13,6 +15,7 @@ export type EditorState = {
   addSelectedItemId: (id: string) => void;
   removeSelectedItemId: (id: string) => void;
   clearSelection: () => void;
+  deleteSelection: () => void;
 
   // Dragging state
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -27,7 +30,9 @@ export type EditorState = {
  * Creates a Zustand store for managing the UI state of the Petrinaut editor.
  * This includes selection state and dragging state.
  */
-export function createEditorStore() {
+export function createEditorStore(sdcpnStore: {
+  getState: () => SDCPNState;
+}) {
   return create<EditorState>()(
     devtools(
       (set) => ({
@@ -57,6 +62,19 @@ export function createEditorStore() {
           ),
         clearSelection: () =>
           set({ selectedItemIds: new Set() }, false, "clearSelection"),
+        deleteSelection: () =>
+          set(
+            (state) => {
+              const { deleteItemsByIds } = sdcpnStore.getState();
+
+              // Call the SDCPN store's delete method with all selected IDs
+              deleteItemsByIds(state.selectedItemIds);
+
+              return { selectedItemIds: new Set() };
+            },
+            false,
+            "deleteSelection",
+          ),
 
         // Dragging state
         draggingStateByNodeId: {},
