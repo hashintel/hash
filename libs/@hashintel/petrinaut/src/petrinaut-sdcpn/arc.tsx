@@ -1,8 +1,5 @@
 import { getBezierPath, type Position } from "reactflow";
 
-import { useSDCPNStore } from "./state/sdcpn-store";
-import type { TokenType } from "./types";
-
 export const Arc = ({
   id,
   sourceX,
@@ -26,7 +23,12 @@ export const Arc = ({
     };
   };
 }) => {
-  const tokenTypes = useSDCPNStore((state) => state.tokenTypes);
+  // Use a default token type for now
+  const defaultTokenType = {
+    id: "default",
+    name: "Token",
+    color: "#4A90E2",
+  };
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -66,13 +68,8 @@ export const Arc = ({
         {Object.entries(data?.tokenWeights ?? {})
           .filter(([_, weight]) => weight > 0)
           .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            const tokenType = tokenTypes.find(
-              (tt: TokenType) => tt.id === tokenTypeId,
-            );
-
-            if (!tokenType) {
-              return null;
-            }
+            // Use default token type for now
+            const tokenType = defaultTokenType;
 
             const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 20;
 

@@ -3,7 +3,6 @@ import { devtools } from "zustand/middleware";
 
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
-import type { TokenType } from "../types";
 
 const emptySDCPN: SDCPN = {
   id: "empty",
@@ -16,16 +15,6 @@ type SDCPNState = {
   // The current SDCPN definition - always exists, never null
   sdcpn: SDCPN;
   setSDCPN: (sdcpn: SDCPN) => void;
-
-  // Token types - not part of SDCPN core type but needed for visualization
-  tokenTypes: TokenType[];
-  setTokenTypes: (tokenTypes: TokenType[]) => void;
-
-  // Callback to load a different net by ID
-  loadPetriNet: ((petriNetId: string) => void) | null;
-  setLoadPetriNet: (
-    loadPetriNet: ((petriNetId: string) => void) | null,
-  ) => void;
 
   // Granular update methods
   updatePlace: (placeId: string, updates: Partial<Place>) => void;
@@ -78,14 +67,6 @@ export const useSDCPNStore = create<SDCPNState>()(
     (set, get) => ({
       sdcpn: emptySDCPN,
       setSDCPN: (sdcpn) => set({ sdcpn }, false, "setSDCPN"),
-
-      tokenTypes: [],
-      setTokenTypes: (tokenTypes) =>
-        set({ tokenTypes }, false, "setTokenTypes"),
-
-      loadPetriNet: null,
-      setLoadPetriNet: (loadPetriNet) =>
-        set({ loadPetriNet }, false, "setLoadPetriNet"),
 
       // Place operations
       updatePlace: (placeId, updates) =>
