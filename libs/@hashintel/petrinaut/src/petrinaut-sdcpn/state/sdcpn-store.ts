@@ -339,7 +339,9 @@ export const useSDCPNStore = create<SDCPNState>()(
 
             // Update transition positions
             newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
-              const position = positions.find((pos) => pos.id === transition.id);
+              const position = positions.find(
+                (pos) => pos.id === transition.id,
+              );
               if (position) {
                 return { ...transition, x: position.x, y: position.y };
               }
