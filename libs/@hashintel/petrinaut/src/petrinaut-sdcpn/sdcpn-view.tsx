@@ -3,10 +3,7 @@ import "reactflow/dist/style.css";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Connection, NodeChange, ReactFlowInstance } from "reactflow";
-import ReactFlow, {
-  Background,
-  ConnectionLineType,
-} from "reactflow";
+import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 
 import { applyNodeChanges } from "./apply-node-changes";
 import { Arc } from "./arc";
@@ -36,14 +33,10 @@ type SDCPNViewProps = {
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
- * 
+ *
  * Note: Requires ReactFlowProvider to be present in a parent component.
  */
-export const SDCPNView = ({
-  nodes,
-  arcs,
-  onPaneClick,
-}: SDCPNViewProps) => {
+export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
   // SDCPN store
