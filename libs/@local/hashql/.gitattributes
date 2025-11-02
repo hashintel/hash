@@ -1,2 +1,3 @@
 *.stdout linguist-generated=true
 *.stderr linguist-generated=true
+tests/**/*.svg linguist-generated=true
