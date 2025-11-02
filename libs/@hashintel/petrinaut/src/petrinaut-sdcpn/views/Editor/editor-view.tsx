@@ -18,12 +18,10 @@ export const EditorView: React.FC = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
   // Get data from sdcpn-store
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
+  const title = useSDCPNStore((state) => state.sdcpn.title);
   const updateTitle = useSDCPNStore((state) => state.updateTitle);
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
   const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
-
-  const title = sdcpn.title;
 
   function handleLoadExample() {
     setSDCPN(exampleSDCPN);
