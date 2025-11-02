@@ -21,7 +21,6 @@ export const sdcpnToReactFlow = (
       data: {
         label: place.name,
         type: "place",
-        initialTokenCounts: {},
       },
     });
   }
@@ -90,12 +89,5 @@ export const sdcpnToReactFlow = (
   return {
     nodes,
     arcs,
-    tokenTypes: existingPetriNet?.tokenTypes ?? [
-      {
-        id: "default",
-        name: "Token",
-        color: "#4A90E2",
-      },
-    ],
   };
 };
