@@ -11,6 +11,8 @@ import { FloatingTitle } from "./components/floating-title";
 import { HamburgerMenu } from "./components/hamburger-menu";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/properties-panel";
+import { loadSDCPN } from "./lib/load-sdcpn";
+import { saveSDCPN } from "./lib/save-sdcpn";
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -20,6 +22,7 @@ export const EditorView: React.FC = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
   // Get data from sdcpn-store
+  const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const title = useSDCPNStore((state) => state.sdcpn.title);
   const updateTitle = useSDCPNStore((state) => state.updateTitle);
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
@@ -36,6 +39,17 @@ export const EditorView: React.FC = () => {
       transitions: [],
     });
     clearSelection();
+  }
+
+  function handleSave() {
+    saveSDCPN(sdcpn);
+  }
+
+  function handleLoad() {
+    loadSDCPN((loadedSDCPN) => {
+      setSDCPN(loadedSDCPN);
+      clearSelection();
+    });
   }
 
   function handleLoadExample() {
@@ -74,29 +88,19 @@ export const EditorView: React.FC = () => {
                   onClick: handleNew,
                 },
                 {
-                  id: "open",
-                  label: "Open",
-                  onClick: () => {},
+                  id: "load",
+                  label: "Load",
+                  onClick: handleLoad,
+                },
+                {
+                  id: "save",
+                  label: "Save",
+                  onClick: handleSave,
                 },
                 {
                   id: "layout",
                   label: "Layout",
                   onClick: layoutGraph,
-                },
-                {
-                  id: "save",
-                  label: "Save",
-                  onClick: () => {},
-                },
-                {
-                  id: "export",
-                  label: "Export",
-                  onClick: () => {},
-                },
-                {
-                  id: "import",
-                  label: "Import",
-                  onClick: () => {},
                 },
                 {
                   id: "load-example",
