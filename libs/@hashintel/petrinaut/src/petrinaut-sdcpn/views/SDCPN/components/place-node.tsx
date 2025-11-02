@@ -4,7 +4,7 @@ import { Handle, type NodeProps, Position } from "reactflow";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling, placeStyling } from "../styles/styling";
 
-export const PlaceNode = ({
+export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   data,
   isConnectable,
 }: NodeProps<PlaceNodeData>) => {

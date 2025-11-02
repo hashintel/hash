@@ -1,19 +1,18 @@
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
-import { useCallback } from "react";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
-export const BottomBar = () => {
-  const onDragStart = useCallback(
-    (event: DragEvent<HTMLDivElement>, nodeType: "place" | "transition") => {
-      event.dataTransfer.setData("application/reactflow", nodeType);
+export const BottomBar: React.FC = () => {
+  function onDragStart(
+    event: DragEvent<HTMLDivElement>,
+    nodeType: "place" | "transition",
+  ) {
+    event.dataTransfer.setData("application/reactflow", nodeType);
 
-      // eslint-disable-next-line no-param-reassign
-      event.dataTransfer.effectAllowed = "move";
-    },
-    [],
-  );
+    // eslint-disable-next-line no-param-reassign
+    event.dataTransfer.effectAllowed = "move";
+  }
 
   const iconContainerStyle = css({
     cursor: "grab",

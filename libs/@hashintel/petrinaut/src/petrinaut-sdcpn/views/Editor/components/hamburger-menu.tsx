@@ -6,7 +6,7 @@ export interface HamburgerMenuProps {
   menuItems: MenuItem[];
 }
 
-export const HamburgerMenu = ({ menuItems }: HamburgerMenuProps) => {
+export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ menuItems }) => {
   return (
     <Menu
       trigger={

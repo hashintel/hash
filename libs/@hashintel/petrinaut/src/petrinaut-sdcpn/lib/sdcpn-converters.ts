@@ -4,10 +4,10 @@ import type { NodeType, PetriNetDefinitionObject } from "../state/types-for-edit
 /**
  * Convert an SDCPN to ReactFlow representation (nodes and edges)
  */
-export const sdcpnToReactFlow = (
+export function sdcpnToReactFlow(
   sdcpn: SDCPN,
   existingPetriNet?: PetriNetDefinitionObject,
-): PetriNetDefinitionObject => {
+): PetriNetDefinitionObject {
   const nodes: NodeType[] = [];
 
   // Create place nodes
@@ -90,4 +90,4 @@ export const sdcpnToReactFlow = (
     nodes,
     arcs,
   };
-};
+}

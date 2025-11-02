@@ -7,7 +7,10 @@ export interface ModeSelectorProps {
   onChange: (mode: "edit" | "simulate") => void;
 }
 
-export const ModeSelector = ({ mode, onChange }: ModeSelectorProps) => {
+export const ModeSelector: React.FC<ModeSelectorProps> = ({
+  mode,
+  onChange,
+}) => {
   const options = [
     { name: "Edit", value: "edit" },
     { name: "Simulate", value: "simulate" },

@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import { useEditorStore } from "../state/editor-store";
 import type { NodeType } from "../state/types-for-editor-to-remove";
 
@@ -11,23 +9,21 @@ import type { NodeType } from "../state/types-for-editor-to-remove";
  * @param nodes - The nodes from the Petri Net definition
  * @returns Nodes with dragging state folded in
  */
-export const useNodesWithDraggingState = (nodes: NodeType[]) => {
+export function useNodesWithDraggingState(nodes: NodeType[]) {
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
 
-  return useMemo(() => {
-    return nodes.map((node) => {
-      const draggingState = draggingStateByNodeId[node.id];
+  return nodes.map((node) => {
+    const draggingState = draggingStateByNodeId[node.id];
 
-      return {
-        ...node,
-        // Fold in dragging state (the consumer isn't aware of it, as it's a transient property)
-        dragging: draggingState?.dragging ?? false,
-        position: draggingState?.dragging
-          ? draggingState.position
-          : node.position,
-      };
-    });
-  }, [nodes, draggingStateByNodeId]);
-};
+    return {
+      ...node,
+      // Fold in dragging state (the consumer isn't aware of it, as it's a transient property)
+      dragging: draggingState?.dragging ?? false,
+      position: draggingState?.dragging
+        ? draggingState.position
+        : node.position,
+    };
+  });
+}

@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
  * PropertiesPanel displays properties and controls for the selected node/edge.
  * Currently shows a placeholder while being developed.
  */
-export const PropertiesPanel = () => {
+export const PropertiesPanel: React.FC = () => {
   return (
     <div
       style={{

@@ -6,7 +6,7 @@ export interface FloatingTitleProps {
   placeholder?: string;
 }
 
-export const FloatingTitle = ({
+export const FloatingTitle: React.FC<FloatingTitleProps> = ({
   value,
   onChange,
   placeholder = "Process",
