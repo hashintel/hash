@@ -19,7 +19,7 @@ import { BottomBar } from "./components/bottom-bar";
 import { FloatingTitle } from "./components/floating-title";
 import { HamburgerMenu } from "./components/hamburger-menu";
 import { ModeSelector } from "./components/mode-selector";
-import { exampleSDCPN } from "./examples";
+import { exampleSDCPN } from "./examples/example";
 import { generateUuid } from "./lib/generate-uuid";
 import { petriNetToSDCPN, sdcpnToPetriNet } from "./lib/sdcpn-converters";
 import { PlaceNode } from "./place-node";
