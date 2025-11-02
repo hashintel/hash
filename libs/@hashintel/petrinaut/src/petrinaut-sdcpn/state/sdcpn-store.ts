@@ -1,9 +1,8 @@
-import type { ReactFlowInstance } from "reactflow";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
-import type { ArcData, NodeData, TokenType } from "../types";
+import type { TokenType } from "../types";
 
 const emptySDCPN: SDCPN = {
   id: "empty",
@@ -64,17 +63,11 @@ type SDCPNState = {
   ) => void;
 
   updateTitle: (title: string) => void;
-
-  // ReactFlow instance - controls the visual representation
-  reactFlowInstance: ReactFlowInstance<NodeData, ArcData> | null;
-  setReactFlowInstance: (
-    instance: ReactFlowInstance<NodeData, ArcData> | null,
-  ) => void;
 };
 
 /**
- * Zustand store for managing the SDCPN definition and its visual representation.
- * This stores the core SDCPN model along with the ReactFlow instance that displays it.
+ * Zustand store for managing the SDCPN definition.
+ * This stores the core SDCPN model without any UI-specific state.
  */
 export const useSDCPNStore = create<SDCPNState>()(
   devtools(
@@ -314,11 +307,6 @@ export const useSDCPNStore = create<SDCPNState>()(
           false,
           "updateTitle",
         ),
-
-      // ReactFlow instance
-      reactFlowInstance: null,
-      setReactFlowInstance: (instance) =>
-        set({ reactFlowInstance: instance }, false, "setReactFlowInstance"),
     }),
     { name: "SDCPN Store" },
   ),

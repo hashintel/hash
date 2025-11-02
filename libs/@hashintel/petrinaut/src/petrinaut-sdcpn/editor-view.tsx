@@ -9,70 +9,36 @@ import { HamburgerMenu } from "./components/hamburger-menu";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/properties-panel";
 import { exampleSDCPN } from "./examples/example";
-import { sdcpnToPetriNet } from "./lib/sdcpn-converters";
-import { useEditorStore } from "./state/mod";
-import type { ArcType, NodeType, PetriNetDefinitionObject } from "./types";
+import { sdcpnToReactFlow } from "./lib/sdcpn-converters";
+import { useSDCPNStore } from "./state/mod";
 import { useLayoutGraph } from "./use-layout-graph";
 import { SDCPNView } from "./views/sdcpn-view";
-
-type EditorViewProps = {
-  /**
-   * Whether to hide controls relating to net loading, creation and title setting.
-   */
-  hideNetManagementControls: boolean;
-  /**
-   * Create a new net and load it into the editor.
-   */
-  createNewNet: (params: {
-    petriNetDefinition: PetriNetDefinitionObject;
-    title: string;
-  }) => void;
-  /**
-   * The title of the net which is currently loaded.
-   */
-  title: string;
-  /**
-   * Set the title of the net which is currently loaded.
-   */
-  setTitle: (title: string) => void;
-  /**
-   * Nodes in PetriNetDefinitionObject format (for backward compatibility)
-   */
-  nodes: NodeType[];
-  /**
-   * Arcs in PetriNetDefinitionObject format (for backward compatibility)
-   */
-  arcs: ArcType[];
-};
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = ({
-  hideNetManagementControls,
-  createNewNet,
-  title,
-  setTitle,
-  nodes,
-  arcs,
-}: EditorViewProps) => {
+export const EditorView = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  // Get data from sdcpn-store
+  const sdcpn = useSDCPNStore((state) => state.sdcpn);
+  const updateTitle = useSDCPNStore((state) => state.updateTitle);
+  const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
+  const setTokenTypes = useSDCPNStore((state) => state.setTokenTypes);
+
   const layoutGraph = useLayoutGraph();
 
-  const handlePaneClick = useCallback(() => {
-    clearSelection();
-  }, [clearSelection]);
+  // Convert SDCPN to ReactFlow format for visualization
+  const petriNetDefinition = sdcpnToReactFlow(sdcpn);
+  const { nodes, arcs } = petriNetDefinition;
+  const title = sdcpn.title;
 
   const handleLoadExample = useCallback(() => {
-    const petriNetDef = sdcpnToPetriNet(exampleSDCPN);
-    createNewNet({
-      petriNetDefinition: petriNetDef,
-      title: exampleSDCPN.title,
-    });
-  }, [createNewNet]);
+    setSDCPN(exampleSDCPN);
+    // Assuming exampleSDCPN has tokenTypes, or use empty array as fallback
+    setTokenTypes([]);
+  }, [setSDCPN, setTokenTypes]);
 
   return (
     <Stack sx={{ height: "100%" }}>
@@ -85,82 +51,78 @@ export const EditorView = ({
           }}
         >
           {/* Floating Hamburger Menu - Top Left */}
-          {!hideNetManagementControls && (
-            <div
-              style={{
-                position: "absolute",
-                top: "24px",
-                left: "24px",
-                zIndex: 1000,
-              }}
-            >
-              <HamburgerMenu
-                menuItems={[
-                  {
-                    id: "new",
-                    label: "New",
-                    onClick: () => {},
+          <div
+            style={{
+              position: "absolute",
+              top: "24px",
+              left: "24px",
+              zIndex: 1000,
+            }}
+          >
+            <HamburgerMenu
+              menuItems={[
+                {
+                  id: "new",
+                  label: "New",
+                  onClick: () => {},
+                },
+                {
+                  id: "open",
+                  label: "Open",
+                  onClick: () => {},
+                },
+                {
+                  id: "layout",
+                  label: "Layout",
+                  onClick: () => {
+                    layoutGraph({
+                      nodes,
+                      arcs,
+                      animationDuration: 200,
+                    });
                   },
-                  {
-                    id: "open",
-                    label: "Open",
-                    onClick: () => {},
+                },
+                {
+                  id: "save",
+                  label: "Save",
+                  onClick: () => {},
+                },
+                {
+                  id: "export",
+                  label: "Export",
+                  onClick: () => {},
+                },
+                {
+                  id: "import",
+                  label: "Import",
+                  onClick: () => {},
+                },
+                {
+                  id: "load-example",
+                  label: "Load Example",
+                  onClick: () => {
+                    handleLoadExample();
                   },
-                  {
-                    id: "layout",
-                    label: "Layout",
-                    onClick: () => {
-                      layoutGraph({
-                        nodes,
-                        arcs,
-                        animationDuration: 200,
-                      });
-                    },
-                  },
-                  {
-                    id: "save",
-                    label: "Save",
-                    onClick: () => {},
-                  },
-                  {
-                    id: "export",
-                    label: "Export",
-                    onClick: () => {},
-                  },
-                  {
-                    id: "import",
-                    label: "Import",
-                    onClick: () => {},
-                  },
-                  {
-                    id: "load-example",
-                    label: "Load Example",
-                    onClick: () => {
-                      handleLoadExample();
-                    },
-                  },
-                ]}
-              />
-            </div>
-          )}
+                },
+              ]}
+            />
+          </div>
 
           {/* Floating Title - Top Left (after hamburger) */}
-          {!hideNetManagementControls && (
-            <div
-              style={{
-                position: "absolute",
-                top: "24px",
-                left: "80px",
-                zIndex: 1000,
-              }}
-            >
-              <FloatingTitle
-                value={title}
-                onChange={setTitle}
-                placeholder="Process"
-              />
-            </div>
-          )}
+          <div
+            style={{
+              position: "absolute",
+              top: "24px",
+              left: "80px",
+              zIndex: 1000,
+            }}
+          >
+            <FloatingTitle
+              value={title}
+              onChange={updateTitle}
+              placeholder="Process"
+            />
+          </div>
 
           {/* Floating Mode Selector - Top Center */}
           <div
@@ -179,7 +141,7 @@ export const EditorView = ({
           <PropertiesPanel />
 
           {/* SDCPN Visualization */}
-          <SDCPNView nodes={nodes} arcs={arcs} onPaneClick={handlePaneClick} />
+          <SDCPNView />
 
           <BottomBar />
         </Box>
