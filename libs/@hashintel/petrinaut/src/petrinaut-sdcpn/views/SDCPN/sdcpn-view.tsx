@@ -6,7 +6,6 @@ import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, {
   Background,
   ConnectionLineType,
-  ReactFlowProvider,
 } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
@@ -27,7 +26,7 @@ const SNAP_GRID_SIZE = 15;
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
  */
-const SDCPNViewInner: React.FC = () => {
+export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
     NodeData,
@@ -212,13 +211,5 @@ const SDCPNViewInner: React.FC = () => {
         <Background gap={SNAP_GRID_SIZE} size={1} />
       </ReactFlow>
     </div>
-  );
-};
-
-export const SDCPNView: React.FC = () => {
-  return (
-    <ReactFlowProvider>
-      <SDCPNViewInner />
-    </ReactFlowProvider>
   );
 };
