@@ -17,8 +17,8 @@ use tracing::instrument;
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
     Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
-    OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table,
-    Transpile as _, WhereExpression, WindowStatement, WithExpression,
+    PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
+    WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
@@ -104,24 +104,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
-            statement: SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: Vec::new(),
-                from: Some(
-                    FromItem::table(R::base_table())
-                        .alias(R::base_table().aliased(Alias {
-                            condition_index: 0,
-                            chain_depth: 0,
-                            number: 0,
-                        }))
-                        .build(),
-                ),
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+            statement: SelectStatement::builder()
+                .selects(Vec::new())
+                .from(
+                    FromItem::table(R::base_table()).alias(R::base_table().aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    })),
+                )
+                .build(),
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
@@ -595,41 +587,38 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        let subquery = SelectStatement {
-                            with: WithExpression::default(),
-                            distinct: vec![],
-                            selects: select_columns
-                                .iter()
-                                .map(|&column| SelectExpression::Expression {
-                                    expression: Expression::ColumnReference(column.into()),
-                                    alias: None,
-                                })
-                                .chain(once(SelectExpression::Expression {
-                                    expression: Expression::Function(Function::Min(Box::new(
-                                        Expression::CosineDistance(
-                                            Box::new(Expression::ColumnReference(
-                                                embeddings_column.into(),
+                        **last_from = FromItem::subquery(
+                            SelectStatement::builder()
+                                .selects(
+                                    select_columns
+                                        .iter()
+                                        .map(|&column| SelectExpression::Expression {
+                                            expression: Expression::ColumnReference(column.into()),
+                                            alias: None,
+                                        })
+                                        .chain(once(SelectExpression::Expression {
+                                            expression: Expression::Function(Function::Min(
+                                                Box::new(Expression::CosineDistance(
+                                                    Box::new(Expression::ColumnReference(
+                                                        embeddings_column.into(),
+                                                    )),
+                                                    Box::new(parameter_expression),
+                                                )),
                                             )),
-                                            Box::new(parameter_expression),
-                                        ),
-                                    ))),
-                                    alias: Some("distance"),
-                                }))
-                                .collect(),
-                            from: Some(FromItem::table(embeddings_table).build()),
-                            where_expression: WhereExpression::default(),
-                            order_by_expression: OrderByExpression::default(),
-                            group_by_expression: GroupByExpression {
-                                expressions: select_columns
-                                    .iter()
-                                    .map(|&column| Expression::ColumnReference(column.into()))
-                                    .collect(),
-                            },
-                            limit: None,
-                        };
-                        **last_from = FromItem::subquery(subquery)
-                            .alias(last_reference_table.clone())
-                            .build();
+                                            alias: Some("distance"),
+                                        }))
+                                        .collect(),
+                                )
+                                .from(FromItem::table(embeddings_table))
+                                .group_by_expression(GroupByExpression {
+                                    expressions: select_columns
+                                        .iter()
+                                        .map(|&column| Expression::ColumnReference(column.into()))
+                                        .collect(),
+                                }),
+                        )
+                        .alias(last_reference_table.clone())
+                        .build();
                     }
 
                     self.statement.order_by_expression.insert_front(
@@ -732,10 +721,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         // Add a WITH expression selecting the partitioned version
         self.statement.with.add_statement(
             Table::OntologyIds,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![
+            SelectStatement::builder()
+                .selects(vec![
                     SelectExpression::Asterisk(None),
                     SelectExpression::Expression {
                         expression: Expression::Window(
@@ -748,17 +735,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         ),
                         alias: Some("latest_version"),
                     },
-                ],
-                from: Some(
+                ])
+                .from(
                     FromItem::table(version_column.table())
                         .alias(version_column.table().aliased(alias))
                         .build(),
-                ),
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                )
+                .build(),
         );
 
         let alias = self.add_join_statements(path);

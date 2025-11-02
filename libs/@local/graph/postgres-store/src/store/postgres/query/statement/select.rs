@@ -5,14 +5,21 @@ use crate::store::postgres::query::{
     expression::{FromItem, GroupByExpression, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, bon::Builder)]
+#[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
+    #[builder(default)]
     pub with: WithExpression,
+    #[builder(default)]
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
+    #[builder(into)]
     pub from: Option<FromItem<'static>>,
+    #[builder(default)]
     pub where_expression: WhereExpression,
+    #[builder(default)]
     pub order_by_expression: OrderByExpression,
+    #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
 }

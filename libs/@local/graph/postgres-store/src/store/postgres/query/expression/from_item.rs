@@ -270,8 +270,8 @@ impl<'id> FromItem<'id> {
     ///
     /// See [`FromItemSubqueryBuilder`] for available options.
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
-    pub const fn subquery(
-        #[builder(start_fn, into)] statement: Box<SelectStatement>,
+    pub fn subquery(
+        #[builder(start_fn, into)] statement: SelectStatement,
         alias: Option<TableReference<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
@@ -279,7 +279,7 @@ impl<'id> FromItem<'id> {
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Subquery {
-            statement,
+            statement: Box::new(statement),
             alias,
             column_alias,
             lateral,
@@ -706,10 +706,10 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Expression, ForeignKeyReference, OrderByExpression, Table,
+        Alias, Expression, ForeignKeyReference, Table,
         expression::{
-            GroupByExpression, SelectExpression, TableName, TableReference, WhereExpression,
-            WithExpression, identifier::Identifier, table_sample::SamplingMethod,
+            SelectExpression, TableName, TableReference, identifier::Identifier,
+            table_sample::SamplingMethod,
         },
         table::{Column, DataTypes, OntologyIds},
     };
@@ -921,16 +921,10 @@ mod tests {
 
     #[test]
     fn transpile_subquery_with_column_aliases() {
-        let subquery = SelectStatement {
-            with: WithExpression::default(),
-            distinct: vec![],
-            selects: vec![SelectExpression::Asterisk(None)],
-            from: Some(FromItem::table(Table::OntologyIds).build()),
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-            group_by_expression: GroupByExpression::default(),
-            limit: None,
-        };
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
 
         let from_item = FromItem::subquery(subquery)
             .alias(TableReference {
@@ -957,16 +951,10 @@ mod tests {
 
     #[test]
     fn transpile_lateral_subquery() {
-        let subquery = SelectStatement {
-            with: WithExpression::default(),
-            distinct: vec![],
-            selects: vec![SelectExpression::Asterisk(None)],
-            from: Some(FromItem::table(Table::OntologyIds).build()),
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-            group_by_expression: GroupByExpression::default(),
-            limit: None,
-        };
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
 
         let base = FromItem::table(Table::DataTypes).build();
 
@@ -1223,16 +1211,10 @@ mod tests {
             alias: None,
         };
 
-        let subquery = SelectStatement {
-            with: WithExpression::default(),
-            distinct: vec![],
-            selects: vec![SelectExpression::Asterisk(None)],
-            from: Some(FromItem::table(Table::OntologyIds).build()),
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-            group_by_expression: GroupByExpression::default(),
-            limit: None,
-        };
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
 
         // Subquery with alias
         assert_eq!(

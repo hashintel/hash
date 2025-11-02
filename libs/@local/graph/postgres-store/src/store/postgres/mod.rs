@@ -74,6 +74,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use self::query::{Expression, SelectExpression, SelectStatement, Transpile};
 pub use self::{
     pool::{AsClient, PostgresStorePool},
     traversal_context::TraversalContext,

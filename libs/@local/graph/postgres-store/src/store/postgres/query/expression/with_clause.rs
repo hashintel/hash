@@ -57,8 +57,8 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, SelectExpression, SelectStatement, WhereExpression,
-        expression::{FromItem, GroupByExpression, OrderByExpression},
+        Alias, SelectExpression, SelectStatement,
+        expression::FromItem,
         test_helper::{max_version_expression, trim_whitespace},
     };
 
@@ -69,30 +69,22 @@ mod tests {
 
         with_clause.add_statement(
             Table::OntologyIds,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![
+            SelectStatement::builder()
+                .selects(vec![
                     SelectExpression::Asterisk(None),
                     SelectExpression::Expression {
                         expression: max_version_expression(),
                         alias: Some("latest_version"),
                     },
-                ],
-                from: Some(
-                    FromItem::table(Table::OntologyIds)
-                        .alias(Table::OntologyIds.aliased(Alias {
-                            condition_index: 0,
-                            chain_depth: 0,
-                            number: 0,
-                        }))
-                        .build(),
-                ),
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                ])
+                .from(
+                    FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(Alias {
+                        condition_index: 0,
+                        chain_depth: 0,
+                        number: 0,
+                    })),
+                )
+                .build(),
         );
 
         assert_eq!(
@@ -105,24 +97,16 @@ mod tests {
 
         with_clause.add_statement(
             Table::DataTypes,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![SelectExpression::Asterisk(None)],
-                from: Some(
-                    FromItem::table(Table::DataTypes)
-                        .alias(Table::DataTypes.aliased(Alias {
-                            condition_index: 3,
-                            chain_depth: 4,
-                            number: 5,
-                        }))
-                        .build(),
-                ),
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+            SelectStatement::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(
+                    FromItem::table(Table::DataTypes).alias(Table::DataTypes.aliased(Alias {
+                        condition_index: 3,
+                        chain_depth: 4,
+                        number: 5,
+                    })),
+                )
+                .build(),
         );
 
         assert_eq!(
