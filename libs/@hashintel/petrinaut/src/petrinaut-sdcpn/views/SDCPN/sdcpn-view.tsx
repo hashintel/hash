@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
@@ -52,14 +52,6 @@ export const SDCPNView: React.FC = () => {
 
   // Editor state
   const clearSelection = useEditorStore((state) => state.clearSelection);
-  const resetDraggingState = useEditorStore(
-    (state) => state.resetDraggingState,
-  );
-
-  // Reset dragging state when nodes change
-  useEffect(() => {
-    resetDraggingState();
-  }, [nodes, resetDraggingState]);
 
   function onEdgesChange() {
     /**
