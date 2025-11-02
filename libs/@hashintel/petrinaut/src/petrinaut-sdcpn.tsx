@@ -20,7 +20,6 @@ import { BottomBar } from "./petrinaut-sdcpn/components/bottom-bar";
 import { FloatingTitle } from "./petrinaut-sdcpn/components/floating-title";
 import { HamburgerMenu } from "./petrinaut-sdcpn/components/hamburger-menu";
 import { ModeSelector } from "./petrinaut-sdcpn/components/mode-selector";
-import { createArc } from "./petrinaut-sdcpn/create-arc";
 import {
   EditorContextProvider,
   type MutatePetriNetDefinition,
@@ -28,10 +27,12 @@ import {
 } from "./petrinaut-sdcpn/editor-context";
 import { exampleCPN } from "./petrinaut-sdcpn/examples";
 import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
+import { petriNetToSDCPN } from "./petrinaut-sdcpn/lib/sdcpn-converters";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import {
   useEditorStore,
   useNodesWithDraggingState,
+  useSDCPNStore,
 } from "./petrinaut-sdcpn/state/mod";
 import { nodeDimensions } from "./petrinaut-sdcpn/styling";
 import { TransitionNode } from "./petrinaut-sdcpn/transition-node";
@@ -77,21 +78,28 @@ const PetrinautInner = ({
 }: { hideNetManagementControls: boolean }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
 
-  const {
-    createNewNet,
-    petriNetDefinition,
-    mutatePetriNetDefinition,
-    setTitle,
-    title,
-  } = useEditorContext();
+  const { createNewNet, petriNetDefinition, setTitle, title, petriNetId } =
+    useEditorContext();
 
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
-  // Zustand store selectors
-  const reactFlowInstance = useEditorStore((state) => state.reactFlowInstance);
-  const setReactFlowInstance = useEditorStore(
+  // SDCPN store
+  const reactFlowInstance = useSDCPNStore((state) => state.reactFlowInstance);
+  const setReactFlowInstance = useSDCPNStore(
     (state) => state.setReactFlowInstance,
   );
+  const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
+  const updatePlacePosition = useSDCPNStore(
+    (state) => state.updatePlacePosition,
+  );
+  const updateTransitionPosition = useSDCPNStore(
+    (state) => state.updateTransitionPosition,
+  );
+  const addPlace = useSDCPNStore((state) => state.addPlace);
+  const addTransition = useSDCPNStore((state) => state.addTransition);
+  const addArc = useSDCPNStore((state) => state.addArc);
+
+  // Editor store (UI state only)
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
@@ -102,6 +110,16 @@ const PetrinautInner = ({
     (state) => state.resetDraggingState,
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
+
+  // Initialize SDCPN from petriNetDefinition when it changes
+  useEffect(() => {
+    const newSDCPN = petriNetToSDCPN(
+      petriNetDefinition,
+      petriNetId ?? "unknown",
+      title,
+    );
+    setSDCPN(newSDCPN);
+  }, [petriNetId, petriNetDefinition, title, setSDCPN]);
 
   const nodesForReactFlow = useNodesWithDraggingState(petriNetDefinition.nodes);
 
@@ -136,14 +154,16 @@ const PetrinautInner = ({
       applyNodeChanges({
         changes,
         draggingStateByNodeId,
-        mutatePetriNetDefinition,
+        updatePlacePosition,
+        updateTransitionPosition,
         updateDraggingStateByNodeId,
       });
     },
     [
       draggingStateByNodeId,
       updateDraggingStateByNodeId,
-      mutatePetriNetDefinition,
+      updatePlacePosition,
+      updateTransitionPosition,
     ],
   );
 
@@ -178,36 +198,37 @@ const PetrinautInner = ({
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (isValidConnection(connection)) {
-        const newArc: ArcType = {
-          ...connection,
-          id: `arc__${connection.source}-${connection.target}`,
-          source: connection.source ?? "",
-          target: connection.target ?? "",
-          type: "default",
-          data: {
-            tokenWeights: { [petriNetDefinition.tokenTypes[0]!.id]: 1 },
-          },
-          interactionWidth: 8,
-        };
+      if (!isValidConnection(connection)) {
+        return;
+      }
 
-        const addedArc = createArc(newArc, petriNetDefinition.arcs);
+      const source = connection.source ?? "";
+      const target = connection.target ?? "";
 
-        if (!addedArc) {
-          return;
-        }
+      const sourceNode = petriNetDefinition.nodes.find(
+        (node) => node.id === source,
+      );
+      const targetNode = petriNetDefinition.nodes.find(
+        (node) => node.id === target,
+      );
 
-        mutatePetriNetDefinition((existingNet) => {
-          existingNet.arcs.push(addedArc);
-        });
+      if (!sourceNode || !targetNode) {
+        return;
+      }
+
+      // Determine direction: place->transition or transition->place
+      if (sourceNode.type === "place" && targetNode.type === "transition") {
+        // Input arc: place to transition
+        addArc(target, "input", source, 1);
+      } else if (
+        sourceNode.type === "transition" &&
+        targetNode.type === "place"
+      ) {
+        // Output arc: transition to place
+        addArc(source, "output", target, 1);
       }
     },
-    [
-      petriNetDefinition.arcs,
-      isValidConnection,
-      petriNetDefinition.tokenTypes,
-      mutatePetriNetDefinition,
-    ],
+    [isValidConnection, petriNetDefinition.nodes, addArc],
   );
 
   const onInit = useCallback(
@@ -243,27 +264,41 @@ const PetrinautInner = ({
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
 
-      const newNode: NodeType = {
-        id: `${nodeType}__${generateUuid()}`,
-        type: nodeType,
-        position,
-        ...nodeDimensions[nodeType],
-        data: {
-          label: `${nodeType} ${petriNetDefinition.nodes.length + 1}`,
-          ...(nodeType === "place"
-            ? {
-                type: "place",
-                tokenCounts: {},
-              }
-            : { type: "transition" }),
-        },
-      };
+      const id = `${nodeType}__${generateUuid()}`;
+      const label = `${nodeType} ${petriNetDefinition.nodes.length + 1}`;
 
-      mutatePetriNetDefinition((existingNet) => {
-        existingNet.nodes.push(newNode);
-      });
+      if (nodeType === "place") {
+        addPlace({
+          id,
+          name: label,
+          dimensions: 1,
+          differentialEquationCode: "",
+          x: position.x,
+          y: position.y,
+          width,
+          height,
+        });
+      } else {
+        addTransition({
+          id,
+          name: label,
+          inputArcs: [],
+          outputArcs: [],
+          lambdaCode: "",
+          transitionKernelCode: "",
+          x: position.x,
+          y: position.y,
+          width,
+          height,
+        });
+      }
     },
-    [reactFlowInstance, petriNetDefinition.nodes, mutatePetriNetDefinition],
+    [
+      reactFlowInstance,
+      petriNetDefinition.nodes.length,
+      addPlace,
+      addTransition,
+    ],
   );
 
   const layoutGraph = useLayoutGraph();

@@ -16,6 +16,8 @@ describe("buildSimulation", () => {
             dimensions: 2,
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            x: 0,
+            y: 0,
           },
         ],
         transitions: [],
@@ -73,6 +75,8 @@ describe("buildSimulation", () => {
             dimensions: 1,
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            x: 0,
+            y: 0,
           },
           {
             id: "p2",
@@ -80,6 +84,8 @@ describe("buildSimulation", () => {
             dimensions: 2,
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            x: 100,
+            y: 0,
           },
           {
             id: "p3",
@@ -87,6 +93,8 @@ describe("buildSimulation", () => {
             dimensions: 1,
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            x: 200,
+            y: 0,
           },
         ],
         transitions: [
@@ -98,6 +106,8 @@ describe("buildSimulation", () => {
             lambdaCode: "export default Lambda((tokens) => { return 1.0; });",
             transitionKernelCode:
               "export default TransitionKernel((tokens) => { return [[[1.0, 2.0]]]; });",
+            x: 50,
+            y: 0,
           },
           {
             id: "t2",
@@ -107,6 +117,8 @@ describe("buildSimulation", () => {
             lambdaCode: "export default Lambda((tokens) => { return 2.0; });",
             transitionKernelCode:
               "export default TransitionKernel((tokens) => { return [[[5.0]]]; });",
+            x: 150,
+            y: 0,
           },
         ],
       },
@@ -160,7 +172,7 @@ describe("buildSimulation", () => {
 
     // Verify buffer layout: [p1: 10, 20, 30 | p2: 1, 2]
     expect(frame.buffer).toEqual(
-      new Float64Array([10.0, 20.0, 30.0, 1.0, 2.0])
+      new Float64Array([10.0, 20.0, 30.0, 1.0, 2.0]),
     );
 
     // Verify transitions exist with initial state
@@ -195,6 +207,8 @@ describe("buildSimulation", () => {
             dimensions: 1,
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            x: 0,
+            y: 0,
           },
         ],
         transitions: [],
@@ -213,7 +227,7 @@ describe("buildSimulation", () => {
     };
 
     expect(() => buildSimulation(input)).toThrow(
-      "Place with ID p_nonexistent in initialMarking does not exist in SDCPN"
+      "Place with ID p_nonexistent in initialMarking does not exist in SDCPN",
     );
   });
 
@@ -229,6 +243,8 @@ describe("buildSimulation", () => {
             dimensions: 2, // Expects 2 dimensions per token
             differentialEquationCode:
               "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            x: 0,
+            y: 0,
           },
         ],
         transitions: [],
@@ -247,7 +263,7 @@ describe("buildSimulation", () => {
     };
 
     expect(() => buildSimulation(input)).toThrow(
-      "Token dimension mismatch for place p1. Expected 4 values (2 dimensions × 2 tokens), got 3"
+      "Token dimension mismatch for place p1. Expected 4 values (2 dimensions × 2 tokens), got 3",
     );
   });
 });

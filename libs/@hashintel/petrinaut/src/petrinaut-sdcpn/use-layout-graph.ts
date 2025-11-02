@@ -1,14 +1,19 @@
 import { useCallback } from "react";
 import { useReactFlow } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
 import { calculateGraphLayout } from "./lib/calculate-graph-layout";
+import { useSDCPNStore } from "./state/sdcpn-store";
 import type { ArcType, NodeType } from "./types";
 
 export const useLayoutGraph = () => {
   const { fitView } = useReactFlow();
 
-  const { mutatePetriNetDefinition } = useEditorContext();
+  const updatePlacePosition = useSDCPNStore(
+    (state) => state.updatePlacePosition,
+  );
+  const updateTransitionPosition = useSDCPNStore(
+    (state) => state.updateTransitionPosition,
+  );
 
   const layoutGraph = useCallback(
     ({
@@ -25,25 +30,13 @@ export const useLayoutGraph = () => {
       }
 
       void calculateGraphLayout({ nodes, arcs }).then((positions) => {
-        mutatePetriNetDefinition((petriNet) => {
-          const nodesById = petriNet.nodes.reduce(
-            (acc, node) => {
-              acc[node.id] = node;
-              return acc;
-            },
-            {} as Record<string, NodeType>,
-          );
-
-          for (const { x, y, id } of positions) {
-            const node = nodesById[id];
-
-            if (!node) {
-              continue;
-            }
-            node.position.x = x;
-            node.position.y = y;
+        for (const { x, y, id } of positions) {
+          if (id.startsWith("place__")) {
+            updatePlacePosition(id, x, y);
+          } else if (id.startsWith("transition__")) {
+            updateTransitionPosition(id, x, y);
           }
-        });
+        }
 
         setTimeout(
           () =>
@@ -58,7 +51,7 @@ export const useLayoutGraph = () => {
         );
       });
     },
-    [mutatePetriNetDefinition, fitView],
+    [updatePlacePosition, updateTransitionPosition, fitView],
   );
 
   return layoutGraph;

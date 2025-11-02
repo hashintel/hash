@@ -27,6 +27,8 @@ export const Arc = ({
   };
 }) => {
   const { petriNetDefinition } = useEditorContext();
+  // Note: We can use the SDCPN store in the future, but for now we still need petriNetDefinition for tokenTypes
+  // const sdcpn = useSDCPNStore((state) => state.sdcpn);
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
