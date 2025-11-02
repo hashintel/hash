@@ -1,5 +1,5 @@
 import { Box, Stack } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import { exampleSDCPN } from "../../examples/example";
 import { useSDCPNStore } from "../../state/sdcpn-store";
@@ -14,7 +14,7 @@ import { PropertiesPanel } from "./components/properties-panel";
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = () => {
+export const EditorView: React.FC = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
   // Get data from sdcpn-store
@@ -25,9 +25,9 @@ export const EditorView = () => {
 
   const title = sdcpn.title;
 
-  const handleLoadExample = useCallback(() => {
+  function handleLoadExample() {
     setSDCPN(exampleSDCPN);
-  }, [setSDCPN]);
+  }
 
   return (
     <Stack sx={{ height: "100%" }}>

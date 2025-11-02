@@ -1,6 +1,21 @@
 import { getBezierPath, type Position } from "reactflow";
 
-export const Arc = ({
+interface ArcProps {
+  id: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition: Position;
+  targetPosition: Position;
+  data?: {
+    tokenWeights: {
+      [tokenTypeId: string]: number;
+    };
+  };
+}
+
+export const Arc: React.FC<ArcProps> = ({
   id,
   sourceX,
   sourceY,

@@ -3,6 +3,6 @@ import "./index.css";
 
 import { EditorView } from "./views/Editor/editor-view";
 
-export const PetrinautSDCPN = () => {
+export const PetrinautSDCPN: React.FC = () => {
   return <EditorView />;
 };

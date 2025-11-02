@@ -14,7 +14,7 @@ export interface MenuProps {
   items: MenuItem[];
 }
 
-export const Menu = ({ trigger, items }: MenuProps) => {
+export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
   return (
     <ArkMenu.Root>
       <ArkMenu.Trigger asChild>{trigger}</ArkMenu.Trigger>
