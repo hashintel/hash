@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { exampleSDCPN } from "../../examples/example";
+import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/bottom-bar";
@@ -24,8 +25,22 @@ export const EditorView: React.FC = () => {
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
   const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
 
+  // Get editor store methods
+  const clearSelection = useEditorStore((state) => state.clearSelection);
+
+  function handleNew() {
+    setSDCPN({
+      id: `sdcpn-${Date.now()}`,
+      title: "Untitled",
+      places: [],
+      transitions: [],
+    });
+    clearSelection();
+  }
+
   function handleLoadExample() {
     setSDCPN(exampleSDCPN);
+    clearSelection();
   }
 
   return (
@@ -56,7 +71,7 @@ export const EditorView: React.FC = () => {
                 {
                   id: "new",
                   label: "New",
-                  onClick: () => {},
+                  onClick: handleNew,
                 },
                 {
                   id: "open",
