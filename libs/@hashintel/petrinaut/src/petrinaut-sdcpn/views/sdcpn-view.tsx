@@ -8,11 +8,11 @@ import ReactFlow, {
   ConnectionLineType,
   ReactFlowProvider,
 } from "reactflow";
+import { v4 as generateUuid } from "uuid";
 
 import { Arc } from "../arc";
 import { useApplyNodeChanges } from "../hooks/use-apply-node-changes";
 import { useNodesWithDraggingState } from "../hooks/use-nodes-with-dragging-state";
-import { generateUuid } from "../lib/generate-uuid";
 import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
 import { PlaceNode } from "../place-node";
 import { useEditorStore } from "../state/editor-store";

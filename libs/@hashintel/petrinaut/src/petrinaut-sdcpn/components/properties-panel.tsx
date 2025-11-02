@@ -28,9 +28,9 @@ export const PropertiesPanel = () => {
         glassThickness={120}
         refractiveIndex={1.5}
         className={css({
-          height: "100%",
-          width: "320px",
-          backgroundColor: "rgba(255, 255, 255, 0.7)",
+          height: "[100%]",
+          width: "[320px]",
+          backgroundColor: "[rgba(255, 255, 255, 0.7)]",
           boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
           border: "1px solid rgba(255, 255, 255, 0.8)",
         })}
