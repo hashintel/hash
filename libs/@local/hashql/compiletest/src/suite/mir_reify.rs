@@ -1,3 +1,9 @@
+use std::{
+    io::{BufWriter, Write as _},
+    process::{Command, Stdio},
+    thread,
+};
+
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap, id::IdVec, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
@@ -113,8 +119,27 @@ impl Suite for MirReifySuite {
             return Ok(output);
         }
 
+        let mut child = Command::new("d2")
+            .args(["-l", "elk", "--stdout-format", "svg", "-"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("should be able to spawn d2");
+
+        let stdin = child.stdin.take().expect("should be able to take stdin");
+        let writer = BufWriter::new(stdin);
+
+        let handle = thread::spawn(move || {
+            // We cannot Sync/Send the actual bodies, so instead we create a thread to wait for the
+            // output.
+            child
+                .wait_with_output()
+                .expect("should be able to wait for d2")
+                .stdout
+        });
+
         let mut d2_format = D2Format {
-            writer: Vec::new(),
+            writer,
             sources: bodies.as_slice(),
             dataflow: (),
             buffer: D2Buffer::default(),
@@ -123,10 +148,13 @@ impl Suite for MirReifySuite {
             .format(&bodies, &[root])
             .expect("should be able to write bodies");
 
-        let d2_output = String::from_utf8_lossy_owned(d2_format.writer);
-        // TODO: pipe to D2
-        // secondary_outputs.insert("svg", output_yay)
+        d2_format.writer.flush().expect("should be able to flush");
+        drop(d2_format);
 
-        return Ok(output);
+        let diagram = handle.join().expect("should be able to join handle");
+        let diagram = String::from_utf8_lossy_owned(diagram);
+        secondary_outputs.insert("svg", diagram);
+
+        Ok(output)
     }
 }
