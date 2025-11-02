@@ -12,14 +12,10 @@ function testSkillActivation(prompt: string): string {
   });
 
   try {
-    return execSync('node skill-activation-prompt.ts', {
-      cwd: __dirname,
-      encoding: 'utf-8',
-      input: input,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    return execSync("node skill-activation-prompt.ts", {
       cwd: __dirname,
       encoding: "utf-8",
+      input,
       stdio: ["pipe", "pipe", "pipe"],
     });
   } catch {
