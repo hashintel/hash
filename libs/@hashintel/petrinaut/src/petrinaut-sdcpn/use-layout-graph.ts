@@ -5,7 +5,6 @@ import { useSDCPNStore } from "./state/sdcpn-store";
 import type { ArcType, NodeType } from "./types";
 
 export const useLayoutGraph = () => {
-  const reactFlowInstance = useSDCPNStore((state) => state.reactFlowInstance);
   const updatePlacePosition = useSDCPNStore(
     (state) => state.updatePlacePosition,
   );
@@ -17,11 +16,10 @@ export const useLayoutGraph = () => {
     ({
       nodes,
       arcs,
-      animationDuration,
     }: {
       nodes: NodeType[];
       arcs: ArcType[];
-      animationDuration: number;
+      animationDuration?: number;
     }) => {
       if (nodes.length === 0) {
         return;
@@ -35,23 +33,9 @@ export const useLayoutGraph = () => {
             updateTransitionPosition(id, x, y);
           }
         }
-
-        if (reactFlowInstance) {
-          setTimeout(
-            () =>
-              window.requestAnimationFrame(() =>
-                reactFlowInstance.fitView({
-                  duration: animationDuration,
-                  padding: 0.03,
-                  maxZoom: 1,
-                }),
-              ),
-            300,
-          );
-        }
       });
     },
-    [updatePlacePosition, updateTransitionPosition, reactFlowInstance],
+    [updatePlacePosition, updateTransitionPosition],
   );
 
   return layoutGraph;

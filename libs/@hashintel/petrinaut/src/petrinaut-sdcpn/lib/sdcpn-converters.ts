@@ -2,9 +2,9 @@ import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
 import type { NodeType, PetriNetDefinitionObject } from "../types";
 
 /**
- * Convert a PetriNetDefinitionObject (ReactFlow representation) to SDCPN format
+ * Convert a ReactFlow representation (PetriNetDefinitionObject) to SDCPN format
  */
-export const petriNetToSDCPN = (
+export const reactFlowToSDCPN = (
   petriNetDefinition: PetriNetDefinitionObject,
   id: string,
   title: string,
@@ -64,9 +64,9 @@ export const petriNetToSDCPN = (
 };
 
 /**
- * Convert an SDCPN to PetriNetDefinitionObject (ReactFlow representation)
+ * Convert an SDCPN to ReactFlow representation (nodes and edges)
  */
-export const sdcpnToPetriNet = (
+export const sdcpnToReactFlow = (
   sdcpn: SDCPN,
   existingPetriNet?: PetriNetDefinitionObject,
 ): PetriNetDefinitionObject => {

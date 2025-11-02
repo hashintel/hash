@@ -1,49 +1,38 @@
 import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Connection, NodeChange, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import ReactFlow, {
+  Background,
+  ConnectionLineType,
+  ReactFlowProvider,
+} from "reactflow";
 
 import { applyNodeChanges } from "../apply-node-changes";
 import { Arc } from "../arc";
 import { generateUuid } from "../lib/generate-uuid";
+import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
 import { PlaceNode } from "../place-node";
 import { useEditorStore, useNodesWithDraggingState } from "../state/mod";
 import { useSDCPNStore } from "../state/sdcpn-store";
 import { nodeDimensions } from "../styling";
 import { TransitionNode } from "../transition-node";
-import type { ArcData, ArcType, NodeData, NodeType } from "../types";
-
-type SDCPNViewProps = {
-  /**
-   * Nodes in PetriNetDefinitionObject format (for backward compatibility during transition)
-   */
-  nodes: NodeType[];
-  /**
-   * Arcs in PetriNetDefinitionObject format (for backward compatibility during transition)
-   */
-  arcs: ArcType[];
-  /**
-   * Callback when the pane (background) is clicked
-   */
-  onPaneClick?: () => void;
-};
+import type { ArcData, NodeData } from "../types";
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
- *
- * Note: Requires ReactFlowProvider to be present in a parent component.
  */
-export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
+const SDCPNViewInner = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
+    NodeData,
+    ArcData
+  > | null>(null);
 
   // SDCPN store
-  const reactFlowInstance = useSDCPNStore((state) => state.reactFlowInstance);
-  const setReactFlowInstance = useSDCPNStore(
-    (state) => state.setReactFlowInstance,
-  );
+  const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const updatePlacePosition = useSDCPNStore(
     (state) => state.updatePlacePosition,
   );
@@ -54,7 +43,13 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
 
+  // Convert SDCPN to ReactFlow format
+  // Memoize to prevent creating new objects on every render
+  const petriNetDefinition = useMemo(() => sdcpnToReactFlow(sdcpn), [sdcpn]);
+  const { nodes, arcs } = petriNetDefinition;
+
   // Editor state
+  const clearSelection = useEditorStore((state) => state.clearSelection);
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
@@ -86,13 +81,6 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
     }),
     [],
   );
-
-  // Set initial viewport when reactFlowInstance is available
-  useEffect(() => {
-    if (reactFlowInstance) {
-      reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 });
-    }
-  }, [reactFlowInstance]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -172,7 +160,7 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
     (instance: ReactFlowInstance<NodeData, ArcData>) => {
       setReactFlowInstance(instance);
     },
-    [setReactFlowInstance],
+    [],
   );
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
@@ -205,6 +193,7 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
       const label = `${nodeType} ${nodes.length + 1}`;
 
       if (nodeType === "place") {
+        // eslint-disable-next-line no-console
         console.log("Adding place", id, label, position);
         addPlace({
           id,
@@ -217,6 +206,7 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
           height,
         });
       } else {
+        // eslint-disable-next-line no-console
         console.log("Adding transition", id, label, position);
         addTransition({
           id,
@@ -236,10 +226,8 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
   );
 
   const handlePaneClick = useCallback(() => {
-    if (onPaneClick) {
-      onPaneClick();
-    }
-  }, [onPaneClick]);
+    clearSelection();
+  }, [clearSelection]);
 
   return (
     <div
@@ -271,5 +259,13 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
         <Background gap={15} size={1} />
       </ReactFlow>
     </div>
+  );
+};
+
+export const SDCPNView = () => {
+  return (
+    <ReactFlowProvider>
+      <SDCPNViewInner />
+    </ReactFlowProvider>
   );
 };
