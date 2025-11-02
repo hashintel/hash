@@ -244,6 +244,9 @@ impl fmt::Debug for FromItem<'_> {
 
 #[bon::bon]
 impl<'id> FromItem<'id> {
+    /// Creates a table FROM item.
+    ///
+    /// See [`FromItemTableBuilder`] for available options.
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
@@ -263,6 +266,9 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Creates a subquery FROM item.
+    ///
+    /// See [`FromItemSubqueryBuilder`] for available options.
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn subquery(
         #[builder(start_fn, into)] statement: Box<SelectStatement>,
@@ -280,6 +286,9 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Creates a function FROM item for set-returning functions.
+    ///
+    /// See [`FromItemFunctionBuilder`] for available options.
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn function(
         #[builder(start_fn, into)] function: Function,
@@ -299,6 +308,13 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Joins this FROM item with another.
+    ///
+    /// See [`FromItemJoinBuilder`] for available options. Use [`.on()`] for ON-condition joins
+    /// or [`.using()`] for USING-clause joins.
+    ///
+    /// [`.on()`]: FromItemJoinBuilder::on
+    /// [`.using()`]: FromItemJoinBuilder::using
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub fn join(
         self,
@@ -326,6 +342,7 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Creates a NATURAL JOIN using matching column names.
     pub fn natural_join(self, r#type: JoinType, from: impl Into<Self>) -> Self {
         Self::NaturalJoin {
             left: Box::new(self),
@@ -334,6 +351,7 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Creates a CROSS JOIN (cartesian product).
     pub fn cross_join(self, from: impl Into<Self>) -> Self {
         Self::CrossJoin {
             left: Box::new(self),
