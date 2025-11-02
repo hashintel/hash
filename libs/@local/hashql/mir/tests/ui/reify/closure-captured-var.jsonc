@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Closure with captured variable environment
 // The if boundary is needed here so that the optimizer doesn't thunk the answer
 [
   "if",

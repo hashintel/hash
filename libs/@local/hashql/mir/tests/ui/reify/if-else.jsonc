@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: If-else conditional control flow
 [
   "if",
   ["<=", { "#literal": 2 }, { "#literal": 3 }],

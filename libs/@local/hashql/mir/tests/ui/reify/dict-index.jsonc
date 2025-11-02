@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Dict element access by key
 [
   "let",
   "foo",

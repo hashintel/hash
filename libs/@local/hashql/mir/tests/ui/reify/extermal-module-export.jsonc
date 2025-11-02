@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Export external module symbol
+[
+  "let",
+  "x",
+  { "#literal": 2 },
+  "::graph::tmp::decision_time_now"
+  //~^ ERROR external modules are not supported
+]

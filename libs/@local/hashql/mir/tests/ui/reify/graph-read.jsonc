@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Graph read with entity filtering
 [
   "::graph::tail::collect",
   [

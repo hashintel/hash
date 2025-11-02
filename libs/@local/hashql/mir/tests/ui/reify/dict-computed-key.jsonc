@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Dict computed element key
 [
   "let",
   "foo",

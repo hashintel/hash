@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Tuple element access by index
 [
   "let",
   "foo",

@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Nested tuple element access chains
 [
   "let",
   "foo",

@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Type constructor invocation reification
 ["::core::uuid::Uuid", { "#literal": "54a3cf40-9674-4e96-9607-b7139125d700" }]

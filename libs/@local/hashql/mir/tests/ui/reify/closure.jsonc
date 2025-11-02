@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Closure definition and invocation
 [
   "let",
   "max",

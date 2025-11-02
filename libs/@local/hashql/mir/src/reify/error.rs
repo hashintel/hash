@@ -97,6 +97,7 @@ pub(crate) fn external_modules_unsupported(span: SpanId) -> ReifyDiagnostic<Crit
 }
 
 /// Creates a diagnostic for field index parsing errors
+#[coverage(off)] // reason: constructing a tuple with that magnitude is infeasible in a test-case (or ever really)
 pub(crate) fn field_index_too_large(span: SpanId, field_name: Symbol) -> ReifyDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ReifyDiagnosticCategory::FieldIndexError, Severity::Error).primary(

@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: TODO
+//@ description: Nested if-else conditional structures
 [
   "if",
   { "#literal": true },
