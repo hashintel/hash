@@ -1,5 +1,5 @@
 import type { SDCPN } from "../../core/types/sdcpn";
-import type { NodeType, PetriNetDefinitionObject } from "../types";
+import type { NodeType, PetriNetDefinitionObject } from "../state/types-for-editor-to-remove";
 
 /**
  * Convert an SDCPN to ReactFlow representation (nodes and edges)

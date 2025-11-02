@@ -1,14 +1,13 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { handleStyling, transitionStyling } from "./styling";
-import type { TransitionNodeData } from "./types";
+import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
+import { handleStyling, transitionStyling } from "../styles/styling";
 
 export const TransitionNode = ({
   data,
   isConnectable,
 }: NodeProps<TransitionNodeData>) => {
-  const { label, description } = data;
+  const { label } = data;
 
   return (
     <div
@@ -23,22 +22,7 @@ export const TransitionNode = ({
         isConnectable={isConnectable}
         style={handleStyling}
       />
-      <div className={transitionStyling}>
-        {label}
-
-        {description && (
-          <div
-            className={css({
-              fontSize: "[0.75rem]",
-              color: "core.gray.70",
-              mt: "spacing.2",
-              textAlign: "center",
-            })}
-          >
-            {description}
-          </div>
-        )}
-      </div>
+      <div className={transitionStyling}>{label}</div>
       <Handle
         type="source"
         position={Position.Right}
