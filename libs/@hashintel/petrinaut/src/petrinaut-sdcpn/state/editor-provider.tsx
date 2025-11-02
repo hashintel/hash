@@ -39,5 +39,3 @@ export function useEditorStore<T>(selector: (state: EditorState) => T): T {
 
   return useStore(store, selector);
 }
-
-
