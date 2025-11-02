@@ -18,12 +18,8 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ menuItems }) => {
             alignItems: "center",
             justifyContent: "center",
             padding: "spacing.3",
-            background: "[white]",
-            border: "1px solid",
-            borderColor: "core.gray.20",
-            borderRadius: "radius.8",
+            borderRadius: "radius.2",
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
             _hover: {
               backgroundColor: "core.gray.10",
             },

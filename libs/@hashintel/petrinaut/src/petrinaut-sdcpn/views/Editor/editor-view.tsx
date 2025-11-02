@@ -7,8 +7,7 @@ import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/bottom-bar";
-import { FloatingTitle } from "./components/floating-title";
-import { HamburgerMenu } from "./components/hamburger-menu";
+import { LeftSideBar } from "./components/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/properties-panel";
 import { loadSDCPN } from "./lib/load-sdcpn";
@@ -20,6 +19,7 @@ import { saveSDCPN } from "./lib/save-sdcpn";
  */
 export const EditorView: React.FC = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
 
   // Get data from sdcpn-store
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
@@ -67,59 +67,6 @@ export const EditorView: React.FC = () => {
             flexGrow: 1,
           }}
         >
-          {/* Floating Hamburger Menu - Top Left */}
-          <div
-            style={{
-              display: "flex",
-              position: "absolute",
-              top: "24px",
-              left: "24px",
-              zIndex: 1000,
-              gap: "16px",
-              flexDirection: "row",
-              justifyItems: "center",
-            }}
-          >
-            <HamburgerMenu
-              menuItems={[
-                {
-                  id: "new",
-                  label: "New",
-                  onClick: handleNew,
-                },
-                {
-                  id: "load",
-                  label: "Load",
-                  onClick: handleLoad,
-                },
-                {
-                  id: "save",
-                  label: "Save",
-                  onClick: handleSave,
-                },
-                {
-                  id: "layout",
-                  label: "Layout",
-                  onClick: layoutGraph,
-                },
-                {
-                  id: "load-example",
-                  label: "Load Example",
-                  onClick: () => {
-                    handleLoadExample();
-                  },
-                },
-              ]}
-            />
-
-            {/* Floating Title - Top Left (after hamburger) */}
-            <FloatingTitle
-              value={title}
-              onChange={updateTitle}
-              placeholder="Process"
-            />
-          </div>
-
           {/* Floating Mode Selector - Top Center */}
           <div
             style={{
@@ -132,6 +79,43 @@ export const EditorView: React.FC = () => {
           >
             <ModeSelector mode={mode} onChange={setMode} />
           </div>
+
+          {/* Left Sidebar with Menu, Title, and Tools */}
+          <LeftSideBar
+            isOpen={isLeftSidebarOpen}
+            onToggle={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+            menuItems={[
+              {
+                id: "new",
+                label: "New",
+                onClick: handleNew,
+              },
+              {
+                id: "load",
+                label: "Load",
+                onClick: handleLoad,
+              },
+              {
+                id: "save",
+                label: "Save",
+                onClick: handleSave,
+              },
+              {
+                id: "layout",
+                label: "Layout",
+                onClick: layoutGraph,
+              },
+              {
+                id: "load-example",
+                label: "Load Example",
+                onClick: () => {
+                  handleLoadExample();
+                },
+              },
+            ]}
+            title={title}
+            onTitleChange={updateTitle}
+          />
 
           {/* Properties Panel - Right Side */}
           <PropertiesPanel />
