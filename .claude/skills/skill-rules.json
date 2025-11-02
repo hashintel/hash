@@ -33,6 +33,7 @@
           "cargo",
           "dependency",
           "Cargo.toml",
+          "Cargo.lock",
           "crate",
           "workspace.dependencies",
           "dev-dependencies",

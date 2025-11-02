@@ -10,7 +10,9 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:skill": "tsx skill-activation-prompt.ts --validate",
     "lint:tsc": "tsc --noEmit",
-    "run:skill": "tsx skill-activation-prompt.ts"
+    "run:skill": "tsx skill-activation-prompt.ts",
+    "test:unit": "vitest run",
+    "test:unit:bless": "vitest run -u"
   },
   "dependencies": {
     "natural": "8.1.0"
@@ -21,6 +23,7 @@
     "@types/node": "22.18.13",
     "eslint": "9.38.0",
     "tsx": "4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
   }
 }

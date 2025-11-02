@@ -81,13 +81,13 @@ function isFuzzyMatch(word1: string, word2: string): boolean {
     return true;
   }
 
-  // Levenshtein distance (for cross-language)
+  // Levenshtein distance (for typos and cross-language)
   const maxLength = Math.max(w1.length, w2.length);
   const distance = levenshteinDistance(w1, w2);
 
-  // Allow up to 25% difference for longer words (6+ chars)
-  // For shorter words, require exact or stemmed match
-  if (maxLength >= 6) {
+  // Allow up to 25% difference for words 4+ chars
+  // For very short words (1-3 chars), require exact or stemmed match
+  if (maxLength >= 4) {
     const threshold = Math.floor(maxLength * 0.25);
     return distance <= threshold;
   }
