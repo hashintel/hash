@@ -1,5 +1,5 @@
-import type { SDCPN } from "../core/types/sdcpn";
-import { nodeDimensions } from "./styling";
+import type { SDCPN } from "../../core/types/sdcpn";
+import { nodeDimensions } from "../styling";
 
 export const exampleSDCPN: SDCPN = {
   id: "example-drug-production",
