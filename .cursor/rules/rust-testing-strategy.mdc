@@ -91,5 +91,5 @@ let json_value = json!({
 
 ## Integration With Other Practices
 
-- For documentation practices in tests, refer to the [Rust Documentation Practices](mdc:.cursor/rules/rust-documentation.mdc) file
+- For documentation practices in tests, refer to the [Rust Documentation Practices](mdc:.cursor/rules/documenting-rust-code.mdc) file
 - For error handling in tests, refer to the [Rust Error Handling Practices](mdc:.cursor/rules/rust-error-handling.mdc) file

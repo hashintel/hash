@@ -1,5 +1,5 @@
 ---
-name: rust-documentation
+name: documenting-rust-code
 description: Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions and types, creating error documentation sections, using intra-doc links, documenting traits and modules, writing examples, or following rustdoc conventions.
 ---
 

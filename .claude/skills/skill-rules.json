@@ -2,7 +2,7 @@
   "version": "1.0",
   "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
   "skills": {
-    "rust-error-stack": {
+    "handling-rust-errors": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
@@ -19,20 +19,22 @@
           "define error",
           "propagate error",
           "error documentation",
-          "fehler",
-          "fehlerbehandlung",
-          "fehler behandeln",
-          "fehler definieren",
-          "fehler propagieren"
+          "create error",
+          "add error",
+          "implement error",
+          "fix error",
+          "handle error",
+          "error context"
         ],
         "intentPatterns": [
-          "\\b(handle|create|define|propagate)\\b.*?\\berror\\b",
-          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation)\\b",
-          "Result.*?Report"
+          "\\b(handle|create|define|propagate|add|implement|fix|verbessern|erweitern|hinzufügen|beheben)\\b.*?\\berror\\b",
+          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation|context|type|behandlung|behandeln)\\b",
+          "Result.*?Report",
+          "\\b(improve|fix|update|verbessern|erweitern|beheben)\\b.*?\\berror\\b.*?\\b(handling|propagation|behandlung)\\b"
         ]
       }
     },
-    "cargo-dependencies": {
+    "managing-cargo-dependencies": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
@@ -49,13 +51,16 @@
           "add crate",
           "public dependency",
           "dev-dependencies",
-          "crate hinzufügen",
-          "dependency hinzufügen"
+          "update dependency",
+          "remove dependency",
+          "dependency version",
+          "workspace.dependencies"
         ],
         "intentPatterns": [
-          "\\badd\\b.*?\\b(dependency|dependencies|crate)\\b",
+          "\\b(add|update|remove|upgrade|manage|hinzufügen|aktualisieren|entfernen|verwalten)\\b.*?\\b(dependency|dependencies|crate)\\b",
           "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
-          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
+          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b",
+          "\\b(dependency|dependencies|crate)\\b.*?\\b(add|update|remove|upgrade|version|hinzufügen|aktualisieren|entfernen)\\b"
         ]
       }
     },
@@ -81,14 +86,14 @@
           "skill best practices"
         ],
         "intentPatterns": [
-          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
-          "\\b(create|add|modify|build)\\b.*?\\bskill\\b",
-          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration)\\b",
-          "\\b(configure|setup|define)\\b.*?\\bskill\\b.*?\\b(trigger|activation|rule)\\b"
+          "\\b(how do|how does|explain|wie funktioniert)\\b.*?\\bskill\\b",
+          "\\b(create|add|modify|build|erstellen|hinzufügen|ändern)\\b.*?\\bskill\\b",
+          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration|funktioniert)\\b",
+          "\\b(configure|setup|define|konfigurieren|einrichten)\\b.*?\\bskill\\b.*?\\b(trigger|activation|rule)\\b"
         ]
       }
     },
-    "rust-documentation": {
+    "documenting-rust-code": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
@@ -109,12 +114,24 @@
           "function documentation",
           "type documentation",
           "trait documentation",
-          "module documentation"
+          "module documentation",
+          "improve documentation",
+          "improve docs",
+          "documentation improve",
+          "docs improve",
+          "fix documentation",
+          "fix docs",
+          "update documentation",
+          "update docs"
         ],
         "intentPatterns": [
-          "\\b(write|add|create|update)\\b.*?\\b(doc|documentation)\\b.*?\\b(rust|function|type|trait|module)\\b",
+          "\\b(write|add|create|update|improve|fix)\\b.*?\\b(doc|documentation|docs)\\b.*?\\b(rust|function|type|trait|module)\\b",
           "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error)\\b",
-          "\\bhow\\b.*?\\b(document|write docs)\\b.*?\\brust\\b"
+          "\\bhow\\b.*?\\b(document|write docs)\\b.*?\\brust\\b",
+          "\\b(improve|fix|update|verbessern|ändern|anpassen|erweitern)\\b.*?\\b(documentation|docs)\\b",
+          "\\b(documentation|docs)\\b.*?\\b(verbessern|ändern|anpassen|erweitern|improve|fix|update)\\b",
+          "\\.rs\\b.*?\\b(documentation|docs|doc comment)\\b",
+          "\\b(documentation|docs)\\b.*?\\.rs\\b"
         ]
       }
     }

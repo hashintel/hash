@@ -5,6 +5,7 @@
   "description": "Claude Code hooks for HASH repository",
   "type": "module",
   "scripts": {
+    "dev:skill": "SKILL_DEBUG=true tsx skill-activation-prompt.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:skill": "tsx skill-activation-prompt.ts --validate",

@@ -1,5 +1,5 @@
 ---
-name: cargo-dependencies
+name: managing-cargo-dependencies
 description: Cargo.toml dependency management patterns for HASH workspace. Use when adding dependencies, managing workspace dependencies, organizing Cargo.toml sections, setting version pinning, configuring default features, or working with public dependencies.
 ---
 
