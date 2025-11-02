@@ -27,11 +27,11 @@ use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
 /// ```
 #[derive(Clone, PartialEq)]
 pub enum FromItem<'id> {
-    /// A table reference: `table_name [ AS alias ] [ TABLESAMPLE ... ]`
+    /// A table reference: `[ ONLY ] table_name [ AS alias ] [ TABLESAMPLE ... ]`
     ///
     /// Transpiles to:
     /// ```sql
-    /// table_name [ AS alias ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
+    /// [ ONLY ] table_name [ AS alias ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
     /// ```
     Table {
         /// The base table reference.
@@ -41,6 +41,15 @@ pub enum FromItem<'id> {
         /// When `Some`, the table is referenced using this alias elsewhere in the query.
         /// When `None`, the base table reference is used directly.
         alias: Option<TableReference<'id>>,
+        /// Whether to query only this table, excluding inherited tables.
+        ///
+        /// When `true`, prevents querying child tables in table inheritance hierarchies.
+        /// Transpiles to: `ONLY table_name`
+        ///
+        /// PostgreSQL table inheritance allows tables to inherit columns from parent tables.
+        /// By default, queries on a parent table include rows from all child tables.
+        /// Setting `only` to `true` restricts the query to the parent table only.
+        only: bool,
         /// Optional TABLESAMPLE clause for row sampling.
         ///
         /// When `Some`, applies SQL:2003 standard TABLESAMPLE sampling to select a random
@@ -189,11 +198,13 @@ impl<'id> FromItem<'id> {
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
         alias: Option<TableReference<'id>>,
+        #[builder(default)] only: bool,
         tablesample: Option<TableSample>,
     ) -> Self {
         Self::Table {
             table,
             alias,
+            only,
             tablesample,
         }
     }
@@ -311,8 +322,13 @@ impl Transpile for FromItem<'_> {
             Self::Table {
                 table,
                 alias,
+                only,
                 tablesample,
             } => {
+                if *only {
+                    fmt.write_str("ONLY ")?;
+                }
+
                 table.transpile(fmt)?;
 
                 if let Some(alias) = alias {
@@ -1063,6 +1079,30 @@ mod tests {
         .trim();
 
         assert_eq!(full_join.transpile_to_string(), expected);
+    }
+
+    #[test]
+    fn transpile_table_with_only() {
+        let from_item = FromItem::table(Table::DataTypes).only(true).build();
+
+        assert_eq!(from_item.transpile_to_string(), r#"ONLY "data_types""#);
+    }
+
+    #[test]
+    fn transpile_table_with_only_and_alias() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .only(true)
+            .alias(Table::DataTypes.aliased(Alias {
+                condition_index: 0,
+                chain_depth: 1,
+                number: 2,
+            }))
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"ONLY "data_types" AS "data_types_0_1_2""#
+        );
     }
 
     #[test]
