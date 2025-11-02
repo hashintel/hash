@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { getBezierPath, type Position } from "reactflow";
 
 interface ArcProps {
@@ -8,6 +9,7 @@ interface ArcProps {
   targetY: number;
   sourcePosition: Position;
   targetPosition: Position;
+  selected?: boolean;
   data?: {
     tokenWeights: {
       [tokenTypeId: string]: number;
@@ -23,6 +25,7 @@ export const Arc: React.FC<ArcProps> = ({
   targetY,
   sourcePosition,
   targetPosition,
+  selected = false,
   data,
 }: {
   id: string;
@@ -32,12 +35,15 @@ export const Arc: React.FC<ArcProps> = ({
   targetY: number;
   sourcePosition: Position;
   targetPosition: Position;
+  selected?: boolean;
   data?: {
     tokenWeights: {
       [tokenTypeId: string]: number;
     };
   };
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   // Use a default token type for now
   const defaultTokenType = {
     id: "default",
@@ -62,20 +68,33 @@ export const Arc: React.FC<ArcProps> = ({
         d={arcPath}
         fill="none"
         strokeWidth={20}
-        stroke="#555"
+        stroke={selected ? "#3b82f6" : "#555"}
         style={{
           cursor: "pointer",
-          strokeOpacity: 0.1,
+          strokeOpacity: isHovered
+            ? selected
+              ? 0.3
+              : 0.2
+            : selected
+              ? 0.2
+              : 0.1,
+          transition: "all 0.2s ease",
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       />
       <path
         id={`${id}-visible`}
         className="react-flow__edge-path"
         d={arcPath}
         fill="none"
-        strokeWidth={2}
-        stroke="#555"
-        style={{ pointerEvents: "none" }}
+        strokeWidth={selected ? 3 : 2}
+        stroke={selected ? "#3b82f6" : "#555"}
+        style={{
+          pointerEvents: "none",
+          transitionProperty: "stroke-width, stroke",
+          transition: "all 0.2s ease",
+        }}
       />
 
       <g transform={`translate(${labelX}, ${labelY})`}>
