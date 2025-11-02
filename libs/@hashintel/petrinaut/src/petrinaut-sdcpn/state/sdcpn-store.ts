@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
+import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import type { TokenType } from "../types";
 
 const emptySDCPN: SDCPN = {
@@ -63,6 +64,9 @@ type SDCPNState = {
   ) => void;
 
   updateTitle: (title: string) => void;
+
+  // Layout the graph using an automatic layout algorithm
+  layoutGraph: () => Promise<void>;
 };
 
 /**
@@ -71,7 +75,7 @@ type SDCPNState = {
  */
 export const useSDCPNStore = create<SDCPNState>()(
   devtools(
-    (set) => ({
+    (set, get) => ({
       sdcpn: emptySDCPN,
       setSDCPN: (sdcpn) => set({ sdcpn }, false, "setSDCPN"),
 
@@ -307,6 +311,47 @@ export const useSDCPNStore = create<SDCPNState>()(
           false,
           "updateTitle",
         ),
+
+      layoutGraph: async () => {
+        const state = get();
+        const { sdcpn } = state;
+
+        if (sdcpn.places.length === 0) {
+          return;
+        }
+
+        // Calculate new positions directly from SDCPN
+        const positions = await calculateGraphLayout(sdcpn);
+
+        // Update positions in SDCPN
+        set(
+          (currentState) => {
+            const newSDCPN = { ...currentState.sdcpn };
+
+            // Update place positions
+            newSDCPN.places = newSDCPN.places.map((place) => {
+              const position = positions.find((pos) => pos.id === place.id);
+              if (position) {
+                return { ...place, x: position.x, y: position.y };
+              }
+              return place;
+            });
+
+            // Update transition positions
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
+              const position = positions.find((pos) => pos.id === transition.id);
+              if (position) {
+                return { ...transition, x: position.x, y: position.y };
+              }
+              return transition;
+            });
+
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "layoutGraph",
+        );
+      },
     }),
     { name: "SDCPN Store" },
   ),

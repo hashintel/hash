@@ -7,9 +7,7 @@ import { HamburgerMenu } from "../components/hamburger-menu";
 import { ModeSelector } from "../components/mode-selector";
 import { PropertiesPanel } from "../components/properties-panel";
 import { exampleSDCPN } from "../examples/example";
-import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
 import { useSDCPNStore } from "../state/mod";
-import { useLayoutGraph } from "../use-layout-graph";
 import { SDCPNView } from "./sdcpn-view";
 
 /**
@@ -24,12 +22,8 @@ export const EditorView = () => {
   const updateTitle = useSDCPNStore((state) => state.updateTitle);
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
   const setTokenTypes = useSDCPNStore((state) => state.setTokenTypes);
+  const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
 
-  const layoutGraph = useLayoutGraph();
-
-  // Convert SDCPN to ReactFlow format for visualization
-  const petriNetDefinition = sdcpnToReactFlow(sdcpn);
-  const { nodes, arcs } = petriNetDefinition;
   const title = sdcpn.title;
 
   const handleLoadExample = useCallback(() => {
@@ -76,13 +70,7 @@ export const EditorView = () => {
                 {
                   id: "layout",
                   label: "Layout",
-                  onClick: () => {
-                    layoutGraph({
-                      nodes,
-                      arcs,
-                      animationDuration: 200,
-                    });
-                  },
+                  onClick: layoutGraph,
                 },
                 {
                   id: "save",
