@@ -4,10 +4,17 @@ import { create } from "zustand";
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
 import type { ArcData, NodeData, TokenType } from "../types";
 
+const emptySDCPN: SDCPN = {
+  id: "empty",
+  title: "Untitled",
+  places: [],
+  transitions: [],
+};
+
 type SDCPNState = {
-  // The current SDCPN definition
-  sdcpn: SDCPN | null;
-  setSDCPN: (sdcpn: SDCPN | null) => void;
+  // The current SDCPN definition - always exists, never null
+  sdcpn: SDCPN;
+  setSDCPN: (sdcpn: SDCPN) => void;
 
   // Token types - not part of SDCPN core type but needed for visualization
   tokenTypes: TokenType[];
@@ -69,7 +76,7 @@ type SDCPNState = {
  * This stores the core SDCPN model along with the ReactFlow instance that displays it.
  */
 export const useSDCPNStore = create<SDCPNState>((set) => ({
-  sdcpn: null,
+  sdcpn: emptySDCPN,
   setSDCPN: (sdcpn) => set({ sdcpn }),
 
   tokenTypes: [],
@@ -81,10 +88,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
   // Place operations
   updatePlace: (placeId, updates) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.places = newSDCPN.places.map((place) =>
         place.id === placeId ? { ...place, ...updates } : place,
@@ -95,10 +98,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   updatePlacePosition: (placeId, x, y) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.places = newSDCPN.places.map((place) =>
         place.id === placeId ? { ...place, x, y } : place,
@@ -109,12 +108,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   addPlace: (place) =>
     set((state) => {
-      console.log("Adding place", place);
-
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.places = [...newSDCPN.places, place];
 
@@ -123,10 +116,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   removePlace: (placeId) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.places = newSDCPN.places.filter((place) => place.id !== placeId);
 
@@ -147,10 +136,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
   // Transition operations
   updateTransition: (transitionId, updates) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
         transition.id === transitionId
@@ -163,10 +148,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   updateTransitionPosition: (transitionId, x, y) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
         transition.id === transitionId ? { ...transition, x, y } : transition,
@@ -177,10 +158,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   addTransition: (transition) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = [...newSDCPN.transitions, transition];
 
@@ -189,10 +166,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   removeTransition: (transitionId) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.filter(
         (transition) => transition.id !== transitionId,
@@ -204,10 +177,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
   // Arc operations
   addArc: (transitionId, arcType, placeId, weight) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
         if (transition.id !== transitionId) {
@@ -232,10 +201,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   removeArc: (transitionId, arcType, placeId) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
         if (transition.id !== transitionId) {
@@ -263,10 +228,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   updateArcWeight: (transitionId, arcType, placeId, weight) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       const newSDCPN = { ...state.sdcpn };
       newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
         if (transition.id !== transitionId) {
@@ -294,10 +255,6 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   updateTitle: (title) =>
     set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
-
       return { sdcpn: { ...state.sdcpn, title } };
     }),
 
