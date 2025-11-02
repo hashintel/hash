@@ -1,7 +1,6 @@
 import "reactflow/dist/style.css";
 import "./index.css";
 
-import { EditorView } from "./editor-view";
 import type {
   ArcData,
   ArcType,
@@ -18,6 +17,7 @@ import type {
   TransitionNodeData,
   TransitionNodeType,
 } from "./types";
+import { EditorView } from "./views/editor-view";
 
 export type {
   ArcData,
