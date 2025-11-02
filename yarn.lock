@@ -9483,6 +9483,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/node": "npm:22.18.13"
+    "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.38.0"
     natural: "npm:8.1.0"
     tsx: "npm:4.20.6"
