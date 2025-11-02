@@ -82,188 +82,243 @@ export const useSDCPNStore = create<SDCPNState>()(
       sdcpn: emptySDCPN,
       setSDCPN: (sdcpn) => set({ sdcpn }, false, "setSDCPN"),
 
-  tokenTypes: [],
-  setTokenTypes: (tokenTypes) => set({ tokenTypes }, false, "setTokenTypes"),
+      tokenTypes: [],
+      setTokenTypes: (tokenTypes) =>
+        set({ tokenTypes }, false, "setTokenTypes"),
 
-  loadPetriNet: null,
-  setLoadPetriNet: (loadPetriNet) => set({ loadPetriNet }, false, "setLoadPetriNet"),
+      loadPetriNet: null,
+      setLoadPetriNet: (loadPetriNet) =>
+        set({ loadPetriNet }, false, "setLoadPetriNet"),
 
-  // Place operations
-  updatePlace: (placeId, updates) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.places = newSDCPN.places.map((place) =>
-        place.id === placeId ? { ...place, ...updates } : place,
-      );
+      // Place operations
+      updatePlace: (placeId, updates) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.places = newSDCPN.places.map((place) =>
+              place.id === placeId ? { ...place, ...updates } : place,
+            );
 
-      return { sdcpn: newSDCPN };
-    }, false, "updatePlace"),
-
-  updatePlacePosition: (placeId, x, y) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.places = newSDCPN.places.map((place) =>
-        place.id === placeId ? { ...place, x, y } : place,
-      );
-
-      return { sdcpn: newSDCPN };
-    }, false, "updatePlacePosition"),
-
-  addPlace: (place) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.places = [...newSDCPN.places, place];
-
-      return { sdcpn: newSDCPN };
-    }, false, "addPlace"),
-
-  removePlace: (placeId) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.places = newSDCPN.places.filter((place) => place.id !== placeId);
-
-      // Remove arcs connected to this place
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) => ({
-        ...transition,
-        inputArcs: transition.inputArcs.filter(
-          (arc) => arc.placeId !== placeId,
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "updatePlace",
         ),
-        outputArcs: transition.outputArcs.filter(
-          (arc) => arc.placeId !== placeId,
+
+      updatePlacePosition: (placeId, x, y) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.places = newSDCPN.places.map((place) =>
+              place.id === placeId ? { ...place, x, y } : place,
+            );
+
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "updatePlacePosition",
         ),
-      }));
 
-      return { sdcpn: newSDCPN };
-    }, false, "removePlace"),
+      addPlace: (place) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.places = [...newSDCPN.places, place];
 
-  // Transition operations
-  updateTransition: (transitionId, updates) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
-        transition.id === transitionId
-          ? { ...transition, ...updates }
-          : transition,
-      );
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "addPlace",
+        ),
 
-      return { sdcpn: newSDCPN };
-    }, false, "updateTransition"),
+      removePlace: (placeId) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.places = newSDCPN.places.filter(
+              (place) => place.id !== placeId,
+            );
 
-  updateTransitionPosition: (transitionId, x, y) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
-        transition.id === transitionId ? { ...transition, x, y } : transition,
-      );
+            // Remove arcs connected to this place
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) => ({
+              ...transition,
+              inputArcs: transition.inputArcs.filter(
+                (arc) => arc.placeId !== placeId,
+              ),
+              outputArcs: transition.outputArcs.filter(
+                (arc) => arc.placeId !== placeId,
+              ),
+            }));
 
-      return { sdcpn: newSDCPN };
-    }, false, "updateTransitionPosition"),
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "removePlace",
+        ),
 
-  addTransition: (transition) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = [...newSDCPN.transitions, transition];
+      // Transition operations
+      updateTransition: (transitionId, updates) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
+              transition.id === transitionId
+                ? { ...transition, ...updates }
+                : transition,
+            );
 
-      return { sdcpn: newSDCPN };
-    }, false, "addTransition"),
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "updateTransition",
+        ),
 
-  removeTransition: (transitionId) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.filter(
-        (transition) => transition.id !== transitionId,
-      );
+      updateTransitionPosition: (transitionId, x, y) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
+              transition.id === transitionId
+                ? { ...transition, x, y }
+                : transition,
+            );
 
-      return { sdcpn: newSDCPN };
-    }, false, "removeTransition"),
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "updateTransitionPosition",
+        ),
 
-  // Arc operations
-  addArc: (transitionId, arcType, placeId, weight) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
-        if (transition.id !== transitionId) {
-          return transition;
-        }
+      addTransition: (transition) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = [...newSDCPN.transitions, transition];
 
-        const arc = { placeId, weight };
-        if (arcType === "input") {
-          return {
-            ...transition,
-            inputArcs: [...transition.inputArcs, arc],
-          };
-        }
-        return {
-          ...transition,
-          outputArcs: [...transition.outputArcs, arc],
-        };
-      });
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "addTransition",
+        ),
 
-      return { sdcpn: newSDCPN };
-    }, false, "addArc"),
+      removeTransition: (transitionId) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.filter(
+              (transition) => transition.id !== transitionId,
+            );
 
-  removeArc: (transitionId, arcType, placeId) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
-        if (transition.id !== transitionId) {
-          return transition;
-        }
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "removeTransition",
+        ),
 
-        if (arcType === "input") {
-          return {
-            ...transition,
-            inputArcs: transition.inputArcs.filter(
-              (arc) => arc.placeId !== placeId,
-            ),
-          };
-        }
-        return {
-          ...transition,
-          outputArcs: transition.outputArcs.filter(
-            (arc) => arc.placeId !== placeId,
-          ),
-        };
-      });
+      // Arc operations
+      addArc: (transitionId, arcType, placeId, weight) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
+              if (transition.id !== transitionId) {
+                return transition;
+              }
 
-      return { sdcpn: newSDCPN };
-    }, false, "removeArc"),
+              const arc = { placeId, weight };
+              if (arcType === "input") {
+                return {
+                  ...transition,
+                  inputArcs: [...transition.inputArcs, arc],
+                };
+              }
+              return {
+                ...transition,
+                outputArcs: [...transition.outputArcs, arc],
+              };
+            });
 
-  updateArcWeight: (transitionId, arcType, placeId, weight) =>
-    set((state) => {
-      const newSDCPN = { ...state.sdcpn };
-      newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
-        if (transition.id !== transitionId) {
-          return transition;
-        }
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "addArc",
+        ),
 
-        if (arcType === "input") {
-          return {
-            ...transition,
-            inputArcs: transition.inputArcs.map((arc) =>
-              arc.placeId === placeId ? { ...arc, weight } : arc,
-            ),
-          };
-        }
-        return {
-          ...transition,
-          outputArcs: transition.outputArcs.map((arc) =>
-            arc.placeId === placeId ? { ...arc, weight } : arc,
-          ),
-        };
-      });
+      removeArc: (transitionId, arcType, placeId) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
+              if (transition.id !== transitionId) {
+                return transition;
+              }
 
-      return { sdcpn: newSDCPN };
-    }, false, "updateArcWeight"),
+              if (arcType === "input") {
+                return {
+                  ...transition,
+                  inputArcs: transition.inputArcs.filter(
+                    (arc) => arc.placeId !== placeId,
+                  ),
+                };
+              }
+              return {
+                ...transition,
+                outputArcs: transition.outputArcs.filter(
+                  (arc) => arc.placeId !== placeId,
+                ),
+              };
+            });
 
-  updateTitle: (title) =>
-    set((state) => {
-      return { sdcpn: { ...state.sdcpn, title } };
-    }, false, "updateTitle"),
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "removeArc",
+        ),
 
-  // ReactFlow instance
-  reactFlowInstance: null,
-  setReactFlowInstance: (instance) => set({ reactFlowInstance: instance }, false, "setReactFlowInstance"),
+      updateArcWeight: (transitionId, arcType, placeId, weight) =>
+        set(
+          (state) => {
+            const newSDCPN = { ...state.sdcpn };
+            newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
+              if (transition.id !== transitionId) {
+                return transition;
+              }
+
+              if (arcType === "input") {
+                return {
+                  ...transition,
+                  inputArcs: transition.inputArcs.map((arc) =>
+                    arc.placeId === placeId ? { ...arc, weight } : arc,
+                  ),
+                };
+              }
+              return {
+                ...transition,
+                outputArcs: transition.outputArcs.map((arc) =>
+                  arc.placeId === placeId ? { ...arc, weight } : arc,
+                ),
+              };
+            });
+
+            return { sdcpn: newSDCPN };
+          },
+          false,
+          "updateArcWeight",
+        ),
+
+      updateTitle: (title) =>
+        set(
+          (state) => {
+            return { sdcpn: { ...state.sdcpn, title } };
+          },
+          false,
+          "updateTitle",
+        ),
+
+      // ReactFlow instance
+      reactFlowInstance: null,
+      setReactFlowInstance: (instance) =>
+        set({ reactFlowInstance: instance }, false, "setReactFlowInstance"),
     }),
     { name: "SDCPN Store" },
   ),

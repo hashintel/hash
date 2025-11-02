@@ -46,36 +46,57 @@ export const useEditorStore = create<EditorState>()(
     (set) => ({
       // Place selection
       selectedPlaceId: null,
-      setSelectedPlaceId: (id) => set({ selectedPlaceId: id }, false, "setSelectedPlaceId"),
+      setSelectedPlaceId: (id) =>
+        set({ selectedPlaceId: id }, false, "setSelectedPlaceId"),
       selectedPlacePosition: null,
       setSelectedPlacePosition: (position) =>
-        set({ selectedPlacePosition: position }, false, "setSelectedPlacePosition"),
+        set(
+          { selectedPlacePosition: position },
+          false,
+          "setSelectedPlacePosition",
+        ),
 
       // Transition selection
       selectedTransition: null,
-      setSelectedTransition: (id) => set({ selectedTransition: id }, false, "setSelectedTransition"),
+      setSelectedTransition: (id) =>
+        set({ selectedTransition: id }, false, "setSelectedTransition"),
 
       // Arc selection
       selectedArc: null,
-      setSelectedArc: (arc) => set({ selectedArc: arc }, false, "setSelectedArc"),
+      setSelectedArc: (arc) =>
+        set({ selectedArc: arc }, false, "setSelectedArc"),
 
       // Dragging state
       draggingStateByNodeId: {},
-      setDraggingStateByNodeId: (state) => set({ draggingStateByNodeId: state }, false, "setDraggingStateByNodeId"),
+      setDraggingStateByNodeId: (state) =>
+        set(
+          { draggingStateByNodeId: state },
+          false,
+          "setDraggingStateByNodeId",
+        ),
       updateDraggingStateByNodeId: (updater) =>
-        set((state) => ({
-          draggingStateByNodeId: updater(state.draggingStateByNodeId),
-        }), false, "updateDraggingStateByNodeId"),
-      resetDraggingState: () => set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
+        set(
+          (state) => ({
+            draggingStateByNodeId: updater(state.draggingStateByNodeId),
+          }),
+          false,
+          "updateDraggingStateByNodeId",
+        ),
+      resetDraggingState: () =>
+        set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
 
       // Utility actions
       clearSelection: () =>
-        set({
-          selectedPlaceId: null,
-          selectedPlacePosition: null,
-          selectedArc: null,
-          selectedTransition: null,
-        }, false, "clearSelection"),
+        set(
+          {
+            selectedPlaceId: null,
+            selectedPlacePosition: null,
+            selectedArc: null,
+            selectedTransition: null,
+          },
+          false,
+          "clearSelection",
+        ),
     }),
     { name: "Editor Store" },
   ),
