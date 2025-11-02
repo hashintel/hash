@@ -67,7 +67,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   for (const transition of sdcpn.transitions) {
     // Input arcs (from places to transition)
     for (const inputArc of transition.inputArcs) {
-      const arcId = `arc__${inputArc.placeId}-${transition.id}`;
+      // Arc ID format: $A_<inputId>_<outputId>
+      const arcId = `$A_${inputArc.placeId}_${transition.id}`;
 
       arcs.push({
         id: arcId,
@@ -84,7 +85,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
 
     // Output arcs (from transition to places)
     for (const outputArc of transition.outputArcs) {
-      const arcId = `arc__${transition.id}-${outputArc.placeId}`;
+      // Arc ID format: $A_<inputId>_<outputId>
+      const arcId = `$A_${transition.id}_${outputArc.placeId}`;
 
       arcs.push({
         id: arcId,

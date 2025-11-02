@@ -6,25 +6,12 @@ export type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-export type SelectionItem = {
-  type: "place"
-  id: string;
-} | {
-  type: "transition"
-  id: string;
-} | {
-  type: "arc"
-  placeId: string;
-  transitionId: string;
-  arcType: "input" | "output";
-}
-
 export type EditorState = {
-  // Selection
-  selectedItems: SelectionItem[];
-  setSelectedItems: (items: SelectionItem[]) => void;
-  addSelectedItem: (item: SelectionItem) => void;
-  removeSelectedItem: (item: SelectionItem) => void;
+  // Selection - now just a Set of IDs
+  selectedItemIds: Set<string>;
+  setSelectedItemIds: (ids: Set<string>) => void;
+  addSelectedItemId: (id: string) => void;
+  removeSelectedItemId: (id: string) => void;
   clearSelection: () => void;
 
   // Dragging state
@@ -45,42 +32,31 @@ export function createEditorStore() {
     devtools(
       (set) => ({
         // Selection
-        selectedItems: [],
-        setSelectedItems: (items) =>
-          set({ selectedItems: items }, false, "setSelectedItems"),
-        addSelectedItem: (item) =>
+        selectedItemIds: new Set(),
+        setSelectedItemIds: (ids) =>
+          set({ selectedItemIds: ids }, false, "setSelectedItemIds"),
+        addSelectedItemId: (id) =>
           set(
-            (state) => ({
-              selectedItems: [...state.selectedItems, item],
-            }),
+            (state) => {
+              const newSet = new Set(state.selectedItemIds);
+              newSet.add(id);
+              return { selectedItemIds: newSet };
+            },
             false,
-            "addSelectedItem",
+            "addSelectedItemId",
           ),
-        removeSelectedItem: (item) =>
+        removeSelectedItemId: (id) =>
           set(
-            (state) => ({
-              selectedItems: state.selectedItems.filter((i) => {
-                if (item.type === "place" && i.type === "place") {
-                  return i.id !== item.id;
-                }
-                if (item.type === "transition" && i.type === "transition") {
-                  return i.id !== item.id;
-                }
-                if (item.type === "arc" && i.type === "arc") {
-                  return (
-                    i.placeId !== item.placeId ||
-                    i.transitionId !== item.transitionId ||
-                    i.arcType !== item.arcType
-                  );
-                }
-                return true;
-              }),
-            }),
+            (state) => {
+              const newSet = new Set(state.selectedItemIds);
+              newSet.delete(id);
+              return { selectedItemIds: newSet };
+            },
             false,
-            "removeSelectedItem",
+            "removeSelectedItemId",
           ),
         clearSelection: () =>
-          set({ selectedItems: [] }, false, "clearSelection"),
+          set({ selectedItemIds: new Set() }, false, "clearSelection"),
 
         // Dragging state
         draggingStateByNodeId: {},
