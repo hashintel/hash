@@ -38,17 +38,17 @@ export const BottomBar: React.FC = () => {
       glassThickness={120}
       refractiveIndex={1.5}
       className={css({
-        position: "fixed",
+        position: "[fixed]",
         bottom: "spacing.6",
         left: "[50%]",
-        transform: "translateX(-50%)",
+        transform: "[translateX(-50%)]",
         padding: "spacing.4",
         paddingX: "spacing.6",
         borderRadius: "[12px]",
         backgroundColor: "[rgba(255, 255, 255, 0.8)]",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-        display: "flex",
-        alignItems: "center",
+        boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+        display: "[flex]",
+        alignItems: "[center]",
         gap: "spacing.4",
         zIndex: "[1000]",
       })}
