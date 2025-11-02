@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: TODO
+["::graph::tmp::decision_time_now"]
+//~^ ERROR external modules are not supported

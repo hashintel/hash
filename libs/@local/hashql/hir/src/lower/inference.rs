@@ -236,19 +236,25 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, '_, '_, 'heap> {
 
         // Dicts are invariant over their key and covariant over their value.
         let key = self.inference.fresh_hole(self.current.span);
+        let key_type = key.into_type(self.env);
+
         let value = self.inference.fresh_hole(self.current.span);
+        let value_type = value.into_type(self.env);
+
         self.inference.add_variables([key, value]);
 
         for field in dict.fields {
-            self.inference.add_constraint(Constraint::Equals {
-                variable: key,
-                r#type: self.context.map.type_id(field.key.id),
-            });
+            self.inference.collect_constraints(
+                Variance::Invariant,
+                key_type.id,
+                self.context.map.type_id(field.key.id),
+            );
 
-            self.inference.add_constraint(Constraint::LowerBound {
-                variable: value,
-                bound: self.context.map.type_id(field.value.id),
-            });
+            self.inference.collect_constraints(
+                Variance::Covariant,
+                self.context.map.type_id(field.value.id),
+                value_type.id,
+            );
         }
 
         let builder = TypeBuilder::spanned(self.current.span, self.env);

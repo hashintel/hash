@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "foo",
+  {
+    "#dict": {
+      "foo": { "#literal": 1 },
+      "bar": { "#literal": 2 },
+      "baz": { "#literal": 3 }
+    }
+  },
+  ["[]", "foo", { "#literal": "bar" }]
+]

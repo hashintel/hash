@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: TODO
+["input", "foo", "Integer"]

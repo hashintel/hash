@@ -1,0 +1,7 @@
+*thunk {thunk#0}() {
+    bb0(): {
+        %0 = input LOAD foo
+
+        return %0
+    }
+}
