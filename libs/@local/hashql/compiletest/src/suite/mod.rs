@@ -102,6 +102,10 @@ impl<'ctx, 'heap> RunContext<'ctx, 'heap> {
 }
 
 pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
+    fn priority(&self) -> usize {
+        0
+    }
+
     fn secondary_file_extensions(&self) -> &[&str] {
         &[]
     }

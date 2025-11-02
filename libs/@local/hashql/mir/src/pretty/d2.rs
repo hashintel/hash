@@ -92,9 +92,9 @@ where
     where
         for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
     {
-        const REPLACEMENTS: [(u8, &[u8]); 5] = [
+        const REPLACEMENTS: [(u8, &[u8]); 4] = [
             (b'&', b"&amp;" as &[_]),
-            (b'"', b"&quot;"),
+            // (b'"', b"&quot;"),
             (b'<', b"&lt;"),
             (b'>', b"&gt;"),
             (b'\n', br#"<br align="left"/>"#),
@@ -383,7 +383,7 @@ where
         writeln!(self.writer, "' {{")?;
 
         if highlight {
-            writeln!(self.writer, r##"style.fill: "#AA4465""##)?;
+            writeln!(self.writer, r##"style.fill: "#B3D89C""##)?;
         }
 
         for (id, basic_block) in body.basic_blocks.iter_enumerated() {

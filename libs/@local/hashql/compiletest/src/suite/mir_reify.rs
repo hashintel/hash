@@ -2,6 +2,7 @@ use std::{
     io::{BufWriter, Write as _},
     process::{Command, Stdio},
     thread,
+    time::Instant,
 };
 
 use hashql_ast::node::expr::Expr;
@@ -66,6 +67,12 @@ pub(crate) fn mir_reify<'heap>(
 pub(crate) struct MirReifySuite;
 
 impl Suite for MirReifySuite {
+    fn priority(&self) -> usize {
+        // bump the priority, so that it is run before others, to offset the needed increased time
+        // for diagram generation (700ms-800ms)
+        1
+    }
+
     fn secondary_file_extensions(&self) -> &[&str] {
         &["svg"]
     }
@@ -119,6 +126,7 @@ impl Suite for MirReifySuite {
             return Ok(output);
         }
 
+        let now = Instant::now();
         let mut child = Command::new("d2")
             .args(["-l", "elk", "--stdout-format", "svg", "-"])
             .stdin(Stdio::piped())
@@ -154,6 +162,8 @@ impl Suite for MirReifySuite {
         let diagram = handle.join().expect("should be able to join handle");
         let diagram = String::from_utf8_lossy_owned(diagram);
         secondary_outputs.insert("svg", diagram);
+        let taken = now.elapsed();
+        tracing::info!("time taken to generate diagram: {:?}", taken);
 
         Ok(output)
     }

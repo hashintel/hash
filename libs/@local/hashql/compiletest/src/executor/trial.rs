@@ -2,6 +2,7 @@ use std::{
     fs::{self, File},
     io::{self, Cursor},
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 use error_stack::{Report, ReportSink, ResultExt as _};
@@ -80,17 +81,17 @@ pub(crate) struct TrialDescription {
     pub name: String,
 }
 
-pub(crate) struct Trial {
+pub(crate) struct Trial<'stats> {
     pub suite: &'static dyn Suite,
     pub path: PathBuf,
     pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
-    pub statistics: Statistics,
+    pub statistics: &'stats Statistics,
 }
 
-impl Trial {
-    pub(crate) fn from_test(case: TestCase, statistics: &Statistics) -> Self {
+impl<'stats> Trial<'stats> {
+    pub(crate) fn from_test(case: TestCase, statistics: &'stats Statistics) -> Self {
         let suite = find_suite(&case.spec.suite).expect("suite should be available");
 
         let file = File::open_buffered(&case.path).expect("should be able to open file");
@@ -112,7 +113,7 @@ impl Trial {
             namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
-            statistics: statistics.clone(),
+            statistics,
         }
     }
 
@@ -199,6 +200,7 @@ impl Trial {
             return Ok(());
         }
 
+        let now = Instant::now();
         tracing::debug!("running trial");
 
         let result = self
@@ -211,10 +213,10 @@ impl Trial {
 
         if result.is_ok() {
             tracing::info!("trial passed");
-            self.statistics.increase_passed();
+            self.statistics.increase_passed(now.elapsed());
         } else {
             tracing::error!("trial failed");
-            self.statistics.increase_failed();
+            self.statistics.increase_failed(now.elapsed());
         }
 
         result

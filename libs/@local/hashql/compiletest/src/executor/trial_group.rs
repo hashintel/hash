@@ -1,4 +1,4 @@
-use core::any::Any;
+use core::{any::Any, cmp::Reverse};
 use std::{
     io,
     panic::{self},
@@ -23,23 +23,30 @@ fn panic_payload_as_str(payload: Box<dyn Any + Send + 'static>) -> String {
     }
 }
 
-pub(crate) struct TrialGroup<'graph> {
+pub(crate) struct TrialGroup<'graph, 'stats> {
     pub ignore: bool,
-    pub trials: Vec<Trial>,
+    pub trials: Vec<Trial<'stats>>,
     pub metadata: PackageMetadata<'graph>,
+    pub max_priority: usize,
 }
 
-impl<'graph> TrialGroup<'graph> {
-    pub(crate) fn from_test(group: TestGroup<'graph>, statistics: &Statistics) -> Self {
+impl<'graph, 'stats> TrialGroup<'graph, 'stats> {
+    pub(crate) fn from_test(group: TestGroup<'graph>, statistics: &'stats Statistics) -> Self {
         let mut trials = Vec::with_capacity(group.cases.len());
+        let mut max_priority = usize::MIN;
 
         for case in group.cases {
-            trials.push(Trial::from_test(case, statistics));
+            let trial = Trial::from_test(case, statistics);
+            max_priority = max_priority.max(trial.suite.priority());
+            trials.push(trial);
         }
+
+        trials.sort_unstable_by_key(|trial| Reverse(trial.suite.priority()));
 
         Self {
             metadata: group.entry.metadata,
             ignore: false,
+            max_priority,
             trials,
         }
     }

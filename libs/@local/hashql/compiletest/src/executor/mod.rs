@@ -2,7 +2,7 @@ mod annotations;
 mod trial;
 mod trial_group;
 
-use core::error;
+use core::{cmp::Reverse, error};
 use std::{self, io, sync::mpsc, thread};
 
 use error_stack::Report;
@@ -97,13 +97,16 @@ pub(crate) struct TrialContext {
     pub bless: bool,
 }
 
-pub(crate) struct TrialSet<'graph> {
-    groups: Vec<TrialGroup<'graph>>,
+pub(crate) struct TrialSet<'graph, 'stats> {
+    groups: Vec<TrialGroup<'graph, 'stats>>,
 }
 
-impl<'graph> TrialSet<'graph> {
-    pub(crate) fn from_test(groups: Vec<TestGroup<'graph>>, statistics: &Statistics) -> Self {
-        let groups = thread::scope(|scope| {
+impl<'graph, 'stats> TrialSet<'graph, 'stats> {
+    pub(crate) fn from_test(
+        groups: Vec<TestGroup<'graph>>,
+        statistics: &'stats Statistics,
+    ) -> Self {
+        let mut groups: Vec<_> = thread::scope(|scope| {
             let mut handles = Vec::new();
 
             for group in groups {
@@ -116,6 +119,9 @@ impl<'graph> TrialSet<'graph> {
                 .map(|handle| handle.join().expect("should be able to join thread"))
                 .collect()
         });
+
+        // Make sure that groups with a higher priority are scheduled first
+        groups.sort_unstable_by_key(|group| Reverse(group.max_priority));
 
         Self { groups }
     }
