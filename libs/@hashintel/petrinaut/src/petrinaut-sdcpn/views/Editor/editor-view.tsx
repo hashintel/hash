@@ -1,6 +1,7 @@
-import { Box, Stack } from "@mui/material";
 import { useState } from "react";
 
+import { Box } from "../../components/box";
+import { Stack } from "../../components/stack";
 import { exampleSDCPN } from "../../examples/example";
 import { useSDCPNStore } from "../../state/sdcpn-store";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -28,10 +29,10 @@ export const EditorView: React.FC = () => {
   }
 
   return (
-    <Stack sx={{ height: "100%" }}>
-      <Stack direction="row" sx={{ height: "100%", userSelect: "none" }}>
+    <Stack style={{ height: "100%" }}>
+      <Stack direction="row" style={{ height: "100%", userSelect: "none" }}>
         <Box
-          sx={{
+          style={{
             width: "100%",
             position: "relative",
             flexGrow: 1,
