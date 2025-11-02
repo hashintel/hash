@@ -2,15 +2,22 @@ import type { ReactFlowInstance } from "reactflow";
 import { create } from "zustand";
 
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
-import type { ArcData, NodeData } from "../types";
+import type { ArcData, NodeData, TokenType } from "../types";
 
 type SDCPNState = {
   // The current SDCPN definition
   sdcpn: SDCPN | null;
   setSDCPN: (sdcpn: SDCPN | null) => void;
 
-  // Mutation helper for updating SDCPN
-  mutateSDCPN: (mutationFn: (sdcpn: SDCPN) => void) => void;
+  // Token types - not part of SDCPN core type but needed for visualization
+  tokenTypes: TokenType[];
+  setTokenTypes: (tokenTypes: TokenType[]) => void;
+
+  // Callback to load a different net by ID
+  loadPetriNet: ((petriNetId: string) => void) | null;
+  setLoadPetriNet: (
+    loadPetriNet: ((petriNetId: string) => void) | null,
+  ) => void;
 
   // Granular update methods
   updatePlace: (placeId: string, updates: Partial<Place>) => void;
@@ -64,18 +71,12 @@ type SDCPNState = {
 export const useSDCPNStore = create<SDCPNState>((set) => ({
   sdcpn: null,
   setSDCPN: (sdcpn) => set({ sdcpn }),
-  mutateSDCPN: (mutationFn) =>
-    set((state) => {
-      if (!state.sdcpn) {
-        return state;
-      }
 
-      // Create a deep copy to avoid mutating the original
-      const newSDCPN = JSON.parse(JSON.stringify(state.sdcpn)) as SDCPN;
-      mutationFn(newSDCPN);
+  tokenTypes: [],
+  setTokenTypes: (tokenTypes) => set({ tokenTypes }),
 
-      return { sdcpn: newSDCPN };
-    }),
+  loadPetriNet: null,
+  setLoadPetriNet: (loadPetriNet) => set({ loadPetriNet }),
 
   // Place operations
   updatePlace: (placeId, updates) =>
@@ -108,6 +109,8 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
 
   addPlace: (place) =>
     set((state) => {
+      console.log("Adding place", place);
+
       if (!state.sdcpn) {
         return state;
       }

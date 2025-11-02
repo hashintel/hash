@@ -1,6 +1,6 @@
 import { getBezierPath, type Position } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
+import { useSDCPNStore } from "./state/sdcpn-store";
 import type { TokenType } from "./types";
 
 export const Arc = ({
@@ -26,9 +26,7 @@ export const Arc = ({
     };
   };
 }) => {
-  const { petriNetDefinition } = useEditorContext();
-  // Note: We can use the SDCPN store in the future, but for now we still need petriNetDefinition for tokenTypes
-  // const sdcpn = useSDCPNStore((state) => state.sdcpn);
+  const tokenTypes = useSDCPNStore((state) => state.tokenTypes);
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -68,7 +66,7 @@ export const Arc = ({
         {Object.entries(data?.tokenWeights ?? {})
           .filter(([_, weight]) => weight > 0)
           .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            const tokenType = petriNetDefinition.tokenTypes.find(
+            const tokenType = tokenTypes.find(
               (tt: TokenType) => tt.id === tokenTypeId,
             );
 
