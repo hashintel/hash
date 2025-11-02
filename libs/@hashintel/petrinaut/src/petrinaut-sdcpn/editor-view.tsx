@@ -10,10 +10,10 @@ import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/properties-panel";
 import { exampleSDCPN } from "./examples/example";
 import { sdcpnToPetriNet } from "./lib/sdcpn-converters";
-import { SDCPNView } from "./sdcpn-view";
 import { useEditorStore } from "./state/mod";
 import type { ArcType, NodeType, PetriNetDefinitionObject } from "./types";
 import { useLayoutGraph } from "./use-layout-graph";
+import { SDCPNView } from "./views/sdcpn-view";
 
 type EditorViewProps = {
   /**

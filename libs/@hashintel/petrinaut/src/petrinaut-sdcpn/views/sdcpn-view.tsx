@@ -5,15 +5,15 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Connection, NodeChange, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 
-import { applyNodeChanges } from "./apply-node-changes";
-import { Arc } from "./arc";
-import { generateUuid } from "./lib/generate-uuid";
-import { PlaceNode } from "./place-node";
-import { useEditorStore, useNodesWithDraggingState } from "./state/mod";
-import { useSDCPNStore } from "./state/sdcpn-store";
-import { nodeDimensions } from "./styling";
-import { TransitionNode } from "./transition-node";
-import type { ArcData, ArcType, NodeData, NodeType } from "./types";
+import { applyNodeChanges } from "../apply-node-changes";
+import { Arc } from "../arc";
+import { generateUuid } from "../lib/generate-uuid";
+import { PlaceNode } from "../place-node";
+import { useEditorStore, useNodesWithDraggingState } from "../state/mod";
+import { useSDCPNStore } from "../state/sdcpn-store";
+import { nodeDimensions } from "../styling";
+import { TransitionNode } from "../transition-node";
+import type { ArcData, ArcType, NodeData, NodeType } from "../types";
 
 type SDCPNViewProps = {
   /**

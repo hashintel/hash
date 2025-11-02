@@ -14,6 +14,7 @@
   "types": "src/main.ts",
   "scripts": {
     "dev": "vite --config dev/vite.config.ts",
+    "dev:sdcpn": "vite --config src/petrinaut-sdcpn/_dev/vite.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
