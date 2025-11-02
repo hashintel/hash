@@ -15,15 +15,14 @@ export const FloatingTitle = ({
     <input
       type="text"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       className={css({
-        background: "[white]",
+        background: "[rgba(255, 255, 255, 0.5)]",
+        backdropFilter: "[blur(22px)]",
         border: "1px solid",
         borderColor: "core.gray.20",
         borderRadius: "radius.8",
-        padding: "spacing.2",
-        paddingX: "spacing.4",
         fontSize: "size.textsm",
         fontWeight: "medium",
         color: "core.gray.90",
@@ -38,6 +37,7 @@ export const FloatingTitle = ({
           color: "core.gray.50",
         },
       })}
+      style={{ padding: "4px 8px" }}
     />
   );
 };
