@@ -3,5 +3,11 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   root: "./src/petrinaut-sdcpn/_dev",
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: ["babel-plugin-react-compiler"],
+      },
+    }),
+  ],
 });
