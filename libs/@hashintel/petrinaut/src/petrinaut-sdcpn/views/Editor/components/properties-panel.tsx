@@ -8,16 +8,16 @@ import { useSDCPNStore } from "../../../state/sdcpn-provider";
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const selectedItems = useEditorStore((state) => state.selectedItems);
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
 
   // Don't show panel if nothing is selected
-  if (selectedItems.length === 0) {
+  if (selectedItemIds.size === 0) {
     return null;
   }
 
   // Show multiple items message if more than one item selected
-  if (selectedItems.length > 1) {
+  if (selectedItemIds.size > 1) {
     return (
       <div
         style={{
@@ -52,7 +52,7 @@ export const PropertiesPanel: React.FC = () => {
           }}
         >
           <div style={{ fontWeight: 600, fontSize: 14 }}>
-            Multiple Items Selected ({selectedItems.length})
+            Multiple Items Selected ({selectedItemIds.size})
           </div>
         </RefractivePane>
       </div>
@@ -60,254 +60,289 @@ export const PropertiesPanel: React.FC = () => {
   }
 
   // Single item selected - show its properties
-  const selectedItem = selectedItems[0];
-  if (!selectedItem) {
+  const [selectedId] = selectedItemIds;
+  if (!selectedId) {
     return null;
   }
 
   let content: React.ReactNode = null;
 
-  if (selectedItem.type === "place") {
-    const placeData = sdcpn.places.find(
-      (place) => place.id === selectedItem.id,
-    );
-    if (placeData) {
-      content = (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-              Place
-            </div>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
-              {placeData.id}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Name
-            </div>
-            <div style={{ fontSize: 14 }}>{placeData.name}</div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Dimensions
-            </div>
-            <div style={{ fontSize: 14 }}>{placeData.dimensions}</div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Position
-            </div>
-            <div style={{ fontSize: 14 }}>
-              x: {placeData.x.toFixed(0)}, y: {placeData.y.toFixed(0)}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Differential Equation Code
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontFamily: "monospace",
-                backgroundColor: "rgba(0, 0, 0, 0.05)",
-                padding: 8,
-                borderRadius: 4,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {placeData.differentialEquationCode || "(empty)"}
-            </div>
-          </div>
-        </div>
-      );
-    }
-  } else if (selectedItem.type === "transition") {
-    const transitionData = sdcpn.transitions.find(
-      (transition) => transition.id === selectedItem.id,
-    );
-    if (transitionData) {
-      content = (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-              Transition
-            </div>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
-              {transitionData.id}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Name
-            </div>
-            <div style={{ fontSize: 14 }}>{transitionData.name}</div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Position
-            </div>
-            <div style={{ fontSize: 14 }}>
-              x: {transitionData.x.toFixed(0)}, y: {transitionData.y.toFixed(0)}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Input Arcs ({transitionData.inputArcs.length})
-            </div>
-            <div style={{ fontSize: 12 }}>
-              {transitionData.inputArcs.length === 0 ? (
-                <div style={{ color: "#999" }}>(none)</div>
-              ) : (
-                transitionData.inputArcs.map((arc) => (
-                  <div key={`input-${arc.placeId}`} style={{ marginBottom: 4 }}>
-                    From: {arc.placeId} (weight: {arc.weight})
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Output Arcs ({transitionData.outputArcs.length})
-            </div>
-            <div style={{ fontSize: 12 }}>
-              {transitionData.outputArcs.length === 0 ? (
-                <div style={{ color: "#999" }}>(none)</div>
-              ) : (
-                transitionData.outputArcs.map((arc) => (
-                  <div
-                    key={`output-${arc.placeId}`}
-                    style={{ marginBottom: 4 }}
-                  >
-                    To: {arc.placeId} (weight: {arc.weight})
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Lambda Code
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontFamily: "monospace",
-                backgroundColor: "rgba(0, 0, 0, 0.05)",
-                padding: 8,
-                borderRadius: 4,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {transitionData.lambdaCode || "(empty)"}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Transition Kernel Code
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontFamily: "monospace",
-                backgroundColor: "rgba(0, 0, 0, 0.05)",
-                padding: 8,
-                borderRadius: 4,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {transitionData.transitionKernelCode || "(empty)"}
-            </div>
-          </div>
-        </div>
-      );
-    }
-  } else {
-    // selectedItem.type === "arc"
-    const { placeId, transitionId, arcType } = selectedItem;
-    const place = sdcpn.places.find((placeItem) => placeItem.id === placeId);
-    const transition = sdcpn.transitions.find(
-      (transitionItem) => transitionItem.id === transitionId,
-    );
-
-    let arcWeight = 1;
-    if (transition) {
-      if (arcType === "input") {
-        const arc = transition.inputArcs.find((a) => a.placeId === placeId);
-        if (arc) {
-          arcWeight = arc.weight;
-        }
-      } else {
-        const arc = transition.outputArcs.find((a) => a.placeId === placeId);
-        if (arc) {
-          arcWeight = arc.weight;
-        }
-      }
-    }
-
+  // Check if it's a place
+  const placeData = sdcpn.places.find((place) => place.id === selectedId);
+  if (placeData) {
     content = (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-            Arc ({arcType})
+            Place
+          </div>
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
+            {placeData.id}
           </div>
         </div>
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Direction
+            Name
+          </div>
+          <div style={{ fontSize: 14 }}>{placeData.name}</div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Dimensions
+          </div>
+          <div style={{ fontSize: 14 }}>{placeData.dimensions}</div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Position
           </div>
           <div style={{ fontSize: 14 }}>
-            {arcType === "input" ? (
-              <>
-                {place?.name ?? placeId} → {transition?.name ?? transitionId}
-              </>
+            x: {placeData.x.toFixed(0)}, y: {placeData.y.toFixed(0)}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Differential Equation Code
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              fontFamily: "monospace",
+              backgroundColor: "rgba(0, 0, 0, 0.05)",
+              padding: 8,
+              borderRadius: 4,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {placeData.differentialEquationCode || "(empty)"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if it's a transition
+  const transitionData = sdcpn.transitions.find(
+    (transition) => transition.id === selectedId,
+  );
+  if (transitionData) {
+    content = (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
+            Transition
+          </div>
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
+            {transitionData.id}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Name
+          </div>
+          <div style={{ fontSize: 14 }}>{transitionData.name}</div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Position
+          </div>
+          <div style={{ fontSize: 14 }}>
+            x: {transitionData.x.toFixed(0)}, y: {transitionData.y.toFixed(0)}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Input Arcs ({transitionData.inputArcs.length})
+          </div>
+          <div style={{ fontSize: 12 }}>
+            {transitionData.inputArcs.length === 0 ? (
+              <div style={{ color: "#999" }}>(none)</div>
             ) : (
-              <>
-                {transition?.name ?? transitionId} → {place?.name ?? placeId}
-              </>
+              transitionData.inputArcs.map((arc) => (
+                <div key={`input-\${arc.placeId}`} style={{ marginBottom: 4 }}>
+                  From: {arc.placeId} (weight: {arc.weight})
+                </div>
+              ))
             )}
           </div>
         </div>
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Place
+            Output Arcs ({transitionData.outputArcs.length})
           </div>
-          <div style={{ fontSize: 14 }}>{place?.name ?? placeId}</div>
-          <div style={{ fontSize: 12, color: "#666" }}>{placeId}</div>
+          <div style={{ fontSize: 12 }}>
+            {transitionData.outputArcs.length === 0 ? (
+              <div style={{ color: "#999" }}>(none)</div>
+            ) : (
+              transitionData.outputArcs.map((arc) => (
+                <div key={`output-\${arc.placeId}`} style={{ marginBottom: 4 }}>
+                  To: {arc.placeId} (weight: {arc.weight})
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Transition
+            Lambda Code
           </div>
-          <div style={{ fontSize: 14 }}>{transition?.name ?? transitionId}</div>
-          <div style={{ fontSize: 12, color: "#666" }}>{transitionId}</div>
+          <div
+            style={{
+              fontSize: 12,
+              fontFamily: "monospace",
+              backgroundColor: "rgba(0, 0, 0, 0.05)",
+              padding: 8,
+              borderRadius: 4,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {transitionData.lambdaCode || "(empty)"}
+          </div>
         </div>
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Weight
+            Transition Kernel Code
           </div>
-          <div style={{ fontSize: 14 }}>{arcWeight}</div>
+          <div
+            style={{
+              fontSize: 12,
+              fontFamily: "monospace",
+              backgroundColor: "rgba(0, 0, 0, 0.05)",
+              padding: 8,
+              borderRadius: 4,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {transitionData.transitionKernelCode || "(empty)"}
+          </div>
         </div>
       </div>
     );
+  }
+
+  // Check if it's an arc (starts with $A_)
+  if (selectedId.startsWith("$A_")) {
+    // Parse arc ID: $A_<inputId>_<outputId>
+    const parts = selectedId.split("_");
+    if (parts.length === 3) {
+      const inputId = parts[1];
+      const outputId = parts[2];
+
+      // Determine if this is a place->transition or transition->place arc
+      const inputPlace = sdcpn.places.find((place) => place.id === inputId);
+      const outputPlace = sdcpn.places.find((place) => place.id === outputId);
+      const inputTransition = sdcpn.transitions.find(
+        (transition) => transition.id === inputId,
+      );
+      const outputTransition = sdcpn.transitions.find(
+        (transition) => transition.id === outputId,
+      );
+
+      let arcType: "input" | "output" | null = null;
+      let placeId: string | null | undefined = null;
+      let transitionId: string | null | undefined = null;
+      let arcWeight = 1;
+
+      if (inputPlace && outputTransition) {
+        // Input arc: place -> transition
+        arcType = "input";
+        placeId = inputId;
+        transitionId = outputId;
+        const arc = outputTransition.inputArcs.find(
+          (arcItem) => arcItem.placeId === inputId,
+        );
+        if (arc) {
+          arcWeight = arc.weight;
+        }
+      } else if (inputTransition && outputPlace) {
+        // Output arc: transition -> place
+        arcType = "output";
+        placeId = outputId;
+        transitionId = inputId;
+        const arc = inputTransition.outputArcs.find(
+          (arcItem) => arcItem.placeId === outputId,
+        );
+        if (arc) {
+          arcWeight = arc.weight;
+        }
+      }
+
+      if (arcType && placeId && transitionId) {
+        const place = sdcpn.places.find(
+          (placeItem) => placeItem.id === placeId,
+        );
+        const transition = sdcpn.transitions.find(
+          (transitionItem) => transitionItem.id === transitionId,
+        );
+
+        content = (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
+                Arc ({arcType})
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                Direction
+              </div>
+              <div style={{ fontSize: 14 }}>
+                {arcType === "input" ? (
+                  <>
+                    {place?.name ?? placeId} →{" "}
+                    {transition?.name ?? transitionId}
+                  </>
+                ) : (
+                  <>
+                    {transition?.name ?? transitionId} →{" "}
+                    {place?.name ?? placeId}
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                Place
+              </div>
+              <div style={{ fontSize: 14 }}>{place?.name ?? placeId}</div>
+              <div style={{ fontSize: 12, color: "#666" }}>{placeId}</div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                Transition
+              </div>
+              <div style={{ fontSize: 14 }}>
+                {transition?.name ?? transitionId}
+              </div>
+              <div style={{ fontSize: 12, color: "#666" }}>{transitionId}</div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                Weight
+              </div>
+              <div style={{ fontSize: 14 }}>{arcWeight}</div>
+            </div>
+          </div>
+        );
+      }
+    }
   }
 
   return (

@@ -1,15 +1,20 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useEditorStore } from "../../../state/editor-provider";
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
+  id,
   data,
   isConnectable,
-  selected,
 }: NodeProps<TransitionNodeData>) => {
   const { label } = data;
+
+  // Derive selected state from EditorStore
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const selected = selectedItemIds.has(id);
 
   return (
     <div

@@ -1,23 +1,15 @@
 import { useState } from "react";
-import { getBezierPath, type Position } from "reactflow";
+import { type EdgeProps, getBezierPath } from "reactflow";
 
-interface ArcProps {
-  id: string;
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  sourcePosition: Position;
-  targetPosition: Position;
-  selected?: boolean;
-  data?: {
-    tokenWeights: {
-      [tokenTypeId: string]: number;
-    };
+import { useEditorStore } from "../../../state/editor-provider";
+
+interface ArcData {
+  tokenWeights: {
+    [tokenTypeId: string]: number;
   };
 }
 
-export const Arc: React.FC<ArcProps> = ({
+export const Arc: React.FC<EdgeProps<ArcData>> = ({
   id,
   sourceX,
   sourceY,
@@ -25,24 +17,15 @@ export const Arc: React.FC<ArcProps> = ({
   targetY,
   sourcePosition,
   targetPosition,
-  selected = false,
   data,
-}: {
-  id: string;
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  sourcePosition: Position;
-  targetPosition: Position;
-  selected?: boolean;
-  data?: {
-    tokenWeights: {
-      [tokenTypeId: string]: number;
-    };
-  };
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  // Derive selected state from EditorStore
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+
+  // Check if this arc is selected by its ID
+  const selected = selectedItemIds.has(id);
 
   // Use a default token type for now
   const defaultTokenType = {

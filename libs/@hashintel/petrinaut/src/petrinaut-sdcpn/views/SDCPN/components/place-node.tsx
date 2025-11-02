@@ -1,14 +1,19 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useEditorStore } from "../../../state/editor-provider";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
 export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
+  id,
   data,
   isConnectable,
-  selected,
 }: NodeProps<PlaceNodeData>) => {
+  // Derive selected state from EditorStore
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const selected = selectedItemIds.has(id);
+
   return (
     <div
       className={css({
