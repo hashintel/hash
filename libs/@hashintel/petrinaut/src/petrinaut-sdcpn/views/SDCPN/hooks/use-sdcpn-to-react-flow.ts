@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 
 import type { SDCPN } from "../../../../core/types/sdcpn";
 import { useEditorStore } from "../../../state/editor-provider";
@@ -20,91 +19,89 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
     (state) => state.draggingStateByNodeId,
   );
 
-  return useMemo(() => {
-    const nodes: NodeType[] = [];
+  const nodes: NodeType[] = [];
 
-    // Create place nodes
-    for (const place of sdcpn.places) {
-      const draggingState = draggingStateByNodeId[place.id];
+  // Create place nodes
+  for (const place of sdcpn.places) {
+    const draggingState = draggingStateByNodeId[place.id];
 
-      nodes.push({
-        id: place.id,
+    nodes.push({
+      id: place.id,
+      type: "place",
+      position: draggingState?.dragging
+        ? draggingState.position
+        : { x: place.x, y: place.y },
+      width: place.width ?? 80,
+      height: place.height ?? 80,
+      dragging: draggingState?.dragging ?? false,
+      data: {
+        label: place.name,
         type: "place",
-        position: draggingState?.dragging
-          ? draggingState.position
-          : { x: place.x, y: place.y },
-        width: place.width ?? 80,
-        height: place.height ?? 80,
-        dragging: draggingState?.dragging ?? false,
-        data: {
-          label: place.name,
-          type: "place",
-        },
-      });
-    }
+      },
+    });
+  }
 
-    // Create transition nodes
-    for (const transition of sdcpn.transitions) {
-      const draggingState = draggingStateByNodeId[transition.id];
+  // Create transition nodes
+  for (const transition of sdcpn.transitions) {
+    const draggingState = draggingStateByNodeId[transition.id];
 
-      nodes.push({
-        id: transition.id,
+    nodes.push({
+      id: transition.id,
+      type: "transition",
+      position: draggingState?.dragging
+        ? draggingState.position
+        : { x: transition.x, y: transition.y },
+      width: transition.width ?? 60,
+      height: transition.height ?? 60,
+      dragging: draggingState?.dragging ?? false,
+      data: {
+        label: transition.name,
         type: "transition",
-        position: draggingState?.dragging
-          ? draggingState.position
-          : { x: transition.x, y: transition.y },
-        width: transition.width ?? 60,
-        height: transition.height ?? 60,
-        dragging: draggingState?.dragging ?? false,
+      },
+    });
+  }
+
+  // Create arcs from input and output arcs
+  const arcs = [];
+
+  for (const transition of sdcpn.transitions) {
+    // Input arcs (from places to transition)
+    for (const inputArc of transition.inputArcs) {
+      const arcId = `arc__${inputArc.placeId}-${transition.id}`;
+
+      arcs.push({
+        id: arcId,
+        source: inputArc.placeId,
+        target: transition.id,
+        type: "default" as const,
         data: {
-          label: transition.name,
-          type: "transition",
+          tokenWeights: {
+            default: inputArc.weight,
+          },
         },
       });
     }
 
-    // Create arcs from input and output arcs
-    const arcs = [];
+    // Output arcs (from transition to places)
+    for (const outputArc of transition.outputArcs) {
+      const arcId = `arc__${transition.id}-${outputArc.placeId}`;
 
-    for (const transition of sdcpn.transitions) {
-      // Input arcs (from places to transition)
-      for (const inputArc of transition.inputArcs) {
-        const arcId = `arc__${inputArc.placeId}-${transition.id}`;
-
-        arcs.push({
-          id: arcId,
-          source: inputArc.placeId,
-          target: transition.id,
-          type: "default" as const,
-          data: {
-            tokenWeights: {
-              default: inputArc.weight,
-            },
+      arcs.push({
+        id: arcId,
+        source: transition.id,
+        target: outputArc.placeId,
+        type: "default" as const,
+        data: {
+          tokenWeights: {
+            default: outputArc.weight,
           },
-        });
-      }
-
-      // Output arcs (from transition to places)
-      for (const outputArc of transition.outputArcs) {
-        const arcId = `arc__${transition.id}-${outputArc.placeId}`;
-
-        arcs.push({
-          id: arcId,
-          source: transition.id,
-          target: outputArc.placeId,
-          type: "default" as const,
-          data: {
-            tokenWeights: {
-              default: outputArc.weight,
-            },
-          },
-        });
-      }
+        },
+      });
     }
+  }
 
-    return {
-      nodes,
-      arcs,
-    };
-  }, [sdcpn, draggingStateByNodeId]);
+  return {
+    nodes,
+    arcs,
+  };
 }
