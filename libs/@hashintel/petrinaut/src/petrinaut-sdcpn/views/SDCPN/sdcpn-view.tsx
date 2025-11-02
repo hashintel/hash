@@ -6,8 +6,6 @@ import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
-import { useNodesWithDraggingState } from "../../hooks/use-nodes-with-dragging-state";
-import { sdcpnToReactFlow } from "../../lib/sdcpn-converters";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
@@ -15,6 +13,7 @@ import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
+import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
@@ -48,17 +47,14 @@ export const SDCPNView: React.FC = () => {
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
 
-  // Convert SDCPN to ReactFlow format
-  const petriNetDefinition = sdcpnToReactFlow(sdcpn);
-  const { nodes, arcs } = petriNetDefinition;
+  // Convert SDCPN to ReactFlow format with dragging state
+  const { nodes, arcs } = useSdcpnToReactFlow(sdcpn);
 
   // Editor state
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const resetDraggingState = useEditorStore(
     (state) => state.resetDraggingState,
   );
-
-  const nodesForReactFlow = useNodesWithDraggingState(nodes);
 
   // Reset dragging state when nodes change
   useEffect(() => {
@@ -148,8 +144,6 @@ export const SDCPNView: React.FC = () => {
     const label = `${nodeType} ${nodes.length + 1}`;
 
     if (nodeType === "place") {
-      // eslint-disable-next-line no-console
-      console.log("Adding place", id, label, position);
       addPlace({
         id,
         name: label,
@@ -161,8 +155,6 @@ export const SDCPNView: React.FC = () => {
         height,
       });
     } else {
-      // eslint-disable-next-line no-console
-      console.log("Adding transition", id, label, position);
       addTransition({
         id,
         name: label,
@@ -192,7 +184,7 @@ export const SDCPNView: React.FC = () => {
       }}
     >
       <ReactFlow
-        nodes={nodesForReactFlow}
+        nodes={nodes}
         edges={arcs}
         nodeTypes={REACTFLOW_NODE_TYPES}
         edgeTypes={REACTFLOW_EDGE_TYPES}
