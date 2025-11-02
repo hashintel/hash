@@ -20,7 +20,7 @@ use crate::{
     annotation::directive::RunMode,
     reporter::Statistics,
     styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
-    suite::{SuiteDiagnostic, find_suite},
+    suite::{RunContext, RunContextPartial, SuiteDiagnostic, find_suite},
 };
 
 fn parse_source<'heap>(
@@ -269,7 +269,13 @@ impl Trial {
     ) -> Result<(Option<String>, Vec<SuiteDiagnostic>), Report<TrialError>> {
         let mut diagnostics = Vec::new();
 
-        let result = self.suite.run(heap, expr, &mut diagnostics);
+        let result = self.suite.run(
+            RunContext::new(RunContextPartial {
+                heap,
+                diagnostics: &mut diagnostics,
+            }),
+            expr,
+        );
 
         if self.annotations.directive.run == RunMode::Pass && result.is_err() {
             return Err(Report::new(TrialError::TrialShouldPass));

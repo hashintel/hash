@@ -53,14 +53,48 @@ use self::{
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
 
+mod private {
+    pub(crate) struct Private(pub ());
+}
+
+pub(crate) struct RunContextPartial<'ctx, 'heap> {
+    pub heap: &'heap Heap,
+    pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
+}
+
+pub(crate) struct RunContext<'ctx, 'heap> {
+    pub heap: &'heap Heap,
+    pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
+
+    // Makes sure that the type is non-exhaustive within the crate, this is important so that we
+    // can ensure that adding another attribute won't have any cascading results in all compiletest
+    // suites that destructure.
+    _private: private::Private,
+}
+
+impl<'ctx, 'heap> RunContext<'ctx, 'heap> {
+    pub(crate) fn new(
+        RunContextPartial { heap, diagnostics }: RunContextPartial<'ctx, 'heap>,
+    ) -> Self {
+        Self {
+            heap,
+            diagnostics,
+            _private: private::Private(()),
+        }
+    }
+}
+
 pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
+    fn extra_file_extensions(&self) -> &[&str] {
+        &[]
+    }
+
     fn name(&self) -> &'static str;
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        ctx: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic>;
 }
 

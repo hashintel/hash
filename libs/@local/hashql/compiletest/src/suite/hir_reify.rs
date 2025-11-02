@@ -16,7 +16,7 @@ use hashql_hir::{
     pretty::PrettyPrintEnvironment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_status};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
 
 pub(crate) fn hir_reify<'heap>(
     heap: &'heap Heap,
@@ -46,9 +46,10 @@ impl Suite for HirReifySuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);

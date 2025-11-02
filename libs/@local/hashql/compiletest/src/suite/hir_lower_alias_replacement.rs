@@ -14,7 +14,7 @@ use hashql_hir::{
     node::Node, pretty::PrettyPrintEnvironment,
 };
 
-use super::{Suite, SuiteDiagnostic, hir_reify::hir_reify};
+use super::{RunContext, Suite, SuiteDiagnostic, hir_reify::hir_reify};
 use crate::suite::common::{Header, process_issues};
 
 pub(crate) struct TestOptions<'data> {
@@ -66,9 +66,10 @@ impl Suite for HirLowerAliasReplacementSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);

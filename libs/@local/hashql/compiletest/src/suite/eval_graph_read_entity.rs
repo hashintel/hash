@@ -3,7 +3,6 @@ use core::fmt::Write as _;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collections::FastHashMap,
-    heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
@@ -15,7 +14,7 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Suite, SuiteDiagnostic};
+use super::{RunContext, Suite, SuiteDiagnostic};
 use crate::suite::common::{Header, process_status};
 
 pub(crate) struct EvalGraphReadEntitySuite;
@@ -27,9 +26,10 @@ impl Suite for EvalGraphReadEntitySuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);

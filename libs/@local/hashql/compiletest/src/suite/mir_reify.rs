@@ -10,7 +10,7 @@ use hashql_mir::{
     pretty::TextFormat,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_status};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
@@ -65,9 +65,10 @@ impl Suite for MirReifySuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(SpanId::SYNTHETIC, heap);
         let interner = Interner::new(heap);
