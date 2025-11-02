@@ -56,7 +56,7 @@ type PetrinautInnerProps = {
   loadPetriNet: (petriNetId: string) => void;
 };
 
-const PetrinautInner = ({
+const PetrinautSDCPNInner = ({
   hideNetManagementControls,
   createNewNet,
   petriNetDefinition,
@@ -104,7 +104,7 @@ const PetrinautInner = ({
   );
 };
 
-export type PetrinautProps = {
+export type PetrinautSDCPNProps = {
   /**
    * Create a new net and load it into the editor.
    */
@@ -138,7 +138,7 @@ export type PetrinautProps = {
   title: string;
 };
 
-export const Petrinaut = ({
+export const PetrinautSDCPN = ({
   createNewNet,
   hideNetManagementControls,
   petriNetId,
@@ -146,10 +146,10 @@ export const Petrinaut = ({
   loadPetriNet,
   setTitle,
   title,
-}: PetrinautProps) => {
+}: PetrinautSDCPNProps) => {
   return (
     <ReactFlowProvider>
-      <PetrinautInner
+      <PetrinautSDCPNInner
         hideNetManagementControls={hideNetManagementControls}
         createNewNet={createNewNet}
         petriNetDefinition={petriNetDefinition}
