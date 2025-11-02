@@ -7,11 +7,3 @@ import { useSDCPNStore } from "./sdcpn-store";
 export const useSDCPN = () => {
   return useSDCPNStore((state) => state.sdcpn);
 };
-
-/**
- * Hook to mutate the SDCPN definition.
- * Provides a mutation function that operates on a copy of the SDCPN.
- */
-export const useMutateSDCPN = () => {
-  return useSDCPNStore((state) => state.mutateSDCPN);
-};

@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { useEditorContext } from "./editor-context";
+import { useSDCPNStore } from "./state/sdcpn-store";
 import { handleStyling, transitionStyling } from "./styling";
 import type { TransitionNodeData } from "./types";
 
@@ -24,7 +24,7 @@ export const TransitionNode = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label, description, childNet } = data;
 
-  const { loadPetriNet } = useEditorContext();
+  const loadPetriNet = useSDCPNStore((state) => state.loadPetriNet);
 
   return (
     <div
@@ -40,7 +40,7 @@ export const TransitionNode = ({
         style={handleStyling}
       />
       <div className={transitionStyling}>
-        {childNet && (
+        {childNet && loadPetriNet && (
           <button
             type="button"
             title={`Switch to child net ${childNet.childNetTitle}`}

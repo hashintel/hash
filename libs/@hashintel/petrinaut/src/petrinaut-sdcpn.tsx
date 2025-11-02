@@ -11,7 +11,6 @@ import ReactFlow, {
   Background,
   ConnectionLineType,
   ReactFlowProvider,
-  useReactFlow,
 } from "reactflow";
 
 import { applyNodeChanges } from "./petrinaut-sdcpn/apply-node-changes";
@@ -20,14 +19,12 @@ import { BottomBar } from "./petrinaut-sdcpn/components/bottom-bar";
 import { FloatingTitle } from "./petrinaut-sdcpn/components/floating-title";
 import { HamburgerMenu } from "./petrinaut-sdcpn/components/hamburger-menu";
 import { ModeSelector } from "./petrinaut-sdcpn/components/mode-selector";
-import {
-  EditorContextProvider,
-  type MutatePetriNetDefinition,
-  useEditorContext,
-} from "./petrinaut-sdcpn/editor-context";
-import { exampleCPN } from "./petrinaut-sdcpn/examples";
+import { exampleSDCPN } from "./petrinaut-sdcpn/examples";
 import { generateUuid } from "./petrinaut-sdcpn/lib/generate-uuid";
-import { petriNetToSDCPN } from "./petrinaut-sdcpn/lib/sdcpn-converters";
+import {
+  petriNetToSDCPN,
+  sdcpnToPetriNet,
+} from "./petrinaut-sdcpn/lib/sdcpn-converters";
 import { PlaceNode } from "./petrinaut-sdcpn/place-node";
 import {
   useEditorStore,
@@ -73,13 +70,29 @@ export type {
 
 export { nodeDimensions };
 
+type PetrinautInnerProps = {
+  hideNetManagementControls: boolean;
+  createNewNet: (params: {
+    petriNetDefinition: PetriNetDefinitionObject;
+    title: string;
+  }) => void;
+  petriNetDefinition: PetriNetDefinitionObject;
+  petriNetId: string | null;
+  title: string;
+  setTitle: (title: string) => void;
+  loadPetriNet: (petriNetId: string) => void;
+};
+
 const PetrinautInner = ({
   hideNetManagementControls,
-}: { hideNetManagementControls: boolean }) => {
+  createNewNet,
+  petriNetDefinition,
+  petriNetId,
+  title,
+  setTitle,
+  loadPetriNet,
+}: PetrinautInnerProps) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
-
-  const { createNewNet, petriNetDefinition, setTitle, title, petriNetId } =
-    useEditorContext();
 
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
 
@@ -89,6 +102,10 @@ const PetrinautInner = ({
     (state) => state.setReactFlowInstance,
   );
   const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
+  const setTokenTypes = useSDCPNStore((state) => state.setTokenTypes);
+  const setLoadPetriNetInStore = useSDCPNStore(
+    (state) => state.setLoadPetriNet,
+  );
   const updatePlacePosition = useSDCPNStore(
     (state) => state.updatePlacePosition,
   );
@@ -99,7 +116,7 @@ const PetrinautInner = ({
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
 
-  // Editor store (UI state only)
+  // Editor state
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
@@ -113,13 +130,23 @@ const PetrinautInner = ({
 
   // Initialize SDCPN from petriNetDefinition when it changes
   useEffect(() => {
-    const newSDCPN = petriNetToSDCPN(
+    const sdcpn = petriNetToSDCPN(
       petriNetDefinition,
       petriNetId ?? "unknown",
       title,
     );
-    setSDCPN(newSDCPN);
-  }, [petriNetId, petriNetDefinition, title, setSDCPN]);
+    setSDCPN(sdcpn);
+    setTokenTypes(petriNetDefinition.tokenTypes);
+    setLoadPetriNetInStore(loadPetriNet);
+  }, [
+    petriNetId,
+    petriNetDefinition,
+    title,
+    setSDCPN,
+    setTokenTypes,
+    setLoadPetriNetInStore,
+    loadPetriNet,
+  ]);
 
   const nodesForReactFlow = useNodesWithDraggingState(petriNetDefinition.nodes);
 
@@ -143,11 +170,12 @@ const PetrinautInner = ({
     [],
   );
 
-  const { setViewport } = useReactFlow();
-
+  // Set initial viewport when reactFlowInstance is available
   useEffect(() => {
-    setViewport({ x: 0, y: 0, zoom: 1 });
-  }, [setViewport]);
+    if (reactFlowInstance) {
+      reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 });
+    }
+  }, [reactFlowInstance]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -308,13 +336,10 @@ const PetrinautInner = ({
   }, [clearSelection]);
 
   const handleLoadExample = useCallback(() => {
+    const petriNetDef = sdcpnToPetriNet(exampleSDCPN);
     createNewNet({
-      petriNetDefinition: {
-        arcs: exampleCPN.arcs,
-        nodes: exampleCPN.nodes,
-        tokenTypes: exampleCPN.tokenTypes,
-      },
-      title: exampleCPN.title,
+      petriNetDefinition: petriNetDef,
+      title: exampleSDCPN.title,
     });
   }, [createNewNet]);
 
@@ -487,10 +512,6 @@ const PetrinautInner = ({
 
 export type PetrinautProps = {
   /**
-   * Nets other than this one which are available for selection, e.g. to switch to or to link from a transition.
-   */
-  existingNets: MinimalNetMetadata[];
-  /**
    * Create a new net and load it into the editor.
    */
   createNewNet: (params: {
@@ -510,25 +531,6 @@ export type PetrinautProps = {
    */
   petriNetDefinition: PetriNetDefinitionObject;
   /**
-   * Update the definition of the net which is currently loaded, by mutation.
-   *
-   * Should not return anything – the consumer of Petrinaut must pass mutationFn into an appropriate helper
-   * which does something with the mutated object, e.g. `immer`'s `produce` or `@automerge/react`'s `changeDoc`.
-   *
-   * @example
-   *   mutatePetriNetDefinition((petriNetDefinition) => {
-   *     petriNetDefinition.nodes.push({
-   *       id: "new-node",
-   *       type: "place",
-   *       position: { x: 0, y: 0 },
-   *     });
-   *   });
-   *
-   * @see https://immerjs.github.io/immer
-   * @see https://automerge.org
-   */
-  mutatePetriNetDefinition: MutatePetriNetDefinition;
-  /**
    * Load a new net by id.
    */
   loadPetriNet: (petriNetId: string) => void;
@@ -544,31 +546,24 @@ export type PetrinautProps = {
 
 export const Petrinaut = ({
   createNewNet,
-  existingNets,
   hideNetManagementControls,
   petriNetId,
   petriNetDefinition,
-  mutatePetriNetDefinition,
   loadPetriNet,
   setTitle,
   title,
 }: PetrinautProps) => {
   return (
     <ReactFlowProvider>
-      <EditorContextProvider
+      <PetrinautInner
+        hideNetManagementControls={hideNetManagementControls}
         createNewNet={createNewNet}
-        existingNets={existingNets}
-        petriNetId={petriNetId}
         petriNetDefinition={petriNetDefinition}
-        mutatePetriNetDefinition={mutatePetriNetDefinition}
-        loadPetriNet={loadPetriNet}
-        // @todo add readonly prop and turn off editing everything when true
-        readonly={false}
-        setTitle={setTitle}
+        petriNetId={petriNetId}
         title={title}
-      >
-        <PetrinautInner hideNetManagementControls={hideNetManagementControls} />
-      </EditorContextProvider>
+        setTitle={setTitle}
+        loadPetriNet={loadPetriNet}
+      />
     </ReactFlowProvider>
   );
 };

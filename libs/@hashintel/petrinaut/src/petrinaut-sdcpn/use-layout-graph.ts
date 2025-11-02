@@ -1,13 +1,11 @@
 import { useCallback } from "react";
-import { useReactFlow } from "reactflow";
 
 import { calculateGraphLayout } from "./lib/calculate-graph-layout";
 import { useSDCPNStore } from "./state/sdcpn-store";
 import type { ArcType, NodeType } from "./types";
 
 export const useLayoutGraph = () => {
-  const { fitView } = useReactFlow();
-
+  const reactFlowInstance = useSDCPNStore((state) => state.reactFlowInstance);
   const updatePlacePosition = useSDCPNStore(
     (state) => state.updatePlacePosition,
   );
@@ -38,20 +36,22 @@ export const useLayoutGraph = () => {
           }
         }
 
-        setTimeout(
-          () =>
-            window.requestAnimationFrame(() =>
-              fitView({
-                duration: animationDuration,
-                padding: 0.03,
-                maxZoom: 1,
-              }),
-            ),
-          300,
-        );
+        if (reactFlowInstance) {
+          setTimeout(
+            () =>
+              window.requestAnimationFrame(() =>
+                reactFlowInstance.fitView({
+                  duration: animationDuration,
+                  padding: 0.03,
+                  maxZoom: 1,
+                }),
+              ),
+            300,
+          );
+        }
       });
     },
-    [updatePlacePosition, updateTransitionPosition, fitView],
+    [updatePlacePosition, updateTransitionPosition, reactFlowInstance],
   );
 
   return layoutGraph;
