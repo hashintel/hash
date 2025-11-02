@@ -27,20 +27,14 @@ use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
 /// ```
 #[derive(Clone, PartialEq)]
 pub enum FromItem<'id> {
-    /// A table reference: `[ ONLY ] table_name [ AS alias ] [ TABLESAMPLE ... ]`
+    /// A table reference: `[ ONLY ] table_name [ AS alias [ ( column_alias [, ...] ) ] ] [
+    /// TABLESAMPLE ... ]`
     ///
     /// Transpiles to:
     /// ```sql
-    /// [ ONLY ] table_name [ AS alias ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
+    /// [ ONLY ] table_name [ AS alias [ (col1, col2, ...) ] ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
     /// ```
     Table {
-        /// The base table reference.
-        table: TableReference<'id>,
-        /// Optional alias for the table.
-        ///
-        /// When `Some`, the table is referenced using this alias elsewhere in the query.
-        /// When `None`, the base table reference is used directly.
-        alias: Option<TableReference<'id>>,
         /// Whether to query only this table, excluding inherited tables.
         ///
         /// When `true`, prevents querying child tables in table inheritance hierarchies.
@@ -50,6 +44,25 @@ pub enum FromItem<'id> {
         /// By default, queries on a parent table include rows from all child tables.
         /// Setting `only` to `true` restricts the query to the parent table only.
         only: bool,
+        /// The base table reference.
+        table: TableReference<'id>,
+        /// Optional alias for the table.
+        ///
+        /// When `Some`, the table is referenced using this alias elsewhere in the query.
+        /// When `None`, the base table reference is used directly.
+        alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the table's columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS table_alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        ///
+        /// Useful for:
+        /// - Renaming columns from subqueries or functions with unclear names
+        /// - Standardizing column names across different sources
+        /// - Avoiding column name conflicts in complex queries
+        column_alias: Vec<ColumnName<'id>>,
         /// Optional TABLESAMPLE clause for row sampling.
         ///
         /// When `Some`, applies SQL:2003 standard TABLESAMPLE sampling to select a random
@@ -58,7 +71,7 @@ pub enum FromItem<'id> {
         tablesample: Option<TableSample>,
     },
 
-    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias ]`
+    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias [ ( column_alias [, ...] ) ] ]`
     Subquery {
         /// The subquery SELECT statement.
         statement: Box<SelectStatement>,
@@ -67,6 +80,13 @@ pub enum FromItem<'id> {
         /// While PostgreSQL requires aliases for subqueries in most contexts,
         /// this is `Option` to allow construction before alias assignment.
         alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the subquery's result columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        column_alias: Vec<ColumnName<'id>>,
         /// Whether this is a LATERAL subquery.
         ///
         /// When `true`, the subquery can reference columns from preceding FROM items.
@@ -79,7 +99,7 @@ pub enum FromItem<'id> {
         lateral: bool,
     },
 
-    /// A function call: `[ LATERAL ] function_name(...) [ AS alias ]`
+    /// A function call: `[ LATERAL ] function_name(...) [ AS alias [ ( column_alias [, ...] ) ] ]`
     ///
     /// Represents set-returning functions or table functions in the FROM clause.
     /// Common use cases include `unnest()`, `generate_series()`, and `json_to_recordset()`.
@@ -90,6 +110,13 @@ pub enum FromItem<'id> {
         ///
         /// Required for most set-returning functions to name the result columns.
         alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the function's result columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        column_alias: Vec<ColumnName<'id>>,
         /// Whether this is a LATERAL function call.
         ///
         /// When `true`, the function can reference columns from preceding FROM items.
@@ -198,12 +225,14 @@ impl<'id> FromItem<'id> {
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
         alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
         #[builder(default)] only: bool,
         tablesample: Option<TableSample>,
     ) -> Self {
         Self::Table {
             table,
             alias,
+            column_alias,
             only,
             tablesample,
         }
@@ -213,11 +242,13 @@ impl<'id> FromItem<'id> {
     pub const fn subquery(
         #[builder(start_fn, into)] statement: Box<SelectStatement>,
         alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Subquery {
             statement,
             alias,
+            column_alias,
             lateral,
         }
     }
@@ -226,11 +257,13 @@ impl<'id> FromItem<'id> {
     pub const fn function(
         #[builder(start_fn, into)] function: Function,
         alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = ""))] column_alias: Vec<ColumnName<'id>>,
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Function {
             function,
             alias,
+            column_alias,
             lateral,
         }
     }
@@ -322,6 +355,7 @@ impl Transpile for FromItem<'_> {
             Self::Table {
                 table,
                 alias,
+                column_alias,
                 only,
                 tablesample,
             } => {
@@ -334,6 +368,17 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+
+                    if !column_alias.is_empty() {
+                        fmt.write_str("(")?;
+                        for (idx, column) in column_alias.iter().enumerate() {
+                            if idx > 0 {
+                                fmt.write_str(", ")?;
+                            }
+                            column.transpile(fmt)?;
+                        }
+                        fmt.write_char(')')?;
+                    }
                 }
 
                 if let Some(sample) = tablesample {
@@ -344,6 +389,7 @@ impl Transpile for FromItem<'_> {
             Self::Subquery {
                 statement,
                 alias,
+                column_alias,
                 lateral,
             } => {
                 if *lateral {
@@ -355,11 +401,23 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+
+                    if !column_alias.is_empty() {
+                        fmt.write_str("(")?;
+                        for (idx, column) in column_alias.iter().enumerate() {
+                            if idx > 0 {
+                                fmt.write_str(", ")?;
+                            }
+                            column.transpile(fmt)?;
+                        }
+                        fmt.write_char(')')?;
+                    }
                 }
             }
             Self::Function {
                 function,
                 alias,
+                column_alias,
                 lateral,
             } => {
                 if *lateral {
@@ -369,6 +427,17 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+
+                    if !column_alias.is_empty() {
+                        fmt.write_str("(")?;
+                        for (idx, column) in column_alias.iter().enumerate() {
+                            if idx > 0 {
+                                fmt.write_str(", ")?;
+                            }
+                            column.transpile(fmt)?;
+                        }
+                        fmt.write_char(')')?;
+                    }
                 }
             }
             Self::JoinOn {
@@ -527,6 +596,87 @@ mod from_item_join_builder_impl {
     }
 }
 
+mod from_item_table_builder_impl {
+    use super::{
+        FromItemTableBuilder,
+        from_item_table_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemTableBuilder<'id, S> {
+        /// Add column aliases to rename the table's columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set on the table - PostgreSQL syntax requires
+        /// `AS table_alias(col1, col2, ...)`.
+        pub fn columns(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemTableBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.column_alias(columns)
+        }
+    }
+}
+
+mod from_item_subquery_builder_impl {
+    use super::{
+        FromItemSubqueryBuilder,
+        from_item_subquery_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemSubqueryBuilder<'id, S> {
+        /// Add column aliases to rename the subquery's result columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set - PostgreSQL syntax requires
+        /// `AS alias(col1, col2, ...)`.
+        pub fn columns(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemSubqueryBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.column_alias(columns)
+        }
+    }
+}
+
+mod from_item_function_builder_impl {
+    use super::{
+        FromItemFunctionBuilder,
+        from_item_function_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemFunctionBuilder<'id, S> {
+        /// Add column aliases to rename the function's result columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set - PostgreSQL syntax requires
+        /// `AS alias(col1, col2, ...)`.
+        pub fn columns(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemFunctionBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.column_alias(columns)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
@@ -536,7 +686,7 @@ mod tests {
         Alias, Expression, ForeignKeyReference, OrderByExpression, Table,
         expression::{
             GroupByExpression, SelectExpression, TableName, TableReference, WhereExpression,
-            WithExpression, table_sample::SamplingMethod,
+            WithExpression, identifier::Identifier, table_sample::SamplingMethod,
         },
         table::{Column, DataTypes, OntologyIds},
     };
@@ -747,6 +897,42 @@ mod tests {
     }
 
     #[test]
+    fn transpile_subquery_with_column_aliases() {
+        let subquery = SelectStatement {
+            with: WithExpression::default(),
+            distinct: vec![],
+            selects: vec![SelectExpression::Asterisk(None)],
+            from: Some(FromItem::table(Table::OntologyIds).build()),
+            where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
+            group_by_expression: GroupByExpression::default(),
+            limit: None,
+        };
+
+        let from_item = FromItem::subquery(subquery)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("sub"),
+                alias: None,
+            })
+            .columns(vec![
+                ColumnName::from(Identifier::from("id")),
+                ColumnName::from(Identifier::from("url")),
+                ColumnName::from(Identifier::from("ver")),
+            ])
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            indoc! {r#"
+                (SELECT *
+                FROM "ontology_ids") AS "sub"("id", "url", "ver")
+            "#}
+            .trim()
+        );
+    }
+
+    #[test]
     fn transpile_lateral_subquery() {
         let subquery = SelectStatement {
             with: WithExpression::default(),
@@ -867,6 +1053,25 @@ mod tests {
             .build()
             .transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id") AS "ids""#
+        );
+    }
+
+    #[test]
+    fn transpile_function_with_column_aliases() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .alias(TableReference {
+            schema: None,
+            name: TableName::from("ids"),
+            alias: None,
+        })
+        .columns(vec![ColumnName::from(Identifier::from("id"))])
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") AS "ids"("id")"#
         );
     }
 
@@ -1103,6 +1308,40 @@ mod tests {
             from_item.transpile_to_string(),
             r#"ONLY "data_types" AS "data_types_0_1_2""#
         );
+    }
+
+    #[test]
+    fn transpile_table_with_column_aliases() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("dt"),
+                alias: None,
+            })
+            .columns(vec![
+                ColumnName::from(Identifier::from("id")),
+                ColumnName::from(Identifier::from("name")),
+                ColumnName::from(Identifier::from("url")),
+            ])
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#""data_types" AS "dt"("id", "name", "url")"#
+        );
+    }
+
+    #[test]
+    fn transpile_table_with_alias_but_no_column_aliases() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("dt"),
+                alias: None,
+            })
+            .build();
+
+        assert_eq!(from_item.transpile_to_string(), r#""data_types" AS "dt""#);
     }
 
     #[test]
