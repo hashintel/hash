@@ -2,15 +2,15 @@ import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Connection, NodeChange, ReactFlowInstance } from "reactflow";
+import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, {
   Background,
   ConnectionLineType,
   ReactFlowProvider,
 } from "reactflow";
 
-import { applyNodeChanges } from "../apply-node-changes";
 import { Arc } from "../arc";
+import { useApplyNodeChanges } from "../hooks/use-apply-node-changes";
 import { generateUuid } from "../lib/generate-uuid";
 import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
 import { PlaceNode } from "../place-node";
@@ -19,6 +19,8 @@ import { useSDCPNStore } from "../state/sdcpn-store";
 import { nodeDimensions } from "../styling";
 import { TransitionNode } from "../transition-node";
 import type { ArcData, NodeData } from "../types";
+
+const SNAP_GRID_SIZE = 15;
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
@@ -33,15 +35,12 @@ const SDCPNViewInner = () => {
 
   // SDCPN store
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const updatePlacePosition = useSDCPNStore(
-    (state) => state.updatePlacePosition,
-  );
-  const updateTransitionPosition = useSDCPNStore(
-    (state) => state.updateTransitionPosition,
-  );
   const addPlace = useSDCPNStore((state) => state.addPlace);
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
+
+  // Hook for applying node changes
+  const applyNodeChanges = useApplyNodeChanges();
 
   // Convert SDCPN to ReactFlow format
   // Memoize to prevent creating new objects on every render
@@ -50,12 +49,6 @@ const SDCPNViewInner = () => {
 
   // Editor state
   const clearSelection = useEditorStore((state) => state.clearSelection);
-  const draggingStateByNodeId = useEditorStore(
-    (state) => state.draggingStateByNodeId,
-  );
-  const updateDraggingStateByNodeId = useEditorStore(
-    (state) => state.updateDraggingStateByNodeId,
-  );
   const resetDraggingState = useEditorStore(
     (state) => state.resetDraggingState,
   );
@@ -66,39 +59,6 @@ const SDCPNViewInner = () => {
   useEffect(() => {
     resetDraggingState();
   }, [nodes, resetDraggingState]);
-
-  const nodeTypes = useMemo(
-    () => ({
-      place: PlaceNode,
-      transition: TransitionNode,
-    }),
-    [],
-  );
-
-  const edgeTypes = useMemo(
-    () => ({
-      default: Arc,
-    }),
-    [],
-  );
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      applyNodeChanges({
-        changes,
-        draggingStateByNodeId,
-        updatePlacePosition,
-        updateTransitionPosition,
-        updateDraggingStateByNodeId,
-      });
-    },
-    [
-      draggingStateByNodeId,
-      updateDraggingStateByNodeId,
-      updatePlacePosition,
-      updateTransitionPosition,
-    ],
-  );
 
   const onEdgesChange = useCallback(() => {
     /**
@@ -241,9 +201,14 @@ const SDCPNViewInner = () => {
       <ReactFlow
         nodes={nodesForReactFlow}
         edges={arcs}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        nodeTypes={{
+          place: PlaceNode,
+          transition: TransitionNode,
+        }}
+        edgeTypes={{
+          default: Arc,
+        }}
+        onNodesChange={applyNodeChanges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onInit={onInit}
@@ -252,11 +217,11 @@ const SDCPNViewInner = () => {
         onPaneClick={handlePaneClick}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
-        snapGrid={[15, 15]}
+        snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
       >
-        <Background gap={15} size={1} />
+        <Background gap={SNAP_GRID_SIZE} size={1} />
       </ReactFlow>
     </div>
   );
