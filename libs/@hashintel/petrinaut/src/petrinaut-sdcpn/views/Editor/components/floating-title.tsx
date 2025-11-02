@@ -18,16 +18,11 @@ export const FloatingTitle: React.FC<FloatingTitleProps> = ({
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       className={css({
-        background: "[rgba(255, 255, 255, 0.5)]",
-        backdropFilter: "[blur(22px)]",
-        border: "1px solid",
-        borderColor: "core.gray.20",
-        borderRadius: "radius.8",
         fontSize: "size.textsm",
         fontWeight: "medium",
         color: "core.gray.90",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
         minWidth: "[200px]",
+        borderRadius: "radius.2",
         _focus: {
           outline: "2px solid",
           outlineColor: "core.blue.60",

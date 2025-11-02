@@ -26,8 +26,8 @@ export const PropertiesPanel: React.FC = () => {
           top: 0,
           right: 0,
           bottom: 0,
-          padding: "24px",
-          height: "calc(100% - 48px)",
+          padding: "16px",
+          height: "100%",
           zIndex: 1000,
         }}
       >
@@ -353,8 +353,8 @@ export const PropertiesPanel: React.FC = () => {
         top: 0,
         right: 0,
         bottom: 0,
-        padding: "24px",
-        height: "calc(100% - 48px)",
+        padding: "12px",
+        height: "100%",
         zIndex: 1000,
       }}
     >
