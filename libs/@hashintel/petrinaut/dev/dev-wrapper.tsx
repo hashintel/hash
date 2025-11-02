@@ -9,11 +9,11 @@ import { ThemeProvider } from "@mui/material";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Petrinaut } from "../src/petrinaut-sdcpn";
+import { Petrinaut } from "../src/petrinaut";
 import type {
   MinimalNetMetadata,
   PetriNetDefinitionObject,
-} from "../src/petrinaut-sdcpn/types";
+} from "../src/petrinaut/types";
 
 const emotionCache = createEmotionCache();
 
@@ -151,6 +151,7 @@ export const DevWrapper = () => {
             createNewNet={createNewNet}
             existingNets={existingNets}
             hideNetManagementControls={false}
+            parentNet={null}
             petriNetId={currentNetId}
             petriNetDefinition={currentNet.petriNetDefinition}
             mutatePetriNetDefinition={mutatePetriNetDefinition}
