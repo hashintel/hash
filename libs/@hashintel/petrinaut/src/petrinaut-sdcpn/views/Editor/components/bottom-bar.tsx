@@ -29,57 +29,62 @@ export const BottomBar: React.FC = () => {
   });
 
   return (
-    <RefractivePane
-      radius={12}
-      blur={1.5}
-      specularOpacity={0}
-      scaleRatio={1}
-      bezelWidth={20}
-      glassThickness={120}
-      refractiveIndex={1.5}
-      className={css({
-        position: "[fixed]",
-        bottom: "spacing.6",
-        left: "[50%]",
-        transform: "[translateX(-50%)]",
-        padding: "spacing.4",
-        paddingX: "spacing.6",
-        borderRadius: "[12px]",
-        backgroundColor: "[rgba(255, 255, 255, 0.8)]",
-        boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
-        display: "[flex]",
-        alignItems: "[center]",
-        gap: "spacing.4",
-        zIndex: "[1000]",
-      })}
+    <div
+      style={{
+        position: "fixed",
+        bottom: "24px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 1000,
+      }}
     >
-      <div className={iconContainerStyle}>
-        <FaArrowPointer />
-      </div>
-      <div className={iconContainerStyle}>
-        <FaHand />
-      </div>
-      <div
-        className={iconContainerStyle}
-        draggable
-        onDragStart={(event) => onDragStart(event, "place")}
-      >
-        <FaCircle />
-      </div>
-      <div
-        className={iconContainerStyle}
-        draggable
-        onDragStart={(event) => onDragStart(event, "transition")}
-      >
-        <FaSquare />
-      </div>
-      <div
+      <RefractivePane
+        radius={12}
+        blur={1.5}
+        specularOpacity={0}
+        scaleRatio={1}
+        bezelWidth={20}
+        glassThickness={120}
+        refractiveIndex={1.5}
         className={css({
-          background: "core.gray.20",
-          width: "[1px]",
-          height: "[40px]",
+          padding: "spacing.4",
+          paddingX: "spacing.6",
+          borderRadius: "[12px]",
+          backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+          boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+          display: "flex",
+          alignItems: "center",
+          gap: "spacing.4",
         })}
-      />
-    </RefractivePane>
+      >
+        <div className={iconContainerStyle}>
+          <FaArrowPointer />
+        </div>
+        <div className={iconContainerStyle}>
+          <FaHand />
+        </div>
+        <div
+          className={iconContainerStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "place")}
+        >
+          <FaCircle />
+        </div>
+        <div
+          className={iconContainerStyle}
+          draggable
+          onDragStart={(event) => onDragStart(event, "transition")}
+        >
+          <FaSquare />
+        </div>
+        <div
+          className={css({
+            background: "core.gray.20",
+            width: "[1px]",
+            height: "[40px]",
+          })}
+        />
+      </RefractivePane>
+    </div>
   );
 };
