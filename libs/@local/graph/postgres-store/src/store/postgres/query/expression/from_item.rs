@@ -392,6 +392,42 @@ impl<'id> FromItem<'id> {
                 | Self::NaturalJoin { .. }
         )
     }
+
+    /// Transpiles the right side of a join, adding parentheses if needed.
+    fn transpile_join_right(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_join() {
+            fmt.write_char('(')?;
+        }
+        self.transpile(fmt)?;
+        if self.is_join() {
+            fmt.write_char(')')?;
+        }
+        Ok(())
+    }
+
+    /// Transpiles a comma-separated list of columns: `col1, col2, ...`.
+    fn transpile_column_list(columns: &[ColumnName<'_>], fmt: &mut fmt::Formatter) -> fmt::Result {
+        for (idx, column) in columns.iter().enumerate() {
+            if idx > 0 {
+                fmt.write_str(", ")?;
+            }
+            column.transpile(fmt)?;
+        }
+        Ok(())
+    }
+
+    /// Transpiles column aliases: `(col1, col2, ...)`.
+    fn transpile_column_aliases(
+        column_alias: &[ColumnName<'_>],
+        fmt: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        if !column_alias.is_empty() {
+            fmt.write_str("(")?;
+            Self::transpile_column_list(column_alias, fmt)?;
+            fmt.write_char(')')?;
+        }
+        Ok(())
+    }
 }
 
 impl Transpile for FromItem<'_> {
@@ -417,17 +453,7 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-
-                    if !column_alias.is_empty() {
-                        fmt.write_str("(")?;
-                        for (idx, column) in column_alias.iter().enumerate() {
-                            if idx > 0 {
-                                fmt.write_str(", ")?;
-                            }
-                            column.transpile(fmt)?;
-                        }
-                        fmt.write_char(')')?;
-                    }
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
 
                 if let Some(sample) = tablesample {
@@ -450,17 +476,7 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-
-                    if !column_alias.is_empty() {
-                        fmt.write_str("(")?;
-                        for (idx, column) in column_alias.iter().enumerate() {
-                            if idx > 0 {
-                                fmt.write_str(", ")?;
-                            }
-                            column.transpile(fmt)?;
-                        }
-                        fmt.write_char(')')?;
-                    }
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
             }
             Self::Function {
@@ -482,17 +498,7 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
-
-                    if !column_alias.is_empty() {
-                        fmt.write_str("(")?;
-                        for (idx, column) in column_alias.iter().enumerate() {
-                            if idx > 0 {
-                                fmt.write_str(", ")?;
-                            }
-                            column.transpile(fmt)?;
-                        }
-                        fmt.write_char(')')?;
-                    }
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
             }
             Self::JoinOn {
@@ -505,16 +511,7 @@ impl Transpile for FromItem<'_> {
                 fmt.write_char('\n')?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
-
+                right.transpile_join_right(fmt)?;
                 fmt.write_str("\n  ON ")?;
 
                 if conditions.is_empty() {
@@ -539,15 +536,7 @@ impl Transpile for FromItem<'_> {
                 fmt.write_char('\n')?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
 
                 if columns.is_empty() {
                     // Empty USING list produces ON TRUE (cartesian product),
@@ -555,12 +544,7 @@ impl Transpile for FromItem<'_> {
                     fmt.write_str(" ON TRUE")?;
                 } else {
                     fmt.write_str(" USING (")?;
-                    for (i, column) in columns.iter().enumerate() {
-                        if i > 0 {
-                            fmt.write_str(", ")?;
-                        }
-                        column.transpile(fmt)?;
-                    }
+                    Self::transpile_column_list(columns, fmt)?;
                     fmt.write_char(')')?;
 
                     if let Some(alias) = alias {
@@ -572,15 +556,7 @@ impl Transpile for FromItem<'_> {
             Self::CrossJoin { left, right } => {
                 left.transpile(fmt)?;
                 fmt.write_str("\nCROSS JOIN ")?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
             }
             Self::NaturalJoin {
                 left,
@@ -591,15 +567,7 @@ impl Transpile for FromItem<'_> {
                 fmt.write_str("\nNATURAL ")?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
             }
         }
         Ok(())
