@@ -6,7 +6,7 @@ export const exampleSDCPN: SDCPN = {
   title: "Drug Production",
   places: [
     {
-      id: "place_0",
+      id: "place__0",
       name: "Plant A Supply",
       dimensions: 1,
       differentialEquationCode: "",
@@ -16,7 +16,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_1",
+      id: "place__1",
       name: "Plant B Supply",
       dimensions: 1,
       differentialEquationCode: "",
@@ -26,7 +26,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_2",
+      id: "place__2",
       name: "Manufacturing Plant",
       dimensions: 1,
       differentialEquationCode: "",
@@ -36,7 +36,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_3",
+      id: "place__3",
       name: "QA Queue",
       dimensions: 1,
       differentialEquationCode: "",
@@ -46,7 +46,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_4",
+      id: "place__4",
       name: "Disposal",
       dimensions: 1,
       differentialEquationCode: "",
@@ -56,7 +56,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_5",
+      id: "place__5",
       name: "Dispatch",
       dimensions: 1,
       differentialEquationCode: "",
@@ -66,7 +66,7 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.place.height,
     },
     {
-      id: "place_6",
+      id: "place__6",
       name: "Hospital",
       dimensions: 1,
       differentialEquationCode: "",
@@ -78,13 +78,13 @@ export const exampleSDCPN: SDCPN = {
   ],
   transitions: [
     {
-      id: "transition_0",
+      id: "transition__0",
       name: "Deliver to Plant",
       inputArcs: [
-        { placeId: "place_0", weight: 1 },
-        { placeId: "place_1", weight: 1 },
+        { placeId: "place__0", weight: 1 },
+        { placeId: "place__1", weight: 1 },
       ],
-      outputArcs: [{ placeId: "place_2", weight: 1 }],
+      outputArcs: [{ placeId: "place__2", weight: 1 }],
       lambdaCode: "",
       transitionKernelCode: "",
       x: 100,
@@ -93,10 +93,10 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.transition.height,
     },
     {
-      id: "transition_1",
+      id: "transition__1",
       name: "Manufacture",
-      inputArcs: [{ placeId: "place_2", weight: 1 }],
-      outputArcs: [{ placeId: "place_3", weight: 1 }],
+      inputArcs: [{ placeId: "place__2", weight: 1 }],
+      outputArcs: [{ placeId: "place__3", weight: 1 }],
       lambdaCode: "",
       transitionKernelCode: "",
       x: 490,
@@ -105,12 +105,12 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.transition.height,
     },
     {
-      id: "transition_2",
+      id: "transition__2",
       name: "Quality Check",
-      inputArcs: [{ placeId: "place_3", weight: 1 }],
+      inputArcs: [{ placeId: "place__3", weight: 1 }],
       outputArcs: [
-        { placeId: "place_5", weight: 1 },
-        { placeId: "place_4", weight: 1 },
+        { placeId: "place__5", weight: 1 },
+        { placeId: "place__4", weight: 1 },
       ],
       lambdaCode: "",
       transitionKernelCode: "",
@@ -120,10 +120,10 @@ export const exampleSDCPN: SDCPN = {
       height: nodeDimensions.transition.height,
     },
     {
-      id: "transition_3",
+      id: "transition__3",
       name: "Ship",
-      inputArcs: [{ placeId: "place_5", weight: 1 }],
-      outputArcs: [{ placeId: "place_6", weight: 1 }],
+      inputArcs: [{ placeId: "place__5", weight: 1 }],
+      outputArcs: [{ placeId: "place__6", weight: 1 }],
       lambdaCode: "",
       transitionKernelCode: "",
       x: 1150,
