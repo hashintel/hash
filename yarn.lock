@@ -14616,6 +14616,7 @@ __metadata:
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
     "@rust/hashql-eval": "npm:0.0.0-private"
     "@rust/hashql-hir": "npm:0.0.0-private"
+    "@rust/hashql-mir": "npm:0.0.0-private"
     "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -14657,7 +14658,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hashql-mir@workspace:libs/@local/hashql/mir":
+"@rust/hashql-mir@npm:0.0.0-private, @rust/hashql-mir@workspace:libs/@local/hashql/mir":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
   dependencies:
