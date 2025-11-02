@@ -1,3 +1,3 @@
 *.stdout linguist-generated=true
 *.stderr linguist-generated=true
-**/tests/**/*.aux.* linguist-generated=true
+*.aux.* linguist-generated=true
