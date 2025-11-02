@@ -11,10 +11,11 @@ import ReactFlow, {
 
 import { Arc } from "../arc";
 import { useApplyNodeChanges } from "../hooks/use-apply-node-changes";
+import { useNodesWithDraggingState } from "../hooks/use-nodes-with-dragging-state";
 import { generateUuid } from "../lib/generate-uuid";
 import { sdcpnToReactFlow } from "../lib/sdcpn-converters";
 import { PlaceNode } from "../place-node";
-import { useEditorStore, useNodesWithDraggingState } from "../state/mod";
+import { useEditorStore } from "../state/editor-store";
 import { useSDCPNStore } from "../state/sdcpn-store";
 import { nodeDimensions } from "../styling";
 import { TransitionNode } from "../transition-node";

@@ -7,7 +7,7 @@ import { HamburgerMenu } from "../components/hamburger-menu";
 import { ModeSelector } from "../components/mode-selector";
 import { PropertiesPanel } from "../components/properties-panel";
 import { exampleSDCPN } from "../examples/example";
-import { useSDCPNStore } from "../state/mod";
+import { useSDCPNStore } from "../state/sdcpn-store";
 import { SDCPNView } from "./sdcpn-view";
 
 /**
