@@ -1,5 +1,6 @@
 //@ run: pass
 //@ description: Nested if-else conditional structures
+//@ suite#d2: true
 [
   "if",
   { "#literal": true },
