@@ -76,7 +76,8 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
         style={{
           pointerEvents: "none",
           transitionProperty: "stroke-width, stroke",
-          transition: "all 0.2s ease",
+          transitionDuration: "0.2s",
+          transitionTimingFunction: "ease",
         }}
       />
 

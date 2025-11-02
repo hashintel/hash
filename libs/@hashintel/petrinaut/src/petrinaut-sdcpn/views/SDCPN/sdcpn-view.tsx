@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
@@ -51,6 +51,7 @@ export const SDCPNView: React.FC = () => {
   const { nodes, arcs } = useSdcpnToReactFlow(sdcpn);
 
   // Editor state
+  const deleteSelection = useEditorStore((state) => state.deleteSelection);
   const clearSelection = useEditorStore((state) => state.clearSelection);
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
@@ -204,6 +205,23 @@ export const SDCPNView: React.FC = () => {
   function handlePaneClick() {
     clearSelection();
   }
+
+  // Handle Delete key press
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        selectedItemIds.size > 0
+      ) {
+        deleteSelection();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedItemIds, deleteSelection]);
 
   return (
     <div
