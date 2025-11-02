@@ -205,6 +205,7 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
       const label = `${nodeType} ${nodes.length + 1}`;
 
       if (nodeType === "place") {
+        console.log("Adding place", id, label, position);
         addPlace({
           id,
           name: label,
@@ -216,6 +217,7 @@ export const SDCPNView = ({ nodes, arcs, onPaneClick }: SDCPNViewProps) => {
           height,
         });
       } else {
+        console.log("Adding transition", id, label, position);
         addTransition({
           id,
           name: label,

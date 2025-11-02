@@ -1,5 +1,6 @@
 import type { ReactFlowInstance } from "reactflow";
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 
 import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
 import type { ArcData, NodeData, TokenType } from "../types";
@@ -75,15 +76,17 @@ type SDCPNState = {
  * Zustand store for managing the SDCPN definition and its visual representation.
  * This stores the core SDCPN model along with the ReactFlow instance that displays it.
  */
-export const useSDCPNStore = create<SDCPNState>((set) => ({
-  sdcpn: emptySDCPN,
-  setSDCPN: (sdcpn) => set({ sdcpn }),
+export const useSDCPNStore = create<SDCPNState>()(
+  devtools(
+    (set) => ({
+      sdcpn: emptySDCPN,
+      setSDCPN: (sdcpn) => set({ sdcpn }, false, "setSDCPN"),
 
   tokenTypes: [],
-  setTokenTypes: (tokenTypes) => set({ tokenTypes }),
+  setTokenTypes: (tokenTypes) => set({ tokenTypes }, false, "setTokenTypes"),
 
   loadPetriNet: null,
-  setLoadPetriNet: (loadPetriNet) => set({ loadPetriNet }),
+  setLoadPetriNet: (loadPetriNet) => set({ loadPetriNet }, false, "setLoadPetriNet"),
 
   // Place operations
   updatePlace: (placeId, updates) =>
@@ -94,7 +97,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       );
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "updatePlace"),
 
   updatePlacePosition: (placeId, x, y) =>
     set((state) => {
@@ -104,7 +107,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       );
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "updatePlacePosition"),
 
   addPlace: (place) =>
     set((state) => {
@@ -112,7 +115,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       newSDCPN.places = [...newSDCPN.places, place];
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "addPlace"),
 
   removePlace: (placeId) =>
     set((state) => {
@@ -131,7 +134,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       }));
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "removePlace"),
 
   // Transition operations
   updateTransition: (transitionId, updates) =>
@@ -144,7 +147,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       );
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "updateTransition"),
 
   updateTransitionPosition: (transitionId, x, y) =>
     set((state) => {
@@ -154,7 +157,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       );
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "updateTransitionPosition"),
 
   addTransition: (transition) =>
     set((state) => {
@@ -162,7 +165,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       newSDCPN.transitions = [...newSDCPN.transitions, transition];
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "addTransition"),
 
   removeTransition: (transitionId) =>
     set((state) => {
@@ -172,7 +175,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       );
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "removeTransition"),
 
   // Arc operations
   addArc: (transitionId, arcType, placeId, weight) =>
@@ -197,7 +200,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       });
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "addArc"),
 
   removeArc: (transitionId, arcType, placeId) =>
     set((state) => {
@@ -224,7 +227,7 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       });
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "removeArc"),
 
   updateArcWeight: (transitionId, arcType, placeId, weight) =>
     set((state) => {
@@ -251,14 +254,17 @@ export const useSDCPNStore = create<SDCPNState>((set) => ({
       });
 
       return { sdcpn: newSDCPN };
-    }),
+    }, false, "updateArcWeight"),
 
   updateTitle: (title) =>
     set((state) => {
       return { sdcpn: { ...state.sdcpn, title } };
-    }),
+    }, false, "updateTitle"),
 
   // ReactFlow instance
   reactFlowInstance: null,
-  setReactFlowInstance: (instance) => set({ reactFlowInstance: instance }),
-}));
+  setReactFlowInstance: (instance) => set({ reactFlowInstance: instance }, false, "setReactFlowInstance"),
+    }),
+    { name: "SDCPN Store" },
+  ),
+);
