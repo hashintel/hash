@@ -9487,6 +9487,7 @@ __metadata:
     natural: "npm:8.1.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
+    vitest: "npm:3.2.4"
   languageName: unknown
   linkType: soft
 
