@@ -9,7 +9,7 @@ import { ThemeProvider } from "@mui/material";
 import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Petrinaut } from "../petrinaut-sdcpn";
+import { PetrinautSDCPN } from "../petrinaut-sdcpn";
 import type { MinimalNetMetadata, PetriNetDefinitionObject } from "../types";
 
 const emotionCache = createEmotionCache();
@@ -144,7 +144,7 @@ export const DevApp = () => {
         `}
         </style>
         <div style={{ height: "100vh", width: "100vw" }}>
-          <Petrinaut
+          <PetrinautSDCPN
             createNewNet={createNewNet}
             existingNets={existingNets}
             hideNetManagementControls={false}
