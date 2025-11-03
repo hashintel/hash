@@ -180,6 +180,7 @@ export const SDCPNView: React.FC = () => {
         id,
         name: label,
         dimensions: 1,
+        dynamicsEnabled: false,
         differentialEquationCode: "",
         x: position.x,
         y: position.y,
@@ -192,6 +193,7 @@ export const SDCPNView: React.FC = () => {
         name: label,
         inputArcs: [],
         outputArcs: [],
+        lambdaType: "predicate",
         lambdaCode: "",
         transitionKernelCode: "",
         x: position.x,
@@ -209,9 +211,17 @@ export const SDCPNView: React.FC = () => {
   // Handle Delete key press
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      // Don't delete if focus is in an input, textarea, or contentEditable element
+      const target = event.target as HTMLElement;
+      const isInputFocused =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        selectedItemIds.size > 0
+        selectedItemIds.size > 0 &&
+        !isInputFocused
       ) {
         deleteSelection();
       }
