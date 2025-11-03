@@ -1,7 +1,6 @@
 import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
 import { css } from "@hashintel/ds-helpers/css";
 
-
 const CHECK_ICON = (
   <svg
     width="12"
@@ -38,7 +37,6 @@ const INDETERMINATE_ICON = (
     />
   </svg>
 );
-
 
 export interface CheckboxProps {
   checked?: boolean | "indeterminate";
