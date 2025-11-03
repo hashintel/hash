@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Connection, ReactFlowInstance } from "reactflow";
@@ -227,7 +228,7 @@ export const SDCPNView: React.FC = () => {
   // Set cursor style based on mode
   const getCursorStyle = () => {
     if (isAddMode) {
-      return "crosshair";
+      return "copy";
     }
     if (isPanMode) {
       return "grab";
@@ -242,8 +243,14 @@ export const SDCPNView: React.FC = () => {
         width: "100%",
         height: "100%",
         position: "relative",
-        cursor: getCursorStyle(),
+        // @ts-expect-error CSS variables work at runtime, but are not in the type system
+        "--pane-cursor": getCursorStyle() as string,
       }}
+      className={css({
+        "& .react-flow__pane": {
+          cursor: `var(--pane-cursor) !important`,
+        },
+      })}
     >
       <ReactFlow
         nodes={nodes}
