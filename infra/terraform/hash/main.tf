@@ -84,18 +84,19 @@ module "bastion" {
 }
 
 module "postgres" {
-  depends_on            = [module.networking]
-  source                = "./postgres"
-  prefix                = local.prefix
-  subnets               = module.networking.snpriv
-  vpc_id                = module.networking.vpc.id
-  vpc_cidr_block        = module.networking.vpc.cidr_block
-  env                   = local.env
-  region                = local.region
-  pg_port               = 5432
-  instance_class        = "db.t3.small"
-  pg_superuser_username = "superuser"
-  pg_superuser_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+  depends_on                                  = [module.networking]
+  source                                      = "./postgres"
+  prefix                                      = local.prefix
+  subnets                                     = module.networking.snpriv
+  vpc_id                                      = module.networking.vpc.id
+  vpc_cidr_block                              = module.networking.vpc.cidr_block
+  env                                         = local.env
+  region                                      = local.region
+  pg_port                                     = 5432
+  instance_class                              = "db.t3.small"
+  pg_superuser_username                       = "superuser"
+  pg_superuser_password                       = sensitive(data.vault_kv_secret_v2.secrets.data["pg_superuser_password"])
+  pagerduty_main_database_aws_integration_key = sensitive(data.vault_kv_secret_v2.secrets.data["pagerduty_main_database_aws_integration_key"])
 }
 
 module "temporal" {

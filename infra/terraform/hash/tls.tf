@@ -47,7 +47,7 @@ resource "cloudflare_dns_record" "caa_hash_ai" {
     value = "amazon.com"
   }
 
-  ttl     = 1
+  ttl = 1
 
   tags = ["terraform"]
 }
