@@ -45,6 +45,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
           fontSize: "[15px]",
           boxSizing: "border-box",
           position: "relative",
+          cursor: "default",
           _hover: {
             borderColor: selected ? "core.blue.60" : "core.gray.70",
             boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",

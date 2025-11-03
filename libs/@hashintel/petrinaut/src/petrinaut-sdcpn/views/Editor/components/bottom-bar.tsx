@@ -3,6 +3,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import type { DragEvent } from "react";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
+import { Tooltip } from "../../../components/tooltip";
+
 export const BottomBar: React.FC = () => {
   function onDragStart(
     event: DragEvent<HTMLDivElement>,
@@ -15,7 +17,7 @@ export const BottomBar: React.FC = () => {
   }
 
   const iconContainerStyle = css({
-    cursor: "grab",
+    cursor: "default",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -23,8 +25,10 @@ export const BottomBar: React.FC = () => {
     height: "[50px]",
     fontSize: "[24px]",
     color: "core.gray.70",
+    transition: "[all 0.2s ease]",
     "&:hover": {
       color: "core.gray.90",
+      transform: "[scale(1.1)]",
     },
   });
 
@@ -57,26 +61,34 @@ export const BottomBar: React.FC = () => {
           gap: "spacing.4",
         })}
       >
-        <div className={iconContainerStyle}>
-          <FaArrowPointer />
-        </div>
-        <div className={iconContainerStyle}>
-          <FaHand />
-        </div>
-        <div
-          className={iconContainerStyle}
-          draggable
-          onDragStart={(event) => onDragStart(event, "place")}
-        >
-          <FaCircle />
-        </div>
-        <div
-          className={iconContainerStyle}
-          draggable
-          onDragStart={(event) => onDragStart(event, "transition")}
-        >
-          <FaSquare />
-        </div>
+        <Tooltip content="Select">
+          <div className={iconContainerStyle}>
+            <FaArrowPointer />
+          </div>
+        </Tooltip>
+        <Tooltip content="Pan">
+          <div className={iconContainerStyle}>
+            <FaHand />
+          </div>
+        </Tooltip>
+        <Tooltip content="Add Place">
+          <div
+            className={iconContainerStyle}
+            draggable
+            onDragStart={(event) => onDragStart(event, "place")}
+          >
+            <FaCircle />
+          </div>
+        </Tooltip>
+        <Tooltip content="Add Transition">
+          <div
+            className={iconContainerStyle}
+            draggable
+            onDragStart={(event) => onDragStart(event, "transition")}
+          >
+            <FaSquare />
+          </div>
+        </Tooltip>
         <div
           className={css({
             background: "core.gray.20",
