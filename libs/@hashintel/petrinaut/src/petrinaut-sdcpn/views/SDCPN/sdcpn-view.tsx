@@ -1,7 +1,6 @@
 import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import type { DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
@@ -52,6 +51,7 @@ export const SDCPNView: React.FC = () => {
   const { nodes, arcs } = useSdcpnToReactFlow(sdcpn);
 
   // Editor state
+  const mode = useEditorStore((state) => state.globalMode);
   const editionMode = useEditorStore((state) => state.editionMode);
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const deleteSelection = useEditorStore((state) => state.deleteSelection);
@@ -59,6 +59,9 @@ export const SDCPNView: React.FC = () => {
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
+
+  // Actual mode. When Simulate mode, edition mode is always "pan"
+  const isReadonly = mode === "simulate";
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -145,34 +148,6 @@ export const SDCPNView: React.FC = () => {
     setEditionMode("select");
   }
 
-  function onDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    // eslint-disable-next-line no-param-reassign
-    event.dataTransfer.dropEffect = "move";
-  }
-
-  function onDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-
-    if (!reactFlowInstance || !canvasContainer.current) {
-      return;
-    }
-
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const nodeType = event.dataTransfer.getData("application/reactflow") as
-      | "place"
-      | "transition";
-
-    const { width, height } = nodeDimensions[nodeType];
-
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
-    });
-
-    createNodeAtPosition(nodeType, position);
-  }
-
   function onPaneClick(event: React.MouseEvent) {
     if (!reactFlowInstance || !canvasContainer.current) {
       return;
@@ -257,11 +232,9 @@ export const SDCPNView: React.FC = () => {
         edges={arcs}
         nodeTypes={REACTFLOW_NODE_TYPES}
         edgeTypes={REACTFLOW_EDGE_TYPES}
-        onNodesChange={applyNodeChanges}
-        onConnect={onConnect}
+        onNodesChange={isReadonly ? undefined : applyNodeChanges}
+        onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
         onPaneClick={onPaneClick}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
@@ -269,8 +242,10 @@ export const SDCPNView: React.FC = () => {
         connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
         panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
-        selectionOnDrag={editionMode === "select"}
+        nodesDraggable={!isReadonly}
+        nodesConnectable={!isReadonly}
         elementsSelectable={!isAddMode}
+        selectionOnDrag={editionMode === "select"}
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
       </ReactFlow>
