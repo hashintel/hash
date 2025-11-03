@@ -8,8 +8,17 @@ export type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
+type EditorGlobalMode = "edit" | "simulate";
+type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
+
 export type EditorState = {
-  // Selection - now just a Set of IDs
+  globalMode: EditorGlobalMode;
+  setGlobalMode: (mode: EditorGlobalMode) => void;
+
+  editionMode: EditorEditionMode;
+  setEditionMode: (mode: EditorEditionMode) => void;
+
+  // Selection state
   selectedItemIds: Set<string>;
   setSelectedItemIds: (ids: Set<string>) => void;
   addSelectedItemId: (id: string) => void;
@@ -36,10 +45,18 @@ export function createEditorStore(sdcpnStore: {
   return create<EditorState>()(
     devtools(
       (set) => ({
+        globalMode: "edit",
+        setGlobalMode: (mode) =>
+          set({ globalMode: mode }, false, { type: "setGlobalMode", mode }),
+
+        editionMode: "select",
+        setEditionMode: (mode) =>
+          set({ editionMode: mode }, false, { type: "setEditionMode", mode }),
+
         // Selection
         selectedItemIds: new Set(),
         setSelectedItemIds: (ids) =>
-          set({ selectedItemIds: ids }, false, "setSelectedItemIds"),
+          set({ selectedItemIds: ids }, false, { type: "setSelectedItemIds", ids }),
         addSelectedItemId: (id) =>
           set(
             (state) => {
@@ -48,7 +65,7 @@ export function createEditorStore(sdcpnStore: {
               return { selectedItemIds: newSet };
             },
             false,
-            "addSelectedItemId",
+            { type: "addSelectedItemId", id },
           ),
         removeSelectedItemId: (id) =>
           set(
@@ -58,7 +75,7 @@ export function createEditorStore(sdcpnStore: {
               return { selectedItemIds: newSet };
             },
             false,
-            "removeSelectedItemId",
+            { type: "removeSelectedItemId", id },
           ),
         clearSelection: () =>
           set({ selectedItemIds: new Set() }, false, "clearSelection"),

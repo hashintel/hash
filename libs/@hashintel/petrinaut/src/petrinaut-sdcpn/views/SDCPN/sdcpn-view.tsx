@@ -2,7 +2,7 @@ import "reactflow/dist/style.css";
 
 import type { DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import type { Connection, Node, ReactFlowInstance } from "reactflow";
+import type { Connection, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
@@ -51,57 +51,13 @@ export const SDCPNView: React.FC = () => {
   const { nodes, arcs } = useSdcpnToReactFlow(sdcpn);
 
   // Editor state
+  const editionMode = useEditorStore((state) => state.editionMode);
+  const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const deleteSelection = useEditorStore((state) => state.deleteSelection);
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const addSelectedItemId = useEditorStore((state) => state.addSelectedItemId);
-  const removeSelectedItemId = useEditorStore(
-    (state) => state.removeSelectedItemId,
-  );
-
-  function onNodeClick(event: React.MouseEvent, node: Node<NodeData>) {
-    if (event.shiftKey) {
-      // Shift+click: add to selection
-      if (!selectedItemIds.has(node.id)) {
-        addSelectedItemId(node.id);
-      } else {
-        removeSelectedItemId(node.id);
-      }
-    } else {
-      // Normal click: replace selection
-      setSelectedItemIds(new Set([node.id]));
-    }
-  }
-
-  function onEdgeClick(
-    event: React.MouseEvent,
-    edge: { id: string; source: string; target: string },
-  ) {
-    if (event.shiftKey) {
-      // Shift+click: add to selection
-      if (!selectedItemIds.has(edge.id)) {
-        addSelectedItemId(edge.id);
-      } else {
-        removeSelectedItemId(edge.id);
-      }
-    } else {
-      // Normal click: replace selection
-      setSelectedItemIds(new Set([edge.id]));
-    }
-  }
-
-  function onEdgesChange() {
-    /**
-     * There are no edge changes we need to process at the moment:
-     * - We add arcs in onConnect, we won't don't process 'add'
-     * - We don't allow removing arcs at the moment
-     * - We handle selection in separate state when an edge is clicked
-     * - Unclear what 'reset' is supposed to do
-     */
-  }
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -147,30 +103,12 @@ export const SDCPNView: React.FC = () => {
     setReactFlowInstance(instance);
   }
 
-  function onDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    // eslint-disable-next-line no-param-reassign
-    event.dataTransfer.dropEffect = "move";
-  }
-
-  function onDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-
-    if (!reactFlowInstance || !canvasContainer.current) {
-      return;
-    }
-
-    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
-    const nodeType = event.dataTransfer.getData("application/reactflow") as
-      | "place"
-      | "transition";
-
+  // Shared function to create a node at a given position
+  function createNodeAtPosition(
+    nodeType: "place" | "transition",
+    position: { x: number; y: number },
+  ) {
     const { width, height } = nodeDimensions[nodeType];
-
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left - width / 2,
-      y: event.clientY - reactFlowBounds.top - height / 2,
-    });
 
     const id = `${nodeType}__${generateUuid()}`;
     const label = `${nodeType} ${nodes.length + 1}`;
@@ -202,12 +140,58 @@ export const SDCPNView: React.FC = () => {
         height,
       });
     }
+    setSelectedItemIds(new Set([id]));
+    setEditionMode("select");
   }
 
-  function handlePaneClick(event: React.MouseEvent) {
-    if (!event.shiftKey) {
-      clearSelection();
+  function onDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    // eslint-disable-next-line no-param-reassign
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+
+    if (!reactFlowInstance || !canvasContainer.current) {
+      return;
     }
+
+    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
+    const nodeType = event.dataTransfer.getData("application/reactflow") as
+      | "place"
+      | "transition";
+
+    const { width, height } = nodeDimensions[nodeType];
+
+    const position = reactFlowInstance.project({
+      x: event.clientX - reactFlowBounds.left - width / 2,
+      y: event.clientY - reactFlowBounds.top - height / 2,
+    });
+
+    createNodeAtPosition(nodeType, position);
+  }
+
+  function onPaneClick(event: React.MouseEvent) {
+    if (!reactFlowInstance || !canvasContainer.current) {
+      return;
+    }
+
+    // Only create nodes in add modes
+    if (editionMode !== "add-place" && editionMode !== "add-transition") {
+      return;
+    }
+
+    const nodeType = editionMode === "add-place" ? "place" : "transition";
+    const { width, height } = nodeDimensions[nodeType];
+
+    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
+    const position = reactFlowInstance.project({
+      x: event.clientX - reactFlowBounds.left - width / 2,
+      y: event.clientY - reactFlowBounds.top - height / 2,
+    });
+
+    createNodeAtPosition(nodeType, position);
   }
 
   // Handle Delete key press
@@ -235,6 +219,22 @@ export const SDCPNView: React.FC = () => {
     };
   }, [selectedItemIds, deleteSelection]);
 
+  // Determine ReactFlow props based on edition mode
+  const isAddMode =
+    editionMode === "add-place" || editionMode === "add-transition";
+  const isPanMode = editionMode === "pan";
+
+  // Set cursor style based on mode
+  const getCursorStyle = () => {
+    if (isAddMode) {
+      return "crosshair";
+    }
+    if (isPanMode) {
+      return "grab";
+    }
+    return "default";
+  };
+
   return (
     <div
       ref={canvasContainer}
@@ -242,6 +242,7 @@ export const SDCPNView: React.FC = () => {
         width: "100%",
         height: "100%",
         position: "relative",
+        cursor: getCursorStyle(),
       }}
     >
       <ReactFlow
@@ -250,19 +251,19 @@ export const SDCPNView: React.FC = () => {
         nodeTypes={REACTFLOW_NODE_TYPES}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={applyNodeChanges}
-        onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
         onInit={onInit}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        onPaneClick={handlePaneClick}
+        onPaneClick={onPaneClick}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
         connectionLineType={ConnectionLineType.SmoothStep}
         proOptions={{ hideAttribution: true }}
+        panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
+        selectionOnDrag={editionMode === "select"}
+        elementsSelectable={!isAddMode}
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
       </ReactFlow>
