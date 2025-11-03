@@ -126,12 +126,11 @@ export const EditorView: React.FC = () => {
           {/* SDCPN Visualization */}
           <SDCPNView />
 
-          {mode === "edit" && (
-            <BottomBar
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-            />
-          )}
+          <BottomBar
+            mode={mode}
+            editionMode={editionMode}
+            onEditionModeChange={setEditionMode}
+          />
         </Box>
       </Stack>
     </Stack>

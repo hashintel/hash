@@ -1,23 +1,35 @@
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
-import type { DragEvent } from "react";
 import { useEffect } from "react";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
 import { Tooltip } from "../../../components/tooltip";
 import type { EditorState } from "../../../state/editor-store";
 
+type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
 interface BottomBarProps {
+  mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
+  mode,
   editionMode,
   onEditionModeChange,
 }) => {
+  // Fallback to 'pan' mode when switching to simulate mode if mutative mode
+  useEffect(() => {
+    if (
+      mode === "simulate" &&
+      (editionMode === "add-place" || editionMode === "add-transition")
+    ) {
+      onEditionModeChange("pan");
+    }
+  }, [mode, editionMode, onEditionModeChange]);
+
   // Keyboard shortcuts for switching modes
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -39,6 +51,11 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
       // Switch modes based on key
       switch (event.key.toLowerCase()) {
+        // If escape is pressed, switch to select mode
+        case "escape":
+          event.preventDefault();
+          onEditionModeChange("select");
+          break;
         case "v":
           event.preventDefault();
           onEditionModeChange("select");
@@ -48,12 +65,16 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           onEditionModeChange("pan");
           break;
         case "n":
-          event.preventDefault();
-          onEditionModeChange("add-place");
+          if (mode === "edit") {
+            event.preventDefault();
+            onEditionModeChange("add-place");
+          }
           break;
         case "t":
-          event.preventDefault();
-          onEditionModeChange("add-transition");
+          if (mode === "edit") {
+            event.preventDefault();
+            onEditionModeChange("add-transition");
+          }
           break;
       }
     }
@@ -62,20 +83,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onEditionModeChange]);
+  }, [mode, onEditionModeChange]);
 
-  function onDragStart(
-    event: DragEvent<HTMLDivElement>,
-    nodeType: "place" | "transition",
-  ) {
-    event.dataTransfer.setData("application/reactflow", nodeType);
-
-    // eslint-disable-next-line no-param-reassign
-    event.dataTransfer.effectAllowed = "move";
-  }
-
-  const getIconContainerStyle = (mode: EditorEditionMode) => {
-    const isSelected = editionMode === mode;
+  function getIconContainerStyle(itemMode: EditorEditionMode) {
+    const isSelected = editionMode === itemMode;
     return css({
       cursor: "pointer",
       display: "flex",
@@ -91,7 +102,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         transform: "[scale(1.1)]",
       },
     });
-  };
+  }
 
   return (
     <div
@@ -156,50 +167,45 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             <FaHand />
           </div>
         </Tooltip>
-        <Tooltip content="Add Place (N)">
-          <div
-            className={getIconContainerStyle("add-place")}
-            draggable
-            onDragStart={(event) => {
-              onDragStart(event, "place");
-              onEditionModeChange("add-place");
-            }}
-            onClick={() => onEditionModeChange("add-place")}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onEditionModeChange("add-place");
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="Add place mode"
-          >
-            <FaCircle />
-          </div>
-        </Tooltip>
-        <Tooltip content="Add Transition (T)">
-          <div
-            className={getIconContainerStyle("add-transition")}
-            draggable
-            onDragStart={(event) => {
-              onDragStart(event, "transition");
-              onEditionModeChange("add-transition");
-            }}
-            onClick={() => onEditionModeChange("add-transition")}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onEditionModeChange("add-transition");
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label="Add transition mode"
-          >
-            <FaSquare />
-          </div>
-        </Tooltip>
+
+        {mode === "edit" && (
+          <>
+            <Tooltip content="Add Place (N)">
+              <div
+                className={getIconContainerStyle("add-place")}
+                onClick={() => onEditionModeChange("add-place")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onEditionModeChange("add-place");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Add place mode"
+              >
+                <FaCircle />
+              </div>
+            </Tooltip>
+            <Tooltip content="Add Transition (T)">
+              <div
+                className={getIconContainerStyle("add-transition")}
+                onClick={() => onEditionModeChange("add-transition")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onEditionModeChange("add-transition");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Add transition mode"
+              >
+                <FaSquare />
+              </div>
+            </Tooltip>
+          </>
+        )}
         <div
           className={css({
             background: "core.gray.20",
