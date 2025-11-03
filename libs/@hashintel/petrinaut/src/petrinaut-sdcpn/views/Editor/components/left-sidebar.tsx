@@ -51,7 +51,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
   const types = useSDCPNStore((state) => state.sdcpn.types);
   const differentialEquations = useSDCPNStore(
-    (state) => state.sdcpn.differentialEquations
+    (state) => state.sdcpn.differentialEquations,
   );
   const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
 
@@ -59,10 +59,10 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   const addType = useSDCPNStore((state) => state.addType);
   const removeType = useSDCPNStore((state) => state.removeType);
   const addDifferentialEquation = useSDCPNStore(
-    (state) => state.addDifferentialEquation
+    (state) => state.addDifferentialEquation,
   );
   const removeDifferentialEquation = useSDCPNStore(
-    (state) => state.removeDifferentialEquation
+    (state) => state.removeDifferentialEquation,
   );
   const addParameter = useSDCPNStore((state) => state.addParameter);
   const removeParameter = useSDCPNStore((state) => state.removeParameter);
@@ -443,7 +443,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
               type="button"
               onClick={() =>
                 setIsDifferentialEquationsExpanded(
-                  !isDifferentialEquationsExpanded
+                  !isDifferentialEquationsExpanded,
                 )
               }
               className={css({
@@ -519,7 +519,9 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                     backgroundColor: "#f9fafb",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <span>{eq.name}</span>
                   </div>
                   <button
@@ -662,7 +664,9 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                     backgroundColor: "#f9fafb",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
                     <span>
                       {param.name} ({param.variableName})
                     </span>
@@ -670,9 +674,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (
-                        window.confirm(`Delete parameter "${param.name}"?`)
-                      ) {
+                      if (window.confirm(`Delete parameter "${param.name}"?`)) {
                         removeParameter(param.id);
                       }
                     }}
