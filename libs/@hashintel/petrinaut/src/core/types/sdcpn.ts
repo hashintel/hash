@@ -18,9 +18,14 @@ export type Transition = {
 export type Place = {
   id: ID;
   name: string;
-  dimensions: number;
+  type: null | ID; // refers to types.id
   dynamicsEnabled: boolean;
-  differentialEquationCode: string;
+  differentialEquationCode:
+    | null
+    | string
+    | {
+        refId: ID; // refers to differentialEquations.id
+      };
   // UI positioning
   x: number;
   y: number;
@@ -28,9 +33,39 @@ export type Place = {
   height?: number;
 };
 
+export type SDCPNType = {
+  id: ID;
+  name: string;
+  iconId: string; // e.g., "circle", "square"
+  colorCode: string; // e.g., "#FF0000"
+  elements: {
+    id: string;
+    name: string;
+    type: "real" | "integer" | "boolean";
+  }[];
+};
+
+export type Parameter = {
+  id: ID;
+  name: string;
+  variableName: string;
+  type: "real" | "integer" | "boolean";
+  defaultValue: string;
+};
+
+export type DifferentialEquation = {
+  id: ID;
+  name: string;
+  typeId: ID; // refers to types.id
+  code: string;
+};
+
 export type SDCPN = {
   id: ID;
   title: string;
   places: Place[];
   transitions: Transition[];
+  types: SDCPNType[];
+  differentialEquations: DifferentialEquation[];
+  parameters: Parameter[];
 };
