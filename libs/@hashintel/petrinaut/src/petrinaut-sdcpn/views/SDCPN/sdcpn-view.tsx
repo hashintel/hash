@@ -173,6 +173,10 @@ export const SDCPNView: React.FC = () => {
   // Handle Delete key press
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (mode === "simulate") {
+        return;
+      }
+
       // Don't delete if focus is in an input, textarea, or contentEditable element
       const target = event.target as HTMLElement;
       const isInputFocused =
@@ -193,7 +197,7 @@ export const SDCPNView: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedItemIds, deleteSelection]);
+  }, [mode, selectedItemIds, deleteSelection]);
 
   // Determine ReactFlow props based on edition mode
   const isAddMode =
