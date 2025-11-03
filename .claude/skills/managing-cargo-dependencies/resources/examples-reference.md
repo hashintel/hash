@@ -199,9 +199,17 @@ my-new-crate = { workspace = true, public = true }
 ### ❌ Version in Package
 
 ```toml
-# WRONG - version should be in workspace root
+# WRONG - version should be in workspace root only
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+```
+
+### ❌ Exact Pinning in Workspace
+
+```toml
+# WRONG - use caret versions, let Cargo.lock handle exact pinning
+[workspace.dependencies]
+serde = { version = "=1.0.228", default-features = false }
 ```
 
 ### ❌ Missing Section Comments

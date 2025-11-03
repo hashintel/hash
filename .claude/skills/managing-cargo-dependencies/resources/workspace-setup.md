@@ -29,9 +29,9 @@ All external crates must be defined in workspace root `[workspace.dependencies]`
 ```toml
 [workspace.dependencies]
 # External dependencies
-serde = { version = "=1.0.228", default-features = false }
-tokio = { version = "=1.47.1", default-features = false }
-regex = { version = "=1.11.1", default-features = false }
+serde = { version = "1.0.228", default-features = false }
+tokio = { version = "1.47.1", default-features = false }
+regex = { version = "1.11.1", default-features = false }
 ```
 
 ### With Features (at workspace level)
@@ -39,37 +39,31 @@ regex = { version = "=1.11.1", default-features = false }
 ```toml
 [workspace.dependencies]
 # When you need features enabled everywhere
-derive_more = { version = "=1.0.0", default-features = false, features = ["debug", "from"] }
+derive_more = { version = "1.0.0", default-features = false, features = ["debug", "from"] }
 ```
 
 **Note:** Usually better to enable features at package level for granular control.
 
 ---
 
-## Version Pinning
+## Version Specifiers
 
-HASH uses **exact version pinning** for reproducible builds:
+HASH uses **caret version specifiers** (e.g., `1.0.228` = `^1.0.228`) for reproducible builds with `Cargo.lock`:
 
 ✅ **Correct:**
 
 ```toml
-serde = { version = "=1.0.228", default-features = false }
-tokio = { version = "=1.47.1", default-features = false }
+serde = { version = "1.0.228", default-features = false }
+tokio = { version = "1.47.1", default-features = false }
 ```
 
 ❌ **Wrong:**
 
 ```toml
-serde = { version = "1.0", default-features = false }      # No version range
-serde = { version = "^1.0.228", default-features = false } # No caret
+serde = { version = "=1.0.228", default-features = false } # Exact pinning (not needed)
 tokio = "1.47"                                              # No shorthand
+serde = { version = "1.0", default-features = false }      # Too vague
 ```
-
-### Why Exact Versions?
-
-- **Reproducible builds** - Same code builds identically months later
-- **Predictable CI** - No surprise version updates breaking builds
-- **Explicit updates** - Dependency updates are intentional, reviewed changes
 
 ---
 
@@ -93,6 +87,8 @@ Then enable specific features in package Cargo.toml:
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 serde = { workspace = true, features = ["derive"] }
 ```
+
+**Note:** Workspace root should have `default-features = false`, but package level can override with specific features.
 
 ### Why Disable Defaults?
 
@@ -130,16 +126,16 @@ Group related dependencies with comments:
 error-stack = { path = "libs/error-stack" }
 
 # Async runtime
-tokio = { version = "=1.47.1", default-features = false }
-tokio-util = { version = "=0.7.13", default-features = false }
+tokio = { version = "1.47.1", default-features = false }
+tokio-util = { version = "0.7.13", default-features = false }
 
 # Serialization
-serde = { version = "=1.0.228", default-features = false }
-serde_json = { version = "=1.0.138", default-features = false }
+serde = { version = "1.0.228", default-features = false }
+serde_json = { version = "1.0.138", default-features = false }
 
 # Database
-postgres = { version = "=0.19.9", default-features = false }
-postgres-types = { version = "=0.2.8", default-features = false }
+postgres = { version = "0.19.9", default-features = false }
+postgres-types = { version = "0.2.8", default-features = false }
 ```
 
 ---
@@ -163,7 +159,7 @@ cargo add my-crate --dry-run
 ```toml
 [workspace.dependencies]
 # Add to appropriate section
-tracing = { version = "=0.1.41", default-features = false }
+tracing = { version = "0.1.41", default-features = false }
 ```
 
 ### Adding with Specific Features (workspace-wide)
@@ -171,7 +167,7 @@ tracing = { version = "=0.1.41", default-features = false }
 ```toml
 [workspace.dependencies]
 # When all packages need the same features
-uuid = { version = "=1.11.0", default-features = false, features = ["v4", "serde"] }
+uuid = { version = "1.11.0", default-features = false, features = ["v4", "serde"] }
 ```
 
 ### Adding Workspace Member
