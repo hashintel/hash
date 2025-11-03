@@ -18,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import Editor from "@monaco-editor/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MdDragIndicator } from "react-icons/md";
 
 import { SegmentGroup } from "../../../components/segment-group";
@@ -133,6 +134,59 @@ export const PropertiesPanel: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  // Resize functionality
+  const [panelWidth, setPanelWidth] = useState(320);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false);
+  const resizeStartXRef = useRef(0);
+  const resizeStartWidthRef = useRef(320);
+
+  const handleResizeStart = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      setIsResizing(true);
+      resizeStartXRef.current = event.clientX;
+      resizeStartWidthRef.current = panelWidth;
+    },
+    [panelWidth],
+  );
+
+  const handleResizeMove = useCallback(
+    (event: MouseEvent) => {
+      if (!isResizing) {
+        return;
+      }
+
+      const deltaX = resizeStartXRef.current - event.clientX;
+      const newWidth = Math.max(
+        250,
+        Math.min(800, resizeStartWidthRef.current + deltaX),
+      );
+      setPanelWidth(newWidth);
+    },
+    [isResizing],
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleResizeMove);
+      document.addEventListener("mouseup", handleResizeEnd);
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
+
+      return () => {
+        document.removeEventListener("mousemove", handleResizeMove);
+        document.removeEventListener("mouseup", handleResizeEnd);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   // Don't show panel if nothing is selected
   if (selectedItemIds.size === 0) {
@@ -722,31 +776,79 @@ export const PropertiesPanel: React.FC = () => {
         padding: "12px",
         height: "100%",
         zIndex: 1000,
+        pointerEvents: "none",
       }}
     >
-      <RefractivePane
-        radius={16}
-        blur={7}
-        specularOpacity={0.2}
-        scaleRatio={1}
-        bezelWidth={65}
-        glassThickness={120}
-        refractiveIndex={1.5}
-        className={css({
-          height: "[100%]",
-          width: "[320px]",
-          backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-          border: "1px solid rgba(255, 255, 255, 0.8)",
-        })}
+      <div
         style={{
-          borderRadius: 16,
-          padding: 16,
-          overflowY: "auto",
+          position: "relative",
+          display: "flex",
+          width: panelWidth,
+          pointerEvents: "auto",
         }}
       >
-        {content}
-      </RefractivePane>
+        {/* Resize Handle */}
+        <button
+          type="button"
+          aria-label="Resize properties panel"
+          onMouseDown={handleResizeStart}
+          onMouseEnter={() => {
+            setIsResizeHandleHovered(true);
+          }}
+          onMouseLeave={() => {
+            setIsResizeHandleHovered(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft") {
+              setPanelWidth((prev) => Math.max(250, prev - 10));
+            } else if (event.key === "ArrowRight") {
+              setPanelWidth((prev) => Math.min(800, prev + 10));
+            }
+          }}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
+            cursor: "ew-resize",
+            zIndex: 1001,
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            borderRadius: "16px 0 0 16px",
+            backgroundColor: isResizeHandleHovered
+              ? "rgba(78, 221, 240, 0.3)"
+              : "transparent",
+            transition: "background-color 0.4s",
+            transitionDelay: "0.2s",
+          }}
+        />
+
+        <RefractivePane
+          radius={16}
+          blur={7}
+          specularOpacity={0.2}
+          scaleRatio={1}
+          bezelWidth={65}
+          glassThickness={120}
+          refractiveIndex={1.5}
+          className={css({
+            height: "[100%]",
+            width: "[100%]",
+            backgroundColor: "[rgba(255, 255, 255, 0.7)]",
+            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
+            border: "1px solid rgba(255, 255, 255, 0.8)",
+          })}
+          style={{
+            borderRadius: 16,
+            padding: 16,
+            overflowY: "auto",
+          }}
+        >
+          {content}
+        </RefractivePane>
+      </div>
     </div>
   );
 };
