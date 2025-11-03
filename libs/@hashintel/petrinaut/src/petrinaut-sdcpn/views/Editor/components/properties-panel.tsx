@@ -91,7 +91,23 @@ export const PropertiesPanel: React.FC = () => {
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Name
           </div>
-          <div style={{ fontSize: 14 }}>{placeData.name}</div>
+          <input
+            type="text"
+            value={placeData.name}
+            onChange={(event) => {
+              updatePlace(placeData.id, {
+                name: event.target.value,
+              });
+            }}
+            style={{
+              fontSize: 14,
+              padding: "6px 8px",
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          />
         </div>
 
         <div>
@@ -195,7 +211,23 @@ export const PropertiesPanel: React.FC = () => {
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Name
           </div>
-          <div style={{ fontSize: 14 }}>{transitionData.name}</div>
+          <input
+            type="text"
+            value={transitionData.name}
+            onChange={(event) => {
+              updateTransition(transitionData.id, {
+                name: event.target.value,
+              });
+            }}
+            style={{
+              fontSize: 14,
+              padding: "6px 8px",
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          />
         </div>
 
         <div>
