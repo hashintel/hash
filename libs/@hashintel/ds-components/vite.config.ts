@@ -38,6 +38,10 @@ export default defineConfig({
     lib: {
       entry: {
         button: path.resolve(__dirname, "src/components/Button/button.tsx"),
+        checkbox: path.resolve(
+          __dirname,
+          "src/components/Checkbox/checkbox.tsx",
+        ),
         "refractive-pane": path.resolve(
           __dirname,
           "src/components/RefractivePane/refractive-pane.tsx",
