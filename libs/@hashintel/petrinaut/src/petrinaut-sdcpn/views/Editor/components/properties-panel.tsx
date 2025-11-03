@@ -98,7 +98,7 @@ const SortableArcItem: React.FC<SortableArcItemProps> = ({
         step="1"
         value={weight}
         onChange={(event) => {
-          const newWeight = parseInt(event.target.value, 10);
+          const newWeight = Number.parseInt(event.target.value, 10);
           if (!Number.isNaN(newWeight) && newWeight >= 1) {
             onWeightChange(newWeight);
           }
@@ -116,7 +116,6 @@ const SortableArcItem: React.FC<SortableArcItemProps> = ({
     </div>
   );
 };
-
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
