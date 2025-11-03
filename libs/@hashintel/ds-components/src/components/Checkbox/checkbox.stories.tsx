@@ -14,7 +14,6 @@ const meta: Meta<CheckboxProps> = {
 # Checkbox Component
 
 A simple checkbox component built with @ark-ui/react and styled with PandaCSS.
-No refraction effects - just clean, accessible checkboxes.
 
 ## States
 
