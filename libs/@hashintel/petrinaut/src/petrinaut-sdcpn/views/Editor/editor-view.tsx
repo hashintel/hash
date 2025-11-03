@@ -19,7 +19,7 @@ import { saveSDCPN } from "./lib/save-sdcpn";
  */
 export const EditorView: React.FC = () => {
   const [mode, setMode] = useState<"edit" | "simulate">("edit");
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
 
   // Get data from sdcpn-store
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
