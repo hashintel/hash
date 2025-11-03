@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { exampleSDCPN } from "../../examples/example";
+import { satellitesSDCPN } from "../../examples/satellites";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -40,6 +41,9 @@ export const EditorView: React.FC = () => {
       title: "Untitled",
       places: [],
       transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
     });
     clearSelection();
   }
@@ -53,11 +57,6 @@ export const EditorView: React.FC = () => {
       setSDCPN(loadedSDCPN);
       clearSelection();
     });
-  }
-
-  function handleLoadExample() {
-    setSDCPN(exampleSDCPN);
-    clearSelection();
   }
 
   return (
@@ -110,10 +109,25 @@ export const EditorView: React.FC = () => {
               },
               {
                 id: "load-example",
-                label: "Load Example",
-                onClick: () => {
-                  handleLoadExample();
-                },
+                label: "Load example",
+                submenu: [
+                  {
+                    id: "load-example-supply-chain",
+                    label: "Supply Chain",
+                    onClick: () => {
+                      setSDCPN(exampleSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-satellites",
+                    label: "Satellites",
+                    onClick: () => {
+                      setSDCPN(satellitesSDCPN);
+                      clearSelection();
+                    },
+                  },
+                ],
               },
             ]}
             title={title}
