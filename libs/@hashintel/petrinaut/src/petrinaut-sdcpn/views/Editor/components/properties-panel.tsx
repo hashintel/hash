@@ -1,3 +1,5 @@
+import "handsontable/dist/handsontable.full.min.css";
+
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
   closestCenter,
@@ -15,16 +17,26 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { HotTable } from "@handsontable/react";
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CheckboxCellType,
+  NumericCellType,
+  registerCellType,
+} from "handsontable/cellTypes";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MdDragIndicator } from "react-icons/md";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import { Switch } from "../../../components/switch";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
+
+// Register Handsontable cell types
+registerCellType(CheckboxCellType);
+registerCellType(NumericCellType);
 
 /**
  * SortableArcItem - A draggable arc item that displays place name and weight
@@ -119,10 +131,126 @@ const SortableArcItem: React.FC<SortableArcItemProps> = ({
 };
 
 /**
+ * InitialStateEditor - A component for editing initial tokens in a place
+ */
+interface InitialStateEditorProps {
+  placeType: {
+    id: string;
+    name: string;
+    elements: {
+      id: string;
+      name: string;
+      type: "real" | "integer" | "boolean";
+    }[];
+  };
+}
+
+const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
+  placeType,
+}) => {
+  // State for the handsontable data
+  const [tableData, setTableData] = useState<(string | number)[][]>([
+    Array(placeType.elements.length).fill(""),
+  ]);
+
+  const columns = useMemo(
+    () =>
+      placeType.elements.map((element, index) => ({
+        data: index,
+        title: element.name,
+        type: element.type === "boolean" ? "checkbox" : "numeric",
+      })),
+    [placeType.elements],
+  );
+
+  const addRow = () => {
+    setTableData((prev) => [
+      ...prev,
+      Array(placeType.elements.length).fill("") as (string | number)[],
+    ]);
+  };
+
+  return (
+    <div>
+      <div
+        style={{
+          fontWeight: 500,
+          fontSize: 12,
+          marginBottom: 4,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span>Initial State</span>
+        <button
+          type="button"
+          onClick={addRow}
+          style={{
+            fontSize: 11,
+            padding: "2px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.2)",
+            borderRadius: 3,
+            backgroundColor: "white",
+            cursor: "pointer",
+          }}
+        >
+          + Add Row
+        </button>
+      </div>
+      <div
+        style={{
+          border: "1px solid rgba(0, 0, 0, 0.1)",
+          borderRadius: 4,
+          overflow: "hidden",
+          minHeight: 150,
+        }}
+      >
+        <HotTable
+          data={tableData}
+          colHeaders={placeType.elements.map((el) => el.name)}
+          rowHeaders
+          height="auto"
+          minRows={1}
+          contextMenu
+          licenseKey="non-commercial-and-evaluation"
+          afterChange={(changes) => {
+            if (changes) {
+              setTableData((prev) => {
+                const newData = [...prev];
+                for (const change of changes) {
+                  const [row, col, , newVal] = change as [
+                    number,
+                    number,
+                    string | number | null,
+                    string | number | null,
+                  ];
+                  newData[row] =
+                    newData[row] ??
+                    (Array(placeType.elements.length).fill("") as (
+                      | string
+                      | number
+                    )[]);
+                  newData[row] = [...newData[row]];
+                  newData[row][col] = newVal ?? "";
+                }
+                return newData;
+              });
+            }
+          }}
+          columns={columns}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const globalMode = useEditorStore((state) => state.globalMode);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const updatePlace = useSDCPNStore((state) => state.updatePlace);
   const updateTransition = useSDCPNStore((state) => state.updateTransition);
@@ -312,6 +440,52 @@ export const PropertiesPanel: React.FC = () => {
             ))}
           </select>
         </div>
+
+        {/* Initial State section - only in Simulate mode */}
+        {globalMode === "simulate" &&
+          (() => {
+            const placeType = placeData.type
+              ? sdcpn.types.find((tp) => tp.id === placeData.type)
+              : null;
+
+            // If no type or type has 0 dimensions, show simple number input
+            if (!placeType || placeType.elements.length === 0) {
+              return (
+                <div>
+                  <div
+                    style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}
+                  >
+                    Initial State
+                  </div>
+                  <div>
+                    <div
+                      style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}
+                    >
+                      Token count
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      defaultValue="0"
+                      style={{
+                        fontSize: 14,
+                        padding: "6px 8px",
+                        border: "1px solid rgba(0, 0, 0, 0.1)",
+                        borderRadius: 4,
+                        width: "100%",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <InitialStateEditor key={placeData.id} placeType={placeType} />
+            );
+          })()}
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>

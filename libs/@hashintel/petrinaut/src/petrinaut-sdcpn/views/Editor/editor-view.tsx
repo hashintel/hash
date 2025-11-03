@@ -10,7 +10,7 @@ import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/bottom-bar";
 import { LeftSideBar } from "./components/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
-import { PropertiesPanel } from "./components/properties-panel";
+import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
 import { loadSDCPN } from "./lib/load-sdcpn";
 import { saveSDCPN } from "./lib/save-sdcpn";
 
