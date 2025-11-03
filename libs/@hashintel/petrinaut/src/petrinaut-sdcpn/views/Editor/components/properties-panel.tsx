@@ -17,7 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
-import Editor from "@monaco-editor/react";
+import MonacoEditor from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MdDragIndicator } from "react-icons/md";
 
@@ -334,7 +334,7 @@ export const PropertiesPanel: React.FC = () => {
                 height: 200,
               }}
             >
-              <Editor
+              <MonacoEditor
                 height="200px"
                 defaultLanguage="python"
                 value={placeData.differentialEquationCode || ""}
@@ -348,8 +348,8 @@ export const PropertiesPanel: React.FC = () => {
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
                   fontSize: 12,
-                  lineNumbers: "on",
-                  folding: false,
+                  lineNumbers: "off",
+                  folding: true,
                   glyphMargin: false,
                   lineDecorationsWidth: 0,
                   lineNumbersMinChars: 3,
@@ -588,7 +588,7 @@ export const PropertiesPanel: React.FC = () => {
               height: 200,
             }}
           >
-            <Editor
+            <MonacoEditor
               height="200px"
               defaultLanguage="python"
               value={transitionData.lambdaCode || ""}
@@ -602,8 +602,8 @@ export const PropertiesPanel: React.FC = () => {
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 fontSize: 12,
-                lineNumbers: "on",
-                folding: false,
+                lineNumbers: "off",
+                folding: true,
                 glyphMargin: false,
                 lineDecorationsWidth: 0,
                 lineNumbersMinChars: 3,
@@ -625,7 +625,7 @@ export const PropertiesPanel: React.FC = () => {
               height: 200,
             }}
           >
-            <Editor
+            <MonacoEditor
               height="200px"
               defaultLanguage="python"
               value={transitionData.transitionKernelCode || ""}
@@ -639,8 +639,8 @@ export const PropertiesPanel: React.FC = () => {
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 fontSize: 12,
-                lineNumbers: "on",
-                folding: false,
+                lineNumbers: "off",
+                folding: true,
                 glyphMargin: false,
                 lineDecorationsWidth: 0,
                 lineNumbersMinChars: 3,
