@@ -1,11 +1,122 @@
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import Editor from "@monaco-editor/react";
+import { MdDragIndicator } from "react-icons/md";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import { Switch } from "../../../components/switch";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
+
+/**
+ * SortableArcItem - A draggable arc item that displays place name and weight
+ */
+interface SortableArcItemProps {
+  id: string;
+  placeName: string;
+  weight: number;
+  onWeightChange: (weight: number) => void;
+}
+
+const SortableArcItem: React.FC<SortableArcItemProps> = ({
+  id,
+  placeName,
+  weight,
+  onWeightChange,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "4px 0",
+        whiteSpace: "nowrap",
+      }}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          cursor: "grab",
+          display: "flex",
+          alignItems: "center",
+          color: "#999",
+          flexShrink: 0,
+        }}
+      >
+        <MdDragIndicator size={16} />
+      </div>
+      <div
+        style={{
+          flex: 1,
+          fontSize: 14,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {placeName}
+      </div>
+      <input
+        type="number"
+        min="1"
+        step="1"
+        value={weight}
+        onChange={(event) => {
+          const newWeight = parseInt(event.target.value, 10);
+          if (!Number.isNaN(newWeight) && newWeight >= 1) {
+            onWeightChange(newWeight);
+          }
+        }}
+        style={{
+          width: 60,
+          fontSize: 14,
+          padding: "4px 8px",
+          border: "1px solid rgba(0, 0, 0, 0.1)",
+          borderRadius: 4,
+          boxSizing: "border-box",
+          flexShrink: 0,
+        }}
+      />
+    </div>
+  );
+};
+
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
@@ -15,6 +126,14 @@ export const PropertiesPanel: React.FC = () => {
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const updatePlace = useSDCPNStore((state) => state.updatePlace);
   const updateTransition = useSDCPNStore((state) => state.updateTransition);
+  const updateArcWeight = useSDCPNStore((state) => state.updateArcWeight);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   // Don't show panel if nothing is selected
   if (selectedItemIds.size === 0) {
@@ -196,6 +315,52 @@ export const PropertiesPanel: React.FC = () => {
     (transition) => transition.id === selectedId,
   );
   if (transitionData) {
+    const handleInputArcDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        const oldIndex = transitionData.inputArcs.findIndex(
+          (arc) => arc.placeId === active.id,
+        );
+        const newIndex = transitionData.inputArcs.findIndex(
+          (arc) => arc.placeId === over.id,
+        );
+
+        const newInputArcs = arrayMove(
+          transitionData.inputArcs,
+          oldIndex,
+          newIndex,
+        );
+
+        updateTransition(transitionData.id, {
+          inputArcs: newInputArcs,
+        });
+      }
+    };
+
+    const handleOutputArcDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        const oldIndex = transitionData.outputArcs.findIndex(
+          (arc) => arc.placeId === active.id,
+        );
+        const newIndex = transitionData.outputArcs.findIndex(
+          (arc) => arc.placeId === over.id,
+        );
+
+        const newOutputArcs = arrayMove(
+          transitionData.outputArcs,
+          oldIndex,
+          newIndex,
+        );
+
+        updateTransition(transitionData.id, {
+          outputArcs: newOutputArcs,
+        });
+      }
+    };
+
     content = (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
@@ -243,34 +408,84 @@ export const PropertiesPanel: React.FC = () => {
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Input Arcs ({transitionData.inputArcs.length})
           </div>
-          <div style={{ fontSize: 12 }}>
-            {transitionData.inputArcs.length === 0 ? (
-              <div style={{ color: "#999" }}>(none)</div>
-            ) : (
-              transitionData.inputArcs.map((arc) => (
-                <div key={`input-\${arc.placeId}`} style={{ marginBottom: 4 }}>
-                  From: {arc.placeId} (weight: {arc.weight})
-                </div>
-              ))
-            )}
-          </div>
+          {transitionData.inputArcs.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleInputArcDragEnd}
+            >
+              <SortableContext
+                items={transitionData.inputArcs.map((arc) => arc.placeId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {transitionData.inputArcs.map((arc) => {
+                  const place = sdcpn.places.find(
+                    (placeItem) => placeItem.id === arc.placeId,
+                  );
+                  return (
+                    <SortableArcItem
+                      key={arc.placeId}
+                      id={arc.placeId}
+                      placeName={place?.name ?? arc.placeId}
+                      weight={arc.weight}
+                      onWeightChange={(weight) => {
+                        updateArcWeight(
+                          transitionData.id,
+                          "input",
+                          arc.placeId,
+                          weight,
+                        );
+                      }}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Output Arcs ({transitionData.outputArcs.length})
           </div>
-          <div style={{ fontSize: 12 }}>
-            {transitionData.outputArcs.length === 0 ? (
-              <div style={{ color: "#999" }}>(none)</div>
-            ) : (
-              transitionData.outputArcs.map((arc) => (
-                <div key={`output-\${arc.placeId}`} style={{ marginBottom: 4 }}>
-                  To: {arc.placeId} (weight: {arc.weight})
-                </div>
-              ))
-            )}
-          </div>
+          {transitionData.outputArcs.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleOutputArcDragEnd}
+            >
+              <SortableContext
+                items={transitionData.outputArcs.map((arc) => arc.placeId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {transitionData.outputArcs.map((arc) => {
+                  const place = sdcpn.places.find(
+                    (placeItem) => placeItem.id === arc.placeId,
+                  );
+                  return (
+                    <SortableArcItem
+                      key={arc.placeId}
+                      id={arc.placeId}
+                      placeName={place?.name ?? arc.placeId}
+                      weight={arc.weight}
+                      onWeightChange={(weight) => {
+                        updateArcWeight(
+                          transitionData.id,
+                          "output",
+                          arc.placeId,
+                          weight,
+                        );
+                      }}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
 
         <div>
