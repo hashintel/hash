@@ -108,3 +108,93 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory_low" {
     Purpose  = "Alert when RDS freeable memory is critically low"
   }
 }
+
+# CloudWatch Alarm for RDS disk queue depth
+resource "aws_cloudwatch_metric_alarm" "rds_disk_queue_depth_high" {
+  alarm_name        = "${var.prefix}-rds-disk-queue-depth-high"
+  alarm_description = "CRITICAL: RDS instance ${aws_db_instance.postgres.identifier} has high disk queue depth, indicating I/O bottleneck."
+
+  # RDS I/O metrics
+  metric_name         = "DiskQueueDepth"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 5   # 25 minutes total
+  datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for I/O spikes)
+  threshold           = 10  # operations
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-disk-queue-depth-high-alarm"
+    Severity = "CRITICAL"
+    Purpose  = "Alert when RDS disk queue depth indicates I/O contention"
+  }
+}
+
+# CloudWatch Alarm for RDS read IOPS
+resource "aws_cloudwatch_metric_alarm" "rds_read_iops_high" {
+  alarm_name        = "${var.prefix}-rds-read-iops-high"
+  alarm_description = "WARNING: RDS instance ${aws_db_instance.postgres.identifier} has high read IOPS."
+
+  # RDS I/O metrics
+  metric_name         = "ReadIOPS"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 5   # 25 minutes total
+  datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
+  threshold           = 500 # IOPS
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-read-iops-high-alarm"
+    Severity = "WARNING"
+    Purpose  = "Alert when RDS read IOPS are consistently high"
+  }
+}
+
+# CloudWatch Alarm for RDS write IOPS
+resource "aws_cloudwatch_metric_alarm" "rds_write_iops_high" {
+  alarm_name        = "${var.prefix}-rds-write-iops-high"
+  alarm_description = "WARNING: RDS instance ${aws_db_instance.postgres.identifier} has high write IOPS."
+
+  # RDS I/O metrics
+  metric_name         = "WriteIOPS"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 5   # 25 minutes total
+  datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
+  threshold           = 500 # IOPS
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-write-iops-high-alarm"
+    Severity = "WARNING"
+    Purpose  = "Alert when RDS write IOPS are consistently high"
+  }
+}
