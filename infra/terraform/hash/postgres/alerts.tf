@@ -198,3 +198,33 @@ resource "aws_cloudwatch_metric_alarm" "rds_write_iops_high" {
     Purpose  = "Alert when RDS write IOPS are consistently high"
   }
 }
+
+# CloudWatch Alarm for RDS database connections
+resource "aws_cloudwatch_metric_alarm" "rds_database_connections_high" {
+  alarm_name        = "${var.prefix}-rds-database-connections-high"
+  alarm_description = "CRITICAL: RDS instance ${aws_db_instance.postgres.identifier} has high number of database connections. Max connections: ~225."
+
+  # RDS connection metrics
+  metric_name         = "DatabaseConnections"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 3   # 15 minutes total
+  datapoints_to_alarm = 2   # 2 of 3 datapoints must be high (moderate grace)
+  threshold           = 180 # connections (~80% of max 225)
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-database-connections-high-alarm"
+    Severity = "CRITICAL"
+    Purpose  = "Alert when RDS database connections approach limit"
+  }
+}
