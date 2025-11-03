@@ -9,6 +9,26 @@ import type {
 } from "./types/simulation";
 
 /**
+ * Get the dimensions (number of elements) for a place based on its type.
+ * If the place has no type, returns 0.
+ */
+function getPlaceDimensions(
+  place: SimulationInput["sdcpn"]["places"][0],
+  sdcpn: SimulationInput["sdcpn"],
+): number {
+  if (!place.type) {
+    return 0;
+  }
+  const type = sdcpn.types.find((tp) => tp.id === place.type);
+  if (!type) {
+    throw new Error(
+      `Type with ID ${place.type} referenced by place ${place.id} does not exist in SDCPN`,
+    );
+  }
+  return type.elements.length;
+}
+
+/**
  * Builds a simulation instance and its initial frame from simulation input.
  *
  * Takes a SimulationInput containing:
@@ -28,7 +48,7 @@ import type {
  * @throws Error if token dimensions don't match place dimensions
  * @throws Error if user code fails to compile
  */
-export function buildSimulation(input: SimulationInput): SimulationFrame {
+export function buildSimulation(input: SimulationInput): SimulationInstance {
   const { sdcpn, initialMarking, seed, dt } = input;
 
   // Build maps for quick lookup
@@ -49,10 +69,11 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
   // Validate token dimensions match place dimensions
   for (const [placeId, marking] of initialMarking) {
     const place = placesMap.get(placeId)!;
-    const expectedSize = place.dimensions * marking.count;
+    const dimensions = getPlaceDimensions(place, sdcpn);
+    const expectedSize = dimensions * marking.count;
     if (marking.values.length !== expectedSize) {
       throw new Error(
-        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${place.dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`,
+        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`,
       );
     }
   }
@@ -60,11 +81,32 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
   // Compile all differential equation functions
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
-    try {
-      const fn = compileUserCode<[Float64Array, number]>(
-        place.differentialEquationCode,
-        "Dynamics",
+    // Skip places without dynamics enabled or without differential equation code
+    if (!place.dynamicsEnabled || !place.differentialEquationCode) {
+      continue;
+    }
+
+    const diffEqCode = place.differentialEquationCode;
+
+    // Get the code - either directly or from a referenced differential equation
+    let code: string;
+    if (typeof diffEqCode === "string") {
+      code = diffEqCode;
+    } else {
+      // It's a reference to a differential equation
+      const deRef = sdcpn.differentialEquations.find(
+        (de) => de.id === diffEqCode.refId,
       );
+      if (!deRef) {
+        throw new Error(
+          `Differential equation with ID ${diffEqCode.refId} referenced by place ${place.id} does not exist in SDCPN`,
+        );
+      }
+      code = deRef.code;
+    }
+
+    try {
+      const fn = compileUserCode<[Float64Array, number]>(code, "Dynamics");
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
       throw new Error(
@@ -125,6 +167,7 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
     const place = placesMap.get(placeId)!;
     const marking = initialMarking.get(placeId);
     const count = marking?.count ?? 0;
+    const dimensions = getPlaceDimensions(place, sdcpn);
 
     placeStates.set(placeId, {
       instance: place,
@@ -132,7 +175,7 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
       count,
     });
 
-    bufferSize += place.dimensions * count;
+    bufferSize += dimensions * count;
   }
 
   // Build the initial buffer with token values
@@ -186,5 +229,5 @@ export function buildSimulation(input: SimulationInput): SimulationFrame {
   // Add the initial frame to the simulation instance
   simulationInstance.frames.push(initialFrame);
 
-  return initialFrame;
+  return simulationInstance;
 }
