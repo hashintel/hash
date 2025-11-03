@@ -204,8 +204,10 @@ export const SDCPNView: React.FC = () => {
     }
   }
 
-  function handlePaneClick() {
-    clearSelection();
+  function handlePaneClick(event: React.MouseEvent) {
+    if (!event.shiftKey) {
+      clearSelection();
+    }
   }
 
   // Handle Delete key press
