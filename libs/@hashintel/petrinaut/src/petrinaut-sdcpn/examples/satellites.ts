@@ -1,0 +1,146 @@
+import type { SDCPN } from "../../core/types/sdcpn";
+
+export const satellitesSDCPN: SDCPN = {
+  id: "sdcpn-1762206865689",
+  title: "Satellites in Orbit",
+  places: [
+    {
+      id: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+      name: "Space",
+      type: null,
+      dynamicsEnabled: true,
+      differentialEquationCode: { refId: "de-satellite-orbit" },
+      x: 30,
+      y: 83.33333333333333,
+      width: 130,
+      height: 130,
+    },
+    {
+      id: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+      name: "Debris",
+      type: null,
+      dynamicsEnabled: false,
+      differentialEquationCode: "",
+      x: 510,
+      y: 75,
+      width: 130,
+      height: 130,
+    },
+  ],
+  transitions: [
+    {
+      id: "transition__d25015d8-7aac-45ff-82b0-afd943f1b7ec",
+      name: "Collision",
+      inputArcs: [
+        {
+          placeId: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+          weight: 2,
+        },
+      ],
+      outputArcs: [
+        {
+          placeId: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+          weight: 2,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 255,
+      y: 180,
+      width: 160,
+      height: 80,
+    },
+    {
+      id: "transition__716fe1e5-9b35-413f-83fe-99b28ba73945",
+      name: "Crash",
+      inputArcs: [
+        {
+          placeId: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+          weight: 1,
+        },
+      ],
+      outputArcs: [
+        {
+          placeId: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 255,
+      y: 30,
+      width: 160,
+      height: 80,
+    },
+  ],
+  types: [
+    {
+      id: "type-satellite",
+      name: "Satellite",
+      iconId: "circle",
+      colorCode: "#1E90FF",
+      elements: [
+        { id: "satellite-x", name: "x", type: "real" },
+        { id: "satellite-y", name: "y", type: "real" },
+        { id: "satellite-direction", name: "direction", type: "real" },
+        { id: "satellite-speed", name: "velocity", type: "real" },
+      ],
+    },
+  ],
+  differentialEquations: [
+    {
+      id: "de-satellite-orbit",
+      typeId: "type-satellite",
+      name: "Satellite Orbit Dynamics",
+      code: `// Example of ODE for Satellite in orbit (simplified)
+export default Dynamics(tokens => {
+  const mu = 400000.0; // Gravitational parameter
+
+  // Return derivatives for each dimension of each token
+  return tokens.map(([x, y, direction, velocity]) => {
+    const r = Math.hypot(x, y); // Distance to Earth center
+    
+    // Gravitational acceleration vector (points toward origin)
+    const ax = (-mu * x) / (r * r * r);
+    const ay = (-mu * y) / (r * r * r);
+    
+    // Project that acceleration into satellite’s velocity frame
+    const ddirection =
+      (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity;
+    const dvelocity = ax * Math.cos(direction) + ay * Math.sin(direction);
+    
+    // Position derivative (from velocity)
+    const dx = velocity * Math.cos(direction);
+    const dy = velocity * Math.sin(direction);
+
+    return [dx, dy, ddirection, dvelocity];
+  })
+})`,
+    },
+  ],
+  parameters: [
+    {
+      id: "param-collision-threshold",
+      name: "Collision Threshold",
+      variableName: "collision_threshold",
+      type: "real",
+      defaultValue: "10.0",
+    },
+    {
+      id: "param-crash-threshold",
+      name: "Crash Threshold",
+      variableName: "crash_threshold",
+      type: "real",
+      defaultValue: "5.0",
+    },
+    {
+      id: "param-gravitational-constant",
+      name: "Gravitational Constant",
+      variableName: "gravitational_constant",
+      type: "real",
+      defaultValue: "400000.0",
+    },
+  ],
+};
