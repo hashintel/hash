@@ -16,6 +16,10 @@ export function useApplyNodeChanges() {
   const updateDraggingStateByNodeId = useEditorStore(
     (state) => state.updateDraggingStateByNodeId,
   );
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const updatePlacePosition = useSDCPNStore(
     (state) => state.updatePlacePosition,
   );
@@ -29,18 +33,28 @@ export function useApplyNodeChanges() {
       position: { x: number; y: number };
     }> = [];
 
+    let selectionChanged = false;
+    const newSelectedIds = new Set(selectedItemIds);
+
     for (const change of changes) {
       if (
         // We add nodes in onDrop, we won't handle these kind of changes
         change.type === "add" ||
         // unclear what reset is supposed to do, it's not handled in reactflow's applyChange implementation
         change.type === "reset" ||
-        // We handle selection in separate state ourselves
-        change.type === "select" ||
         // We don't allow resizing at the moment
         change.type === "dimensions"
       ) {
         continue;
+      }
+
+      if (change.type === "select") {
+        selectionChanged = true;
+        if (change.selected) {
+          newSelectedIds.add(change.id);
+        } else {
+          newSelectedIds.delete(change.id);
+        }
       }
 
       if (change.type === "position") {
@@ -78,6 +92,11 @@ export function useApplyNodeChanges() {
           }));
         }
       }
+    }
+
+    // Apply selection changes to EditorStore
+    if (selectionChanged) {
+      setSelectedItemIds(newSelectedIds);
     }
 
     // Apply position updates to SDCPN store

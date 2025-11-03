@@ -18,6 +18,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
 
   const nodes: NodeType[] = [];
 
@@ -34,6 +35,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       width: place.width ?? 80,
       height: place.height ?? 80,
       dragging: draggingState?.dragging ?? false,
+      selected: selectedItemIds.has(place.id),
       data: {
         label: place.name,
         type: "place",
@@ -54,6 +56,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       width: transition.width ?? 60,
       height: transition.height ?? 60,
       dragging: draggingState?.dragging ?? false,
+      selected: selectedItemIds.has(transition.id),
       data: {
         label: transition.name,
         type: "transition",
@@ -75,6 +78,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         source: inputArc.placeId,
         target: transition.id,
         type: "default" as const,
+        selected: selectedItemIds.has(arcId),
         data: {
           tokenWeights: {
             default: inputArc.weight,
@@ -93,6 +97,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         source: transition.id,
         target: outputArc.placeId,
         type: "default" as const,
+        selected: selectedItemIds.has(arcId),
         data: {
           tokenWeights: {
             default: outputArc.weight,

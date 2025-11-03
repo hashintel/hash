@@ -18,7 +18,6 @@ import { saveSDCPN } from "./lib/save-sdcpn";
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
 export const EditorView: React.FC = () => {
-  const [mode, setMode] = useState<"edit" | "simulate">("edit");
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
 
   // Get data from sdcpn-store
@@ -29,6 +28,10 @@ export const EditorView: React.FC = () => {
   const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
 
   // Get editor store methods
+  const mode = useEditorStore((state) => state.globalMode);
+  const setMode = useEditorStore((state) => state.setGlobalMode);
+  const editionMode = useEditorStore((state) => state.editionMode);
+  const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
   function handleNew() {
@@ -123,7 +126,10 @@ export const EditorView: React.FC = () => {
           {/* SDCPN Visualization */}
           <SDCPNView />
 
-          <BottomBar />
+          <BottomBar
+            editionMode={editionMode}
+            onEditionModeChange={setEditionMode}
+          />
         </Box>
       </Stack>
     </Stack>
