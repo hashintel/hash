@@ -28,7 +28,7 @@ Automatically activates when:
 ✅ **DO:**
 
 - Add external dependencies to workspace root `[workspace.dependencies]`
-- Use exact versions with `=` prefix (e.g., `version = "=1.0.0"`)
+- Use caret version specifiers (e.g., `version = "1.0.0"` = `^1.0.0`)
 - Set `default-features = false` for all dependencies unless specifically needed
 - Use `workspace = true` in package Cargo.toml
 - Organize dependencies into 4 sections with comment headers
@@ -38,7 +38,7 @@ Automatically activates when:
 ❌ **DON'T:**
 
 - Add version numbers directly in package Cargo.toml
-- Use version ranges or `^` prefixes in workspace root
+- Use exact versions with `=` prefix (e.g., `=1.0.0`) in workspace root
 - Enable `default-features` without considering impact
 - Mix different dependency types without section comments
 - Forget `public = true` for dependencies exposed in public API
@@ -75,7 +75,7 @@ regex       = { workspace = true }
 ### Quick Add Process
 
 1. **Check workspace root** - Is dependency already there?
-2. **Add to workspace if needed** - With exact version `=1.2.3`
+2. **Add to workspace if needed** - With caret version `1.2.3`
 3. **Determine section** - Public workspace/third-party or private?
 4. **Add to package** - Use `workspace = true` (+ `public = true` if needed)
 
@@ -119,10 +119,10 @@ Choose the guide that matches your task:
 
 ### Adding a New External Dependency
 
-```bash
+```toml
 # 1. Add to workspace root Cargo.toml
 [workspace.dependencies]
-my-crate = { version = "=1.2.3", default-features = false }
+my-crate = { version = "1.2.3", default-features = false }
 
 # 2. Add to package Cargo.toml (appropriate section)
 [dependencies]
