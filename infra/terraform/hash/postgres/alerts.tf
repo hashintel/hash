@@ -76,3 +76,32 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_utilization_high" {
     Purpose  = "Alert when RDS CPU utilization is consistently high"
   }
 }
+
+# CloudWatch Alarm for RDS freeable memory
+resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory_low" {
+  alarm_name        = "${var.prefix}-rds-freeable-memory-low"
+  alarm_description = "CRITICAL: RDS instance ${aws_db_instance.postgres.identifier} has low freeable memory."
+
+  # RDS memory metrics
+  metric_name         = "FreeableMemory"
+  namespace           = "AWS/RDS"
+  statistic           = "Minimum"
+  period              = 300                    # 5 minutes
+  evaluation_periods  = 2                      # Must be low for 10 minutes total
+  threshold           = 1 * 1024 * 1024 * 1024 # 1GB in bytes
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "breaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-freeable-memory-low-alarm"
+    Severity = "CRITICAL"
+    Purpose  = "Alert when RDS freeable memory is critically low"
+  }
+}
