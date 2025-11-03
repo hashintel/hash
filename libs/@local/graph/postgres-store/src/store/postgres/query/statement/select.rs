@@ -1,45 +1,40 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Alias, Expression, Function, JoinClause, SelectExpression, Table, Transpile, WhereExpression,
-    WithExpression,
-    expression::{GroupByExpression, OrderByExpression},
+    Condition, Expression, SelectExpression, Transpile, WhereExpression, WithExpression,
+    expression::{FromItem, GroupByExpression, JoinType, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FromItem {
-    Table { table: Table, alias: Option<Alias> },
-    Function(Function),
-}
-
-impl Transpile for FromItem {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Table { table, alias } => {
-                table.transpile(fmt)?;
-                if let Some(alias) = *alias {
-                    fmt.write_str(" AS ")?;
-                    table.aliased(alias).transpile(fmt)
-                } else {
-                    Ok(())
-                }
-            }
-            Self::Function(function) => function.transpile(fmt),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectStatement {
     pub with: WithExpression,
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
-    pub from: FromItem,
-    pub joins: Vec<JoinClause>,
+    pub from: Option<FromItem<'static>>,
     pub where_expression: WhereExpression,
     pub order_by_expression: OrderByExpression,
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
+}
+
+impl SelectStatement {
+    pub fn join(
+        &mut self,
+        join_type: JoinType,
+        from: FromItem<'static>,
+        condition: Vec<Condition>,
+    ) {
+        self.from = Some(FromItem::JoinOn {
+            left: Box::new(
+                self.from
+                    .take()
+                    .expect("Tried to join on a `SELECT` statement without a `FROM` statement"),
+            ),
+            join_type,
+            right: Box::new(from),
+            condition,
+        });
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -75,12 +70,9 @@ impl Transpile for SelectStatement {
             }
             condition.transpile(fmt)?;
         }
-        fmt.write_str("\nFROM ")?;
-        self.from.transpile(fmt)?;
-
-        for join in &self.joins {
-            fmt.write_char('\n')?;
-            join.transpile(fmt)?;
+        if let Some(from) = &self.from {
+            fmt.write_str("\nFROM ")?;
+            from.transpile(fmt)?;
         }
 
         if !self.where_expression.is_empty() {

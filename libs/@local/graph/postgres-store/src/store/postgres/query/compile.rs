@@ -16,11 +16,10 @@ use tracing::instrument;
 
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function, JoinClause,
+    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
     OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table,
     Transpile as _, WhereExpression, WindowStatement, WithExpression,
-    expression::{GroupByExpression, JoinFrom, PostgresType},
-    statement::FromItem,
+    expression::{FromItem, GroupByExpression, PostgresType},
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
         EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
@@ -59,12 +58,14 @@ struct PathSelection {
     ordering: Option<(Ordering, Option<NullOrdering>)>,
 }
 
+type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
+
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
-    table_hooks: HashMap<TableName<'p>, fn(&mut Self, Alias)>,
+    table_hooks: HashMap<TableName<'p>, TableHook<'p, 'q, T>>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
 }
 
@@ -87,18 +88,18 @@ pub enum SelectCompilerError {
 impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Creates a new, empty compiler.
     pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>, include_drafts: bool) -> Self {
-        let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
+        let mut table_hooks = HashMap::<_, TableHook<'p, 'q, R>>::new();
 
         if temporal_axes.is_some() {
             table_hooks.insert(
                 TableName::from(Table::OntologyTemporalMetadata),
-                Self::pin_ontology_table,
+                Self::ontology_table_conditions,
             );
         }
         if temporal_axes.is_some() || !include_drafts {
             table_hooks.insert(
                 TableName::from(Table::EntityTemporalMetadata),
-                Self::filter_temporal_metadata,
+                Self::temporal_metadata_conditions,
             );
         }
 
@@ -107,15 +108,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: Vec::new(),
-                from: FromItem::Table {
-                    table: R::base_table(),
-                    alias: Some(Alias {
+                from: Some(FromItem::Table {
+                    table: R::base_table().into(),
+                    alias: Some(R::base_table().aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
-                    }),
-                },
-                joins: Vec::new(),
+                    })),
+                    tablesample: None,
+                }),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -196,56 +197,49 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    fn pin_ontology_table(&mut self, alias: Alias) {
+    fn ontology_table_conditions(&mut self, alias: Alias) -> Vec<Condition> {
         let table = Table::OntologyTemporalMetadata.aliased(alias);
         if let Some(temporal_axes) = self.temporal_axes
-            && self.artifacts.table_info.tables.insert(table.clone())
+            && self.artifacts.table_info.tables.insert(table)
         {
             let transaction_time_index = self.time_index(temporal_axes, TimeAxis::TransactionTime);
             match temporal_axes {
                 QueryTemporalAxes::DecisionTime { .. } => {
-                    self.add_condition(
-                        Condition::TimeIntervalContainsTimestamp(
-                            Expression::ColumnReference(
-                                Column::OntologyTemporalMetadata(
-                                    OntologyTemporalMetadata::TransactionTime,
-                                )
-                                .aliased(alias),
-                            ),
-                            Expression::Parameter(transaction_time_index),
+                    vec![Condition::TimeIntervalContainsTimestamp(
+                        Expression::ColumnReference(
+                            Column::OntologyTemporalMetadata(
+                                OntologyTemporalMetadata::TransactionTime,
+                            )
+                            .aliased(alias),
                         ),
-                        Some(&table),
-                    );
+                        Expression::Parameter(transaction_time_index),
+                    )]
                 }
                 QueryTemporalAxes::TransactionTime { .. } => {
-                    self.add_condition(
-                        Condition::Overlap(
-                            Expression::ColumnReference(
-                                Column::OntologyTemporalMetadata(
-                                    OntologyTemporalMetadata::TransactionTime,
-                                )
-                                .aliased(alias),
-                            ),
-                            Expression::Parameter(transaction_time_index),
+                    vec![Condition::Overlap(
+                        Expression::ColumnReference(
+                            Column::OntologyTemporalMetadata(
+                                OntologyTemporalMetadata::TransactionTime,
+                            )
+                            .aliased(alias),
                         ),
-                        Some(&table),
-                    );
+                        Expression::Parameter(transaction_time_index),
+                    )]
                 }
             }
+        } else {
+            Vec::new()
         }
     }
 
-    fn filter_temporal_metadata(&mut self, alias: Alias) {
+    fn temporal_metadata_conditions(&mut self, alias: Alias) -> Vec<Condition> {
+        let mut conditions = Vec::new();
         let table = Table::EntityTemporalMetadata.aliased(alias);
         if self.artifacts.table_info.tables.insert(table.clone()) {
             if !self.include_drafts {
-                self.add_condition(
-                    Condition::Exists(Expression::ColumnReference(
-                        Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId)
-                            .aliased(alias),
-                    )),
-                    Some(&table),
-                );
+                conditions.push(Condition::Exists(Expression::ColumnReference(
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId).aliased(alias),
+                )));
             }
 
             if let Some(temporal_axes) = self.temporal_axes {
@@ -256,7 +250,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 // Adds the pinned timestamp condition, so for the projected decision time, we use
                 // the transaction time and vice versa.
-                self.add_condition(
+                conditions.extend([
                     Condition::TimeIntervalContainsTimestamp(
                         Expression::ColumnReference(
                             Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
@@ -266,9 +260,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         ),
                         Expression::Parameter(pinned_time_index),
                     ),
-                    Some(&table),
-                );
-                self.add_condition(
                     Condition::Overlap(
                         Expression::ColumnReference(
                             Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
@@ -278,10 +269,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         ),
                         Expression::Parameter(variable_time_index),
                     ),
-                    Some(&table),
-                );
+                ]);
             }
         }
+        conditions
     }
 
     /// Adds a new path to the selection.
@@ -356,28 +347,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    fn add_condition(&mut self, condition: Condition, table: Option<&TableReference>) {
-        table
-            .and_then(|table| {
-                // If a table is provided and we have a join on that table, we add the condition
-                self.statement.joins.iter_mut().find_map(|join| {
-                    if let JoinClause::On {
-                        join: _,
-                        from,
-                        conditions,
-                    } = join
-                        && *table == *from.reference_table()
-                    {
-                        Some(conditions)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .unwrap_or(&mut self.statement.where_expression.conditions)
-            .push(condition);
-    }
-
     /// Adds a new path to the selection which can be used as cursor.
     ///
     /// # Errors
@@ -424,7 +393,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.add_condition(condition, None);
+        self.statement.where_expression.conditions.push(condition);
         Ok(())
     }
 
@@ -575,8 +544,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .aliased(path_alias),
                     );
 
-                    if let Some(last_join) = self.statement.joins.last_mut() {
-                        let last_reference_table = last_join.from_item().reference_table();
+                    if let Some(FromItem::JoinOn {
+                        right: last_from, ..
+                    }) = self.statement.from.as_mut()
+                        && let Some(last_reference_table) = last_from.reference_table()
+                    {
                         ensure!(
                             last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
                                 || last_reference_table.name
@@ -584,7 +556,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 || last_reference_table.name
                                     == TableName::from(Table::EntityTypeEmbeddings)
                                 || last_reference_table.name
-                                    == TableName::from(Table::EntityEmbeddings), /* || matches!(last_join_from, JoinFrom::SelectStatement { .. }), */
+                                    == TableName::from(Table::EntityEmbeddings),
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -628,7 +600,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        *last_join.from_item_mut() = JoinFrom::Subquery {
+                        **last_from = FromItem::Subquery {
                             statement: Box::new(SelectStatement {
                                 with: WithExpression::default(),
                                 distinct: vec![],
@@ -652,11 +624,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         alias: Some("distance"),
                                     }))
                                     .collect(),
-                                from: FromItem::Table {
-                                    table: embeddings_table,
-                                    alias: Some(embeddings_alias),
-                                },
-                                joins: vec![],
+                                from: Some(FromItem::Table {
+                                    table: embeddings_table.into(),
+                                    alias: Some(embeddings_table.aliased(embeddings_alias)),
+                                    tablesample: None,
+                                }),
                                 where_expression: WhereExpression::default(),
                                 order_by_expression: OrderByExpression::default(),
                                 group_by_expression: GroupByExpression {
@@ -671,7 +643,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 },
                                 limit: None,
                             }),
-                            alias: last_reference_table.clone(),
+                            alias: Some(last_reference_table.clone()),
                             lateral: false,
                         };
                     }
@@ -793,11 +765,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         alias: Some("latest_version"),
                     },
                 ],
-                from: FromItem::Table {
-                    table: version_column.table(),
-                    alias: Some(alias),
-                },
-                joins: vec![],
+                from: Some(FromItem::Table {
+                    table: version_column.table().into(),
+                    alias: Some(version_column.table().aliased(alias)),
+                    tablesample: None,
+                }),
                 where_expression: WhereExpression::default(),
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
@@ -898,7 +870,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         let alias = self.add_join_statements(path);
 
         if let Some(hook) = self.table_hooks.get(&column.table().into()) {
-            hook(self, alias);
+            let conditions = hook(self, alias);
+            self.statement
+                .where_expression
+                .conditions
+                .extend(conditions);
         }
 
         let column_expression = Expression::ColumnReference(column.aliased(alias));
@@ -1064,7 +1040,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
-    /// Joining the tables attempts to deduplicate [`JoinClause`]s. As soon as a new filter was
+    /// Joining the tables attempts to deduplicate join operations. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
@@ -1080,7 +1056,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         });
 
         if let Some(hook) = self.table_hooks.get(&current_table.name) {
-            hook(self, current_table.alias.unwrap_or_default());
+            let conditions = hook(self, current_table.alias.unwrap_or_default());
+            self.statement
+                .where_expression
+                .conditions
+                .extend(conditions);
         }
 
         let mut is_outer_join_chain = false;
@@ -1109,17 +1089,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 let mut found = false;
                 let mut max_number = 0;
 
-                for existing in &self.statement.joins {
-                    let JoinClause::On {
-                        join: _,
-                        from: existing_from,
-                        conditions: existing_conditions,
-                    } = existing
-                    else {
+                let mut existing = self.statement.from.as_ref();
+                while let Some(FromItem::JoinOn {
+                    left,
+                    join_type: _,
+                    right: existing_from_item,
+                    condition: existing_conditions,
+                }) = existing
+                {
+                    existing = Some(left);
+
+                    let Some(existing_table) = existing_from_item.reference_table() else {
                         continue;
                     };
-
-                    let existing_table = existing_from.reference_table();
 
                     // Check for exact match to reuse existing join
                     if *existing_table == join_table {
@@ -1163,21 +1145,21 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     // We don't have a join statement for this column yet, so we need to create one.
                     current_table = Cow::Owned(join_table.clone());
                     conditions.extend(relation.additional_conditions(&join_table));
-                    self.statement.joins.push(JoinClause::On {
-                        join: join_type,
-                        from: JoinFrom::Table {
+                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
+                        conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
+                    }
+                    self.statement.join(
+                        join_type,
+                        FromItem::Table {
                             table: TableReference {
                                 alias: None,
                                 ..join_table.clone()
                             },
                             alias: Some(join_table),
+                            tablesample: None,
                         },
                         conditions,
-                    });
-
-                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
-                        hook(self, current_table.alias.unwrap_or_default());
-                    }
+                    );
                 }
             }
         }

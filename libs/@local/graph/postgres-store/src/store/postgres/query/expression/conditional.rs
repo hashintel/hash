@@ -7,7 +7,7 @@ use hash_graph_store::filter::PathToken;
 use super::ColumnReference;
 use crate::store::postgres::query::{SelectStatement, Table, Transpile, WindowStatement};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
@@ -155,7 +155,7 @@ impl Transpile for PostgresType {
 }
 
 /// A compiled expression in Postgres.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     ColumnReference(ColumnReference<'static>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
