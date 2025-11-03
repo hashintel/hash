@@ -1,11 +1,20 @@
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
+import { useState } from "react";
+import {
+  FaChevronDown,
+  FaChevronRight,
+  FaCircle,
+  FaSquare,
+} from "react-icons/fa6";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
 
 import type { MenuItem } from "../../../components/menu";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNStore } from "../../../state/sdcpn-provider";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
 
@@ -29,6 +38,47 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   title,
   onTitleChange,
 }) => {
+  // Local state for collapsible layers section
+  const [isLayersExpanded, setIsLayersExpanded] = useState(true);
+
+  // Get SDCPN data
+  const places = useSDCPNStore((state) => state.sdcpn.places);
+  const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
+
+  // Get selection state
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
+  const addSelectedItemId = useEditorStore((state) => state.addSelectedItemId);
+  const removeSelectedItemId = useEditorStore(
+    (state) => state.removeSelectedItemId,
+  );
+
+  const handleLayerClick = (
+    id: string,
+    event:
+      | React.MouseEvent<HTMLDivElement>
+      | React.KeyboardEvent<HTMLDivElement>,
+  ) => {
+    const hasModifier =
+      event.shiftKey ||
+      ("metaKey" in event && event.metaKey) ||
+      ("ctrlKey" in event && event.ctrlKey);
+
+    if (hasModifier) {
+      // Multi-select: toggle the item
+      if (selectedItemIds.has(id)) {
+        removeSelectedItemId(id);
+      } else {
+        addSelectedItemId(id);
+      }
+    } else {
+      // Single select: replace selection
+      setSelectedItemIds(new Set([id]));
+    }
+  };
+
   // Collapsed state: horizontal bar at top left
   if (!isOpen) {
     return (
@@ -179,40 +229,185 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
           </div>
         </div>
 
-        {/* Tools Section */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-              Tools
-            </div>
-            <div style={{ fontSize: 14, color: "#666" }}>
-              Editor tools and options
-            </div>
-          </div>
+        {/* Layers Section */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setIsLayersExpanded(!isLayersExpanded)}
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              fontWeight: 600,
+              fontSize: "[13px]",
+              color: "[#333]",
+              paddingBottom: "[4px]",
+              cursor: "pointer",
+              background: "[transparent]",
+              border: "none",
+              padding: "spacing.1",
+              borderRadius: "radius.4",
+              _hover: {
+                backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+              },
+            })}
+            style={{ gap: 6 }}
+          >
+            {isLayersExpanded ? (
+              <FaChevronDown size={10} />
+            ) : (
+              <FaChevronRight size={10} />
+            )}
+            Layers
+          </button>
 
-          {/* Placeholder content - can be expanded later */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Select Mode
-              </div>
-              <div style={{ fontSize: 14 }}>Click to select elements</div>
-            </div>
+          {/* Layers List */}
+          {isLayersExpanded && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              {/* Places */}
+              {places.map((place) => {
+                const isSelected = selectedItemIds.has(place.id);
+                return (
+                  <div
+                    key={place.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => handleLayerClick(place.id, event)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleLayerClick(place.id, event);
+                      }
+                    }}
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "spacing.2",
+                      padding: "spacing.2",
+                      paddingX: "spacing.3",
+                      borderRadius: "radius.4",
+                      cursor: "default",
+                      transition: "[all 0.15s ease]",
+                      backgroundColor: isSelected
+                        ? "core.blue.20"
+                        : "[transparent]",
+                      _hover: {
+                        backgroundColor: isSelected
+                          ? "core.blue.30"
+                          : "[rgba(0, 0, 0, 0.05)]",
+                      },
+                    })}
+                    style={{ padding: "4px 9px", gap: 6 }}
+                  >
+                    <FaCircle
+                      size={12}
+                      style={{
+                        color: isSelected ? "#3b82f6" : "#9ca3af",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: isSelected ? "#1e40af" : "#374151",
+                        fontWeight: isSelected ? 500 : 400,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {place.name || `Place ${place.id}`}
+                    </span>
+                  </div>
+                );
+              })}
 
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Add Place
-              </div>
-              <div style={{ fontSize: 14 }}>Create new places</div>
-            </div>
+              {/* Transitions */}
+              {transitions.map((transition) => {
+                const isSelected = selectedItemIds.has(transition.id);
+                return (
+                  <div
+                    key={transition.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => handleLayerClick(transition.id, event)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleLayerClick(transition.id, event);
+                      }
+                    }}
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "spacing.2",
+                      borderRadius: "radius.4",
+                      cursor: "default",
+                      transition: "[all 0.15s ease]",
+                      backgroundColor: isSelected
+                        ? "core.blue.20"
+                        : "[transparent]",
+                      _hover: {
+                        backgroundColor: isSelected
+                          ? "core.blue.30"
+                          : "[rgba(0, 0, 0, 0.05)]",
+                      },
+                    })}
+                    style={{ padding: "4px 9px", gap: 6 }}
+                  >
+                    <FaSquare
+                      size={12}
+                      style={{
+                        color: isSelected ? "#3b82f6" : "#9ca3af",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: isSelected ? "#1e40af" : "#374151",
+                        fontWeight: isSelected ? 500 : 400,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {transition.name || `Transition ${transition.id}`}
+                    </span>
+                  </div>
+                );
+              })}
 
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Add Transition
-              </div>
-              <div style={{ fontSize: 14 }}>Create new transitions</div>
+              {/* Empty state */}
+              {places.length === 0 && transitions.length === 0 && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#9ca3af",
+                    padding: "spacing.4",
+                    textAlign: "center",
+                  }}
+                >
+                  No layers yet
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </RefractivePane>
     </div>
