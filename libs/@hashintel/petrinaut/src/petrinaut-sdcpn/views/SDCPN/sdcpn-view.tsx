@@ -121,7 +121,7 @@ export const SDCPNView: React.FC = () => {
       addPlace({
         id,
         name: label,
-        dimensions: 1,
+        type: null,
         dynamicsEnabled: false,
         differentialEquationCode: "",
         x: position.x,

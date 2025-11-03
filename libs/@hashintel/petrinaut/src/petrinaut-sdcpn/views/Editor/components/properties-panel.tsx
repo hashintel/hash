@@ -284,9 +284,33 @@ export const PropertiesPanel: React.FC = () => {
 
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Dimensions
+            Type
           </div>
-          <div style={{ fontSize: 14 }}>{placeData.dimensions}</div>
+          <select
+            value={placeData.type ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              updatePlace(placeData.id, {
+                type: value === "" ? null : value,
+              });
+            }}
+            style={{
+              fontSize: 14,
+              padding: "6px 8px",
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              width: "100%",
+              boxSizing: "border-box",
+              backgroundColor: "white",
+            }}
+          >
+            <option value="">None</option>
+            {sdcpn.types.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -337,7 +361,11 @@ export const PropertiesPanel: React.FC = () => {
               <MonacoEditor
                 height="200px"
                 defaultLanguage="python"
-                value={placeData.differentialEquationCode || ""}
+                value={
+                  typeof placeData.differentialEquationCode === "string"
+                    ? placeData.differentialEquationCode
+                    : ""
+                }
                 onChange={(value) => {
                   updatePlace(placeData.id, {
                     differentialEquationCode: value ?? "",

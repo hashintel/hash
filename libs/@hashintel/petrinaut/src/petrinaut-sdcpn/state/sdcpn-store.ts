@@ -1,7 +1,14 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-import type { Place, SDCPN, Transition } from "../../core/types/sdcpn";
+import type {
+  DifferentialEquation,
+  Parameter,
+  Place,
+  SDCPN,
+  SDCPNType,
+  Transition,
+} from "../../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 
 const emptySDCPN: SDCPN = {
@@ -9,6 +16,9 @@ const emptySDCPN: SDCPN = {
   title: "Untitled",
   places: [],
   transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
 };
 
 export type SDCPNState = {
@@ -53,6 +63,24 @@ export type SDCPNState = {
   ) => void;
 
   updateTitle: (title: string) => void;
+
+  // Type operations
+  addType: (type: SDCPNType) => void;
+  updateType: (typeId: string, updates: Partial<SDCPNType>) => void;
+  removeType: (typeId: string) => void;
+
+  // Differential Equation operations
+  addDifferentialEquation: (equation: DifferentialEquation) => void;
+  updateDifferentialEquation: (
+    equationId: string,
+    updates: Partial<DifferentialEquation>
+  ) => void;
+  removeDifferentialEquation: (equationId: string) => void;
+
+  // Parameter operations
+  addParameter: (parameter: Parameter) => void;
+  updateParameter: (parameterId: string, updates: Partial<Parameter>) => void;
+  removeParameter: (parameterId: string) => void;
 
   // Delete multiple items by their IDs (supports places, transitions, and arcs)
   deleteItemsByIds: (ids: Set<string>) => void;
@@ -295,6 +323,152 @@ export function createSDCPNStore() {
             },
             false,
             "updateTitle"
+          ),
+
+        // Type operations
+        addType: (type) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.types = [...newSDCPN.types, type];
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "addType"
+          ),
+
+        updateType: (typeId, updates) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.types = newSDCPN.types.map((type) =>
+                type.id === typeId ? { ...type, ...updates } : type
+              );
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "updateType"
+          ),
+
+        removeType: (typeId) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              
+              // Remove the type
+              newSDCPN.types = newSDCPN.types.filter(
+                (type) => type.id !== typeId
+              );
+
+              // Set type to null for all places that were using this type
+              newSDCPN.places = newSDCPN.places.map((place) =>
+                place.type === typeId ? { ...place, type: null } : place
+              );
+
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "removeType"
+          ),
+
+        // Differential Equation operations
+        addDifferentialEquation: (equation) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.differentialEquations = [
+                ...newSDCPN.differentialEquations,
+                equation,
+              ];
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "addDifferentialEquation"
+          ),
+
+        updateDifferentialEquation: (equationId, updates) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.differentialEquations =
+                newSDCPN.differentialEquations.map((eq) =>
+                  eq.id === equationId ? { ...eq, ...updates } : eq
+                );
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "updateDifferentialEquation"
+          ),
+
+        removeDifferentialEquation: (equationId) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+
+              // Remove the differential equation
+              newSDCPN.differentialEquations =
+                newSDCPN.differentialEquations.filter(
+                  (eq) => eq.id !== equationId
+                );
+
+              // Set differentialEquationCode to null for places that were using this equation
+              newSDCPN.places = newSDCPN.places.map((place) => {
+                if (
+                  place.differentialEquationCode &&
+                  typeof place.differentialEquationCode === "object" &&
+                  "refId" in place.differentialEquationCode &&
+                  place.differentialEquationCode.refId === equationId
+                ) {
+                  return { ...place, differentialEquationCode: null };
+                }
+                return place;
+              });
+
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "removeDifferentialEquation"
+          ),
+
+        // Parameter operations
+        addParameter: (parameter) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.parameters = [...newSDCPN.parameters, parameter];
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "addParameter"
+          ),
+
+        updateParameter: (parameterId, updates) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+              newSDCPN.parameters = newSDCPN.parameters.map((param) =>
+                param.id === parameterId ? { ...param, ...updates } : param
+              );
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "updateParameter"
+          ),
+
+        removeParameter: (parameterId) =>
+          set(
+            (state) => {
+              const newSDCPN = { ...state.sdcpn };
+
+              // Remove the parameter
+              newSDCPN.parameters = newSDCPN.parameters.filter(
+                (param) => param.id !== parameterId
+              );
+
+              return { sdcpn: newSDCPN };
+            },
+            false,
+            "removeParameter"
           ),
 
         deleteItemsByIds: (ids) =>
