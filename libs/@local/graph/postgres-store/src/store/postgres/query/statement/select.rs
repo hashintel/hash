@@ -1,8 +1,8 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Alias, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
-    WhereExpression, WithExpression,
+    Alias, Expression, Function, JoinClause, SelectExpression, Table, Transpile, WhereExpression,
+    WithExpression,
     expression::{GroupByExpression, OrderByExpression},
 };
 
@@ -35,7 +35,7 @@ pub struct SelectStatement {
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
     pub from: FromItem,
-    pub joins: Vec<JoinExpression>,
+    pub joins: Vec<JoinClause>,
     pub where_expression: WhereExpression,
     pub order_by_expression: OrderByExpression,
     pub group_by_expression: GroupByExpression,

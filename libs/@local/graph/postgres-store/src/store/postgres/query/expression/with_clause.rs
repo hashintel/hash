@@ -57,7 +57,7 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
+        Alias, SelectExpression, SelectStatement, WhereExpression,
         expression::{GroupByExpression, OrderByExpression},
         statement::FromItem,
         test_helper::{max_version_expression, trim_whitespace},
@@ -74,8 +74,11 @@ mod tests {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
-                    SelectExpression::new(Expression::Asterisk, None),
-                    SelectExpression::new(max_version_expression(), Some("latest_version")),
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
+                        expression: max_version_expression(),
+                        alias: Some("latest_version"),
+                    },
                 ],
                 from: FromItem::Table {
                     table: Table::OntologyIds,
@@ -106,7 +109,7 @@ mod tests {
             SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
-                selects: vec![SelectExpression::new(Expression::Asterisk, None)],
+                selects: vec![SelectExpression::Asterisk(None)],
                 from: FromItem::Table {
                     table: Table::DataTypes,
                     alias: Some(Alias {

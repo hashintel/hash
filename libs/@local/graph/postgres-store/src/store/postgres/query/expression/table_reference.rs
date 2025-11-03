@@ -10,9 +10,17 @@ use crate::store::postgres::query::{Alias, Table, Transpile};
 ///
 /// Represents `schema` or `database.schema`. This ensures the correct structure for PostgreSQL
 /// qualified names, where database qualification requires a schema.
+///
+/// Transpiles to:
+/// - Unqualified: `"public"`
+/// - Database-qualified: `"mydb"."public"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct SchemaReference<'name> {
+    /// Optional database name that qualifies this schema.
+    ///
+    /// When `Some`, transpiles to `database.schema`. When `None`, only the schema name is emitted.
     pub database: Option<Identifier<'name>>,
+    /// The schema name.
     pub name: Identifier<'name>,
 }
 
@@ -64,6 +72,10 @@ impl Hash for TableNameImpl<'_> {
     }
 }
 
+/// A table name in a PostgreSQL query.
+///
+/// Can represent either a schema-defined [`Table`] or a dynamically-provided identifier.
+/// The two variants are treated as equal if they represent the same table name string.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TableName<'name>(TableNameImpl<'name>);
 
@@ -97,13 +109,26 @@ impl Transpile for TableName<'_> {
 /// A qualified table reference in PostgreSQL.
 ///
 /// PostgreSQL table references follow a strict hierarchy:
-/// - Unqualified: `table`
-/// - Schema-qualified: `schema.table`
-/// - Fully-qualified: `database.schema.table`
+/// - Unqualified: `"users"`
+/// - Schema-qualified: `"public"."users"`
+/// - Fully-qualified: `"mydb"."public"."users"`
+///
+/// When an alias is present, the table name is transformed to include query-specific
+/// identifiers for disambiguation (e.g., `"users_0_1_2"` for condition 0, chain depth 1, number 2).
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TableReference<'name> {
+    /// Optional schema reference that qualifies this table.
+    ///
+    /// When `Some`, the table is prefixed with the schema (and optionally database).
+    /// When `None`, only the table name is used.
     pub schema: Option<SchemaReference<'name>>,
+    /// The table name, either schema-defined or dynamically provided.
     pub name: TableName<'name>,
+    /// Optional alias for query disambiguation.
+    ///
+    /// When present, modifies the transpiled table name to include position-specific
+    /// identifiers (condition index, chain depth, and number) to uniquely identify
+    /// this table reference within complex queries with multiple joins or subqueries.
     pub alias: Option<Alias>,
 }
 

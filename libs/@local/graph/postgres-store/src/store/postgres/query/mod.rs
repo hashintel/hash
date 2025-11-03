@@ -33,7 +33,7 @@ pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     condition::{Condition, EqualityOperator},
     expression::{
-        Constant, Expression, Function, JoinExpression, OrderByExpression, SelectExpression,
+        Constant, Expression, Function, JoinClause, OrderByExpression, SelectExpression,
         WhereExpression, WithExpression,
     },
     statement::{
@@ -200,23 +200,27 @@ mod test_helper {
     pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::AliasedColumn {
-                    column: DataTypeQueryPath::Version.terminating_column().0,
-                    table_alias: Some(Alias {
+                Expression::ColumnReference(
+                    DataTypeQueryPath::Version
+                        .terminating_column()
+                        .0
+                        .aliased(Alias {
+                            condition_index: 0,
+                            chain_depth: 0,
+                            number: 0,
+                        }),
+                ),
+            )))),
+            WindowStatement::partition_by(Expression::ColumnReference(
+                DataTypeQueryPath::BaseUrl
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
                     }),
-                },
-            )))),
-            WindowStatement::partition_by(Expression::AliasedColumn {
-                column: DataTypeQueryPath::BaseUrl.terminating_column().0,
-                table_alias: Some(Alias {
-                    condition_index: 0,
-                    chain_depth: 0,
-                    number: 0,
-                }),
-            }),
+            )),
         )
     }
 }
