@@ -34,7 +34,10 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
         >
           {items.map((item) =>
             item.submenu ? (
-              <ArkMenu.Root key={item.id} positioning={{ placement: "right-start", gutter: 4 }}>
+              <ArkMenu.Root
+                key={item.id}
+                positioning={{ placement: "right-start", gutter: 4 }}
+              >
                 <ArkMenu.TriggerItem
                   className={css({
                     fontSize: "size.textsm",
@@ -118,7 +121,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
               >
                 {item.label}
               </ArkMenu.Item>
-            )
+            ),
           )}
         </ArkMenu.Content>
       </ArkMenu.Positioner>
