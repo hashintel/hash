@@ -5,6 +5,7 @@ export type Transition = {
   name: string;
   inputArcs: { placeId: string; weight: number }[];
   outputArcs: { placeId: string; weight: number }[];
+  lambdaType: "predicate" | "stochastic";
   lambdaCode: string;
   transitionKernelCode: string;
   // UI positioning
@@ -18,6 +19,7 @@ export type Place = {
   id: ID;
   name: string;
   dimensions: number;
+  dynamicsEnabled: boolean;
   differentialEquationCode: string;
   // UI positioning
   x: number;

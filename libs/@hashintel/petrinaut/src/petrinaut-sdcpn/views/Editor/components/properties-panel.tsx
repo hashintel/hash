@@ -1,6 +1,9 @@
 import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
+import Editor from "@monaco-editor/react";
 
+import { SegmentGroup } from "../../../components/segment-group";
+import { Switch } from "../../../components/switch";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
 
@@ -10,6 +13,8 @@ import { useSDCPNStore } from "../../../state/sdcpn-provider";
 export const PropertiesPanel: React.FC = () => {
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
+  const updatePlace = useSDCPNStore((state) => state.updatePlace);
+  const updateTransition = useSDCPNStore((state) => state.updateTransition);
 
   // Don't show panel if nothing is selected
   if (selectedItemIds.size === 0) {
@@ -69,6 +74,7 @@ export const PropertiesPanel: React.FC = () => {
 
   // Check if it's a place
   const placeData = sdcpn.places.find((place) => place.id === selectedId);
+
   if (placeData) {
     content = (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -105,23 +111,66 @@ export const PropertiesPanel: React.FC = () => {
         </div>
 
         <div>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Differential Equation Code
-          </div>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: "monospace",
-              backgroundColor: "rgba(0, 0, 0, 0.05)",
-              padding: 8,
-              borderRadius: 4,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 8,
             }}
           >
-            {placeData.differentialEquationCode || "(empty)"}
+            <div style={{ fontWeight: 500, fontSize: 12 }}>Dynamics</div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <Switch
+                checked={placeData.dynamicsEnabled}
+                onCheckedChange={(checked) => {
+                  updatePlace(placeData.id, {
+                    dynamicsEnabled: checked,
+                  });
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        {placeData.dynamicsEnabled && (
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+              Differential Equation Code
+            </div>
+            <div
+              style={{
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                borderRadius: 4,
+                overflow: "hidden",
+                height: 200,
+              }}
+            >
+              <Editor
+                height="200px"
+                defaultLanguage="python"
+                value={placeData.differentialEquationCode || ""}
+                onChange={(value) => {
+                  updatePlace(placeData.id, {
+                    differentialEquationCode: value ?? "",
+                  });
+                }}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: "on",
+                  folding: false,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 0,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -193,21 +242,74 @@ export const PropertiesPanel: React.FC = () => {
         </div>
 
         <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
+            Lambda
+          </div>
+          <SegmentGroup
+            value={transitionData.lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              updateTransition(transitionData.id, {
+                lambdaType: value as "predicate" | "stochastic",
+              });
+            }}
+          />
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#666",
+              backgroundColor: "rgba(0, 0, 0, 0.03)",
+              padding: 8,
+              borderRadius: 4,
+              lineHeight: 1.5,
+            }}
+          >
+            {transitionData.lambdaType === "predicate"
+              ? "Predicate lambda acts as a boolean guard condition that must be satisfied. The transition can only fire when the predicate evaluates to true, enabling discrete control flow."
+              : "Stochastic Rate lambda returns a rate value that determines the probability of the transition firing in continuous time."}
+          </div>
+        </div>
+
+        <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Lambda Code
           </div>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: "monospace",
-              backgroundColor: "rgba(0, 0, 0, 0.05)",
-              padding: 8,
+              border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              overflow: "hidden",
+              height: 200,
             }}
           >
-            {transitionData.lambdaCode || "(empty)"}
+            <Editor
+              height="200px"
+              defaultLanguage="python"
+              value={transitionData.lambdaCode || ""}
+              onChange={(value) => {
+                updateTransition(transitionData.id, {
+                  lambdaCode: value ?? "",
+                });
+              }}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "on",
+                folding: false,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+              }}
+            />
           </div>
         </div>
 
@@ -217,16 +319,34 @@ export const PropertiesPanel: React.FC = () => {
           </div>
           <div
             style={{
-              fontSize: 12,
-              fontFamily: "monospace",
-              backgroundColor: "rgba(0, 0, 0, 0.05)",
-              padding: 8,
+              border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
+              overflow: "hidden",
+              height: 200,
             }}
           >
-            {transitionData.transitionKernelCode || "(empty)"}
+            <Editor
+              height="200px"
+              defaultLanguage="python"
+              value={transitionData.transitionKernelCode || ""}
+              onChange={(value) => {
+                updateTransition(transitionData.id, {
+                  transitionKernelCode: value ?? "",
+                });
+              }}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "on",
+                folding: false,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+              }}
+            />
           </div>
         </div>
       </div>
