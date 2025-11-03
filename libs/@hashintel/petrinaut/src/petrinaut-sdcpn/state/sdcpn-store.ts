@@ -34,12 +34,12 @@ export type SDCPNState = {
 
   updateTransition: (
     transitionId: string,
-    updates: Partial<Transition>
+    updates: Partial<Transition>,
   ) => void;
   updateTransitionPosition: (
     transitionId: string,
     x: number,
-    y: number
+    y: number,
   ) => void;
   addTransition: (transition: Transition) => void;
   removeTransition: (transitionId: string) => void;
@@ -48,18 +48,18 @@ export type SDCPNState = {
     transitionId: string,
     arcType: "input" | "output",
     placeId: string,
-    weight: number
+    weight: number,
   ) => void;
   removeArc: (
     transitionId: string,
     arcType: "input" | "output",
-    placeId: string
+    placeId: string,
   ) => void;
   updateArcWeight: (
     transitionId: string,
     arcType: "input" | "output",
     placeId: string,
-    weight: number
+    weight: number,
   ) => void;
 
   updateTitle: (title: string) => void;
@@ -73,7 +73,7 @@ export type SDCPNState = {
   addDifferentialEquation: (equation: DifferentialEquation) => void;
   updateDifferentialEquation: (
     equationId: string,
-    updates: Partial<DifferentialEquation>
+    updates: Partial<DifferentialEquation>,
   ) => void;
   removeDifferentialEquation: (equationId: string) => void;
 
@@ -106,13 +106,13 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.places = newSDCPN.places.map((place) =>
-                place.id === placeId ? { ...place, ...updates } : place
+                place.id === placeId ? { ...place, ...updates } : place,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "updatePlace"
+            "updatePlace",
           ),
 
         updatePlacePosition: (placeId, x, y) =>
@@ -120,13 +120,13 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.places = newSDCPN.places.map((place) =>
-                place.id === placeId ? { ...place, x, y } : place
+                place.id === placeId ? { ...place, x, y } : place,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "updatePlacePosition"
+            "updatePlacePosition",
           ),
 
         addPlace: (place) =>
@@ -138,7 +138,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addPlace"
+            "addPlace",
           ),
 
         removePlace: (placeId) =>
@@ -146,24 +146,24 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.places = newSDCPN.places.filter(
-                (place) => place.id !== placeId
+                (place) => place.id !== placeId,
               );
 
               // Remove arcs connected to this place
               newSDCPN.transitions = newSDCPN.transitions.map((transition) => ({
                 ...transition,
                 inputArcs: transition.inputArcs.filter(
-                  (arc) => arc.placeId !== placeId
+                  (arc) => arc.placeId !== placeId,
                 ),
                 outputArcs: transition.outputArcs.filter(
-                  (arc) => arc.placeId !== placeId
+                  (arc) => arc.placeId !== placeId,
                 ),
               }));
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "removePlace"
+            "removePlace",
           ),
 
         // Transition operations
@@ -174,13 +174,13 @@ export function createSDCPNStore() {
               newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
                 transition.id === transitionId
                   ? { ...transition, ...updates }
-                  : transition
+                  : transition,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateTransition"
+            "updateTransition",
           ),
 
         updateTransitionPosition: (transitionId, x, y) =>
@@ -190,13 +190,13 @@ export function createSDCPNStore() {
               newSDCPN.transitions = newSDCPN.transitions.map((transition) =>
                 transition.id === transitionId
                   ? { ...transition, x, y }
-                  : transition
+                  : transition,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateTransitionPosition"
+            "updateTransitionPosition",
           ),
 
         addTransition: (transition) =>
@@ -208,7 +208,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addTransition"
+            "addTransition",
           ),
 
         removeTransition: (transitionId) =>
@@ -216,13 +216,13 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.transitions = newSDCPN.transitions.filter(
-                (transition) => transition.id !== transitionId
+                (transition) => transition.id !== transitionId,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "removeTransition"
+            "removeTransition",
           ),
 
         // Arc operations
@@ -251,7 +251,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addArc"
+            "addArc",
           ),
 
         removeArc: (transitionId, arcType, placeId) =>
@@ -267,14 +267,14 @@ export function createSDCPNStore() {
                   return {
                     ...transition,
                     inputArcs: transition.inputArcs.filter(
-                      (arc) => arc.placeId !== placeId
+                      (arc) => arc.placeId !== placeId,
                     ),
                   };
                 }
                 return {
                   ...transition,
                   outputArcs: transition.outputArcs.filter(
-                    (arc) => arc.placeId !== placeId
+                    (arc) => arc.placeId !== placeId,
                   ),
                 };
               });
@@ -282,7 +282,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "removeArc"
+            "removeArc",
           ),
 
         updateArcWeight: (transitionId, arcType, placeId, weight) =>
@@ -298,14 +298,14 @@ export function createSDCPNStore() {
                   return {
                     ...transition,
                     inputArcs: transition.inputArcs.map((arc) =>
-                      arc.placeId === placeId ? { ...arc, weight } : arc
+                      arc.placeId === placeId ? { ...arc, weight } : arc,
                     ),
                   };
                 }
                 return {
                   ...transition,
                   outputArcs: transition.outputArcs.map((arc) =>
-                    arc.placeId === placeId ? { ...arc, weight } : arc
+                    arc.placeId === placeId ? { ...arc, weight } : arc,
                   ),
                 };
               });
@@ -313,7 +313,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateArcWeight"
+            "updateArcWeight",
           ),
 
         updateTitle: (title) =>
@@ -322,7 +322,7 @@ export function createSDCPNStore() {
               return { sdcpn: { ...state.sdcpn, title } };
             },
             false,
-            "updateTitle"
+            "updateTitle",
           ),
 
         // Type operations
@@ -334,7 +334,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addType"
+            "addType",
           ),
 
         updateType: (typeId, updates) =>
@@ -342,33 +342,33 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.types = newSDCPN.types.map((type) =>
-                type.id === typeId ? { ...type, ...updates } : type
+                type.id === typeId ? { ...type, ...updates } : type,
               );
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateType"
+            "updateType",
           ),
 
         removeType: (typeId) =>
           set(
             (state) => {
               const newSDCPN = { ...state.sdcpn };
-              
+
               // Remove the type
               newSDCPN.types = newSDCPN.types.filter(
-                (type) => type.id !== typeId
+                (type) => type.id !== typeId,
               );
 
               // Set type to null for all places that were using this type
               newSDCPN.places = newSDCPN.places.map((place) =>
-                place.type === typeId ? { ...place, type: null } : place
+                place.type === typeId ? { ...place, type: null } : place,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "removeType"
+            "removeType",
           ),
 
         // Differential Equation operations
@@ -383,7 +383,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addDifferentialEquation"
+            "addDifferentialEquation",
           ),
 
         updateDifferentialEquation: (equationId, updates) =>
@@ -392,12 +392,12 @@ export function createSDCPNStore() {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.differentialEquations =
                 newSDCPN.differentialEquations.map((eq) =>
-                  eq.id === equationId ? { ...eq, ...updates } : eq
+                  eq.id === equationId ? { ...eq, ...updates } : eq,
                 );
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateDifferentialEquation"
+            "updateDifferentialEquation",
           ),
 
         removeDifferentialEquation: (equationId) =>
@@ -408,7 +408,7 @@ export function createSDCPNStore() {
               // Remove the differential equation
               newSDCPN.differentialEquations =
                 newSDCPN.differentialEquations.filter(
-                  (eq) => eq.id !== equationId
+                  (eq) => eq.id !== equationId,
                 );
 
               // Set differentialEquationCode to null for places that were using this equation
@@ -427,7 +427,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "removeDifferentialEquation"
+            "removeDifferentialEquation",
           ),
 
         // Parameter operations
@@ -439,7 +439,7 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "addParameter"
+            "addParameter",
           ),
 
         updateParameter: (parameterId, updates) =>
@@ -447,12 +447,12 @@ export function createSDCPNStore() {
             (state) => {
               const newSDCPN = { ...state.sdcpn };
               newSDCPN.parameters = newSDCPN.parameters.map((param) =>
-                param.id === parameterId ? { ...param, ...updates } : param
+                param.id === parameterId ? { ...param, ...updates } : param,
               );
               return { sdcpn: newSDCPN };
             },
             false,
-            "updateParameter"
+            "updateParameter",
           ),
 
         removeParameter: (parameterId) =>
@@ -462,13 +462,13 @@ export function createSDCPNStore() {
 
               // Remove the parameter
               newSDCPN.parameters = newSDCPN.parameters.filter(
-                (param) => param.id !== parameterId
+                (param) => param.id !== parameterId,
               );
 
               return { sdcpn: newSDCPN };
             },
             false,
-            "removeParameter"
+            "removeParameter",
           ),
 
         deleteItemsByIds: (ids) =>
@@ -539,15 +539,17 @@ export function createSDCPNStore() {
                 );
 
                 // Remove arcs connected to deleted places
-                newSDCPN.transitions = newSDCPN.transitions.map((transition) => ({
-                  ...transition,
-                  inputArcs: transition.inputArcs.filter(
-                    (arc) => !placeIdsToDelete.has(arc.placeId),
-                  ),
-                  outputArcs: transition.outputArcs.filter(
-                    (arc) => !placeIdsToDelete.has(arc.placeId),
-                  ),
-                }));
+                newSDCPN.transitions = newSDCPN.transitions.map(
+                  (transition) => ({
+                    ...transition,
+                    inputArcs: transition.inputArcs.filter(
+                      (arc) => !placeIdsToDelete.has(arc.placeId),
+                    ),
+                    outputArcs: transition.outputArcs.filter(
+                      (arc) => !placeIdsToDelete.has(arc.placeId),
+                    ),
+                  }),
+                );
               }
 
               // Remove transitions
@@ -591,7 +593,7 @@ export function createSDCPNStore() {
               // Update transition positions
               newSDCPN.transitions = newSDCPN.transitions.map((transition) => {
                 const position = positions.find(
-                  (pos) => pos.id === transition.id
+                  (pos) => pos.id === transition.id,
                 );
                 if (position) {
                   return { ...transition, x: position.x, y: position.y };
@@ -602,12 +604,11 @@ export function createSDCPNStore() {
               return { sdcpn: newSDCPN };
             },
             false,
-            "layoutGraph"
+            "layoutGraph",
           );
         },
       }),
-      { name: "SDCPN Store" }
-
-    )
+      { name: "SDCPN Store" },
+    ),
   );
 }
