@@ -86,9 +86,9 @@ resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory_low" {
   metric_name         = "FreeableMemory"
   namespace           = "AWS/RDS"
   statistic           = "Minimum"
-  period              = 300                    # 5 minutes
-  evaluation_periods  = 2                      # Must be low for 10 minutes total
-  threshold           = 1 * 1024 * 1024 * 1024 # 1GB in bytes
+  period              = 300               # 5 minutes
+  evaluation_periods  = 2                 # Must be low for 10 minutes total
+  threshold           = 256 * 1024 * 1024 # 256MB in bytes
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"
 
