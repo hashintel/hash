@@ -47,3 +47,32 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage_space" {
     Purpose  = "Alert when RDS free storage space is critically low"
   }
 }
+
+# CloudWatch Alarm for RDS CPU utilization
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_utilization_high" {
+  alarm_name        = "${var.prefix}-rds-cpu-utilization-high"
+  alarm_description = "WARNING: RDS instance ${aws_db_instance.postgres.identifier} has high CPU utilization."
+
+  # RDS CPU metrics
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  period              = 300 # 5 minutes
+  evaluation_periods  = 2   # Must be high for 10 minutes total
+  threshold           = 80  # 80%
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-cpu-utilization-high-alarm"
+    Severity = "WARNING"
+    Purpose  = "Alert when RDS CPU utilization is consistently high"
+  }
+}
