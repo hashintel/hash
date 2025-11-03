@@ -63,7 +63,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_utilization_high" {
   datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
   threshold           = 80  # 80%
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -123,7 +123,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_disk_queue_depth_high" {
   datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for I/O spikes)
   threshold           = 10  # operations
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -153,7 +153,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_read_iops_high" {
   datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
   threshold           = 500 # IOPS
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -183,7 +183,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_write_iops_high" {
   datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
   threshold           = 500 # IOPS
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
@@ -213,7 +213,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_database_connections_high" {
   datapoints_to_alarm = 2   # 2 of 3 datapoints must be high (moderate grace)
   threshold           = 180 # connections (~80% of max 225)
   comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
+  treat_missing_data  = "breaching"
 
   dimensions = {
     DBInstanceIdentifier = aws_db_instance.postgres.identifier
