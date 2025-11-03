@@ -29,7 +29,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
             minWidth: "[180px]",
             zIndex: "[1001]",
           })}
-          style={{ padding: 2 }}
+          style={{ padding: 4 }}
         >
           {items.map((item) => (
             <ArkMenu.Item
@@ -51,7 +51,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
                   cursor: "not-allowed",
                 },
               })}
-              style={{ padding: "2px 4px" }}
+              style={{ padding: "4px 7px" }}
             >
               {item.label}
             </ArkMenu.Item>
