@@ -277,12 +277,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
             overflow: "hidden",
-            height: 200,
+            height: 310,
           }}
         >
           <MonacoEditor
-            height="200px"
-            defaultLanguage="python"
+            language="typescript"
             value={transition.lambdaCode || ""}
             onChange={(value) => {
               onUpdate(transition.id, {
@@ -315,12 +314,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
             overflow: "hidden",
-            height: 200,
+            height: 310,
           }}
         >
           <MonacoEditor
-            height="200px"
-            defaultLanguage="python"
+            language="typescript"
             value={transition.transitionKernelCode || ""}
             onChange={(value) => {
               onUpdate(transition.id, {
