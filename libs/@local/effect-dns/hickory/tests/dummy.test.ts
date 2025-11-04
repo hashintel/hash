@@ -1,5 +1,4 @@
 import { describe, test, expect } from "vitest";
-
 import { sum } from "@local/effect-dns-hickory";
 
 describe("example", () => {
