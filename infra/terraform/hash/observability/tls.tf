@@ -36,8 +36,8 @@ resource "cloudflare_dns_record" "otlp_cert_validation" {
   }
 
   zone_id = data.cloudflare_zones.hash_ai.result[0].id
-  name    = each.value.name
-  content = each.value.record
+  name    = trimsuffix(each.value.name, ".")
+  content = trimsuffix(each.value.record, ".")
   type    = each.value.type
   ttl     = 1
 
@@ -87,8 +87,8 @@ resource "cloudflare_dns_record" "profile_cert_validation" {
   }
 
   zone_id = data.cloudflare_zones.hash_ai.result[0].id
-  name    = each.value.name
-  content = each.value.record
+  name    = trimsuffix(each.value.name, ".")
+  content = trimsuffix(each.value.record, ".")
   type    = each.value.type
   ttl     = 1
 
