@@ -1,5 +1,10 @@
 import type { Edge, Node } from "reactflow";
 
+//
+// These types are React-Flow specific, and should not appear in the global state.
+// Instead we should only use them in SDCPNView and related components/mappers.
+//
+
 export type ArcData = {
   tokenWeights: {
     [tokenTypeId: string]: number | undefined;
