@@ -9,6 +9,7 @@ interface SortableArcItemProps {
   id: string;
   placeName: string;
   weight: number;
+  disabled?: boolean;
   onWeightChange: (weight: number) => void;
 }
 
@@ -16,6 +17,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
   id,
   placeName,
   weight,
+  disabled = false,
   onWeightChange,
 }) => {
   const {
@@ -25,7 +27,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id });
+  } = useSortable({ id, disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -49,11 +51,12 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
         {...attributes}
         {...listeners}
         style={{
-          cursor: "grab",
+          cursor: disabled ? "default" : "grab",
           display: "flex",
           alignItems: "center",
-          color: "#999",
+          color: disabled ? "#ccc" : "#999",
           flexShrink: 0,
+          pointerEvents: disabled ? "none" : "auto",
         }}
       >
         <MdDragIndicator size={16} />
@@ -74,6 +77,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
         min="1"
         step="1"
         value={weight}
+        disabled={disabled}
         onChange={(event) => {
           const newWeight = Number.parseInt(event.target.value, 10);
           if (!Number.isNaN(newWeight) && newWeight >= 1) {
@@ -88,6 +92,8 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
           borderRadius: 4,
           boxSizing: "border-box",
           flexShrink: 0,
+          backgroundColor: disabled ? "rgba(0, 0, 0, 0.05)" : "white",
+          cursor: disabled ? "not-allowed" : "text",
         }}
       />
     </div>

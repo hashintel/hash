@@ -149,6 +149,7 @@ export const PropertiesPanel: React.FC = () => {
       <TransitionProperties
         transition={transitionData}
         places={sdcpn.places}
+        globalMode={globalMode}
         onUpdate={updateTransition}
         onArcWeightUpdate={updateArcWeight}
       />

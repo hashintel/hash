@@ -22,6 +22,7 @@ import { SortableArcItem } from "./sortable-arc-item";
 interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
+  globalMode: "edit" | "simulate";
   onUpdate: (id: string, updates: Partial<Transition>) => void;
   onArcWeightUpdate: (
     transitionId: string,
@@ -34,6 +35,7 @@ interface TransitionPropertiesProps {
 export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   transition,
   places,
+  globalMode,
   onUpdate,
   onArcWeightUpdate,
 }) => {
@@ -109,6 +111,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               name: event.target.value,
             });
           }}
+          disabled={globalMode === "simulate"}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -116,18 +119,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "text",
           }}
         />
       </div>
 
-      <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Position
+      {/* Position - only in Edit mode */}
+      {globalMode === "edit" && (
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Position
+          </div>
+          <div style={{ fontSize: 14 }}>
+            x: {transition.x.toFixed(0)}, y: {transition.y.toFixed(0)}
+          </div>
         </div>
-        <div style={{ fontSize: 14 }}>
-          x: {transition.x.toFixed(0)}, y: {transition.y.toFixed(0)}
-        </div>
-      </div>
+      )}
 
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
@@ -137,7 +146,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
         ) : (
           <DndContext
-            sensors={sensors}
+            sensors={globalMode === "simulate" ? [] : sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleInputArcDragEnd}
           >
@@ -155,6 +164,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                     id={arc.placeId}
                     placeName={place?.name ?? arc.placeId}
                     weight={arc.weight}
+                    disabled={globalMode === "simulate"}
                     onWeightChange={(weight) => {
                       onArcWeightUpdate(
                         transition.id,
@@ -179,7 +189,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
         ) : (
           <DndContext
-            sensors={sensors}
+            sensors={globalMode === "simulate" ? [] : sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleOutputArcDragEnd}
           >
@@ -197,6 +207,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                     id={arc.placeId}
                     placeName={place?.name ?? arc.placeId}
                     weight={arc.weight}
+                    disabled={globalMode === "simulate"}
                     onWeightChange={(weight) => {
                       onArcWeightUpdate(
                         transition.id,
@@ -217,18 +228,27 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
           Lambda
         </div>
-        <SegmentGroup
-          value={transition.lambdaType}
-          options={[
-            { value: "predicate", label: "Predicate" },
-            { value: "stochastic", label: "Stochastic Rate" },
-          ]}
-          onChange={(value) => {
-            onUpdate(transition.id, {
-              lambdaType: value as "predicate" | "stochastic",
-            });
+        <div
+          style={{
+            opacity: globalMode === "simulate" ? 0.6 : 1,
+            pointerEvents: globalMode === "simulate" ? "none" : "auto",
           }}
-        />
+        >
+          <SegmentGroup
+            value={transition.lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              if (globalMode !== "simulate") {
+                onUpdate(transition.id, {
+                  lambdaType: value as "predicate" | "stochastic",
+                });
+              }
+            }}
+          />
+        </div>
       </div>
 
       <div>
@@ -280,6 +300,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               lineDecorationsWidth: 0,
               lineNumbersMinChars: 3,
               padding: { top: 8, bottom: 8 },
+              readOnly: globalMode === "simulate",
             }}
           />
         </div>
@@ -317,6 +338,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               lineDecorationsWidth: 0,
               lineNumbersMinChars: 3,
               padding: { top: 8, bottom: 8 },
+              readOnly: globalMode === "simulate",
             }}
           />
         </div>
