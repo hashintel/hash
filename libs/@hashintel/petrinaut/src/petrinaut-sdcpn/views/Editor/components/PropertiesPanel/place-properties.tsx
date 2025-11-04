@@ -63,8 +63,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           value={place.type ?? ""}
           onChange={(event) => {
             const value = event.target.value;
+            const newType = value === "" ? null : value;
             onUpdate(place.id, {
-              type: value === "" ? null : value,
+              type: newType,
+              // Disable dynamics if type is being set to null
+              ...(newType === null && place.dynamicsEnabled
+                ? { dynamicsEnabled: false }
+                : {}),
             });
           }}
           disabled={globalMode === "simulate"}
@@ -156,7 +161,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={place.dynamicsEnabled}
-              disabled={globalMode === "simulate"}
+              disabled={globalMode === "simulate" || place.type === null}
               onCheckedChange={(checked) => {
                 onUpdate(place.id, {
                   dynamicsEnabled: checked,
@@ -165,9 +170,21 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             />
           </div>
         </div>
+        {place.type === null && (
+          <div
+            style={{
+              fontSize: 11,
+              color: "#999",
+              fontStyle: "italic",
+              marginTop: 4,
+            }}
+          >
+            Select a type to enable dynamics
+          </div>
+        )}
       </div>
 
-      {place.dynamicsEnabled && (
+      {place.type && place.dynamicsEnabled && (
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Differential Equation Code
