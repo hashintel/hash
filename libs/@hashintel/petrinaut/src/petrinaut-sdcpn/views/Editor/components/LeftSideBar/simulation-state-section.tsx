@@ -9,6 +9,7 @@ export const SimulationStateSection: React.FC = () => {
   const simulationError = useSimulationStore((state) => state.error);
   const initialize = useSimulationStore((state) => state.initialize);
   const step = useSimulationStore((state) => state.step);
+  const reset = useSimulationStore((state) => state.reset);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
 
   return (
@@ -149,6 +150,34 @@ export const SimulationStateSection: React.FC = () => {
           </button>
         )}
       </div>
+      {simulationState !== "NotRun" && (
+        <button
+          type="button"
+          onClick={() => {
+            reset();
+          }}
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "[transparent]",
+            border: "1px solid",
+            borderColor: "core.gray.30",
+            borderRadius: "radius.4",
+            cursor: "pointer",
+            color: "core.gray.70",
+            fontSize: "[12px]",
+            fontWeight: "[500]",
+            padding: "[4px 8px]",
+            _hover: {
+              backgroundColor: "core.gray.10",
+              borderColor: "core.gray.40",
+            },
+          })}
+        >
+          Reset
+        </button>
+      )}
     </div>
   );
 };
