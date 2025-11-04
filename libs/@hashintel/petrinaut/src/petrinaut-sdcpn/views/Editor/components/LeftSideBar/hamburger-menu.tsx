@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Menu, type MenuItem } from "../../../components/menu";
+import { Menu, type MenuItem } from "../../../../components/menu";
 
 export interface HamburgerMenuProps {
   menuItems: MenuItem[];
