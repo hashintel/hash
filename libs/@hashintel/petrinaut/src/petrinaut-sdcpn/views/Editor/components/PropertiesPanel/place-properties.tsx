@@ -40,6 +40,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               name: event.target.value,
             });
           }}
+          disabled={globalMode === "simulate"}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -47,6 +48,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "text",
           }}
         />
       </div>
@@ -63,6 +67,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               type: value === "" ? null : value,
             });
           }}
+          disabled={globalMode === "simulate"}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -70,7 +75,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor: "white",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
           }}
         >
           <option value="">None</option>
@@ -124,14 +131,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           return <InitialStateEditor key={place.id} placeType={placeType} />;
         })()}
 
-      <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Position
+      {/* Position - only in Edit mode */}
+      {globalMode === "edit" && (
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Position
+          </div>
+          <div style={{ fontSize: 14 }}>
+            x: {place.x.toFixed(0)}, y: {place.y.toFixed(0)}
+          </div>
         </div>
-        <div style={{ fontSize: 14 }}>
-          x: {place.x.toFixed(0)}, y: {place.y.toFixed(0)}
-        </div>
-      </div>
+      )}
 
       <div>
         <div
@@ -146,6 +156,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={place.dynamicsEnabled}
+              disabled={globalMode === "simulate"}
               onCheckedChange={(checked) => {
                 onUpdate(place.id, {
                   dynamicsEnabled: checked,
@@ -193,6 +204,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 lineDecorationsWidth: 0,
                 lineNumbersMinChars: 3,
                 padding: { top: 8, bottom: 8 },
+                readOnly: globalMode === "simulate",
               }}
             />
           </div>
