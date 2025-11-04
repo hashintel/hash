@@ -87,9 +87,14 @@ export const SimulationContextProvider = ({
     for (const node of petriNetDefinition.nodes) {
       if (node.data.type === "place") {
         stepZeroState[node.id] = {
-          marking: node.data.initialTokenCounts ?? {},
+          marking: {},
           placeLabel: node.data.label,
         };
+
+        for (const tokenType of petriNetDefinition.tokenTypes) {
+          stepZeroState[node.id]!.marking[tokenType.id] =
+            node.data.initialTokenCounts?.[tokenType.id] ?? 0;
+        }
       }
     }
 
@@ -97,7 +102,11 @@ export const SimulationContextProvider = ({
 
     setSimulationState(initialSimulationState);
     reportSimulationState?.(initialSimulationState);
-  }, [petriNetDefinition.nodes, reportSimulationState]);
+  }, [
+    petriNetDefinition.nodes,
+    petriNetDefinition.tokenTypes,
+    reportSimulationState,
+  ]);
 
   const resetSimulation = useCallback(() => {
     setIsSimulating(false);
