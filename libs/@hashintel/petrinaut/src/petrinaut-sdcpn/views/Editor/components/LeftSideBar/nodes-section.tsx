@@ -1,6 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { FaChevronDown, FaChevronRight, FaCircle, FaSquare } from "react-icons/fa6";
+import {
+  FaChevronDown,
+  FaChevronRight,
+  FaCircle,
+  FaSquare,
+} from "react-icons/fa6";
 
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
@@ -10,7 +15,9 @@ export const NodesSection: React.FC = () => {
   const places = useSDCPNStore((state) => state.sdcpn.places);
   const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore((state) => state.setSelectedItemIds);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
   const addSelectedItemId = useEditorStore((state) => state.addSelectedItemId);
   const removeSelectedItemId = useEditorStore(
     (state) => state.removeSelectedItemId,
@@ -71,7 +78,11 @@ export const NodesSection: React.FC = () => {
         })}
         style={{ gap: 6 }}
       >
-        {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+        {isExpanded ? (
+          <FaChevronDown size={10} />
+        ) : (
+          <FaChevronRight size={10} />
+        )}
         Nodes
       </button>
 
