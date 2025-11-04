@@ -1,12 +1,17 @@
 import MonacoEditor from "@monaco-editor/react";
 
-import type { Place, SDCPNType } from "../../../../../core/types/sdcpn";
+import type {
+  DifferentialEquation,
+  Place,
+  SDCPNType,
+} from "../../../../../core/types/sdcpn";
 import { Switch } from "../../../../components/switch";
 import { InitialStateEditor } from "./initial-state-editor";
 
 interface PlacePropertiesProps {
   place: Place;
   types: SDCPNType[];
+  differentialEquations: DifferentialEquation[];
   globalMode: "edit" | "simulate";
   onUpdate: (id: string, updates: Partial<Place>) => void;
 }
@@ -14,9 +19,24 @@ interface PlacePropertiesProps {
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   place,
   types,
+  differentialEquations,
   globalMode,
   onUpdate,
 }) => {
+  // Determine current differential equation selection
+  const isCustom =
+    typeof place.differentialEquationCode === "string" ||
+    place.differentialEquationCode === null;
+  const selectedDiffEqId =
+    place.differentialEquationCode &&
+    typeof place.differentialEquationCode === "object"
+      ? place.differentialEquationCode.refId
+      : "";
+
+  // Filter differential equations by place type
+  const availableDiffEqs = place.type
+    ? differentialEquations.filter((eq) => eq.typeId === place.type)
+    : [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -160,7 +180,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           <div style={{ fontWeight: 500, fontSize: 12 }}>Dynamics</div>
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
-              checked={place.dynamicsEnabled}
+              checked={!!place.type && place.dynamicsEnabled}
               disabled={globalMode === "simulate" || place.type === null}
               onCheckedChange={(checked) => {
                 onUpdate(place.id, {
@@ -187,43 +207,101 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       {place.type && place.dynamicsEnabled && (
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Differential Equation Code
+            Differential Equation
           </div>
-          <div
+          <select
+            value={isCustom ? "custom" : selectedDiffEqId}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value === "custom") {
+                // Switch to custom inline code
+                onUpdate(place.id, {
+                  differentialEquationCode:
+                    typeof place.differentialEquationCode === "string"
+                      ? place.differentialEquationCode
+                      : "",
+                });
+              } else {
+                // Switch to referenced differential equation
+                onUpdate(place.id, {
+                  differentialEquationCode: { refId: value },
+                });
+              }
+            }}
+            disabled={globalMode === "simulate"}
             style={{
+              fontSize: 14,
+              padding: "6px 8px",
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
-              overflow: "hidden",
-              height: 310,
+              width: "100%",
+              boxSizing: "border-box",
+              backgroundColor:
+                globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+              cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+              marginBottom: 8,
             }}
           >
-            <MonacoEditor
-              language="typescript"
-              value={
-                typeof place.differentialEquationCode === "string"
-                  ? place.differentialEquationCode
-                  : ""
-              }
-              onChange={(value) => {
-                onUpdate(place.id, {
-                  differentialEquationCode: value ?? "",
-                });
+            <option value="custom">Custom (inline)</option>
+            {availableDiffEqs.map((eq) => (
+              <option key={eq.id} value={eq.id}>
+                {eq.name}
+              </option>
+            ))}
+          </select>
+
+          {isCustom && (
+            <div
+              style={{
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                borderRadius: 4,
+                overflow: "hidden",
+                height: 310,
               }}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
+            >
+              <MonacoEditor
+                language="typescript"
+                value={
+                  typeof place.differentialEquationCode === "string"
+                    ? place.differentialEquationCode
+                    : ""
+                }
+                onChange={(value) => {
+                  onUpdate(place.id, {
+                    differentialEquationCode: value ?? "",
+                  });
+                }}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: "off",
+                  folding: true,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 0,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                  readOnly: globalMode === "simulate",
+                }}
+              />
+            </div>
+          )}
+
+          {!isCustom && selectedDiffEqId && (
+            <div
+              style={{
+                padding: 8,
+                backgroundColor: "rgba(0, 0, 0, 0.03)",
+                borderRadius: 4,
                 fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                readOnly: globalMode === "simulate",
+                color: "#666",
               }}
-            />
-          </div>
+            >
+              Using global differential equation:{" "}
+              {availableDiffEqs.find((eq) => eq.id === selectedDiffEqId)?.name}
+            </div>
+          )}
         </div>
       )}
     </div>

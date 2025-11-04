@@ -134,6 +134,7 @@ export const PropertiesPanel: React.FC = () => {
       <PlaceProperties
         place={placeData}
         types={sdcpn.types}
+        differentialEquations={sdcpn.differentialEquations}
         globalMode={globalMode}
         onUpdate={updatePlace}
       />
