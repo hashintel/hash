@@ -1,7 +1,9 @@
-
 import type { SDCPN } from "../../../../core/types/sdcpn";
 import { useEditorStore } from "../../../state/editor-provider";
-import type { NodeType, PetriNetDefinitionObject } from "../../../state/types-for-editor-to-remove";
+import type {
+  NodeType,
+  PetriNetDefinitionObject,
+} from "../../../state/types-for-editor-to-remove";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
@@ -26,6 +28,12 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   for (const place of sdcpn.places) {
     const draggingState = draggingStateByNodeId[place.id];
 
+    // Check if place has a type with at least one dimension (element)
+    const placeType = place.type
+      ? sdcpn.types.find((type) => type.id === place.type)
+      : null;
+    const hasColorType = !!(placeType && placeType.elements.length > 0);
+
     nodes.push({
       id: place.id,
       type: "place",
@@ -39,6 +47,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       data: {
         label: place.name,
         type: "place",
+        dynamicsEnabled: place.dynamicsEnabled,
+        hasColorType,
       },
     });
   }
@@ -60,6 +70,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       data: {
         label: transition.name,
         type: "transition",
+        lambdaType: transition.lambdaType,
       },
     });
   }
