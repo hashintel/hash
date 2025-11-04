@@ -1,0 +1,182 @@
+import { css } from "@hashintel/ds-helpers/css";
+import { useState } from "react";
+import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
+
+import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+
+export const TypesSection: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const types = useSDCPNStore((state) => state.sdcpn.types);
+  const addType = useSDCPNStore((state) => state.addType);
+  const removeType = useSDCPNStore((state) => state.removeType);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        paddingBottom: 16,
+        borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            fontWeight: 600,
+            fontSize: "[13px]",
+            color: "[#333]",
+            cursor: "pointer",
+            background: "[transparent]",
+            border: "none",
+            padding: "spacing.1",
+            borderRadius: "radius.4",
+            _hover: {
+              backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+            },
+          })}
+          style={{ gap: 6 }}
+        >
+          {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+          Types
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const newType = {
+              id: `type__${Date.now()}`,
+              name: "New Type",
+              iconId: "circle",
+              colorCode: "#3b82f6",
+              elements: [],
+            };
+            addType(newType);
+          }}
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "spacing.1",
+            borderRadius: "radius.2",
+            cursor: "pointer",
+            fontSize: "[18px]",
+            color: "core.gray.60",
+            _hover: {
+              backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+              color: "core.gray.90",
+            },
+          })}
+          style={{ width: 24, height: 24 }}
+          aria-label="Add type"
+        >
+          +
+        </button>
+      </div>
+
+      {isExpanded && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            maxHeight: 200,
+            overflowY: "auto",
+          }}
+        >
+          {types.map((type) => (
+            <div
+              key={type.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "4px 9px",
+                borderRadius: 4,
+                backgroundColor: "transparent",
+              }}
+              className={css({
+                _hover: {
+                  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+                },
+              })}
+            >
+              <div
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: "50%",
+                  backgroundColor: type.colorCode,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  color: "#374151",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {type.name}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Delete type "${type.name}"? All places using this type will have their type set to null.`,
+                    )
+                  ) {
+                    removeType(type.id);
+                  }
+                }}
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "spacing.1",
+                  borderRadius: "radius.2",
+                  cursor: "pointer",
+                  fontSize: "[14px]",
+                  color: "core.gray.40",
+                  _hover: {
+                    backgroundColor: "[rgba(239, 68, 68, 0.1)]",
+                    color: "core.red.60",
+                  },
+                })}
+                style={{ width: 20, height: 20 }}
+                aria-label={`Delete type ${type.name}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {types.length === 0 && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "#9ca3af",
+                padding: "spacing.4",
+                textAlign: "center",
+              }}
+            >
+              No types yet
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
