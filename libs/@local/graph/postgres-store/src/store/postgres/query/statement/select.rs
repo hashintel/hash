@@ -1,40 +1,27 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Condition, Expression, SelectExpression, Transpile, WhereExpression, WithExpression,
-    expression::{FromItem, GroupByExpression, JoinType, OrderByExpression},
+    Expression, SelectExpression, Transpile, WhereExpression, WithExpression,
+    expression::{FromItem, GroupByExpression, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, bon::Builder)]
+#[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
+    #[builder(default)]
     pub with: WithExpression,
+    #[builder(default)]
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
+    #[builder(into)]
     pub from: Option<FromItem<'static>>,
+    #[builder(default)]
     pub where_expression: WhereExpression,
+    #[builder(default)]
     pub order_by_expression: OrderByExpression,
+    #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
-}
-
-impl SelectStatement {
-    pub fn join(
-        &mut self,
-        join_type: JoinType,
-        from: FromItem<'static>,
-        condition: Vec<Condition>,
-    ) {
-        self.from = Some(FromItem::JoinOn {
-            left: Box::new(
-                self.from
-                    .take()
-                    .expect("Tried to join on a `SELECT` statement without a `FROM` statement"),
-            ),
-            join_type,
-            right: Box::new(from),
-            condition,
-        });
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -1268,13 +1255,12 @@ mod tests {
                 *,
                 "entity_embeddings_0_1_0"."distance"
               FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-              LEFT OUTER JOIN
-                (SELECT
-                    "entity_embeddings_0_0_0"."web_id",
-                    "entity_embeddings_0_0_0"."entity_uuid",
-                    MIN("entity_embeddings_0_0_0"."embedding" <=> $1) AS "distance"
-                  FROM "entity_embeddings" AS "entity_embeddings_0_0_0"
-                  GROUP BY "entity_embeddings_0_0_0"."web_id", "entity_embeddings_0_0_0"."entity_uuid")
+              LEFT OUTER JOIN (SELECT
+                    "entity_embeddings"."web_id",
+                    "entity_embeddings"."entity_uuid",
+                    MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
+                  FROM "entity_embeddings"
+                  GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid")
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"

@@ -27,13 +27,23 @@ use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
 /// ```
 #[derive(Clone, PartialEq)]
 pub enum FromItem<'id> {
-    /// A table reference: `table_name [ AS alias ] [ TABLESAMPLE ... ]`
+    /// A table reference: `[ ONLY ] table_name [ AS alias [ ( column_alias [, ...] ) ] ] [
+    /// TABLESAMPLE ... ]`
     ///
     /// Transpiles to:
     /// ```sql
-    /// table_name [ AS alias ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
+    /// [ ONLY ] table_name [ AS alias [ (col1, col2, ...) ] ] [ TABLESAMPLE method(percentage) [ REPEATABLE(seed) ] ]
     /// ```
     Table {
+        /// Whether to query only this table, excluding inherited tables.
+        ///
+        /// When `true`, prevents querying child tables in table inheritance hierarchies.
+        /// Transpiles to: `ONLY table_name`
+        ///
+        /// PostgreSQL table inheritance allows tables to inherit columns from parent tables.
+        /// By default, queries on a parent table include rows from all child tables.
+        /// Setting `only` to `true` restricts the query to the parent table only.
+        only: bool,
         /// The base table reference.
         table: TableReference<'id>,
         /// Optional alias for the table.
@@ -41,6 +51,18 @@ pub enum FromItem<'id> {
         /// When `Some`, the table is referenced using this alias elsewhere in the query.
         /// When `None`, the base table reference is used directly.
         alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the table's columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS table_alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        ///
+        /// Useful for:
+        /// - Renaming columns from subqueries or functions with unclear names
+        /// - Standardizing column names across different sources
+        /// - Avoiding column name conflicts in complex queries
+        column_alias: Vec<ColumnName<'id>>,
         /// Optional TABLESAMPLE clause for row sampling.
         ///
         /// When `Some`, applies SQL:2003 standard TABLESAMPLE sampling to select a random
@@ -49,15 +71,8 @@ pub enum FromItem<'id> {
         tablesample: Option<TableSample>,
     },
 
-    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias ]`
+    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias [ ( column_alias [, ...] ) ] ]`
     Subquery {
-        /// The subquery SELECT statement.
-        statement: Box<SelectStatement>,
-        /// Optional alias for the subquery result.
-        ///
-        /// While PostgreSQL requires aliases for subqueries in most contexts,
-        /// this is `Option` to allow construction before alias assignment.
-        alias: Option<TableReference<'id>>,
         /// Whether this is a LATERAL subquery.
         ///
         /// When `true`, the subquery can reference columns from preceding FROM items.
@@ -68,19 +83,28 @@ pub enum FromItem<'id> {
         /// - Set-returning functions that need to reference preceding columns
         /// - Per-row computations that require context from other tables
         lateral: bool,
+        /// The subquery SELECT statement.
+        statement: Box<SelectStatement>,
+        /// Optional alias for the subquery result.
+        ///
+        /// While PostgreSQL requires aliases for subqueries in most contexts,
+        /// this is `Option` to allow construction before alias assignment.
+        alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the subquery's result columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        column_alias: Vec<ColumnName<'id>>,
     },
 
-    /// A function call: `[ LATERAL ] function_name(...) [ AS alias ]`
+    /// A function call: `[ LATERAL ] function_name(...) [ WITH ORDINALITY ] [ AS alias [ (
+    /// column_alias [, ...] ) ] ]`
     ///
     /// Represents set-returning functions or table functions in the FROM clause.
     /// Common use cases include `unnest()`, `generate_series()`, and `json_to_recordset()`.
     Function {
-        /// The function to call.
-        function: Function,
-        /// Optional alias for the function result.
-        ///
-        /// Required for most set-returning functions to name the result columns.
-        alias: Option<TableReference<'id>>,
         /// Whether this is a LATERAL function call.
         ///
         /// When `true`, the function can reference columns from preceding FROM items.
@@ -91,6 +115,41 @@ pub enum FromItem<'id> {
         /// - Generating rows based on values from other tables
         /// - Per-row function evaluation with access to earlier columns
         lateral: bool,
+        /// The function to call.
+        function: Function,
+        /// Whether to add an ordinality column (row number).
+        ///
+        /// When `true`, adds an additional column containing the row number (1-indexed).
+        /// Transpiles to: `function(...) WITH ORDINALITY`
+        ///
+        /// The ordinality column is particularly useful for:
+        /// - Getting the position/index of each element in set-returning functions
+        /// - Tracking the order of results from array unnesting
+        /// - Correlating function results with their sequence number
+        ///
+        /// Example: `unnest(ARRAY[10,20,30]) WITH ORDINALITY` produces:
+        /// ```text
+        /// unnest | ordinality
+        /// --------+-----------
+        ///     10 |         1
+        ///     20 |         2
+        ///     30 |         3
+        /// ```
+        with_ordinality: bool,
+        /// Optional alias for the function result.
+        ///
+        /// Required for most set-returning functions to name the result columns.
+        alias: Option<TableReference<'id>>,
+        /// Optional column aliases to rename the function's result columns.
+        ///
+        /// When non-empty, renames the columns in order: first column gets first alias, etc.
+        /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
+        ///
+        /// Transpiles to: `AS alias(column1, column2, ...)`
+        ///
+        /// When combined with `with_ordinality`, the column aliases should include both
+        /// the function result columns and the ordinality column.
+        column_alias: Vec<ColumnName<'id>>,
     },
 
     /// A JOIN with explicit ON conditions.
@@ -147,7 +206,7 @@ pub enum FromItem<'id> {
         /// of the query, and you cannot use this alias to reference other columns.
         ///
         /// Transpiles to: `AS "join_alias"`
-        join_using_alias: Option<TableReference<'id>>,
+        alias: Option<TableReference<'id>>,
     },
 
     /// A CROSS JOIN producing the cartesian product of both sides.
@@ -183,7 +242,123 @@ impl fmt::Debug for FromItem<'_> {
     }
 }
 
+#[bon::bon]
 impl<'id> FromItem<'id> {
+    /// Creates a table FROM item.
+    ///
+    /// See [`FromItemTableBuilder`] for available options.
+    #[builder(finish_fn = build, derive(Debug, Clone, Into))]
+    pub const fn table(
+        #[builder(start_fn, into)] table: TableReference<'id>,
+        alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
+        #[builder(default)] only: bool,
+        tablesample: Option<TableSample>,
+    ) -> Self {
+        Self::Table {
+            table,
+            alias,
+            column_alias,
+            only,
+            tablesample,
+        }
+    }
+
+    /// Creates a subquery FROM item.
+    ///
+    /// See [`FromItemSubqueryBuilder`] for available options.
+    #[builder(finish_fn = build, derive(Debug, Clone, Into))]
+    pub fn subquery(
+        #[builder(start_fn, into)] statement: SelectStatement,
+        alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
+        #[builder(default)] lateral: bool,
+    ) -> Self {
+        Self::Subquery {
+            statement: Box::new(statement),
+            alias,
+            column_alias,
+            lateral,
+        }
+    }
+
+    /// Creates a function FROM item for set-returning functions.
+    ///
+    /// See [`FromItemFunctionBuilder`] for available options.
+    #[builder(finish_fn = build, derive(Debug, Clone, Into))]
+    pub const fn function(
+        #[builder(start_fn, into)] function: Function,
+        #[builder(default)] with_ordinality: bool,
+        alias: Option<TableReference<'id>>,
+        #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
+            ColumnName<'id>,
+        >,
+        #[builder(default)] lateral: bool,
+    ) -> Self {
+        Self::Function {
+            function,
+            with_ordinality,
+            alias,
+            column_alias,
+            lateral,
+        }
+    }
+
+    /// Joins this FROM item with another.
+    ///
+    /// See [`FromItemJoinBuilder`] for available options. Use [`.on()`] for ON-condition joins
+    /// or [`.using()`] for USING-clause joins.
+    ///
+    /// [`.on()`]: FromItemJoinBuilder::on
+    /// [`.using()`]: FromItemJoinBuilder::using
+    #[builder(finish_fn = build, derive(Debug, Clone, Into))]
+    pub fn join(
+        self,
+        #[builder(start_fn)] r#type: JoinType,
+        #[builder(start_fn, into)] from: Self,
+        #[builder(setters(vis = ""))] condition: Vec<Condition>,
+        #[builder(setters(vis = ""))] join_using_alias: Option<TableReference<'id>>,
+        #[builder(setters(vis = ""))] columns: Vec<ColumnName<'id>>,
+    ) -> Self {
+        if columns.is_empty() {
+            Self::JoinOn {
+                left: Box::new(self),
+                join_type: r#type,
+                right: Box::new(from),
+                condition,
+            }
+        } else {
+            Self::JoinUsing {
+                left: Box::new(self),
+                join_type: r#type,
+                right: Box::new(from),
+                columns,
+                alias: join_using_alias,
+            }
+        }
+    }
+
+    /// Creates a NATURAL JOIN using matching column names.
+    pub fn natural_join(self, r#type: JoinType, from: impl Into<Self>) -> Self {
+        Self::NaturalJoin {
+            left: Box::new(self),
+            join_type: r#type,
+            right: Box::new(from.into()),
+        }
+    }
+
+    /// Creates a CROSS JOIN (cartesian product).
+    pub fn cross_join(self, from: impl Into<Self>) -> Self {
+        Self::CrossJoin {
+            left: Box::new(self),
+            right: Box::new(from.into()),
+        }
+    }
+
     /// Returns the table reference that can be used to reference this FROM item.
     ///
     /// For simple sources (tables, subqueries, functions), returns their alias or name.
@@ -217,6 +392,42 @@ impl<'id> FromItem<'id> {
                 | Self::NaturalJoin { .. }
         )
     }
+
+    /// Transpiles the right side of a join, adding parentheses if needed.
+    fn transpile_join_right(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_join() {
+            fmt.write_char('(')?;
+        }
+        self.transpile(fmt)?;
+        if self.is_join() {
+            fmt.write_char(')')?;
+        }
+        Ok(())
+    }
+
+    /// Transpiles a comma-separated list of columns: `col1, col2, ...`.
+    fn transpile_column_list(columns: &[ColumnName<'_>], fmt: &mut fmt::Formatter) -> fmt::Result {
+        for (idx, column) in columns.iter().enumerate() {
+            if idx > 0 {
+                fmt.write_str(", ")?;
+            }
+            column.transpile(fmt)?;
+        }
+        Ok(())
+    }
+
+    /// Transpiles column aliases: `(col1, col2, ...)`.
+    fn transpile_column_aliases(
+        column_alias: &[ColumnName<'_>],
+        fmt: &mut fmt::Formatter,
+    ) -> fmt::Result {
+        if !column_alias.is_empty() {
+            fmt.write_str("(")?;
+            Self::transpile_column_list(column_alias, fmt)?;
+            fmt.write_char(')')?;
+        }
+        Ok(())
+    }
 }
 
 impl Transpile for FromItem<'_> {
@@ -229,13 +440,20 @@ impl Transpile for FromItem<'_> {
             Self::Table {
                 table,
                 alias,
+                column_alias,
+                only,
                 tablesample,
             } => {
+                if *only {
+                    fmt.write_str("ONLY ")?;
+                }
+
                 table.transpile(fmt)?;
 
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
 
                 if let Some(sample) = tablesample {
@@ -246,6 +464,7 @@ impl Transpile for FromItem<'_> {
             Self::Subquery {
                 statement,
                 alias,
+                column_alias,
                 lateral,
             } => {
                 if *lateral {
@@ -257,48 +476,48 @@ impl Transpile for FromItem<'_> {
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
             }
             Self::Function {
                 function,
+                with_ordinality,
                 alias,
+                column_alias,
                 lateral,
             } => {
                 if *lateral {
                     fmt.write_str("LATERAL ")?;
                 }
                 function.transpile(fmt)?;
+
+                if *with_ordinality {
+                    fmt.write_str(" WITH ORDINALITY")?;
+                }
+
                 if let Some(alias) = alias {
                     fmt.write_str(" AS ")?;
                     alias.transpile(fmt)?;
+                    Self::transpile_column_aliases(column_alias, fmt)?;
                 }
             }
             Self::JoinOn {
                 left,
                 join_type,
                 right,
-                condition,
+                condition: conditions,
             } => {
                 left.transpile(fmt)?;
                 fmt.write_char('\n')?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
-
+                right.transpile_join_right(fmt)?;
                 fmt.write_str("\n  ON ")?;
 
-                if condition.is_empty() {
+                if conditions.is_empty() {
                     fmt.write_str("TRUE")?;
                 } else {
-                    for (i, condition) in condition.iter().enumerate() {
+                    for (i, condition) in conditions.iter().enumerate() {
                         if i > 0 {
                             fmt.write_str("\n AND ")?;
                         }
@@ -311,21 +530,13 @@ impl Transpile for FromItem<'_> {
                 join_type,
                 right,
                 columns,
-                join_using_alias,
+                alias,
             } => {
                 left.transpile(fmt)?;
                 fmt.write_char('\n')?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
 
                 if columns.is_empty() {
                     // Empty USING list produces ON TRUE (cartesian product),
@@ -333,15 +544,10 @@ impl Transpile for FromItem<'_> {
                     fmt.write_str(" ON TRUE")?;
                 } else {
                     fmt.write_str(" USING (")?;
-                    for (i, column) in columns.iter().enumerate() {
-                        if i > 0 {
-                            fmt.write_str(", ")?;
-                        }
-                        column.transpile(fmt)?;
-                    }
+                    Self::transpile_column_list(columns, fmt)?;
                     fmt.write_char(')')?;
 
-                    if let Some(alias) = join_using_alias {
+                    if let Some(alias) = alias {
                         fmt.write_str(" AS ")?;
                         alias.transpile(fmt)?;
                     }
@@ -350,15 +556,7 @@ impl Transpile for FromItem<'_> {
             Self::CrossJoin { left, right } => {
                 left.transpile(fmt)?;
                 fmt.write_str("\nCROSS JOIN ")?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
             }
             Self::NaturalJoin {
                 left,
@@ -369,18 +567,136 @@ impl Transpile for FromItem<'_> {
                 fmt.write_str("\nNATURAL ")?;
                 join_type.transpile(fmt)?;
                 fmt.write_char(' ')?;
-
-                // Add parentheses when right side is a join to preserve intended precedence
-                if right.is_join() {
-                    fmt.write_char('(')?;
-                }
-                right.transpile(fmt)?;
-                if right.is_join() {
-                    fmt.write_char(')')?;
-                }
+                right.transpile_join_right(fmt)?;
             }
         }
         Ok(())
+    }
+}
+
+mod from_item_join_builder_impl {
+    use super::{
+        FromItemJoinBuilder,
+        from_item_join_builder::{
+            IsSet, IsUnset, SetColumns, SetCondition, SetJoinUsingAlias, State,
+        },
+    };
+    use crate::store::postgres::query::{
+        Condition,
+        expression::{ColumnName, TableReference},
+    };
+
+    impl<'id, S: State> FromItemJoinBuilder<'id, S> {
+        pub fn on(
+            self,
+            conditions: Vec<Condition>,
+        ) -> FromItemJoinBuilder<'id, SetCondition<SetColumns<S>>>
+        where
+            S: State<Condition: IsUnset, Columns: IsUnset>,
+        {
+            self.columns(Vec::new()).condition(conditions)
+        }
+
+        pub fn using(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemJoinBuilder<'id, SetCondition<SetColumns<S>>>
+        where
+            S: State<Condition: IsUnset, Columns: IsUnset>,
+        {
+            self.columns(columns).condition(Vec::new())
+        }
+
+        pub fn alias(
+            self,
+            alias: impl Into<TableReference<'id>>,
+        ) -> FromItemJoinBuilder<'id, SetJoinUsingAlias<S>>
+        where
+            S: State<Columns: IsSet, JoinUsingAlias: IsUnset>,
+        {
+            self.join_using_alias(alias.into())
+        }
+    }
+}
+
+mod from_item_table_builder_impl {
+    use super::{
+        FromItemTableBuilder,
+        from_item_table_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemTableBuilder<'id, S> {
+        /// Add column aliases to rename the table's columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set on the table - PostgreSQL syntax requires
+        /// `AS table_alias(col1, col2, ...)`.
+        pub fn column_aliases(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemTableBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.set_column_aliases(columns)
+        }
+    }
+}
+
+mod from_item_subquery_builder_impl {
+    use super::{
+        FromItemSubqueryBuilder,
+        from_item_subquery_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemSubqueryBuilder<'id, S> {
+        /// Add column aliases to rename the subquery's result columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set - PostgreSQL syntax requires
+        /// `AS alias(col1, col2, ...)`.
+        pub fn column_aliases(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemSubqueryBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.set_column_aliases(columns)
+        }
+    }
+}
+
+mod from_item_function_builder_impl {
+    use super::{
+        FromItemFunctionBuilder,
+        from_item_function_builder::{IsSet, IsUnset, SetColumnAlias, State},
+    };
+    use crate::store::postgres::query::expression::ColumnName;
+
+    impl<'id, S: State> FromItemFunctionBuilder<'id, S> {
+        /// Add column aliases to rename the function's result columns.
+        ///
+        /// Column aliases rename columns in order: the first alias renames the first column,
+        /// the second alias renames the second column, etc.
+        ///
+        /// Requires that an alias has been set - PostgreSQL syntax requires
+        /// `AS alias(col1, col2, ...)`.
+        pub fn column_aliases(
+            self,
+            columns: Vec<ColumnName<'id>>,
+        ) -> FromItemFunctionBuilder<'id, SetColumnAlias<S>>
+        where
+            S: State<Alias: IsSet, ColumnAlias: IsUnset>,
+        {
+            self.set_column_aliases(columns)
+        }
     }
 }
 
@@ -390,10 +706,10 @@ mod tests {
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Expression, ForeignKeyReference, OrderByExpression, Table,
+        Alias, Expression, ForeignKeyReference, Table,
         expression::{
-            GroupByExpression, SelectExpression, TableName, TableReference, WhereExpression,
-            WithExpression, table_sample::SamplingMethod,
+            SelectExpression, TableName, TableReference, identifier::Identifier,
+            table_sample::SamplingMethod,
         },
         table::{Column, DataTypes, OntologyIds},
     };
@@ -412,28 +728,19 @@ mod tests {
         };
 
         // Build: base JOIN right
-        let base = FromItem::Table {
-            table: Table::DataTypes.aliased(on_alias),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: Some(Table::OntologyIds.aliased(join_alias)),
-            tablesample: None,
-        };
-
-        let join = FromItem::JoinOn {
-            left: Box::new(base),
-            join_type: JoinType::Inner,
-            right: Box::new(right),
-            condition: ForeignKeyReference::Single {
+        let join = FromItem::table(Table::DataTypes.aliased(on_alias))
+            .build()
+            .join(
+                JoinType::Inner,
+                FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(join_alias)),
+            )
+            .on(ForeignKeyReference::Single {
                 on: Column::DataTypes(DataTypes::OntologyId),
                 join: Column::OntologyIds(OntologyIds::OntologyId),
                 join_type: JoinType::Inner,
             }
-            .conditions(on_alias, join_alias),
-        };
+            .conditions(on_alias, join_alias))
+            .build();
 
         assert_eq!(
             join.transpile_to_string(),
@@ -448,25 +755,15 @@ mod tests {
 
     #[test]
     fn transpile_join_on_empty_conditions() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-                condition: vec![],
-            }
-            .transpile_to_string(),
+            left.clone()
+                .join(JoinType::Inner, right.clone())
+                .on(Vec::new())
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 INNER JOIN "ontology_ids"
@@ -476,13 +773,10 @@ mod tests {
         );
 
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(left),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(right),
-                condition: vec![],
-            }
-            .transpile_to_string(),
+            left.join(JoinType::LeftOuter, right)
+                .on(Vec::new())
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 LEFT OUTER JOIN "ontology_ids"
@@ -494,28 +788,17 @@ mod tests {
 
     #[test]
     fn transpile_join_using() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-                columns: vec![ColumnName::from(Column::OntologyIds(
+            left.clone()
+                .join(JoinType::Inner, right.clone())
+                .using(vec![ColumnName::from(Column::OntologyIds(
                     OntologyIds::OntologyId
-                ))],
-                join_using_alias: None,
-            }
-            .transpile_to_string(),
+                ))])
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 INNER JOIN "ontology_ids" USING ("ontology_id")
@@ -525,17 +808,13 @@ mod tests {
 
         // Multiple columns
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(right),
-                columns: vec![
+            left.join(JoinType::LeftOuter, right)
+                .using(vec![
                     ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
                     ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
-                ],
-                join_using_alias: None,
-            }
-            .transpile_to_string(),
+                ])
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 LEFT OUTER JOIN "ontology_ids" USING ("base_url", "version")
@@ -546,32 +825,22 @@ mod tests {
 
     #[test]
     fn transpile_join_using_with_alias() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-                columns: vec![ColumnName::from(Column::OntologyIds(
+            left.clone()
+                .join(JoinType::Inner, right.clone())
+                .using(vec![ColumnName::from(Column::OntologyIds(
                     OntologyIds::OntologyId
-                ))],
-                join_using_alias: Some(TableReference {
+                ))])
+                .alias(TableReference {
                     schema: None,
                     name: TableName::from("joined_ids"),
                     alias: None,
-                }),
-            }
-            .transpile_to_string(),
+                })
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 INNER JOIN "ontology_ids" USING ("ontology_id") AS "joined_ids"
@@ -581,21 +850,18 @@ mod tests {
 
         // Multiple columns with alias
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(right),
-                columns: vec![
+            left.join(JoinType::LeftOuter, right)
+                .using(vec![
                     ColumnName::from(Column::OntologyIds(OntologyIds::BaseUrl)),
                     ColumnName::from(Column::OntologyIds(OntologyIds::Version)),
-                ],
-                join_using_alias: Some(TableReference {
+                ])
+                .alias(TableReference {
                     schema: None,
                     name: TableName::from("versioned_ids"),
                     alias: None,
-                }),
-            }
-            .transpile_to_string(),
+                })
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 LEFT OUTER JOIN "ontology_ids" USING ("base_url", "version") AS "versioned_ids"
@@ -606,46 +872,33 @@ mod tests {
 
     #[test]
     fn transpile_join_using_empty_columns() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         // Empty USING list transpiles to ON TRUE
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-                columns: vec![],
-                join_using_alias: None,
-            }
-            .transpile_to_string(),
+            left.clone()
+                .join(JoinType::Inner, right.clone())
+                .using(Vec::new())
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
-                INNER JOIN "ontology_ids" ON TRUE
+                INNER JOIN "ontology_ids"
+                  ON TRUE
             "#}
             .trim()
         );
 
         assert_eq!(
-            FromItem::JoinUsing {
-                left: Box::new(left),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(right),
-                columns: vec![],
-                join_using_alias: None,
-            }
-            .transpile_to_string(),
+            left.join(JoinType::LeftOuter, right)
+                .using(Vec::new())
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
-                LEFT OUTER JOIN "ontology_ids" ON TRUE
+                LEFT OUTER JOIN "ontology_ids"
+                  ON TRUE
             "#}
             .trim()
         );
@@ -653,23 +906,11 @@ mod tests {
 
     #[test]
     fn transpile_cross_join() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::CrossJoin {
-                left: Box::new(left),
-                right: Box::new(right),
-            }
-            .transpile_to_string(),
+            left.cross_join(right).transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 CROSS JOIN "ontology_ids"
@@ -679,50 +920,63 @@ mod tests {
     }
 
     #[test]
-    fn transpile_lateral_subquery() {
-        let subquery = SelectStatement {
-            with: WithExpression::default(),
-            distinct: vec![],
-            selects: vec![SelectExpression::Asterisk(None)],
-            from: Some(FromItem::Table {
-                table: Table::OntologyIds.into(),
-                alias: None,
-                tablesample: None,
-            }),
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-            group_by_expression: GroupByExpression::default(),
-            limit: None,
-        };
+    fn transpile_subquery_with_column_aliases() {
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
 
-        let base = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let from_item = FromItem::subquery(subquery)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("sub"),
+                alias: None,
+            })
+            .column_aliases(vec![
+                ColumnName::from(Identifier::from("id")),
+                ColumnName::from(Identifier::from("url")),
+                ColumnName::from(Identifier::from("ver")),
+            ])
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            indoc! {r#"
+                (SELECT *
+                FROM "ontology_ids") AS "sub"("id", "url", "ver")
+            "#}
+            .trim()
+        );
+    }
+
+    #[test]
+    fn transpile_lateral_subquery() {
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
+
+        let base = FromItem::table(Table::DataTypes).build();
+
+        let conditions = vec![Condition::Equal(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+            Expression::ColumnReference(Column::OntologyIds(OntologyIds::OntologyId).into()),
+        )];
 
         // Without LATERAL
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(base.clone()),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(FromItem::Subquery {
-                    statement: Box::new(subquery.clone()),
-                    alias: Some(Table::OntologyIds.aliased(Alias {
+            base.clone()
+                .join(
+                    JoinType::LeftOuter,
+                    FromItem::subquery(subquery.clone()).alias(Table::OntologyIds.aliased(Alias {
                         condition_index: 0,
                         chain_depth: 1,
                         number: 2,
-                    })),
-                    lateral: false,
-                }),
-                condition: vec![Condition::Equal(
-                    Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
-                    Expression::ColumnReference(
-                        Column::OntologyIds(OntologyIds::OntologyId).into()
-                    ),
-                )],
-            }
-            .transpile_to_string(),
+                    }))
+                )
+                .on(conditions.clone())
+                .build()
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 LEFT OUTER JOIN (SELECT *
@@ -734,25 +988,18 @@ mod tests {
 
         // With LATERAL
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(base),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(FromItem::Subquery {
-                    statement: Box::new(subquery),
-                    alias: Some(Table::OntologyIds.aliased(Alias {
+            base.join(
+                JoinType::LeftOuter,
+                FromItem::subquery(subquery)
+                    .alias(Table::OntologyIds.aliased(Alias {
                         condition_index: 0,
                         chain_depth: 1,
                         number: 2,
-                    })),
-                    lateral: true,
-                }),
-                condition: vec![Condition::Equal(
-                    Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
-                    Expression::ColumnReference(
-                        Column::OntologyIds(OntologyIds::OntologyId).into()
-                    ),
-                )],
-            }
+                    }))
+                    .lateral(true)
+            )
+            .on(conditions)
+            .build()
             .transpile_to_string(),
             indoc! {r#"
                 "data_types"
@@ -766,24 +1013,13 @@ mod tests {
 
     #[test]
     fn transpile_natural_join() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::NaturalJoin {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-            }
-            .transpile_to_string(),
+            left.clone()
+                .natural_join(JoinType::Inner, right.clone())
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 NATURAL INNER JOIN "ontology_ids"
@@ -792,12 +1028,9 @@ mod tests {
         );
 
         assert_eq!(
-            FromItem::NaturalJoin {
-                left: Box::new(left),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(right),
-            }
-            .transpile_to_string(),
+            left.clone()
+                .natural_join(JoinType::LeftOuter, right.clone())
+                .transpile_to_string(),
             indoc! {r#"
                 "data_types"
                 NATURAL LEFT OUTER JOIN "ontology_ids"
@@ -809,64 +1042,107 @@ mod tests {
     #[test]
     fn transpile_function() {
         // Function without alias
-        let from_item = FromItem::Function {
-            function: Function::Unnest(Box::new(Expression::ColumnReference(
-                Column::DataTypes(DataTypes::OntologyId).into(),
-            ))),
-            alias: None,
-            lateral: false,
-        };
-
         assert_eq!(
-            from_item.transpile_to_string(),
+            FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+                Column::DataTypes(DataTypes::OntologyId).into()
+            ),)))
+            .build()
+            .transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id")"#
         );
 
         // Function with alias
-        let from_item = FromItem::Function {
-            function: Function::Unnest(Box::new(Expression::ColumnReference(
-                Column::DataTypes(DataTypes::OntologyId).into(),
-            ))),
-            alias: Some(TableReference {
+        assert_eq!(
+            FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+                Column::DataTypes(DataTypes::OntologyId).into()
+            ),)))
+            .alias(TableReference {
                 schema: None,
                 name: TableName::from("ids"),
                 alias: None,
-            }),
-            lateral: false,
-        };
-
-        assert_eq!(
-            from_item.transpile_to_string(),
+            })
+            .build()
+            .transpile_to_string(),
             r#"UNNEST("data_types"."ontology_id") AS "ids""#
         );
     }
 
     #[test]
-    fn transpile_lateral_function() {
-        let base = FromItem::Table {
-            table: Table::DataTypes.into(),
+    fn transpile_function_with_column_aliases() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .alias(TableReference {
+            schema: None,
+            name: TableName::from("ids"),
             alias: None,
-            tablesample: None,
-        };
+        })
+        .column_aliases(vec![ColumnName::from(Identifier::from("id"))])
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") AS "ids"("id")"#
+        );
+    }
+
+    #[test]
+    fn transpile_function_with_ordinality() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .with_ordinality(true)
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") WITH ORDINALITY"#
+        );
+    }
+
+    #[test]
+    fn transpile_function_with_ordinality_and_alias() {
+        let from_item = FromItem::function(Function::Unnest(Box::new(
+            Expression::ColumnReference(Column::DataTypes(DataTypes::OntologyId).into()),
+        )))
+        .with_ordinality(true)
+        .alias(TableReference {
+            schema: None,
+            name: TableName::from("t"),
+            alias: None,
+        })
+        .column_aliases(vec![
+            ColumnName::from(Identifier::from("val")),
+            ColumnName::from(Identifier::from("ord")),
+        ])
+        .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"UNNEST("data_types"."ontology_id") WITH ORDINALITY AS "t"("val", "ord")"#
+        );
+    }
+
+    #[test]
+    fn transpile_lateral_function() {
+        let base = FromItem::table(Table::DataTypes).build();
 
         // LATERAL function in a join
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(base),
-                join_type: JoinType::LeftOuter,
-                right: Box::new(FromItem::Function {
-                    function: Function::Unnest(Box::new(Expression::ColumnReference(
-                        Column::DataTypes(DataTypes::OntologyId).into(),
-                    ))),
-                    alias: Some(TableReference {
-                        schema: None,
-                        name: TableName::from("unnested_ids"),
-                        alias: None,
-                    }),
-                    lateral: true,
-                }),
-                condition: vec![],
-            }
+            base.join(
+                JoinType::LeftOuter,
+                FromItem::function(Function::Unnest(Box::new(Expression::ColumnReference(
+                    Column::DataTypes(DataTypes::OntologyId).into(),
+                ))))
+                .alias(TableReference {
+                    schema: None,
+                    name: TableName::from("unnested_ids"),
+                    alias: None,
+                })
+                .lateral(true)
+            )
+            .on(Vec::new())
+            .build()
             .transpile_to_string(),
             indoc! {r#"
                 "data_types"
@@ -880,17 +1156,16 @@ mod tests {
     #[test]
     fn reference_table_returns_alias_when_present() {
         let table_ref: TableReference = Table::OntologyIds.into();
-        let alias_ref = Table::OntologyIds.aliased(Alias {
-            condition_index: 0,
-            chain_depth: 1,
-            number: 2,
-        });
-
-        let from_item = FromItem::Table {
-            table: table_ref,
-            alias: Some(alias_ref.clone()),
-            tablesample: None,
+        let alias_ref = TableReference {
+            alias: Some(Alias {
+                condition_index: 0,
+                chain_depth: 1,
+                number: 2,
+            }),
+            ..table_ref.clone()
         };
+
+        let from_item = FromItem::table(table_ref).alias(alias_ref.clone()).build();
 
         assert_eq!(from_item.reference_table(), Some(&alias_ref));
     }
@@ -899,11 +1174,7 @@ mod tests {
     fn reference_table_returns_table_when_no_alias() {
         let table_ref: TableReference = Table::OntologyIds.into();
 
-        let from_item = FromItem::Table {
-            table: table_ref.clone(),
-            alias: None,
-            tablesample: None,
-        };
+        let from_item = FromItem::table(table_ref.clone()).build();
 
         assert_eq!(from_item.reference_table(), Some(&table_ref));
     }
@@ -917,22 +1188,19 @@ mod tests {
         };
 
         // Function with alias
-        let from_item = FromItem::Function {
-            function: Function::Now,
-            alias: Some(alias_ref.clone()),
-            lateral: false,
-        };
-
-        assert_eq!(from_item.reference_table(), Some(&alias_ref));
+        assert_eq!(
+            FromItem::function(Function::Now)
+                .alias(alias_ref.clone())
+                .build()
+                .reference_table(),
+            Some(&alias_ref)
+        );
 
         // Function without alias
-        let from_item = FromItem::Function {
-            function: Function::Now,
-            alias: None,
-            lateral: false,
-        };
-
-        assert_eq!(from_item.reference_table(), None);
+        assert_eq!(
+            FromItem::function(Function::Now).build().reference_table(),
+            None
+        );
     }
 
     #[test]
@@ -943,70 +1211,43 @@ mod tests {
             alias: None,
         };
 
-        let subquery = SelectStatement {
-            with: WithExpression::default(),
-            distinct: vec![],
-            selects: vec![SelectExpression::Asterisk(None)],
-            from: Some(FromItem::Table {
-                table: Table::OntologyIds.into(),
-                alias: None,
-                tablesample: None,
-            }),
-            where_expression: WhereExpression::default(),
-            order_by_expression: OrderByExpression::default(),
-            group_by_expression: GroupByExpression::default(),
-            limit: None,
-        };
+        let subquery = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .from(FromItem::table(Table::OntologyIds))
+            .build();
 
         // Subquery with alias
-        let from_item = FromItem::Subquery {
-            statement: Box::new(subquery.clone()),
-            alias: Some(alias_ref.clone()),
-            lateral: false,
-        };
-
-        assert_eq!(from_item.reference_table(), Some(&alias_ref));
+        assert_eq!(
+            FromItem::subquery(subquery.clone())
+                .alias(alias_ref.clone())
+                .build()
+                .reference_table(),
+            Some(&alias_ref)
+        );
 
         // Subquery without alias
-        let from_item = FromItem::Subquery {
-            statement: Box::new(subquery),
-            alias: None,
-            lateral: false,
-        };
-
-        assert_eq!(from_item.reference_table(), None);
+        assert_eq!(FromItem::subquery(subquery).build().reference_table(), None);
     }
 
     #[test]
     fn reference_table_returns_none_for_joins() {
-        let left = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: None,
-        };
-        let right = FromItem::Table {
-            table: Table::OntologyIds.into(),
-            alias: None,
-            tablesample: None,
-        };
+        let left = FromItem::table(Table::DataTypes).build();
+        let right = FromItem::table(Table::OntologyIds).build();
 
         assert_eq!(
-            FromItem::JoinOn {
-                left: Box::new(left.clone()),
-                join_type: JoinType::Inner,
-                right: Box::new(right.clone()),
-                condition: vec![],
-            }
-            .reference_table(),
+            left.clone()
+                .join(JoinType::Inner, right.clone())
+                .on(Vec::new())
+                .build()
+                .reference_table(),
             None
         );
 
         assert_eq!(
-            FromItem::CrossJoin {
-                left: Box::new(left),
-                right: Box::new(right),
-            }
-            .reference_table(),
+            left.join(JoinType::Inner, right)
+                .on(Vec::new())
+                .build()
+                .reference_table(),
             None
         );
     }
@@ -1027,83 +1268,49 @@ mod tests {
     fn transpile_nested_joins_with_parentheses() {
         // Build: A JOIN B JOIN (C JOIN D JOIN E)
         // This tests that nested joins on the right side get parentheses
-        let a = FromItem::Table {
-            table: TableReference {
-                schema: None,
-                name: TableName::from("a"),
-                alias: None,
-            },
+        let a = FromItem::table(TableReference {
+            schema: None,
+            name: TableName::from("a"),
             alias: None,
-            tablesample: None,
-        };
-        let b = FromItem::Table {
-            table: TableReference {
-                schema: None,
-                name: TableName::from("b"),
-                alias: None,
-            },
+        })
+        .build();
+        let b = FromItem::table(TableReference {
+            schema: None,
+            name: TableName::from("b"),
             alias: None,
-            tablesample: None,
-        };
-        let c = FromItem::Table {
-            table: TableReference {
-                schema: None,
-                name: TableName::from("c"),
-                alias: None,
-            },
+        })
+        .build();
+        let c = FromItem::table(TableReference {
+            schema: None,
+            name: TableName::from("c"),
             alias: None,
-            tablesample: None,
-        };
-        let d = FromItem::Table {
-            table: TableReference {
-                schema: None,
-                name: TableName::from("d"),
-                alias: None,
-            },
+        })
+        .build();
+        let d: FromItem<'_> = FromItem::table(TableReference {
+            schema: None,
+            name: TableName::from("d"),
             alias: None,
-            tablesample: None,
-        };
-        let e = FromItem::Table {
-            table: TableReference {
-                schema: None,
-                name: TableName::from("e"),
-                alias: None,
-            },
+        })
+        .build();
+        let e = FromItem::table(TableReference {
+            schema: None,
+            name: TableName::from("e"),
             alias: None,
-            tablesample: None,
-        };
-
-        // Build: C JOIN D
-        let cd_join = FromItem::JoinOn {
-            left: Box::new(c),
-            join_type: JoinType::Inner,
-            right: Box::new(d),
-            condition: vec![],
-        };
-
-        // Build: (C JOIN D) JOIN E
-        let cde_join = FromItem::JoinOn {
-            left: Box::new(cd_join),
-            join_type: JoinType::Inner,
-            right: Box::new(e),
-            condition: vec![],
-        };
+        })
+        .build();
 
         // Build: A JOIN B
-        let ab_join = FromItem::JoinOn {
-            left: Box::new(a),
-            join_type: JoinType::Inner,
-            right: Box::new(b),
-            condition: vec![],
-        };
+        let ab_join = a.join(JoinType::Inner, b).on(Vec::new()).build();
+
+        // Build: C JOIN D JOIN E
+        let cd_join = c.join(JoinType::Inner, d).on(Vec::new()).build();
+        let cde_join = cd_join.join(JoinType::Inner, e).on(Vec::new()).build();
 
         // Build: (A JOIN B) JOIN (C JOIN D JOIN E)
-        let full_join = FromItem::JoinOn {
-            left: Box::new(ab_join),
-            join_type: JoinType::Inner,
-            right: Box::new(cde_join),
-            condition: vec![],
-        };
+        let full_join = ab_join
+            .join(JoinType::Inner, cde_join)
+            .on(Vec::new())
+            .build();
 
         let expected = indoc! {r#"
             "a"
@@ -1122,16 +1329,72 @@ mod tests {
     }
 
     #[test]
+    fn transpile_table_with_only() {
+        let from_item = FromItem::table(Table::DataTypes).only(true).build();
+
+        assert_eq!(from_item.transpile_to_string(), r#"ONLY "data_types""#);
+    }
+
+    #[test]
+    fn transpile_table_with_only_and_alias() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .only(true)
+            .alias(Table::DataTypes.aliased(Alias {
+                condition_index: 0,
+                chain_depth: 1,
+                number: 2,
+            }))
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#"ONLY "data_types" AS "data_types_0_1_2""#
+        );
+    }
+
+    #[test]
+    fn transpile_table_with_column_aliases() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("dt"),
+                alias: None,
+            })
+            .column_aliases(vec![
+                ColumnName::from(Identifier::from("id")),
+                ColumnName::from(Identifier::from("name")),
+                ColumnName::from(Identifier::from("url")),
+            ])
+            .build();
+
+        assert_eq!(
+            from_item.transpile_to_string(),
+            r#""data_types" AS "dt"("id", "name", "url")"#
+        );
+    }
+
+    #[test]
+    fn transpile_table_with_alias_but_no_column_aliases() {
+        let from_item = FromItem::table(Table::DataTypes)
+            .alias(TableReference {
+                schema: None,
+                name: TableName::from("dt"),
+                alias: None,
+            })
+            .build();
+
+        assert_eq!(from_item.transpile_to_string(), r#""data_types" AS "dt""#);
+    }
+
+    #[test]
     fn transpile_table_with_tablesample() {
-        let from_item = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: None,
-            tablesample: Some(TableSample {
+        let from_item = FromItem::table(Table::DataTypes)
+            .tablesample(TableSample {
                 method: SamplingMethod::Bernoulli,
                 percentage: 10.0,
                 repeatable_seed: None,
-            }),
-        };
+            })
+            .build();
 
         assert_eq!(
             from_item.transpile_to_string(),
@@ -1141,19 +1404,18 @@ mod tests {
 
     #[test]
     fn transpile_table_with_alias_and_tablesample() {
-        let from_item = FromItem::Table {
-            table: Table::DataTypes.into(),
-            alias: Some(Table::DataTypes.aliased(Alias {
-                condition_index: 0,
-                chain_depth: 1,
-                number: 2,
-            })),
-            tablesample: Some(TableSample {
+        let from_item = FromItem::table(Table::DataTypes)
+            .tablesample(TableSample {
                 method: SamplingMethod::System,
                 percentage: 5.0,
                 repeatable_seed: Some(42),
-            }),
-        };
+            })
+            .alias(Table::DataTypes.aliased(Alias {
+                condition_index: 0,
+                chain_depth: 1,
+                number: 2,
+            }))
+            .build();
 
         assert_eq!(
             from_item.transpile_to_string(),

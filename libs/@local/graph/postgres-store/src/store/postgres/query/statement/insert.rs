@@ -3,9 +3,8 @@ use core::{fmt, fmt::Formatter};
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    Alias, Column, Expression, Function, OrderByExpression, SelectExpression, SelectStatement,
-    Table, Transpile, WhereExpression, WithExpression,
-    expression::{FromItem, GroupByExpression, PostgresType},
+    Alias, Column, Expression, Function, SelectExpression, SelectStatement, Table, Transpile,
+    expression::{FromItem, PostgresType},
     rows::PostgresRow,
 };
 
@@ -162,23 +161,17 @@ impl<'p> InsertStatementBuilder<'p> {
                 table,
                 alias: None,
                 columns: vec![],
-                values: InsertValueItem::Query(Box::new(SelectStatement {
-                    with: WithExpression::default(),
-                    distinct: vec![],
-                    selects: vec![SelectExpression::Asterisk(None)],
-                    from: Some(FromItem::Function {
-                        function: Function::Unnest(Box::new(Expression::Cast(
-                            Box::new(Expression::Parameter(1)),
-                            PostgresType::Array(Box::new(PostgresType::Row(table))),
-                        ))),
-                        alias: None,
-                        lateral: false,
-                    }),
-                    where_expression: WhereExpression::default(),
-                    order_by_expression: OrderByExpression::default(),
-                    group_by_expression: GroupByExpression::default(),
-                    limit: None,
-                })),
+                values: InsertValueItem::Query(Box::new(
+                    SelectStatement::builder()
+                        .selects(vec![SelectExpression::Asterisk(None)])
+                        .from(FromItem::function(Function::Unnest(Box::new(
+                            Expression::Cast(
+                                Box::new(Expression::Parameter(1)),
+                                PostgresType::Array(Box::new(PostgresType::Row(table))),
+                            ),
+                        ))))
+                        .build(),
+                )),
             },
             parameters: vec![rows],
         }
