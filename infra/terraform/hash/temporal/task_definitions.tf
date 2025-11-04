@@ -25,7 +25,7 @@ locals {
 
       logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.migrate_service_name
@@ -34,13 +34,13 @@ locals {
       }
     },
     {
-      essential   = true
-      name        = "${local.prefix}-${local.temporal_service_name}"
-      image       = "temporalio/server:${var.temporal_version}"
-      cpu         = 0 # let ECS divvy up the available CPU
-      dependsOn   = [{ condition = "SUCCESS", containerName = "${local.prefix}-${local.migrate_service_name}" }]
+      essential = true
+      name      = "${local.prefix}-${local.temporal_service_name}"
+      image     = "temporalio/server:${var.temporal_version}"
+      cpu       = 0 # let ECS divvy up the available CPU
+      dependsOn = [{ condition = "SUCCESS", containerName = "${local.prefix}-${local.migrate_service_name}" }]
       healthCheck = {
-        command     = [
+        command = [
           "CMD", "/bin/sh", "-c", "temporal operator cluster health --address $(hostname):7233 | grep -q SERVING"
         ]
         startPeriod = 10
@@ -67,7 +67,7 @@ locals {
 
       logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.temporal_service_name
@@ -103,7 +103,7 @@ locals {
 
       logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.setup_service_name
@@ -116,7 +116,7 @@ locals {
 
       essential = false
       name      = "${local.prefix}-${local.ui_service_name}"
-      image       = "temporalio/ui:${var.temporal_ui_version}"
+      image     = "temporalio/ui:${var.temporal_ui_version}"
       cpu       = 0 # let ECS divvy up the available CPU
       dependsOn = [
         { condition = "HEALTHY", containerName = "${local.prefix}-${local.temporal_service_name}" },
@@ -145,7 +145,7 @@ locals {
 
       logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           "awslogs-create-group"  = "true"
           "awslogs-group"         = local.log_group_name
           "awslogs-stream-prefix" = local.ui_service_name
