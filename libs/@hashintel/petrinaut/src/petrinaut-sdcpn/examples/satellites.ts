@@ -44,8 +44,27 @@ export const satellitesSDCPN: SDCPN = {
         },
       ],
       lambdaType: "predicate",
-      lambdaCode: "",
-      transitionKernelCode: "",
+      lambdaCode: `// Check if two satellites collide (are within collision threshold)
+export default Lambda((tokens, parameters) => {  
+  const collision_threshold = parameters.collision_threshold || 10.0;
+  
+  // Get positions of the two satellites
+  const [x1, y1] = tokens[0];
+  const [x2, y2] = tokens[1];
+  
+  // Calculate distance between satellites
+  const distance = Math.hypot(x2 - x1, y2 - y1);
+  
+  // Collision occurs if distance is less than threshold
+  return distance < collision_threshold;
+})`,
+      transitionKernelCode: `// When satellites collide, they become debris (lose velocity)
+export default TransitionKernel((tokens) => {
+  // Both satellites become stationary debris at their collision point
+  return tokens.map(([x, y]) => {
+    return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+  });
+})`,
       x: 255,
       y: 180,
       width: 160,
@@ -67,8 +86,27 @@ export const satellitesSDCPN: SDCPN = {
         },
       ],
       lambdaType: "predicate",
-      lambdaCode: "",
-      transitionKernelCode: "",
+      lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
+export default Lambda((tokens, parameters) => {
+  if (tokens.length < 1) return false;
+  
+  const crash_threshold = parameters.crash_threshold || 5.0;
+  
+  // Get satellite position
+  const [x, y] = tokens[0];
+  
+  // Calculate distance from Earth center (origin)
+  const distance = Math.hypot(x, y);
+  
+  // Crash occurs if satellite is too close to Earth
+  return distance < crash_threshold;
+})`,
+      transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
+export default TransitionKernel((tokens) => {
+  return tokens.map(([x, y]) => {
+    return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+  });
+})`,
       x: 255,
       y: 30,
       width: 160,

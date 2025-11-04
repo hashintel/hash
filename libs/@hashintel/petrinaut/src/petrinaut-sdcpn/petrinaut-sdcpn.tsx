@@ -3,13 +3,16 @@ import "./index.css";
 
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
+import { SimulationProvider } from "./state/simulation-provider";
 import { EditorView } from "./views/Editor/editor-view";
 
 export const PetrinautSDCPN: React.FC = () => {
   return (
     <SDCPNProvider>
       <EditorProvider>
-        <EditorView />
+        <SimulationProvider>
+          <EditorView />
+        </SimulationProvider>
       </EditorProvider>
     </SDCPNProvider>
   );

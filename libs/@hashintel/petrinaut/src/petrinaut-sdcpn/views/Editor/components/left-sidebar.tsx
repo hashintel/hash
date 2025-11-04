@@ -10,12 +10,14 @@ import {
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
+  TbPlayerPlay,
 } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import type { MenuItem } from "../../../components/menu";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
 
@@ -54,6 +56,18 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
     (state) => state.sdcpn.differentialEquations,
   );
   const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
+
+  // Get global mode
+  const globalMode = useEditorStore((state) => state.globalMode);
+
+  // Get simulation state and actions
+  const simulationState = useSimulationStore((state) => state.state);
+  const simulationError = useSimulationStore((state) => state.error);
+  const initialize = useSimulationStore((state) => state.initialize);
+  const step = useSimulationStore((state) => state.step);
+
+  // Get SDCPN data
+  const sdcpn = useSDCPNStore((state) => state.sdcpn);
 
   // Store actions
   const addType = useSDCPNStore((state) => state.addType);
@@ -251,27 +265,170 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
           </div>
         </div>
 
-        {/* Types Section */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            paddingBottom: 16,
-            borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-          }}
-        >
+        {/* Simulation State Section - only in Simulate mode */}
+        {globalMode === "simulate" && (
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexDirection: "column",
+              gap: 12,
+              paddingBottom: 16,
+              borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
             }}
           >
-            <button
-              type="button"
-              onClick={() => setIsTypesExpanded(!isTypesExpanded)}
-              className={css({
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 12px",
+                backgroundColor: "rgba(0, 0, 0, 0.03)",
+                borderRadius: 4,
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "rgba(0, 0, 0, 0.5)",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Simulation State
+                </span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color:
+                      simulationState === "Running"
+                        ? "#1976d2"
+                        : simulationState === "Complete"
+                          ? "#2e7d32"
+                          : simulationState === "Error"
+                            ? "#d32f2f"
+                            : simulationState === "Paused"
+                              ? "#ed6c02"
+                              : "rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  {simulationState === "NotRun"
+                    ? "Not Started"
+                    : simulationState}
+                </span>
+                {simulationState === "Error" && simulationError && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#d32f2f",
+                      marginTop: 4,
+                      maxWidth: 250,
+                      wordWrap: "break-word",
+                    }}
+                  >
+                    {simulationError}
+                  </span>
+                )}
+              </div>
+                            {simulationState === "NotRun" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Build initial marking from places
+                    // TODO: Get actual initial state from InitialStateEditor data
+                    const initialMarking = new Map<
+                      string,
+                      { values: Float64Array; count: number }
+                    >();
+                    for (const place of sdcpn.places) {
+                      // Default to empty marking for now
+                      initialMarking.set(place.id, {
+                        values: new Float64Array(0),
+                        count: 0,
+                      });
+                    }
+                    initialize({
+                      initialMarking,
+                      seed: Date.now(),
+                      dt: 0.01,
+                    });
+                  }}
+                  className={css({
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "[6px]",
+                    padding: "[6px_12px]",
+                    background: "[#1976d2]",
+                    border: "none",
+                    borderRadius: "[4px]",
+                    cursor: "pointer",
+                    color: "[white]",
+                    fontSize: "[13px]",
+                    fontWeight: "[500]",
+                    _hover: {
+                      background: "[#1565c0]",
+                    },
+                  })}
+                >
+                  <TbPlayerPlay size={16} />
+                  Play
+                </button>
+              )}
+              {simulationState === "Paused" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    step();
+                  }}
+                  className={css({
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "[6px]",
+                    padding: "[6px_12px]",
+                    background: "[#1976d2]",
+                    border: "none",
+                    borderRadius: "[4px]",
+                    cursor: "pointer",
+                    color: "[white]",
+                    fontSize: "[13px]",
+                    fontWeight: "[500]",
+                    _hover: {
+                      background: "[#1565c0]",
+                    },
+                  })}
+                >
+                  <TbPlayerPlay size={16} />
+                  Continue
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Types Section - only in Edit mode */}
+        {globalMode === "edit" && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              paddingBottom: 16,
+              borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsTypesExpanded(!isTypesExpanded)}
+                className={css({
                 display: "flex",
                 alignItems: "center",
                 fontWeight: 600,
@@ -422,16 +579,18 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
               )}
             </div>
           )}
-        </div>
+          </div>
+        )}
 
-        {/* Differential Equations Section */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
+        {/* Differential Equations Section - only in Edit mode */}
+        {globalMode === "edit" && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
           <div
             style={{
               display: "flex",
@@ -570,7 +729,8 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
               )}
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Parameters Section */}
         <div
