@@ -3,13 +3,25 @@ import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
 
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const ParametersSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
   const addParameter = useSDCPNStore((state) => state.addParameter);
   const removeParameter = useSDCPNStore((state) => state.removeParameter);
+  const globalMode = useEditorStore((state) => state.globalMode);
+  const simulationState = useSimulationStore((state) => state.state);
+  const parameterValues = useSimulationStore((state) => state.parameterValues);
+  const setParameterValue = useSimulationStore(
+    (state) => state.setParameterValue,
+  );
+
+  const isSimulationNotRun =
+    globalMode === "simulate" && simulationState === "NotRun";
+  const isSimulationMode = globalMode === "simulate";
 
   return (
     <div
@@ -54,39 +66,41 @@ export const ParametersSection: React.FC = () => {
           )}
           Parameters
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            const name = `param${parameters.length + 1}`;
-            addParameter({
-              id: uuidv4(),
-              name: `Parameter ${parameters.length + 1}`,
-              variableName: name,
-              type: "real",
-              defaultValue: "0",
-            });
-          }}
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "spacing.1",
-            borderRadius: "radius.2",
-            cursor: "pointer",
-            fontSize: "[14px]",
-            color: "core.gray.50",
-            background: "[transparent]",
-            border: "none",
-            _hover: {
-              backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-              color: "[#3b82f6]",
-            },
-          })}
-          style={{ width: 20, height: 20 }}
-          aria-label="Add parameter"
-        >
-          +
-        </button>
+        {!isSimulationMode && (
+          <button
+            type="button"
+            onClick={() => {
+              const name = `param${parameters.length + 1}`;
+              addParameter({
+                id: uuidv4(),
+                name: `Parameter ${parameters.length + 1}`,
+                variableName: name,
+                type: "real",
+                defaultValue: "0",
+              });
+            }}
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "spacing.1",
+              borderRadius: "radius.2",
+              cursor: "pointer",
+              fontSize: "[14px]",
+              color: "core.gray.50",
+              background: "[transparent]",
+              border: "none",
+              _hover: {
+                backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+                color: "[#3b82f6]",
+              },
+            })}
+            style={{ width: 20, height: 20 }}
+            aria-label="Add parameter"
+          >
+            +
+          </button>
+        )}
       </div>
       {isExpanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -94,6 +108,7 @@ export const ParametersSection: React.FC = () => {
             <div
               key={param.id}
               style={{
+                width: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -103,37 +118,71 @@ export const ParametersSection: React.FC = () => {
                 backgroundColor: "#f9fafb",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span>
-                  {param.name} ({param.variableName})
-                </span>
+              <div>
+                <div>{param.name}</div>
+                <pre>{param.variableName}</pre>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm(`Delete parameter "${param.name}"?`)) {
-                    removeParameter(param.id);
-                  }
-                }}
-                className={css({
+              <div
+                style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  padding: "spacing.1",
-                  borderRadius: "radius.2",
-                  cursor: "pointer",
-                  fontSize: "[14px]",
-                  color: "core.gray.50",
-                  _hover: {
-                    backgroundColor: "[rgba(255, 0, 0, 0.1)]",
-                    color: "[#ef4444]",
-                  },
-                })}
-                style={{ width: 20, height: 20 }}
-                aria-label={`Delete ${param.name}`}
+                  gap: 6,
+                }}
               >
-                ×
-              </button>
+                {isSimulationMode ? (
+                  <input
+                    type="number"
+                    value={parameterValues[param.id] ?? param.defaultValue}
+                    onChange={(event) =>
+                      setParameterValue(param.id, event.target.value)
+                    }
+                    placeholder={param.defaultValue}
+                    readOnly={!isSimulationNotRun}
+                    className={css({
+                      padding: "[2px 6px]",
+                      fontSize: "[12px]",
+                      borderRadius: "radius.2",
+                      border: "1px solid",
+                      borderColor: "core.gray.30",
+                      backgroundColor: "[white]",
+                      width: "[80px]",
+                      textAlign: "right",
+                      _focus: {
+                        outline: "none",
+                        borderColor: "core.blue.50",
+                      },
+                    })}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // eslint-disable-next-line no-alert
+                      if (window.confirm(`Delete parameter "${param.name}"?`)) {
+                        removeParameter(param.id);
+                      }
+                    }}
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "spacing.1",
+                      borderRadius: "radius.2",
+                      cursor: "pointer",
+                      fontSize: "[14px]",
+                      color: "core.gray.50",
+                      _hover: {
+                        backgroundColor: "[rgba(255, 0, 0, 0.1)]",
+                        color: "[#ef4444]",
+                      },
+                    })}
+                    style={{ width: 20, height: 20 }}
+                    aria-label={`Delete ${param.name}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {parameters.length === 0 && (

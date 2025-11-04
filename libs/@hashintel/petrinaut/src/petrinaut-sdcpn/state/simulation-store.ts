@@ -28,6 +28,12 @@ export type SimulationStoreState = {
   // Error message if state is Error
   error: string | null;
 
+  // Parameter values for the simulation (key: parameter ID, value: parameter value)
+  parameterValues: Record<string, string>;
+
+  // Set a parameter value
+  setParameterValue: (parameterId: string, value: string) => void;
+
   // Initialize the simulation with initial marking
   initialize: (params: {
     initialMarking: InitialMarking;
@@ -58,6 +64,19 @@ export function createSimulationStore(sdcpnStore: {
         simulation: null,
         state: "NotRun",
         error: null,
+        parameterValues: {},
+
+        setParameterValue: (parameterId, value) =>
+          set(
+            (state) => ({
+              parameterValues: {
+                ...state.parameterValues,
+                [parameterId]: value,
+              },
+            }),
+            false,
+            { type: "setParameterValue", parameterId, value },
+          ),
 
         initialize: ({ initialMarking, seed, dt }) =>
           set(
@@ -177,6 +196,7 @@ export function createSimulationStore(sdcpnStore: {
               simulation: null,
               state: "NotRun",
               error: null,
+              parameterValues: {},
             },
             false,
             "reset",
