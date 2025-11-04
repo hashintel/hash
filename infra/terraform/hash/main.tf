@@ -125,21 +125,21 @@ module "temporal" {
 }
 
 module "observability" {
-  depends_on                = [module.networking]
-  source                    = "./observability"
-  env                       = local.env
-  region                    = local.region
-  vpc                       = module.networking.vpc
-  prefix                    = "h-${terraform.workspace}-observability"
-  param_prefix              = local.param_prefix
-  subnets                   = module.networking.snpub
-  grafana_database_host     = module.postgres.pg_host
-  grafana_database_port     = module.postgres.pg_port
-  grafana_database_password = sensitive(data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_raw"])
-  grafana_secret_key        = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
-  vpc_zone_id               = aws_route53_zone.vpc.zone_id
-  amazon_trust_ca_bundle    = local.amazon_trust_ca_bundle
-  critical_alerts_topic_arn = module.critical_alerts.sns_topic_arn
+  depends_on                            = [module.networking]
+  source                                = "./observability"
+  env                                   = local.env
+  region                                = local.region
+  vpc                                   = module.networking.vpc
+  prefix                                = "h-${terraform.workspace}-observability"
+  param_prefix                          = local.param_prefix
+  subnets                               = module.networking.snpub
+  grafana_database_host                 = module.postgres.pg_host
+  grafana_database_port                 = module.postgres.pg_port
+  grafana_database_password             = sensitive(data.vault_kv_secret_v2.secrets.data["pg_grafana_user_password_raw"])
+  grafana_secret_key                    = sensitive(data.vault_kv_secret_v2.secrets.data["grafana_secret_key"])
+  vpc_zone_id                           = aws_route53_zone.vpc.zone_id
+  amazon_trust_ca_bundle                = local.amazon_trust_ca_bundle
+  pagerduty_grafana_aws_integration_key = sensitive(data.vault_kv_secret_v2.secrets.data["pagerduty_grafana_aws_integration_key"])
 }
 
 
@@ -236,14 +236,6 @@ module "temporal_worker_integration_ecr" {
   source   = "../modules/container_registry"
   prefix   = local.prefix
   ecr_name = "temporalworkerintegration"
-}
-
-module "critical_alerts" {
-  source = "../modules/sns_slack_alerts"
-
-  prefix            = local.prefix
-  severity          = "critical"
-  slack_webhook_url = sensitive(data.vault_kv_secret_v2.secrets.data["slack_aws_webhook"])
 }
 
 module "application" {
