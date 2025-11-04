@@ -29,7 +29,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage_space" {
   namespace           = "AWS/RDS"
   statistic           = "Minimum"
   period              = 300                     # 5 minutes
-  evaluation_periods  = 2                       # Must be low for 10 minutes total
+  evaluation_periods  = 2                       # 10 minutes total
+  datapoints_to_alarm = 2                       # Both datapoints must be low
   threshold           = 10 * 1024 * 1024 * 1024 # 10GB in bytes
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"
@@ -58,7 +59,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_utilization_high" {
   namespace           = "AWS/RDS"
   statistic           = "Average"
   period              = 300 # 5 minutes
-  evaluation_periods  = 2   # Must be high for 10 minutes total
+  evaluation_periods  = 5   # 25 minutes total
+  datapoints_to_alarm = 3   # 3 of 5 datapoints must be high (grace for spikes)
   threshold           = 80  # 80%
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
@@ -74,5 +76,35 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_utilization_high" {
     Name     = "${var.prefix}-rds-cpu-utilization-high-alarm"
     Severity = "WARNING"
     Purpose  = "Alert when RDS CPU utilization is consistently high"
+  }
+}
+
+# CloudWatch Alarm for RDS freeable memory
+resource "aws_cloudwatch_metric_alarm" "rds_freeable_memory_low" {
+  alarm_name        = "${var.prefix}-rds-freeable-memory-low"
+  alarm_description = "CRITICAL: RDS instance ${aws_db_instance.postgres.identifier} has low freeable memory."
+
+  # RDS memory metrics
+  metric_name         = "FreeableMemory"
+  namespace           = "AWS/RDS"
+  statistic           = "Minimum"
+  period              = 300               # 5 minutes
+  evaluation_periods  = 3                 # 15 minutes total
+  datapoints_to_alarm = 2                 # 2 of 3 datapoints must be low (moderate grace)
+  threshold           = 256 * 1024 * 1024 # 256MB in bytes
+  comparison_operator = "LessThanThreshold"
+  treat_missing_data  = "breaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  alarm_actions = [aws_sns_topic.database_alerts.arn]
+  ok_actions    = [aws_sns_topic.database_alerts.arn]
+
+  tags = {
+    Name     = "${var.prefix}-rds-freeable-memory-low-alarm"
+    Severity = "CRITICAL"
+    Purpose  = "Alert when RDS freeable memory is critically low"
   }
 }
