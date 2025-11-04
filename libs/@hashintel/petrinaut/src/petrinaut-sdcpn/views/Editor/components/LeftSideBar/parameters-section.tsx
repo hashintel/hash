@@ -47,7 +47,11 @@ export const ParametersSection: React.FC = () => {
           })}
           style={{ gap: 6 }}
         >
-          {isExpanded ? <FaChevronDown size={10} /> : <FaChevronRight size={10} />}
+          {isExpanded ? (
+            <FaChevronDown size={10} />
+          ) : (
+            <FaChevronRight size={10} />
+          )}
           Parameters
         </button>
         <button
