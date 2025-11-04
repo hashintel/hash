@@ -332,7 +332,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                   </span>
                 )}
               </div>
-                            {simulationState === "NotRun" && (
+              {simulationState === "NotRun" && (
                 <button
                   type="button"
                   onClick={() => {
@@ -359,7 +359,6 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                     display: "flex",
                     alignItems: "center",
                     gap: "[6px]",
-                    padding: "[6px_12px]",
                     background: "[#1976d2]",
                     border: "none",
                     borderRadius: "[4px]",
@@ -371,6 +370,9 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                       background: "[#1565c0]",
                     },
                   })}
+                  style={{
+                    padding: "6px 12px",
+                  }}
                 >
                   <TbPlayerPlay size={16} />
                   Play
@@ -429,156 +431,156 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
                 type="button"
                 onClick={() => setIsTypesExpanded(!isTypesExpanded)}
                 className={css({
-                display: "flex",
-                alignItems: "center",
-                fontWeight: 600,
-                fontSize: "[13px]",
-                color: "[#333]",
-                cursor: "pointer",
-                background: "[transparent]",
-                border: "none",
-                padding: "spacing.1",
-                borderRadius: "radius.4",
-                _hover: {
-                  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-                },
-              })}
-              style={{ gap: 6 }}
-            >
-              {isTypesExpanded ? (
-                <FaChevronDown size={10} />
-              ) : (
-                <FaChevronRight size={10} />
-              )}
-              Types
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const newType = {
-                  id: `type__${Date.now()}`,
-                  name: "New Type",
-                  iconId: "circle",
-                  colorCode: "#3b82f6",
-                  elements: [],
-                };
-                addType(newType);
-              }}
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "spacing.1",
-                borderRadius: "radius.2",
-                cursor: "pointer",
-                fontSize: "[18px]",
-                color: "core.gray.60",
-                _hover: {
-                  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-                  color: "core.gray.90",
-                },
-              })}
-              style={{ width: 24, height: 24 }}
-              aria-label="Add type"
-            >
-              +
-            </button>
-          </div>
+                  display: "flex",
+                  alignItems: "center",
+                  fontWeight: 600,
+                  fontSize: "[13px]",
+                  color: "[#333]",
+                  cursor: "pointer",
+                  background: "[transparent]",
+                  border: "none",
+                  padding: "spacing.1",
+                  borderRadius: "radius.4",
+                  _hover: {
+                    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+                  },
+                })}
+                style={{ gap: 6 }}
+              >
+                {isTypesExpanded ? (
+                  <FaChevronDown size={10} />
+                ) : (
+                  <FaChevronRight size={10} />
+                )}
+                Types
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const newType = {
+                    id: `type__${Date.now()}`,
+                    name: "New Type",
+                    iconId: "circle",
+                    colorCode: "#3b82f6",
+                    elements: [],
+                  };
+                  addType(newType);
+                }}
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "spacing.1",
+                  borderRadius: "radius.2",
+                  cursor: "pointer",
+                  fontSize: "[18px]",
+                  color: "core.gray.60",
+                  _hover: {
+                    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+                    color: "core.gray.90",
+                  },
+                })}
+                style={{ width: 24, height: 24 }}
+                aria-label="Add type"
+              >
+                +
+              </button>
+            </div>
 
-          {isTypesExpanded && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-                maxHeight: 200,
-                overflowY: "auto",
-              }}
-            >
-              {types.map((type) => (
-                <div
-                  key={type.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "4px 9px",
-                    borderRadius: 4,
-                    backgroundColor: "transparent",
-                  }}
-                  className={css({
-                    _hover: {
-                      backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-                    },
-                  })}
-                >
+            {isTypesExpanded && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                }}
+              >
+                {types.map((type) => (
                   <div
+                    key={type.id}
                     style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      backgroundColor: type.colorCode,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 13,
-                      color: "#374151",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {type.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Delete type "${type.name}"? All places using this type will have their type set to null.`,
-                        )
-                      ) {
-                        removeType(type.id);
-                      }
-                    }}
-                    className={css({
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      padding: "spacing.1",
-                      borderRadius: "radius.2",
-                      cursor: "pointer",
-                      fontSize: "[14px]",
-                      color: "core.gray.50",
+                      gap: 8,
+                      padding: "4px 9px",
+                      borderRadius: 4,
+                      backgroundColor: "transparent",
+                    }}
+                    className={css({
                       _hover: {
-                        backgroundColor: "[rgba(255, 0, 0, 0.1)]",
-                        color: "[#ef4444]",
+                        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
                       },
                     })}
-                    style={{ width: 20, height: 20 }}
-                    aria-label={`Delete ${type.name}`}
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {types.length === 0 && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#9ca3af",
-                    padding: "spacing.4",
-                    textAlign: "center",
-                  }}
-                >
-                  No types yet
-                </div>
-              )}
-            </div>
-          )}
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        backgroundColor: type.colorCode,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 13,
+                        color: "#374151",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {type.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Delete type "${type.name}"? All places using this type will have their type set to null.`,
+                          )
+                        ) {
+                          removeType(type.id);
+                        }
+                      }}
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "spacing.1",
+                        borderRadius: "radius.2",
+                        cursor: "pointer",
+                        fontSize: "[14px]",
+                        color: "core.gray.50",
+                        _hover: {
+                          backgroundColor: "[rgba(255, 0, 0, 0.1)]",
+                          color: "[#ef4444]",
+                        },
+                      })}
+                      style={{ width: 20, height: 20 }}
+                      aria-label={`Delete ${type.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {types.length === 0 && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#9ca3af",
+                      padding: "spacing.4",
+                      textAlign: "center",
+                    }}
+                  >
+                    No types yet
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -591,144 +593,144 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
               gap: 8,
             }}
           >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setIsDifferentialEquationsExpanded(
-                  !isDifferentialEquationsExpanded,
-                )
-              }
-              className={css({
+            <div
+              style={{
                 display: "flex",
                 alignItems: "center",
-                fontWeight: 600,
-                fontSize: "[13px]",
-                color: "[#333]",
-                paddingBottom: "[4px]",
-                cursor: "pointer",
-                background: "[transparent]",
-                border: "none",
-                padding: "spacing.1",
-                borderRadius: "radius.4",
-                _hover: {
-                  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-                },
-              })}
-              style={{ gap: 6 }}
-            >
-              {isDifferentialEquationsExpanded ? (
-                <FaChevronDown size={10} />
-              ) : (
-                <FaChevronRight size={10} />
-              )}
-              Differential Equations
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const name = `Equation ${differentialEquations.length + 1}`;
-                addDifferentialEquation({
-                  id: uuidv4(),
-                  name,
-                  typeId: types.length > 0 ? types[0]!.id : "",
-                  code: `// dx/dt = ...\nreturn 0;`,
-                });
+                justifyContent: "space-between",
               }}
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "spacing.1",
-                borderRadius: "radius.2",
-                cursor: "pointer",
-                fontSize: "[14px]",
-                color: "core.gray.50",
-                background: "[transparent]",
-                border: "none",
-                _hover: {
-                  backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-                  color: "[#3b82f6]",
-                },
-              })}
-              style={{ width: 20, height: 20 }}
-              aria-label="Add differential equation"
             >
-              +
-            </button>
-          </div>
-          {isDifferentialEquationsExpanded && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {differentialEquations.map((eq) => (
-                <div
-                  key={eq.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "4px 8px",
-                    fontSize: 13,
-                    borderRadius: 4,
-                    backgroundColor: "#f9fafb",
-                  }}
-                >
+              <button
+                type="button"
+                onClick={() =>
+                  setIsDifferentialEquationsExpanded(
+                    !isDifferentialEquationsExpanded,
+                  )
+                }
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  fontWeight: 600,
+                  fontSize: "[13px]",
+                  color: "[#333]",
+                  paddingBottom: "[4px]",
+                  cursor: "pointer",
+                  background: "[transparent]",
+                  border: "none",
+                  padding: "spacing.1",
+                  borderRadius: "radius.4",
+                  _hover: {
+                    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+                  },
+                })}
+                style={{ gap: 6 }}
+              >
+                {isDifferentialEquationsExpanded ? (
+                  <FaChevronDown size={10} />
+                ) : (
+                  <FaChevronRight size={10} />
+                )}
+                Differential Equations
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const name = `Equation ${differentialEquations.length + 1}`;
+                  addDifferentialEquation({
+                    id: uuidv4(),
+                    name,
+                    typeId: types.length > 0 ? types[0]!.id : "",
+                    code: `// dx/dt = ...\nreturn 0;`,
+                  });
+                }}
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "spacing.1",
+                  borderRadius: "radius.2",
+                  cursor: "pointer",
+                  fontSize: "[14px]",
+                  color: "core.gray.50",
+                  background: "[transparent]",
+                  border: "none",
+                  _hover: {
+                    backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+                    color: "[#3b82f6]",
+                  },
+                })}
+                style={{ width: 20, height: 20 }}
+                aria-label="Add differential equation"
+              >
+                +
+              </button>
+            </div>
+            {isDifferentialEquationsExpanded && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {differentialEquations.map((eq) => (
                   <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span>{eq.name}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
-                        )
-                      ) {
-                        removeDifferentialEquation(eq.id);
-                      }
-                    }}
-                    className={css({
+                    key={eq.id}
+                    style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      padding: "spacing.1",
-                      borderRadius: "radius.2",
-                      cursor: "pointer",
-                      fontSize: "[14px]",
-                      color: "core.gray.50",
-                      _hover: {
-                        backgroundColor: "[rgba(255, 0, 0, 0.1)]",
-                        color: "[#ef4444]",
-                      },
-                    })}
-                    style={{ width: 20, height: 20 }}
-                    aria-label={`Delete ${eq.name}`}
+                      justifyContent: "space-between",
+                      padding: "4px 8px",
+                      fontSize: 13,
+                      borderRadius: 4,
+                      backgroundColor: "#f9fafb",
+                    }}
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {differentialEquations.length === 0 && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#9ca3af",
-                    padding: "spacing.4",
-                    textAlign: "center",
-                  }}
-                >
-                  No differential equations yet
-                </div>
-              )}
-            </div>
-          )}
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span>{eq.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                          )
+                        ) {
+                          removeDifferentialEquation(eq.id);
+                        }
+                      }}
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "spacing.1",
+                        borderRadius: "radius.2",
+                        cursor: "pointer",
+                        fontSize: "[14px]",
+                        color: "core.gray.50",
+                        _hover: {
+                          backgroundColor: "[rgba(255, 0, 0, 0.1)]",
+                          color: "[#ef4444]",
+                        },
+                      })}
+                      style={{ width: 20, height: 20 }}
+                      aria-label={`Delete ${eq.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {differentialEquations.length === 0 && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#9ca3af",
+                      padding: "spacing.4",
+                      textAlign: "center",
+                    }}
+                  >
+                    No differential equations yet
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
