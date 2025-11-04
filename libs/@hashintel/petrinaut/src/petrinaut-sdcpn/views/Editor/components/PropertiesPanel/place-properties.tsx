@@ -177,12 +177,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
               overflow: "hidden",
-              height: 200,
+              height: 310,
             }}
           >
             <MonacoEditor
-              height="200px"
-              defaultLanguage="python"
+              language="typescript"
               value={
                 typeof place.differentialEquationCode === "string"
                   ? place.differentialEquationCode
