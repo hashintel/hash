@@ -1,27 +1,20 @@
-import { transformSync } from "@babel/core";
+import * as Babel from "@babel/standalone";
 
 /**
  * Strips TypeScript type annotations from code to make it executable JavaScript.
- * Uses Babel to properly parse and transform TypeScript code.
+ * Uses Babel standalone (browser-compatible) to properly parse and transform TypeScript code.
  *
  * @param code - TypeScript code with type annotations
  * @returns JavaScript code without type annotations
  */
 function stripTypeAnnotations(code: string): string {
-  const result = transformSync(code, {
+  const result = Babel.transform(code, {
     filename: "input.ts",
-    plugins: [
-      [
-        "@babel/plugin-transform-typescript",
-        {
-          allowDeclareFields: true,
-          onlyRemoveTypeImports: true,
-          isTSX: false,
-        },
-      ],
+    presets: [
+      ["typescript", { allowDeclareFields: true, onlyRemoveTypeImports: true }],
     ],
   });
-  return result?.code ?? "";
+  return result.code ?? "";
 }
 
 /**

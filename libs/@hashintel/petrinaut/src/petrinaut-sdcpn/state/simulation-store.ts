@@ -72,6 +72,14 @@ export function createSimulationStore(sdcpnStore: {
               try {
                 const { sdcpn } = sdcpnStore.getState();
 
+                // eslint-disable-next-line no-console
+                console.log("Initializing simulation with:", {
+                  sdcpn,
+                  initialMarking,
+                  seed,
+                  dt,
+                });
+
                 // Build the simulation instance
                 const simulationInstance = buildSimulation({
                   sdcpn,
@@ -80,12 +88,18 @@ export function createSimulationStore(sdcpnStore: {
                   dt,
                 });
 
+                // eslint-disable-next-line no-console
+                console.log("Simulation initialized successfully:", simulationInstance);
+
                 return {
                   simulation: simulationInstance,
                   state: "Paused",
                   error: null,
                 };
               } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error("Error initializing simulation:", error);
+                
                 return {
                   simulation: null,
                   state: "Error",
