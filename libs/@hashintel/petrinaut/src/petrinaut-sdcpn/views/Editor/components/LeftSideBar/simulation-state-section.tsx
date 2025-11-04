@@ -131,7 +131,6 @@ export const SimulationStateSection: React.FC = () => {
               display: "flex",
               alignItems: "center",
               gap: "[6px]",
-              padding: "[6px_12px]",
               background: "[#1976d2]",
               border: "none",
               borderRadius: "[4px]",
@@ -143,6 +142,7 @@ export const SimulationStateSection: React.FC = () => {
                 background: "[#1565c0]",
               },
             })}
+            style={{ padding: "6px 12px" }}
           >
             <TbPlayerPlay size={16} />
             Continue
