@@ -89,7 +89,10 @@ export function createSimulationStore(sdcpnStore: {
                 });
 
                 // eslint-disable-next-line no-console
-                console.log("Simulation initialized successfully:", simulationInstance);
+                console.log(
+                  "Simulation initialized successfully:",
+                  simulationInstance,
+                );
 
                 return {
                   simulation: simulationInstance,
@@ -99,7 +102,7 @@ export function createSimulationStore(sdcpnStore: {
               } catch (error) {
                 // eslint-disable-next-line no-console
                 console.error("Error initializing simulation:", error);
-                
+
                 return {
                   simulation: null,
                   state: "Error",

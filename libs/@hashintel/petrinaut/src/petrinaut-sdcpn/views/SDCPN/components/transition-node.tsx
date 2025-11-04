@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
@@ -48,6 +49,23 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
         })}
         style={{ transition: "all 0.2s ease" }}
       >
+        {data.lambdaType === "stochastic" && (
+          <div
+            className={css({
+              position: "absolute",
+              top: "[8px]",
+              left: "[0px]",
+              width: "[100%]",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "core.blue.60",
+              fontSize: "[18px]",
+            })}
+          >
+            <TbLambda />
+          </div>
+        )}
         {label}
       </div>
       <Handle

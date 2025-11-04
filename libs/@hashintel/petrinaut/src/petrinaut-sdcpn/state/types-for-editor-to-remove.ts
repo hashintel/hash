@@ -11,6 +11,8 @@ export type ArcType = Omit<Edge<ArcData>, "style">;
 export type PlaceNodeData = {
   label: string;
   type: "place";
+  dynamicsEnabled: boolean;
+  hasColorType: boolean;
 };
 
 export type TransitionNodeData = {
@@ -20,6 +22,7 @@ export type TransitionNodeData = {
    * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.
    */
   type: "transition";
+  lambdaType: "predicate" | "stochastic";
 };
 
 export type TransitionNodeType = Omit<
