@@ -197,7 +197,7 @@ export const SDCPNView: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [mode, selectedItemIds, deleteSelection]);
+  }, [mode, selectedItemIds.size, deleteSelection]);
 
   // Determine ReactFlow props based on edition mode
   const isAddMode =
