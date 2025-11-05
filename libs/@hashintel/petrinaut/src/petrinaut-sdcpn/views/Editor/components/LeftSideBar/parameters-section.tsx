@@ -15,7 +15,9 @@ export const ParametersSection: React.FC = () => {
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore((state) => state.setSelectedItemIds);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
     (state) => state.setParameterValue,
@@ -108,7 +110,7 @@ export const ParametersSection: React.FC = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {parameters.map((param) => {
             const isSelected = selectedItemIds.has(param.id);
-            
+
             return (
               <div
                 key={param.id}
@@ -191,7 +193,9 @@ export const ParametersSection: React.FC = () => {
                       type="button"
                       onClick={() => {
                         // eslint-disable-next-line no-alert
-                        if (window.confirm(`Delete parameter "${param.name}"?`)) {
+                        if (
+                          window.confirm(`Delete parameter "${param.name}"?`)
+                        ) {
                           removeParameter(param.id);
                         }
                       }}
