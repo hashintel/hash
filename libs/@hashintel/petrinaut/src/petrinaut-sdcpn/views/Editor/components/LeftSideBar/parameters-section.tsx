@@ -14,6 +14,8 @@ export const ParametersSection: React.FC = () => {
   const removeParameter = useSDCPNStore((state) => state.removeParameter);
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const setSelectedItemIds = useEditorStore((state) => state.setSelectedItemIds);
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
     (state) => state.setParameterValue,
@@ -104,87 +106,119 @@ export const ParametersSection: React.FC = () => {
       </div>
       {isExpanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {parameters.map((param) => (
-            <div
-              key={param.id}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "4px 8px",
-                fontSize: 13,
-                borderRadius: 4,
-                backgroundColor: "#f9fafb",
-              }}
-            >
-              <div>
-                <div>{param.name}</div>
-                <pre>{param.variableName}</pre>
-              </div>
+          {parameters.map((param) => {
+            const isSelected = selectedItemIds.has(param.id);
+            
+            return (
               <div
+                key={param.id}
+                onClick={(event) => {
+                  // Don't trigger selection if clicking the delete button or input
+                  if (
+                    event.target instanceof HTMLElement &&
+                    (event.target.closest("button[aria-label^='Delete']") ||
+                      event.target.closest("input"))
+                  ) {
+                    return;
+                  }
+                  setSelectedItemIds(new Set([param.id]));
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    setSelectedItemIds(new Set([param.id]));
+                  }
+                }}
                 style={{
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  justifyContent: "space-between",
+                  padding: "4px 8px",
+                  fontSize: 13,
+                  borderRadius: 4,
+                  backgroundColor: isSelected
+                    ? "rgba(59, 130, 246, 0.15)"
+                    : "#f9fafb",
+                  cursor: "pointer",
                 }}
+                className={css({
+                  _hover: {
+                    backgroundColor: isSelected
+                      ? "[rgba(59, 130, 246, 0.2)]"
+                      : "[rgba(0, 0, 0, 0.05)]",
+                  },
+                })}
               >
-                {isSimulationMode ? (
-                  <input
-                    type="number"
-                    value={parameterValues[param.id] ?? param.defaultValue}
-                    onChange={(event) =>
-                      setParameterValue(param.id, event.target.value)
-                    }
-                    placeholder={param.defaultValue}
-                    readOnly={!isSimulationNotRun}
-                    className={css({
-                      padding: "[2px 6px]",
-                      fontSize: "[12px]",
-                      borderRadius: "radius.2",
-                      border: "1px solid",
-                      borderColor: "core.gray.30",
-                      backgroundColor: "[white]",
-                      width: "[80px]",
-                      textAlign: "right",
-                      _focus: {
-                        outline: "none",
-                        borderColor: "core.blue.50",
-                      },
-                    })}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // eslint-disable-next-line no-alert
-                      if (window.confirm(`Delete parameter "${param.name}"?`)) {
-                        removeParameter(param.id);
+                <div>
+                  <div>{param.name}</div>
+                  <pre>{param.variableName}</pre>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {isSimulationMode ? (
+                    <input
+                      type="number"
+                      value={parameterValues[param.id] ?? param.defaultValue}
+                      onChange={(event) =>
+                        setParameterValue(param.id, event.target.value)
                       }
-                    }}
-                    className={css({
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "spacing.1",
-                      borderRadius: "radius.2",
-                      cursor: "pointer",
-                      fontSize: "[14px]",
-                      color: "core.gray.50",
-                      _hover: {
-                        backgroundColor: "[rgba(255, 0, 0, 0.1)]",
-                        color: "[#ef4444]",
-                      },
-                    })}
-                    style={{ width: 20, height: 20 }}
-                    aria-label={`Delete ${param.name}`}
-                  >
-                    ×
-                  </button>
-                )}
+                      placeholder={param.defaultValue}
+                      readOnly={!isSimulationNotRun}
+                      className={css({
+                        padding: "[2px 6px]",
+                        fontSize: "[12px]",
+                        borderRadius: "radius.2",
+                        border: "1px solid",
+                        borderColor: "core.gray.30",
+                        backgroundColor: "[white]",
+                        width: "[80px]",
+                        textAlign: "right",
+                        _focus: {
+                          outline: "none",
+                          borderColor: "core.blue.50",
+                        },
+                      })}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // eslint-disable-next-line no-alert
+                        if (window.confirm(`Delete parameter "${param.name}"?`)) {
+                          removeParameter(param.id);
+                        }
+                      }}
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "spacing.1",
+                        borderRadius: "radius.2",
+                        cursor: "pointer",
+                        fontSize: "[14px]",
+                        color: "core.gray.50",
+                        _hover: {
+                          backgroundColor: "[rgba(255, 0, 0, 0.1)]",
+                          color: "[#ef4444]",
+                        },
+                      })}
+                      style={{ width: 20, height: 20 }}
+                      aria-label={`Delete ${param.name}`}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {parameters.length === 0 && (
             <div
               style={{
