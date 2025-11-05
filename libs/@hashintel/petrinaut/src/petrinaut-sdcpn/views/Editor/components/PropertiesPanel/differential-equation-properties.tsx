@@ -18,7 +18,14 @@ export const DifferentialEquationProperties: React.FC<
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        gap: 12,
+      }}
+    >
       <div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Differential Equation
@@ -30,13 +37,6 @@ export const DifferentialEquationProperties: React.FC<
           Name
         </div>
         <div style={{ fontSize: 14 }}>{differentialEquation.name}</div>
-      </div>
-
-      <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>ID</div>
-        <div style={{ fontSize: 12, color: "#666", fontFamily: "monospace" }}>
-          {differentialEquation.id}
-        </div>
       </div>
 
       <div>
@@ -63,7 +63,9 @@ export const DifferentialEquationProperties: React.FC<
         )}
       </div>
 
-      <div>
+      <div
+        style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+      >
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
           Code
         </div>
@@ -72,7 +74,8 @@ export const DifferentialEquationProperties: React.FC<
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
             overflow: "hidden",
-            height: 300,
+            flex: 1,
+            minHeight: 0,
           }}
         >
           <MonacoEditor
@@ -97,12 +100,12 @@ export const DifferentialEquationProperties: React.FC<
 
       <div
         style={{
-          marginTop: 8,
           padding: 8,
           backgroundColor: "rgba(59, 130, 246, 0.1)",
           borderRadius: 4,
           fontSize: 11,
           color: "#666",
+          flexShrink: 0,
         }}
       >
         <strong>Note:</strong> Editing differential equation properties is not

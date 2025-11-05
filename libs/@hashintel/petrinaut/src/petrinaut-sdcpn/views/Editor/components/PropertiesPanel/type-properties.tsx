@@ -21,13 +21,6 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({ type }) => {
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>ID</div>
-        <div style={{ fontSize: 12, color: "#666", fontFamily: "monospace" }}>
-          {type.id}
-        </div>
-      </div>
-
-      <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Color
         </div>

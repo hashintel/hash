@@ -23,13 +23,6 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>ID</div>
-        <div style={{ fontSize: 12, color: "#666", fontFamily: "monospace" }}>
-          {parameter.id}
-        </div>
-      </div>
-
-      <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Variable Name
         </div>

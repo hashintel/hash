@@ -94,9 +94,6 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Transition
         </div>
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
-          {transition.id}
-        </div>
       </div>
 
       <div>
