@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
 
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 
 export const DifferentialEquationsSection: React.FC = () => {
@@ -17,6 +18,8 @@ export const DifferentialEquationsSection: React.FC = () => {
   const removeDifferentialEquation = useSDCPNStore(
     (state) => state.removeDifferentialEquation,
   );
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const setSelectedItemIds = useEditorStore((state) => state.setSelectedItemIds);
 
   return (
     <div
@@ -96,54 +99,85 @@ export const DifferentialEquationsSection: React.FC = () => {
       </div>
       {isExpanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {differentialEquations.map((eq) => (
-            <div
-              key={eq.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "4px 8px",
-                fontSize: 13,
-                borderRadius: 4,
-                backgroundColor: "#f9fafb",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span>{eq.name}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
+          {differentialEquations.map((eq) => {
+            const isSelected = selectedItemIds.has(eq.id);
+            
+            return (
+              <div
+                key={eq.id}
+                onClick={(event) => {
+                  // Don't trigger selection if clicking the delete button
                   if (
-                    window.confirm(
-                      `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
-                    )
+                    event.target instanceof HTMLElement &&
+                    event.target.closest("button[aria-label^='Delete']")
                   ) {
-                    removeDifferentialEquation(eq.id);
+                    return;
+                  }
+                  setSelectedItemIds(new Set([eq.id]));
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    setSelectedItemIds(new Set([eq.id]));
                   }
                 }}
-                className={css({
+                style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  padding: "spacing.1",
-                  borderRadius: "radius.2",
+                  justifyContent: "space-between",
+                  padding: "4px 8px",
+                  fontSize: 13,
+                  borderRadius: 4,
+                  backgroundColor: isSelected
+                    ? "rgba(59, 130, 246, 0.15)"
+                    : "#f9fafb",
                   cursor: "pointer",
-                  fontSize: "[14px]",
-                  color: "core.gray.40",
+                }}
+                className={css({
                   _hover: {
-                    backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-                    color: "core.red.60",
+                    backgroundColor: isSelected
+                      ? "[rgba(59, 130, 246, 0.2)]"
+                      : "[rgba(0, 0, 0, 0.05)]",
                   },
                 })}
-                style={{ width: 20, height: 20 }}
-                aria-label={`Delete equation ${eq.name}`}
               >
-                ×
-              </button>
-            </div>
-          ))}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>{eq.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                      )
+                    ) {
+                      removeDifferentialEquation(eq.id);
+                    }
+                  }}
+                  className={css({
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "spacing.1",
+                    borderRadius: "radius.2",
+                    cursor: "pointer",
+                    fontSize: "[14px]",
+                    color: "core.gray.40",
+                    _hover: {
+                      backgroundColor: "[rgba(239, 68, 68, 0.1)]",
+                      color: "core.red.60",
+                    },
+                  })}
+                  style={{ width: 20, height: 20 }}
+                  aria-label={`Delete equation ${eq.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
           {differentialEquations.length === 0 && (
             <div
               style={{

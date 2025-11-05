@@ -25,6 +25,16 @@ export type EditorState = {
   removeSelectedItemId: (id: string) => void;
   clearSelection: () => void;
   deleteSelection: () => void;
+  getItemType: (
+    id: string,
+  ) =>
+    | "place"
+    | "transition"
+    | "arc"
+    | "type"
+    | "differentialEquation"
+    | "parameter"
+    | null;
 
   // Dragging state
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -56,7 +66,10 @@ export function createEditorStore(sdcpnStore: {
         // Selection
         selectedItemIds: new Set(),
         setSelectedItemIds: (ids) =>
-          set({ selectedItemIds: ids }, false, { type: "setSelectedItemIds", ids }),
+          set({ selectedItemIds: ids }, false, {
+            type: "setSelectedItemIds",
+            ids,
+          }),
         addSelectedItemId: (id) =>
           set(
             (state) => {
@@ -92,6 +105,44 @@ export function createEditorStore(sdcpnStore: {
             false,
             "deleteSelection",
           ),
+        // Get the type of an item by its ID
+        getItemType: (id) => {
+          const sdcpn = sdcpnStore.getState().sdcpn;
+
+          // Check for arc (starts with $A_)
+          if (id.startsWith("$A_")) {
+            return "arc";
+          }
+
+          // Check places
+          if (sdcpn.places.some((place) => place.id === id)) {
+            return "place";
+          }
+
+          // Check transitions
+          if (sdcpn.transitions.some((transition) => transition.id === id)) {
+            return "transition";
+          }
+
+          // Check types
+          if (sdcpn.types.some((type) => type.id === id)) {
+            return "type";
+          }
+
+          // Check differential equations
+          if (
+            sdcpn.differentialEquations.some((equation) => equation.id === id)
+          ) {
+            return "differentialEquation";
+          }
+
+          // Check parameters
+          if (sdcpn.parameters.some((parameter) => parameter.id === id)) {
+            return "parameter";
+          }
+
+          return null;
+        },
 
         // Dragging state
         draggingStateByNodeId: {},

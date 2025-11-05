@@ -21,7 +21,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     throw new Error("EditorProvider must be used within SDCPNProvider");
   }
 
-  storeRef.current ??= createEditorStore(sdcpnStore);
+  if (!storeRef.current) {
+    // Verify sdcpnStore has getState before creating the editor store
+    if (typeof sdcpnStore.getState !== "function") {
+      throw new Error("SDCPN store does not have a getState method");
+    }
+    storeRef.current = createEditorStore(sdcpnStore);
+  }
 
   return (
     <EditorContext.Provider value={storeRef.current}>

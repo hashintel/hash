@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 
 export const TypesSection: React.FC = () => {
@@ -9,6 +10,10 @@ export const TypesSection: React.FC = () => {
   const types = useSDCPNStore((state) => state.sdcpn.types);
   const addType = useSDCPNStore((state) => state.addType);
   const removeType = useSDCPNStore((state) => state.removeType);
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
 
   return (
     <div
@@ -97,76 +102,102 @@ export const TypesSection: React.FC = () => {
             overflowY: "auto",
           }}
         >
-          {types.map((type) => (
-            <div
-              key={type.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 9px",
-                borderRadius: 4,
-                backgroundColor: "transparent",
-              }}
-              className={css({
-                _hover: {
-                  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-                },
-              })}
-            >
+          {types.map((type) => {
+            const isSelected = selectedItemIds.has(type.id);
+
+            return (
               <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  backgroundColor: type.colorCode,
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: 13,
-                  color: "#374151",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {type.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
+                key={type.id}
+                onClick={(event) => {
+                  // Don't trigger selection if clicking the delete button
                   if (
-                    window.confirm(
-                      `Delete type "${type.name}"? All places using this type will have their type set to null.`,
-                    )
+                    event.target instanceof HTMLElement &&
+                    event.target.closest("button[aria-label^='Delete']")
                   ) {
-                    removeType(type.id);
+                    return;
+                  }
+                  setSelectedItemIds(new Set([type.id]));
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    setSelectedItemIds(new Set([type.id]));
                   }
                 }}
-                className={css({
+                style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  padding: "spacing.1",
-                  borderRadius: "radius.2",
+                  gap: 8,
+                  padding: "4px 9px",
+                  borderRadius: 4,
+                  backgroundColor: isSelected
+                    ? "rgba(59, 130, 246, 0.15)"
+                    : "transparent",
                   cursor: "pointer",
-                  fontSize: "[14px]",
-                  color: "core.gray.40",
+                }}
+                className={css({
                   _hover: {
-                    backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-                    color: "core.red.60",
+                    backgroundColor: isSelected
+                      ? "[rgba(59, 130, 246, 0.2)]"
+                      : "[rgba(0, 0, 0, 0.05)]",
                   },
                 })}
-                style={{ width: 20, height: 20 }}
-                aria-label={`Delete type ${type.name}`}
               >
-                ×
-              </button>
-            </div>
-          ))}
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    backgroundColor: type.colorCode,
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: "#374151",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {type.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Delete type "${type.name}"? All places using this type will have their type set to null.`,
+                      )
+                    ) {
+                      removeType(type.id);
+                    }
+                  }}
+                  className={css({
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "spacing.1",
+                    borderRadius: "radius.2",
+                    cursor: "pointer",
+                    fontSize: "[14px]",
+                    color: "core.gray.40",
+                    _hover: {
+                      backgroundColor: "[rgba(239, 68, 68, 0.1)]",
+                      color: "core.red.60",
+                    },
+                  })}
+                  style={{ width: 20, height: 20 }}
+                  aria-label={`Delete type ${type.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
           {types.length === 0 && (
             <div
               style={{

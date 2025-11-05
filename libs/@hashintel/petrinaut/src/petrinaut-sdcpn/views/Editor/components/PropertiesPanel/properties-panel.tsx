@@ -4,15 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { MultipleSelection } from "./multiple-selection";
+import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
+import { TypeProperties } from "./type-properties";
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const getItemType = useEditorStore((state) => state.getItemType);
   const globalMode = useEditorStore((state) => state.globalMode);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
   const updatePlace = useSDCPNStore((state) => state.updatePlace);
@@ -126,147 +130,203 @@ export const PropertiesPanel: React.FC = () => {
 
   let content: React.ReactNode = null;
 
-  // Check if it's a place
-  const placeData = sdcpn.places.find((place) => place.id === selectedId);
+  // Use getItemType to determine what kind of item is selected
+  const itemType = getItemType(selectedId);
 
-  if (placeData) {
-    content = (
-      <PlaceProperties
-        place={placeData}
-        types={sdcpn.types}
-        differentialEquations={sdcpn.differentialEquations}
-        globalMode={globalMode}
-        onUpdate={updatePlace}
-      />
-    );
-  }
-
-  // Check if it's a transition
-  const transitionData = sdcpn.transitions.find(
-    (transition) => transition.id === selectedId,
-  );
-  if (transitionData) {
-    content = (
-      <TransitionProperties
-        transition={transitionData}
-        places={sdcpn.places}
-        globalMode={globalMode}
-        onUpdate={updateTransition}
-        onArcWeightUpdate={updateArcWeight}
-      />
-    );
-  }
-
-  // Check if it's an arc (starts with $A_)
-  if (selectedId.startsWith("$A_")) {
-    // Parse arc ID: $A_<inputId>_<outputId>
-    const parts = selectedId.split("_");
-    if (parts.length === 3) {
-      const inputId = parts[1];
-      const outputId = parts[2];
-
-      // Determine if this is a place->transition or transition->place arc
-      const inputPlace = sdcpn.places.find((place) => place.id === inputId);
-      const outputPlace = sdcpn.places.find((place) => place.id === outputId);
-      const inputTransition = sdcpn.transitions.find(
-        (transition) => transition.id === inputId,
-      );
-      const outputTransition = sdcpn.transitions.find(
-        (transition) => transition.id === outputId,
-      );
-
-      let arcType: "input" | "output" | null = null;
-      let placeId: string | null | undefined = null;
-      let transitionId: string | null | undefined = null;
-      let arcWeight = 1;
-
-      if (inputPlace && outputTransition) {
-        // Input arc: place -> transition
-        arcType = "input";
-        placeId = inputId;
-        transitionId = outputId;
-        const arc = outputTransition.inputArcs.find(
-          (arcItem) => arcItem.placeId === inputId,
-        );
-        if (arc) {
-          arcWeight = arc.weight;
-        }
-      } else if (inputTransition && outputPlace) {
-        // Output arc: transition -> place
-        arcType = "output";
-        placeId = outputId;
-        transitionId = inputId;
-        const arc = inputTransition.outputArcs.find(
-          (arcItem) => arcItem.placeId === outputId,
-        );
-        if (arc) {
-          arcWeight = arc.weight;
-        }
-      }
-
-      if (arcType && placeId && transitionId) {
-        const place = sdcpn.places.find(
-          (placeItem) => placeItem.id === placeId,
-        );
-        const transition = sdcpn.transitions.find(
-          (transitionItem) => transitionItem.id === transitionId,
-        );
-
+  switch (itemType) {
+    case "place": {
+      const placeData = sdcpn.places.find((place) => place.id === selectedId);
+      if (placeData) {
         content = (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-                Arc ({arcType})
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Direction
-              </div>
-              <div style={{ fontSize: 14 }}>
-                {arcType === "input" ? (
-                  <>
-                    {place?.name ?? placeId} →{" "}
-                    {transition?.name ?? transitionId}
-                  </>
-                ) : (
-                  <>
-                    {transition?.name ?? transitionId} →{" "}
-                    {place?.name ?? placeId}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Place
-              </div>
-              <div style={{ fontSize: 14 }}>{place?.name ?? placeId}</div>
-              <div style={{ fontSize: 12, color: "#666" }}>{placeId}</div>
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Transition
-              </div>
-              <div style={{ fontSize: 14 }}>
-                {transition?.name ?? transitionId}
-              </div>
-              <div style={{ fontSize: 12, color: "#666" }}>{transitionId}</div>
-            </div>
-
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                Weight
-              </div>
-              <div style={{ fontSize: 14 }}>{arcWeight}</div>
-            </div>
-          </div>
+          <PlaceProperties
+            place={placeData}
+            types={sdcpn.types}
+            differentialEquations={sdcpn.differentialEquations}
+            globalMode={globalMode}
+            onUpdate={updatePlace}
+          />
         );
       }
+      break;
     }
+
+    case "transition": {
+      const transitionData = sdcpn.transitions.find(
+        (transition) => transition.id === selectedId,
+      );
+      if (transitionData) {
+        content = (
+          <TransitionProperties
+            transition={transitionData}
+            places={sdcpn.places}
+            globalMode={globalMode}
+            onUpdate={updateTransition}
+            onArcWeightUpdate={updateArcWeight}
+          />
+        );
+      }
+      break;
+    }
+
+    case "type": {
+      const typeData = sdcpn.types.find((type) => type.id === selectedId);
+      if (typeData) {
+        content = <TypeProperties type={typeData} />;
+      }
+      break;
+    }
+
+    case "differentialEquation": {
+      const equationData = sdcpn.differentialEquations.find(
+        (equation) => equation.id === selectedId,
+      );
+      if (equationData) {
+        content = (
+          <DifferentialEquationProperties
+            differentialEquation={equationData}
+            types={sdcpn.types}
+          />
+        );
+      }
+      break;
+    }
+
+    case "parameter": {
+      const parameterData = sdcpn.parameters.find(
+        (parameter) => parameter.id === selectedId,
+      );
+      if (parameterData) {
+        content = <ParameterProperties parameter={parameterData} />;
+      }
+      break;
+    }
+
+    case "arc": {
+      // Parse arc ID: $A_<inputId>_<outputId>
+      const parts = selectedId.split("_");
+      if (parts.length === 3) {
+        const inputId = parts[1];
+        const outputId = parts[2];
+
+        // Determine if this is a place->transition or transition->place arc
+        const inputPlace = sdcpn.places.find((place) => place.id === inputId);
+        const outputPlace = sdcpn.places.find((place) => place.id === outputId);
+        const inputTransition = sdcpn.transitions.find(
+          (transition) => transition.id === inputId,
+        );
+        const outputTransition = sdcpn.transitions.find(
+          (transition) => transition.id === outputId,
+        );
+
+        let arcType: "input" | "output" | null = null;
+        let placeId: string | null | undefined = null;
+        let transitionId: string | null | undefined = null;
+        let arcWeight = 1;
+
+        if (inputPlace && outputTransition) {
+          // Input arc: place -> transition
+          arcType = "input";
+          placeId = inputId;
+          transitionId = outputId;
+          const arc = outputTransition.inputArcs.find(
+            (arcItem) => arcItem.placeId === inputId,
+          );
+          if (arc) {
+            arcWeight = arc.weight;
+          }
+        } else if (inputTransition && outputPlace) {
+          // Output arc: transition -> place
+          arcType = "output";
+          placeId = outputId;
+          transitionId = inputId;
+          const arc = inputTransition.outputArcs.find(
+            (arcItem) => arcItem.placeId === outputId,
+          );
+          if (arc) {
+            arcWeight = arc.weight;
+          }
+        }
+
+        if (arcType && placeId && transitionId) {
+          const place = sdcpn.places.find(
+            (placeItem) => placeItem.id === placeId,
+          );
+          const transition = sdcpn.transitions.find(
+            (transitionItem) => transitionItem.id === transitionId,
+          );
+
+          content = (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
+                  Arc ({arcType})
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                  Direction
+                </div>
+                <div style={{ fontSize: 14 }}>
+                  {arcType === "input" ? (
+                    <>
+                      {place?.name ?? placeId} →{" "}
+                      {transition?.name ?? transitionId}
+                    </>
+                  ) : (
+                    <>
+                      {transition?.name ?? transitionId} →{" "}
+                      {place?.name ?? placeId}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                  Place
+                </div>
+                <div style={{ fontSize: 14 }}>{place?.name ?? placeId}</div>
+                <div style={{ fontSize: 12, color: "#666" }}>{placeId}</div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                  Transition
+                </div>
+                <div style={{ fontSize: 14 }}>
+                  {transition?.name ?? transitionId}
+                </div>
+                <div style={{ fontSize: 12, color: "#666" }}>{transitionId}</div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                  Weight
+                </div>
+                <div style={{ fontSize: 14 }}>{arcWeight}</div>
+              </div>
+            </div>
+          );
+        }
+      }
+      break;
+    }
+
+    default:
+      // Unknown item type
+      content = (
+        <div
+          style={{
+            padding: 16,
+            textAlign: "center",
+            color: "#999",
+            fontSize: 14,
+          }}
+        >
+          Unknown item selected
+        </div>
+      );
   }
 
   return (
