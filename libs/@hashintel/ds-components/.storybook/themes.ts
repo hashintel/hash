@@ -1,18 +1,19 @@
-import { create } from "storybook/theming";
+import { create, type ThemeVarsPartial } from "storybook/theming";
 
-const themBase = {
+const themeBase: Partial<ThemeVarsPartial> = {
   brandTitle: "HASH Design System",
   brandUrl: "https://hash.design",
 };
+
 export const themes = {
   light: create({
-    ...themBase,
+    ...themeBase,
     base: "light",
     brandImage: "/hash_logo_black.svg",
     brandTarget: "_self",
   }),
   dark: create({
-    ...themBase,
+    ...themeBase,
     base: "dark",
     brandImage: "/hash_logo_white.svg",
     brandTarget: "_self",
