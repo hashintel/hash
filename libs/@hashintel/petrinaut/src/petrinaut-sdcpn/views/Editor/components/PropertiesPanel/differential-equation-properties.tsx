@@ -64,7 +64,12 @@ export const DifferentialEquationProperties: React.FC<
       </div>
 
       <div
-        style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+        }}
       >
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
           Code
