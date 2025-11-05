@@ -43,9 +43,6 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Place
         </div>
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 16 }}>
-          {place.id}
-        </div>
       </div>
 
       <div>
