@@ -297,7 +297,9 @@ export const PropertiesPanel: React.FC = () => {
                 <div style={{ fontSize: 14 }}>
                   {transition?.name ?? transitionId}
                 </div>
-                <div style={{ fontSize: 12, color: "#666" }}>{transitionId}</div>
+                <div style={{ fontSize: 12, color: "#666" }}>
+                  {transitionId}
+                </div>
               </div>
 
               <div>

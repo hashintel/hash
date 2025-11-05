@@ -33,9 +33,7 @@ export const DifferentialEquationProperties: React.FC<
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          ID
-        </div>
+        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>ID</div>
         <div style={{ fontSize: 12, color: "#666", fontFamily: "monospace" }}>
           {differentialEquation.id}
         </div>

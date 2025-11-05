@@ -19,7 +19,9 @@ export const DifferentialEquationsSection: React.FC = () => {
     (state) => state.removeDifferentialEquation,
   );
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore((state) => state.setSelectedItemIds);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
 
   return (
     <div
@@ -101,7 +103,7 @@ export const DifferentialEquationsSection: React.FC = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {differentialEquations.map((eq) => {
             const isSelected = selectedItemIds.has(eq.id);
-            
+
             return (
               <div
                 key={eq.id}
