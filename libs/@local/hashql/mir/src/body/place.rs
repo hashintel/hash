@@ -77,6 +77,7 @@ impl<'heap> Place<'heap> {
         Self::iter_projections_from_parts(self.local, self.projections.0)
     }
 
+    #[must_use]
     pub fn iter_projections_from_parts(
         local: Local,
         projections: &'heap [Projection<'heap>],

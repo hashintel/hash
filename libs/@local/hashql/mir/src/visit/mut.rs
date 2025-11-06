@@ -1,6 +1,6 @@
 use core::{
     mem,
-    ops::{FromResidual, Try},
+    ops::{ControlFlow, FromResidual as _, Try},
 };
 
 use hashql_core::{
@@ -10,7 +10,7 @@ use hashql_core::{
     value::Primitive,
 };
 
-use self::filter::Filter;
+use self::filter::Filter as _;
 use crate::{
     body::{
         Body, Source,
@@ -37,7 +37,7 @@ macro_rules! Ok {
     };
 }
 
-mod filter {
+pub mod filter {
     pub trait Filter {
         const FOLD_INTERNED: bool;
     }
@@ -56,7 +56,8 @@ mod filter {
 }
 
 pub trait VisitorMut<'heap> {
-    type Result<T>: Try<Output = T> + FromResidual<<Self::Result<T> as Try>::Residual>
+    type Residual;
+    type Result<T>: Try<Output = T, Residual = Self::Residual>
     where
         T: 'heap;
 
@@ -103,20 +104,18 @@ pub trait VisitorMut<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
-    fn fold_local(&mut self, location: Location, local: Local) -> Self::Result<Local> {
-        Try::from_output(local)
-    }
-
     fn visit_local(&mut self, location: Location, local: &mut Local) -> Self::Result<()> {
-        walk_local(self, location, local)
+        // leaf: do nothing
+        Ok!()
     }
 
+    // This is called `fold` because that's the only thing it does
     fn fold_projection(
         &mut self,
         location: Location,
         base: PlaceRef<'heap>,
         projection: Projection<'heap>,
-    ) -> Self::Result<Projection> {
+    ) -> Self::Result<Projection<'heap>> {
         walk_projection(self, location, base, projection)
     }
 
@@ -332,6 +331,30 @@ pub trait VisitorMut<'heap> {
     }
 }
 
+macro_rules! fold_interned {
+    ($T:ident, $visitor:ident, $interner:ident; $slice:ident => $closure:expr) => {{
+        // For a brief amount of time we put the slice into an invalid state, that is fine, as this
+        // change cannot be observed, we *always* restore it.
+        let backup = *$slice;
+        let mut beef = Beef::new(mem::replace($slice, Interned::new_unchecked(&[])));
+        let flow = beef.try_map::<_, <$T>::Result<()>>($closure).branch();
+
+        match flow {
+            ControlFlow::Continue(()) => {
+                // We can safely finish
+                *$slice = beef.finish(&$visitor.interner().$interner);
+                Ok!()
+            }
+            ControlFlow::Break(err) => {
+                // An error has occurred, rollback any changes so that the slice remains in a valid
+                // state
+                *$slice = backup;
+                <$T>::Result::from_residual(err)
+            }
+        }
+    }};
+}
+
 pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
@@ -341,13 +364,10 @@ pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    // For a brief amount we put the params into an invalid state, this is fine, as we are the only
-    // ones who can modify it (&mut).
-    let mut beef = Beef::new(mem::replace(params, Interned::new_unchecked(&[])));
-    beef.try_map::<_, T::Result<()>>(|local| visitor.fold_local(location, local))?;
-    *params = beef.finish(&visitor.interner().locals);
-
-    Ok!()
+    fold_interned!(T, visitor, locals; params => |mut local| {
+        visitor.visit_local(location, &mut local)?;
+        T::Result::from_output(local)
+    })
 }
 
 pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -383,7 +403,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
         statement_index: 0,
     };
 
-    visitor.visit_basic_block_id(location, id)?;
+    // We do not visit the basic block id here because it **cannot** be changed
     visitor.visit_basic_block_params(location, params)?;
 
     location.statement_index += 1;
@@ -395,15 +415,6 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
 
     visitor.visit_terminator(location, terminator)?;
 
-    Ok!()
-}
-
-pub fn walk_local<'heap, T: VisitorMut<'heap> + ?Sized>(
-    visitor: &mut T,
-    location: Location,
-    local: &mut Local,
-) -> T::Result<()> {
-    *local = visitor.fold_local(location, *local)?;
     Ok!()
 }
 
@@ -435,9 +446,7 @@ pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
 
     let mut iter_projections = Place::iter_projections_from_parts(*local, projections.0);
 
-    // We put it briefly in an invalid state, which will be restored later
-    let mut beef = Beef::new(mem::replace(projections, Interned::new_unchecked(&[])));
-    beef.try_map(|projection| {
+    fold_interned!(T, visitor, projections; projections => |_| {
         // We actually don't take that specific projection, and instead use the one from
         // iter_projections
         let (base, projection) = iter_projections
@@ -445,10 +454,7 @@ pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
             .unwrap_or_else(|| unreachable!("both iterators are of the same size"));
 
         visitor.fold_projection(location, base, projection)
-    });
-    *projections = beef.finish(&visitor.interner().projections);
-
-    Ok!()
+    })
 }
 
 pub fn walk_constant<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -459,14 +465,14 @@ pub fn walk_constant<'heap, T: VisitorMut<'heap> + ?Sized>(
     match constant {
         Constant::Primitive(primitive) => visitor.visit_primitive(location, primitive),
         Constant::Unit => visitor.visit_unit(location),
-        Constant::FnPtr(def_id) => visitor.visit_def_id(location, *def_id),
+        Constant::FnPtr(def_id) => visitor.visit_def_id(location, def_id),
     }
 }
 
 pub fn walk_operand<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    operand: &Operand<'heap>,
+    operand: &mut Operand<'heap>,
 ) -> T::Result<()> {
     match operand {
         Operand::Place(place) => visitor.visit_place(location, place),
@@ -481,11 +487,15 @@ pub fn walk_target<'heap, T: VisitorMut<'heap> + ?Sized>(
 ) -> T::Result<()> {
     visitor.visit_basic_block_id(location, block);
 
-    for operand in args {
-        visitor.visit_operand(location, operand)?;
+    if !T::Filter::FOLD_INTERNED {
+        return Ok!();
     }
 
-    Ok!()
+    fold_interned!(T, visitor, operands; args => |mut arg| {
+        visitor.visit_operand(location, &mut arg)?;
+
+        T::Result::from_output(arg)
+    })
 }
 
 pub fn walk_statement<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -578,11 +588,10 @@ pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
     match kind {
         AggregateKind::Struct { fields } => {
             if T::Filter::FOLD_INTERNED {
-                // Replace with a temporarily invalid valid
-                let fields_backup = *fields;
-                let mut beef = Beef::new(mem::replace(fields, Interned::new_unchecked(&[])));
-                beef.try_map(|mut field| visitor.visit_symbol(location, &mut field));
-                todo!("finish implementation")
+                fold_interned!(T, visitor, symbols; fields => |mut field| {
+                    visitor.visit_symbol(location, &mut field)?;
+                    T::Result::from_output(field)
+                })?;
             }
         }
         AggregateKind::Opaque(name) => {
@@ -729,6 +738,7 @@ pub fn walk_graph_read_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     }
 }
 
+#[expect(clippy::needless_pass_by_ref_mut, reason = "API uniformity")]
 pub fn walk_graph_read_tail<'heap, T: VisitorMut<'heap> + ?Sized>(
     _visitor: &mut T,
     _location: GraphReadLocation,
