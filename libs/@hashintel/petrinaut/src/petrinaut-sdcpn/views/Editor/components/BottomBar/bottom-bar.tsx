@@ -25,6 +25,12 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const simulation = useSimulationStore((state) => state.simulation);
   const simulationState = useSimulationStore((state) => state.state);
   const step = useSimulationStore((state) => state.step);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
+  const setCurrentlyViewedFrame = useSimulationStore(
+    (state) => state.setCurrentlyViewedFrame,
+  );
 
   const hasSimulation = simulation !== null;
   const currentFrame = simulation?.currentFrameNumber ?? 0;
@@ -83,7 +89,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             currentFrame={currentFrame}
             totalFrames={totalFrames}
             simulationState={simulationState}
+            currentlyViewedFrame={currentlyViewedFrame}
             onStep={step}
+            onFrameChange={setCurrentlyViewedFrame}
           />
         )}
 

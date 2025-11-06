@@ -8,14 +8,17 @@ interface SimulationControlsProps {
   currentFrame: number;
   totalFrames: number;
   simulationState: SimulationState;
+  currentlyViewedFrame: number;
   onStep: () => void;
+  onFrameChange: (frameIndex: number) => void;
 }
 
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
-  currentFrame,
   totalFrames,
   simulationState,
+  currentlyViewedFrame,
   onStep,
+  onFrameChange,
 }) => {
   return (
     <>
@@ -42,14 +45,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             minWidth: "[60px]",
           })}
         >
-          Frame {currentFrame + 1} / {totalFrames}
+          Frame {currentlyViewedFrame + 1} / {totalFrames}
         </span>
         <input
           type="range"
           min="0"
           max={Math.max(0, totalFrames - 1)}
-          value={currentFrame}
-          disabled
+          value={currentlyViewedFrame}
+          onChange={(event) => onFrameChange(Number(event.target.value))}
           className={css({
             width: "[400px]",
             height: "[4px]",
@@ -57,21 +60,21 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             background: "core.gray.30",
             borderRadius: "[2px]",
             outline: "none",
-            cursor: "not-allowed",
+            cursor: "pointer",
             "&::-webkit-slider-thumb": {
               appearance: "none",
               width: "[12px]",
               height: "[12px]",
               borderRadius: "[50%]",
               background: "core.blue.50",
-              cursor: "not-allowed",
+              cursor: "pointer",
             },
             "&::-moz-range-thumb": {
               width: "[12px]",
               height: "[12px]",
               borderRadius: "[50%]",
               background: "core.blue.50",
-              cursor: "not-allowed",
+              cursor: "pointer",
               border: "none",
             },
           })}
