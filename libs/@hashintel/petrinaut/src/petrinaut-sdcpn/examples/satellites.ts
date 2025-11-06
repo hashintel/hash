@@ -10,7 +10,7 @@ export const satellitesSDCPN: SDCPN = {
       type: "type-satellite",
       dynamicsEnabled: true,
       differentialEquationCode: { refId: "de-satellite-orbit" },
-      visualizerCode: `export default Visualization({ tokens, parameters }) => {
+      visualizerCode: `export default Visualization(({ tokens, parameters }) => {
   const EARTH_RADIUS = 50; // pixels
   const SATELLITE_RADIUS = 4; // pixels
 
@@ -115,7 +115,7 @@ export const satellitesSDCPN: SDCPN = {
       </defs>
     </svg>
   );
-};`,
+});`,
       x: 30,
       y: 83.33333333333333,
       width: 130,
