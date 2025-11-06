@@ -24,6 +24,11 @@ id::newtype!(
     pub struct FieldIndex(usize is 0..=usize::MAX)
 );
 
+pub struct PlaceRef<'heap> {
+    pub local: Local,
+    pub projections: &'heap [Projection<'heap>],
+}
+
 /// A storage location that can be read from or written to in the MIR.
 ///
 /// A [`Place`] represents a path to a storage location, starting from a [`Local`] variable and
@@ -62,6 +67,23 @@ impl<'heap> Place<'heap> {
             local: self.local,
             projections: interner.projections.intern_slice(&projections),
         }
+    }
+
+    pub fn iter_projections(
+        self,
+    ) -> impl Iterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + DoubleEndedIterator {
+        self.projections
+            .0
+            .iter()
+            .enumerate()
+            .map(move |(index, projection)| {
+                let place = PlaceRef {
+                    local: self.local,
+                    projections: &self.projections.0[..index],
+                };
+
+                (place, *projection)
+            })
     }
 }
 
