@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GraphReadLocation {
-    pub location: Location,
+    pub base: Location,
     pub graph_read_index: usize,
 }
 

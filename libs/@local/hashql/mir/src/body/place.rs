@@ -69,9 +69,11 @@ impl<'heap> Place<'heap> {
         }
     }
 
+    #[must_use]
     pub fn iter_projections(
         self,
-    ) -> impl Iterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + DoubleEndedIterator {
+    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + ExactSizeIterator
+    {
         self.projections
             .0
             .iter()
