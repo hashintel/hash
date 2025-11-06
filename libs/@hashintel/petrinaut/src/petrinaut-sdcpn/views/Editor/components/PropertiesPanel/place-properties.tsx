@@ -6,6 +6,7 @@ import type {
   SDCPNType,
 } from "../../../../../core/types/sdcpn";
 import { Switch } from "../../../../components/switch";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 import { InitialStateEditor } from "./initial-state-editor";
 
 interface PlacePropertiesProps {
@@ -23,6 +24,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   globalMode,
   onUpdate,
 }) => {
+  const simulation = useSimulationStore((state) => state.simulation);
+
   // Determine current differential equation selection
   const isCustom =
     typeof place.differentialEquationCode === "string" ||
@@ -334,33 +337,79 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       {place.visualizerCode !== null && (
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Visualizer Code
+            {globalMode === "simulate" &&
+            simulation &&
+            simulation.frames.length > 0
+              ? "Visualizer Output"
+              : "Visualizer Code"}
           </div>
           <div
             style={{
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
               overflow: "hidden",
-              height: 310,
             }}
           >
-            <MonacoEditor
-              language="typescript"
-              value={place.visualizerCode}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                readOnly: true,
-              }}
-            />
+            {globalMode === "simulate" &&
+            simulation &&
+            simulation.frames.length > 0 ? (
+              // Show live token values and parameters during simulation
+              (() => {
+                const currentFrame =
+                  simulation.frames[simulation.currentFrameNumber];
+                if (!currentFrame) {
+                  return "No frame data available";
+                }
+
+                const placeState = currentFrame.places.get(place.id);
+                if (!placeState) {
+                  return "Place not found in frame";
+                }
+
+                const { offset, count, dimensions } = placeState;
+                const placeSize = count * dimensions;
+                const tokenValues = Array.from(
+                  currentFrame.buffer.slice(offset, offset + placeSize),
+                );
+
+                // Format tokens as array of arrays
+                const tokens: number[][] = [];
+                for (let i = 0; i < count; i++) {
+                  const token: number[] = [];
+                  for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+                    token.push(tokenValues[i * dimensions + colIndex] ?? 0);
+                  }
+                  tokens.push(token);
+                }
+
+                return (
+                  <TempVisualizer
+                    tokens={tokens}
+                    parameters={simulation.parameterValues}
+                  />
+                );
+              })()
+            ) : (
+              // Show code editor in edit mode
+              <MonacoEditor
+                language="typescript"
+                height={400}
+                value={place.visualizerCode}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: "off",
+                  folding: true,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 0,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                  readOnly: true,
+                }}
+              />
+            )}
           </div>
         </div>
       )}
