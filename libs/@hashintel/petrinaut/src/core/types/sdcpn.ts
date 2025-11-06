@@ -26,6 +26,7 @@ export type Place = {
     | {
         refId: ID; // refers to differentialEquations.id
       };
+  visualizerCode: null | string;
   // UI positioning
   x: number;
   y: number;
