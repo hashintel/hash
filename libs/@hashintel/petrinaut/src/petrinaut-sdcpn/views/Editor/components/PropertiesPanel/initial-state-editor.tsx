@@ -39,9 +39,40 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking,
   );
+  const simulation = useSimulationStore((state) => state.simulation);
 
-  // Get current marking for this place from simulation store
-  const currentMarking = initialMarking.get(placeId);
+  // Determine if we should show current simulation state or initial marking
+  const hasSimulation = simulation !== null && simulation.frames.length > 0;
+
+  // Get current marking for this place - either from simulation frame or initial marking
+  const getCurrentMarkingData = (): {
+    values: Float64Array;
+    count: number;
+  } | null => {
+    if (hasSimulation) {
+      // Get from current frame
+      const currentFrame = simulation.frames[simulation.currentFrameNumber];
+      if (!currentFrame) {
+        return null;
+      }
+
+      const placeState = currentFrame.places.get(placeId);
+      if (!placeState) {
+        return null;
+      }
+
+      const { offset, count, dimensions } = placeState;
+      const placeSize = count * dimensions;
+      const values = currentFrame.buffer.slice(offset, offset + placeSize);
+
+      return { values, count };
+    }
+
+    // Get from initial marking
+    return initialMarking.get(placeId) ?? null;
+  };
+
+  const currentMarking = getCurrentMarkingData();
 
   // Initialize table data from current marking or empty row
   const [tableData, setTableData] = useState<(string | number | boolean)[][]>(
@@ -52,8 +83,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         const tokens: (string | number | boolean)[][] = [];
         for (let i = 0; i < currentMarking.count; i++) {
           const tokenValues: (string | number | boolean)[] = [];
-          for (let j = 0; j < dimensions; j++) {
-            tokenValues.push(currentMarking.values[i * dimensions + j] ?? "");
+          for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+            tokenValues.push(
+              currentMarking.values[i * dimensions + colIndex] ?? "",
+            );
           }
           tokens.push(tokenValues);
         }
@@ -70,8 +103,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       const tokens: (string | number | boolean)[][] = [];
       for (let i = 0; i < currentMarking.count; i++) {
         const tokenValues: (string | number | boolean)[] = [];
-        for (let j = 0; j < dimensions; j++) {
-          tokenValues.push(currentMarking.values[i * dimensions + j] ?? "");
+        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+          tokenValues.push(
+            currentMarking.values[i * dimensions + colIndex] ?? "",
+          );
         }
         tokens.push(tokenValues);
       }
@@ -141,21 +176,23 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           alignItems: "center",
         }}
       >
-        <span>Initial State</span>
-        <button
-          type="button"
-          onClick={addRow}
-          style={{
-            fontSize: 11,
-            padding: "2px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.2)",
-            borderRadius: 3,
-            backgroundColor: "white",
-            cursor: "pointer",
-          }}
-        >
-          + Add Row
-        </button>
+        <span>State</span>
+        {!hasSimulation && (
+          <button
+            type="button"
+            onClick={addRow}
+            style={{
+              fontSize: 11,
+              padding: "2px 8px",
+              border: "1px solid rgba(0, 0, 0, 0.2)",
+              borderRadius: 3,
+              backgroundColor: "white",
+              cursor: "pointer",
+            }}
+          >
+            + Add Row
+          </button>
+        )}
       </div>
       <div
         style={{
@@ -171,10 +208,11 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           rowHeaders
           height="auto"
           minRows={1}
-          contextMenu
+          contextMenu={!hasSimulation}
+          readOnly={hasSimulation}
           licenseKey="non-commercial-and-evaluation"
           afterChange={(changes) => {
-            if (changes) {
+            if (changes && !hasSimulation) {
               setTableData((prev) => {
                 const newData = [...prev];
                 for (const change of changes) {
