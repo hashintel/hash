@@ -30,9 +30,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         className={css({
           display: "flex",
           alignItems: "center",
-          gap: "spacing.3",
           paddingX: "spacing.2",
         })}
+        style={{ paddingLeft: 12, gap: 12 }}
       >
         <span
           className={css({
@@ -51,7 +51,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           value={currentFrame}
           disabled
           className={css({
-            width: "[120px]",
+            width: "[400px]",
             height: "[4px]",
             appearance: "none",
             background: "core.gray.30",
