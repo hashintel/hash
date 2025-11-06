@@ -397,8 +397,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 // Check if we have simulation frames or use initial marking
                 if (simulation && simulation.frames.length > 0) {
                   // Use currently viewed simulation frame
-                  const currentFrame =
-                    simulation.frames[currentlyViewedFrame];
+                  const currentFrame = simulation.frames[currentlyViewedFrame];
                   if (!currentFrame) {
                     return (
                       <div style={{ padding: 12, color: "#666" }}>
