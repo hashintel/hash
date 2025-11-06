@@ -490,6 +490,8 @@ where
 {
     // For a brief amount of time we put the slice into an invalid state, that is fine, as this
     // change cannot be observed, due to the fact that we *always* restore it.
+    // This will leave the tree in an invalid state if `on_item` panics. This is considered a fine
+    // trade-off, as a tree should not be used anymore if any panics occur (as they indicate ICE).
     let backup = *slice;
     let mut beef = Beef::new(mem::replace(slice, Interned::new_unchecked(&[])));
 
@@ -522,6 +524,8 @@ where
 {
     // For a brief amount of time we put the slice into an invalid state, that is fine, as this
     // change cannot be observed, due to the fact that we *always* restore it.
+    // This will leave the tree in an invalid state if `on_item` panics. This is considered a fine
+    // trade-off, as a tree should not be used anymore if any panics occur (as they indicate ICE).
     let backup = *slice;
     let mut beef = Beef::new(mem::replace(slice, Interned::new_unchecked(&[])));
 
