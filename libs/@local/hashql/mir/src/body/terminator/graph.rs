@@ -7,9 +7,15 @@
 use hashql_core::heap;
 
 use crate::{
-    body::{basic_block::BasicBlockId, local::Local, operand::Operand},
+    body::{basic_block::BasicBlockId, local::Local, location::Location, operand::Operand},
     def::DefId,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct GraphReadLocation {
+    pub location: Location,
+    pub graph_read_index: usize,
+}
 
 /// The starting point for a graph read operation.
 ///

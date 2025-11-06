@@ -6,6 +6,7 @@
     // Language Features
     coverage_attribute,
     if_let_guard,
+    macro_attr,
     macro_metavar_expr_concat,
     never_type,
 
@@ -22,6 +23,7 @@ pub mod def;
 pub mod intern;
 pub mod pretty;
 pub mod reify;
+pub mod visitor;
 
 #[cfg(test)]
 mod tests {
