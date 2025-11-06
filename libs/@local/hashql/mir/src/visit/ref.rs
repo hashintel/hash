@@ -68,6 +68,7 @@ macro_rules! Ok {
 ///
 /// [`Location`]: crate::body::location::Location
 /// [`VisitorMut`]: super::VisitorMut
+/// [`ControlFlow<()>`]: core::ops::ControlFlow
 pub trait Visitor<'heap> {
     /// The result type for visitor methods.
     ///
@@ -76,6 +77,8 @@ pub trait Visitor<'heap> {
     /// - [`Result<(), E>`] for fallible operations
     /// - [`ControlFlow<B, ()>`] for control-flow based termination
     /// - [`Result<(), !>`] for infallible operations
+    ///
+    /// [`ControlFlow<B, ()>`]: core::ops::ControlFlow
     type Result: Try<Output = ()>;
 
     #[expect(unused_variables, reason = "trait definition")]
