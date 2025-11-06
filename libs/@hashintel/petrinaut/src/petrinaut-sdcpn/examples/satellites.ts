@@ -10,6 +10,112 @@ export const satellitesSDCPN: SDCPN = {
       type: "type-satellite",
       dynamicsEnabled: true,
       differentialEquationCode: { refId: "de-satellite-orbit" },
+      visualizerCode: `export default Visualization({ tokens, parameters }) => {
+  const EARTH_RADIUS = 50; // pixels
+  const SATELLITE_RADIUS = 4; // pixels
+
+  const width = 800;
+  const height = 600;
+
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  return (
+    <svg
+      viewBox={\`0 0 \${width} \${height}\`}
+      style={{ borderRadius: "4px", width: "100%" }}
+    >
+      {/* Background */}
+      <rect width={width} height={height} fill="#000014" />
+
+      {/* Earth at center */}
+      <circle
+        cx={centerX}
+        cy={centerY}
+        r={EARTH_RADIUS}
+        fill="#2196f3"
+        stroke="#1976d2"
+        strokeWidth="2"
+      />
+
+      {/* Earth surface details */}
+      <circle
+        cx={centerX}
+        cy={centerY}
+        r={EARTH_RADIUS - 5}
+        fill="none"
+        stroke="#64b5f6"
+        strokeWidth="1"
+        opacity="0.3"
+      />
+
+      {/* Satellites */}
+      {tokens.map(([x, y, direction, velocity], index) => {
+        // Convert satellite coordinates to screen coordinates
+        // Assuming satellite coordinates are relative to Earth center
+        const screenX = centerX + x;
+        const screenY = centerY + y;
+
+        return (
+          <g key={index}>
+            {/* Satellite orbit path (optional visualization) */}
+            <circle
+              cx={centerX}
+              cy={centerY}
+              r={Math.hypot(x, y)}
+              fill="none"
+              stroke="#666"
+              strokeWidth="1"
+              opacity="0.2"
+              strokeDasharray="2,2"
+            />
+
+            {/* Satellite */}
+            <circle
+              cx={screenX}
+              cy={screenY}
+              r={SATELLITE_RADIUS}
+              fill="#ff5722"
+              stroke="#d84315"
+              strokeWidth="1"
+            />
+
+            {/* Velocity vector indicator */}
+            <line
+              x1={screenX}
+              y1={screenY}
+              x2={screenX + Math.cos(direction) * Math.log(velocity)}
+              y2={screenY + Math.sin(direction) * Math.log(velocity)}
+              stroke="#ffc107"
+              strokeWidth="2"
+              markerEnd="url(#arrowhead)"
+            />
+          </g>
+        );
+      })}
+
+      {/* Arrow marker for velocity vectors */}
+      <defs>
+        <marker
+          id="arrowhead"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="4"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <polygon
+            points="0 0, 8 4, 0 8"
+            fill="#ffc107"
+            stroke="#f57f17"
+            strokeWidth="0.5"
+          />
+        </marker>
+      </defs>
+    </svg>
+  );
+};`,
       x: 30,
       y: 83.33333333333333,
       width: 130,
@@ -21,6 +127,7 @@ export const satellitesSDCPN: SDCPN = {
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: "",
+      visualizerCode: null,
       x: 510,
       y: 75,
       width: 130,
