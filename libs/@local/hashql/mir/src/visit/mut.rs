@@ -1,10 +1,11 @@
 use core::{
+    hash::Hash,
     mem,
     ops::{ControlFlow, FromResidual as _, Try},
 };
 
 use hashql_core::{
-    intern::{Beef, Interned},
+    intern::{Beef, InternSet, Interned},
     span::SpanId,
     symbol::Symbol,
     value::Primitive,
@@ -242,7 +243,15 @@ pub trait VisitorMut<'heap> {
         Ok!()
     }
 
-    // This is called `fold` because that's the only thing it does
+    /// Folds a projection, potentially transforming it.
+    ///
+    /// Unlike most visitor methods which mutate nodes in place, this method takes a projection by
+    /// value and returns a (potentially modified) projection. This is required to make the
+    /// transformation *explicit*. [`Projection`] is only referenced in a place through an interned
+    /// slice, unlike other nodes, which are also stored outside of interned slices.
+    ///
+    /// The `base` parameter provides the [`PlaceRef`] up to (but not including) this projection,
+    /// giving context about what is being projected from.
     fn fold_projection(
         &mut self,
         location: Location,
@@ -464,28 +473,37 @@ pub trait VisitorMut<'heap> {
     }
 }
 
-macro_rules! fold_interned {
-    ($T:ident, $visitor:ident, $interner:ident; $slice:ident => $closure:expr) => {{
-        // For a brief amount of time we put the slice into an invalid state, that is fine, as this
-        // change cannot be observed, we *always* restore it.
-        let backup = *$slice;
-        let mut beef = Beef::new(mem::replace($slice, Interned::new_unchecked(&[])));
-        let flow = beef.try_map::<_, <$T>::Result<()>>($closure).branch();
+fn fold_interned<'heap: 'visitor, 'visitor, V: VisitorMut<'heap> + ?Sized, T>(
+    visitor: &'visitor mut V,
+    interner: impl FnOnce(&'visitor Interner<'heap>) -> &'visitor InternSet<'heap, [T]>,
+    slice: &mut Interned<'heap, [T]>,
+    mut on_item: impl FnMut(&mut V, T) -> V::Result<T>,
+) -> V::Result<()>
+where
+    T: Copy + Eq + Hash + 'heap,
+{
+    let backup = *slice;
 
-        match flow {
-            ControlFlow::Continue(()) => {
-                // We can safely finish
-                *$slice = beef.finish(&$visitor.interner().$interner);
-                Ok!()
-            }
-            ControlFlow::Break(err) => {
-                // An error has occurred, rollback any changes so that the slice remains in a valid
-                // state
-                *$slice = backup;
-                <$T>::Result::from_residual(err)
-            }
+    // For a brief amount of time we put the slice into an invalid state, that is fine, as this
+    // change cannot be observed, due to the fact that we *always* restore it.
+    let mut beef = Beef::new(mem::replace(slice, Interned::new_unchecked(&[])));
+
+    let flow = beef
+        .try_map::<_, V::Result<()>>(&mut |item| on_item(visitor, item))
+        .branch();
+
+    match flow {
+        ControlFlow::Continue(()) => {
+            // We can safely finish
+            *slice = beef.finish(interner(visitor.interner()));
+            Ok!()
         }
-    }};
+        ControlFlow::Break(err) => {
+            // Restore the original slice
+            *slice = backup;
+            V::Result::from_residual(err)
+        }
+    }
 }
 
 pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -497,10 +515,16 @@ pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    fold_interned!(T, visitor, locals; params => |mut local| {
-        visitor.visit_local(location, &mut local)?;
-        T::Result::from_output(local)
-    })
+    fold_interned(
+        visitor,
+        |interner| &interner.locals,
+        params,
+        |visitor, mut local| {
+            visitor.visit_local(location, &mut local)?;
+
+            Try::from_output(local)
+        },
+    )
 }
 
 pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -624,11 +648,15 @@ pub fn walk_target<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    fold_interned!(T, visitor, operands; args => |mut arg| {
-        visitor.visit_operand(location, &mut arg)?;
-
-        T::Result::from_output(arg)
-    })
+    fold_interned(
+        visitor,
+        |interner| &interner.operands,
+        args,
+        |visitor, mut arg| {
+            visitor.visit_operand(location, &mut arg)?;
+            T::Result::from_output(arg)
+        },
+    )
 }
 
 pub fn walk_statement<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -721,10 +749,15 @@ pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
     match kind {
         AggregateKind::Struct { fields } => {
             if T::Filter::FOLD_INTERNED {
-                fold_interned!(T, visitor, symbols; fields => |mut field| {
-                    visitor.visit_symbol(location, &mut field)?;
-                    T::Result::from_output(field)
-                })?;
+                fold_interned(
+                    visitor,
+                    |interner| &interner.symbols,
+                    fields,
+                    |visitor, mut field| {
+                        visitor.visit_symbol(location, &mut field)?;
+                        T::Result::from_output(field)
+                    },
+                )?;
             }
         }
         AggregateKind::Opaque(name) => {
