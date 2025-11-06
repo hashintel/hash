@@ -7712,6 +7712,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@pandacss/dev": "npm:1.4.3"
     "@storybook/addon-docs": "npm:9.1.13"
+    "@storybook/global": "npm:5.0.0"
     "@storybook/react": "npm:9.1.13"
     "@storybook/react-vite": "npm:9.1.13"
     "@types/react": "npm:19.2.2"
@@ -16696,7 +16697,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@storybook/global@npm:^5.0.0":
+"@storybook/global@npm:5.0.0, @storybook/global@npm:^5.0.0":
   version: 5.0.0
   resolution: "@storybook/global@npm:5.0.0"
   checksum: 10c0/8f1b61dcdd3a89584540896e659af2ecc700bc740c16909a7be24ac19127ea213324de144a141f7caf8affaed017d064fea0618d453afbe027cf60f54b4a6d0b
