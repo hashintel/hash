@@ -24,8 +24,30 @@ id::newtype!(
     pub struct FieldIndex(usize is 0..=usize::MAX)
 );
 
+/// A borrowed reference to a place at a specific projection depth.
+///
+/// [`PlaceRef`] represents an intermediate point in a place's projection chain,
+/// consisting of a root local and a slice of projections up to (but not including)
+/// a particular projection step.
+///
+/// # Relationship to Place
+///
+/// While [`Place`] owns its complete projection sequence via [`Interned`],
+/// [`PlaceRef`] borrows a prefix of that sequence.
+///
+/// # Example Structure
+///
+/// For a place like `local_0.field_1.field_2`:
+/// - At projection 0: `PlaceRef { local: local_0, projections: [] }`
+/// - At projection 1: `PlaceRef { local: local_0, projections: [field_1] }`
 pub struct PlaceRef<'heap> {
+    /// The root local variable that this place reference starts from.
     pub local: Local,
+
+    /// The partial sequence of projections representing the path up to this point.
+    ///
+    /// This slice contains all projections applied before the current projection
+    /// being examined during iteration.
     pub projections: &'heap [Projection<'heap>],
 }
 
@@ -51,6 +73,11 @@ pub struct Place<'heap> {
 }
 
 impl<'heap> Place<'heap> {
+    /// Creates a new place that directly references a local variable without any projections.
+    ///
+    /// This is the simplest form of a place, representing direct access to a local variable
+    /// without navigating through any structured data. The resulting place has an empty
+    /// projection sequence.
     pub fn local(local: Local, interner: &Interner<'heap>) -> Self {
         Self {
             local,
@@ -58,6 +85,10 @@ impl<'heap> Place<'heap> {
         }
     }
 
+    /// Extends this place with an additional projection, creating a deeper navigation path.
+    ///
+    /// This method creates a new [`Place`] that extends the current projection chain by
+    /// appending one more projection step.
     #[must_use]
     pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
         let mut projections = self.projections.to_vec();
@@ -69,6 +100,21 @@ impl<'heap> Place<'heap> {
         }
     }
 
+    /// Iterates over each projection step in this place's navigation path.
+    ///
+    /// Returns an iterator that yields pairs of ([`PlaceRef`], [`Projection`]), where
+    /// each [`PlaceRef`] represents the place up to (but not including) the current
+    /// projection, and the [`Projection`] is the next step being taken.
+    ///
+    /// This allows examining how a place is built up step-by-step from its root local
+    /// through each successive projection.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that:
+    /// - Yields `(PlaceRef, Projection)` tuples for each projection step
+    /// - Is double-ended (can iterate forwards or backwards)
+    /// - Has an exact known length
     #[must_use]
     pub fn iter_projections(
         self,
@@ -77,6 +123,14 @@ impl<'heap> Place<'heap> {
         Self::iter_projections_from_parts(self.local, self.projections.0)
     }
 
+    /// Iterates over projection steps from decomposed place components.
+    ///
+    /// This is a lower-level variant of [`iter_projections`] that operates on the raw
+    /// components of a place (local and projection slice) rather than a [`Place`] instance.
+    /// This is useful when you have a [`PlaceRef`] and want to iterate over its projections
+    /// without first constructing a full [`Place`].
+    ///
+    /// [`iter_projections`]: Place::iter_projections
     #[must_use]
     pub fn iter_projections_from_parts(
         local: Local,
