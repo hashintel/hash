@@ -123,7 +123,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             return (
               <div>
                 <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Initial State
+                  State
                 </div>
                 <div>
                   <div
