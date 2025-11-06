@@ -27,10 +27,8 @@
 
 use core::{fmt, fmt::Debug, hash::Hash, ops::Try};
 
-use hashql_core::{
-    collections::SmallVec,
-    intern::{InternSet, Interned},
-};
+use super::{InternSet, Interned};
+use crate::collections::SmallVec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum BeefData<'heap, T> {
@@ -427,9 +425,10 @@ where
 mod tests {
     use core::ptr;
 
-    use hashql_core::{heap::Heap, intern::InternSet};
-
-    use crate::fold::beef::Beef;
+    use crate::{
+        heap::Heap,
+        intern::{Beef, InternSet},
+    };
 
     // Test finish with no modifications
     #[test]

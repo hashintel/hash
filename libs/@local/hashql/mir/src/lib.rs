@@ -4,6 +4,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
+    associated_type_defaults,
     coverage_attribute,
     if_let_guard,
     macro_attr,
@@ -24,7 +25,7 @@ pub mod def;
 pub mod intern;
 pub mod pretty;
 pub mod reify;
-pub mod visitor;
+pub mod visit;
 
 #[cfg(test)]
 mod tests {

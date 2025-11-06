@@ -75,6 +75,7 @@ pub trait Visitor<'heap> {
         Ok!()
     }
 
+    // This is never mut
     fn visit_projection(
         &mut self,
         location: Location,
