@@ -35,6 +35,9 @@ export type SimulationStoreState = {
   // Maps place ID to initial token data
   initialMarking: InitialMarking;
 
+  // The currently viewed frame index (for timeline scrubbing)
+  currentlyViewedFrame: number;
+
   // Set initial marking for a specific place
   setInitialMarking: (
     placeId: string,
@@ -58,6 +61,9 @@ export type SimulationStoreState = {
 
   // Set the simulation state to Running or Paused
   setState: (state: SimulationState) => void;
+
+  // Set the currently viewed frame (for timeline scrubbing)
+  setCurrentlyViewedFrame: (frameIndex: number) => void;
 };
 
 /**
@@ -75,6 +81,7 @@ export function createSimulationStore(sdcpnStore: {
         error: null,
         parameterValues: {},
         initialMarking: new Map(),
+        currentlyViewedFrame: 0,
 
         setInitialMarking: (placeId, marking) =>
           set(
@@ -138,6 +145,7 @@ export function createSimulationStore(sdcpnStore: {
                   simulation: simulationInstance,
                   state: "Paused",
                   error: null,
+                  currentlyViewedFrame: 0,
                 };
               } catch (error) {
                 // eslint-disable-next-line no-console
@@ -196,6 +204,7 @@ export function createSimulationStore(sdcpnStore: {
                   simulation: updatedSimulation,
                   state: state.state === "Running" ? "Running" : "Paused",
                   error: null,
+                  currentlyViewedFrame: updatedSimulation.currentFrameNumber,
                 };
               } catch (error) {
                 // eslint-disable-next-line no-console
@@ -221,6 +230,7 @@ export function createSimulationStore(sdcpnStore: {
               state: "NotRun",
               error: null,
               parameterValues: {},
+              currentlyViewedFrame: 0,
               // Keep initialMarking when resetting - it's configuration, not simulation state
             },
             false,
@@ -253,6 +263,27 @@ export function createSimulationStore(sdcpnStore: {
             },
             false,
             { type: "setState", newState },
+          ),
+
+        setCurrentlyViewedFrame: (frameIndex) =>
+          set(
+            (state) => {
+              if (!state.simulation) {
+                throw new Error(
+                  "Cannot set viewed frame: No simulation initialized.",
+                );
+              }
+
+              const totalFrames = state.simulation.frames.length;
+              const clampedIndex = Math.max(
+                0,
+                Math.min(frameIndex, totalFrames - 1),
+              );
+
+              return { currentlyViewedFrame: clampedIndex };
+            },
+            false,
+            { type: "setCurrentlyViewedFrame", frameIndex },
           ),
       }),
       { name: "Simulation Store" },
