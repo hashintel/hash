@@ -7,7 +7,7 @@ import { satellitesSDCPN } from "../../examples/satellites";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
-import { BottomBar } from "./components/bottom-bar";
+import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
