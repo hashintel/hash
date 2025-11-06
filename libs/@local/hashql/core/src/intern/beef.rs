@@ -395,6 +395,29 @@ where
     /// let finished = beef.finish(&interner);
     /// assert!(ptr::eq(finished.as_ptr(), original_ptr)); // Same memory!
     /// ```
+    ///
+    /// ## Prefix cannot escape closure
+    ///
+    /// ```compile_fail
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # use core::ptr;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[1, 2, 3]);
+    /// let original_ptr = interned.as_ptr();
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Return all elements unchanged
+    /// let mut escapee = &[] as &[i32];
+    /// let _: Result<(), ()> = beef.try_scan(|prev, x| {
+    ///     escapee = prev;
+    ///     Ok(x)
+    /// });
+    ///
+    /// let finished = beef.finish(&interner);
+    /// assert!(ptr::eq(finished.as_ptr(), original_ptr)); // Same memory!
+    /// ```
     pub fn try_scan<F, U>(&mut self, mut closure: impl FnMut(&[T], T) -> F) -> U
     where
         F: Try<Output = T>,
