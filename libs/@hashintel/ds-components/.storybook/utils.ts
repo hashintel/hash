@@ -14,7 +14,7 @@ const { window: globalWindow } = global;
  */
 export const getPreferredColorScheme = () => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!globalWindow || !globalWindow.matchMedia) {
+  if (!globalWindow?.matchMedia) {
     return "light";
   }
 
